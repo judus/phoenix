@@ -28,7 +28,7 @@ test('application startup projects the current commander, ranks, location and sh
     const diagnostics = await client.getEliteJournalDiagnostics()
 
     expect(state).toMatchObject({
-      revision: 6,
+      revision: 13,
       commander: {
         name: 'Test Commander',
         ranks: { combat: 5, trade: 8, exploration: 6, exobiologist: 4 },
@@ -121,13 +121,38 @@ test('application startup projects the current commander, ranks, location and sh
           }
         ]
       },
+      inventory: {
+        cargo: {
+          updatedAt: '2026-08-10T12:00:06Z',
+          vessel: 'ship',
+          items: [
+            { id: 'gold', label: 'Gold', count: 3, stolen: 0, missionId: null },
+            { id: 'missioncommodity', count: 2, missionId: 42 }
+          ]
+        },
+        materials: {
+          updatedAt: '2026-08-10T12:00:11Z',
+          raw: [
+            { id: 'iron', label: 'Iron', count: 12 },
+            { id: 'selenium', label: 'Selenium', count: 1 }
+          ],
+          manufactured: [{ id: 'focuscrystals', count: 4 }],
+          encoded: [{ id: 'disruptedwakeechoes', count: 8 }]
+        },
+        shipLocker: {
+          components: [{ id: 'microelectrode', count: 6 }]
+        },
+        backpack: {
+          consumables: [{ id: 'healthpack', label: 'Medkit', count: 2 }]
+        }
+      },
       gameStatus: null
     })
     expect(diagnostics).toMatchObject({
       directory: eliteDirectory,
       watching: true,
       fileAvailable: true,
-      linesRead: 6,
+      linesRead: 12,
       error: null
     })
     expect(catalogueDiagnostics).toMatchObject({

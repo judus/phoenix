@@ -32,12 +32,18 @@ test('the journal source replays, tails partial writes and follows journal rotat
       'Rank',
       'Progress',
       'Location',
-      'Loadout'
+      'Loadout',
+      'Cargo',
+      'Materials',
+      'ShipLocker',
+      'BackpackMaterials',
+      'MaterialCollected',
+      'MaterialTrade'
     ])
 
     appendFileSync(firstJournal, '{"timestamp":"2026-08-10T12:01:00Z","event":"Undocked"')
     expect(await source.refresh()).toBe(false)
-    expect(events.at(-1)?.event).toBe('Loadout')
+    expect(events.at(-1)?.event).toBe('MaterialTrade')
 
     appendFileSync(firstJournal, '}\n')
     expect(await source.refresh()).toBe(true)

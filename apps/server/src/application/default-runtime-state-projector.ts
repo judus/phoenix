@@ -1,6 +1,7 @@
 import {
   RuntimeStateSchema,
   type EliteGameStatus,
+  type EngineeringMaterialAdjustment,
   type GameEventEnvelope,
   type RuntimeState
 } from '@phoenix/contracts'
@@ -38,6 +39,17 @@ export class DefaultRuntimeStateProjector implements RuntimeStateProjector {
       ship: event.type === 'ship.loadout_changed'
         ? this.shipLoadoutEnricher.enrich(event.payload)
         : current.ship,
+      inventory: event.type === 'inventory.cargo_changed'
+        ? { ...current.inventory, cargo: event.payload }
+        : event.type === 'inventory.materials_changed'
+          ? { ...current.inventory, materials: event.payload }
+          : event.type === 'inventory.material_adjusted'
+            ? { ...current.inventory, materials: adjustMaterial(current.inventory.materials, event.payload) }
+            : event.type === 'inventory.ship_locker_changed'
+              ? { ...current.inventory, shipLocker: event.payload }
+              : event.type === 'inventory.backpack_changed'
+                ? { ...current.inventory, backpack: event.payload }
+                : current.inventory,
       system: event.type === 'system.changed'
         ? event.payload
         : current.system,
@@ -54,6 +66,28 @@ export class DefaultRuntimeStateProjector implements RuntimeStateProjector {
     this.store.replace(next)
     this.updates.publish(next)
     return next
+  }
+}
+
+function adjustMaterial (
+  materials: RuntimeState['inventory']['materials'],
+  adjustment: EngineeringMaterialAdjustment
+): RuntimeState['inventory']['materials'] {
+  if (!materials) return null
+  const category = materials[adjustment.category]
+  const existing = category.find(material => material.id.toLowerCase() === adjustment.id.toLowerCase())
+  const nextCount = Math.max(0, (existing?.count ?? 0) + adjustment.delta)
+  const nextCategory = existing
+    ? category
+        .map(material => material === existing ? { ...material, count: nextCount } : material)
+        .filter(material => material.count > 0)
+    : nextCount > 0
+      ? [...category, { id: adjustment.id, label: adjustment.label, count: nextCount }]
+      : category
+  return {
+    ...materials,
+    updatedAt: adjustment.updatedAt,
+    [adjustment.category]: nextCategory
   }
 }
 

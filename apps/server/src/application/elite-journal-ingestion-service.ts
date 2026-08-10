@@ -3,12 +3,18 @@ import type {
   CurrentLocation,
   CurrentShip,
   CurrentSystem,
+  EngineeringMaterialAdjustment,
+  EngineeringMaterials,
   FactionSummary,
   GameEventEnvelope,
   NamedGameValue,
   ShipModule
 } from '@phoenix/contracts'
-import type { EliteJournalEvent } from '@phoenix/elite'
+import {
+  parseCargoInventory,
+  parseMicroResourceInventory,
+  type EliteJournalEvent
+} from '@phoenix/elite'
 import type { GameEventIngestor } from '../domain/runtime-state.js'
 
 type EventCandidate = Omit<GameEventEnvelope, 'id' | 'ingestedAt' | 'schemaVersion' | 'source'>
@@ -61,8 +67,117 @@ export class EliteJournalIngestionService {
     const ship = mapShip(event)
     if (ship) candidates.push({ type: 'ship.loadout_changed', gameTimestamp, payload: ship })
 
+    if (event.event === 'Cargo' && Array.isArray(event.Inventory)) {
+      candidates.push({ type: 'inventory.cargo_changed', gameTimestamp, payload: parseCargoInventory(event) })
+    }
+
+    if (event.event === 'ShipLocker') {
+      candidates.push({
+        type: 'inventory.ship_locker_changed',
+        gameTimestamp,
+        payload: parseMicroResourceInventory(event)
+      })
+    }
+
+    if (event.event === 'Backpack' || event.event === 'BackpackMaterials') {
+      candidates.push({
+        type: 'inventory.backpack_changed',
+        gameTimestamp,
+        payload: parseMicroResourceInventory(event)
+      })
+    }
+
+    const materials = mapMaterials(event)
+    if (materials) candidates.push({ type: 'inventory.materials_changed', gameTimestamp, payload: materials })
+    for (const adjustment of mapMaterialAdjustments(event)) {
+      candidates.push({ type: 'inventory.material_adjusted', gameTimestamp, payload: adjustment })
+    }
+
     return candidates
   }
+}
+
+function mapMaterials (event: EliteJournalEvent): EngineeringMaterials | null {
+  if (event.event !== 'Materials') return null
+  return {
+    updatedAt: event.timestamp,
+    raw: mapMaterialList(event.Raw),
+    manufactured: mapMaterialList(event.Manufactured),
+    encoded: mapMaterialList(event.Encoded)
+  }
+}
+
+function mapMaterialList (candidate: unknown): EngineeringMaterials['raw'] {
+  return Array.isArray(candidate)
+    ? candidate
+        .map(item => {
+          if (!isRecord(item)) return null
+          const id = stringValue(item, 'Name')
+          const count = integerValue(item, 'Count')
+          return id && count !== null
+            ? { id, label: stringValue(item, 'Name_Localised'), count }
+            : null
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null)
+    : []
+}
+
+function mapMaterialAdjustments (event: EliteJournalEvent): EngineeringMaterialAdjustment[] {
+  if (event.event === 'MaterialCollected' || event.event === 'MaterialDiscarded') {
+    const adjustment = materialAdjustment(
+      event,
+      stringValue(event, 'Category'),
+      stringValue(event, 'Name'),
+      stringValue(event, 'Name_Localised'),
+      integerValue(event, 'Count'),
+      event.event === 'MaterialCollected' ? 1 : -1
+    )
+    return adjustment ? [adjustment] : []
+  }
+  if (event.event !== 'MaterialTrade') return []
+  const fallbackCategory = stringValue(event, 'TraderType')
+  return [
+    materialTradeAdjustment(event, event.Paid, fallbackCategory, -1),
+    materialTradeAdjustment(event, event.Received, fallbackCategory, 1)
+  ].filter((item): item is EngineeringMaterialAdjustment => item !== null)
+}
+
+function materialTradeAdjustment (
+  event: EliteJournalEvent,
+  candidate: unknown,
+  fallbackCategory: string | null,
+  direction: 1 | -1
+): EngineeringMaterialAdjustment | null {
+  if (!isRecord(candidate)) return null
+  return materialAdjustment(
+    event,
+    stringValue(candidate, 'Category') ?? fallbackCategory,
+    stringValue(candidate, 'Material'),
+    stringValue(candidate, 'Material_Localised'),
+    integerValue(candidate, 'Quantity'),
+    direction
+  )
+}
+
+function materialAdjustment (
+  event: EliteJournalEvent,
+  categoryValue: string | null,
+  id: string | null,
+  label: string | null,
+  count: number | null,
+  direction: 1 | -1
+): EngineeringMaterialAdjustment | null {
+  const category = normalizeMaterialCategory(categoryValue)
+  if (!category || !id || count === null || count === 0) return null
+  return { updatedAt: event.timestamp, category, id, label, delta: count * direction }
+}
+
+function normalizeMaterialCategory (
+  value: string | null
+): EngineeringMaterialAdjustment['category'] | null {
+  const normalized = value?.trim().toLowerCase()
+  if (normalized === 'raw' || normalized === 'manufactured' || normalized === 'encoded') return normalized
+  return null
 }
 
 function mapShip (event: EliteJournalEvent): CurrentShip | null {

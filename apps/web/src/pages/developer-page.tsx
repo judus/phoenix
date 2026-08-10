@@ -133,6 +133,7 @@ function renderDeveloperView (props: DeveloperPageProps) {
         <DeveloperData title="Journal source diagnostics" value={props.eliteJournalDiagnostics} />
         <DeveloperData title="Status source diagnostics" value={props.eliteStatusDiagnostics} />
         <DeveloperData title="Normalized game status" value={runtimeState?.gameStatus} />
+        <DeveloperData title="Current inventories" value={runtimeState?.inventory} />
       </>
     )
   }

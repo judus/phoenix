@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import type { GameEventEnvelope, RuntimeState } from '@phoenix/contracts'
 import {
   EliteDataDirectoryLocator,
+  EliteInventoryFileSource,
   EliteJournalFileSource,
   EliteStatusFileSource,
   JsonGameCatalogue
@@ -13,6 +14,7 @@ import { DefaultGameActionGateway } from './application/default-game-action-gate
 import { DefaultRuntimeStateProjector } from './application/default-runtime-state-projector.js'
 import { DeveloperActionService } from './application/developer-action-service.js'
 import { EliteJournalIngestionService } from './application/elite-journal-ingestion-service.js'
+import { EliteInventoryIngestionService } from './application/elite-inventory-ingestion-service.js'
 import { EliteStatusIngestionService } from './application/elite-status-ingestion-service.js'
 import { GameEventIngestionService } from './application/game-event-ingestion-service.js'
 import { HealthService } from './application/health-service.js'
@@ -41,6 +43,7 @@ export class PhoenixApplication {
   private readonly database: SqliteDatabase
   private readonly eventIngestion: GameEventIngestionService
   private readonly journalSource: EliteJournalFileSource
+  private readonly inventorySource: EliteInventoryFileSource
   private readonly server: PhoenixHttpServer
   private readonly stateStore: InMemoryRuntimeStateStore
   private readonly statusSource: EliteStatusFileSource
@@ -74,6 +77,7 @@ export class PhoenixApplication {
         }).locate()
     const statusIngestion = new EliteStatusIngestionService(this.eventIngestion)
     const journalIngestion = new EliteJournalIngestionService(this.eventIngestion)
+    const inventoryIngestion = new EliteInventoryIngestionService(this.eventIngestion)
     this.journalSource = new EliteJournalFileSource(
       configuredEliteDirectory,
       event => {
@@ -85,6 +89,10 @@ export class PhoenixApplication {
       status => {
         statusIngestion.ingest(status)
       }
+    )
+    this.inventorySource = new EliteInventoryFileSource(
+      configuredEliteDirectory,
+      snapshot => { inventoryIngestion.ingest(snapshot) }
     )
     const actionGateway = new DefaultGameActionGateway(
       new DefaultGameActionCatalog(),
@@ -119,10 +127,12 @@ export class PhoenixApplication {
     try {
       await this.journalSource.start()
       await this.statusSource.start()
+      await this.inventorySource.start()
       return await this.server.start()
     } catch (cause) {
       this.journalSource.stop()
       this.statusSource.stop()
+      this.inventorySource.stop()
       this.database.close()
       throw cause
     }
@@ -131,6 +141,7 @@ export class PhoenixApplication {
   public async stop (): Promise<void> {
     this.journalSource.stop()
     this.statusSource.stop()
+    this.inventorySource.stop()
     await this.server.stop()
     this.database.close()
   }

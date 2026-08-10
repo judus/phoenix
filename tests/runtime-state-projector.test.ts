@@ -66,3 +66,46 @@ test('invalid events are rejected before publication', () => {
   })).toThrow()
   expect(publications).toBe(0)
 })
+
+test('material adjustments update a known full inventory without creating negative entries', () => {
+  const gameEvents = new InProcessPublisher<GameEventEnvelope>()
+  const stateUpdates = new InProcessPublisher<RuntimeState>()
+  const store = new InMemoryRuntimeStateStore()
+  const projector = new DefaultRuntimeStateProjector(store, stateUpdates)
+  const ingestion = new GameEventIngestionService(gameEvents)
+  gameEvents.subscribe(event => projector.project(event))
+
+  ingestion.ingest(inventoryEvent('inventory.materials_changed', {
+    updatedAt: '2026-08-10T12:00:00.000Z',
+    raw: [{ id: 'iron', label: 'Iron', count: 2 }],
+    manufactured: [],
+    encoded: []
+  }))
+  ingestion.ingest(inventoryEvent('inventory.material_adjusted', {
+    updatedAt: '2026-08-10T12:01:00.000Z',
+    category: 'raw',
+    id: 'iron',
+    label: 'Iron',
+    delta: -3
+  }))
+
+  expect(store.getCurrent().inventory.materials).toMatchObject({
+    updatedAt: '2026-08-10T12:01:00.000Z',
+    raw: []
+  })
+})
+
+function inventoryEvent<T extends Extract<GameEventEnvelope, { type: `inventory.${string}` }>> (
+  type: T['type'],
+  payload: T['payload']
+): T {
+  return {
+    schemaVersion: 1,
+    id: `test-${type}`,
+    type,
+    gameTimestamp: '2026-08-10T12:00:00.000Z',
+    ingestedAt: '2026-08-10T12:00:00.000Z',
+    source: 'synthetic',
+    payload
+  } as T
+}

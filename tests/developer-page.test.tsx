@@ -100,4 +100,5 @@ test('the Elite developer surface renders source diagnostics and normalized stat
   expect(markup).toContain('Status source diagnostics')
   expect(markup).toContain('/game/Status.json')
   expect(markup).toContain('Normalized game status')
+  expect(markup).toContain('Current inventories')
 })

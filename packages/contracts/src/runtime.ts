@@ -5,6 +5,13 @@ import {
   ShipSlotDefinitionSchema
 } from './elite-catalogue.js'
 import { EliteGameStatusSchema } from './elite-status.js'
+import {
+  CargoInventorySchema,
+  CommanderInventorySchema,
+  EngineeringMaterialAdjustmentSchema,
+  EngineeringMaterialsSchema,
+  MicroResourceInventorySchema
+} from './elite-inventory.js'
 
 export const RuntimeLocationStateSchema = z.enum([
   'unknown',
@@ -182,6 +189,7 @@ export const RuntimeStateSchema = z.object({
     ranks: CommanderRanksSchema,
     rankProgress: CommanderRankProgressSchema
   }),
+  inventory: CommanderInventorySchema,
   system: CurrentSystemSchema,
   location: CurrentLocationSchema,
   ship: CurrentShipSchema,
@@ -193,7 +201,7 @@ const GameEventEnvelopeBaseSchema = z.object({
   id: z.string().min(1),
   gameTimestamp: z.iso.datetime().nullable(),
   ingestedAt: z.iso.datetime(),
-  source: z.enum(['synthetic', 'journal', 'status'])
+  source: z.enum(['synthetic', 'journal', 'status', 'state_file'])
 })
 
 export const GameEventEnvelopeSchema = z.discriminatedUnion('type', [
@@ -210,6 +218,26 @@ export const GameEventEnvelopeSchema = z.discriminatedUnion('type', [
   GameEventEnvelopeBaseSchema.extend({
     type: z.literal('commander.rank_progress_changed'),
     payload: CommanderRankProgressSchema
+  }),
+  GameEventEnvelopeBaseSchema.extend({
+    type: z.literal('inventory.cargo_changed'),
+    payload: CargoInventorySchema
+  }),
+  GameEventEnvelopeBaseSchema.extend({
+    type: z.literal('inventory.materials_changed'),
+    payload: EngineeringMaterialsSchema
+  }),
+  GameEventEnvelopeBaseSchema.extend({
+    type: z.literal('inventory.material_adjusted'),
+    payload: EngineeringMaterialAdjustmentSchema
+  }),
+  GameEventEnvelopeBaseSchema.extend({
+    type: z.literal('inventory.ship_locker_changed'),
+    payload: MicroResourceInventorySchema
+  }),
+  GameEventEnvelopeBaseSchema.extend({
+    type: z.literal('inventory.backpack_changed'),
+    payload: MicroResourceInventorySchema
   }),
   GameEventEnvelopeBaseSchema.extend({
     type: z.literal('system.changed'),
@@ -248,6 +276,12 @@ export function createEmptyRuntimeState (): RuntimeState {
       name: null,
       ranks: emptyCommanderRanks(),
       rankProgress: emptyCommanderRanks()
+    },
+    inventory: {
+      cargo: null,
+      materials: null,
+      shipLocker: null,
+      backpack: null
     },
     system: emptyCurrentSystem(),
     location: {
