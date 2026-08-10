@@ -68,13 +68,32 @@ function migrateSettings (candidate: unknown): unknown {
   if (!isRecord(candidate) || !isRecord(candidate.controls) || !isRecord(candidate.controls.layout)) {
     return candidate
   }
-  if (candidate.controls.layout.version !== 1) return candidate
+  if (candidate.controls.layout.version === 1) {
+    return {
+      ...candidate,
+      controls: { ...candidate.controls, layout: DEFAULT_CONTROL_GRID_LAYOUT }
+    }
+  }
+  if (candidate.controls.layout.version !== 2 || !Array.isArray(candidate.controls.layout.pages)) {
+    return candidate
+  }
 
   return {
     ...candidate,
     controls: {
       ...candidate.controls,
-      layout: DEFAULT_CONTROL_GRID_LAYOUT
+      layout: {
+        ...candidate.controls.layout,
+        version: 3,
+        pages: candidate.controls.layout.pages.map(page => !isRecord(page) || !Array.isArray(page.cells)
+          ? page
+          : {
+              ...page,
+              cells: page.cells.map(cell => !isRecord(cell) || cell.actionId !== 'elite.SilentRunning'
+                ? cell
+                : { ...cell, actionId: null })
+            })
+      }
     }
   }
 }

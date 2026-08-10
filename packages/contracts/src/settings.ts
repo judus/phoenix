@@ -50,7 +50,7 @@ const ControlGridPageSchema = z.object({
 })
 
 export const ControlGridLayoutSchema = z.object({
-  version: z.literal(2),
+  version: z.literal(3),
   pages: z.array(ControlGridPageSchema).max(16)
 }).superRefine((layout, context) => {
   const pageIds = new Set<string>()
@@ -70,7 +70,7 @@ export const PhoenixSettingsSchema = z.object({
   controls: z.object({
     enabled: z.boolean(),
     backend: InputBackendModeSchema,
-    layout: ControlGridLayoutSchema.default({ version: 2, pages: [] })
+    layout: ControlGridLayoutSchema.default({ version: 3, pages: [] })
   })
 })
 

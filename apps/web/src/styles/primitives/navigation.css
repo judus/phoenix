@@ -48,7 +48,19 @@
   }
 
   .secondary-navigation__icon {
-    font-size: 1.5rem;
+    font-size: clamp(0.7rem, 1.2vw, 0.9rem);
+    letter-spacing: 0.04em;
+
+    svg {
+      display: block;
+      inline-size: 1.15rem;
+      block-size: 1.15rem;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
   }
 }
 }

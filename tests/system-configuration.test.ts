@@ -48,7 +48,7 @@ test('invalid JSON settings fail validation instead of being silently overwritte
   expect(() => new JsonSystemSettingsRepository(path).loadOrCreate()).toThrow()
 })
 
-test('draft version-one control layouts migrate to the canonical version-two default', () => {
+test('draft version-one control layouts migrate to the canonical version-three default', () => {
   const directory = temporaryDirectory()
   const path = join(directory, 'settings.json')
   writeFileSync(path, JSON.stringify({
@@ -63,7 +63,40 @@ test('draft version-one control layouts migrate to the canonical version-two def
   const settings = new JsonSystemSettingsRepository(path).loadOrCreate()
 
   expect(settings.controls.layout).toEqual(DEFAULT_PHOENIX_SETTINGS.controls.layout)
-  expect(JSON.parse(readFileSync(path, 'utf8')).controls.layout.version).toBe(2)
+  expect(JSON.parse(readFileSync(path, 'utf8')).controls.layout.version).toBe(3)
+})
+
+test('version-two layouts preserve user choices while removing the invalid silent-running action', () => {
+  const directory = temporaryDirectory()
+  const path = join(directory, 'settings.json')
+  writeFileSync(path, JSON.stringify({
+    version: 1,
+    controls: {
+      enabled: true,
+      backend: 'auto',
+      layout: {
+        version: 2,
+        pages: [{
+          id: 'ship',
+          label: 'Ship',
+          category: 'ship',
+          columns: 8,
+          rows: 5,
+          cells: [
+            { position: 20, span: 1, actionId: 'elite.SilentRunning' },
+            { position: 16, span: 1, actionId: 'elite.NightVisionToggle' }
+          ]
+        }]
+      }
+    }
+  }))
+
+  const settings = new JsonSystemSettingsRepository(path).loadOrCreate()
+  const cells = settings.controls.layout.pages[0]?.cells
+
+  expect(settings.controls.layout.version).toBe(3)
+  expect(cells).toContainEqual({ position: 20, span: 1, actionId: null })
+  expect(cells).toContainEqual({ position: 16, span: 1, actionId: 'elite.NightVisionToggle' })
 })
 
 test('automatic Linux startup selects xdotool and produces runtime diagnostics', () => {
@@ -156,7 +189,7 @@ test('control-grid layouts are persisted inside system settings', () => {
 
 test('control-grid layouts reject overlapping cells and duplicate assignments', () => {
   expect(() => ControlGridLayoutSchema.parse({
-    version: 2,
+    version: 3,
     pages: [{
       id: 'ship',
       label: 'Ship',

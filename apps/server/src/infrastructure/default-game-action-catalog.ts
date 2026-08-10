@@ -33,12 +33,6 @@ const ACTION_METADATA: Readonly<Record<string, ActionMetadata>> = {
     category: 'combat',
     telemetryKey: 'hardpointsDeployed'
   },
-  SilentRunning: {
-    label: 'Silent Running',
-    description: 'Toggle silent running.',
-    category: 'combat',
-    telemetryKey: 'silentRunning'
-  },
   GalaxyMapOpen: { label: 'Galaxy Map', category: 'navigation' },
   SystemMapOpen: { label: 'System Map', category: 'navigation' },
   TargetNextRouteSystem: { label: 'Next Route System', category: 'navigation' },

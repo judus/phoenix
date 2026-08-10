@@ -1,5 +1,5 @@
 import type { HealthResponse } from '@phoenix/contracts'
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { AppHeader, AppShell } from './app-shell.js'
 import {
   PrimaryNavigation,
@@ -64,7 +64,7 @@ export function PhoenixShell ({
                     aria-label="Developer tools"
                     title="Developer tools"
                   >DEV</a>
-                  <button type="button" aria-label="Fullscreen">⛶</button>
+                  <FullscreenButton />
                 </div>
               )}
             />
@@ -81,5 +81,39 @@ export function PhoenixShell ({
     >
       {children}
     </AppShell>
+  )
+}
+
+function FullscreenButton () {
+  const [active, setActive] = useState(false)
+  const supported = typeof document !== 'undefined' && document.fullscreenEnabled
+
+  useEffect(() => {
+    const synchronize = (): void => setActive(document.fullscreenElement !== null)
+    document.addEventListener('fullscreenchange', synchronize)
+    synchronize()
+    return () => document.removeEventListener('fullscreenchange', synchronize)
+  }, [])
+
+  const toggle = async (): Promise<void> => {
+    if (!supported) return
+    if (document.fullscreenElement) {
+      await document.exitFullscreen()
+      return
+    }
+    await document.documentElement.requestFullscreen({ navigationUI: 'hide' })
+  }
+
+  return (
+    <button
+      type="button"
+      aria-label={active ? 'Exit fullscreen' : 'Enter fullscreen'}
+      aria-pressed={active}
+      disabled={!supported}
+      onClick={() => void toggle()}
+      title={active ? 'Exit fullscreen' : 'Enter fullscreen'}
+    >
+      {active ? '⛶' : '⛶'}
+    </button>
   )
 }

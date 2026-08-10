@@ -38,6 +38,12 @@ const controlsNavigation: NavigationItem[] = CATEGORY_METADATA.map(category => (
   label: category.label
 }))
 
+const editIcon = (
+  <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+    <path d="M4 20h4L19 9l-4-4L4 16v4Zm10-14 4 4" />
+  </svg>
+)
+
 export interface ControlsPageProps {
   actionCatalog?: GameActionCatalogResponse
   category: ControlCategory
@@ -88,7 +94,7 @@ export function ControlsPage ({
     ...controlsNavigation,
     {
       id: 'edit',
-      icon: 'EDT',
+      icon: editIcon,
       label: editMode ? 'Cancel layout editing' : 'Edit layout',
       disabled: !controlLayout,
       onActivate: () => editMode ? cancelEditing() : setEditMode(true)

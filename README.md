@@ -51,7 +51,7 @@ The initial settings are:
     "enabled": true,
     "backend": "auto",
     "layout": {
-      "version": 2,
+      "version": 3,
       "pages": []
     }
   }

@@ -19,7 +19,6 @@ const SHIP_CELLS = [
   cell(17, 'ToggleCargoScoop'),
   cell(18, 'LandingGearToggle'),
   cell(19, 'DeployHardpointToggle'),
-  cell(20, 'SilentRunning'),
   cell(21, 'CyclePreviousTarget'),
   cell(22, 'CycleNextTarget'),
   cell(23, 'RecallDismissShip'),
@@ -38,7 +37,7 @@ const SHIP_CELLS = [
 ]
 
 export const DEFAULT_CONTROL_GRID_LAYOUT: ControlGridLayout = ControlGridLayoutSchema.parse({
-  version: 2,
+  version: 3,
   pages: [
     page('ship', 'Ship', SHIP_CELLS),
     page('combat', 'Combat'),
