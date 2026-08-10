@@ -1,10 +1,38 @@
 @layer patterns {
+  .app-shell:has(.controls-page) {
+    block-size: 100dvh;
+    min-block-size: 0;
+    overflow: hidden;
+  }
+
+  .app-workspace:has(.controls-page) {
+    min-block-size: 0;
+    overflow: hidden;
+  }
+
+  .controls-page {
+    grid-template-rows: minmax(0, 1fr);
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .controls-page__content {
+    position: relative;
+    min-inline-size: 0;
+    min-block-size: 0;
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-3);
+    overflow: hidden;
+  }
+
   .control-toolbar {
     display: flex;
     align-items: end;
     justify-content: space-between;
     gap: var(--space-4);
-    margin-block-end: var(--space-4);
+    flex: none;
+    margin-block-end: var(--space-3);
 
     label {
       display: grid;
@@ -45,15 +73,20 @@
   }
 
   .control-grid {
+    flex: 1;
+    min-inline-size: 0;
+    min-block-size: 0;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1px;
     border: 1px solid var(--color-border);
     background: rgb(255 157 0 / 24%);
+    overflow: hidden;
   }
 
   .control-grid__button {
-    min-block-size: 6rem;
+    min-inline-size: 0;
+    min-block-size: 0;
+    block-size: 100%;
     display: grid;
     grid-template-rows: 1fr auto auto;
     gap: var(--space-1);
@@ -63,6 +96,7 @@
     background: var(--color-panel);
     text-align: start;
     touch-action: none;
+    overflow: hidden;
 
     &:hover:not(:disabled), &:focus-visible {
       outline: 1px solid var(--color-primary);
@@ -87,7 +121,9 @@
   }
 
   .control-grid__empty {
-    min-block-size: 6rem;
+    min-inline-size: 0;
+    min-block-size: 0;
+    block-size: 100%;
     display: grid;
     place-content: center;
     gap: var(--space-1);
@@ -116,6 +152,7 @@
     align-self: center;
     font-size: 1rem;
     text-transform: uppercase;
+    overflow-wrap: anywhere;
   }
 
   .control-grid__binding {
@@ -129,8 +166,10 @@
   }
 
   .control-confirmation {
-    position: sticky;
-    inset-block-end: 0;
+    position: absolute;
+    z-index: 2;
+    inset-inline: var(--space-3);
+    inset-block-end: var(--space-3);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -239,6 +278,15 @@
       inset: var(--space-4);
     }
 
-    .control-grid { overflow-x: auto; }
+    .controls-page__content { padding: var(--space-2); }
+
+    .control-grid__button {
+      gap: 0.15rem;
+      padding: var(--space-1);
+    }
+
+    .control-grid__label { font-size: 0.78rem; }
+    .control-grid__binding { font-size: 0.7rem; }
+    .control-grid__meta { font-size: 0.58rem; }
   }
 }

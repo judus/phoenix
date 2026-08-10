@@ -10,7 +10,7 @@ import type {
   RuntimeState
 } from '@phoenix/contracts'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
-import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/page.js'
+import { Page } from '../components/layout/page.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 
 export type ControlCategory = GameActionDefinition['category']
@@ -63,7 +63,6 @@ export function ControlsPage ({
   const [draftLayout, setDraftLayout] = useState(controlLayout)
   const [editingPosition, setEditingPosition] = useState<number>()
   const [pickerFilter, setPickerFilter] = useState('')
-  const [lastResult, setLastResult] = useState<GameActionResult>()
   const [localError, setLocalError] = useState<string>()
   const [pendingConfirmation, setPendingConfirmation] = useState<GameActionAvailability>()
   const [pendingActions, setPendingActions] = useState<ReadonlySet<string>>(new Set())
@@ -78,6 +77,23 @@ export function ControlsPage ({
     actionCatalog?.actions ?? [],
     page
   ), [actionCatalog, page])
+
+  const cancelEditing = (): void => {
+    setDraftLayout(controlLayout)
+    setEditingPosition(undefined)
+    setEditMode(false)
+  }
+
+  const secondaryNavigation: NavigationItem[] = [
+    ...controlsNavigation,
+    {
+      id: 'edit',
+      icon: 'EDT',
+      label: editMode ? 'Cancel layout editing' : 'Edit layout',
+      disabled: !controlLayout,
+      onActivate: () => editMode ? cancelEditing() : setEditMode(true)
+    }
+  ]
 
   useEffect(() => {
     if (!editMode) setDraftLayout(controlLayout)
@@ -101,8 +117,7 @@ export function ControlsPage ({
       .then(async () => {
         setPendingActions(current => new Set(current).add(actionId))
         try {
-          const result = await executeAction.current(actionId, operation)
-          setLastResult(result)
+          await executeAction.current(actionId, operation)
           setLocalError(undefined)
         } catch (cause) {
           setLocalError(cause instanceof Error ? cause.message : 'Control execution failed.')
@@ -200,20 +215,17 @@ export function ControlsPage ({
   return (
     <PhoenixShell
       activePrimaryItemId="controls"
-      activeSecondaryItemId={category}
+      activeSecondaryItemId={editMode ? 'edit' : category}
       error={error ?? localError}
       health={health}
-      secondaryNavigation={controlsNavigation}
+      secondaryNavigation={secondaryNavigation}
     >
-      <Page>
-        <PageHeader
-          eyebrow="Command interface"
-          title={`${categoryLabel} Controls`}
-          description="Commands are discovered from the active Elite Dangerous binding preset."
-        />
-        <PageContent>
+      <Page className={`controls-page${editMode ? ' controls-page--editing' : ''}`}>
+        <div className="controls-page__content">
+          {editMode && (
           <section className="control-toolbar" aria-label="Control layout status">
             <p>
+              <strong>{categoryLabel}</strong> ·{' '}
               <strong>{page?.cells.filter(cell => cell.actionId).length ?? 0}</strong> assigned ·{' '}
               <span>{actionCatalog?.actions.length ?? 0} available commands</span> ·{' '}
               <span>{backend?.id ?? 'backend pending'}</span> ·{' '}
@@ -223,23 +235,22 @@ export function ControlsPage ({
               {editMode
                 ? (
                     <>
-                      <button type="button" onClick={() => {
-                        setDraftLayout(controlLayout)
-                        setEditMode(false)
-                      }}>Cancel</button>
+                      <button type="button" onClick={cancelEditing}>Cancel</button>
                       <button type="button" onClick={() => void saveLayout()}>Save layout</button>
                     </>
                   )
-                : <button type="button" disabled={!controlLayout} onClick={() => setEditMode(true)}>Edit layout</button>}
+                : null}
             </div>
           </section>
-
-          {!actionCatalog && <p>Waiting for the action catalogue…</p>}
+          )}
 
           <section
             className="control-grid"
             aria-label={`${categoryLabel} command grid`}
-            style={{ gridTemplateColumns: `repeat(${page?.columns ?? 8}, minmax(0, 1fr))` }}
+            style={{
+              gridTemplateColumns: `repeat(${page?.columns ?? 8}, minmax(0, 1fr))`,
+              gridTemplateRows: `repeat(${page?.rows ?? 5}, minmax(0, 1fr))`
+            }}
           >
             {gridItems.map(item => {
               const { action, position, span } = item
@@ -369,16 +380,7 @@ export function ControlsPage ({
             </section>
           )}
 
-          {(localError || lastResult) && (
-            <section className="control-result" aria-live="polite">
-              {localError ?? `${lastResult?.status}: ${lastResult?.message}`}
-            </section>
-          )}
-        </PageContent>
-        <PageFooter>
-          <span>{actionCatalog?.bindingSource.presetNames.join(' / ') || 'Binding preset pending'}</span>
-          <span>{actionCatalog?.bindingSource.keyboardBindingCount ?? 0} keyboard bindings</span>
-        </PageFooter>
+        </div>
       </Page>
     </PhoenixShell>
   )

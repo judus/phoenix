@@ -32,11 +32,15 @@
   background: var(--color-panel-strong);
 
   .secondary-navigation__link {
+    inline-size: 100%;
     display: grid;
     place-items: center;
     aspect-ratio: 1;
+    padding: 0;
+    border: 0;
     color: var(--color-primary);
     border-block-end: 1px solid rgb(255 157 0 / 18%);
+    background: transparent;
 
     &[aria-current='page'] {
       background: rgb(255 157 0 / 12%);

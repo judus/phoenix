@@ -37,13 +37,15 @@ test('the controls page renders bound and unbound discovered commands', () => {
     />
   )
 
-  expect(markup).toContain('Ship Controls')
   expect(markup).toContain('Ship Lights')
   expect(markup).toContain('Unbound')
-  expect(markup).toContain('116 keyboard bindings')
-  expect(markup).toContain('<strong>34</strong> assigned')
+  expect(markup).toContain('title="Edit layout"')
+  expect(markup).toContain('class="page controls-page"')
   expect(markup).toContain('class="control-grid__empty"')
   expect(markup).toContain('disabled=""')
+  expect(markup).not.toContain('class="page-header"')
+  expect(markup).not.toContain('class="page-footer"')
+  expect(markup).not.toContain('class="control-toolbar"')
 })
 
 function action (
