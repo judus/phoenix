@@ -1,7 +1,14 @@
 import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { GameEventEnvelope, RuntimeState } from '@phoenix/contracts'
-import { EliteDataDirectoryLocator, EliteJournalFileSource, EliteStatusFileSource } from '@phoenix/elite'
+import {
+  EliteDataDirectoryLocator,
+  EliteJournalFileSource,
+  EliteStatusFileSource,
+  JsonGameCatalogue
+} from '@phoenix/elite'
+import { CatalogueShipLoadoutEnricher } from './application/catalogue-ship-loadout-enricher.js'
+import { CatalogueDiagnosticsService } from './application/catalogue-diagnostics-service.js'
 import { DefaultGameActionGateway } from './application/default-game-action-gateway.js'
 import { DefaultRuntimeStateProjector } from './application/default-runtime-state-projector.js'
 import { DeveloperActionService } from './application/developer-action-service.js'
@@ -24,7 +31,9 @@ export interface PhoenixApplicationOptions {
   eliteDirectory?: string | null
   host?: string
   inputBackend?: InputBackend
+  moduleCataloguePath?: string
   port?: number
+  shipCataloguePath?: string
   webRoot?: string
 }
 
@@ -41,7 +50,21 @@ export class PhoenixApplication {
     const gameEvents = new InProcessPublisher<GameEventEnvelope>()
     const runtimeStateUpdates = new InProcessPublisher<RuntimeState>()
     this.stateStore = new InMemoryRuntimeStateStore()
-    const projector = new DefaultRuntimeStateProjector(this.stateStore, runtimeStateUpdates)
+    const gameCatalogue = new JsonGameCatalogue(
+      resolveProjectPath(
+        projectRoot,
+        options.shipCataloguePath ?? process.env.PHOENIX_SHIP_CATALOGUE_PATH ?? 'data/catalogue/ships.json'
+      ),
+      resolveProjectPath(
+        projectRoot,
+        options.moduleCataloguePath ?? process.env.PHOENIX_MODULE_CATALOGUE_PATH ?? 'data/catalogue/modules.json'
+      )
+    )
+    const projector = new DefaultRuntimeStateProjector(
+      this.stateStore,
+      runtimeStateUpdates,
+      new CatalogueShipLoadoutEnricher(gameCatalogue)
+    )
     gameEvents.subscribe(event => projector.project(event))
     this.eventIngestion = new GameEventIngestionService(gameEvents)
     const configuredEliteDirectory = options.eliteDirectory === null
@@ -75,6 +98,7 @@ export class PhoenixApplication {
       )
     )
     this.server = new PhoenixHttpServer({
+      catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
       developerActions: new DeveloperActionService(actionGateway),
       eliteJournalDiagnostics: this.journalSource,
       eliteStatusDiagnostics: this.statusSource,

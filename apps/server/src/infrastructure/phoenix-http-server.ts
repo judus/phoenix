@@ -7,6 +7,7 @@ import {
 } from 'node:http'
 import { extname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path'
 import type { RuntimeState } from '@phoenix/contracts'
+import type { CatalogueDiagnosticsReader } from '../application/catalogue-diagnostics-service.js'
 import type { DeveloperActions } from '../application/developer-action-service.js'
 import type { HealthCheck } from '../application/health-service.js'
 import type { EliteJournalDiagnosticsReader } from '../domain/elite-journal.js'
@@ -24,6 +25,7 @@ const CONTENT_TYPES: Record<string, string> = {
 }
 
 export interface PhoenixHttpServerOptions {
+  catalogueDiagnostics: CatalogueDiagnosticsReader
   developerActions: DeveloperActions
   eliteJournalDiagnostics: EliteJournalDiagnosticsReader
   eliteStatusDiagnostics: EliteStatusDiagnosticsReader
@@ -93,6 +95,11 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/developer/actions') {
       this.writeJson(response, 200, this.options.developerActions.getCatalog())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/developer/catalogue') {
+      this.writeJson(response, 200, this.options.catalogueDiagnostics.getDiagnostics())
       return
     }
 

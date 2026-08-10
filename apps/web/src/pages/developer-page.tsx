@@ -1,4 +1,5 @@
 import type {
+  CatalogueDiagnostics,
   GameActionCatalogResponse,
   GameActionResult,
   EliteJournalSourceDiagnostics,
@@ -51,6 +52,7 @@ const viewMetadata: Record<DeveloperView, { description: string, title: string }
 export interface DeveloperPageProps {
   actionCatalog?: GameActionCatalogResponse
   actionPending?: string
+  catalogueDiagnostics?: CatalogueDiagnostics
   eliteJournalDiagnostics?: EliteJournalSourceDiagnostics
   eliteStatusDiagnostics?: EliteStatusSourceDiagnostics
   error?: string
@@ -64,6 +66,7 @@ export interface DeveloperPageProps {
 export function DeveloperPage ({
   actionCatalog,
     actionPending,
+    catalogueDiagnostics,
     eliteJournalDiagnostics,
   error,
   eliteStatusDiagnostics,
@@ -93,6 +96,7 @@ export function DeveloperPage ({
           {renderDeveloperView({
             actionCatalog,
             actionPending,
+            catalogueDiagnostics,
             eliteJournalDiagnostics,
             eliteStatusDiagnostics,
             error,
@@ -125,6 +129,7 @@ function renderDeveloperView (props: DeveloperPageProps) {
   if (view === 'elite') {
     return (
       <>
+        <DeveloperData title="Game catalogue diagnostics" value={props.catalogueDiagnostics} />
         <DeveloperData title="Journal source diagnostics" value={props.eliteJournalDiagnostics} />
         <DeveloperData title="Status source diagnostics" value={props.eliteStatusDiagnostics} />
         <DeveloperData title="Normalized game status" value={runtimeState?.gameStatus} />

@@ -1,4 +1,9 @@
 import { z } from 'zod'
+import {
+  ModuleDefinitionSchema,
+  ShipDefinitionSchema,
+  ShipSlotDefinitionSchema
+} from './elite-catalogue.js'
 import { EliteGameStatusSchema } from './elite-status.js'
 
 export const RuntimeLocationStateSchema = z.enum([
@@ -117,9 +122,11 @@ export const ShipModuleSchema = z.object({
   slotId: z.string().min(1),
   slotGroup: ShipModuleSlotGroupSchema,
   slotSize: z.number().int().positive().nullable(),
+  expectedSlot: ShipSlotDefinitionSchema.nullable(),
   moduleId: z.string().min(1),
   moduleSize: z.number().int().positive().nullable(),
   moduleClass: z.number().int().positive().nullable(),
+  definition: ModuleDefinitionSchema.nullable(),
   enabled: z.boolean().nullable(),
   priority: z.number().int().nonnegative().nullable(),
   health: z.number().min(0).max(1).nullable(),
@@ -149,7 +156,7 @@ export const ShipModuleSchema = z.object({
 export const CurrentShipSchema = z.object({
   id: z.number().int().nonnegative().nullable(),
   typeId: z.string().min(1).nullable(),
-  modelName: z.string().min(1).nullable(),
+  definition: ShipDefinitionSchema.nullable(),
   name: z.string().min(1).nullable(),
   identifier: z.string().min(1).nullable(),
   hullHealth: z.number().min(0).max(1).nullable(),
@@ -256,7 +263,7 @@ function emptyCurrentShip () {
   return {
     id: null,
     typeId: null,
-    modelName: null,
+    definition: null,
     name: null,
     identifier: null,
     hullHealth: null,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   RuntimeStateSchema,
+  type CatalogueDiagnostics,
   type GameActionCatalogResponse,
   type GameActionResult,
   type EliteJournalSourceDiagnostics,
@@ -17,6 +18,7 @@ const api = new PhoenixApiClient()
 export function App () {
   const [health, setHealth] = useState<HealthResponse>()
   const [actionCatalog, setActionCatalog] = useState<GameActionCatalogResponse>()
+  const [catalogueDiagnostics, setCatalogueDiagnostics] = useState<CatalogueDiagnostics>()
   const [actionPending, setActionPending] = useState<string>()
   const [lastActionResult, setLastActionResult] = useState<GameActionResult>()
   const [eliteStatusDiagnostics, setEliteStatusDiagnostics] = useState<EliteStatusSourceDiagnostics>()
@@ -37,6 +39,10 @@ export function App () {
     api.getDeveloperActions()
       .then(setActionCatalog)
       .catch(cause => setError(cause instanceof Error ? cause.message : 'Action catalogue unavailable.'))
+
+    api.getCatalogueDiagnostics()
+      .then(setCatalogueDiagnostics)
+      .catch(cause => setError(cause instanceof Error ? cause.message : 'Game catalogue diagnostics unavailable.'))
 
     api.getEliteStatusDiagnostics()
       .then(setEliteStatusDiagnostics)
@@ -60,6 +66,11 @@ export function App () {
           .catch(cause => setError(
             cause instanceof Error ? cause.message : 'Elite journal diagnostics unavailable.'
           ))
+        void api.getCatalogueDiagnostics()
+          .then(setCatalogueDiagnostics)
+          .catch(cause => setError(
+            cause instanceof Error ? cause.message : 'Game catalogue diagnostics unavailable.'
+          ))
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : 'Invalid runtime state received.')
       }
@@ -79,6 +90,7 @@ export function App () {
       <DeveloperPage
         actionCatalog={actionCatalog}
         actionPending={actionPending}
+        catalogueDiagnostics={catalogueDiagnostics}
         error={error}
         eliteJournalDiagnostics={eliteJournalDiagnostics}
         eliteStatusDiagnostics={eliteStatusDiagnostics}

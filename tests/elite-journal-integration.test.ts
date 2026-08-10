@@ -24,6 +24,7 @@ test('application startup projects the current commander, ranks, location and sh
     const address = await application.start()
     const client = new PhoenixApiClient(`http://${address.host}:${address.port}`)
     const state = await client.getRuntimeState()
+    const catalogueDiagnostics = await client.getCatalogueDiagnostics()
     const diagnostics = await client.getEliteJournalDiagnostics()
 
     expect(state).toMatchObject({
@@ -64,7 +65,11 @@ test('application startup projects the current commander, ranks, location and sh
       ship: {
         id: 7,
         typeId: 'cobramkiii',
-        modelName: null,
+        definition: {
+          id: 'cobra_mk_iii',
+          displayName: 'Cobra Mk III',
+          source: { kind: 'catalogue', name: 'EDCD Coriolis Data' }
+        },
         name: 'Wayward Sun',
         identifier: 'PHX-01',
         hullHealth: 1,
@@ -77,14 +82,22 @@ test('application startup projects the current commander, ranks, location and sh
             slotId: 'PowerPlant',
             slotGroup: 'core',
             slotSize: 4,
+            expectedSlot: { name: 'Power Plant', size: 4 },
             moduleId: 'int_powerplant_size4_class5',
             moduleSize: 4,
-            moduleClass: 5
+            moduleClass: 5,
+            definition: {
+              displayName: 'Power Plant',
+              rating: 'A',
+              source: { kind: 'catalogue', name: 'EDCD FDevIDs' }
+            }
           },
           {
             slotId: 'MediumHardpoint1',
             slotGroup: 'hardpoint',
             slotSize: 2,
+            expectedSlot: { size: 2 },
+            definition: { displayName: 'Beam Laser' },
             engineering: {
               engineer: 'The Dweller',
               blueprintName: 'Weapon_Efficient',
@@ -95,12 +108,16 @@ test('application startup projects the current commander, ranks, location and sh
           },
           {
             slotId: 'TinyHardpoint1',
-            slotGroup: 'utility'
+            slotGroup: 'utility',
+            expectedSlot: { size: 0 },
+            definition: { displayName: 'Shield Booster' }
           },
           {
             slotId: 'Slot01_Size4',
             slotGroup: 'optional',
-            slotSize: 4
+            slotSize: 4,
+            expectedSlot: { size: 4 },
+            definition: { displayName: 'Cargo Rack' }
           }
         ]
       },
@@ -112,6 +129,19 @@ test('application startup projects the current commander, ranks, location and sh
       fileAvailable: true,
       linesRead: 6,
       error: null
+    })
+    expect(catalogueDiagnostics).toMatchObject({
+      shipCount: 47,
+      shipAliasCount: 83,
+      moduleCount: 1068,
+      currentShip: {
+        typeId: 'cobramkiii',
+        displayName: 'Cobra Mk III',
+        shipResolved: true,
+        moduleCount: 4,
+        catalogueModules: 4,
+        inferredModules: 0
+      }
     })
   } finally {
     await application.stop()

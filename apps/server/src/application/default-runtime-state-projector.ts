@@ -10,11 +10,16 @@ import type {
   RuntimeStateReader,
   RuntimeStateWriter
 } from '../domain/runtime-state.js'
+import {
+  passThroughShipLoadoutEnricher,
+  type ShipLoadoutEnricher
+} from '../domain/ship-loadout.js'
 
 export class DefaultRuntimeStateProjector implements RuntimeStateProjector {
   public constructor (
     private readonly store: RuntimeStateReader & RuntimeStateWriter,
-    private readonly updates: Publisher<RuntimeState>
+    private readonly updates: Publisher<RuntimeState>,
+    private readonly shipLoadoutEnricher: ShipLoadoutEnricher = passThroughShipLoadoutEnricher
   ) {}
 
   public project (event: GameEventEnvelope): RuntimeState {
@@ -31,7 +36,7 @@ export class DefaultRuntimeStateProjector implements RuntimeStateProjector {
             ? { ...current.commander, rankProgress: event.payload }
             : current.commander,
       ship: event.type === 'ship.loadout_changed'
-        ? event.payload
+        ? this.shipLoadoutEnricher.enrich(event.payload)
         : current.ship,
       system: event.type === 'system.changed'
         ? event.payload

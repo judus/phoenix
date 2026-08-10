@@ -66,6 +66,21 @@ test('the control console renders catalogue actions through the recording backen
 test('the Elite developer surface renders source diagnostics and normalized status', () => {
   const markup = renderToStaticMarkup(
     <DeveloperPage
+      catalogueDiagnostics={{
+        shipCount: 47,
+        shipAliasCount: 83,
+        moduleCount: 1068,
+        shipSource: 'EDCD Coriolis Data',
+        moduleSource: 'EDCD FDevIDs',
+        currentShip: {
+          typeId: 'cobramkiii',
+          displayName: 'Cobra Mk III',
+          shipResolved: true,
+          moduleCount: 4,
+          catalogueModules: 4,
+          inferredModules: 0
+        }
+      }}
       eliteStatusDiagnostics={{
         directory: '/game',
         filePath: '/game/Status.json',
@@ -80,6 +95,8 @@ test('the Elite developer surface renders source diagnostics and normalized stat
     />
   )
 
+  expect(markup).toContain('Game catalogue diagnostics')
+  expect(markup).toContain('Cobra Mk III')
   expect(markup).toContain('Status source diagnostics')
   expect(markup).toContain('/game/Status.json')
   expect(markup).toContain('Normalized game status')
