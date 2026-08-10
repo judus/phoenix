@@ -14,9 +14,10 @@ test('the template page composes the shared application layout', () => {
   expect(markup).toContain('class="app-shell"')
   expect(markup).toContain('aria-label="Primary navigation"')
   expect(markup).toContain('aria-label="Section navigation"')
+  expect(markup).toContain('aria-label="Developer tools"')
+  expect(markup).toContain('href="#/developer/overview"')
   expect(markup).toContain('<main class="page">')
   expect(markup).toContain('class="page-header"')
   expect(markup).toContain('class="page-content"')
   expect(markup).toContain('class="page-footer"')
 })
-

@@ -1,22 +1,7 @@
-import type { HealthResponse } from '@phoenix/contracts'
-import { AppHeader, AppShell } from '../components/layout/app-shell.js'
+import type { HealthResponse, RuntimeState } from '@phoenix/contracts'
 import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/page.js'
-import {
-  PrimaryNavigation,
-  SecondaryNavigation,
-  type NavigationItem
-} from '../components/navigation/navigation.js'
-import { AppBrand, TopBar } from '../components/top-bar/top-bar.js'
-
-const primaryNavigation: NavigationItem[] = [
-  { href: '#navigation', id: 'navigation', label: 'Navigation' },
-  { href: '#ship', id: 'ship', label: 'Ship' },
-  { href: '#engineering', id: 'engineering', label: 'Engineering' },
-  { href: '#exploration', id: 'exploration', label: 'Exploration' },
-  { href: '#controls', id: 'controls', label: 'Controls' },
-  { href: '#copilot', id: 'copilot', label: 'Copilot' },
-  { href: '#log', id: 'log', label: 'Log' }
-]
+import { PhoenixShell } from '../components/layout/phoenix-shell.js'
+import type { NavigationItem } from '../components/navigation/navigation.js'
 
 const secondaryNavigation: NavigationItem[] = [
   { href: '#overview', icon: '◇', id: 'overview', label: 'Overview' },
@@ -37,39 +22,25 @@ const templateRows = [
 export interface TemplatePageProps {
   error?: string
   health?: HealthResponse
+  runtimeState?: RuntimeState
 }
 
-export function TemplatePage ({ error, health }: TemplatePageProps) {
-  const coreState = health ? 'Core online' : error ? 'Core unavailable' : 'Establishing link…'
+export function TemplatePage ({ error, health, runtimeState }: TemplatePageProps) {
+  const runtimeDescription = runtimeState
+    ? `Revision ${runtimeState.revision} · ${runtimeState.location.systemName ?? 'location unknown'}`
+    : 'Waiting for the initial runtime snapshot'
+  const rows = [
+    ...templateRows,
+    { description: runtimeDescription, label: 'Runtime state', state: runtimeState ? 'Live' : 'Pending' }
+  ]
 
   return (
-    <AppShell
-      header={(
-        <AppHeader
-          topBar={(
-            <TopBar
-              brand={<AppBrand name="PHOENIX" qualifier="Terminal" />}
-              status={(
-                <div className="core-status" aria-live="polite">
-                  <span className="core-status__label">{coreState}</span>
-                  <span className="core-status__detail">
-                    {health ? `${health.database.engine} · API v${health.apiVersion}` : error}
-                  </span>
-                </div>
-              )}
-              actions={(
-                <div className="top-bar-actions" aria-label="Application actions">
-                  <button type="button" aria-label="Messages">▤</button>
-                  <button type="button" aria-label="Settings">☷</button>
-                  <button type="button" aria-label="Fullscreen">⛶</button>
-                </div>
-              )}
-            />
-          )}
-          navigation={<PrimaryNavigation activeItemId="engineering" items={primaryNavigation} />}
-        />
-      )}
-      secondaryNavigation={<SecondaryNavigation activeItemId="overview" items={secondaryNavigation} />}
+    <PhoenixShell
+      activePrimaryItemId="engineering"
+      activeSecondaryItemId="overview"
+      error={error}
+      health={health}
+      secondaryNavigation={secondaryNavigation}
     >
       <Page>
         <PageHeader
@@ -82,7 +53,7 @@ export function TemplatePage ({ error, health }: TemplatePageProps) {
           <section className="content-section" aria-labelledby="foundation-heading">
             <h2 id="foundation-heading" className="section-heading">Foundation</h2>
             <div className="status-list">
-              {templateRows.map(row => (
+              {rows.map(row => (
                 <article key={row.label} className="status-list__row">
                   <h3>{row.label}</h3>
                   <p>{row.description}</p>
@@ -106,7 +77,6 @@ export function TemplatePage ({ error, health }: TemplatePageProps) {
           <span>{health ? 'Frontend ↔ backend confirmed' : 'Backend link pending'}</span>
         </PageFooter>
       </Page>
-    </AppShell>
+    </PhoenixShell>
   )
 }
-

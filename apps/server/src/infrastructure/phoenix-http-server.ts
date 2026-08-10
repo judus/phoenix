@@ -1,7 +1,15 @@
 import { createReadStream, existsSync, statSync } from 'node:fs'
-import { createServer, type Server, type ServerResponse } from 'node:http'
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse
+} from 'node:http'
 import { extname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path'
+import type { RuntimeState } from '@phoenix/contracts'
 import type { HealthCheck } from '../application/health-service.js'
+import type { Subscribable } from '../domain/publisher.js'
+import type { RuntimeStateReader } from '../domain/runtime-state.js'
 
 const CONTENT_TYPES: Record<string, string> = {
   '.css': 'text/css; charset=utf-8',
@@ -16,15 +24,18 @@ export interface PhoenixHttpServerOptions {
   healthCheck: HealthCheck
   host: string
   port: number
+  runtimeState: RuntimeStateReader
+  runtimeStateUpdates: Subscribable<RuntimeState>
   webRoot: string
 }
 
 export class PhoenixHttpServer {
+  private readonly eventStreams = new Set<ServerResponse>()
   private readonly server: Server
 
   public constructor (private readonly options: PhoenixHttpServerOptions) {
     this.server = createServer((request, response) => {
-      this.handle(request.url ?? '/', response)
+      this.handle(request, response)
     })
   }
 
@@ -44,16 +55,28 @@ export class PhoenixHttpServer {
 
   public async stop (): Promise<void> {
     if (!this.server.listening) return
+    for (const stream of this.eventStreams) stream.end()
+    this.eventStreams.clear()
     await new Promise<void>((resolvePromise, reject) => {
       this.server.close(error => error ? reject(error) : resolvePromise())
     })
   }
 
-  private handle (requestUrl: string, response: ServerResponse): void {
-    const url = new URL(requestUrl, 'http://phoenix.local')
+  private handle (request: IncomingMessage, response: ServerResponse): void {
+    const url = new URL(request.url ?? '/', 'http://phoenix.local')
 
-    if (url.pathname === '/api/health') {
+    if (request.method === 'GET' && url.pathname === '/api/health') {
       this.writeJson(response, 200, this.options.healthCheck.getHealth())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/runtime-state') {
+      this.writeJson(response, 200, this.options.runtimeState.getCurrent())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/runtime-state/stream') {
+      this.openRuntimeStateStream(request, response)
       return
     }
 
@@ -65,6 +88,32 @@ export class PhoenixHttpServer {
     }
 
     this.serveWebAsset(url.pathname, response)
+  }
+
+  private openRuntimeStateStream (request: IncomingMessage, response: ServerResponse): void {
+    response.writeHead(200, {
+      'cache-control': 'no-cache, no-transform',
+      connection: 'keep-alive',
+      'content-type': 'text/event-stream; charset=utf-8'
+    })
+    response.flushHeaders()
+    this.eventStreams.add(response)
+
+    const send = (state: RuntimeState): void => {
+      response.write(`event: runtime-state\ndata: ${JSON.stringify(state)}\n\n`)
+    }
+    const unsubscribe = this.options.runtimeStateUpdates.subscribe(send)
+    let closed = false
+    const close = (): void => {
+      if (closed) return
+      closed = true
+      unsubscribe()
+      this.eventStreams.delete(response)
+    }
+
+    request.once('close', close)
+    response.once('close', close)
+    send(this.options.runtimeState.getCurrent())
   }
 
   private serveWebAsset (pathname: string, response: ServerResponse): void {

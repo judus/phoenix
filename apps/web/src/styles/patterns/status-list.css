@@ -24,6 +24,21 @@
   }
 }
 
+.developer-data {
+  min-block-size: 18rem;
+  margin: 0;
+  padding: var(--space-4);
+  overflow: auto;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  background: rgb(10 4 10 / 72%);
+  font: 0.9rem/1.5 monospace;
+}
+
+.developer-placeholder {
+  max-inline-size: 56rem;
+}
+
 @media (width < 48rem) {
   .status-list .status-list__row {
     grid-template-columns: 1fr auto;
