@@ -5,6 +5,7 @@ import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
 test('the developer API exposes and safely simulates the action catalogue', async () => {
   const application = new PhoenixApplication({
     databasePath: ':memory:',
+    eliteDirectory: null,
     host: '127.0.0.1',
     port: 0
   })

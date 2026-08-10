@@ -3,6 +3,7 @@ import {
   RuntimeStateSchema,
   type GameActionCatalogResponse,
   type GameActionResult,
+  type EliteStatusSourceDiagnostics,
   type HealthResponse,
   type RuntimeState
 } from '@phoenix/contracts'
@@ -17,6 +18,7 @@ export function App () {
   const [actionCatalog, setActionCatalog] = useState<GameActionCatalogResponse>()
   const [actionPending, setActionPending] = useState<string>()
   const [lastActionResult, setLastActionResult] = useState<GameActionResult>()
+  const [eliteStatusDiagnostics, setEliteStatusDiagnostics] = useState<EliteStatusSourceDiagnostics>()
   const [runtimeState, setRuntimeState] = useState<RuntimeState>()
   const [error, setError] = useState<string>()
   const [route, setRoute] = useState(readRoute)
@@ -34,10 +36,19 @@ export function App () {
       .then(setActionCatalog)
       .catch(cause => setError(cause instanceof Error ? cause.message : 'Action catalogue unavailable.'))
 
+    api.getEliteStatusDiagnostics()
+      .then(setEliteStatusDiagnostics)
+      .catch(cause => setError(cause instanceof Error ? cause.message : 'Elite status diagnostics unavailable.'))
+
     const eventSource = new EventSource(api.runtimeStateStreamUrl())
     eventSource.addEventListener('runtime-state', event => {
       try {
         setRuntimeState(RuntimeStateSchema.parse(JSON.parse(event.data)))
+        void api.getEliteStatusDiagnostics()
+          .then(setEliteStatusDiagnostics)
+          .catch(cause => setError(
+            cause instanceof Error ? cause.message : 'Elite status diagnostics unavailable.'
+          ))
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : 'Invalid runtime state received.')
       }
@@ -58,6 +69,7 @@ export function App () {
         actionCatalog={actionCatalog}
         actionPending={actionPending}
         error={error}
+        eliteStatusDiagnostics={eliteStatusDiagnostics}
         health={health}
         lastActionResult={lastActionResult}
         runtimeState={runtimeState}
@@ -83,7 +95,7 @@ type AppRoute = { section: 'main' } | { section: 'developer', view: DeveloperVie
 
 function readRoute (): AppRoute {
   if (typeof window === 'undefined') return { section: 'main' }
-  const match = window.location.hash.match(/^#\/developer\/(overview|runtime|health|tests|controls)$/)
+  const match = window.location.hash.match(/^#\/developer\/(overview|runtime|elite|health|tests|controls)$/)
   if (!match) return { section: 'main' }
   return { section: 'developer', view: match[1] as DeveloperView }
 }

@@ -11,15 +11,15 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace @phoenix/contracts && npm run build --workspace @phoenix/server && npm run build --workspace @phoenix/web",
+    "build": "npm run build --workspace @phoenix/contracts && npm run build --workspace @phoenix/elite && npm run build --workspace @phoenix/server && npm run build --workspace @phoenix/web",
     "check": "npm run typecheck && npm test && npm run build",
     "dev": "node scripts/dev.mjs",
     "dev:server": "npm run dev --workspace @phoenix/server",
     "dev:web": "npm run dev --workspace @phoenix/web",
-    "pretest": "npm run build --workspace @phoenix/contracts",
+    "pretest": "npm run build --workspace @phoenix/contracts && npm run build --workspace @phoenix/elite",
     "start": "npm run start --workspace @phoenix/server",
     "test": "vitest run",
-    "typecheck": "npm run build --workspace @phoenix/contracts && npm run typecheck --workspace @phoenix/server && npm run typecheck --workspace @phoenix/web"
+    "typecheck": "npm run build --workspace @phoenix/contracts && npm run build --workspace @phoenix/elite && npm run typecheck --workspace @phoenix/server && npm run typecheck --workspace @phoenix/web"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",

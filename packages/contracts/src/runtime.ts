@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { EliteGameStatusSchema } from './elite-status.js'
 
 export const RuntimeLocationStateSchema = z.enum([
   'unknown',
@@ -27,7 +28,8 @@ export const RuntimeStateSchema = z.object({
   ship: z.object({
     name: z.string().min(1).nullable(),
     type: z.string().min(1).nullable()
-  })
+  }),
+  gameStatus: EliteGameStatusSchema.nullable()
 })
 
 const GameEventEnvelopeBaseSchema = z.object({
@@ -59,6 +61,10 @@ export const GameEventEnvelopeSchema = z.discriminatedUnion('type', [
       name: z.string().min(1).nullable(),
       type: z.string().min(1)
     })
+  }),
+  GameEventEnvelopeBaseSchema.extend({
+    type: z.literal('game.status_changed'),
+    payload: EliteGameStatusSchema
   })
 ])
 
@@ -80,6 +86,7 @@ export function createEmptyRuntimeState (): RuntimeState {
     ship: {
       name: null,
       type: null
-    }
+    },
+    gameStatus: null
   }
 }

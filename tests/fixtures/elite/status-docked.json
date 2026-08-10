@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-08-10T14:00:00Z",
+  "event": "Status",
+  "Flags": 285213517,
+  "Flags2": 0,
+  "Pips": [4, 6, 2],
+  "FireGroup": 1,
+  "GuiFocus": 0,
+  "Fuel": {
+    "FuelMain": 27.5,
+    "FuelReservoir": 0.63
+  },
+  "Cargo": 96,
+  "LegalState": "Clean",
+  "BodyName": "Jameson Memorial",
+  "Balance": 125000000
+}

@@ -1,9 +1,11 @@
 import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { GameEventEnvelope, RuntimeState } from '@phoenix/contracts'
+import { EliteDataDirectoryLocator, EliteStatusFileSource } from '@phoenix/elite'
 import { DefaultGameActionGateway } from './application/default-game-action-gateway.js'
 import { DefaultRuntimeStateProjector } from './application/default-runtime-state-projector.js'
 import { DeveloperActionService } from './application/developer-action-service.js'
+import { EliteStatusIngestionService } from './application/elite-status-ingestion-service.js'
 import { GameEventIngestionService } from './application/game-event-ingestion-service.js'
 import { HealthService } from './application/health-service.js'
 import type { GameActionBindingResolver, InputBackend } from './domain/game-actions.js'
@@ -18,6 +20,7 @@ import { StaticGameActionBindingResolver } from './infrastructure/static-game-ac
 export interface PhoenixApplicationOptions {
   actionBindingResolver?: GameActionBindingResolver
   databasePath?: string
+  eliteDirectory?: string | null
   host?: string
   inputBackend?: InputBackend
   port?: number
@@ -29,6 +32,7 @@ export class PhoenixApplication {
   private readonly eventIngestion: GameEventIngestionService
   private readonly server: PhoenixHttpServer
   private readonly stateStore: InMemoryRuntimeStateStore
+  private readonly statusSource: EliteStatusFileSource
 
   public constructor (options: PhoenixApplicationOptions = {}) {
     const projectRoot = fileURLToPath(new URL('../../../', import.meta.url))
@@ -38,6 +42,18 @@ export class PhoenixApplication {
     const projector = new DefaultRuntimeStateProjector(this.stateStore, runtimeStateUpdates)
     gameEvents.subscribe(event => projector.project(event))
     this.eventIngestion = new GameEventIngestionService(gameEvents)
+    const configuredEliteDirectory = options.eliteDirectory === null
+      ? null
+      : new EliteDataDirectoryLocator({
+          explicitDirectory: options.eliteDirectory ?? process.env.PHOENIX_ELITE_DIRECTORY
+        }).locate()
+    const statusIngestion = new EliteStatusIngestionService(this.eventIngestion)
+    this.statusSource = new EliteStatusFileSource(
+      configuredEliteDirectory,
+      status => {
+        statusIngestion.ingest(status)
+      }
+    )
     const actionGateway = new DefaultGameActionGateway(
       new DefaultGameActionCatalog(),
       options.actionBindingResolver ?? new StaticGameActionBindingResolver(),
@@ -51,6 +67,7 @@ export class PhoenixApplication {
     )
     this.server = new PhoenixHttpServer({
       developerActions: new DeveloperActionService(actionGateway),
+      eliteStatusDiagnostics: this.statusSource,
       healthCheck: new HealthService(this.database),
       host: options.host ?? process.env.PHOENIX_HOST ?? '0.0.0.0',
       port: options.port ?? Number(process.env.PHOENIX_PORT ?? 3400),
@@ -65,10 +82,18 @@ export class PhoenixApplication {
 
   public async start (): Promise<{ host: string, port: number }> {
     this.database.initialize()
-    return this.server.start()
+    try {
+      await this.statusSource.start()
+      return await this.server.start()
+    } catch (cause) {
+      this.statusSource.stop()
+      this.database.close()
+      throw cause
+    }
   }
 
   public async stop (): Promise<void> {
+    this.statusSource.stop()
     await this.server.stop()
     this.database.close()
   }

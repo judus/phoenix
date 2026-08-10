@@ -6,6 +6,7 @@ import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
 test('connected clients receive the initial and projected runtime snapshots', async () => {
   const application = new PhoenixApplication({
     databasePath: ':memory:',
+    eliteDirectory: null,
     host: '127.0.0.1',
     port: 0
   })

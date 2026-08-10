@@ -1,5 +1,6 @@
 import {
   RuntimeStateSchema,
+  type EliteGameStatus,
   type GameEventEnvelope,
   type RuntimeState
 } from '@phoenix/contracts'
@@ -25,16 +26,37 @@ export class DefaultRuntimeStateProjector implements RuntimeStateProjector {
       commander: event.type === 'commander.identity_changed'
         ? { name: event.payload.name }
         : current.commander,
-      location: event.type === 'location.changed'
-        ? event.payload
-        : current.location,
       ship: event.type === 'ship.identity_changed'
         ? event.payload
-        : current.ship
+        : current.ship,
+      gameStatus: event.type === 'game.status_changed'
+        ? event.payload
+        : current.gameStatus,
+      location: event.type === 'location.changed'
+        ? event.payload
+        : event.type === 'game.status_changed'
+          ? { ...current.location, state: deriveLocationState(event.payload) }
+          : current.location
     })
 
     this.store.replace(next)
     this.updates.publish(next)
     return next
   }
+}
+
+function deriveLocationState (status: EliteGameStatus): RuntimeState['location']['state'] {
+  if (status.flags2.onFoot) return 'on_foot'
+  if (status.flags.inSrv) return 'in_srv'
+  if (status.flags.fsdJump) return 'hyperspace'
+  if (status.flags.supercruise) return 'supercruise'
+  if (status.flags.docked) return 'docked'
+  if (status.flags.landed) return 'landed'
+  if (
+    status.flags.inMainShip ||
+    status.flags.inFighter ||
+    status.flags2.inTaxi ||
+    status.flags2.inMulticrew
+  ) return 'in_space'
+  return 'unknown'
 }

@@ -2,12 +2,12 @@
   "compilerOptions": {
     "composite": true,
     "declaration": true,
+    "declarationMap": true,
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "dist",
     "paths": {
-      "@phoenix/contracts": ["../../packages/contracts/src/index.ts"],
-      "@phoenix/elite": ["../../packages/elite/src/index.ts"]
+      "@phoenix/contracts": ["../contracts/src/index.ts"]
     },
     "rootDir": "src",
     "strict": true,
@@ -16,7 +16,6 @@
   },
   "include": ["src/**/*.ts"],
   "references": [
-    { "path": "../../packages/contracts" },
-    { "path": "../../packages/elite" }
+    { "path": "../contracts" }
   ]
 }

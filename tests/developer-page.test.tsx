@@ -62,3 +62,25 @@ test('the control console renders catalogue actions through the recording backen
   expect(markup).toContain('ShipSpotLightToggle')
   expect(markup).toContain('Test action')
 })
+
+test('the Elite developer surface renders source diagnostics and normalized status', () => {
+  const markup = renderToStaticMarkup(
+    <DeveloperPage
+      eliteStatusDiagnostics={{
+        directory: '/game',
+        filePath: '/game/Status.json',
+        watching: true,
+        fileAvailable: true,
+        lastReadAt: '2026-08-10T14:00:01Z',
+        lastGameTimestamp: '2026-08-10T14:00:00Z',
+        error: null
+      }}
+      runtimeState={createEmptyRuntimeState()}
+      view="elite"
+    />
+  )
+
+  expect(markup).toContain('Status source diagnostics')
+  expect(markup).toContain('/game/Status.json')
+  expect(markup).toContain('Normalized game status')
+})

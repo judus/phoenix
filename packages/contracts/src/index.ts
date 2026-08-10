@@ -1,4 +1,5 @@
 export * from './actions.js'
+export * from './elite-status.js'
 export * from './runtime.js'
 
 export const PHOENIX_API_VERSION = '1' as const

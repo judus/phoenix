@@ -9,6 +9,7 @@ import { extname, isAbsolute, join, normalize, relative, resolve, sep } from 'no
 import type { RuntimeState } from '@phoenix/contracts'
 import type { DeveloperActions } from '../application/developer-action-service.js'
 import type { HealthCheck } from '../application/health-service.js'
+import type { EliteStatusDiagnosticsReader } from '../domain/elite-status.js'
 import type { Subscribable } from '../domain/publisher.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
 
@@ -23,6 +24,7 @@ const CONTENT_TYPES: Record<string, string> = {
 
 export interface PhoenixHttpServerOptions {
   developerActions: DeveloperActions
+  eliteStatusDiagnostics: EliteStatusDiagnosticsReader
   healthCheck: HealthCheck
   host: string
   port: number
@@ -89,6 +91,11 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/developer/actions') {
       this.writeJson(response, 200, this.options.developerActions.getCatalog())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/developer/elite-status') {
+      this.writeJson(response, 200, this.options.eliteStatusDiagnostics.getDiagnostics())
       return
     }
 

@@ -6,6 +6,7 @@ import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
 test('the frontend API client communicates with the PHOENIX backend', async () => {
   const application = new PhoenixApplication({
     databasePath: ':memory:',
+    eliteDirectory: null,
     host: '127.0.0.1',
     port: 0
   })
