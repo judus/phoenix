@@ -1,4 +1,9 @@
-import type { HealthResponse, RuntimeState } from '@phoenix/contracts'
+import type {
+  GameActionCatalogResponse,
+  GameActionResult,
+  HealthResponse,
+  RuntimeState
+} from '@phoenix/contracts'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/page.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
@@ -32,18 +37,31 @@ const viewMetadata: Record<DeveloperView, { description: string, title: string }
   },
   controls: {
     title: 'Control Console',
-    description: 'Explicit game-action tests will live here.'
+    description: 'Exercise the action catalogue through the configured input backend.'
   }
 }
 
 export interface DeveloperPageProps {
+  actionCatalog?: GameActionCatalogResponse
+  actionPending?: string
   error?: string
   health?: HealthResponse
+  lastActionResult?: GameActionResult
+  onExecuteAction?: (actionId: string) => void
   runtimeState?: RuntimeState
   view: DeveloperView
 }
 
-export function DeveloperPage ({ error, health, runtimeState, view }: DeveloperPageProps) {
+export function DeveloperPage ({
+  actionCatalog,
+  actionPending,
+  error,
+  health,
+  lastActionResult,
+  onExecuteAction,
+  runtimeState,
+  view
+}: DeveloperPageProps) {
   const metadata = viewMetadata[view]
 
   return (
@@ -61,7 +79,16 @@ export function DeveloperPage ({ error, health, runtimeState, view }: DeveloperP
           description={metadata.description}
         />
         <PageContent>
-          {renderDeveloperView(view, health, runtimeState, error)}
+          {renderDeveloperView({
+            actionCatalog,
+            actionPending,
+            error,
+            health,
+            lastActionResult,
+            onExecuteAction,
+            runtimeState,
+            view
+          })}
         </PageContent>
         <PageFooter>
           <span>Developer section</span>
@@ -72,12 +99,8 @@ export function DeveloperPage ({ error, health, runtimeState, view }: DeveloperP
   )
 }
 
-function renderDeveloperView (
-  view: DeveloperView,
-  health?: HealthResponse,
-  runtimeState?: RuntimeState,
-  error?: string
-) {
+function renderDeveloperView (props: DeveloperPageProps) {
+  const { error, health, runtimeState, view } = props
   if (view === 'runtime') {
     return <DeveloperData title="Validated runtime snapshot" value={runtimeState} />
   }
@@ -86,7 +109,9 @@ function renderDeveloperView (
     return <DeveloperData title="Health response" value={health ?? (error ? { error } : undefined)} />
   }
 
-  if (view === 'tests' || view === 'controls') {
+  if (view === 'controls') return <DeveloperControls {...props} />
+
+  if (view === 'tests') {
     return (
       <section className="content-section developer-placeholder">
         <h2 className="section-heading">Extension point ready</h2>
@@ -108,6 +133,61 @@ function renderDeveloperView (
         <DeveloperLink href="#/developer/controls" label="Control console" state="Ready" />
       </div>
     </section>
+  )
+}
+
+function DeveloperControls ({
+  actionCatalog,
+  actionPending,
+  lastActionResult,
+  onExecuteAction
+}: DeveloperPageProps) {
+  if (!actionCatalog) return <p>Waiting for the action catalogue…</p>
+
+  return (
+    <>
+      <section className="content-section">
+        <h2 className="section-heading">Input backend</h2>
+        <p className="developer-backend-status">
+          <strong>{actionCatalog.backend.id}</strong>
+          <span>{actionCatalog.backend.detail}</span>
+          <span>{actionCatalog.backend.simulated ? 'Simulation' : 'Live input'}</span>
+        </p>
+      </section>
+
+      <section className="content-section">
+        <h2 className="section-heading">Action catalogue</h2>
+        <div className="developer-action-grid">
+          {actionCatalog.actions.map(action => (
+            <article className="developer-action" key={action.definition.id}>
+              <div>
+                <h3>{action.definition.label}</h3>
+                <p>{action.definition.description}</p>
+              </div>
+              <dl>
+                <dt>Action</dt><dd>{action.definition.id}</dd>
+                <dt>Elite</dt><dd>{action.definition.eliteBinding}</dd>
+                <dt>Binding</dt><dd>{action.binding?.display ?? 'Unbound'}</dd>
+              </dl>
+              <button
+                type="button"
+                disabled={!action.available || actionPending !== undefined}
+                onClick={() => onExecuteAction?.(action.definition.id)}
+              >
+                {actionPending === action.definition.id ? 'Executing…' : 'Test action'}
+              </button>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {lastActionResult && (
+        <section className="content-section">
+          <h2 className="section-heading">Last result</h2>
+          <pre className="developer-data">{JSON.stringify(lastActionResult, null, 2)}</pre>
+        </section>
+      )}
+    </>
   )
 }
 

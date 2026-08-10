@@ -26,3 +26,39 @@ test('the developer area uses the shared shell and its own secondary navigation'
   expect(markup).toContain('Validated runtime snapshot')
   expect(markup).toContain('&quot;schemaVersion&quot;: 1')
 })
+
+test('the control console renders catalogue actions through the recording backend', () => {
+  const markup = renderToStaticMarkup(
+    <DeveloperPage
+      actionCatalog={{
+        backend: {
+          id: 'recording',
+          available: true,
+          simulated: true,
+          detail: 'Recording backend active.'
+        },
+        actions: [{
+          available: true,
+          binding: { key: 'L', modifiers: [], display: 'L' },
+          definition: {
+            id: 'ship.lights.toggle',
+            label: 'Ship Lights',
+            description: 'Toggle the ship exterior lights.',
+            category: 'ship',
+            inputMode: 'tap',
+            risk: 'routine',
+            eliteBinding: 'ShipSpotLightToggle',
+            telemetryKey: 'lightsOn'
+          },
+          unavailableReason: null
+        }]
+      }}
+      view="controls"
+    />
+  )
+
+  expect(markup).toContain('Recording backend active.')
+  expect(markup).toContain('ship.lights.toggle')
+  expect(markup).toContain('ShipSpotLightToggle')
+  expect(markup).toContain('Test action')
+})

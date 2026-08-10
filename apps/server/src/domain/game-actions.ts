@@ -1,0 +1,48 @@
+import type {
+  GameActionAvailability,
+  GameActionCatalogResponse,
+  GameActionCommand,
+  GameActionDefinition,
+  GameActionOperation,
+  GameActionResult,
+  InputBackendStatus,
+  LogicalInputChord
+} from '@phoenix/contracts'
+
+export interface GameActionCatalog {
+  find(actionId: string): GameActionDefinition | undefined
+  list(): GameActionDefinition[]
+}
+
+export interface GameActionBindingResolver {
+  resolve(eliteBinding: string): LogicalInputChord | null
+}
+
+export interface GameActionGateway {
+  execute(command: GameActionCommand): Promise<GameActionResult>
+  getCatalog(): GameActionCatalogResponse
+}
+
+export interface InputBackend {
+  getStatus(): InputBackendStatus
+  send(operation: GameActionOperation, binding: LogicalInputChord): Promise<void>
+}
+
+export function getActionAvailability (
+  definition: GameActionDefinition,
+  binding: LogicalInputChord | null,
+  backend: InputBackendStatus
+): GameActionAvailability {
+  const unavailableReason = !backend.available
+    ? backend.detail
+    : !binding
+        ? `No keyboard binding is configured for ${definition.eliteBinding}.`
+        : null
+
+  return {
+    definition,
+    available: unavailableReason === null,
+    binding,
+    unavailableReason
+  }
+}

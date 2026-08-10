@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import {
   RuntimeStateSchema,
+  type GameActionCatalogResponse,
+  type GameActionResult,
   type HealthResponse,
   type RuntimeState
 } from '@phoenix/contracts'
@@ -12,6 +14,9 @@ const api = new PhoenixApiClient()
 
 export function App () {
   const [health, setHealth] = useState<HealthResponse>()
+  const [actionCatalog, setActionCatalog] = useState<GameActionCatalogResponse>()
+  const [actionPending, setActionPending] = useState<string>()
+  const [lastActionResult, setLastActionResult] = useState<GameActionResult>()
   const [runtimeState, setRuntimeState] = useState<RuntimeState>()
   const [error, setError] = useState<string>()
   const [route, setRoute] = useState(readRoute)
@@ -24,6 +29,10 @@ export function App () {
     api.getRuntimeState()
       .then(setRuntimeState)
       .catch(cause => setError(cause instanceof Error ? cause.message : 'Runtime state unavailable.'))
+
+    api.getDeveloperActions()
+      .then(setActionCatalog)
+      .catch(cause => setError(cause instanceof Error ? cause.message : 'Action catalogue unavailable.'))
 
     const eventSource = new EventSource(api.runtimeStateStreamUrl())
     eventSource.addEventListener('runtime-state', event => {
@@ -46,10 +55,23 @@ export function App () {
   if (route.section === 'developer') {
     return (
       <DeveloperPage
+        actionCatalog={actionCatalog}
+        actionPending={actionPending}
         error={error}
         health={health}
+        lastActionResult={lastActionResult}
         runtimeState={runtimeState}
         view={route.view}
+        onExecuteAction={async actionId => {
+          setActionPending(actionId)
+          try {
+            setLastActionResult(await api.executeDeveloperAction(actionId))
+          } catch (cause) {
+            setError(cause instanceof Error ? cause.message : 'Action execution failed.')
+          } finally {
+            setActionPending(undefined)
+          }
+        }}
       />
     )
   }

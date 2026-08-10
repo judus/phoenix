@@ -7,6 +7,7 @@ import {
 } from 'node:http'
 import { extname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path'
 import type { RuntimeState } from '@phoenix/contracts'
+import type { DeveloperActions } from '../application/developer-action-service.js'
 import type { HealthCheck } from '../application/health-service.js'
 import type { Subscribable } from '../domain/publisher.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
@@ -21,6 +22,7 @@ const CONTENT_TYPES: Record<string, string> = {
 }
 
 export interface PhoenixHttpServerOptions {
+  developerActions: DeveloperActions
   healthCheck: HealthCheck
   host: string
   port: number
@@ -35,7 +37,12 @@ export class PhoenixHttpServer {
 
   public constructor (private readonly options: PhoenixHttpServerOptions) {
     this.server = createServer((request, response) => {
-      this.handle(request, response)
+      void this.handle(request, response).catch(cause => {
+        const message = cause instanceof Error ? cause.message : 'Unknown server error.'
+        this.writeJson(response, 500, {
+          error: { code: 'internal_error', message }
+        })
+      })
     })
   }
 
@@ -62,7 +69,7 @@ export class PhoenixHttpServer {
     })
   }
 
-  private handle (request: IncomingMessage, response: ServerResponse): void {
+  private async handle (request: IncomingMessage, response: ServerResponse): Promise<void> {
     const url = new URL(request.url ?? '/', 'http://phoenix.local')
 
     if (request.method === 'GET' && url.pathname === '/api/health') {
@@ -77,6 +84,24 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/runtime-state/stream') {
       this.openRuntimeStateStream(request, response)
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/developer/actions') {
+      this.writeJson(response, 200, this.options.developerActions.getCatalog())
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/developer/actions/execute') {
+      try {
+        const result = await this.options.developerActions.execute(await readJsonBody(request))
+        this.writeJson(response, 200, result)
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : 'Invalid action request.'
+        this.writeJson(response, 400, {
+          error: { code: 'invalid_action_request', message }
+        })
+      }
       return
     }
 
@@ -152,4 +177,19 @@ export class PhoenixHttpServer {
     })
     response.end(body)
   }
+}
+
+async function readJsonBody (request: IncomingMessage): Promise<unknown> {
+  const chunks: Buffer[] = []
+  let length = 0
+
+  for await (const chunk of request) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+    length += buffer.length
+    if (length > 64 * 1024) throw new Error('Request body exceeds 64 KiB.')
+    chunks.push(buffer)
+  }
+
+  if (chunks.length === 0) throw new Error('Request body is empty.')
+  return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown
 }

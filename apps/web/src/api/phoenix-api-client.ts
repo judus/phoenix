@@ -1,10 +1,16 @@
 import {
+  GameActionCatalogResponseSchema,
+  GameActionResultSchema,
   RuntimeStateSchema,
+  type GameActionCatalogResponse,
+  type GameActionResult,
   type HealthResponse,
   type RuntimeState
 } from '@phoenix/contracts'
 
 export interface PhoenixApi {
+  executeDeveloperAction(actionId: string): Promise<GameActionResult>
+  getDeveloperActions(): Promise<GameActionCatalogResponse>
   getHealth(): Promise<HealthResponse>
   getRuntimeState(): Promise<RuntimeState>
   runtimeStateStreamUrl(): string
@@ -26,6 +32,27 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw new Error(`PHOENIX API returned HTTP ${response.status}.`)
     return response.json() as Promise<HealthResponse>
+  }
+
+  public async getDeveloperActions (): Promise<GameActionCatalogResponse> {
+    const response = await this.request(`${this.baseUrl}/api/developer/actions`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw new Error(`PHOENIX API returned HTTP ${response.status}.`)
+    return GameActionCatalogResponseSchema.parse(await response.json())
+  }
+
+  public async executeDeveloperAction (actionId: string): Promise<GameActionResult> {
+    const response = await this.request(`${this.baseUrl}/api/developer/actions/execute`, {
+      body: JSON.stringify({ actionId, operation: 'tap' }),
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json'
+      },
+      method: 'POST'
+    })
+    if (!response.ok) throw new Error(`PHOENIX API returned HTTP ${response.status}.`)
+    return GameActionResultSchema.parse(await response.json())
   }
 
   public async getRuntimeState (): Promise<RuntimeState> {
