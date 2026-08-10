@@ -124,6 +124,7 @@ export class PhoenixApplication {
     const statefulActions = new StatefulGameActionService(gameActions, this.stateStore)
     const toolRegistry = new ToolRegistry(createPhoenixMcpTools({
       gameActions,
+      gameCatalogue,
       runtimeState: this.stateStore,
       statefulActions
     }))

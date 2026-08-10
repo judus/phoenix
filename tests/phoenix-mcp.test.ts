@@ -31,6 +31,12 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
         callId: 'find-lights-1',
         name: 'phoenix__controls_find_actions',
         type: 'tool_call'
+      },
+      {
+        arguments: { detail: 'summary', identifier: 'lakonminer' },
+        callId: 'type-11-definition-1',
+        name: 'phoenix__ships_get_definition',
+        type: 'tool_call'
       }
     ], 'tool_calls'),
     response('answer-step', [{ source: 'generated', text: 'Telemetry received.', type: 'text' }], 'stop')
@@ -47,9 +53,18 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
     expect(provider.requests).toHaveLength(2)
     expect(provider.requests[0]?.tools?.map(tool => tool.name)).toEqual([
       'phoenix__commander_get_current_state',
+      'phoenix__commander_get_inventory',
+      'phoenix__commander_list_materials',
       'phoenix__controls_find_actions',
       'phoenix__controls_execute',
-      'phoenix__controls_set_switch'
+      'phoenix__controls_get_status',
+      'phoenix__controls_set_switch',
+      'phoenix__controls_tap',
+      'phoenix__ship_get_cargo',
+      'phoenix__ship_get_status',
+      'phoenix__ship_list_modules',
+      'phoenix__ships_compare',
+      'phoenix__ships_get_definition'
     ])
     expect(provider.requests[1]?.messages.at(-1)).toMatchObject({
       role: 'tool',
@@ -68,6 +83,15 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
           status: 'success',
           structuredContent: {
             matches: [{ actionId: 'elite.ShipSpotLightToggle', label: 'Ship Lights' }]
+          },
+          type: 'tool_result'
+        },
+        {
+          callId: 'type-11-definition-1',
+          status: 'success',
+          structuredContent: {
+            displayName: 'Type-11 Prospector',
+            id: 'type_11_prospector'
           },
           type: 'tool_result'
         }
