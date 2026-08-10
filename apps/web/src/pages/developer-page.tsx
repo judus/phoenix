@@ -1,6 +1,7 @@
 import type {
   GameActionCatalogResponse,
   GameActionResult,
+  EliteJournalSourceDiagnostics,
   EliteStatusSourceDiagnostics,
   HealthResponse,
   RuntimeState
@@ -50,6 +51,7 @@ const viewMetadata: Record<DeveloperView, { description: string, title: string }
 export interface DeveloperPageProps {
   actionCatalog?: GameActionCatalogResponse
   actionPending?: string
+  eliteJournalDiagnostics?: EliteJournalSourceDiagnostics
   eliteStatusDiagnostics?: EliteStatusSourceDiagnostics
   error?: string
   health?: HealthResponse
@@ -61,7 +63,8 @@ export interface DeveloperPageProps {
 
 export function DeveloperPage ({
   actionCatalog,
-  actionPending,
+    actionPending,
+    eliteJournalDiagnostics,
   error,
   eliteStatusDiagnostics,
   health,
@@ -90,6 +93,7 @@ export function DeveloperPage ({
           {renderDeveloperView({
             actionCatalog,
             actionPending,
+            eliteJournalDiagnostics,
             eliteStatusDiagnostics,
             error,
             health,
@@ -121,6 +125,7 @@ function renderDeveloperView (props: DeveloperPageProps) {
   if (view === 'elite') {
     return (
       <>
+        <DeveloperData title="Journal source diagnostics" value={props.eliteJournalDiagnostics} />
         <DeveloperData title="Status source diagnostics" value={props.eliteStatusDiagnostics} />
         <DeveloperData title="Normalized game status" value={runtimeState?.gameStatus} />
       </>
@@ -149,7 +154,11 @@ function renderDeveloperView (props: DeveloperPageProps) {
         <DeveloperLink
           href="#/developer/elite"
           label="Elite status"
-          state={props.eliteStatusDiagnostics?.fileAvailable ? 'Live' : 'Unavailable'}
+          state={
+            props.eliteStatusDiagnostics?.fileAvailable || props.eliteJournalDiagnostics?.fileAvailable
+              ? 'Available'
+              : 'Unavailable'
+          }
         />
         <DeveloperLink href="#/developer/health" label="System health" state={health ? 'Online' : 'Pending'} />
         <DeveloperLink href="#/developer/tests" label="Test console" state="Ready" />

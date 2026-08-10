@@ -13,8 +13,8 @@ data/runtime/
 *.sqlite-shm
 *.sqlite-wal
 *.log
+!tests/fixtures/**/*.log
 
 .idea/
 .vscode/
 .DS_Store
-

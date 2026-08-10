@@ -1,10 +1,12 @@
 import {
   GameActionCatalogResponseSchema,
   GameActionResultSchema,
+  EliteJournalSourceDiagnosticsSchema,
   EliteStatusSourceDiagnosticsSchema,
   RuntimeStateSchema,
   type GameActionCatalogResponse,
   type GameActionResult,
+  type EliteJournalSourceDiagnostics,
   type EliteStatusSourceDiagnostics,
   type HealthResponse,
   type RuntimeState
@@ -12,6 +14,7 @@ import {
 
 export interface PhoenixApi {
   executeDeveloperAction(actionId: string): Promise<GameActionResult>
+  getEliteJournalDiagnostics(): Promise<EliteJournalSourceDiagnostics>
   getEliteStatusDiagnostics(): Promise<EliteStatusSourceDiagnostics>
   getDeveloperActions(): Promise<GameActionCatalogResponse>
   getHealth(): Promise<HealthResponse>
@@ -64,6 +67,14 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw new Error(`PHOENIX API returned HTTP ${response.status}.`)
     return EliteStatusSourceDiagnosticsSchema.parse(await response.json())
+  }
+
+  public async getEliteJournalDiagnostics (): Promise<EliteJournalSourceDiagnostics> {
+    const response = await this.request(`${this.baseUrl}/api/developer/elite-journal`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw new Error(`PHOENIX API returned HTTP ${response.status}.`)
+    return EliteJournalSourceDiagnosticsSchema.parse(await response.json())
   }
 
   public async getRuntimeState (): Promise<RuntimeState> {

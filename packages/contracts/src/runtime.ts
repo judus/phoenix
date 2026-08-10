@@ -13,12 +13,36 @@ export const RuntimeLocationStateSchema = z.enum([
   'in_srv'
 ])
 
+export const CommanderRanksSchema = z.object({
+  combat: z.number().int().nonnegative().nullable(),
+  trade: z.number().int().nonnegative().nullable(),
+  exploration: z.number().int().nonnegative().nullable(),
+  federation: z.number().int().nonnegative().nullable(),
+  empire: z.number().int().nonnegative().nullable(),
+  cqc: z.number().int().nonnegative().nullable(),
+  mercenary: z.number().int().nonnegative().nullable(),
+  exobiologist: z.number().int().nonnegative().nullable()
+})
+
+export const CommanderRankProgressSchema = z.object({
+  combat: z.number().int().min(0).max(100).nullable(),
+  trade: z.number().int().min(0).max(100).nullable(),
+  exploration: z.number().int().min(0).max(100).nullable(),
+  federation: z.number().int().min(0).max(100).nullable(),
+  empire: z.number().int().min(0).max(100).nullable(),
+  cqc: z.number().int().min(0).max(100).nullable(),
+  mercenary: z.number().int().min(0).max(100).nullable(),
+  exobiologist: z.number().int().min(0).max(100).nullable()
+})
+
 export const RuntimeStateSchema = z.object({
   schemaVersion: z.literal(1),
   revision: z.number().int().nonnegative(),
   updatedAt: z.iso.datetime().nullable(),
   commander: z.object({
-    name: z.string().min(1).nullable()
+    name: z.string().min(1).nullable(),
+    ranks: CommanderRanksSchema,
+    rankProgress: CommanderRankProgressSchema
   }),
   location: z.object({
     state: RuntimeLocationStateSchema,
@@ -46,6 +70,14 @@ export const GameEventEnvelopeSchema = z.discriminatedUnion('type', [
     payload: z.object({
       name: z.string().min(1)
     })
+  }),
+  GameEventEnvelopeBaseSchema.extend({
+    type: z.literal('commander.ranks_changed'),
+    payload: CommanderRanksSchema
+  }),
+  GameEventEnvelopeBaseSchema.extend({
+    type: z.literal('commander.rank_progress_changed'),
+    payload: CommanderRankProgressSchema
   }),
   GameEventEnvelopeBaseSchema.extend({
     type: z.literal('location.changed'),
@@ -77,7 +109,11 @@ export function createEmptyRuntimeState (): RuntimeState {
     schemaVersion: 1,
     revision: 0,
     updatedAt: null,
-    commander: { name: null },
+    commander: {
+      name: null,
+      ranks: emptyCommanderRanks(),
+      rankProgress: emptyCommanderRanks()
+    },
     location: {
       state: 'unknown',
       systemName: null,
@@ -88,5 +124,18 @@ export function createEmptyRuntimeState (): RuntimeState {
       type: null
     },
     gameStatus: null
+  }
+}
+
+function emptyCommanderRanks () {
+  return {
+    combat: null,
+    trade: null,
+    exploration: null,
+    federation: null,
+    empire: null,
+    cqc: null,
+    mercenary: null,
+    exobiologist: null
   }
 }

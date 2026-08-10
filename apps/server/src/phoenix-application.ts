@@ -1,10 +1,11 @@
 import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { GameEventEnvelope, RuntimeState } from '@phoenix/contracts'
-import { EliteDataDirectoryLocator, EliteStatusFileSource } from '@phoenix/elite'
+import { EliteDataDirectoryLocator, EliteJournalFileSource, EliteStatusFileSource } from '@phoenix/elite'
 import { DefaultGameActionGateway } from './application/default-game-action-gateway.js'
 import { DefaultRuntimeStateProjector } from './application/default-runtime-state-projector.js'
 import { DeveloperActionService } from './application/developer-action-service.js'
+import { EliteJournalIngestionService } from './application/elite-journal-ingestion-service.js'
 import { EliteStatusIngestionService } from './application/elite-status-ingestion-service.js'
 import { GameEventIngestionService } from './application/game-event-ingestion-service.js'
 import { HealthService } from './application/health-service.js'
@@ -30,6 +31,7 @@ export interface PhoenixApplicationOptions {
 export class PhoenixApplication {
   private readonly database: SqliteDatabase
   private readonly eventIngestion: GameEventIngestionService
+  private readonly journalSource: EliteJournalFileSource
   private readonly server: PhoenixHttpServer
   private readonly stateStore: InMemoryRuntimeStateStore
   private readonly statusSource: EliteStatusFileSource
@@ -48,6 +50,13 @@ export class PhoenixApplication {
           explicitDirectory: options.eliteDirectory ?? process.env.PHOENIX_ELITE_DIRECTORY
         }).locate()
     const statusIngestion = new EliteStatusIngestionService(this.eventIngestion)
+    const journalIngestion = new EliteJournalIngestionService(this.eventIngestion)
+    this.journalSource = new EliteJournalFileSource(
+      configuredEliteDirectory,
+      event => {
+        journalIngestion.ingest(event)
+      }
+    )
     this.statusSource = new EliteStatusFileSource(
       configuredEliteDirectory,
       status => {
@@ -67,6 +76,7 @@ export class PhoenixApplication {
     )
     this.server = new PhoenixHttpServer({
       developerActions: new DeveloperActionService(actionGateway),
+      eliteJournalDiagnostics: this.journalSource,
       eliteStatusDiagnostics: this.statusSource,
       healthCheck: new HealthService(this.database),
       host: options.host ?? process.env.PHOENIX_HOST ?? '0.0.0.0',
@@ -83,9 +93,11 @@ export class PhoenixApplication {
   public async start (): Promise<{ host: string, port: number }> {
     this.database.initialize()
     try {
+      await this.journalSource.start()
       await this.statusSource.start()
       return await this.server.start()
     } catch (cause) {
+      this.journalSource.stop()
       this.statusSource.stop()
       this.database.close()
       throw cause
@@ -93,6 +105,7 @@ export class PhoenixApplication {
   }
 
   public async stop (): Promise<void> {
+    this.journalSource.stop()
     this.statusSource.stop()
     await this.server.stop()
     this.database.close()

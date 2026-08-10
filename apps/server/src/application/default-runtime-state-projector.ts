@@ -24,8 +24,12 @@ export class DefaultRuntimeStateProjector implements RuntimeStateProjector {
       revision: current.revision + 1,
       updatedAt: event.ingestedAt,
       commander: event.type === 'commander.identity_changed'
-        ? { name: event.payload.name }
-        : current.commander,
+        ? { ...current.commander, name: event.payload.name }
+        : event.type === 'commander.ranks_changed'
+          ? { ...current.commander, ranks: event.payload }
+          : event.type === 'commander.rank_progress_changed'
+            ? { ...current.commander, rankProgress: event.payload }
+            : current.commander,
       ship: event.type === 'ship.identity_changed'
         ? event.payload
         : current.ship,
