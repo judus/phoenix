@@ -6,20 +6,21 @@ import { StaticGameActionBindingResolver } from '../apps/server/src/infrastructu
 
 test('the action gateway resolves logical bindings and delegates to its input backend', async () => {
   const backend = new RecordingInputBackend()
+  const bindings = new StaticGameActionBindingResolver()
   const gateway = new DefaultGameActionGateway(
-    new DefaultGameActionCatalog(),
-    new StaticGameActionBindingResolver(),
+    new DefaultGameActionCatalog(bindings),
+    bindings,
     backend
   )
 
   const result = await gateway.execute({
-    actionId: 'ship.lights.toggle',
+    actionId: 'elite.ShipSpotLightToggle',
     operation: 'tap',
     origin: 'developer'
   })
 
   expect(result).toMatchObject({
-    actionId: 'ship.lights.toggle',
+    actionId: 'elite.ShipSpotLightToggle',
     operation: 'tap',
     origin: 'developer',
     status: 'accepted'
@@ -33,9 +34,10 @@ test('the action gateway resolves logical bindings and delegates to its input ba
 
 test('the action gateway rejects unknown actions without touching the backend', async () => {
   const backend = new RecordingInputBackend()
+  const bindings = new StaticGameActionBindingResolver()
   const gateway = new DefaultGameActionGateway(
-    new DefaultGameActionCatalog(),
-    new StaticGameActionBindingResolver(),
+    new DefaultGameActionCatalog(bindings),
+    bindings,
     backend
   )
 

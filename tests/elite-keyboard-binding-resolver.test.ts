@@ -35,6 +35,21 @@ test('the binding resolver selects the active latest preset and resolves keyboar
       display: 'LeftShift+RightAlt+G'
     })
     expect(resolver.resolve('FireChaffLauncher')).toBeNull()
+    expect(resolver.listCommands()).toEqual([
+      'FireChaffLauncher',
+      'LandingGearToggle',
+      'NightVisionToggle'
+    ])
+    expect(resolver.listBindings()).toEqual([
+      {
+        eliteBinding: 'LandingGearToggle',
+        binding: { key: 'G', modifiers: ['LeftShift', 'RightAlt'], display: 'LeftShift+RightAlt+G' }
+      },
+      {
+        eliteBinding: 'NightVisionToggle',
+        binding: { key: 'Numpad_9', modifiers: [], display: 'Numpad_9' }
+      }
+    ])
   } finally {
     rmSync(directory, { recursive: true, force: true })
   }

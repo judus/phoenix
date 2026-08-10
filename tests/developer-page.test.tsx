@@ -51,7 +51,7 @@ test('the control console renders catalogue actions through the recording backen
           available: true,
           binding: { key: 'L', modifiers: [], display: 'L' },
           definition: {
-            id: 'ship.lights.toggle',
+            id: 'elite.ShipSpotLightToggle',
             label: 'Ship Lights',
             description: 'Toggle the ship exterior lights.',
             category: 'ship',
@@ -70,7 +70,7 @@ test('the control console renders catalogue actions through the recording backen
   expect(markup).toContain('Recording backend active.')
   expect(markup).toContain('Active binding source')
   expect(markup).toContain('Custom.4.2.binds')
-  expect(markup).toContain('ship.lights.toggle')
+  expect(markup).toContain('elite.ShipSpotLightToggle')
   expect(markup).toContain('ShipSpotLightToggle')
   expect(markup).toContain('Test action')
 })

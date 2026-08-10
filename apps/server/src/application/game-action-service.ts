@@ -1,29 +1,29 @@
 import {
   ExecuteGameActionRequestSchema,
   GameActionCatalogResponseSchema,
+  GameActionOriginSchema,
   GameActionResultSchema,
   type GameActionCatalogResponse,
+  type GameActionOrigin,
   type GameActionResult
 } from '@phoenix/contracts'
 import type { GameActionGateway } from '../domain/game-actions.js'
 
-export interface DeveloperActions {
-  execute(candidate: unknown): Promise<GameActionResult>
+export interface GameActions {
+  execute(candidate: unknown, origin: GameActionOrigin): Promise<GameActionResult>
   getCatalog(): GameActionCatalogResponse
 }
 
-export class DeveloperActionService implements DeveloperActions {
+export class GameActionService implements GameActions {
   public constructor (private readonly gateway: GameActionGateway) {}
 
   public getCatalog (): GameActionCatalogResponse {
     return GameActionCatalogResponseSchema.parse(this.gateway.getCatalog())
   }
 
-  public async execute (candidate: unknown): Promise<GameActionResult> {
+  public async execute (candidate: unknown, originCandidate: GameActionOrigin): Promise<GameActionResult> {
     const request = ExecuteGameActionRequestSchema.parse(candidate)
-    return GameActionResultSchema.parse(await this.gateway.execute({
-      ...request,
-      origin: 'developer'
-    }))
+    const origin = GameActionOriginSchema.parse(originCandidate)
+    return GameActionResultSchema.parse(await this.gateway.execute({ ...request, origin }))
   }
 }

@@ -13,7 +13,7 @@ const primaryNavigation: NavigationItem[] = [
   { href: '#ship', id: 'ship', label: 'Ship' },
   { href: '#engineering', id: 'engineering', label: 'Engineering' },
   { href: '#exploration', id: 'exploration', label: 'Exploration' },
-  { href: '#controls', id: 'controls', label: 'Controls' },
+  { href: '#/controls/ship', id: 'controls', label: 'Controls' },
   { href: '#copilot', id: 'copilot', label: 'Copilot' },
   { href: '#log', id: 'log', label: 'Log' }
 ]

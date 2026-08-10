@@ -7,7 +7,8 @@ import type {
   GameActionOperation,
   GameActionResult,
   InputBackendStatus,
-  LogicalInputChord
+  LogicalInputChord,
+  ResolvedGameActionBinding
 } from '@phoenix/contracts'
 
 export interface GameActionCatalog {
@@ -17,6 +18,8 @@ export interface GameActionCatalog {
 
 export interface GameActionBindingResolver {
   resolve(eliteBinding: string): LogicalInputChord | null
+  listBindings(): ResolvedGameActionBinding[]
+  listCommands(): string[]
   getDiagnostics(): GameActionBindingSourceDiagnostics
 }
 

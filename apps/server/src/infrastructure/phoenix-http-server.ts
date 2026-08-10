@@ -8,7 +8,7 @@ import {
 import { extname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path'
 import type { RuntimeState } from '@phoenix/contracts'
 import type { CatalogueDiagnosticsReader } from '../application/catalogue-diagnostics-service.js'
-import type { DeveloperActions } from '../application/developer-action-service.js'
+import type { GameActions } from '../application/game-action-service.js'
 import type { HealthCheck } from '../application/health-service.js'
 import type { EliteJournalDiagnosticsReader } from '../domain/elite-journal.js'
 import type { EliteStatusDiagnosticsReader } from '../domain/elite-status.js'
@@ -26,7 +26,7 @@ const CONTENT_TYPES: Record<string, string> = {
 
 export interface PhoenixHttpServerOptions {
   catalogueDiagnostics: CatalogueDiagnosticsReader
-  developerActions: DeveloperActions
+  gameActions: GameActions
   eliteJournalDiagnostics: EliteJournalDiagnosticsReader
   eliteStatusDiagnostics: EliteStatusDiagnosticsReader
   healthCheck: HealthCheck
@@ -93,8 +93,8 @@ export class PhoenixHttpServer {
       return
     }
 
-    if (request.method === 'GET' && url.pathname === '/api/developer/actions') {
-      this.writeJson(response, 200, this.options.developerActions.getCatalog())
+    if (request.method === 'GET' && ['/api/actions', '/api/developer/actions'].includes(url.pathname)) {
+      this.writeJson(response, 200, this.options.gameActions.getCatalog())
       return
     }
 
@@ -113,9 +113,13 @@ export class PhoenixHttpServer {
       return
     }
 
-    if (request.method === 'POST' && url.pathname === '/api/developer/actions/execute') {
+    if (
+      request.method === 'POST' &&
+      ['/api/actions/execute', '/api/developer/actions/execute'].includes(url.pathname)
+    ) {
       try {
-        const result = await this.options.developerActions.execute(await readJsonBody(request))
+        const origin = url.pathname.startsWith('/api/developer/') ? 'developer' : 'ui'
+        const result = await this.options.gameActions.execute(await readJsonBody(request), origin)
         this.writeJson(response, 200, result)
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : 'Invalid action request.'

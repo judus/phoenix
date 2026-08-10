@@ -12,10 +12,21 @@ export const GameActionResultStatusSchema = z.enum([
 ])
 
 export const GameActionDefinitionSchema = z.object({
-  id: z.string().regex(/^[a-z][a-z0-9]*(?:\.[a-z][a-z0-9_]*)+$/),
+  id: z.string().regex(/^[A-Za-z][A-Za-z0-9_-]*(?:\.[A-Za-z][A-Za-z0-9_-]*)+$/),
   label: z.string().min(1),
   description: z.string().min(1),
-  category: z.enum(['ship', 'combat', 'navigation', 'srv', 'on_foot', 'system']),
+  category: z.enum([
+    'ship',
+    'combat',
+    'navigation',
+    'srv',
+    'on_foot',
+    'vessel',
+    'radio',
+    'emote',
+    'system',
+    'misc'
+  ]),
   inputMode: z.enum(['tap', 'hold']),
   risk: z.enum(['routine', 'caution', 'dangerous']),
   eliteBinding: z.string().min(1),
@@ -26,6 +37,11 @@ export const LogicalInputChordSchema = z.object({
   key: z.string().min(1),
   modifiers: z.array(z.string().min(1)).max(3),
   display: z.string().min(1)
+})
+
+export const ResolvedGameActionBindingSchema = z.object({
+  eliteBinding: z.string().min(1),
+  binding: LogicalInputChordSchema
 })
 
 export const GameActionAvailabilitySchema = z.object({
@@ -85,6 +101,8 @@ export type GameActionCommand = z.infer<typeof GameActionCommandSchema>
 export type GameActionBindingSourceDiagnostics = z.infer<typeof GameActionBindingSourceDiagnosticsSchema>
 export type GameActionDefinition = z.infer<typeof GameActionDefinitionSchema>
 export type GameActionOperation = z.infer<typeof GameActionOperationSchema>
+export type GameActionOrigin = z.infer<typeof GameActionOriginSchema>
 export type GameActionResult = z.infer<typeof GameActionResultSchema>
 export type InputBackendStatus = z.infer<typeof InputBackendStatusSchema>
+export type ResolvedGameActionBinding = z.infer<typeof ResolvedGameActionBindingSchema>
 export type LogicalInputChord = z.infer<typeof LogicalInputChordSchema>

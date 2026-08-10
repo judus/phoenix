@@ -14,7 +14,7 @@ import { CatalogueShipLoadoutEnricher } from './application/catalogue-ship-loado
 import { CatalogueDiagnosticsService } from './application/catalogue-diagnostics-service.js'
 import { DefaultGameActionGateway } from './application/default-game-action-gateway.js'
 import { DefaultRuntimeStateProjector } from './application/default-runtime-state-projector.js'
-import { DeveloperActionService } from './application/developer-action-service.js'
+import { GameActionService } from './application/game-action-service.js'
 import { EliteJournalIngestionService } from './application/elite-journal-ingestion-service.js'
 import { EliteInventoryIngestionService } from './application/elite-inventory-ingestion-service.js'
 import { EliteStatusIngestionService } from './application/elite-status-ingestion-service.js'
@@ -98,13 +98,15 @@ export class PhoenixApplication {
       configuredEliteDirectory,
       snapshot => { inventoryIngestion.ingest(snapshot) }
     )
+    const actionBindingResolver = options.actionBindingResolver ?? new EliteKeyboardBindingResolver(
+      locateBindingsDirectory(options, configuredEliteDirectory)
+    )
     const actionGateway = new DefaultGameActionGateway(
-      new DefaultGameActionCatalog(),
-      options.actionBindingResolver ?? new EliteKeyboardBindingResolver(
-        locateBindingsDirectory(options, configuredEliteDirectory)
-      ),
+      new DefaultGameActionCatalog(actionBindingResolver),
+      actionBindingResolver,
       options.inputBackend ?? configuredInputBackend(options.inputBackendMode)
     )
+    const gameActions = new GameActionService(actionGateway)
     this.database = new SqliteDatabase(
       resolveProjectPath(
         projectRoot,
@@ -113,7 +115,7 @@ export class PhoenixApplication {
     )
     this.server = new PhoenixHttpServer({
       catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
-      developerActions: new DeveloperActionService(actionGateway),
+      gameActions,
       eliteJournalDiagnostics: this.journalSource,
       eliteStatusDiagnostics: this.statusSource,
       healthCheck: new HealthService(this.database),

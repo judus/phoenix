@@ -4,8 +4,10 @@ import { XMLParser } from 'fast-xml-parser'
 import {
   GameActionBindingSourceDiagnosticsSchema,
   LogicalInputChordSchema,
+  ResolvedGameActionBindingSchema,
   type GameActionBindingSourceDiagnostics,
-  type LogicalInputChord
+  type LogicalInputChord,
+  type ResolvedGameActionBinding
 } from '@phoenix/contracts'
 
 const parser = new XMLParser({
@@ -18,6 +20,7 @@ const parser = new XMLParser({
 
 export class EliteKeyboardBindingResolver {
   private bindings = new Map<string, LogicalInputChord>()
+  private commands: string[] = []
   private diagnostics: GameActionBindingSourceDiagnostics
 
   public constructor (private readonly directory: string | null) {
@@ -27,6 +30,16 @@ export class EliteKeyboardBindingResolver {
 
   public resolve (eliteBinding: string): LogicalInputChord | null {
     return this.bindings.get(eliteBinding) ?? null
+  }
+
+  public listBindings (): ResolvedGameActionBinding[] {
+    return [...this.bindings.entries()]
+      .map(([eliteBinding, binding]) => ResolvedGameActionBindingSchema.parse({ eliteBinding, binding }))
+      .sort((left, right) => left.eliteBinding.localeCompare(right.eliteBinding))
+  }
+
+  public listCommands (): string[] {
+    return [...this.commands]
   }
 
   public getDiagnostics (): GameActionBindingSourceDiagnostics {
@@ -41,6 +54,7 @@ export class EliteKeyboardBindingResolver {
       filePath = this.findActiveFile(presetNames)
     } catch (cause) {
       this.bindings = new Map()
+      this.commands = []
       this.diagnostics = {
         ...emptyDiagnostics(this.directory),
         error: cause instanceof Error ? cause.message : 'Unable to discover Elite Dangerous bindings.'
@@ -49,6 +63,7 @@ export class EliteKeyboardBindingResolver {
     }
     if (!filePath) {
       this.bindings = new Map()
+      this.commands = []
       this.diagnostics = {
         ...emptyDiagnostics(this.directory),
         presetNames,
@@ -62,6 +77,7 @@ export class EliteKeyboardBindingResolver {
     try {
       const root = asRecord(asRecord(parser.parse(readFileSync(filePath, 'utf8'))).Root)
       const discovered = Object.entries(root).filter(([, node]) => isBindingNode(node))
+      this.commands = discovered.map(([name]) => name).sort()
       this.bindings = new Map(
         discovered
           .map(([name, node]) => [name, resolveKeyboardBinding(node)] as const)
@@ -79,6 +95,7 @@ export class EliteKeyboardBindingResolver {
       })
     } catch (cause) {
       this.bindings = new Map()
+      this.commands = []
       this.diagnostics = {
         ...emptyDiagnostics(this.directory),
         filePath,
