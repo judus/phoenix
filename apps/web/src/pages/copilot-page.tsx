@@ -8,6 +8,7 @@ import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 import { useCopilotVoice } from '../features/copilot/copilot-voice-provider.js'
+import { CopilotMarkdown } from '../features/copilot/copilot-markdown.js'
 
 const DEFAULT_CONVERSATION_ID = 'phoenix-copilot'
 const navigation: NavigationItem[] = [
@@ -118,19 +119,25 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
                 {messages.map(message => (
                   <article key={message.id} className={`copilot-message copilot-message--${message.role}`}>
                     <span>{message.role === 'user' ? 'Commander' : 'Copilot'}</span>
-                    <p>{message.text || (pending ? '…' : '')}</p>
+                    <div className="copilot-message__text">
+                      {message.role === 'assistant'
+                        ? <CopilotMarkdown>{message.text || (pending ? '…' : '')}</CopilotMarkdown>
+                        : message.text}
+                    </div>
                   </article>
                 ))}
                 {voice.activeTurn?.userText && (
                   <article className="copilot-message copilot-message--user copilot-message--live">
                     <span>Commander · live</span>
-                    <p>{voice.activeTurn.userText}</p>
+                    <div className="copilot-message__text">{voice.activeTurn.userText}</div>
                   </article>
                 )}
                 {voice.activeTurn && (
                   <article className="copilot-message copilot-message--assistant copilot-message--live">
                     <span>Copilot · live</span>
-                    <p>{voice.activeTurn.assistantText || '…'}</p>
+                    <div className="copilot-message__text">
+                      <CopilotMarkdown>{voice.activeTurn.assistantText || '…'}</CopilotMarkdown>
+                    </div>
                   </article>
                 )}
                 <div ref={endRef} />
