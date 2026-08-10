@@ -6,7 +6,11 @@ import {
   type ServerResponse
 } from 'node:http'
 import { extname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path'
-import { ControlGridLayoutSchema, type RuntimeState } from '@phoenix/contracts'
+import {
+  ControlGridLayoutSchema,
+  CopilotChatRequestSchema,
+  type RuntimeState
+} from '@phoenix/contracts'
 import { AiError, serializeAiError, type AiStreamEvent } from '@maduser/ai-ts'
 import type { CopilotText, CopilotTextRequest } from '../application/copilot-text-service.js'
 import type { CatalogueDiagnosticsReader } from '../application/catalogue-diagnostics-service.js'
@@ -100,6 +104,12 @@ export class PhoenixHttpServer {
 
     if (request.method === 'POST' && url.pathname === '/api/copilot/chat') {
       await this.handleCopilotChat(request, response)
+      return
+    }
+
+    const copilotConversationMatch = url.pathname.match(/^\/api\/copilot\/conversations\/([^/]+)$/u)
+    if (request.method === 'GET' && copilotConversationMatch) {
+      await this.handleCopilotHistory(response, decodeURIComponent(copilotConversationMatch[1]!))
       return
     }
 
@@ -215,7 +225,7 @@ export class PhoenixHttpServer {
 
     let input: CopilotTextRequest
     try {
-      input = parseCopilotTextRequest(await readJsonBody(request))
+      input = CopilotChatRequestSchema.parse(await readJsonBody(request))
     } catch (cause) {
       this.writeJson(response, 400, {
         error: {
@@ -238,6 +248,28 @@ export class PhoenixHttpServer {
         finishReason: result.finishReason,
         text: result.text,
         usage: result.usage
+      })
+    } catch (cause) {
+      this.writeJson(response, copilotErrorStatus(cause), {
+        error: serializeCopilotError(cause)
+      })
+    }
+  }
+
+  private async handleCopilotHistory (
+    response: ServerResponse,
+    conversationId: string
+  ): Promise<void> {
+    if (!this.options.copilot) {
+      this.writeJson(response, 503, {
+        error: { code: 'copilot_unavailable', message: 'The Copilot is not configured.' }
+      })
+      return
+    }
+    try {
+      this.writeJson(response, 200, {
+        conversationId,
+        messages: await this.options.copilot.getHistory(conversationId)
       })
     } catch (cause) {
       this.writeJson(response, copilotErrorStatus(cause), {
@@ -330,33 +362,6 @@ async function readJsonBody (request: IncomingMessage): Promise<unknown> {
 
   if (chunks.length === 0) throw new Error('Request body is empty.')
   return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown
-}
-
-function parseCopilotTextRequest (candidate: unknown): CopilotTextRequest {
-  if (!isRecord(candidate)) throw new Error('Copilot request must be a JSON object.')
-  const message = requiredText(candidate.message, 'message')
-  const conversationId = optionalText(candidate.conversationId, 'conversationId')
-  const profileId = optionalText(candidate.profileId, 'profileId')
-  return {
-    ...(conversationId === undefined ? {} : { conversationId }),
-    message,
-    ...(profileId === undefined ? {} : { profileId })
-  }
-}
-
-function requiredText (candidate: unknown, name: string): string {
-  if (typeof candidate !== 'string' || candidate.trim().length === 0) {
-    throw new Error(`${name} must be a non-empty string.`)
-  }
-  return candidate.trim()
-}
-
-function optionalText (candidate: unknown, name: string): string | undefined {
-  return candidate === undefined ? undefined : requiredText(candidate, name)
-}
-
-function isRecord (candidate: unknown): candidate is Record<string, unknown> {
-  return typeof candidate === 'object' && candidate !== null && !Array.isArray(candidate)
 }
 
 function writeCopilotStreamEvent (response: ServerResponse, event: AiStreamEvent): void {

@@ -73,7 +73,7 @@ export function createConfiguredCopilot (
     )),
     new RuntimeContextRenderer()
   )
-  return new CopilotTextService(pipeline, options.runtimeState)
+  return new CopilotTextService(pipeline, options.runtimeState, conversations)
 }
 
 function createWireLogger (file: string): OpenAIWireLogger {

@@ -5,6 +5,7 @@ import type {
   CopilotTextRequest
 } from '../apps/server/src/application/copilot-text-service.js'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
+import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
 
 test('the Copilot API supports buffered and streamed text turns', async () => {
   const copilot = new RecordingCopilot()
@@ -16,7 +17,9 @@ test('the Copilot API supports buffered and streamed text turns', async () => {
     port: 0
   })
   const address = await application.start()
-  const endpoint = `http://${address.host}:${address.port}/api/copilot/chat`
+  const baseUrl = `http://${address.host}:${address.port}`
+  const endpoint = `${baseUrl}/api/copilot/chat`
+  const client = new PhoenixApiClient(baseUrl)
 
   try {
     const buffered = await fetch(endpoint, {
@@ -31,6 +34,11 @@ test('the Copilot API supports buffered and streamed text turns', async () => {
       text: 'All clear.'
     })
 
+    await expect(client.getCopilotHistory('generated-chat')).resolves.toMatchObject({
+      conversationId: 'generated-chat',
+      messages: [{ role: 'assistant', text: 'All clear.' }]
+    })
+
     const invalid = await fetch(endpoint, {
       body: JSON.stringify({ message: '   ' }),
       headers: { 'content-type': 'application/json' },
@@ -41,20 +49,12 @@ test('the Copilot API supports buffered and streamed text turns', async () => {
       error: { code: 'invalid_copilot_request' }
     })
 
-    const streamed = await fetch(endpoint, {
-      body: JSON.stringify({ conversationId: 'bridge-log', message: 'Continue.' }),
-      headers: {
-        accept: 'text/event-stream',
-        'content-type': 'application/json'
-      },
-      method: 'POST'
-    })
-    expect(streamed.status).toBe(200)
-    expect(streamed.headers.get('content-type')).toContain('text/event-stream')
-    const body = await streamed.text()
-    expect(body).toContain('event: started\ndata: {"conversationId":"bridge-log"}')
-    expect(body).toContain('event: delta\ndata: {"delta":"All clear."}')
-    expect(body).toContain('event: completed')
+    const events: string[] = []
+    await client.streamCopilotMessage(
+      { conversationId: 'bridge-log', message: 'Continue.' },
+      event => events.push(event.type)
+    )
+    expect(events).toEqual(['started', 'delta', 'completed'])
     expect(copilot.requests).toEqual([
       { message: 'Status report.', profileId: 'icarus' },
       { conversationId: 'bridge-log', message: 'Continue.' }
@@ -91,6 +91,15 @@ test('the Copilot API reports invalid requests and disabled configuration', asyn
 
 class RecordingCopilot implements CopilotText {
   public readonly requests: CopilotTextRequest[] = []
+
+  public getHistory (conversationId: string) {
+    return Promise.resolve([{
+      createdAt: '2026-08-10T20:00:00.000Z',
+      id: `${conversationId}-assistant`,
+      role: 'assistant' as const,
+      text: 'All clear.'
+    }])
+  }
 
   public run (request: CopilotTextRequest, _options?: AiRunOptions): Promise<AiResult> {
     this.requests.push(request)

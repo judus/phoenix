@@ -14,6 +14,7 @@ import {
 import { PhoenixApiClient } from './api/phoenix-api-client.js'
 import { DeveloperPage, type DeveloperView } from './pages/developer-page.js'
 import { ControlsPage, type ControlCategory } from './pages/controls-page.js'
+import { CopilotPage } from './pages/copilot-page.js'
 import { TemplatePage } from './pages/template-page.js'
 
 const api = new PhoenixApiClient()
@@ -141,11 +142,16 @@ export function App () {
     )
   }
 
+  if (route.section === 'copilot') {
+    return <CopilotPage api={api} error={error} health={health} />
+  }
+
   return <TemplatePage health={health} error={error} runtimeState={runtimeState} />
 }
 
 type AppRoute =
   | { section: 'main' }
+  | { section: 'copilot' }
   | { section: 'controls', category: ControlCategory }
   | { section: 'developer', view: DeveloperView }
 
@@ -155,6 +161,7 @@ const CONTROL_CATEGORIES: ControlCategory[] = [
 
 function readRoute (): AppRoute {
   if (typeof window === 'undefined') return { section: 'main' }
+  if (/^#\/?copilot$/u.test(window.location.hash)) return { section: 'copilot' }
   const controlsMatch = window.location.hash.match(/^#\/?controls(?:\/([a-z_]+))?$/)
   if (controlsMatch) {
     const category = CONTROL_CATEGORIES.find(candidate => candidate === controlsMatch[1]) ?? 'ship'

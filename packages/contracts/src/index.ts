@@ -1,4 +1,5 @@
 export * from './actions.js'
+export * from './copilot.js'
 export * from './elite-catalogue.js'
 export * from './elite-inventory.js'
 export * from './elite-journal.js'

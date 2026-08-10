@@ -1,0 +1,198 @@
+@layer patterns {
+  .copilot-page .page-content {
+    overflow: hidden;
+  }
+
+  .copilot-workspace {
+    block-size: 100%;
+    min-block-size: 0;
+    display: grid;
+    grid-template-columns: minmax(10rem, 0.7fr) minmax(20rem, 2.4fr) minmax(11rem, 0.8fr);
+    gap: var(--space-3);
+  }
+
+  .copilot-sidebar,
+  .copilot-chat {
+    min-inline-size: 0;
+    min-block-size: 0;
+    border: 1px solid var(--color-border);
+    background: var(--color-panel);
+  }
+
+  .copilot-sidebar {
+    padding: var(--space-3);
+
+    h2 {
+      margin-block-end: var(--space-3);
+      color: var(--color-primary);
+      font-size: 0.8rem;
+      font-weight: 400;
+      text-transform: uppercase;
+    }
+  }
+
+  .copilot-profile {
+    inline-size: 100%;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border: 1px solid var(--color-primary);
+    background: rgb(255 157 0 / 9%);
+    text-align: start;
+
+    .copilot-profile__mark {
+      display: grid;
+      inline-size: 2rem;
+      block-size: 2rem;
+      place-items: center;
+      border: 1px solid var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    strong,
+    small {
+      display: block;
+    }
+
+    small {
+      margin-block-start: var(--space-1);
+      color: var(--color-muted);
+    }
+  }
+
+  .copilot-chat {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto auto auto;
+  }
+
+  .copilot-messages {
+    min-block-size: 0;
+    overflow: auto;
+    padding: var(--space-4);
+  }
+
+  .copilot-empty {
+    color: var(--color-muted);
+  }
+
+  .copilot-message {
+    padding-inline-start: var(--space-3);
+    border-inline-start: 2px solid var(--color-primary);
+
+    & + & {
+      margin-block-start: var(--space-4);
+    }
+
+    > span {
+      display: block;
+      margin-block-end: var(--space-1);
+      color: var(--color-primary);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+    }
+
+    p {
+      white-space: pre-wrap;
+    }
+
+    &.copilot-message--user {
+      margin-inline-start: 12%;
+      border-color: var(--color-secondary);
+
+      > span {
+        color: var(--color-secondary);
+      }
+    }
+  }
+
+  .copilot-tool-status,
+  .copilot-error {
+    padding: var(--space-2) var(--space-4);
+    border-block-start: 1px solid var(--color-border);
+    font-size: 0.8rem;
+  }
+
+  .copilot-tool-status {
+    color: var(--color-secondary);
+  }
+
+  .copilot-error {
+    color: var(--color-danger);
+  }
+
+  .copilot-composer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border-block-start: 1px solid var(--color-border);
+
+    label {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+
+    textarea {
+      min-inline-size: 0;
+      resize: none;
+      padding: var(--space-2);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      background: rgb(0 0 0 / 35%);
+    }
+
+    button {
+      padding-inline: var(--space-4);
+      border: 1px solid var(--color-primary);
+      color: var(--color-primary);
+      background: transparent;
+      text-transform: uppercase;
+    }
+  }
+
+  .copilot-voice {
+    display: flex;
+    flex-direction: column;
+
+    button {
+      margin-block-start: auto;
+      padding: var(--space-3);
+      border: 1px solid var(--color-border);
+      color: var(--color-muted);
+      background: transparent;
+      text-transform: uppercase;
+    }
+  }
+
+  .copilot-voice__status {
+    strong,
+    span {
+      display: block;
+    }
+
+    strong {
+      color: var(--color-muted);
+      text-transform: uppercase;
+    }
+
+    span {
+      margin-block-start: var(--space-1);
+      color: var(--color-muted);
+      font-size: 0.75rem;
+    }
+  }
+
+  @media (max-width: 60rem) {
+    .copilot-workspace {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .copilot-sidebar {
+      display: none;
+    }
+  }
+}
