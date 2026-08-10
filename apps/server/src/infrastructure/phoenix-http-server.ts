@@ -6,7 +6,7 @@ import {
   type ServerResponse
 } from 'node:http'
 import { extname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path'
-import type { RuntimeState } from '@phoenix/contracts'
+import { ControlGridLayoutSchema, type RuntimeState } from '@phoenix/contracts'
 import type { CatalogueDiagnosticsReader } from '../application/catalogue-diagnostics-service.js'
 import type { GameActions } from '../application/game-action-service.js'
 import type { HealthCheck } from '../application/health-service.js'
@@ -14,6 +14,7 @@ import type { EliteJournalDiagnosticsReader } from '../domain/elite-journal.js'
 import type { EliteStatusDiagnosticsReader } from '../domain/elite-status.js'
 import type { Subscribable } from '../domain/publisher.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
+import type { ControlGridLayoutRepository } from '../domain/system-configuration.js'
 
 const CONTENT_TYPES: Record<string, string> = {
   '.css': 'text/css; charset=utf-8',
@@ -26,6 +27,7 @@ const CONTENT_TYPES: Record<string, string> = {
 
 export interface PhoenixHttpServerOptions {
   catalogueDiagnostics: CatalogueDiagnosticsReader
+  controlGridLayouts: ControlGridLayoutRepository
   gameActions: GameActions
   eliteJournalDiagnostics: EliteJournalDiagnosticsReader
   eliteStatusDiagnostics: EliteStatusDiagnosticsReader
@@ -90,6 +92,29 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/runtime-state/stream') {
       this.openRuntimeStateStream(request, response)
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/control-layout') {
+      this.writeJson(response, 200, this.options.controlGridLayouts.getLayout())
+      return
+    }
+
+    if (request.method === 'PUT' && url.pathname === '/api/control-layout') {
+      try {
+        this.writeJson(
+          response,
+          200,
+          this.options.controlGridLayouts.saveLayout(
+            ControlGridLayoutSchema.parse(await readJsonBody(request))
+          )
+        )
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : 'Invalid control layout.'
+        this.writeJson(response, 400, {
+          error: { code: 'invalid_control_layout', message }
+        })
+      }
       return
     }
 

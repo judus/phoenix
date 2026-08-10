@@ -38,6 +38,10 @@ User choices live in the generated, gitignored `data/settings.json`; detected sy
 to `data/runtime/system.json` on each launch. On Linux with an X11/XWayland display, `auto` selects
 `xdotool` when it is installed.
 
+The Controls page is a configurable 8 x 5 dashboard. Its command picker uses the complete safe action
+catalogue discovered from Elite's active preset; empty cells stay empty until assigned. Layout changes
+are saved through the server into `data/settings.json`, so desktop and tablet clients share one layout.
+
 The initial settings are:
 
 ```json
@@ -45,10 +49,17 @@ The initial settings are:
   "version": 1,
   "controls": {
     "enabled": true,
-    "backend": "auto"
+    "backend": "auto",
+    "layout": {
+      "version": 2,
+      "pages": []
+    }
   }
 }
 ```
+
+On first launch PHOENIX fills `layout.pages` with the default Ship, Combat, Navigation, Vessel, SRV,
+On Foot, Radio, Emote, and Miscellaneous grids.
 
 The backend sends each modifier before the bound key and releases the chord in reverse order. Native
 Wayland input will use a separate backend rather than weakening the platform-neutral action gateway.

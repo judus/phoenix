@@ -4,7 +4,7 @@ import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
 import { StaticGameActionBindingResolver } from '../apps/server/src/infrastructure/static-game-action-binding-resolver.js'
 import { RecordingInputBackend } from '../apps/server/src/infrastructure/recording-input-backend.js'
 
-test('the developer API exposes and safely simulates the action catalogue', async () => {
+test('the API exposes actions, executes them, and persists the shared control layout', async () => {
   const inputBackend = new RecordingInputBackend()
   const application = new PhoenixApplication({
     actionBindingResolver: new StaticGameActionBindingResolver(),
@@ -40,6 +40,30 @@ test('the developer API exposes and safely simulates the action catalogue', asyn
       { operation: 'press', binding: { key: 'Space', modifiers: [], display: 'Space' } },
       { operation: 'release', binding: { key: 'Space', modifiers: [], display: 'Space' } }
     ])
+
+    const initialLayout = await client.getControlLayout()
+    const shipPage = initialLayout.pages.find(page => page.id === 'ship')
+    expect(shipPage).toMatchObject({ columns: 8, rows: 5 })
+
+    const movedLayout = {
+      ...initialLayout,
+      pages: initialLayout.pages.map(page => page.id !== 'ship'
+        ? page
+        : {
+            ...page,
+            cells: [
+              ...page.cells.map(cell => cell.position === 1 ? { ...cell, actionId: null } : cell),
+              { position: 2, span: 1, actionId: 'elite.GalaxyMapOpen' }
+            ]
+          })
+    }
+    const savedLayout = await client.saveControlLayout(movedLayout)
+    expect(savedLayout.pages.find(page => page.id === 'ship')?.cells).toContainEqual({
+      position: 2,
+      span: 1,
+      actionId: 'elite.GalaxyMapOpen'
+    })
+    expect(await client.getControlLayout()).toEqual(savedLayout)
   } finally {
     await application.stop()
   }

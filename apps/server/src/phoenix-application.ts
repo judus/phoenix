@@ -21,8 +21,10 @@ import { EliteStatusIngestionService } from './application/elite-status-ingestio
 import { GameEventIngestionService } from './application/game-event-ingestion-service.js'
 import { HealthService } from './application/health-service.js'
 import type { GameActionBindingResolver, InputBackend } from './domain/game-actions.js'
+import type { ControlGridLayoutRepository } from './domain/system-configuration.js'
 import { DefaultGameActionCatalog } from './infrastructure/default-game-action-catalog.js'
 import { InMemoryRuntimeStateStore } from './infrastructure/in-memory-runtime-state-store.js'
+import { InMemoryControlGridLayoutRepository } from './infrastructure/in-memory-control-grid-layout-repository.js'
 import { InProcessPublisher } from './infrastructure/in-process-publisher.js'
 import { PhoenixHttpServer } from './infrastructure/phoenix-http-server.js'
 import { RecordingInputBackend } from './infrastructure/recording-input-backend.js'
@@ -31,6 +33,7 @@ import { SqliteDatabase } from './infrastructure/sqlite-database.js'
 
 export interface PhoenixApplicationOptions {
   actionBindingResolver?: GameActionBindingResolver
+  controlGridLayoutRepository?: ControlGridLayoutRepository
   databasePath?: string
   eliteDirectory?: string | null
   eliteBindingsDirectory?: string | null
@@ -115,6 +118,7 @@ export class PhoenixApplication {
     )
     this.server = new PhoenixHttpServer({
       catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
+      controlGridLayouts: options.controlGridLayoutRepository ?? new InMemoryControlGridLayoutRepository(),
       gameActions,
       eliteJournalDiagnostics: this.journalSource,
       eliteStatusDiagnostics: this.statusSource,

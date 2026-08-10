@@ -21,11 +21,15 @@ try {
     projectRoot,
     process.env.PHOENIX_RUNTIME_SYSTEM_PATH ?? 'data/runtime/system.json'
   )
-  const settings = new JsonSystemSettingsRepository(settingsPath).loadOrCreate()
+  const settingsRepository = new JsonSystemSettingsRepository(settingsPath)
+  const settings = settingsRepository.loadOrCreate()
   const controls = bootstrapControlBackend(settings)
   new JsonRuntimeSystemSnapshotWriter(runtimeSystemPath).write(controls.snapshot)
 
-  application = new PhoenixApplication({ inputBackend: controls.backend })
+  application = new PhoenixApplication({
+    controlGridLayoutRepository: settingsRepository,
+    inputBackend: controls.backend
+  })
   const address = await application.start()
   console.log(`PHOENIX server listening on http://${address.host}:${address.port}`)
 } catch (error) {

@@ -1,5 +1,6 @@
 import {
   CatalogueDiagnosticsSchema,
+  ControlGridLayoutSchema,
   GameActionCatalogResponseSchema,
   GameActionResultSchema,
   EliteJournalSourceDiagnosticsSchema,
@@ -7,6 +8,7 @@ import {
   RuntimeStateSchema,
   type GameActionCatalogResponse,
   type CatalogueDiagnostics,
+  type ControlGridLayout,
   type GameActionResult,
   type GameActionOperation,
   type EliteJournalSourceDiagnostics,
@@ -17,6 +19,7 @@ import {
 
 export interface PhoenixApi {
   getCatalogueDiagnostics(): Promise<CatalogueDiagnostics>
+  getControlLayout(): Promise<ControlGridLayout>
   executeDeveloperAction(actionId: string): Promise<GameActionResult>
   executeAction(actionId: string, operation?: GameActionOperation): Promise<GameActionResult>
   getEliteJournalDiagnostics(): Promise<EliteJournalSourceDiagnostics>
@@ -25,6 +28,7 @@ export interface PhoenixApi {
   getDeveloperActions(): Promise<GameActionCatalogResponse>
   getHealth(): Promise<HealthResponse>
   getRuntimeState(): Promise<RuntimeState>
+  saveControlLayout(layout: ControlGridLayout): Promise<ControlGridLayout>
   runtimeStateStreamUrl(): string
 }
 
@@ -64,6 +68,27 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw new Error(`PHOENIX API returned HTTP ${response.status}.`)
     return CatalogueDiagnosticsSchema.parse(await response.json())
+  }
+
+  public async getControlLayout (): Promise<ControlGridLayout> {
+    const response = await this.request(`${this.baseUrl}/api/control-layout`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw new Error(`PHOENIX API returned HTTP ${response.status}.`)
+    return ControlGridLayoutSchema.parse(await response.json())
+  }
+
+  public async saveControlLayout (layout: ControlGridLayout): Promise<ControlGridLayout> {
+    const response = await this.request(`${this.baseUrl}/api/control-layout`, {
+      body: JSON.stringify(layout),
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json'
+      },
+      method: 'PUT'
+    })
+    if (!response.ok) throw new Error(`PHOENIX API returned HTTP ${response.status}.`)
+    return ControlGridLayoutSchema.parse(await response.json())
   }
 
   public async executeDeveloperAction (actionId: string): Promise<GameActionResult> {

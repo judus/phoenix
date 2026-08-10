@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   RuntimeStateSchema,
   type CatalogueDiagnostics,
+  type ControlGridLayout,
   type GameActionCatalogResponse,
   type GameActionOperation,
   type GameActionResult,
@@ -21,6 +22,7 @@ export function App () {
   const [health, setHealth] = useState<HealthResponse>()
   const [actionCatalog, setActionCatalog] = useState<GameActionCatalogResponse>()
   const [catalogueDiagnostics, setCatalogueDiagnostics] = useState<CatalogueDiagnostics>()
+  const [controlLayout, setControlLayout] = useState<ControlGridLayout>()
   const [actionPending, setActionPending] = useState<string>()
   const [lastActionResult, setLastActionResult] = useState<GameActionResult>()
   const [eliteStatusDiagnostics, setEliteStatusDiagnostics] = useState<EliteStatusSourceDiagnostics>()
@@ -45,6 +47,10 @@ export function App () {
     api.getCatalogueDiagnostics()
       .then(setCatalogueDiagnostics)
       .catch(cause => setError(cause instanceof Error ? cause.message : 'Game catalogue diagnostics unavailable.'))
+
+    api.getControlLayout()
+      .then(setControlLayout)
+      .catch(cause => setError(cause instanceof Error ? cause.message : 'Control layout unavailable.'))
 
     api.getEliteStatusDiagnostics()
       .then(setEliteStatusDiagnostics)
@@ -119,12 +125,18 @@ export function App () {
       <ControlsPage
         actionCatalog={actionCatalog}
         category={route.category}
+        controlLayout={controlLayout}
         error={error}
         health={health}
         runtimeState={runtimeState}
         onExecuteAction={(actionId: string, operation: GameActionOperation) => (
           api.executeAction(actionId, operation)
         )}
+        onSaveLayout={async layout => {
+          const saved = await api.saveControlLayout(layout)
+          setControlLayout(saved)
+          return saved
+        }}
       />
     )
   }

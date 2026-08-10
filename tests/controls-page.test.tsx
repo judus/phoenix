@@ -2,13 +2,16 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test } from 'vitest'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
 import { ControlsPage } from '../apps/web/src/pages/controls-page.js'
+import { DEFAULT_CONTROL_GRID_LAYOUT } from '../apps/server/src/infrastructure/default-control-grid-layout.js'
 
 test('the controls page renders bound and unbound discovered commands', () => {
   const markup = renderToStaticMarkup(
     <ControlsPage
       category="ship"
+      controlLayout={DEFAULT_CONTROL_GRID_LAYOUT}
       runtimeState={createEmptyRuntimeState()}
       onExecuteAction={() => Promise.reject(new Error('not executed during server rendering'))}
+      onSaveLayout={layout => Promise.resolve(layout)}
       actionCatalog={{
         backend: {
           id: 'linux-xdotool',
@@ -38,6 +41,8 @@ test('the controls page renders bound and unbound discovered commands', () => {
   expect(markup).toContain('Ship Lights')
   expect(markup).toContain('Unbound')
   expect(markup).toContain('116 keyboard bindings')
+  expect(markup).toContain('<strong>34</strong> assigned')
+  expect(markup).toContain('class="control-grid__empty"')
   expect(markup).toContain('disabled=""')
 })
 

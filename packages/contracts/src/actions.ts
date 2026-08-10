@@ -11,22 +11,24 @@ export const GameActionResultStatusSchema = z.enum([
   'failed'
 ])
 
+export const GameActionCategorySchema = z.enum([
+  'ship',
+  'combat',
+  'navigation',
+  'srv',
+  'on_foot',
+  'vessel',
+  'radio',
+  'emote',
+  'system',
+  'misc'
+])
+
 export const GameActionDefinitionSchema = z.object({
   id: z.string().regex(/^[A-Za-z][A-Za-z0-9_-]*(?:\.[A-Za-z][A-Za-z0-9_-]*)+$/),
   label: z.string().min(1),
   description: z.string().min(1),
-  category: z.enum([
-    'ship',
-    'combat',
-    'navigation',
-    'srv',
-    'on_foot',
-    'vessel',
-    'radio',
-    'emote',
-    'system',
-    'misc'
-  ]),
+  category: GameActionCategorySchema,
   inputMode: z.enum(['tap', 'hold']),
   risk: z.enum(['routine', 'caution', 'dangerous']),
   eliteBinding: z.string().min(1),

@@ -29,6 +29,19 @@
         color: var(--color-primary);
       }
     }
+
+    .control-toolbar__actions {
+      display: flex;
+      gap: var(--space-2);
+
+      button {
+        min-block-size: 2.75rem;
+        padding-inline: var(--space-3);
+        border: 1px solid var(--color-primary);
+        color: var(--color-primary);
+        background: var(--color-panel);
+      }
+    }
   }
 
   .control-grid {
@@ -70,6 +83,32 @@
 
     &.control-grid__button--dangerous {
       border-inline-start: 2px solid var(--color-danger);
+    }
+  }
+
+  .control-grid__empty {
+    min-block-size: 6rem;
+    display: grid;
+    place-content: center;
+    gap: var(--space-1);
+    border: 0;
+    color: rgb(255 157 0 / 35%);
+    background: rgb(10 7 12 / 82%);
+
+    &:not(:disabled) {
+      border: 1px dashed rgb(255 157 0 / 55%);
+      cursor: pointer;
+    }
+
+    &:hover:not(:disabled), &:focus-visible {
+      outline: 1px solid var(--color-primary);
+      outline-offset: -1px;
+      color: var(--color-primary);
+    }
+
+    small {
+      color: var(--color-danger);
+      overflow-wrap: anywhere;
     }
   }
 
@@ -130,9 +169,63 @@
     background: var(--color-panel);
   }
 
-  @media (width >= 90rem) {
-    .control-grid {
-      grid-template-columns: repeat(8, minmax(0, 1fr));
+  .control-picker {
+    position: fixed;
+    z-index: 10;
+    inset: 10vh 10vw;
+    display: grid;
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: 1px solid var(--color-primary);
+    background: var(--color-panel-strong);
+    box-shadow: 0 0 0 100vmax rgb(0 0 0 / 72%);
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-4);
+
+      strong {
+        color: var(--color-primary);
+        text-transform: uppercase;
+      }
+    }
+
+    input, > button, header button {
+      min-block-size: 2.5rem;
+      padding-inline: var(--space-3);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      background: var(--color-panel);
+    }
+  }
+
+  .control-picker__list {
+    min-block-size: 0;
+    display: grid;
+    align-content: start;
+    overflow: auto;
+
+    button {
+      min-block-size: 3.5rem;
+      display: grid;
+      gap: var(--space-1);
+      padding: var(--space-2) var(--space-3);
+      border: 0;
+      border-block-end: 1px solid rgb(255 157 0 / 20%);
+      color: var(--color-text);
+      background: rgb(43 5 22 / 65%);
+      text-align: start;
+
+      &:hover, &:focus-visible {
+        outline: 1px solid var(--color-primary);
+        outline-offset: -1px;
+      }
+
+      small {
+        color: var(--color-primary);
+      }
     }
   }
 
@@ -142,8 +235,10 @@
       flex-direction: column;
     }
 
-    .control-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .control-picker {
+      inset: var(--space-4);
     }
+
+    .control-grid { overflow-x: auto; }
   }
 }
