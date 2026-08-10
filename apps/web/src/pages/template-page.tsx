@@ -27,7 +27,7 @@ export interface TemplatePageProps {
 
 export function TemplatePage ({ error, health, runtimeState }: TemplatePageProps) {
   const runtimeDescription = runtimeState
-    ? `Revision ${runtimeState.revision} · ${runtimeState.location.systemName ?? 'location unknown'}`
+    ? `Revision ${runtimeState.revision} · ${runtimeState.system.name ?? 'location unknown'}`
     : 'Waiting for the initial runtime snapshot'
   const rows = [
     ...templateRows,

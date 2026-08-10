@@ -1,5 +1,11 @@
 import { randomUUID } from 'node:crypto'
-import type { GameEventEnvelope, RuntimeLocationState } from '@phoenix/contracts'
+import type {
+  CurrentLocation,
+  CurrentSystem,
+  FactionSummary,
+  GameEventEnvelope,
+  NamedGameValue
+} from '@phoenix/contracts'
 import type { EliteJournalEvent } from '@phoenix/elite'
 import type { GameEventIngestor } from '../domain/runtime-state.js'
 
@@ -44,6 +50,9 @@ export class EliteJournalIngestionService {
       })
     }
 
+    const system = mapSystem(event)
+    if (system) candidates.push({ type: 'system.changed', gameTimestamp, payload: system })
+
     const location = mapLocation(event)
     if (location) candidates.push({ type: 'location.changed', gameTimestamp, payload: location })
 
@@ -65,55 +74,144 @@ export class EliteJournalIngestionService {
   }
 }
 
-function mapLocation (event: EliteJournalEvent): {
-  state: RuntimeLocationState
-  systemName: string | null
-  placeName: string | null
-} | null {
-  const systemName = stringValue(event, 'StarSystem')
+function mapLocation (event: EliteJournalEvent): CurrentLocation | null {
   const bodyName = stringValue(event, 'Body') ?? stringValue(event, 'BodyName')
   const stationName = stringValue(event, 'StationName')
+  const station = stationName ? stationPlace(event, stationName) : null
+  const body = bodyName && stringValue(event, 'BodyType') !== 'Station'
+    ? {
+        kind: 'body' as const,
+        name: bodyName,
+        id: integerValue(event, 'BodyID'),
+        type: stringValue(event, 'BodyType')
+      }
+    : null
 
   switch (event.event) {
     case 'Location':
       return {
         state: event.Docked === true ? 'docked' : 'unknown',
-        systemName,
-        placeName: stationName ?? bodyName
+        place: event.Docked === true ? station : body
       }
     case 'FSDJump':
     case 'CarrierJump':
-      return { state: 'in_space', systemName, placeName: bodyName }
+      return { state: 'in_space', place: body }
     case 'Docked':
-      return { state: 'docked', systemName, placeName: stationName }
+      return { state: 'docked', place: station }
     case 'Undocked':
-      return { state: 'in_space', systemName, placeName: null }
+      return { state: 'in_space', place: null }
     case 'SupercruiseEntry':
-      return { state: 'supercruise', systemName, placeName: null }
+      return { state: 'supercruise', place: null }
     case 'SupercruiseExit':
-      return { state: 'in_space', systemName, placeName: bodyName }
+      return { state: 'in_space', place: body }
     case 'Touchdown':
-      return { state: 'landed', systemName, placeName: bodyName }
+      return { state: 'landed', place: body }
     case 'Liftoff':
-      return { state: 'in_space', systemName, placeName: bodyName }
+      return { state: 'in_space', place: body }
     case 'Disembark':
-      return { state: 'on_foot', systemName, placeName: stationName ?? bodyName }
+      return { state: 'on_foot', place: station ?? body }
     case 'Embark':
       return {
         state: event.SRV === true ? 'in_srv' : 'in_space',
-        systemName,
-        placeName: stationName ?? bodyName
+        place: station ?? body
       }
     case 'StartJump':
       if (event.JumpType === 'Hyperspace') {
-        return { state: 'hyperspace', systemName, placeName: null }
+        return { state: 'hyperspace', place: null }
       }
       if (event.JumpType === 'Supercruise') {
-        return { state: 'supercruise', systemName, placeName: null }
+        return { state: 'supercruise', place: null }
       }
       return null
     default:
       return null
+  }
+}
+
+function mapSystem (event: EliteJournalEvent): CurrentSystem | null {
+  if (!['Location', 'FSDJump', 'CarrierJump'].includes(event.event)) return null
+  const name = stringValue(event, 'StarSystem')
+  if (!name) return null
+  const controllingFaction = factionSummary(event.SystemFaction)
+  const factions = arrayValue(event, 'Factions')
+    .map(factionSummary)
+    .filter((faction): faction is FactionSummary => faction !== null)
+  const powers = arrayValue(event, 'Powers')
+    .filter((power): power is string => typeof power === 'string' && power.trim().length > 0)
+    .map(power => power.trim())
+  const controllingPower = stringValue(event, 'ControllingPower')
+  const powerplayState = stringValue(event, 'PowerplayState')
+
+  return {
+    name,
+    address: integerValue(event, 'SystemAddress'),
+    position: coordinateValue(event, 'StarPos'),
+    allegiance: stringValue(event, 'SystemAllegiance'),
+    government: namedValue(event, 'SystemGovernment'),
+    primaryEconomy: namedValue(event, 'SystemEconomy'),
+    secondaryEconomy: namedValue(event, 'SystemSecondEconomy'),
+    security: namedValue(event, 'SystemSecurity'),
+    population: integerValue(event, 'Population'),
+    controllingFaction,
+    factions,
+    powerplay: controllingPower || powerplayState || powers.length > 0
+      ? {
+          controllingPower,
+          powers,
+          state: powerplayState,
+          controlProgress: numberValue(event, 'PowerplayStateControlProgress'),
+          reinforcement: numberValue(event, 'PowerplayStateReinforcement'),
+          undermining: numberValue(event, 'PowerplayStateUndermining')
+        }
+      : null
+  }
+}
+
+function stationPlace (event: EliteJournalEvent, name: string): Extract<CurrentLocation['place'], { kind: 'station' }> {
+  return {
+    kind: 'station',
+    name,
+    type: stringValue(event, 'StationType'),
+    marketId: integerValue(event, 'MarketID'),
+    faction: factionSummary(event.StationFaction),
+    government: namedValue(event, 'StationGovernment'),
+    primaryEconomy: namedValue(event, 'StationEconomy'),
+    economies: arrayValue(event, 'StationEconomies')
+      .map(candidate => {
+        if (!isRecord(candidate)) return null
+        const economy = namedValue(candidate, 'Name')
+        return economy
+          ? { economy, proportion: numberValue(candidate, 'Proportion') }
+          : null
+      })
+      .filter((economy): economy is { economy: NamedGameValue, proportion: number | null } => economy !== null),
+    services: arrayValue(event, 'StationServices')
+      .filter((service): service is string => typeof service === 'string' && service.trim().length > 0)
+      .map(service => service.trim())
+  }
+}
+
+function factionSummary (candidate: unknown): FactionSummary | null {
+  if (!isRecord(candidate)) return null
+  const name = stringValue(candidate, 'Name')
+  if (!name) return null
+  return {
+    name,
+    state: stringValue(candidate, 'FactionState'),
+    government: stringValue(candidate, 'Government'),
+    allegiance: stringValue(candidate, 'Allegiance'),
+    influence: numberValue(candidate, 'Influence'),
+    happiness: namedValue(candidate, 'Happiness'),
+    reputation: numberValue(candidate, 'MyReputation')
+  }
+}
+
+function namedValue (candidate: Record<string, unknown>, key: string): NamedGameValue | null {
+  const id = stringValue(candidate, key)
+  if (!id) return null
+  return {
+    id,
+    label: stringValue(candidate, `${key}_Localised`)
   }
 }
 
@@ -130,14 +228,38 @@ function rankValues (event: EliteJournalEvent) {
   }
 }
 
-function stringValue (event: EliteJournalEvent, key: string): string | null {
-  const value = event[key]
+function stringValue (candidate: Record<string, unknown>, key: string): string | null {
+  const value = candidate[key]
   if (typeof value !== 'string') return null
   const normalized = value.trim()
   return normalized.length > 0 ? normalized : null
 }
 
-function integerValue (event: EliteJournalEvent, key: string): number | null {
-  const value = event[key]
+function integerValue (candidate: Record<string, unknown>, key: string): number | null {
+  const value = candidate[key]
   return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null
+}
+
+function numberValue (candidate: Record<string, unknown>, key: string): number | null {
+  const value = candidate[key]
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function arrayValue (candidate: Record<string, unknown>, key: string): unknown[] {
+  const value = candidate[key]
+  return Array.isArray(value) ? value : []
+}
+
+function coordinateValue (
+  candidate: Record<string, unknown>,
+  key: string
+): [number, number, number] | null {
+  const value = candidate[key]
+  if (!Array.isArray(value) || value.length !== 3) return null
+  if (!value.every(coordinate => typeof coordinate === 'number' && Number.isFinite(coordinate))) return null
+  return [value[0] as number, value[1] as number, value[2] as number]
+}
+
+function isRecord (candidate: unknown): candidate is Record<string, unknown> {
+  return typeof candidate === 'object' && candidate !== null && !Array.isArray(candidate)
 }

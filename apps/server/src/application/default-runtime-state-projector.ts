@@ -33,6 +33,9 @@ export class DefaultRuntimeStateProjector implements RuntimeStateProjector {
       ship: event.type === 'ship.identity_changed'
         ? event.payload
         : current.ship,
+      system: event.type === 'system.changed'
+        ? event.payload
+        : current.system,
       gameStatus: event.type === 'game.status_changed'
         ? event.payload
         : current.gameStatus,

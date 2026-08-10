@@ -27,16 +27,39 @@ test('application startup projects the current commander, ranks, location and sh
     const diagnostics = await client.getEliteJournalDiagnostics()
 
     expect(state).toMatchObject({
-      revision: 5,
+      revision: 6,
       commander: {
         name: 'Test Commander',
         ranks: { combat: 5, trade: 8, exploration: 6, exobiologist: 4 },
         rankProgress: { combat: 42, exploration: 73, exobiologist: 91 }
       },
+      system: {
+        name: 'Sol',
+        address: 10477373803,
+        position: [0, 0, 0],
+        allegiance: 'Federation',
+        primaryEconomy: { id: '$economy_HighTech;', label: 'High Tech' },
+        secondaryEconomy: { id: '$economy_Industrial;', label: 'Industrial' },
+        security: { label: 'High Security' },
+        population: 22000000000,
+        controllingFaction: { name: 'Mother Gaia', state: 'Boom' },
+        factions: [{ name: 'Mother Gaia', influence: 0.6 }]
+      },
       location: {
         state: 'docked',
-        systemName: 'Sol',
-        placeName: 'Galileo'
+        place: {
+          kind: 'station',
+          name: 'Galileo',
+          type: 'Orbis',
+          marketId: 128666762,
+          faction: { name: 'Mother Gaia', state: 'Boom' },
+          primaryEconomy: { label: 'High Tech' },
+          economies: [
+            { economy: { label: 'High Tech' }, proportion: 0.8 },
+            { economy: { label: 'Industrial' }, proportion: 0.2 }
+          ],
+          services: ['dock', 'commodities', 'outfitting', 'shipyard']
+        }
       },
       ship: {
         type: 'cobramkiii',

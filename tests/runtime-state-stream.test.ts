@@ -32,8 +32,7 @@ test('connected clients receive the initial and projected runtime snapshots', as
       source: 'synthetic',
       payload: {
         state: 'in_space',
-        systemName: 'Shinrarta Dezhra',
-        placeName: null
+        place: null
       }
     })
 
@@ -42,8 +41,7 @@ test('connected clients receive the initial and projected runtime snapshots', as
       revision: 1,
       location: {
         state: 'in_space',
-        systemName: 'Shinrarta Dezhra',
-        placeName: null
+        place: null
       }
     })
 

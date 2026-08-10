@@ -21,11 +21,20 @@ test('validated game events update and publish the runtime snapshot', () => {
     type: 'location.changed',
     gameTimestamp: '2026-08-10T12:00:00.000Z',
     ingestedAt: '2026-08-10T12:00:01.000Z',
-    source: 'synthetic',
-    payload: {
-      state: 'docked',
-      systemName: 'Sol',
-      placeName: 'Galileo'
+      source: 'synthetic',
+      payload: {
+        state: 'docked',
+        place: {
+          kind: 'station',
+          name: 'Galileo',
+          type: 'Orbis',
+          marketId: 1,
+          faction: null,
+          government: null,
+          primaryEconomy: null,
+          economies: [],
+          services: []
+        }
     }
   })
 
@@ -34,8 +43,7 @@ test('validated game events update and publish the runtime snapshot', () => {
     updatedAt: '2026-08-10T12:00:01.000Z',
     location: {
       state: 'docked',
-      systemName: 'Sol',
-      placeName: 'Galileo'
+      place: { kind: 'station', name: 'Galileo' }
     }
   })
   expect(published).toHaveLength(1)
