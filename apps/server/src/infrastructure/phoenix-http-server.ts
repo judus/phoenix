@@ -21,6 +21,7 @@ import type { EliteStatusDiagnosticsReader } from '../domain/elite-status.js'
 import type { Subscribable } from '../domain/publisher.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type { ControlGridLayoutRepository } from '../domain/system-configuration.js'
+import type { PhoenixMcpServer } from './phoenix-mcp-server.js'
 
 const CONTENT_TYPES: Record<string, string> = {
   '.css': 'text/css; charset=utf-8',
@@ -40,6 +41,7 @@ export interface PhoenixHttpServerOptions {
   eliteStatusDiagnostics: EliteStatusDiagnosticsReader
   healthCheck: HealthCheck
   host: string
+  mcpServer: PhoenixMcpServer
   port: number
   runtimeState: RuntimeStateReader
   runtimeStateUpdates: Subscribable<RuntimeState>
@@ -86,6 +88,11 @@ export class PhoenixHttpServer {
 
   private async handle (request: IncomingMessage, response: ServerResponse): Promise<void> {
     const url = new URL(request.url ?? '/', 'http://phoenix.local')
+
+    if (url.pathname === '/mcp') {
+      await this.options.mcpServer.handle(request, response)
+      return
+    }
 
     if (request.method === 'GET' && url.pathname === '/api/health') {
       this.writeJson(response, 200, this.options.healthCheck.getHealth())

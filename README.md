@@ -86,3 +86,8 @@ Set `PHOENIX_OPENAI_API_KEY` or `OPENAI_API_KEY` to enable `POST /api/copilot/ch
 `Accept: text/event-stream` for streamed events. The default model, timeout, retries, and wire logging are
 configurable through the variables documented in `.env.example`. Raw diagnostic events are written to the
 gitignored `data/runtime/openai-wire.ndjson`; obvious credential field names are redacted.
+
+The server also exposes a local Streamable HTTP MCP endpoint at `/mcp`. Configured Copilot clients discover
+PHOENIX tools there rather than importing server internals. The initial tool surface provides a fresh compact
+commander snapshot, focused action search, generic action execution, and telemetry-confirmed switch setting.
+Both the control grid and Copilot tools use the same platform-neutral game-action gateway.

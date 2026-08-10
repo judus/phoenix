@@ -1,6 +1,7 @@
 import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { GameEventEnvelope, RuntimeState } from '@phoenix/contracts'
+import { ToolRegistry } from '@maduser/ai-ts'
 import {
   EliteDataDirectoryLocator,
   EliteBindingsDirectoryLocator,
@@ -15,6 +16,8 @@ import { CatalogueDiagnosticsService } from './application/catalogue-diagnostics
 import { DefaultGameActionGateway } from './application/default-game-action-gateway.js'
 import { DefaultRuntimeStateProjector } from './application/default-runtime-state-projector.js'
 import { GameActionService } from './application/game-action-service.js'
+import { createPhoenixMcpTools } from './application/phoenix-mcp-tools.js'
+import { StatefulGameActionService } from './application/stateful-game-action-service.js'
 import { EliteJournalIngestionService } from './application/elite-journal-ingestion-service.js'
 import { EliteInventoryIngestionService } from './application/elite-inventory-ingestion-service.js'
 import { EliteStatusIngestionService } from './application/elite-status-ingestion-service.js'
@@ -32,6 +35,7 @@ import { RecordingInputBackend } from './infrastructure/recording-input-backend.
 import { LinuxXdotoolInputBackend } from './infrastructure/linux-xdotool-input-backend.js'
 import { SqliteDatabase } from './infrastructure/sqlite-database.js'
 import { createConfiguredCopilot } from './infrastructure/configured-copilot.js'
+import { PhoenixMcpServer } from './infrastructure/phoenix-mcp-server.js'
 
 export interface PhoenixApplicationOptions {
   actionBindingResolver?: GameActionBindingResolver
@@ -60,6 +64,8 @@ export class PhoenixApplication {
 
   public constructor (options: PhoenixApplicationOptions = {}) {
     const projectRoot = fileURLToPath(new URL('../../../', import.meta.url))
+    const host = options.host ?? process.env.PHOENIX_HOST ?? '0.0.0.0'
+    const port = options.port ?? Number(process.env.PHOENIX_PORT ?? 3400)
     const gameEvents = new InProcessPublisher<GameEventEnvelope>()
     const runtimeStateUpdates = new InProcessPublisher<RuntimeState>()
     this.stateStore = new InMemoryRuntimeStateStore()
@@ -113,8 +119,17 @@ export class PhoenixApplication {
       options.inputBackend ?? configuredInputBackend(options.inputBackendMode)
     )
     const gameActions = new GameActionService(actionGateway)
+    const statefulActions = new StatefulGameActionService(gameActions, this.stateStore)
+    const mcpServer = new PhoenixMcpServer(new ToolRegistry(createPhoenixMcpTools({
+      gameActions,
+      runtimeState: this.stateStore,
+      statefulActions
+    })))
     const copilot = options.copilot === undefined
-      ? createConfiguredCopilot(projectRoot, { runtimeState: this.stateStore })
+      ? createConfiguredCopilot(projectRoot, {
+          ...(port > 0 ? { mcpUrl: `http://127.0.0.1:${port}/mcp` } : {}),
+          runtimeState: this.stateStore
+        })
       : options.copilot ?? undefined
     this.database = new SqliteDatabase(
       resolveProjectPath(
@@ -130,8 +145,9 @@ export class PhoenixApplication {
       eliteJournalDiagnostics: this.journalSource,
       eliteStatusDiagnostics: this.statusSource,
       healthCheck: new HealthService(this.database),
-      host: options.host ?? process.env.PHOENIX_HOST ?? '0.0.0.0',
-      port: options.port ?? Number(process.env.PHOENIX_PORT ?? 3400),
+      host,
+      mcpServer,
+      port,
       runtimeState: this.stateStore,
       runtimeStateUpdates,
       webRoot: resolveProjectPath(

@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const GameActionOperationSchema = z.enum(['tap', 'press', 'release'])
 export const GameActionOriginSchema = z.enum(['ui', 'developer', 'copilot', 'automation'])
 export const GameActionResultStatusSchema = z.enum([
+  'already_satisfied',
   'accepted',
   'confirmed',
   'unconfirmed',
@@ -98,6 +99,7 @@ export const GameActionResultSchema = z.object({
 
 export type ExecuteGameActionRequest = z.infer<typeof ExecuteGameActionRequestSchema>
 export type GameActionAvailability = z.infer<typeof GameActionAvailabilitySchema>
+export type GameActionCategory = z.infer<typeof GameActionCategorySchema>
 export type GameActionCatalogResponse = z.infer<typeof GameActionCatalogResponseSchema>
 export type GameActionCommand = z.infer<typeof GameActionCommandSchema>
 export type GameActionBindingSourceDiagnostics = z.infer<typeof GameActionBindingSourceDiagnosticsSchema>
