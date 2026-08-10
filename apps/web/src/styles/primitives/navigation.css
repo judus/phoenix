@@ -1,0 +1,50 @@
+@layer primitives {
+  .primary-navigation {
+  min-inline-size: 0;
+  overflow-x: auto;
+
+  .primary-navigation__list {
+    min-inline-size: max-content;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(9rem, 1fr);
+  }
+
+  .primary-navigation__link {
+    display: grid;
+    place-items: center;
+    min-block-size: 3rem;
+    padding-inline: var(--space-4);
+    color: var(--color-primary);
+    border-inline-end: 1px solid rgb(255 157 0 / 18%);
+    text-transform: uppercase;
+
+    &[aria-current='page'] {
+      color: var(--color-background);
+      background: var(--color-primary);
+    }
+  }
+}
+
+.secondary-navigation {
+  inline-size: var(--size-secondary-navigation);
+  border-inline-end: 1px solid var(--color-border);
+  background: var(--color-panel-strong);
+
+  .secondary-navigation__link {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    color: var(--color-primary);
+    border-block-end: 1px solid rgb(255 157 0 / 18%);
+
+    &[aria-current='page'] {
+      background: rgb(255 157 0 / 12%);
+    }
+  }
+
+  .secondary-navigation__icon {
+    font-size: 1.5rem;
+  }
+}
+}

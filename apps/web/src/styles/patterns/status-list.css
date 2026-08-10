@@ -1,0 +1,36 @@
+@layer patterns {
+  .status-list {
+  display: grid;
+
+  .status-list__row {
+    display: grid;
+    grid-template-columns: minmax(10rem, 0.75fr) minmax(16rem, 2fr) auto;
+    align-items: center;
+    gap: var(--space-4);
+    min-block-size: 4rem;
+    padding-inline: var(--space-4);
+    border-block-end: 1px solid rgb(255 157 0 / 15%);
+    background: rgb(43 5 22 / 42%);
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 400;
+      text-transform: uppercase;
+    }
+
+    p, span {
+      color: var(--color-primary);
+    }
+  }
+}
+
+@media (width < 48rem) {
+  .status-list .status-list__row {
+    grid-template-columns: 1fr auto;
+
+    p {
+      grid-column: 1 / -1;
+    }
+  }
+}
+}

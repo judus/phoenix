@@ -1,0 +1,17 @@
+@layer base {
+  body {
+    color: var(--color-text);
+    background:
+      radial-gradient(circle at 75% 20%, rgb(255 73 0 / 13%), transparent 34rem),
+      linear-gradient(135deg, var(--color-background), #12070e 65%, var(--color-background));
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button {
+    color: inherit;
+  }
+}
