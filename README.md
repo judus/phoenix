@@ -91,3 +91,10 @@ The server also exposes a local Streamable HTTP MCP endpoint at `/mcp`. Configur
 PHOENIX tools there rather than importing server internals. The initial tool surface provides a fresh compact
 commander snapshot, focused action search, generic action execution, and telemetry-confirmed switch setting.
 Both the control grid and Copilot tools use the same platform-neutral game-action gateway.
+
+Realtime voice uses the same agent profile, runtime state, tools, and JSON conversation as text chat.
+Connect it from the Copilot page on the PC that owns the microphone and audio output; the provider lives
+above page routing, so voice remains connected while navigating PHOENIX. Live spoken and typed Realtime
+turns appear in the shared conversation and are persisted when complete. The WebSocket audio transport uses
+an ephemeral browser token, AudioWorklet microphone capture, and the configurable effect chain in
+`agents/icarus/audio.json`; the standard API key never leaves the server.

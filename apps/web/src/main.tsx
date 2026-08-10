@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './app.js'
+import { CopilotVoiceProvider } from './features/copilot/copilot-voice-provider.js'
 import './styles/index.css'
 import './styles/tokens.css'
 import './styles/base.css'
@@ -17,6 +18,8 @@ if (!root) throw new Error('PHOENIX root element is missing.')
 
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <CopilotVoiceProvider>
+      <App />
+    </CopilotVoiceProvider>
   </StrictMode>
 )

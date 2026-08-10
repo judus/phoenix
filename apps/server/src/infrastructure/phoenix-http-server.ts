@@ -9,10 +9,17 @@ import { extname, isAbsolute, join, normalize, relative, resolve, sep } from 'no
 import {
   ControlGridLayoutSchema,
   CopilotChatRequestSchema,
+  CopilotRealtimeTokenRequestSchema,
+  CopilotRealtimeToolRequestSchema,
+  CopilotRealtimeTurnRequestSchema,
   type RuntimeState
 } from '@phoenix/contracts'
 import { AiError, serializeAiError, type AiStreamEvent } from '@maduser/ai-ts'
 import type { CopilotText, CopilotTextRequest } from '../application/copilot-text-service.js'
+import {
+  serializeToolOutput,
+  type CopilotRealtime
+} from '../application/copilot-realtime-service.js'
 import type { CatalogueDiagnosticsReader } from '../application/catalogue-diagnostics-service.js'
 import type { GameActions } from '../application/game-action-service.js'
 import type { HealthCheck } from '../application/health-service.js'
@@ -36,6 +43,7 @@ export interface PhoenixHttpServerOptions {
   catalogueDiagnostics: CatalogueDiagnosticsReader
   controlGridLayouts: ControlGridLayoutRepository
   copilot?: CopilotText
+  copilotRealtime?: CopilotRealtime
   gameActions: GameActions
   eliteJournalDiagnostics: EliteJournalDiagnosticsReader
   eliteStatusDiagnostics: EliteStatusDiagnosticsReader
@@ -111,6 +119,67 @@ export class PhoenixHttpServer {
 
     if (request.method === 'POST' && url.pathname === '/api/copilot/chat') {
       await this.handleCopilotChat(request, response)
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/copilot/realtime/audio-processing') {
+      if (!this.requireRealtime(response)) return
+      this.writeJson(response, 200, {
+        audioProcessing: this.options.copilotRealtime!.audioProcessing()
+      })
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/copilot/realtime/context') {
+      if (!this.requireRealtime(response)) return
+      this.writeJson(response, 200, this.options.copilotRealtime!.context())
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/copilot/realtime/token') {
+      if (!this.requireRealtime(response)) return
+      try {
+        const input = CopilotRealtimeTokenRequestSchema.parse(await readJsonBody(request))
+        this.writeJson(response, 200, await this.options.copilotRealtime!.createToken(input))
+      } catch (cause) {
+        this.writeJson(response, 502, realtimeError(cause, 'realtime_token_failed'))
+      }
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/copilot/realtime/tool') {
+      if (!this.requireRealtime(response)) return
+      try {
+        const input = CopilotRealtimeToolRequestSchema.parse(await readJsonBody(request))
+        const controller = new AbortController()
+        const abort = (): void => {
+          if (!response.writableEnded) controller.abort(new DOMException('Client disconnected.', 'AbortError'))
+        }
+        response.once('close', abort)
+        try {
+          this.writeJson(
+            response,
+            200,
+            { result: serializeToolOutput(await this.options.copilotRealtime!.executeTool(input, controller.signal)) }
+          )
+        } finally {
+          response.off('close', abort)
+        }
+      } catch (cause) {
+        this.writeJson(response, 400, realtimeError(cause, 'realtime_tool_failed'))
+      }
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/copilot/realtime/turn') {
+      if (!this.requireRealtime(response)) return
+      try {
+        const input = CopilotRealtimeTurnRequestSchema.parse(await readJsonBody(request))
+        await this.options.copilotRealtime!.persistTurn(input)
+        this.writeJson(response, 200, { conversationId: input.conversationId })
+      } catch (cause) {
+        this.writeJson(response, 400, realtimeError(cause, 'realtime_turn_failed'))
+      }
       return
     }
 
@@ -263,6 +332,17 @@ export class PhoenixHttpServer {
     }
   }
 
+  private requireRealtime (response: ServerResponse): boolean {
+    if (this.options.copilotRealtime) return true
+    this.writeJson(response, 503, {
+      error: {
+        code: 'copilot_realtime_unavailable',
+        message: 'Set PHOENIX_OPENAI_API_KEY or OPENAI_API_KEY to enable Realtime voice.'
+      }
+    })
+    return false
+  }
+
   private async handleCopilotHistory (
     response: ServerResponse,
     conversationId: string
@@ -353,6 +433,15 @@ export class PhoenixHttpServer {
       'content-type': 'application/json; charset=utf-8'
     })
     response.end(body)
+  }
+}
+
+function realtimeError (cause: unknown, code: string): unknown {
+  return {
+    error: {
+      code,
+      message: cause instanceof Error ? cause.message : 'Realtime Copilot request failed.'
+    }
   }
 }
 

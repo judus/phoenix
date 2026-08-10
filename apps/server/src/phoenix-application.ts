@@ -24,6 +24,7 @@ import { EliteStatusIngestionService } from './application/elite-status-ingestio
 import { GameEventIngestionService } from './application/game-event-ingestion-service.js'
 import { HealthService } from './application/health-service.js'
 import type { CopilotText } from './application/copilot-text-service.js'
+import type { CopilotRealtime } from './application/copilot-realtime-service.js'
 import type { GameActionBindingResolver, InputBackend } from './domain/game-actions.js'
 import type { ControlGridLayoutRepository } from './domain/system-configuration.js'
 import { DefaultGameActionCatalog } from './infrastructure/default-game-action-catalog.js'
@@ -41,6 +42,7 @@ export interface PhoenixApplicationOptions {
   actionBindingResolver?: GameActionBindingResolver
   controlGridLayoutRepository?: ControlGridLayoutRepository
   copilot?: CopilotText | null
+  copilotRealtime?: CopilotRealtime | null
   databasePath?: string
   eliteDirectory?: string | null
   eliteBindingsDirectory?: string | null
@@ -120,17 +122,25 @@ export class PhoenixApplication {
     )
     const gameActions = new GameActionService(actionGateway)
     const statefulActions = new StatefulGameActionService(gameActions, this.stateStore)
-    const mcpServer = new PhoenixMcpServer(new ToolRegistry(createPhoenixMcpTools({
+    const toolRegistry = new ToolRegistry(createPhoenixMcpTools({
       gameActions,
       runtimeState: this.stateStore,
       statefulActions
-    })))
-    const copilot = options.copilot === undefined
+    }))
+    const mcpServer = new PhoenixMcpServer(toolRegistry)
+    const configuredCopilot = options.copilot === undefined && options.copilotRealtime === undefined
       ? createConfiguredCopilot(projectRoot, {
           ...(port > 0 ? { mcpUrl: `http://127.0.0.1:${port}/mcp` } : {}),
-          runtimeState: this.stateStore
+          runtimeState: this.stateStore,
+          tools: toolRegistry
         })
+      : undefined
+    const copilot = options.copilot === undefined
+      ? configuredCopilot?.text
       : options.copilot ?? undefined
+    const copilotRealtime = options.copilotRealtime === undefined
+      ? configuredCopilot?.realtime
+      : options.copilotRealtime ?? undefined
     this.database = new SqliteDatabase(
       resolveProjectPath(
         projectRoot,
@@ -141,6 +151,7 @@ export class PhoenixApplication {
       catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
       controlGridLayouts: options.controlGridLayoutRepository ?? new InMemoryControlGridLayoutRepository(),
       copilot,
+      copilotRealtime,
       gameActions,
       eliteJournalDiagnostics: this.journalSource,
       eliteStatusDiagnostics: this.statusSource,

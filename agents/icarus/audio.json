@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "filters": {
+    "highpass": { "enabled": true, "frequencyHz": 500, "q": 0.7 },
+    "lowpass": { "enabled": true, "frequencyHz": 2400, "q": 0.7 },
+    "presence": { "enabled": true, "frequencyHz": 1600, "gainDb": 8, "q": 1.2 }
+  },
+  "saturation": { "enabled": true, "amount": 0.25 },
+  "compressor": {
+    "enabled": true,
+    "thresholdDb": -20,
+    "kneeDb": 8,
+    "ratio": 6,
+    "attackSeconds": 0.005,
+    "releaseSeconds": 0.12
+  },
+  "room": { "enabled": true, "mix": 0.18, "durationSeconds": 0.18, "decay": 3 },
+  "reflection": { "enabled": true, "delaySeconds": 0.04, "gain": 0.2 },
+  "outputGain": 0.5
+}

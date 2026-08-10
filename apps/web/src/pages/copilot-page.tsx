@@ -7,6 +7,7 @@ import {
 import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
+import { useCopilotVoice } from '../features/copilot/copilot-voice-provider.js'
 
 const DEFAULT_CONVERSATION_ID = 'phoenix-copilot'
 const navigation: NavigationItem[] = [
@@ -20,6 +21,7 @@ export interface CopilotPageProps {
 }
 
 export function CopilotPage ({ api, error, health }: CopilotPageProps) {
+  const voice = useCopilotVoice()
   const [messages, setMessages] = useState<readonly CopilotHistoryMessage[]>([])
   const [composer, setComposer] = useState('')
   const [pending, setPending] = useState(false)
@@ -36,7 +38,7 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
     void loadHistory().catch(cause => {
       setChatError(cause instanceof Error ? cause.message : 'Conversation history unavailable.')
     })
-  }, [])
+  }, [voice.historyVersion])
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' })
@@ -46,6 +48,16 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
     event.preventDefault()
     const text = composer.trim()
     if (!text || pending) return
+    if (voice.connected) {
+      try {
+        voice.sendText(text)
+        setComposer('')
+        setChatError(undefined)
+      } catch (cause) {
+        setChatError(cause instanceof Error ? cause.message : 'Realtime message failed.')
+      }
+      return
+    }
     const userId = `pending-user-${crypto.randomUUID()}`
     const assistantId = `pending-assistant-${crypto.randomUUID()}`
     setComposer('')
@@ -109,10 +121,26 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
                     <p>{message.text || (pending ? '…' : '')}</p>
                   </article>
                 ))}
+                {voice.activeTurn?.userText && (
+                  <article className="copilot-message copilot-message--user copilot-message--live">
+                    <span>Commander · live</span>
+                    <p>{voice.activeTurn.userText}</p>
+                  </article>
+                )}
+                {voice.activeTurn && (
+                  <article className="copilot-message copilot-message--assistant copilot-message--live">
+                    <span>Copilot · live</span>
+                    <p>{voice.activeTurn.assistantText || '…'}</p>
+                  </article>
+                )}
                 <div ref={endRef} />
               </div>
-              {toolStatus && <p className="copilot-tool-status">{toolStatus}</p>}
-              {chatError && <p className="copilot-error" role="alert">{chatError}</p>}
+              {(toolStatus ?? voice.toolStatus) && (
+                <p className="copilot-tool-status">{toolStatus ?? voice.toolStatus}</p>
+              )}
+              {(chatError ?? voice.error) && (
+                <p className="copilot-error" role="alert">{chatError ?? voice.error}</p>
+              )}
               <form className="copilot-composer" onSubmit={event => void submit(event)}>
                 <label htmlFor="copilot-message">Message Copilot</label>
                 <textarea
@@ -138,10 +166,42 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
             <aside className="copilot-sidebar copilot-voice" aria-label="Voice controls">
               <h2>Voice channel</h2>
               <div className="copilot-voice__status">
-                <strong>Offline</strong>
-                <span>Realtime migration pending</span>
+                <strong>{voice.status}</strong>
+                <span>{voice.connected ? 'Always listening' : 'Connect this PC microphone'}</span>
+                {voice.audioStatus && <span>{voice.audioStatus}</span>}
               </div>
-              <button type="button" disabled>Connect realtime</button>
+              <label>
+                Microphone
+                <select
+                  value={voice.inputId}
+                  disabled={voice.connected}
+                  onChange={event => voice.setInputId(event.target.value)}
+                >
+                  <option value="">System default</option>
+                  {voice.devices.inputs.map(device => (
+                    <option key={device.id} value={device.id}>{device.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Audio output
+                <select
+                  value={voice.outputId}
+                  disabled={voice.connected}
+                  onChange={event => voice.setOutputId(event.target.value)}
+                >
+                  <option value="">System default</option>
+                  {voice.devices.outputs.map(device => (
+                    <option key={device.id} value={device.id}>{device.label}</option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                onClick={() => voice.connected ? voice.disconnect() : void voice.connect()}
+              >
+                {voice.connected ? 'Disconnect voice' : 'Connect realtime'}
+              </button>
             </aside>
           </div>
         </PageContent>

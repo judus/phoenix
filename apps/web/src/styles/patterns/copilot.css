@@ -104,6 +104,10 @@
         color: var(--color-secondary);
       }
     }
+
+    &.copilot-message--live {
+      opacity: 0.9;
+    }
   }
 
   .copilot-tool-status,
@@ -165,6 +169,23 @@
       color: var(--color-muted);
       background: transparent;
       text-transform: uppercase;
+    }
+
+    label {
+      display: grid;
+      gap: var(--space-1);
+      margin-block-start: var(--space-3);
+      color: var(--color-primary);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+    }
+
+    select {
+      min-inline-size: 0;
+      padding: var(--space-2);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      background: rgb(0 0 0 / 35%);
     }
   }
 

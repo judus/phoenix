@@ -1,7 +1,7 @@
 import { appendFileSync, mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
-import { createAiClient, type AiClient } from '@maduser/ai-ts'
-import { openAI, type OpenAIWireEvent, type OpenAIWireLogger } from '@maduser/ai-ts/providers/openai'
+import { createAiClient, type AiClient, type ToolRegistry } from '@maduser/ai-ts'
+import { openAI } from '@maduser/ai-ts/providers/openai'
 import {
   AgentPromptComposer,
   FileAgentProfileRepository,
@@ -10,8 +10,16 @@ import {
   type CopilotAiClientFactory
 } from '@phoenix/copilot'
 import { CopilotTextService, type CopilotText } from '../application/copilot-text-service.js'
+import { CopilotRealtimeService, type CopilotRealtime } from '../application/copilot-realtime-service.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
+import { readCopilotAudioProcessing } from './copilot-audio-config.js'
 import { JsonConversationStore } from './json-conversation-store.js'
+import { OpenAiRealtimeClient } from './openai-realtime-client.js'
+
+export interface ConfiguredCopilot {
+  realtime: CopilotRealtime
+  text: CopilotText
+}
 
 export interface ConfiguredCopilotOptions {
   agentsDirectory?: string
@@ -22,6 +30,7 @@ export interface ConfiguredCopilotOptions {
   model?: string
   runtimeState: RuntimeStateReader
   timeoutMs?: number
+  tools: ToolRegistry
   wireLogEnabled?: boolean
   wireLogFile?: string
 }
@@ -29,7 +38,7 @@ export interface ConfiguredCopilotOptions {
 export function createConfiguredCopilot (
   projectRoot: string,
   options: ConfiguredCopilotOptions
-): CopilotText | undefined {
+): ConfiguredCopilot | undefined {
   const apiKey = options.apiKey ?? process.env.PHOENIX_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY
   if (!apiKey) return undefined
 
@@ -57,6 +66,11 @@ export function createConfiguredCopilot (
     ),
     ...(wireLogger === undefined ? {} : { wireLogger })
   })
+  const profiles = new FileAgentProfileRepository(
+    resolve(projectRoot, options.agentsDirectory ?? 'agents')
+  )
+  const prompts = new AgentPromptComposer(profiles)
+  const runtimeContext = new RuntimeContextRenderer()
   const clients: CopilotAiClientFactory = {
     create: (instructions: string): AiClient => createAiClient({
       history: {
@@ -72,17 +86,33 @@ export function createConfiguredCopilot (
   }
   const pipeline = new TextCopilotPipeline(
     clients,
-    new AgentPromptComposer(new FileAgentProfileRepository(
-      resolve(projectRoot, options.agentsDirectory ?? 'agents')
-    )),
-    new RuntimeContextRenderer()
+    prompts,
+    runtimeContext
   )
-  return new CopilotTextService(pipeline, options.runtimeState, conversations)
+  return {
+    text: new CopilotTextService(pipeline, options.runtimeState, conversations),
+    realtime: new CopilotRealtimeService({
+      audioProcessing: readCopilotAudioProcessing(resolve(
+        projectRoot,
+        options.agentsDirectory ?? 'agents',
+        'icarus',
+        'audio.json'
+      )),
+      conversations,
+      gateway: new OpenAiRealtimeClient({ apiKey, wireLogger }),
+      model: process.env.PHOENIX_OPENAI_REALTIME_MODEL ?? 'gpt-realtime-2.1-mini',
+      prompts,
+      runtimeContext,
+      runtimeState: options.runtimeState,
+      tools: options.tools,
+      voice: process.env.PHOENIX_OPENAI_REALTIME_VOICE ?? 'marin'
+    })
+  }
 }
 
-function createWireLogger (file: string): OpenAIWireLogger {
+function createWireLogger (file: string): (event: unknown) => void {
   mkdirSync(dirname(file), { recursive: true })
-  return (event: OpenAIWireEvent): void => {
+  return (event: unknown): void => {
     appendFileSync(file, `${JSON.stringify(event, wireLogReplacer)}\n`, 'utf8')
   }
 }

@@ -2,7 +2,12 @@ import {
   CatalogueDiagnosticsSchema,
   ControlGridLayoutSchema,
   CopilotChatRequestSchema,
+  CopilotAudioProcessingSchema,
   CopilotHistoryResponseSchema,
+  CopilotRealtimeTokenRequestSchema,
+  CopilotRealtimeTokenResponseSchema,
+  CopilotRealtimeToolRequestSchema,
+  CopilotRealtimeTurnRequestSchema,
   GameActionCatalogResponseSchema,
   GameActionResultSchema,
   EliteJournalSourceDiagnosticsSchema,
@@ -12,7 +17,12 @@ import {
   type CatalogueDiagnostics,
   type ControlGridLayout,
   type CopilotChatRequest,
+  type CopilotAudioProcessing,
   type CopilotHistoryResponse,
+  type CopilotRealtimeTokenRequest,
+  type CopilotRealtimeTokenResponse,
+  type CopilotRealtimeToolRequest,
+  type CopilotRealtimeTurnRequest,
   type GameActionResult,
   type GameActionOperation,
   type EliteJournalSourceDiagnostics,
@@ -22,6 +32,10 @@ import {
 } from '@phoenix/contracts'
 
 export interface PhoenixApi {
+  createCopilotRealtimeToken(input: CopilotRealtimeTokenRequest): Promise<CopilotRealtimeTokenResponse>
+  executeCopilotRealtimeTool(input: CopilotRealtimeToolRequest): Promise<unknown>
+  getCopilotAudioProcessing(): Promise<CopilotAudioProcessing>
+  getCopilotRealtimeContext(): Promise<{ fingerprint: string, text: string, updatedAt: string | null }>
   getCatalogueDiagnostics(): Promise<CatalogueDiagnostics>
   getControlLayout(): Promise<ControlGridLayout>
   getCopilotHistory(conversationId: string): Promise<CopilotHistoryResponse>
@@ -33,6 +47,7 @@ export interface PhoenixApi {
   getDeveloperActions(): Promise<GameActionCatalogResponse>
   getHealth(): Promise<HealthResponse>
   getRuntimeState(): Promise<RuntimeState>
+  persistCopilotRealtimeTurn(input: CopilotRealtimeTurnRequest): Promise<void>
   saveControlLayout(layout: ControlGridLayout): Promise<ControlGridLayout>
   runtimeStateStreamUrl(): string
   streamCopilotMessage(
@@ -103,6 +118,67 @@ export class PhoenixApiClient implements PhoenixApi {
     )
     if (!response.ok) throw await apiError(response)
     return CopilotHistoryResponseSchema.parse(await response.json())
+  }
+
+  public async getCopilotAudioProcessing (): Promise<CopilotAudioProcessing> {
+    const response = await this.request(`${this.baseUrl}/api/copilot/realtime/audio-processing`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    const payload = await response.json() as { audioProcessing?: unknown }
+    return CopilotAudioProcessingSchema.parse(payload.audioProcessing)
+  }
+
+  public async getCopilotRealtimeContext (): Promise<{
+    fingerprint: string
+    text: string
+    updatedAt: string | null
+  }> {
+    const response = await this.request(`${this.baseUrl}/api/copilot/realtime/context`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    const payload = await response.json() as Record<string, unknown>
+    if (typeof payload.fingerprint !== 'string' || typeof payload.text !== 'string') {
+      throw new Error('PHOENIX returned an invalid Realtime context.')
+    }
+    return {
+      fingerprint: payload.fingerprint,
+      text: payload.text,
+      updatedAt: typeof payload.updatedAt === 'string' ? payload.updatedAt : null
+    }
+  }
+
+  public async createCopilotRealtimeToken (
+    input: CopilotRealtimeTokenRequest
+  ): Promise<CopilotRealtimeTokenResponse> {
+    const response = await this.request(`${this.baseUrl}/api/copilot/realtime/token`, {
+      body: JSON.stringify(CopilotRealtimeTokenRequestSchema.parse(input)),
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      method: 'POST'
+    })
+    if (!response.ok) throw await apiError(response)
+    return CopilotRealtimeTokenResponseSchema.parse(await response.json())
+  }
+
+  public async executeCopilotRealtimeTool (input: CopilotRealtimeToolRequest): Promise<unknown> {
+    const response = await this.request(`${this.baseUrl}/api/copilot/realtime/tool`, {
+      body: JSON.stringify(CopilotRealtimeToolRequestSchema.parse(input)),
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      method: 'POST'
+    })
+    if (!response.ok) throw await apiError(response)
+    const payload = await response.json() as { result?: unknown }
+    return payload.result
+  }
+
+  public async persistCopilotRealtimeTurn (input: CopilotRealtimeTurnRequest): Promise<void> {
+    const response = await this.request(`${this.baseUrl}/api/copilot/realtime/turn`, {
+      body: JSON.stringify(CopilotRealtimeTurnRequestSchema.parse(input)),
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      method: 'POST'
+    })
+    if (!response.ok) throw await apiError(response)
   }
 
   public async streamCopilotMessage (
