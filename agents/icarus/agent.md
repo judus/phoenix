@@ -1,0 +1,7 @@
+{{ PROLOGUE }}
+
+{{ OPERATIONAL }}
+
+{{ CHARACTER }}
+
+{{ RUNTIME_CONTEXT }}

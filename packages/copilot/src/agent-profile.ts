@@ -1,0 +1,67 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+export type CopilotMode = 'speech' | 'text'
+
+export interface AgentProfile {
+  agent: string
+  characterSpeech: string
+  characterText: string
+  operational: string
+  prologue: string
+}
+
+export interface AgentProfileRepository {
+  get(profileId: string): AgentProfile
+}
+
+export interface ComposeAgentPrompt {
+  mode: CopilotMode
+  profileId: string
+  runtimeContext?: string
+}
+
+const PLACEHOLDER_PATTERN = /\{\{\s*([^{}]+?)\s*\}\}/gu
+
+export class AgentPromptComposer {
+  public constructor (private readonly profiles: AgentProfileRepository) {}
+
+  public compose ({ mode, profileId, runtimeContext }: ComposeAgentPrompt): string {
+    const profile = this.profiles.get(profileId)
+    return profile.agent.replace(PLACEHOLDER_PATTERN, (_placeholder, name: string) => {
+      switch (name) {
+        case 'PROLOGUE': return profile.prologue
+        case 'OPERATIONAL': return profile.operational
+        case 'CHARACTER': return mode === 'speech' ? profile.characterSpeech : profile.characterText
+        case 'RUNTIME_CONTEXT': return runtimeContext?.trim() ?? ''
+        default: throw new Error(`Unknown agent prompt placeholder: ${name}`)
+      }
+    }).trim()
+  }
+}
+
+export class FileAgentProfileRepository implements AgentProfileRepository {
+  public constructor (private readonly profilesDirectory: string) {}
+
+  public get (profileId: string): AgentProfile {
+    if (!/^[a-z][a-z0-9_-]*$/u.test(profileId)) {
+      throw new Error(`Invalid agent profile ID: ${profileId}`)
+    }
+    const directory = join(this.profilesDirectory, profileId)
+    return {
+      agent: readRequired(join(directory, 'agent.md')),
+      characterSpeech: readRequired(join(directory, 'character.speech.md')),
+      characterText: readRequired(join(directory, 'character.text.md')),
+      operational: readRequired(join(directory, 'operational.md')),
+      prologue: readRequired(join(directory, 'prologue.md'))
+    }
+  }
+}
+
+function readRequired (path: string): string {
+  try {
+    return readFileSync(path, 'utf8').trim()
+  } catch (cause) {
+    throw new Error(`Unable to read agent profile file: ${path}`, { cause })
+  }
+}
