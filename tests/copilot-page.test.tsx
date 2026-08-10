@@ -12,8 +12,10 @@ test('the Copilot page exposes an enabled route-persistent Realtime control surf
   )
 
   expect(markup).toContain('Voice channel')
+  expect(markup).toContain('Copilot profile')
   expect(markup).toContain('Connect realtime')
   expect(markup).toContain('System default')
+  expect(markup).not.toContain('Agent profile')
   expect(markup).not.toContain('Realtime migration pending')
   expect(markup).not.toContain('disabled=""&gt;Connect realtime')
 })

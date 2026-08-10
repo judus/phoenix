@@ -102,8 +102,8 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
         />
         <PageContent>
           <div className="copilot-workspace">
-            <aside className="copilot-sidebar" aria-label="Agent profile">
-              <h2>Agent profile</h2>
+            <aside className="copilot-sidebar" aria-label="Copilot profile">
+              <h2>Copilot profile</h2>
               <button className="copilot-profile" type="button" aria-pressed="true">
                 <span className="copilot-profile__mark">I</span>
                 <span><strong>ICARUS</strong><small>Active profile</small></span>
@@ -117,7 +117,7 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
                 )}
                 {messages.map(message => (
                   <article key={message.id} className={`copilot-message copilot-message--${message.role}`}>
-                    <span>{message.role === 'user' ? 'Commander' : message.role}</span>
+                    <span>{message.role === 'user' ? 'Commander' : 'Copilot'}</span>
                     <p>{message.text || (pending ? '…' : '')}</p>
                   </article>
                 ))}
