@@ -70,4 +70,19 @@ Developers may override selection with `PHOENIX_INPUT_BACKEND=recording` or `lin
 
 PHOENIX uses SQLite through Node's built-in `node:sqlite` module. The default database is `data/runtime/phoenix.sqlite`; runtime data is ignored by Git.
 
+Copilot conversations deliberately use inspectable JSON files under `data/conversations/`. Each file is
+written atomically and implements the reusable AI package's optimistic `ConversationStore` contract.
+
 See [the SQLite architecture decision](docs/decisions/0001-use-sqlite.md) for the reasoning and driver boundary.
+
+## Copilot development
+
+The portable PHOENIX Copilot application layer lives in `packages/copilot`. Provider communication,
+resilient streaming, MCP loops, and history selection remain in the sibling
+`/home/maduser/workspace/maduser-ai-ts` repository, currently consumed as a local npm `file:` dependency.
+Build that package after changing it, then run `npm install` in PHOENIX if its dependency metadata changed.
+
+Set `PHOENIX_OPENAI_API_KEY` or `OPENAI_API_KEY` to enable `POST /api/copilot/chat`. Send
+`Accept: text/event-stream` for streamed events. The default model, timeout, retries, and wire logging are
+configurable through the variables documented in `.env.example`. Raw diagnostic events are written to the
+gitignored `data/runtime/openai-wire.ndjson`; obvious credential field names are redacted.

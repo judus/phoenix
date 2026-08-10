@@ -5,6 +5,8 @@
   "type": "module",
   "exports": "./dist/main.js",
   "dependencies": {
+    "@maduser/ai-ts": "file:../../../maduser-ai-ts",
+    "@phoenix/copilot": "*",
     "@phoenix/contracts": "*",
     "@phoenix/elite": "*"
   },

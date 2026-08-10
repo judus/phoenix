@@ -20,6 +20,7 @@ import { EliteInventoryIngestionService } from './application/elite-inventory-in
 import { EliteStatusIngestionService } from './application/elite-status-ingestion-service.js'
 import { GameEventIngestionService } from './application/game-event-ingestion-service.js'
 import { HealthService } from './application/health-service.js'
+import type { CopilotText } from './application/copilot-text-service.js'
 import type { GameActionBindingResolver, InputBackend } from './domain/game-actions.js'
 import type { ControlGridLayoutRepository } from './domain/system-configuration.js'
 import { DefaultGameActionCatalog } from './infrastructure/default-game-action-catalog.js'
@@ -30,10 +31,12 @@ import { PhoenixHttpServer } from './infrastructure/phoenix-http-server.js'
 import { RecordingInputBackend } from './infrastructure/recording-input-backend.js'
 import { LinuxXdotoolInputBackend } from './infrastructure/linux-xdotool-input-backend.js'
 import { SqliteDatabase } from './infrastructure/sqlite-database.js'
+import { createConfiguredCopilot } from './infrastructure/configured-copilot.js'
 
 export interface PhoenixApplicationOptions {
   actionBindingResolver?: GameActionBindingResolver
   controlGridLayoutRepository?: ControlGridLayoutRepository
+  copilot?: CopilotText | null
   databasePath?: string
   eliteDirectory?: string | null
   eliteBindingsDirectory?: string | null
@@ -110,6 +113,9 @@ export class PhoenixApplication {
       options.inputBackend ?? configuredInputBackend(options.inputBackendMode)
     )
     const gameActions = new GameActionService(actionGateway)
+    const copilot = options.copilot === undefined
+      ? createConfiguredCopilot(projectRoot, { runtimeState: this.stateStore })
+      : options.copilot ?? undefined
     this.database = new SqliteDatabase(
       resolveProjectPath(
         projectRoot,
@@ -119,6 +125,7 @@ export class PhoenixApplication {
     this.server = new PhoenixHttpServer({
       catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
       controlGridLayouts: options.controlGridLayoutRepository ?? new InMemoryControlGridLayoutRepository(),
+      copilot,
       gameActions,
       eliteJournalDiagnostics: this.journalSource,
       eliteStatusDiagnostics: this.statusSource,
