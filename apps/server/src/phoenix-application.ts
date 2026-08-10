@@ -26,7 +26,7 @@ import { InMemoryRuntimeStateStore } from './infrastructure/in-memory-runtime-st
 import { InProcessPublisher } from './infrastructure/in-process-publisher.js'
 import { PhoenixHttpServer } from './infrastructure/phoenix-http-server.js'
 import { RecordingInputBackend } from './infrastructure/recording-input-backend.js'
-import { LinuxYdotoolInputBackend } from './infrastructure/linux-ydotool-input-backend.js'
+import { LinuxXdotoolInputBackend } from './infrastructure/linux-xdotool-input-backend.js'
 import { SqliteDatabase } from './infrastructure/sqlite-database.js'
 
 export interface PhoenixApplicationOptions {
@@ -36,7 +36,7 @@ export interface PhoenixApplicationOptions {
   eliteBindingsDirectory?: string | null
   host?: string
   inputBackend?: InputBackend
-  inputBackendMode?: 'recording' | 'linux-ydotool'
+  inputBackendMode?: 'recording' | 'linux-xdotool'
   moduleCataloguePath?: string
   port?: number
   shipCataloguePath?: string
@@ -159,7 +159,7 @@ export class PhoenixApplication {
 
 function configuredInputBackend (mode: string | undefined): InputBackend {
   if (!mode || mode === 'recording') return new RecordingInputBackend()
-  if (mode === 'linux-ydotool') return new LinuxYdotoolInputBackend()
+  if (mode === 'linux-xdotool') return new LinuxXdotoolInputBackend()
   throw new Error(`Unsupported PHOENIX input backend: ${mode}.`)
 }
 

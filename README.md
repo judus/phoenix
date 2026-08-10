@@ -36,18 +36,16 @@ Open `http://localhost:3400` after building, or `http://localhost:3401` during d
 PHOENIX discovers the active Elite Dangerous `.binds` preset automatically. Input execution uses
 the non-injecting `recording` backend by default.
 
-Linux live input is available through the display-server-independent `ydotool` backend. It requires
-`ydotool` 1.x and a running `ydotoold` socket owned by the PHOENIX user. Enable it explicitly:
+Linux live input is available through the X11/XWayland `xdotool` backend. It requires an accessible
+X display and the `xdotool` executable. Enable it explicitly:
 
 ```sh
-PHOENIX_INPUT_BACKEND=linux-ydotool \
-YDOTOOL_SOCKET=/run/user/1000/.ydotool_socket \
+PHOENIX_INPUT_BACKEND=linux-xdotool \
 npm run dev:server
 ```
 
-The Ubuntu 24.04/Linux Mint 22 package is currently `ydotool` 0.1.8 and does not implement the raw
-key-event protocol required for reliable press and release operations. PHOENIX detects and rejects
-that version rather than enabling a partially functional backend.
+The backend sends each modifier before the bound key and releases the chord in reverse order. Native
+Wayland input will use a separate backend rather than weakening the platform-neutral action gateway.
 
 ## Persistence
 
