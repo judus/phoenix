@@ -31,6 +31,24 @@ npm start
 
 Open `http://localhost:3400` after building, or `http://localhost:3401` during development.
 
+## Game controls
+
+PHOENIX discovers the active Elite Dangerous `.binds` preset automatically. Input execution uses
+the non-injecting `recording` backend by default.
+
+Linux live input is available through the display-server-independent `ydotool` backend. It requires
+`ydotool` 1.x and a running `ydotoold` socket owned by the PHOENIX user. Enable it explicitly:
+
+```sh
+PHOENIX_INPUT_BACKEND=linux-ydotool \
+YDOTOOL_SOCKET=/run/user/1000/.ydotool_socket \
+npm run dev:server
+```
+
+The Ubuntu 24.04/Linux Mint 22 package is currently `ydotool` 0.1.8 and does not implement the raw
+key-event protocol required for reliable press and release operations. PHOENIX detects and rejects
+that version rather than enabling a partially functional backend.
+
 ## Persistence
 
 PHOENIX uses SQLite through Node's built-in `node:sqlite` module. The default database is `data/runtime/phoenix.sqlite`; runtime data is ignored by Git.

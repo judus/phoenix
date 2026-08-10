@@ -26,6 +26,7 @@ import { InMemoryRuntimeStateStore } from './infrastructure/in-memory-runtime-st
 import { InProcessPublisher } from './infrastructure/in-process-publisher.js'
 import { PhoenixHttpServer } from './infrastructure/phoenix-http-server.js'
 import { RecordingInputBackend } from './infrastructure/recording-input-backend.js'
+import { LinuxYdotoolInputBackend } from './infrastructure/linux-ydotool-input-backend.js'
 import { SqliteDatabase } from './infrastructure/sqlite-database.js'
 
 export interface PhoenixApplicationOptions {
@@ -35,6 +36,7 @@ export interface PhoenixApplicationOptions {
   eliteBindingsDirectory?: string | null
   host?: string
   inputBackend?: InputBackend
+  inputBackendMode?: 'recording' | 'linux-ydotool'
   moduleCataloguePath?: string
   port?: number
   shipCataloguePath?: string
@@ -101,7 +103,7 @@ export class PhoenixApplication {
       options.actionBindingResolver ?? new EliteKeyboardBindingResolver(
         locateBindingsDirectory(options, configuredEliteDirectory)
       ),
-      options.inputBackend ?? new RecordingInputBackend()
+      options.inputBackend ?? configuredInputBackend(options.inputBackendMode ?? process.env.PHOENIX_INPUT_BACKEND)
     )
     this.database = new SqliteDatabase(
       resolveProjectPath(
@@ -153,6 +155,12 @@ export class PhoenixApplication {
   public ingestGameEvent (candidate: unknown): GameEventEnvelope {
     return this.eventIngestion.ingest(candidate)
   }
+}
+
+function configuredInputBackend (mode: string | undefined): InputBackend {
+  if (!mode || mode === 'recording') return new RecordingInputBackend()
+  if (mode === 'linux-ydotool') return new LinuxYdotoolInputBackend()
+  throw new Error(`Unsupported PHOENIX input backend: ${mode}.`)
 }
 
 function locateBindingsDirectory (
