@@ -103,7 +103,7 @@ export class PhoenixApplication {
       options.actionBindingResolver ?? new EliteKeyboardBindingResolver(
         locateBindingsDirectory(options, configuredEliteDirectory)
       ),
-      options.inputBackend ?? configuredInputBackend(options.inputBackendMode ?? process.env.PHOENIX_INPUT_BACKEND)
+      options.inputBackend ?? configuredInputBackend(options.inputBackendMode)
     )
     this.database = new SqliteDatabase(
       resolveProjectPath(

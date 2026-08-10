@@ -9,6 +9,7 @@ coverage/
 *.tsbuildinfo
 
 /data/runtime/
+/data/settings.json
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal

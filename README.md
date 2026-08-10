@@ -33,19 +33,27 @@ Open `http://localhost:3400` after building, or `http://localhost:3401` during d
 
 ## Game controls
 
-PHOENIX discovers the active Elite Dangerous `.binds` preset automatically. Input execution uses
-the non-injecting `recording` backend by default.
+PHOENIX discovers the active Elite Dangerous `.binds` preset and a suitable input backend at startup.
+User choices live in the generated, gitignored `data/settings.json`; detected system state is rewritten
+to `data/runtime/system.json` on each launch. On Linux with an X11/XWayland display, `auto` selects
+`xdotool` when it is installed.
 
-Linux live input is available through the X11/XWayland `xdotool` backend. It requires an accessible
-X display and the `xdotool` executable. Enable it explicitly:
+The initial settings are:
 
-```sh
-PHOENIX_INPUT_BACKEND=linux-xdotool \
-npm run dev:server
+```json
+{
+  "version": 1,
+  "controls": {
+    "enabled": true,
+    "backend": "auto"
+  }
+}
 ```
 
 The backend sends each modifier before the bound key and releases the chord in reverse order. Native
 Wayland input will use a separate backend rather than weakening the platform-neutral action gateway.
+Developers may override selection with `PHOENIX_INPUT_BACKEND=recording` or `linux-xdotool`; a local
+`.env` file is loaded automatically when present.
 
 ## Persistence
 

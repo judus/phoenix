@@ -4,6 +4,7 @@ export * from './elite-inventory.js'
 export * from './elite-journal.js'
 export * from './elite-status.js'
 export * from './runtime.js'
+export * from './settings.js'
 
 export const PHOENIX_API_VERSION = '1' as const
 
