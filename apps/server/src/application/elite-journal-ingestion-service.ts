@@ -1,10 +1,12 @@
 import { randomUUID } from 'node:crypto'
 import type {
   CurrentLocation,
+  CurrentShip,
   CurrentSystem,
   FactionSummary,
   GameEventEnvelope,
-  NamedGameValue
+  NamedGameValue,
+  ShipModule
 } from '@phoenix/contracts'
 import type { EliteJournalEvent } from '@phoenix/elite'
 import type { GameEventIngestor } from '../domain/runtime-state.js'
@@ -56,22 +58,119 @@ export class EliteJournalIngestionService {
     const location = mapLocation(event)
     if (location) candidates.push({ type: 'location.changed', gameTimestamp, payload: location })
 
-    if (event.event === 'Loadout') {
-      const type = stringValue(event, 'Ship')
-      if (type) {
-        candidates.push({
-          type: 'ship.identity_changed',
-          gameTimestamp,
-          payload: {
-            type,
-            name: stringValue(event, 'ShipName')
-          }
-        })
-      }
-    }
+    const ship = mapShip(event)
+    if (ship) candidates.push({ type: 'ship.loadout_changed', gameTimestamp, payload: ship })
 
     return candidates
   }
+}
+
+function mapShip (event: EliteJournalEvent): CurrentShip | null {
+  if (event.event !== 'Loadout') return null
+  const typeId = stringValue(event, 'Ship')
+  if (!typeId) return null
+  const fuelMain = isRecord(event.FuelCapacity) ? numberValue(event.FuelCapacity, 'Main') : null
+  const fuelReserve = isRecord(event.FuelCapacity) ? numberValue(event.FuelCapacity, 'Reserve') : null
+  const fuelCapacity = fuelMain !== null && fuelReserve !== null
+    ? { main: fuelMain, reserve: fuelReserve }
+    : null
+
+  return {
+    id: integerValue(event, 'ShipID'),
+    typeId,
+    modelName: null,
+    name: stringValue(event, 'ShipName'),
+    identifier: stringValue(event, 'ShipIdent'),
+    hullHealth: numberValue(event, 'HullHealth'),
+    hullValue: numberValue(event, 'HullValue'),
+    modulesValue: numberValue(event, 'ModulesValue'),
+    unladenMass: numberValue(event, 'UnladenMass'),
+    cargoCapacity: numberValue(event, 'CargoCapacity'),
+    maxJumpRange: numberValue(event, 'MaxJumpRange'),
+    fuelCapacity,
+    rebuy: numberValue(event, 'Rebuy'),
+    modules: arrayValue(event, 'Modules')
+      .map(mapModule)
+      .filter((module): module is ShipModule => module !== null)
+  }
+}
+
+function mapModule (candidate: unknown): ShipModule | null {
+  if (!isRecord(candidate)) return null
+  const slotId = stringValue(candidate, 'Slot')
+  const moduleId = stringValue(candidate, 'Item')
+  if (!slotId || !moduleId) return null
+  const clip = integerValue(candidate, 'AmmoInClip')
+  const reserve = integerValue(candidate, 'AmmoInHopper')
+
+  return {
+    slotId,
+    slotGroup: classifySlot(slotId),
+    slotSize: deriveSlotSize(slotId, moduleId),
+    moduleId,
+    moduleSize: deriveModuleSize(moduleId),
+    moduleClass: regexInteger(moduleId, /_class(\d+)/i),
+    enabled: booleanValue(candidate, 'On'),
+    priority: integerValue(candidate, 'Priority'),
+    health: numberValue(candidate, 'Health'),
+    value: numberValue(candidate, 'Value'),
+    ammo: clip !== null || reserve !== null ? { clip, reserve } : null,
+    engineering: mapEngineering(candidate.Engineering)
+  }
+}
+
+function mapEngineering (candidate: unknown): ShipModule['engineering'] {
+  if (!isRecord(candidate)) return null
+  return {
+    engineer: stringValue(candidate, 'Engineer'),
+    engineerId: integerValue(candidate, 'EngineerID'),
+    blueprintId: integerValue(candidate, 'BlueprintID'),
+    blueprintName: stringValue(candidate, 'BlueprintName'),
+    level: integerValue(candidate, 'Level'),
+    quality: numberValue(candidate, 'Quality'),
+    experimentalEffect: stringValue(candidate, 'ExperimentalEffect'),
+    experimentalEffectLabel: stringValue(candidate, 'ExperimentalEffect_Localised'),
+    modifiers: arrayValue(candidate, 'Modifiers')
+      .map(modifier => {
+        if (!isRecord(modifier)) return null
+        const label = stringValue(modifier, 'Label')
+        if (!label) return null
+        return {
+          label,
+          value: numberValue(modifier, 'Value'),
+          originalValue: numberValue(modifier, 'OriginalValue'),
+          lessIsGood: booleanValue(modifier, 'LessIsGood')
+        }
+      })
+      .filter((modifier): modifier is NonNullable<typeof modifier> => modifier !== null)
+  }
+}
+
+function classifySlot (slotId: string): ShipModule['slotGroup'] {
+  if (['Armour', 'PowerPlant', 'MainEngines', 'FrameShiftDrive', 'LifeSupport', 'PowerDistributor', 'Radar', 'FuelTank'].includes(slotId)) return 'core'
+  if (/^TinyHardpoint/i.test(slotId)) return 'utility'
+  if (/Hardpoint/i.test(slotId)) return 'hardpoint'
+  if (/^(Slot\d+_Size\d+|LimpetController|FighterBay|PlanetaryApproachSuite)/i.test(slotId)) return 'optional'
+  if (['VesselVoice', 'ShipCockpit', 'CargoHatch'].includes(slotId)) return 'ship'
+  return 'other'
+}
+
+function deriveSlotSize (slotId: string, moduleId: string): number | null {
+  return regexInteger(slotId, /_Size(\d+)/i) ?? deriveModuleSize(moduleId)
+}
+
+function deriveModuleSize (moduleId: string): number | null {
+  const numeric = regexInteger(moduleId, /_size(\d+)/i)
+  if (numeric !== null && numeric > 0) return numeric
+  const namedSize = moduleId.match(/_(small|medium|large|huge)(?:_|$)/i)?.[1]?.toLowerCase()
+  return namedSize ? ({ small: 1, medium: 2, large: 3, huge: 4 } as const)[namedSize as 'small' | 'medium' | 'large' | 'huge'] : null
+}
+
+function regexInteger (value: string, pattern: RegExp): number | null {
+  const matched = value.match(pattern)?.[1]
+  if (!matched) return null
+  const parsed = Number.parseInt(matched, 10)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null
 }
 
 function mapLocation (event: EliteJournalEvent): CurrentLocation | null {
@@ -243,6 +342,14 @@ function integerValue (candidate: Record<string, unknown>, key: string): number 
 function numberValue (candidate: Record<string, unknown>, key: string): number | null {
   const value = candidate[key]
   return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function booleanValue (candidate: Record<string, unknown>, key: string): boolean | null {
+  const value = candidate[key]
+  if (typeof value === 'boolean') return value
+  if (value === 1) return true
+  if (value === 0) return false
+  return null
 }
 
 function arrayValue (candidate: Record<string, unknown>, key: string): unknown[] {

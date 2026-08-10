@@ -104,6 +104,68 @@ export const CurrentLocationSchema = z.object({
   place: CurrentPlaceSchema.nullable()
 })
 
+export const ShipModuleSlotGroupSchema = z.enum([
+  'core',
+  'hardpoint',
+  'utility',
+  'optional',
+  'ship',
+  'other'
+])
+
+export const ShipModuleSchema = z.object({
+  slotId: z.string().min(1),
+  slotGroup: ShipModuleSlotGroupSchema,
+  slotSize: z.number().int().positive().nullable(),
+  moduleId: z.string().min(1),
+  moduleSize: z.number().int().positive().nullable(),
+  moduleClass: z.number().int().positive().nullable(),
+  enabled: z.boolean().nullable(),
+  priority: z.number().int().nonnegative().nullable(),
+  health: z.number().min(0).max(1).nullable(),
+  value: z.number().finite().nonnegative().nullable(),
+  ammo: z.object({
+    clip: z.number().int().nonnegative().nullable(),
+    reserve: z.number().int().nonnegative().nullable()
+  }).nullable(),
+  engineering: z.object({
+    engineer: z.string().min(1).nullable(),
+    engineerId: z.number().int().nonnegative().nullable(),
+    blueprintId: z.number().int().nonnegative().nullable(),
+    blueprintName: z.string().min(1).nullable(),
+    level: z.number().int().positive().nullable(),
+    quality: z.number().finite().nullable(),
+    experimentalEffect: z.string().min(1).nullable(),
+    experimentalEffectLabel: z.string().min(1).nullable(),
+    modifiers: z.array(z.object({
+      label: z.string().min(1),
+      value: z.number().finite().nullable(),
+      originalValue: z.number().finite().nullable(),
+      lessIsGood: z.boolean().nullable()
+    }))
+  }).nullable()
+})
+
+export const CurrentShipSchema = z.object({
+  id: z.number().int().nonnegative().nullable(),
+  typeId: z.string().min(1).nullable(),
+  modelName: z.string().min(1).nullable(),
+  name: z.string().min(1).nullable(),
+  identifier: z.string().min(1).nullable(),
+  hullHealth: z.number().min(0).max(1).nullable(),
+  hullValue: z.number().finite().nonnegative().nullable(),
+  modulesValue: z.number().finite().nonnegative().nullable(),
+  unladenMass: z.number().finite().nonnegative().nullable(),
+  cargoCapacity: z.number().finite().nonnegative().nullable(),
+  maxJumpRange: z.number().finite().nonnegative().nullable(),
+  fuelCapacity: z.object({
+    main: z.number().finite().nonnegative(),
+    reserve: z.number().finite().nonnegative()
+  }).nullable(),
+  rebuy: z.number().finite().nonnegative().nullable(),
+  modules: z.array(ShipModuleSchema)
+})
+
 export const RuntimeStateSchema = z.object({
   schemaVersion: z.literal(1),
   revision: z.number().int().nonnegative(),
@@ -115,10 +177,7 @@ export const RuntimeStateSchema = z.object({
   }),
   system: CurrentSystemSchema,
   location: CurrentLocationSchema,
-  ship: z.object({
-    name: z.string().min(1).nullable(),
-    type: z.string().min(1).nullable()
-  }),
+  ship: CurrentShipSchema,
   gameStatus: EliteGameStatusSchema.nullable()
 })
 
@@ -154,11 +213,8 @@ export const GameEventEnvelopeSchema = z.discriminatedUnion('type', [
     payload: CurrentLocationSchema
   }),
   GameEventEnvelopeBaseSchema.extend({
-    type: z.literal('ship.identity_changed'),
-    payload: z.object({
-      name: z.string().min(1).nullable(),
-      type: z.string().min(1)
-    })
+    type: z.literal('ship.loadout_changed'),
+    payload: CurrentShipSchema
   }),
   GameEventEnvelopeBaseSchema.extend({
     type: z.literal('game.status_changed'),
@@ -169,8 +225,10 @@ export const GameEventEnvelopeSchema = z.discriminatedUnion('type', [
 export type GameEventEnvelope = z.infer<typeof GameEventEnvelopeSchema>
 export type CurrentLocation = z.infer<typeof CurrentLocationSchema>
 export type CurrentSystem = z.infer<typeof CurrentSystemSchema>
+export type CurrentShip = z.infer<typeof CurrentShipSchema>
 export type FactionSummary = z.infer<typeof FactionSummarySchema>
 export type NamedGameValue = z.infer<typeof NamedGameValueSchema>
+export type ShipModule = z.infer<typeof ShipModuleSchema>
 export type RuntimeLocationState = z.infer<typeof RuntimeLocationStateSchema>
 export type RuntimeState = z.infer<typeof RuntimeStateSchema>
 
@@ -189,11 +247,27 @@ export function createEmptyRuntimeState (): RuntimeState {
       state: 'unknown',
       place: null
     },
-    ship: {
-      name: null,
-      type: null
-    },
+    ship: emptyCurrentShip(),
     gameStatus: null
+  }
+}
+
+function emptyCurrentShip () {
+  return {
+    id: null,
+    typeId: null,
+    modelName: null,
+    name: null,
+    identifier: null,
+    hullHealth: null,
+    hullValue: null,
+    modulesValue: null,
+    unladenMass: null,
+    cargoCapacity: null,
+    maxJumpRange: null,
+    fuelCapacity: null,
+    rebuy: null,
+    modules: []
   }
 }
 

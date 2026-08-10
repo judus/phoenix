@@ -62,8 +62,47 @@ test('application startup projects the current commander, ranks, location and sh
         }
       },
       ship: {
-        type: 'cobramkiii',
-        name: 'Wayward Sun'
+        id: 7,
+        typeId: 'cobramkiii',
+        modelName: null,
+        name: 'Wayward Sun',
+        identifier: 'PHX-01',
+        hullHealth: 1,
+        unladenMass: 245.5,
+        cargoCapacity: 32,
+        maxJumpRange: 22.4,
+        fuelCapacity: { main: 16, reserve: 0.5 },
+        modules: [
+          {
+            slotId: 'PowerPlant',
+            slotGroup: 'core',
+            slotSize: 4,
+            moduleId: 'int_powerplant_size4_class5',
+            moduleSize: 4,
+            moduleClass: 5
+          },
+          {
+            slotId: 'MediumHardpoint1',
+            slotGroup: 'hardpoint',
+            slotSize: 2,
+            engineering: {
+              engineer: 'The Dweller',
+              blueprintName: 'Weapon_Efficient',
+              level: 3,
+              experimentalEffectLabel: 'Thermal Conduit',
+              modifiers: [{ label: 'DamagePerSecond', lessIsGood: false }]
+            }
+          },
+          {
+            slotId: 'TinyHardpoint1',
+            slotGroup: 'utility'
+          },
+          {
+            slotId: 'Slot01_Size4',
+            slotGroup: 'optional',
+            slotSize: 4
+          }
+        ]
       },
       gameStatus: null
     })
