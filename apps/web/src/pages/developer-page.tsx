@@ -184,6 +184,8 @@ function DeveloperControls ({
 
   return (
     <>
+      <DeveloperData title="Active binding source" value={actionCatalog.bindingSource} />
+
       <section className="content-section">
         <h2 className="section-heading">Input backend</h2>
         <p className="developer-backend-status">

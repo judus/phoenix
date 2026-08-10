@@ -1,4 +1,5 @@
 import {
+  GameActionBindingSourceDiagnosticsSchema,
   LogicalInputChordSchema,
   type LogicalInputChord
 } from '@phoenix/contracts'
@@ -16,6 +17,19 @@ const DEVELOPMENT_BINDINGS = new Map<string, LogicalInputChord>(Object.entries({
 export class StaticGameActionBindingResolver implements GameActionBindingResolver {
   public resolve (eliteBinding: string): LogicalInputChord | null {
     return DEVELOPMENT_BINDINGS.get(eliteBinding) ?? null
+  }
+
+  public getDiagnostics () {
+    return GameActionBindingSourceDiagnosticsSchema.parse({
+      directory: null,
+      filePath: null,
+      presetNames: ['PHOENIX development defaults'],
+      available: true,
+      bindingCount: DEVELOPMENT_BINDINGS.size,
+      keyboardBindingCount: DEVELOPMENT_BINDINGS.size,
+      loadedAt: null,
+      error: null
+    })
   }
 }
 

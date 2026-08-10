@@ -3,6 +3,8 @@ import { fileURLToPath } from 'node:url'
 import type { GameEventEnvelope, RuntimeState } from '@phoenix/contracts'
 import {
   EliteDataDirectoryLocator,
+  EliteBindingsDirectoryLocator,
+  EliteKeyboardBindingResolver,
   EliteInventoryFileSource,
   EliteJournalFileSource,
   EliteStatusFileSource,
@@ -25,12 +27,12 @@ import { InProcessPublisher } from './infrastructure/in-process-publisher.js'
 import { PhoenixHttpServer } from './infrastructure/phoenix-http-server.js'
 import { RecordingInputBackend } from './infrastructure/recording-input-backend.js'
 import { SqliteDatabase } from './infrastructure/sqlite-database.js'
-import { StaticGameActionBindingResolver } from './infrastructure/static-game-action-binding-resolver.js'
 
 export interface PhoenixApplicationOptions {
   actionBindingResolver?: GameActionBindingResolver
   databasePath?: string
   eliteDirectory?: string | null
+  eliteBindingsDirectory?: string | null
   host?: string
   inputBackend?: InputBackend
   moduleCataloguePath?: string
@@ -96,7 +98,9 @@ export class PhoenixApplication {
     )
     const actionGateway = new DefaultGameActionGateway(
       new DefaultGameActionCatalog(),
-      options.actionBindingResolver ?? new StaticGameActionBindingResolver(),
+      options.actionBindingResolver ?? new EliteKeyboardBindingResolver(
+        locateBindingsDirectory(options, configuredEliteDirectory)
+      ),
       options.inputBackend ?? new RecordingInputBackend()
     )
     this.database = new SqliteDatabase(
@@ -149,6 +153,18 @@ export class PhoenixApplication {
   public ingestGameEvent (candidate: unknown): GameEventEnvelope {
     return this.eventIngestion.ingest(candidate)
   }
+}
+
+function locateBindingsDirectory (
+  options: PhoenixApplicationOptions,
+  eliteDataDirectory: string | null
+): string | null {
+  if (options.eliteBindingsDirectory === null) return null
+  if (options.eliteDirectory === null && options.eliteBindingsDirectory === undefined) return null
+  return new EliteBindingsDirectoryLocator({
+    eliteDataDirectory,
+    explicitDirectory: options.eliteBindingsDirectory ?? process.env.PHOENIX_ELITE_BINDINGS_DIRECTORY
+  }).locate()
 }
 
 function resolveProjectPath (projectRoot: string, path: string): string {

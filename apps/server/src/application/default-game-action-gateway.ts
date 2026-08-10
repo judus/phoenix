@@ -25,6 +25,7 @@ export class DefaultGameActionGateway implements GameActionGateway {
     const backend = this.backend.getStatus()
     return {
       backend,
+      bindingSource: this.bindings.getDiagnostics(),
       actions: this.catalog.list().map(definition => getActionAvailability(
         definition,
         this.bindings.resolve(definition.eliteBinding),

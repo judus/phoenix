@@ -37,6 +37,16 @@ test('the control console renders catalogue actions through the recording backen
           simulated: true,
           detail: 'Recording backend active.'
         },
+        bindingSource: {
+          directory: '/game/Bindings',
+          filePath: '/game/Bindings/Custom.4.2.binds',
+          presetNames: ['Custom'],
+          available: true,
+          bindingCount: 352,
+          keyboardBindingCount: 116,
+          loadedAt: '2026-08-10T14:00:00.000Z',
+          error: null
+        },
         actions: [{
           available: true,
           binding: { key: 'L', modifiers: [], display: 'L' },
@@ -58,6 +68,8 @@ test('the control console renders catalogue actions through the recording backen
   )
 
   expect(markup).toContain('Recording backend active.')
+  expect(markup).toContain('Active binding source')
+  expect(markup).toContain('Custom.4.2.binds')
   expect(markup).toContain('ship.lights.toggle')
   expect(markup).toContain('ShipSpotLightToggle')
   expect(markup).toContain('Test action')

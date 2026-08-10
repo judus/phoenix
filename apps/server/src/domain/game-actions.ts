@@ -3,6 +3,7 @@ import type {
   GameActionCatalogResponse,
   GameActionCommand,
   GameActionDefinition,
+  GameActionBindingSourceDiagnostics,
   GameActionOperation,
   GameActionResult,
   InputBackendStatus,
@@ -16,6 +17,7 @@ export interface GameActionCatalog {
 
 export interface GameActionBindingResolver {
   resolve(eliteBinding: string): LogicalInputChord | null
+  getDiagnostics(): GameActionBindingSourceDiagnostics
 }
 
 export interface GameActionGateway {

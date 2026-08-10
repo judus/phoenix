@@ -42,8 +42,20 @@ export const InputBackendStatusSchema = z.object({
   detail: z.string().min(1)
 })
 
+export const GameActionBindingSourceDiagnosticsSchema = z.object({
+  directory: z.string().min(1).nullable(),
+  filePath: z.string().min(1).nullable(),
+  presetNames: z.array(z.string().min(1)),
+  available: z.boolean(),
+  bindingCount: z.number().int().nonnegative(),
+  keyboardBindingCount: z.number().int().nonnegative(),
+  loadedAt: z.iso.datetime().nullable(),
+  error: z.string().min(1).nullable()
+})
+
 export const GameActionCatalogResponseSchema = z.object({
   backend: InputBackendStatusSchema,
+  bindingSource: GameActionBindingSourceDiagnosticsSchema,
   actions: z.array(GameActionAvailabilitySchema)
 })
 
@@ -70,6 +82,7 @@ export type ExecuteGameActionRequest = z.infer<typeof ExecuteGameActionRequestSc
 export type GameActionAvailability = z.infer<typeof GameActionAvailabilitySchema>
 export type GameActionCatalogResponse = z.infer<typeof GameActionCatalogResponseSchema>
 export type GameActionCommand = z.infer<typeof GameActionCommandSchema>
+export type GameActionBindingSourceDiagnostics = z.infer<typeof GameActionBindingSourceDiagnosticsSchema>
 export type GameActionDefinition = z.infer<typeof GameActionDefinitionSchema>
 export type GameActionOperation = z.infer<typeof GameActionOperationSchema>
 export type GameActionResult = z.infer<typeof GameActionResultSchema>

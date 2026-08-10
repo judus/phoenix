@@ -1,9 +1,11 @@
 import { expect, test } from 'vitest'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
+import { StaticGameActionBindingResolver } from '../apps/server/src/infrastructure/static-game-action-binding-resolver.js'
 
 test('the developer API exposes and safely simulates the action catalogue', async () => {
   const application = new PhoenixApplication({
+    actionBindingResolver: new StaticGameActionBindingResolver(),
     databasePath: ':memory:',
     eliteDirectory: null,
     host: '127.0.0.1',
