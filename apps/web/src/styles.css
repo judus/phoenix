@@ -1,0 +1,101 @@
+:root {
+  color: #d8ecff;
+  background: #08080c;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-synthesis: none;
+  --amber: #ff9d00;
+  --cyan: #5eeaff;
+  --panel: rgba(22, 9, 18, 0.88);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 75% 20%, rgba(255, 73, 0, 0.13), transparent 34rem),
+    linear-gradient(135deg, #08080c, #12070e 65%, #08080c);
+}
+
+button, input, textarea { font: inherit; }
+
+.shell {
+  width: min(70rem, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: clamp(2rem, 8vw, 7rem) 0;
+}
+
+.masthead {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  aspect-ratio: 1;
+  border: 1px solid var(--amber);
+  color: var(--amber);
+  font-size: 2rem;
+  box-shadow: 0 0 1.5rem rgba(255, 157, 0, 0.24) inset;
+}
+
+h1, h2, p { margin: 0; }
+h1 { letter-spacing: 0.12em; font-weight: 400; }
+h2 { margin-top: 0.3rem; font-weight: 400; }
+
+.eyebrow {
+  color: var(--amber);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.status-panel {
+  position: relative;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  border: 1px solid rgba(255, 157, 0, 0.65);
+  background: var(--panel);
+  box-shadow: 0 0 2rem rgba(255, 93, 0, 0.08) inset;
+}
+
+.status-light {
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+  width: 0.8rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #762833;
+}
+
+.status-light--online {
+  background: var(--cyan);
+  box-shadow: 0 0 1rem var(--cyan);
+}
+
+.telemetry {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 2.5rem 0 0;
+}
+
+.telemetry div {
+  padding-left: 1rem;
+  border-left: 2px solid var(--amber);
+}
+
+dt { color: #788399; font-size: 0.75rem; text-transform: uppercase; }
+dd { margin: 0.35rem 0 0; color: var(--cyan); }
+.error { margin-top: 2rem; color: #ff6176; }
+
+@media (max-width: 650px) {
+  .telemetry { grid-template-columns: 1fr; }
+}
+

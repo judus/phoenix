@@ -1,0 +1,30 @@
+{
+  "name": "phoenix",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.14.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @phoenix/contracts && npm run build --workspace @phoenix/server && npm run build --workspace @phoenix/web",
+    "check": "npm run typecheck && npm test && npm run build",
+    "dev": "node scripts/dev.mjs",
+    "dev:server": "npm run dev --workspace @phoenix/server",
+    "dev:web": "npm run dev --workspace @phoenix/web",
+    "pretest": "npm run build --workspace @phoenix/contracts",
+    "start": "npm run start --workspace @phoenix/server",
+    "test": "vitest run",
+    "typecheck": "npm run build --workspace @phoenix/contracts && npm run typecheck --workspace @phoenix/server && npm run typecheck --workspace @phoenix/web"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}
