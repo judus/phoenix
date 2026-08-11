@@ -39,6 +39,13 @@ export const EngineeringMaterialAdjustmentSchema = z.object({
   delta: z.number().int().refine(value => value !== 0, 'Material adjustment cannot be zero.')
 })
 
+export const EngineeringMaterialConsumptionSchema = z.object({
+  updatedAt: snapshotTimestamp,
+  id: z.string().min(1),
+  label: z.string().min(1).nullable(),
+  count: z.number().int().positive()
+})
+
 export const MicroResourceSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1).nullable(),
@@ -72,5 +79,6 @@ export type CargoInventory = z.infer<typeof CargoInventorySchema>
 export type CommanderInventory = z.infer<typeof CommanderInventorySchema>
 export type EliteInventoryFileSnapshot = z.infer<typeof EliteInventoryFileSnapshotSchema>
 export type EngineeringMaterialAdjustment = z.infer<typeof EngineeringMaterialAdjustmentSchema>
+export type EngineeringMaterialConsumption = z.infer<typeof EngineeringMaterialConsumptionSchema>
 export type EngineeringMaterials = z.infer<typeof EngineeringMaterialsSchema>
 export type MicroResourceInventory = z.infer<typeof MicroResourceInventorySchema>

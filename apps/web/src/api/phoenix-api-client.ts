@@ -8,11 +8,19 @@ import {
   CopilotRealtimeTokenResponseSchema,
   CopilotRealtimeToolRequestSchema,
   CopilotRealtimeTurnRequestSchema,
+  CartographyLookupResponseSchema,
+  DisplayCommandSchema,
+  EngineeringBlueprintDetailSchema,
+  EngineeringBlueprintsResponseSchema,
+  EngineeringEngineersResponseSchema,
+  EngineeringMaterialsResponseSchema,
   GameActionCatalogResponseSchema,
   GameActionResultSchema,
   EliteJournalSourceDiagnosticsSchema,
+  ActivityLogResponseSchema,
   EliteStatusSourceDiagnosticsSchema,
   RuntimeStateSchema,
+  NavigationRouteSchema,
   type GameActionCatalogResponse,
   type CatalogueDiagnostics,
   type ControlGridLayout,
@@ -23,11 +31,20 @@ import {
   type CopilotRealtimeTokenResponse,
   type CopilotRealtimeToolRequest,
   type CopilotRealtimeTurnRequest,
+  type CartographyLookupResponse,
+  type DisplayCommand,
+  type EngineeringBlueprintDetail,
+  type EngineeringBlueprintsResponse,
+  type EngineeringEngineersResponse,
+  type EngineeringMaterial,
+  type EngineeringMaterialsResponse,
   type GameActionResult,
   type GameActionOperation,
   type EliteJournalSourceDiagnostics,
+  type ActivityLogResponse,
   type EliteStatusSourceDiagnostics,
   type HealthResponse,
+  type NavigationRoute,
   type RuntimeState
 } from '@phoenix/contracts'
 
@@ -42,14 +59,23 @@ export interface PhoenixApi {
   executeDeveloperAction(actionId: string): Promise<GameActionResult>
   executeAction(actionId: string, operation?: GameActionOperation): Promise<GameActionResult>
   getEliteJournalDiagnostics(): Promise<EliteJournalSourceDiagnostics>
+  getActivityLog(limit?: number): Promise<ActivityLogResponse>
   getEliteStatusDiagnostics(): Promise<EliteStatusSourceDiagnostics>
   getActions(): Promise<GameActionCatalogResponse>
   getDeveloperActions(): Promise<GameActionCatalogResponse>
   getHealth(): Promise<HealthResponse>
+  getEngineeringBlueprint(symbol: string): Promise<EngineeringBlueprintDetail>
+  getEngineeringBlueprints(): Promise<EngineeringBlueprintsResponse>
+  getEngineeringEngineers(): Promise<EngineeringEngineersResponse>
+  getEngineeringMaterials(category: EngineeringMaterial['category']): Promise<EngineeringMaterialsResponse>
   getRuntimeState(): Promise<RuntimeState>
+  getNavigationRoute(): Promise<NavigationRoute>
+  getSystemCartography(systemName?: string): Promise<CartographyLookupResponse>
   persistCopilotRealtimeTurn(input: CopilotRealtimeTurnRequest): Promise<void>
   saveControlLayout(layout: ControlGridLayout): Promise<ControlGridLayout>
   runtimeStateStreamUrl(): string
+  activityLogStreamUrl(): string
+  displayCommandStreamUrl(): string
   streamCopilotMessage(
     input: CopilotChatRequest,
     onEvent: (event: CopilotStreamEvent) => void,
@@ -81,6 +107,42 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw new Error(`PHOENIX API returned HTTP ${response.status}.`)
     return response.json() as Promise<HealthResponse>
+  }
+
+  public async getEngineeringEngineers (): Promise<EngineeringEngineersResponse> {
+    const response = await this.request(`${this.baseUrl}/api/engineering/engineers`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return EngineeringEngineersResponseSchema.parse(await response.json())
+  }
+
+  public async getEngineeringMaterials (
+    category: EngineeringMaterial['category']
+  ): Promise<EngineeringMaterialsResponse> {
+    const response = await this.request(
+      `${this.baseUrl}/api/engineering/materials?category=${encodeURIComponent(category)}`,
+      { headers: { accept: 'application/json' } }
+    )
+    if (!response.ok) throw await apiError(response)
+    return EngineeringMaterialsResponseSchema.parse(await response.json())
+  }
+
+  public async getEngineeringBlueprints (): Promise<EngineeringBlueprintsResponse> {
+    const response = await this.request(`${this.baseUrl}/api/engineering/blueprints`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return EngineeringBlueprintsResponseSchema.parse(await response.json())
+  }
+
+  public async getEngineeringBlueprint (symbol: string): Promise<EngineeringBlueprintDetail> {
+    const response = await this.request(
+      `${this.baseUrl}/api/engineering/blueprints/${encodeURIComponent(symbol)}`,
+      { headers: { accept: 'application/json' } }
+    )
+    if (!response.ok) throw await apiError(response)
+    return EngineeringBlueprintDetailSchema.parse(await response.json())
   }
 
   public async getActions (): Promise<GameActionCatalogResponse> {
@@ -274,6 +336,14 @@ export class PhoenixApiClient implements PhoenixApi {
     return EliteJournalSourceDiagnosticsSchema.parse(await response.json())
   }
 
+  public async getActivityLog (limit = 250): Promise<ActivityLogResponse> {
+    const response = await this.request(`${this.baseUrl}/api/log?limit=${encodeURIComponent(limit)}`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw new Error(`PHOENIX API returned HTTP ${response.status}.`)
+    return ActivityLogResponseSchema.parse(await response.json())
+  }
+
   public async getRuntimeState (): Promise<RuntimeState> {
     const response = await this.request(`${this.baseUrl}/api/runtime-state`, {
       headers: { accept: 'application/json' }
@@ -282,9 +352,40 @@ export class PhoenixApiClient implements PhoenixApi {
     return RuntimeStateSchema.parse(await response.json())
   }
 
+  public async getNavigationRoute (): Promise<NavigationRoute> {
+    const response = await this.request(`${this.baseUrl}/api/navigation/route`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return NavigationRouteSchema.parse(await response.json())
+  }
+
+  public async getSystemCartography (systemName?: string): Promise<CartographyLookupResponse> {
+    const query = systemName?.trim()
+      ? `?name=${encodeURIComponent(systemName.trim())}`
+      : ''
+    const response = await this.request(`${this.baseUrl}/api/navigation/system${query}`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return CartographyLookupResponseSchema.parse(await response.json())
+  }
+
   public runtimeStateStreamUrl (): string {
     return `${this.baseUrl}/api/runtime-state/stream`
   }
+
+  public activityLogStreamUrl (): string {
+    return `${this.baseUrl}/api/log/stream`
+  }
+
+  public displayCommandStreamUrl (): string {
+    return `${this.baseUrl}/api/display/stream`
+  }
+}
+
+export function parseDisplayCommand (candidate: unknown): DisplayCommand {
+  return DisplayCommandSchema.parse(candidate)
 }
 
 async function apiError (response: Response): Promise<Error> {

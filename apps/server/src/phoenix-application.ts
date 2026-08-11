@@ -1,6 +1,6 @@
 import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { GameEventEnvelope, RuntimeState } from '@phoenix/contracts'
+import type { DisplayCommand, GameEventEnvelope, RuntimeState } from '@phoenix/contracts'
 import { ToolRegistry } from '@maduser/ai-ts'
 import {
   EliteDataDirectoryLocator,
@@ -8,11 +8,17 @@ import {
   EliteKeyboardBindingResolver,
   EliteInventoryFileSource,
   EliteJournalFileSource,
+  EliteNavigationRouteFileSource,
   EliteStatusFileSource,
+  JsonEngineeringCatalogue,
   JsonGameCatalogue
 } from '@phoenix/elite'
 import { CatalogueShipLoadoutEnricher } from './application/catalogue-ship-loadout-enricher.js'
 import { CatalogueDiagnosticsService } from './application/catalogue-diagnostics-service.js'
+import { CachedSystemCartographyService } from './application/cached-system-cartography-service.js'
+import { CartographyObservationIngestionService } from './application/cartography-observation-ingestion-service.js'
+import { DefaultNavigationQuery } from './application/default-navigation-query.js'
+import { DefaultSystemDetailsQuery } from './application/default-system-details-query.js'
 import { DefaultGameActionGateway } from './application/default-game-action-gateway.js'
 import { DefaultRuntimeStateProjector } from './application/default-runtime-state-projector.js'
 import { GameActionService } from './application/game-action-service.js'
@@ -23,28 +29,39 @@ import { EliteInventoryIngestionService } from './application/elite-inventory-in
 import { EliteStatusIngestionService } from './application/elite-status-ingestion-service.js'
 import { GameEventIngestionService } from './application/game-event-ingestion-service.js'
 import { HealthService } from './application/health-service.js'
+import { ActivityLogService } from './application/activity-log-service.js'
+import { LoggedGameActions } from './application/logged-game-actions.js'
+import { DisplayCommandService } from './application/display-command-service.js'
+import { NavigationDataService } from './application/navigation-data-service.js'
+import { EngineeringDataService } from './application/engineering-data-service.js'
+import { DefaultCommanderEngineersQuery } from './application/default-commander-engineers-query.js'
 import type { CopilotText } from './application/copilot-text-service.js'
 import type { CopilotRealtime } from './application/copilot-realtime-service.js'
 import type { GameActionBindingResolver, InputBackend } from './domain/game-actions.js'
+import type { CartographySource } from './domain/cartography.js'
 import type { ControlGridLayoutRepository } from './domain/system-configuration.js'
 import { DefaultGameActionCatalog } from './infrastructure/default-game-action-catalog.js'
 import { InMemoryRuntimeStateStore } from './infrastructure/in-memory-runtime-state-store.js'
+import { InMemoryNavigationRouteStore } from './infrastructure/in-memory-navigation-route-store.js'
 import { InMemoryControlGridLayoutRepository } from './infrastructure/in-memory-control-grid-layout-repository.js'
 import { InProcessPublisher } from './infrastructure/in-process-publisher.js'
 import { PhoenixHttpServer } from './infrastructure/phoenix-http-server.js'
 import { RecordingInputBackend } from './infrastructure/recording-input-backend.js'
 import { LinuxXdotoolInputBackend } from './infrastructure/linux-xdotool-input-backend.js'
 import { SqliteDatabase } from './infrastructure/sqlite-database.js'
+import { EdsmCartographySource } from './infrastructure/edsm-cartography-source.js'
 import { createConfiguredCopilot } from './infrastructure/configured-copilot.js'
 import { PhoenixMcpServer } from './infrastructure/phoenix-mcp-server.js'
 
 export interface PhoenixApplicationOptions {
   actionBindingResolver?: GameActionBindingResolver
+  cartographySource?: CartographySource
   controlGridLayoutRepository?: ControlGridLayoutRepository
   copilot?: CopilotText | null
   copilotRealtime?: CopilotRealtime | null
   databasePath?: string
   eliteDirectory?: string | null
+  engineeringCatalogueDirectory?: string
   eliteBindingsDirectory?: string | null
   host?: string
   inputBackend?: InputBackend
@@ -60,6 +77,7 @@ export class PhoenixApplication {
   private readonly eventIngestion: GameEventIngestionService
   private readonly journalSource: EliteJournalFileSource
   private readonly inventorySource: EliteInventoryFileSource
+  private readonly navigationRouteSource: EliteNavigationRouteFileSource
   private readonly server: PhoenixHttpServer
   private readonly stateStore: InMemoryRuntimeStateStore
   private readonly statusSource: EliteStatusFileSource
@@ -70,7 +88,15 @@ export class PhoenixApplication {
     const port = options.port ?? Number(process.env.PHOENIX_PORT ?? 3400)
     const gameEvents = new InProcessPublisher<GameEventEnvelope>()
     const runtimeStateUpdates = new InProcessPublisher<RuntimeState>()
+    const displayCommandUpdates = new InProcessPublisher<DisplayCommand>()
     this.stateStore = new InMemoryRuntimeStateStore()
+    this.database = new SqliteDatabase(
+      resolveProjectPath(
+        projectRoot,
+        options.databasePath ?? process.env.PHOENIX_DATABASE_PATH ?? 'data/runtime/phoenix.sqlite'
+      )
+    )
+    const activityLog = new ActivityLogService(this.database)
     const gameCatalogue = new JsonGameCatalogue(
       resolveProjectPath(
         projectRoot,
@@ -81,12 +107,25 @@ export class PhoenixApplication {
         options.moduleCataloguePath ?? process.env.PHOENIX_MODULE_CATALOGUE_PATH ?? 'data/catalogue/modules.json'
       )
     )
+    const engineeringCatalogueDirectory = resolveProjectPath(
+      projectRoot,
+      options.engineeringCatalogueDirectory ?? process.env.PHOENIX_ENGINEERING_CATALOGUE_PATH ?? 'data/catalogue/engineering'
+    )
+    const engineeringCatalogue = new JsonEngineeringCatalogue({
+      blueprints: resolve(engineeringCatalogueDirectory, 'blueprints.json'),
+      engineers: resolve(engineeringCatalogueDirectory, 'engineers.json'),
+      materials: resolve(engineeringCatalogueDirectory, 'materials.json'),
+      materialUses: resolve(engineeringCatalogueDirectory, 'material-uses.json')
+    })
     const projector = new DefaultRuntimeStateProjector(
       this.stateStore,
       runtimeStateUpdates,
       new CatalogueShipLoadoutEnricher(gameCatalogue)
     )
-    gameEvents.subscribe(event => projector.project(event))
+    gameEvents.subscribe(event => {
+      projector.project(event)
+      activityLog.ingestRuntime(event)
+    })
     this.eventIngestion = new GameEventIngestionService(gameEvents)
     const configuredEliteDirectory = options.eliteDirectory === null
       ? null
@@ -95,11 +134,14 @@ export class PhoenixApplication {
         }).locate()
     const statusIngestion = new EliteStatusIngestionService(this.eventIngestion)
     const journalIngestion = new EliteJournalIngestionService(this.eventIngestion)
+    const cartographyObservationIngestion = new CartographyObservationIngestionService(this.database, this.stateStore)
     const inventoryIngestion = new EliteInventoryIngestionService(this.eventIngestion)
     this.journalSource = new EliteJournalFileSource(
       configuredEliteDirectory,
       event => {
         journalIngestion.ingest(event)
+        cartographyObservationIngestion.ingest(event)
+        activityLog.ingestJournal(event)
       }
     )
     this.statusSource = new EliteStatusFileSource(
@@ -112,6 +154,11 @@ export class PhoenixApplication {
       configuredEliteDirectory,
       snapshot => { inventoryIngestion.ingest(snapshot) }
     )
+    const navigationRoutes = new InMemoryNavigationRouteStore()
+    this.navigationRouteSource = new EliteNavigationRouteFileSource(
+      configuredEliteDirectory,
+      route => navigationRoutes.replace(route)
+    )
     const actionBindingResolver = options.actionBindingResolver ?? new EliteKeyboardBindingResolver(
       locateBindingsDirectory(options, configuredEliteDirectory)
     )
@@ -120,13 +167,28 @@ export class PhoenixApplication {
       actionBindingResolver,
       options.inputBackend ?? configuredInputBackend(options.inputBackendMode)
     )
-    const gameActions = new GameActionService(actionGateway)
+    const gameActions = new LoggedGameActions(new GameActionService(actionGateway), activityLog)
     const statefulActions = new StatefulGameActionService(gameActions, this.stateStore)
+    const cartography = new CachedSystemCartographyService(
+      options.cartographySource ?? new EdsmCartographySource(),
+      this.database,
+      this.stateStore,
+      this.database
+    )
+    const navigation = new DefaultNavigationQuery(navigationRoutes, cartography, this.stateStore)
+    const systems = new DefaultSystemDetailsQuery(cartography, this.stateStore)
+    const navigationData = new NavigationDataService(cartography, navigationRoutes, this.stateStore)
+    const display = new DisplayCommandService(displayCommandUpdates, this.stateStore)
+    const engineering = new EngineeringDataService(engineeringCatalogue, this.stateStore)
     const toolRegistry = new ToolRegistry(createPhoenixMcpTools({
+      display,
+      engineers: new DefaultCommanderEngineersQuery(engineering),
       gameActions,
       gameCatalogue,
+      navigation,
       runtimeState: this.stateStore,
-      statefulActions
+      statefulActions,
+      systems
     }))
     const mcpServer = new PhoenixMcpServer(toolRegistry)
     const configuredCopilot = options.copilot === undefined && options.copilotRealtime === undefined
@@ -142,12 +204,6 @@ export class PhoenixApplication {
     const copilotRealtime = options.copilotRealtime === undefined
       ? configuredCopilot?.realtime
       : options.copilotRealtime ?? undefined
-    this.database = new SqliteDatabase(
-      resolveProjectPath(
-        projectRoot,
-        options.databasePath ?? process.env.PHOENIX_DATABASE_PATH ?? 'data/runtime/phoenix.sqlite'
-      )
-    )
     this.server = new PhoenixHttpServer({
       catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
       controlGridLayouts: options.controlGridLayoutRepository ?? new InMemoryControlGridLayoutRepository(),
@@ -158,10 +214,14 @@ export class PhoenixApplication {
       eliteStatusDiagnostics: this.statusSource,
       healthCheck: new HealthService(this.database),
       host,
+      activityLog,
       mcpServer,
       port,
       runtimeState: this.stateStore,
       runtimeStateUpdates,
+      displayCommands: display,
+      engineering,
+      navigationData,
       webRoot: resolveProjectPath(
         projectRoot,
         options.webRoot ?? process.env.PHOENIX_WEB_ROOT ?? 'apps/web/dist'
@@ -175,11 +235,13 @@ export class PhoenixApplication {
       await this.journalSource.start()
       await this.statusSource.start()
       await this.inventorySource.start()
+      await this.navigationRouteSource.start()
       return await this.server.start()
     } catch (cause) {
       this.journalSource.stop()
       this.statusSource.stop()
       this.inventorySource.stop()
+      this.navigationRouteSource.stop()
       this.database.close()
       throw cause
     }
@@ -189,6 +251,7 @@ export class PhoenixApplication {
     this.journalSource.stop()
     this.statusSource.stop()
     this.inventorySource.stop()
+    this.navigationRouteSource.stop()
     await this.server.stop()
     this.database.close()
   }

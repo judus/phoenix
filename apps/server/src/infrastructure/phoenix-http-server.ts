@@ -12,6 +12,7 @@ import {
   CopilotRealtimeTokenRequestSchema,
   CopilotRealtimeToolRequestSchema,
   CopilotRealtimeTurnRequestSchema,
+  type DisplayCommand,
   type RuntimeState
 } from '@phoenix/contracts'
 import { AiError, serializeAiError, type AiStreamEvent } from '@maduser/ai-ts'
@@ -23,7 +24,9 @@ import {
 import type { CatalogueDiagnosticsReader } from '../application/catalogue-diagnostics-service.js'
 import type { GameActions } from '../application/game-action-service.js'
 import type { HealthCheck } from '../application/health-service.js'
-import type { EliteJournalDiagnosticsReader } from '../domain/elite-journal.js'
+import type { EngineeringDataReader } from '../application/engineering-data-service.js'
+import type { NavigationDataReader } from '../application/navigation-data-service.js'
+import type { ActivityLogReader, EliteJournalDiagnosticsReader } from '../domain/elite-journal.js'
 import type { EliteStatusDiagnosticsReader } from '../domain/elite-status.js'
 import type { Subscribable } from '../domain/publisher.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
@@ -47,9 +50,13 @@ export interface PhoenixHttpServerOptions {
   gameActions: GameActions
   eliteJournalDiagnostics: EliteJournalDiagnosticsReader
   eliteStatusDiagnostics: EliteStatusDiagnosticsReader
+  engineering: EngineeringDataReader
   healthCheck: HealthCheck
   host: string
+  activityLog: ActivityLogReader
+  displayCommands: Subscribable<DisplayCommand>
   mcpServer: PhoenixMcpServer
+  navigationData: NavigationDataReader
   port: number
   runtimeState: RuntimeStateReader
   runtimeStateUpdates: Subscribable<RuntimeState>
@@ -58,6 +65,8 @@ export interface PhoenixHttpServerOptions {
 
 export class PhoenixHttpServer {
   private readonly eventStreams = new Set<ServerResponse>()
+  private readonly activityStreams = new Set<ServerResponse>()
+  private readonly displayStreams = new Set<ServerResponse>()
   private readonly server: Server
 
   public constructor (private readonly options: PhoenixHttpServerOptions) {
@@ -89,6 +98,10 @@ export class PhoenixHttpServer {
     if (!this.server.listening) return
     for (const stream of this.eventStreams) stream.end()
     this.eventStreams.clear()
+    for (const stream of this.activityStreams) stream.end()
+    this.activityStreams.clear()
+    for (const stream of this.displayStreams) stream.end()
+    this.displayStreams.clear()
     await new Promise<void>((resolvePromise, reject) => {
       this.server.close(error => error ? reject(error) : resolvePromise())
     })
@@ -114,6 +127,82 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/runtime-state/stream') {
       this.openRuntimeStateStream(request, response)
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/log') {
+      const requestedLimit = Number.parseInt(url.searchParams.get('limit') ?? '250', 10)
+      this.writeJson(response, 200, this.options.activityLog.getRecent(
+        Number.isSafeInteger(requestedLimit) ? requestedLimit : 250
+      ))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/log/stream') {
+      this.openActivityStream(request, response)
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/navigation/route') {
+      this.writeJson(response, 200, this.options.navigationData.getRoute())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/navigation/system') {
+      try {
+        this.writeJson(
+          response,
+          200,
+          await this.options.navigationData.getSystem(url.searchParams.get('name') ?? undefined)
+        )
+      } catch (cause) {
+        this.writeJson(response, 502, {
+          error: {
+            code: 'cartography_lookup_failed',
+            message: cause instanceof Error ? cause.message : 'System cartography lookup failed.'
+          }
+        })
+      }
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/display/stream') {
+      this.openDisplayStream(request, response)
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/engineering/engineers') {
+      this.writeJson(response, 200, this.options.engineering.getEngineers())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/engineering/materials') {
+      const category = url.searchParams.get('category')
+      if (category !== null && !isEngineeringMaterialCategory(category)) {
+        this.writeJson(response, 400, {
+          error: { code: 'invalid_material_category', message: `Unknown material category: ${category}.` }
+        })
+        return
+      }
+      this.writeJson(response, 200, this.options.engineering.getMaterials(category ?? undefined))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/engineering/blueprints') {
+      this.writeJson(response, 200, this.options.engineering.getBlueprints())
+      return
+    }
+
+    const engineeringBlueprintMatch = url.pathname.match(/^\/api\/engineering\/blueprints\/([^/]+)$/u)
+    if (request.method === 'GET' && engineeringBlueprintMatch) {
+      const blueprint = this.options.engineering.getBlueprint(decodeURIComponent(engineeringBlueprintMatch[1]!))
+      if (!blueprint) {
+        this.writeJson(response, 404, {
+          error: { code: 'blueprint_not_found', message: 'Engineering blueprint not found.' }
+        })
+        return
+      }
+      this.writeJson(response, 200, blueprint)
       return
     }
 
@@ -283,6 +372,52 @@ export class PhoenixHttpServer {
     request.once('close', close)
     response.once('close', close)
     send(this.options.runtimeState.getCurrent())
+  }
+
+  private openActivityStream (request: IncomingMessage, response: ServerResponse): void {
+    response.writeHead(200, {
+      'cache-control': 'no-cache, no-transform',
+      connection: 'keep-alive',
+      'content-type': 'text/event-stream; charset=utf-8'
+    })
+    response.flushHeaders()
+    this.activityStreams.add(response)
+    const unsubscribe = this.options.activityLog.subscribe(entry => {
+      response.write(`event: activity-entry\ndata: ${JSON.stringify(entry)}\n\n`)
+    })
+    let closed = false
+    const close = (): void => {
+      if (closed) return
+      closed = true
+      unsubscribe()
+      this.activityStreams.delete(response)
+    }
+    request.once('close', close)
+    response.once('close', close)
+    response.write(': connected\n\n')
+  }
+
+  private openDisplayStream (request: IncomingMessage, response: ServerResponse): void {
+    response.writeHead(200, {
+      'cache-control': 'no-cache, no-transform',
+      connection: 'keep-alive',
+      'content-type': 'text/event-stream; charset=utf-8'
+    })
+    response.flushHeaders()
+    this.displayStreams.add(response)
+    const unsubscribe = this.options.displayCommands.subscribe(command => {
+      response.write(`event: display-command\ndata: ${JSON.stringify(command)}\n\n`)
+    })
+    let closed = false
+    const close = (): void => {
+      if (closed) return
+      closed = true
+      unsubscribe()
+      this.displayStreams.delete(response)
+    }
+    request.once('close', close)
+    response.once('close', close)
+    response.write(': connected\n\n')
   }
 
   private async handleCopilotChat (
@@ -519,4 +654,10 @@ function copilotErrorStatus (cause: unknown): number {
     case 'timeout': return 504
     default: return 502
   }
+}
+
+function isEngineeringMaterialCategory (
+  candidate: string
+): candidate is 'raw' | 'manufactured' | 'encoded' | 'xeno' {
+  return ['raw', 'manufactured', 'encoded', 'xeno'].includes(candidate)
 }

@@ -54,17 +54,23 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
     expect(provider.requests[0]?.tools?.map(tool => tool.name)).toEqual([
       'phoenix__commander_get_current_state',
       'phoenix__commander_get_inventory',
+      'phoenix__commander_list_engineers',
       'phoenix__commander_list_materials',
       'phoenix__controls_find_actions',
       'phoenix__controls_execute',
       'phoenix__controls_get_status',
       'phoenix__controls_set_switch',
       'phoenix__controls_tap',
+      'phoenix__display_show_body',
+      'phoenix__display_show_system',
+      'phoenix__navigation_can_jump_to',
+      'phoenix__navigation_get_route',
       'phoenix__ship_get_cargo',
       'phoenix__ship_get_status',
       'phoenix__ship_list_modules',
       'phoenix__ships_compare',
-      'phoenix__ships_get_definition'
+      'phoenix__ships_get_definition',
+      'phoenix__systems_get_details'
     ])
     expect(provider.requests[1]?.messages.at(-1)).toMatchObject({
       role: 'tool',

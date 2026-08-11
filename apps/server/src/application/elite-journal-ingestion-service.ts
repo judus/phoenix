@@ -3,7 +3,9 @@ import type {
   CurrentLocation,
   CurrentShip,
   CurrentSystem,
+  CommanderEngineerProgress,
   EngineeringMaterialAdjustment,
+  EngineeringMaterialConsumption,
   EngineeringMaterials,
   FactionSummary,
   GameEventEnvelope,
@@ -58,6 +60,14 @@ export class EliteJournalIngestionService {
       })
     }
 
+    if (event.event === 'EngineerProgress') {
+      candidates.push({
+        type: 'commander.engineers_changed',
+        gameTimestamp,
+        payload: mapEngineerProgress(event.Engineers)
+      })
+    }
+
     const system = mapSystem(event)
     if (system) candidates.push({ type: 'system.changed', gameTimestamp, payload: system })
 
@@ -92,9 +102,41 @@ export class EliteJournalIngestionService {
     for (const adjustment of mapMaterialAdjustments(event)) {
       candidates.push({ type: 'inventory.material_adjusted', gameTimestamp, payload: adjustment })
     }
+    for (const consumption of mapMaterialConsumption(event)) {
+      candidates.push({ type: 'inventory.material_consumed', gameTimestamp, payload: consumption })
+    }
 
     return candidates
   }
+}
+
+function mapMaterialConsumption (event: EliteJournalEvent): EngineeringMaterialConsumption[] {
+  if (!['EngineerCraft', 'Synthesis'].includes(event.event) || !Array.isArray(event.Ingredients)) return []
+  return event.Ingredients.map(item => {
+    if (!isRecord(item)) return null
+    const id = stringValue(item, 'Name')
+    const count = integerValue(item, 'Count')
+    return id && count !== null && count > 0
+      ? { updatedAt: event.timestamp, id, label: stringValue(item, 'Name_Localised'), count }
+      : null
+  }).filter((item): item is EngineeringMaterialConsumption => item !== null)
+}
+
+function mapEngineerProgress (candidate: unknown): CommanderEngineerProgress[] {
+  if (!Array.isArray(candidate)) return []
+  return candidate.map(item => {
+    if (!isRecord(item)) return null
+    const id = integerValue(item, 'EngineerID')
+    const name = stringValue(item, 'Engineer')
+    if (id === null || !name) return null
+    return {
+      id,
+      name,
+      status: stringValue(item, 'Progress'),
+      rank: integerValue(item, 'Rank') ?? 0,
+      rankProgress: numberValue(item, 'RankProgress') ?? 0
+    }
+  }).filter((item): item is CommanderEngineerProgress => item !== null)
 }
 
 function mapMaterials (event: EliteJournalEvent): EngineeringMaterials | null {

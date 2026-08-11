@@ -26,6 +26,7 @@ test('application startup projects the current commander, ranks, location and sh
     const state = await client.getRuntimeState()
     const catalogueDiagnostics = await client.getCatalogueDiagnostics()
     const diagnostics = await client.getEliteJournalDiagnostics()
+    const journal = await client.getActivityLog()
 
     expect(state).toMatchObject({
       revision: 13,
@@ -155,6 +156,19 @@ test('application startup projects the current commander, ranks, location and sh
       linesRead: 12,
       error: null
     })
+    expect(journal.retained).toBe(25)
+    expect(journal.entries).toHaveLength(25)
+    expect(journal.entries).toContainEqual(expect.objectContaining({
+      source: 'runtime',
+      event: 'inventory.material_adjusted',
+      actionable: false,
+      data: expect.objectContaining({ type: 'inventory.material_adjusted' })
+    }))
+    expect(journal.entries).toContainEqual(expect.objectContaining({
+      source: 'journal',
+      event: 'MaterialTrade',
+      data: expect.objectContaining({ event: 'MaterialTrade', timestamp: '2026-08-10T12:00:11Z' })
+    }))
     expect(catalogueDiagnostics).toMatchObject({
       shipCount: 47,
       shipAliasCount: 83,

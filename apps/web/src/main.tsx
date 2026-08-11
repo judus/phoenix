@@ -11,6 +11,9 @@ import './styles/primitives/page.css'
 import './styles/patterns/status-list.css'
 import './styles/patterns/control-grid.css'
 import './styles/patterns/copilot.css'
+import './styles/patterns/journal.css'
+import './styles/patterns/navigation-data.css'
+import './styles/patterns/engineering.css'
 import './styles/utilities.css'
 
 const root = document.getElementById('root')

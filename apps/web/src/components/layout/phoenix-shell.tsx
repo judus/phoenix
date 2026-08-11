@@ -9,9 +9,9 @@ import {
 import { AppBrand, TopBar } from '../top-bar/top-bar.js'
 
 const primaryNavigation: NavigationItem[] = [
-  { href: '#navigation', id: 'navigation', label: 'Navigation' },
+  { href: '#/navigation/system', id: 'navigation', label: 'Navigation' },
   { href: '#ship', id: 'ship', label: 'Ship' },
-  { href: '#engineering', id: 'engineering', label: 'Engineering' },
+  { href: '#/engineering/blueprints', id: 'engineering', label: 'Engineering' },
   { href: '#exploration', id: 'exploration', label: 'Exploration' },
   { href: '#/controls/ship', id: 'controls', label: 'Controls' },
   { href: '#copilot', id: 'copilot', label: 'Copilot' },

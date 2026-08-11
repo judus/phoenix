@@ -2,6 +2,7 @@ import {
   RuntimeStateSchema,
   type EliteGameStatus,
   type EngineeringMaterialAdjustment,
+  type EngineeringMaterialConsumption,
   type GameEventEnvelope,
   type RuntimeState
 } from '@phoenix/contracts'
@@ -35,7 +36,9 @@ export class DefaultRuntimeStateProjector implements RuntimeStateProjector {
           ? { ...current.commander, ranks: event.payload }
           : event.type === 'commander.rank_progress_changed'
             ? { ...current.commander, rankProgress: event.payload }
-            : current.commander,
+            : event.type === 'commander.engineers_changed'
+              ? { ...current.commander, engineers: event.payload }
+              : current.commander,
       ship: event.type === 'ship.loadout_changed'
         ? this.shipLoadoutEnricher.enrich(event.payload)
         : current.ship,
@@ -45,11 +48,13 @@ export class DefaultRuntimeStateProjector implements RuntimeStateProjector {
           ? { ...current.inventory, materials: event.payload }
           : event.type === 'inventory.material_adjusted'
             ? { ...current.inventory, materials: adjustMaterial(current.inventory.materials, event.payload) }
-            : event.type === 'inventory.ship_locker_changed'
-              ? { ...current.inventory, shipLocker: event.payload }
-              : event.type === 'inventory.backpack_changed'
-                ? { ...current.inventory, backpack: event.payload }
-                : current.inventory,
+            : event.type === 'inventory.material_consumed'
+              ? { ...current.inventory, materials: consumeMaterial(current.inventory.materials, event.payload) }
+              : event.type === 'inventory.ship_locker_changed'
+                ? { ...current.inventory, shipLocker: event.payload }
+                : event.type === 'inventory.backpack_changed'
+                  ? { ...current.inventory, backpack: event.payload }
+                  : current.inventory,
       system: event.type === 'system.changed'
         ? event.payload
         : current.system,
@@ -67,6 +72,24 @@ export class DefaultRuntimeStateProjector implements RuntimeStateProjector {
     this.updates.publish(next)
     return next
   }
+}
+
+function consumeMaterial (
+  materials: RuntimeState['inventory']['materials'],
+  consumption: EngineeringMaterialConsumption
+): RuntimeState['inventory']['materials'] {
+  if (!materials) return null
+  const category = (['raw', 'manufactured', 'encoded'] as const).find(name => (
+    materials[name].some(material => material.id.toLowerCase() === consumption.id.toLowerCase())
+  ))
+  if (!category) return materials
+  return adjustMaterial(materials, {
+    updatedAt: consumption.updatedAt,
+    category,
+    id: consumption.id,
+    label: consumption.label,
+    delta: -consumption.count
+  })
 }
 
 function adjustMaterial (

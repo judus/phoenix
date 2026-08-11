@@ -1,0 +1,130 @@
+@layer patterns {
+  .app-shell:has(.navigation-data-page) {
+    block-size: 100dvh;
+    min-block-size: 0;
+    overflow: hidden;
+  }
+
+  .app-workspace:has(.navigation-data-page),
+  .navigation-data-page,
+  .navigation-data-page .page-content {
+    min-block-size: 0;
+    overflow: hidden;
+  }
+
+  .navigation-data-page .page-content {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+
+  .navigation-data-toolbar {
+    display: grid;
+    grid-template-columns: minmax(16rem, 1fr) auto minmax(18rem, auto);
+    align-items: end;
+    gap: var(--space-3);
+
+    label {
+      display: grid;
+      gap: var(--space-1);
+      color: var(--color-primary);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+
+    input,
+    button {
+      min-block-size: 2.5rem;
+      padding-inline: var(--space-3);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      background: var(--color-panel);
+    }
+
+    button {
+      color: var(--color-primary);
+      text-transform: uppercase;
+    }
+
+    dl {
+      min-block-size: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: end;
+      gap: var(--space-4);
+      margin: 0;
+
+      div {
+        display: grid;
+        grid-template-columns: auto auto;
+        gap: var(--space-2);
+      }
+
+      dt {
+        color: var(--color-muted);
+        text-transform: uppercase;
+      }
+
+      dd {
+        margin: 0;
+        color: var(--color-primary);
+      }
+    }
+  }
+
+  .navigation-data-inspector {
+    min-block-size: 0;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    padding: var(--space-4);
+    border: 1px solid var(--color-border);
+    background: var(--color-panel);
+    overflow: hidden;
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding-block-end: var(--space-3);
+      border-block-end: 1px solid var(--color-border);
+
+      span {
+        color: var(--color-primary);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+      }
+
+      h2 {
+        font-weight: 400;
+      }
+    }
+
+    pre {
+      min-block-size: 0;
+      margin: 0;
+      padding-block-start: var(--space-3);
+      overflow: auto;
+      color: var(--color-text);
+      font: 0.85rem/1.45 monospace;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .navigation-data-empty {
+    padding: var(--space-4);
+    color: var(--color-muted);
+  }
+
+  @media (width < 58rem) {
+    .navigation-data-toolbar {
+      grid-template-columns: minmax(0, 1fr) auto;
+
+      dl {
+        grid-column: 1 / -1;
+        justify-content: start;
+      }
+    }
+  }
+}

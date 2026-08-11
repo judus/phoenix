@@ -9,9 +9,11 @@ import {
   CargoInventorySchema,
   CommanderInventorySchema,
   EngineeringMaterialAdjustmentSchema,
+  EngineeringMaterialConsumptionSchema,
   EngineeringMaterialsSchema,
   MicroResourceInventorySchema
 } from './elite-inventory.js'
+import { CommanderEngineerProgressSchema } from './engineering.js'
 
 export const RuntimeLocationStateSchema = z.enum([
   'unknown',
@@ -186,6 +188,7 @@ export const RuntimeStateSchema = z.object({
   updatedAt: z.iso.datetime().nullable(),
   commander: z.object({
     name: z.string().min(1).nullable(),
+    engineers: z.array(CommanderEngineerProgressSchema),
     ranks: CommanderRanksSchema,
     rankProgress: CommanderRankProgressSchema
   }),
@@ -220,6 +223,10 @@ export const GameEventEnvelopeSchema = z.discriminatedUnion('type', [
     payload: CommanderRankProgressSchema
   }),
   GameEventEnvelopeBaseSchema.extend({
+    type: z.literal('commander.engineers_changed'),
+    payload: z.array(CommanderEngineerProgressSchema)
+  }),
+  GameEventEnvelopeBaseSchema.extend({
     type: z.literal('inventory.cargo_changed'),
     payload: CargoInventorySchema
   }),
@@ -230,6 +237,10 @@ export const GameEventEnvelopeSchema = z.discriminatedUnion('type', [
   GameEventEnvelopeBaseSchema.extend({
     type: z.literal('inventory.material_adjusted'),
     payload: EngineeringMaterialAdjustmentSchema
+  }),
+  GameEventEnvelopeBaseSchema.extend({
+    type: z.literal('inventory.material_consumed'),
+    payload: EngineeringMaterialConsumptionSchema
   }),
   GameEventEnvelopeBaseSchema.extend({
     type: z.literal('inventory.ship_locker_changed'),
@@ -274,6 +285,7 @@ export function createEmptyRuntimeState (): RuntimeState {
     updatedAt: null,
     commander: {
       name: null,
+      engineers: [],
       ranks: emptyCommanderRanks(),
       rankProgress: emptyCommanderRanks()
     },

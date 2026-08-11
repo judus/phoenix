@@ -1,4 +1,19 @@
 @layer patterns {
+  .app-shell:has(.copilot-page) {
+    block-size: 100dvh;
+    min-block-size: 0;
+    overflow: hidden;
+  }
+
+  .app-workspace:has(.copilot-page) {
+    min-block-size: 0;
+    overflow: hidden;
+  }
+
+  .copilot-page {
+    overflow: hidden;
+  }
+
   .copilot-page .page-content {
     overflow: hidden;
   }
@@ -68,7 +83,8 @@
 
   .copilot-messages {
     min-block-size: 0;
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
     padding: var(--space-4);
   }
 

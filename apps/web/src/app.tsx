@@ -11,11 +11,14 @@ import {
   type HealthResponse,
   type RuntimeState
 } from '@phoenix/contracts'
-import { PhoenixApiClient } from './api/phoenix-api-client.js'
+import { parseDisplayCommand, PhoenixApiClient } from './api/phoenix-api-client.js'
 import { DeveloperPage, type DeveloperView } from './pages/developer-page.js'
 import { ControlsPage, type ControlCategory } from './pages/controls-page.js'
 import { CopilotPage } from './pages/copilot-page.js'
 import { TemplatePage } from './pages/template-page.js'
+import { LogPage } from './pages/log-page.js'
+import { NavigationPage, type NavigationView } from './pages/navigation-page.js'
+import { EngineeringPage, type EngineeringView } from './pages/engineering-page.js'
 
 const api = new PhoenixApiClient()
 
@@ -85,11 +88,24 @@ export function App () {
       }
     })
 
+    const displaySource = new EventSource(api.displayCommandStreamUrl())
+    displaySource.addEventListener('display-command', event => {
+      try {
+        const command = parseDisplayCommand(JSON.parse(event.data))
+        const parameters = new URLSearchParams({ name: command.systemName })
+        if (command.selectedName) parameters.set('selected', command.selectedName)
+        window.location.hash = `/navigation/system?${parameters.toString()}`
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Invalid display command received.')
+      }
+    })
+
     const handleRouteChange = (): void => setRoute(readRoute())
     window.addEventListener('hashchange', handleRouteChange)
 
     return () => {
       eventSource.close()
+      displaySource.close()
       window.removeEventListener('hashchange', handleRouteChange)
     }
   }, [])
@@ -146,12 +162,45 @@ export function App () {
     return <CopilotPage api={api} error={error} health={health} />
   }
 
+  if (route.section === 'log') {
+    return <LogPage api={api} error={error} health={health} />
+  }
+
+  if (route.section === 'navigation') {
+    return (
+      <NavigationPage
+        api={api}
+        error={error}
+        health={health}
+        runtimeState={runtimeState}
+        selectedName={route.selectedName}
+        systemName={route.systemName}
+        view={route.view}
+      />
+    )
+  }
+
+  if (route.section === 'engineering') {
+    return (
+      <EngineeringPage
+        api={api}
+        error={error}
+        health={health}
+        runtimeState={runtimeState}
+        view={route.view}
+      />
+    )
+  }
+
   return <TemplatePage health={health} error={error} runtimeState={runtimeState} />
 }
 
 type AppRoute =
   | { section: 'main' }
   | { section: 'copilot' }
+  | { section: 'log' }
+  | { section: 'navigation', view: NavigationView, systemName?: string, selectedName?: string }
+  | { section: 'engineering', view: EngineeringView }
   | { section: 'controls', category: ControlCategory }
   | { section: 'developer', view: DeveloperView }
 
@@ -162,6 +211,37 @@ const CONTROL_CATEGORIES: ControlCategory[] = [
 function readRoute (): AppRoute {
   if (typeof window === 'undefined') return { section: 'main' }
   if (/^#\/?copilot$/u.test(window.location.hash)) return { section: 'copilot' }
+  if (/^#\/?log$/u.test(window.location.hash)) return { section: 'log' }
+  const navigationMatch = window.location.hash.match(/^#\/?navigation\/(system|route)(?:\?(.*))?$/u)
+  if (navigationMatch) {
+    const parameters = new URLSearchParams(navigationMatch[2] ?? '')
+    const systemName = parameters.get('name')?.trim() || undefined
+    const selectedName = parameters.get('selected')?.trim() || undefined
+    return {
+      section: 'navigation',
+      view: navigationMatch[1] as NavigationView,
+      ...(systemName ? { systemName } : {}),
+      ...(selectedName ? { selectedName } : {})
+    }
+  }
+  const engineeringMaterialsMatch = window.location.hash.match(/^#\/?engineering\/materials\/(raw|manufactured|encoded|xeno)$/u)
+  if (engineeringMaterialsMatch) {
+    return {
+      section: 'engineering',
+      view: { type: 'materials', category: engineeringMaterialsMatch[1] as 'raw' | 'manufactured' | 'encoded' | 'xeno' }
+    }
+  }
+  if (/^#\/?engineering\/engineers$/u.test(window.location.hash)) {
+    return { section: 'engineering', view: { type: 'engineers' } }
+  }
+  const engineeringBlueprintsMatch = window.location.hash.match(/^#\/?engineering\/blueprints(?:\?(.*))?$/u)
+  if (engineeringBlueprintsMatch) {
+    const symbol = new URLSearchParams(engineeringBlueprintsMatch[1] ?? '').get('symbol')?.trim() || undefined
+    return {
+      section: 'engineering',
+      view: { type: 'blueprints', ...(symbol ? { symbol } : {}) }
+    }
+  }
   const controlsMatch = window.location.hash.match(/^#\/?controls(?:\/([a-z_]+))?$/)
   if (controlsMatch) {
     const category = CONTROL_CATEGORIES.find(candidate => candidate === controlsMatch[1]) ?? 'ship'
