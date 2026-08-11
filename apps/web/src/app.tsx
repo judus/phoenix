@@ -15,10 +15,10 @@ import { parseDisplayCommand, PhoenixApiClient } from './api/phoenix-api-client.
 import { DeveloperPage, type DeveloperView } from './pages/developer-page.js'
 import { ControlsPage, type ControlCategory } from './pages/controls-page.js'
 import { CopilotPage } from './pages/copilot-page.js'
-import { TemplatePage } from './pages/template-page.js'
 import { LogPage } from './pages/log-page.js'
 import { NavigationPage, type NavigationView } from './pages/navigation-page.js'
 import { EngineeringPage, type EngineeringView } from './pages/engineering-page.js'
+import { DashboardPage } from './pages/dashboard-page.js'
 
 const api = new PhoenixApiClient()
 
@@ -192,7 +192,7 @@ export function App () {
     )
   }
 
-  return <TemplatePage health={health} error={error} runtimeState={runtimeState} />
+  return <DashboardPage api={api} health={health} error={error} runtimeState={runtimeState} />
 }
 
 type AppRoute =
