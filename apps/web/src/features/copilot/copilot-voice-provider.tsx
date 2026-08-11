@@ -14,6 +14,7 @@ import {
   type CopilotVoiceHostSnapshot
 } from '@phoenix/contracts'
 import { PhoenixApiClient } from '../../api/phoenix-api-client.js'
+import { subscribePhoenixEvent } from '../../api/phoenix-event-stream.js'
 import { copilotClientId } from './copilot-client-identity.js'
 import {
   createRealtimeAudioSession,
@@ -93,7 +94,7 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
   const streamRef = useRef<MediaStream | undefined>(undefined)
   const audioRef = useRef<AudioProcessingSession | undefined>(undefined)
   const monitorRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
-  const runtimeStreamRef = useRef<EventSource | undefined>(undefined)
+  const runtimeStreamRef = useRef<(() => void) | undefined>(undefined)
   const runtimeSyncTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const contextFingerprintRef = useRef<string | undefined>(undefined)
   const contextSyncRef = useRef(Promise.resolve())
@@ -194,7 +195,7 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
     audioRef.current = undefined
     if (monitorRef.current) clearInterval(monitorRef.current)
     monitorRef.current = undefined
-    runtimeStreamRef.current?.close()
+    runtimeStreamRef.current?.()
     runtimeStreamRef.current = undefined
     if (runtimeSyncTimerRef.current) clearTimeout(runtimeSyncTimerRef.current)
     runtimeSyncTimerRef.current = undefined
@@ -399,10 +400,8 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
   }
 
   const startRuntimeSync = (): void => {
-    runtimeStreamRef.current?.close()
-    const stream = new EventSource(apiRef.current.runtimeStateStreamUrl())
-    runtimeStreamRef.current = stream
-    stream.addEventListener('runtime-state', () => {
+    runtimeStreamRef.current?.()
+    runtimeStreamRef.current = subscribePhoenixEvent(apiRef.current, 'runtime-state', () => {
       if (runtimeSyncTimerRef.current) clearTimeout(runtimeSyncTimerRef.current)
       runtimeSyncTimerRef.current = setTimeout(() => {
         const socket = socketRef.current
@@ -486,15 +485,14 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
     void apiRef.current.getCopilotVoiceHost()
       .then(snapshot => { if (active) setVoiceHost(snapshot) })
       .catch(() => {})
-    const stream = new EventSource(apiRef.current.copilotVoiceHostStreamUrl())
-    stream.addEventListener('voice-host', event => {
+    const unsubscribe = subscribePhoenixEvent(apiRef.current, 'voice-host', event => {
       try {
         setVoiceHost(CopilotVoiceHostSnapshotSchema.parse(JSON.parse(event.data)))
       } catch {}
     })
     return () => {
       active = false
-      stream.close()
+      unsubscribe()
     }
   }, [])
 
@@ -517,16 +515,16 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
     }
     publish()
     const heartbeat = setInterval(publish, 5_000)
-    const commands = new EventSource(apiRef.current.copilotVoiceHostCommandStreamUrl(hostId))
-    commands.addEventListener('voice-host-command', event => {
+    const unsubscribeCommands = subscribePhoenixEvent(apiRef.current, 'voice-host-command', event => {
       try {
         const command = CopilotVoiceHostCommandSchema.parse(JSON.parse(event.data))
+        if (command.hostId !== hostId) return
         applyDesiredVoiceState(command.desiredConnected)
       } catch {}
     })
     return () => {
       clearInterval(heartbeat)
-      commands.close()
+      unsubscribeCommands()
       void apiRef.current.releaseCopilotVoiceHost(hostId).catch(() => {})
     }
   }, [armed])

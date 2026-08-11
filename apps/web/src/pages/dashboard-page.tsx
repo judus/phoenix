@@ -7,6 +7,7 @@ import {
   type RuntimeState
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../api/phoenix-api-client.js'
+import { subscribePhoenixEvent } from '../api/phoenix-event-stream.js'
 import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
@@ -40,8 +41,7 @@ export function DashboardPage ({ api, error, health, runtimeState }: DashboardPa
       setActivity(log.entries)
     }).catch(cause => setDashboardError(errorMessage(cause)))
 
-    const stream = new EventSource(api.activityLogStreamUrl())
-    stream.addEventListener('activity-entry', event => {
+    const unsubscribe = subscribePhoenixEvent(api, 'activity-entry', event => {
       try {
         const entry = ActivityLogEntrySchema.parse(JSON.parse(event.data))
         setActivity(current => [entry, ...current.filter(item => item.id !== entry.id)].slice(0, 24))
@@ -51,7 +51,7 @@ export function DashboardPage ({ api, error, health, runtimeState }: DashboardPa
     })
     return () => {
       active = false
-      stream.close()
+      unsubscribe()
     }
   }, [api])
 

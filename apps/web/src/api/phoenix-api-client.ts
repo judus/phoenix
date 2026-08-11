@@ -97,6 +97,7 @@ export interface PhoenixApi {
   activityLogStreamUrl(): string
   displayCommandStreamUrl(): string
   copilotConversationStreamUrl(conversationId: string): string
+  eventStreamUrl(conversationId?: string): string
   copilotVoiceHostStreamUrl(): string
   copilotVoiceHostCommandStreamUrl(hostId: string): string
   streamCopilotMessage(
@@ -481,6 +482,10 @@ export class PhoenixApiClient implements PhoenixApi {
 
   public copilotConversationStreamUrl (conversationId: string): string {
     return `${this.baseUrl}/api/copilot/conversations/${encodeURIComponent(conversationId)}/stream`
+  }
+
+  public eventStreamUrl (conversationId = 'phoenix-copilot'): string {
+    return `${this.baseUrl}/api/events?conversationId=${encodeURIComponent(conversationId)}`
   }
 
   public copilotVoiceHostStreamUrl (): string {

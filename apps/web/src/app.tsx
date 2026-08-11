@@ -12,6 +12,7 @@ import {
   type RuntimeState
 } from '@phoenix/contracts'
 import { parseDisplayCommand, PhoenixApiClient } from './api/phoenix-api-client.js'
+import { subscribePhoenixEvent } from './api/phoenix-event-stream.js'
 import { DeveloperPage, type DeveloperView } from './pages/developer-page.js'
 import { ControlsPage, type ControlCategory } from './pages/controls-page.js'
 import { CopilotPage } from './pages/copilot-page.js'
@@ -66,8 +67,7 @@ export function App () {
       .then(setEliteJournalDiagnostics)
       .catch(cause => setError(cause instanceof Error ? cause.message : 'Elite journal diagnostics unavailable.'))
 
-    const eventSource = new EventSource(api.runtimeStateStreamUrl())
-    eventSource.addEventListener('runtime-state', event => {
+    const unsubscribeRuntime = subscribePhoenixEvent(api, 'runtime-state', event => {
       try {
         setRuntimeState(RuntimeStateSchema.parse(JSON.parse(event.data)))
         void api.getEliteStatusDiagnostics()
@@ -90,8 +90,7 @@ export function App () {
       }
     })
 
-    const displaySource = new EventSource(api.displayCommandStreamUrl())
-    displaySource.addEventListener('display-command', event => {
+    const unsubscribeDisplay = subscribePhoenixEvent(api, 'display-command', event => {
       try {
         const command = parseDisplayCommand(JSON.parse(event.data))
         const parameters = new URLSearchParams({ name: command.systemName })
@@ -106,8 +105,8 @@ export function App () {
     window.addEventListener('hashchange', handleRouteChange)
 
     return () => {
-      eventSource.close()
-      displaySource.close()
+      unsubscribeRuntime()
+      unsubscribeDisplay()
       window.removeEventListener('hashchange', handleRouteChange)
     }
   }, [])

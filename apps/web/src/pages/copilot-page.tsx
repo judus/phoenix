@@ -8,6 +8,7 @@ import {
   PhoenixApiClient,
   type CopilotStreamEvent
 } from '../api/phoenix-api-client.js'
+import { subscribePhoenixEvent } from '../api/phoenix-event-stream.js'
 import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
@@ -59,8 +60,7 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
 
   useEffect(() => {
     if (typeof EventSource === 'undefined') return
-    const stream = new EventSource(api.copilotConversationStreamUrl(DEFAULT_CONVERSATION_ID))
-    stream.addEventListener('conversation-event', rawEvent => {
+    const unsubscribe = subscribePhoenixEvent(api, 'conversation-event', rawEvent => {
       try {
         const event = CopilotConversationEventSchema.parse(JSON.parse((rawEvent as MessageEvent).data))
         if (event.clientId === clientIdRef.current) return
@@ -103,10 +103,7 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
         setChatError('Received an invalid live Copilot event.')
       }
     })
-    stream.addEventListener('open', () => {
-      void loadHistory().catch(() => {})
-    })
-    return () => stream.close()
+    return unsubscribe
   }, [api])
 
   useEffect(() => {

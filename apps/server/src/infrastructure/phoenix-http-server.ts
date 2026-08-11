@@ -83,6 +83,7 @@ export interface PhoenixHttpServerOptions {
 
 export class PhoenixHttpServer {
   private readonly eventStreams = new Set<ServerResponse>()
+  private readonly phoenixEventStreams = new Set<ServerResponse>()
   private readonly activityStreams = new Set<ServerResponse>()
   private readonly copilotConversationStreams = new Set<ServerResponse>()
   private readonly copilotVoiceHostStreams = new Set<ServerResponse>()
@@ -118,6 +119,8 @@ export class PhoenixHttpServer {
     if (!this.server.listening) return
     for (const stream of this.eventStreams) stream.end()
     this.eventStreams.clear()
+    for (const stream of this.phoenixEventStreams) stream.end()
+    this.phoenixEventStreams.clear()
     for (const stream of this.activityStreams) stream.end()
     this.activityStreams.clear()
     for (const stream of this.copilotConversationStreams) stream.end()
@@ -141,6 +144,15 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/health') {
       this.writeJson(response, 200, this.options.healthCheck.getHealth())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/events') {
+      this.openPhoenixEventStream(
+        request,
+        response,
+        url.searchParams.get('conversationId') ?? 'phoenix-copilot'
+      )
       return
     }
 
@@ -506,6 +518,46 @@ export class PhoenixHttpServer {
     request.once('close', close)
     response.once('close', close)
     send(this.options.runtimeState.getCurrent())
+  }
+
+  private openPhoenixEventStream (
+    request: IncomingMessage,
+    response: ServerResponse,
+    conversationId: string
+  ): void {
+    response.writeHead(200, {
+      'cache-control': 'no-cache, no-transform',
+      connection: 'keep-alive',
+      'content-type': 'text/event-stream; charset=utf-8'
+    })
+    response.flushHeaders()
+    this.phoenixEventStreams.add(response)
+    const send = (event: string, payload: unknown): void => writeSse(response, event, payload)
+    const unsubscribers = [
+      this.options.runtimeStateUpdates.subscribe(state => send('runtime-state', state)),
+      this.options.activityLog.subscribe(entry => send('activity-entry', entry)),
+      this.options.displayCommands.subscribe(command => send('display-command', command)),
+      this.options.copilotVoiceHost.subscribeStatus(snapshot => send('voice-host', snapshot)),
+      this.options.copilotVoiceHost.subscribeCommands(command => send('voice-host-command', command)),
+      this.options.copilotConversationEvents.subscribe(event => {
+        if (event.conversationId === conversationId) send('conversation-event', event)
+      })
+    ]
+    send('runtime-state', this.options.runtimeState.getCurrent())
+    send('voice-host', this.options.copilotVoiceHost.snapshot())
+    for (const event of this.options.copilotConversationEvents.active(conversationId)) {
+      send('conversation-event', event)
+    }
+    let closed = false
+    const close = (): void => {
+      if (closed) return
+      closed = true
+      for (const unsubscribe of unsubscribers) unsubscribe()
+      this.phoenixEventStreams.delete(response)
+    }
+    request.once('close', close)
+    response.once('close', close)
+    response.write(': connected\n\n')
   }
 
   private openActivityStream (request: IncomingMessage, response: ServerResponse): void {
