@@ -26,11 +26,15 @@ export function PageHeader ({ description, eyebrow, title }: PageHeaderProps) {
   )
 }
 
-export function PageContent ({ children }: { children: ReactNode }) {
-  return <div className="page-content">{children}</div>
+export interface PageContentProps {
+  children: ReactNode
+  variant?: 'inset' | 'bleed'
+}
+
+export function PageContent ({ children, variant = 'inset' }: PageContentProps) {
+  return <div className={`page-content page-content--${variant}`}>{children}</div>
 }
 
 export function PageFooter ({ children }: { children: ReactNode }) {
   return <footer className="page-footer">{children}</footer>
 }
-

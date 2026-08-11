@@ -36,6 +36,11 @@
   padding-block: var(--space-4);
 }
 
+.page-content--bleed {
+  overflow: hidden;
+  padding: 0;
+}
+
 .page-footer {
   display: flex;
   justify-content: space-between;

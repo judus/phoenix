@@ -91,7 +91,7 @@ export function NavigationPage ({
       {view === 'system'
         ? (
             <Page className="navigation-data-page navigation-system-page">
-              <PageContent>
+              <PageContent variant="bleed">
                 {loading
                   ? <p className="navigation-data-empty">Loading navigation data…</p>
                   : navigationError

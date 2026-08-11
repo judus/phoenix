@@ -13,18 +13,8 @@
   }
 
   .navigation-system-page {
+    grid-template-rows: minmax(0, 1fr);
     padding-inline: 0;
-
-    .page-content {
-      display: block;
-      padding-block: 0;
-    }
-  }
-
-  .navigation-data-page .page-content {
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
-    gap: var(--space-3);
   }
 
   .navigation-data-toolbar {
@@ -82,6 +72,7 @@
   }
 
   .navigation-data-inspector {
+    block-size: 100%;
     min-block-size: 0;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
@@ -122,11 +113,16 @@
   }
 
   .system-cartography {
-    position: relative;
     block-size: 100%;
     min-block-size: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     background: var(--color-panel);
     overflow: hidden;
+  }
+
+  .system-cartography.has-selection {
+    grid-template-columns: minmax(0, 1fr) clamp(19rem, 24vw, 28rem);
   }
 
   .system-schematic {
@@ -177,6 +173,7 @@
   }
 
   .system-schematic__search {
+    flex: 1 1 auto;
     min-inline-size: 0;
     display: grid;
 
@@ -185,7 +182,8 @@
     }
 
     label {
-      min-inline-size: min(38rem, 58vw);
+      inline-size: 100%;
+      min-inline-size: 0;
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
@@ -527,15 +525,9 @@
   }
 
   .cartography-detail {
-    position: absolute;
-    z-index: 2;
-    inset-block: var(--space-3);
-    inset-inline-end: var(--space-3);
-    inline-size: clamp(19rem, 24vw, 28rem);
     min-block-size: 0;
     padding: var(--space-4);
-    border: 1px solid var(--color-border);
-    box-shadow: -1rem 0 2rem rgb(0 0 0 / 38%);
+    border-inline-start: 1px solid var(--color-border);
     background:
       linear-gradient(135deg, rgb(255 157 0 / 5%), transparent 38%),
       var(--color-panel-strong);
@@ -663,8 +655,8 @@
       }
     }
 
-    .cartography-detail {
-      inline-size: clamp(16rem, 34vw, 21rem);
+    .system-cartography.has-selection {
+      grid-template-columns: minmax(0, 1fr) clamp(16rem, 34vw, 21rem);
     }
   }
 
@@ -673,9 +665,15 @@
       min-inline-size: 0;
     }
 
+    .system-cartography.has-selection {
+      overflow: auto;
+      grid-template-columns: 1fr;
+      grid-template-rows: minmax(24rem, 1fr) auto;
+    }
+
     .cartography-detail {
-      inset-inline: var(--space-2);
-      inline-size: auto;
+      border-inline-start: 0;
+      border-block-start: 1px solid var(--color-border);
     }
   }
 }
