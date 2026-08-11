@@ -13,7 +13,10 @@ import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 import { useCopilotVoice } from '../features/copilot/copilot-voice-provider.js'
 import { CopilotMarkdown } from '../features/copilot/copilot-markdown.js'
-import { copilotClientId } from '../features/copilot/copilot-client-identity.js'
+import {
+  copilotClientId,
+  createCopilotId
+} from '../features/copilot/copilot-client-identity.js'
 
 const DEFAULT_CONVERSATION_ID = 'phoenix-copilot'
 const navigation: NavigationItem[] = [
@@ -124,7 +127,7 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
       }
       return
     }
-    const turnId = crypto.randomUUID()
+    const turnId = createCopilotId()
     const userId = `pending-user-${turnId}`
     const assistantId = `pending-assistant-${turnId}`
     setComposer('')
