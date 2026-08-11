@@ -3,6 +3,7 @@ import {
   existsSync,
   fstatSync,
   openSync,
+  readFileSync,
   readSync,
   readdirSync
 } from 'node:fs'
@@ -56,6 +57,8 @@ export class EliteJournalFileSource {
   public async start (): Promise<EliteJournalSourceDiagnostics> {
     if (!this.directory || this.diagnostics.watching) return this.getDiagnostics()
     this.diagnostics = { ...this.diagnostics, watching: true }
+    const latestFile = this.findLatestJournal()
+    if (latestFile) await this.replayEarlierJournals(latestFile)
     await this.refresh()
     this.timer = setInterval(() => void this.refresh(), this.pollInterval)
     this.timer.unref()
@@ -168,10 +171,41 @@ export class EliteJournalFileSource {
   }
 
   private findLatestJournal (): string | null {
-    if (!this.directory || !existsSync(this.directory)) return null
-    const files = readdirSync(this.directory)
+    return this.findJournals().at(-1) ?? null
+  }
+
+  private findJournals (): string[] {
+    if (!this.directory || !existsSync(this.directory)) return []
+    return readdirSync(this.directory)
       .filter(file => /^Journal\..+\.log$/i.test(file))
-      .sort((left, right) => right.localeCompare(left))
-    return files[0] ? join(this.directory, files[0]) : null
+      .sort((left, right) => left.localeCompare(right))
+      .map(file => join(this.directory!, file))
+  }
+
+  private async replayEarlierJournals (latestFile: string): Promise<void> {
+    for (const filePath of this.findJournals()) {
+      if (filePath === latestFile) continue
+      const contents = readFileSync(filePath)
+      let processedLines = 0
+      let lineError: string | null = null
+      for (const line of contents.toString('utf8').split(/\r?\n/)) {
+        if (line.trim().length === 0) continue
+        try {
+          const event = JournalEventSchema.parse(JSON.parse(line))
+          await this.listener(event)
+          processedLines++
+          this.diagnostics = { ...this.diagnostics, lastGameTimestamp: event.timestamp }
+        } catch (cause) {
+          lineError = cause instanceof Error ? cause.message : 'Invalid Elite journal line.'
+        }
+      }
+      this.diagnostics = {
+        ...this.diagnostics,
+        bytesRead: this.diagnostics.bytesRead + contents.length,
+        linesRead: this.diagnostics.linesRead + processedLines,
+        lastReadAt: new Date().toISOString(),
+        error: lineError
+      }
+    }
   }
 }

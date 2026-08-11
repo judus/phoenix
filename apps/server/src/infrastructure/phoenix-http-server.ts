@@ -12,6 +12,7 @@ import {
   CopilotRealtimeTokenRequestSchema,
   CopilotRealtimeToolRequestSchema,
   CopilotRealtimeTurnRequestSchema,
+  ExplorationManualCompletionRequestSchema,
   type DisplayCommand,
   type RuntimeState
 } from '@phoenix/contracts'
@@ -25,6 +26,7 @@ import type { CatalogueDiagnosticsReader } from '../application/catalogue-diagno
 import type { GameActions } from '../application/game-action-service.js'
 import type { HealthCheck } from '../application/health-service.js'
 import type { EngineeringDataReader } from '../application/engineering-data-service.js'
+import type { ExplorationDataReader } from '../application/exploration-data-service.js'
 import type { NavigationDataReader } from '../application/navigation-data-service.js'
 import type { ActivityLogReader, EliteJournalDiagnosticsReader } from '../domain/elite-journal.js'
 import type { EliteStatusDiagnosticsReader } from '../domain/elite-status.js'
@@ -51,6 +53,7 @@ export interface PhoenixHttpServerOptions {
   eliteJournalDiagnostics: EliteJournalDiagnosticsReader
   eliteStatusDiagnostics: EliteStatusDiagnosticsReader
   engineering: EngineeringDataReader
+  explorationData: ExplorationDataReader
   healthCheck: HealthCheck
   host: string
   activityLog: ActivityLogReader
@@ -163,6 +166,27 @@ export class PhoenixHttpServer {
           }
         })
       }
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/exploration/ledger') {
+      this.writeJson(response, 200, this.options.explorationData.getLedger())
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/exploration/biological-completion') {
+      const input = ExplorationManualCompletionRequestSchema.parse(await readJsonBody(request))
+      if (!this.options.explorationData.setBiologicalSignalManualCompletion(
+        input.bodyKey,
+        input.signalKey,
+        input.completed
+      )) {
+        this.writeJson(response, 404, {
+          error: { code: 'exploration_signal_not_found', message: 'Exploration signal not found.' }
+        })
+        return
+      }
+      this.writeJson(response, 200, { ok: true })
       return
     }
 

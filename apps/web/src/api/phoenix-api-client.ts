@@ -14,6 +14,8 @@ import {
   EngineeringBlueprintsResponseSchema,
   EngineeringEngineersResponseSchema,
   EngineeringMaterialsResponseSchema,
+  ExplorationLedgerResponseSchema,
+  ExplorationManualCompletionResponseSchema,
   GameActionCatalogResponseSchema,
   GameActionResultSchema,
   EliteJournalSourceDiagnosticsSchema,
@@ -38,6 +40,9 @@ import {
   type EngineeringEngineersResponse,
   type EngineeringMaterial,
   type EngineeringMaterialsResponse,
+  type ExplorationLedgerResponse,
+  type ExplorationManualCompletionRequest,
+  type ExplorationManualCompletionResponse,
   type GameActionResult,
   type GameActionOperation,
   type EliteJournalSourceDiagnostics,
@@ -68,6 +73,8 @@ export interface PhoenixApi {
   getEngineeringBlueprints(): Promise<EngineeringBlueprintsResponse>
   getEngineeringEngineers(): Promise<EngineeringEngineersResponse>
   getEngineeringMaterials(category: EngineeringMaterial['category']): Promise<EngineeringMaterialsResponse>
+  getExplorationLedger(): Promise<ExplorationLedgerResponse>
+  setExplorationBiologicalCompletion(input: ExplorationManualCompletionRequest): Promise<ExplorationManualCompletionResponse>
   getRuntimeState(): Promise<RuntimeState>
   getNavigationRoute(): Promise<NavigationRoute>
   getSystemCartography(systemName?: string): Promise<CartographyLookupResponse>
@@ -143,6 +150,26 @@ export class PhoenixApiClient implements PhoenixApi {
     )
     if (!response.ok) throw await apiError(response)
     return EngineeringBlueprintDetailSchema.parse(await response.json())
+  }
+
+  public async getExplorationLedger (): Promise<ExplorationLedgerResponse> {
+    const response = await this.request(`${this.baseUrl}/api/exploration/ledger`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return ExplorationLedgerResponseSchema.parse(await response.json())
+  }
+
+  public async setExplorationBiologicalCompletion (
+    input: ExplorationManualCompletionRequest
+  ): Promise<ExplorationManualCompletionResponse> {
+    const response = await this.request(`${this.baseUrl}/api/exploration/biological-completion`, {
+      method: 'POST',
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      body: JSON.stringify(input)
+    })
+    if (!response.ok) throw await apiError(response)
+    return ExplorationManualCompletionResponseSchema.parse(await response.json())
   }
 
   public async getActions (): Promise<GameActionCatalogResponse> {

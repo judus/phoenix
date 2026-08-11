@@ -20,6 +20,7 @@ import { NavigationPage, type NavigationView } from './pages/navigation-page.js'
 import { EngineeringPage, type EngineeringView } from './pages/engineering-page.js'
 import { DashboardPage } from './pages/dashboard-page.js'
 import { ShipPage, type ShipView } from './pages/ship-page.js'
+import { ExplorationPage, type ExplorationView } from './pages/exploration-page.js'
 
 const api = new PhoenixApiClient()
 
@@ -204,6 +205,20 @@ export function App () {
     )
   }
 
+  if (route.section === 'exploration') {
+    return (
+      <ExplorationPage
+        api={api}
+        bodyName={route.bodyName}
+        error={error}
+        health={health}
+        runtimeState={runtimeState}
+        systemName={route.systemName}
+        view={route.view}
+      />
+    )
+  }
+
   return <DashboardPage api={api} health={health} error={error} runtimeState={runtimeState} />
 }
 
@@ -214,6 +229,7 @@ type AppRoute =
   | { section: 'navigation', view: NavigationView, systemName?: string, selectedName?: string }
   | { section: 'engineering', view: EngineeringView }
   | { section: 'ship', view: ShipView }
+  | { section: 'exploration', view: ExplorationView, systemName?: string, bodyName?: string }
   | { section: 'controls', category: ControlCategory }
   | { section: 'developer', view: DeveloperView }
 
@@ -250,6 +266,18 @@ function readRoute (): AppRoute {
   const shipMatch = window.location.hash.match(/^#\/?ship\/(status|modules|cargo|inventory)$/u)
   if (shipMatch) {
     return { section: 'ship', view: shipMatch[1] as ShipView }
+  }
+  const explorationMatch = window.location.hash.match(/^#\/?exploration\/(ledger|body|biology|geology)(?:\?(.*))?$/u)
+  if (explorationMatch) {
+    const parameters = new URLSearchParams(explorationMatch[2] ?? '')
+    const systemName = parameters.get('system')?.trim() || undefined
+    const bodyName = parameters.get('body')?.trim() || undefined
+    return {
+      section: 'exploration',
+      view: explorationMatch[1] as ExplorationView,
+      ...(systemName ? { systemName } : {}),
+      ...(bodyName ? { bodyName } : {})
+    }
   }
   const engineeringBlueprintsMatch = window.location.hash.match(/^#\/?engineering\/blueprints(?:\?(.*))?$/u)
   if (engineeringBlueprintsMatch) {

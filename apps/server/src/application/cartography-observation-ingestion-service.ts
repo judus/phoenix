@@ -32,6 +32,7 @@ export class CartographyObservationIngestionService {
     const bodies = bodyName ? mergeBody(current.bodies, bodyName, bodyId, event) : current.bodies
     this.store.putObservation({
       ...current,
+      allBodiesFound: event.event === 'FSSAllBodiesFound' || current.allBodiesFound === true,
       systemAddress: integerValue(event.SystemAddress) ?? current.systemAddress,
       reportedBodyCount,
       bodies,
@@ -42,6 +43,7 @@ export class CartographyObservationIngestionService {
 
 function emptyObservation (systemName: string, event: EliteJournalEvent): LocalSystemCartographyObservation {
   return {
+    allBodiesFound: event.event === 'FSSAllBodiesFound',
     systemName,
     systemAddress: integerValue(event.SystemAddress),
     reportedBodyCount: null,
@@ -124,7 +126,9 @@ function mergeOrganicSample (
     variantId
   }
   const scanType = stringValue(event.ScanType)
-  const scanTypes = scanType ? [...current.scanTypes, scanType] : current.scanTypes
+  const scanTypes = scanType && !current.scanTypes.includes(scanType)
+    ? [...current.scanTypes, scanType]
+    : current.scanTypes
   const completed = current.completed || scanTypes.includes('Analyse')
   const next: LocalOrganicSampleObservation = {
     ...current,

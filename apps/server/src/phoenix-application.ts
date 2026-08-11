@@ -34,6 +34,7 @@ import { LoggedGameActions } from './application/logged-game-actions.js'
 import { DisplayCommandService } from './application/display-command-service.js'
 import { NavigationDataService } from './application/navigation-data-service.js'
 import { EngineeringDataService } from './application/engineering-data-service.js'
+import { ExplorationDataService } from './application/exploration-data-service.js'
 import { DefaultCommanderEngineersQuery } from './application/default-commander-engineers-query.js'
 import { DefaultStationMarketQuery } from './application/default-station-market-query.js'
 import { DefaultExplorationBodyQuery } from './application/default-exploration-body-query.js'
@@ -195,6 +196,7 @@ export class PhoenixApplication {
     const display = new DisplayCommandService(displayCommandUpdates, this.stateStore)
     const engineering = new EngineeringDataService(engineeringCatalogue, this.stateStore)
     const exploration = new DefaultExplorationBodyQuery(this.database, cartography, this.stateStore)
+    const explorationData = new ExplorationDataService(this.database, this.database)
     const toolRegistry = new ToolRegistry(createPhoenixMcpTools({
       display,
       engineers: new DefaultCommanderEngineersQuery(engineering),
@@ -239,6 +241,7 @@ export class PhoenixApplication {
       runtimeStateUpdates,
       displayCommands: display,
       engineering,
+      explorationData,
       navigationData,
       webRoot: resolveProjectPath(
         projectRoot,

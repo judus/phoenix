@@ -12,9 +12,13 @@ import type { CartographyCache } from '../domain/cartography.js'
 import type { CartographyObservationStore, LocalSystemCartographyObservation } from '../domain/cartography.js'
 import type { Database } from '../domain/database.js'
 import type { ActivityLogRepository } from '../domain/elite-journal.js'
+import type {
+  BiologicalCompletionOverride,
+  BiologicalCompletionOverrideRepository
+} from '../domain/exploration.js'
 import type { ProviderCacheEntry, ProviderResponseCache } from '../domain/station-market.js'
 
-export class SqliteDatabase implements Database, CartographyCache, CartographyObservationStore, ActivityLogRepository, ProviderResponseCache {
+export class SqliteDatabase implements Database, CartographyCache, CartographyObservationStore, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository {
   private readonly connection: DatabaseSync
 
   public constructor (path: string) {
@@ -80,6 +84,13 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
       CREATE INDEX IF NOT EXISTS provider_response_cache_fetched_at
       ON provider_response_cache (fetched_at);
 
+      CREATE TABLE IF NOT EXISTS exploration_biological_completion_overrides (
+        body_key TEXT NOT NULL,
+        signal_key TEXT NOT NULL,
+        completed_at TEXT NOT NULL,
+        PRIMARY KEY (body_key, signal_key)
+      ) STRICT;
+
       INSERT OR IGNORE INTO schema_migrations (version, applied_at)
       VALUES (2, datetime('now'));
 
@@ -88,6 +99,9 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
 
       INSERT OR IGNORE INTO schema_migrations (version, applied_at)
       VALUES (4, datetime('now'));
+
+      INSERT OR IGNORE INTO schema_migrations (version, applied_at)
+      VALUES (5, datetime('now'));
     `)
   }
 
@@ -126,6 +140,15 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
     return row ? JSON.parse(row.document) as LocalSystemCartographyObservation : null
   }
 
+  public listObservations (): LocalSystemCartographyObservation[] {
+    const rows = this.connection.prepare(`
+      SELECT document
+      FROM cartographic_observations
+      ORDER BY updated_at DESC, system_name ASC
+    `).all() as Array<{ document: string }>
+    return rows.map(row => JSON.parse(row.document) as LocalSystemCartographyObservation)
+  }
+
   public putObservation (observation: LocalSystemCartographyObservation): void {
     this.connection.prepare(`
       INSERT INTO cartographic_observations (system_key, system_name, updated_at, document)
@@ -140,6 +163,34 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
       observation.updatedAt,
       JSON.stringify(observation)
     )
+  }
+
+  public listBiologicalCompletionOverrides (): BiologicalCompletionOverride[] {
+    const rows = this.connection.prepare(`
+      SELECT body_key, signal_key, completed_at
+      FROM exploration_biological_completion_overrides
+      ORDER BY completed_at ASC
+    `).all() as Array<{ body_key: string, signal_key: string, completed_at: string }>
+    return rows.map(row => ({
+      bodyKey: row.body_key,
+      signalKey: row.signal_key,
+      completedAt: row.completed_at
+    }))
+  }
+
+  public setBiologicalCompletionOverride (bodyKey: string, signalKey: string, completed: boolean): void {
+    if (!completed) {
+      this.connection.prepare(`
+        DELETE FROM exploration_biological_completion_overrides
+        WHERE body_key = ? AND signal_key = ?
+      `).run(bodyKey, signalKey)
+      return
+    }
+    this.connection.prepare(`
+      INSERT INTO exploration_biological_completion_overrides (body_key, signal_key, completed_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(body_key, signal_key) DO UPDATE SET completed_at = excluded.completed_at
+    `).run(bodyKey, signalKey, new Date().toISOString())
   }
 
   public getRecentActivity (limit: number): ActivityLogEntry[] {

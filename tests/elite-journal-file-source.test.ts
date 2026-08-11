@@ -64,3 +64,28 @@ test('the journal source replays, tails partial writes and follows journal rotat
     rmSync(directory, { recursive: true, force: true })
   }
 })
+
+test('the journal source replays retained journals chronologically before tailing the latest file', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-journal-history-'))
+  const events: EliteJournalEvent[] = []
+  writeFileSync(
+    join(directory, 'Journal.2026-08-09T120000.01.log'),
+    '{"timestamp":"2026-08-09T12:00:00Z","event":"Scan","BodyName":"Old body"}\n'
+  )
+  writeFileSync(
+    join(directory, 'Journal.2026-08-10T120000.01.log'),
+    '{"timestamp":"2026-08-10T12:00:00Z","event":"Location","StarSystem":"Current system"}\n'
+  )
+  const source = new EliteJournalFileSource(directory, event => events.push(event), {
+    pollInterval: 60_000
+  })
+
+  try {
+    await source.start()
+    expect(events.map(event => event.event)).toEqual(['Scan', 'Location'])
+    expect(source.getDiagnostics()).toMatchObject({ linesRead: 2, lastGameTimestamp: '2026-08-10T12:00:00Z' })
+  } finally {
+    source.stop()
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
