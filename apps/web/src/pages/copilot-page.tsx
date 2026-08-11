@@ -89,6 +89,9 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
           }))
         } else if (event.type === 'tool.status') {
           setToolStatus(event.name ? `${event.name}: ${event.status}` : `Tool: ${event.status}`)
+        } else if (event.type === 'turn.cancelled') {
+          setRemoteTurns(turns => withoutTurn(turns, event.turnId))
+          setToolStatus(undefined)
         } else if (event.type === 'turn.completed') {
           setRemoteTurns(turns => withoutTurn(turns, event.turnId))
           setToolStatus(undefined)

@@ -11,6 +11,12 @@ export class CopilotConversationEventService implements CopilotConversationEvent
   private readonly activeTurns = new Map<string, Map<string, CopilotConversationEvent[]>>()
 
   public publish (event: CopilotConversationEvent): void {
+    if (event.type === 'turn.started') {
+      for (const cancelled of this.cancelSupersededTurns(event)) {
+        this.remember(cancelled)
+        for (const listener of this.listeners) listener(cancelled)
+      }
+    }
     this.remember(event)
     for (const listener of this.listeners) listener(event)
   }
@@ -25,7 +31,7 @@ export class CopilotConversationEventService implements CopilotConversationEvent
   }
 
   private remember (event: CopilotConversationEvent): void {
-    if (event.type === 'turn.completed' || event.type === 'turn.failed') {
+    if (event.type === 'turn.completed' || event.type === 'turn.cancelled' || event.type === 'turn.failed') {
       const conversation = this.activeTurns.get(event.conversationId)
       conversation?.delete(event.turnId)
       if (conversation?.size === 0) this.activeTurns.delete(event.conversationId)
@@ -37,6 +43,25 @@ export class CopilotConversationEventService implements CopilotConversationEvent
     retained.push(event)
     conversation.set(event.turnId, retained)
     this.activeTurns.set(event.conversationId, conversation)
+  }
+
+  private cancelSupersededTurns (
+    event: Extract<CopilotConversationEvent, { type: 'turn.started' }>
+  ): CopilotConversationEvent[] {
+    const conversation = this.activeTurns.get(event.conversationId)
+    if (!conversation) return []
+    const cancelled: CopilotConversationEvent[] = []
+    for (const [turnId, events] of conversation) {
+      if (turnId === event.turnId || events[0]?.clientId !== event.clientId) continue
+      cancelled.push({
+        clientId: event.clientId,
+        conversationId: event.conversationId,
+        occurredAt: event.occurredAt,
+        turnId,
+        type: 'turn.cancelled'
+      })
+    }
+    return cancelled
   }
 }
 

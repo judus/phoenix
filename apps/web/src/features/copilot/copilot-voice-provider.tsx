@@ -101,6 +101,7 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
   const eventPublishRef = useRef(Promise.resolve())
   const turnRef = useRef<MutableTurn | undefined>(undefined)
   const processedCallsRef = useRef(new Set<string>())
+  const transcriptBroadcastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const connectLocalRef = useRef<() => Promise<void>>(async () => {})
   const disconnectLocalRef = useRef<(updateState?: boolean) => void>(() => {})
   const hostStateRef = useRef({ connected: false, error: undefined as string | undefined, status: 'Offline' })
@@ -187,6 +188,7 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
   }
 
   const disconnectLocal = (updateState = true): void => {
+    cancelActiveTurn()
     streamRef.current?.getTracks().forEach(track => track.stop())
     streamRef.current = undefined
     socketRef.current?.close()
@@ -199,15 +201,43 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
     runtimeStreamRef.current = undefined
     if (runtimeSyncTimerRef.current) clearTimeout(runtimeSyncTimerRef.current)
     runtimeSyncTimerRef.current = undefined
+    if (transcriptBroadcastTimerRef.current) clearTimeout(transcriptBroadcastTimerRef.current)
+    transcriptBroadcastTimerRef.current = undefined
     contextFingerprintRef.current = undefined
     contextSyncRef.current = Promise.resolve()
     processedCallsRef.current.clear()
-    updateTurn(undefined)
     if (updateState) {
       setConnected(false)
       setStatus('Offline')
       setAudioStatus(undefined)
       setToolStatus(undefined)
+    }
+  }
+
+  const cancelActiveTurn = (): void => {
+    if (transcriptBroadcastTimerRef.current) clearTimeout(transcriptBroadcastTimerRef.current)
+    transcriptBroadcastTimerRef.current = undefined
+    const turn = turnRef.current
+    if (!turn) return
+    publishTurnEvent(turn.id, { type: 'turn.cancelled' })
+    updateTurn(undefined)
+  }
+
+  const broadcastAssistantTranscript = (turn: MutableTurn, final: boolean): void => {
+    const publish = (): void => {
+      transcriptBroadcastTimerRef.current = undefined
+      if (turnRef.current?.id !== turn.id) return
+      publishTurnEvent(turn.id, {
+        final,
+        text: turn.assistantText,
+        type: 'assistant.transcript'
+      })
+    }
+    if (final) {
+      if (transcriptBroadcastTimerRef.current) clearTimeout(transcriptBroadcastTimerRef.current)
+      publish()
+    } else if (!transcriptBroadcastTimerRef.current) {
+      transcriptBroadcastTimerRef.current = setTimeout(publish, 150)
     }
   }
 
@@ -268,11 +298,7 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
       if (turn && typeof candidate.delta === 'string') {
         turn.assistantText += candidate.delta
         updateTurn(turn)
-        publishTurnEvent(turn.id, {
-          final: false,
-          text: turn.assistantText,
-          type: 'assistant.transcript'
-        })
+        broadcastAssistantTranscript(turn, false)
       }
       setStatus('Speaking')
     } else if (candidate.type === 'response.output_audio_transcript.done') {
@@ -280,11 +306,7 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
       if (turn && typeof candidate.transcript === 'string') {
         turn.assistantText = candidate.transcript
         updateTurn(turn)
-        publishTurnEvent(turn.id, {
-          final: true,
-          text: turn.assistantText,
-          type: 'assistant.transcript'
-        })
+        broadcastAssistantTranscript(turn, true)
       }
     } else if (candidate.type === 'response.done') {
       void handleCompletedResponse(isRecord(candidate.response) ? candidate.response : {}, socket)
@@ -514,7 +536,7 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
       }).catch(() => {})
     }
     publish()
-    const heartbeat = setInterval(publish, 5_000)
+    const heartbeat = setInterval(publish, 10_000)
     const unsubscribeCommands = subscribePhoenixEvent(apiRef.current, 'voice-host-command', event => {
       try {
         const command = CopilotVoiceHostCommandSchema.parse(JSON.parse(event.data))

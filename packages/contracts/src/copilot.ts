@@ -81,6 +81,9 @@ export const CopilotConversationEventSchema = z.discriminatedUnion('type', [
     type: z.literal('turn.completed')
   }).strict(),
   CopilotConversationEventBaseSchema.extend({
+    type: z.literal('turn.cancelled')
+  }).strict(),
+  CopilotConversationEventBaseSchema.extend({
     message: NonEmptyTextSchema,
     type: z.literal('turn.failed')
   }).strict()
