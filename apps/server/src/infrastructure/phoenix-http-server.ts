@@ -11,6 +11,8 @@ import {
   ControlGridLayoutSchema,
   CopilotChatRequestSchema,
   CopilotConversationEventSchema,
+  CopilotVoiceHostDesiredStateRequestSchema,
+  CopilotVoiceHostHeartbeatSchema,
   CopilotRealtimeTokenRequestSchema,
   CopilotRealtimeToolRequestSchema,
   CopilotRealtimeTurnRequestSchema,
@@ -22,6 +24,7 @@ import {
 import { AiError, serializeAiError, type AiStreamEvent } from '@maduser/ai-ts'
 import type { CopilotText, CopilotTextRequest } from '../application/copilot-text-service.js'
 import type { CopilotConversationEvents } from '../application/copilot-conversation-event-service.js'
+import type { CopilotVoiceHostControl } from '../application/copilot-voice-host-coordinator.js'
 import {
   serializeToolOutput,
   type CopilotRealtime
@@ -59,6 +62,7 @@ export interface PhoenixHttpServerOptions {
   controlGridLayouts: ControlGridLayoutRepository
   copilot?: CopilotText
   copilotConversationEvents: CopilotConversationEvents
+  copilotVoiceHost: CopilotVoiceHostControl
   copilotRealtime?: CopilotRealtime
   gameActions: GameActions
   eliteJournalDiagnostics: EliteJournalDiagnosticsReader
@@ -81,6 +85,7 @@ export class PhoenixHttpServer {
   private readonly eventStreams = new Set<ServerResponse>()
   private readonly activityStreams = new Set<ServerResponse>()
   private readonly copilotConversationStreams = new Set<ServerResponse>()
+  private readonly copilotVoiceHostStreams = new Set<ServerResponse>()
   private readonly displayStreams = new Set<ServerResponse>()
   private readonly server: Server
 
@@ -117,6 +122,8 @@ export class PhoenixHttpServer {
     this.activityStreams.clear()
     for (const stream of this.copilotConversationStreams) stream.end()
     this.copilotConversationStreams.clear()
+    for (const stream of this.copilotVoiceHostStreams) stream.end()
+    this.copilotVoiceHostStreams.clear()
     for (const stream of this.displayStreams) stream.end()
     this.displayStreams.clear()
     await new Promise<void>((resolvePromise, reject) => {
@@ -246,6 +253,63 @@ export class PhoenixHttpServer {
 
     if (request.method === 'POST' && url.pathname === '/api/copilot/chat') {
       await this.handleCopilotChat(request, response)
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/copilot/voice-host') {
+      this.writeJson(response, 200, this.options.copilotVoiceHost.snapshot())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/copilot/voice-host/stream') {
+      this.openCopilotVoiceHostStatusStream(request, response)
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/copilot/voice-host/commands/stream') {
+      const hostId = url.searchParams.get('hostId')?.trim()
+      if (!hostId) {
+        this.writeJson(response, 400, {
+          error: { code: 'voice_host_id_required', message: 'A voice host ID is required.' }
+        })
+        return
+      }
+      this.openCopilotVoiceHostCommandStream(request, response, hostId)
+      return
+    }
+
+    if (request.method === 'PUT' && url.pathname === '/api/copilot/voice-host') {
+      try {
+        const heartbeat = CopilotVoiceHostHeartbeatSchema.parse(await readJsonBody(request))
+        this.writeJson(response, 200, this.options.copilotVoiceHost.heartbeat(heartbeat))
+      } catch (cause) {
+        this.writeJson(response, 400, {
+          error: { code: 'invalid_voice_host_status', message: errorMessage(cause) }
+        })
+      }
+      return
+    }
+
+    if (request.method === 'DELETE' && url.pathname === '/api/copilot/voice-host') {
+      const hostId = url.searchParams.get('hostId')?.trim()
+      this.writeJson(response, 200, hostId
+        ? this.options.copilotVoiceHost.release(hostId)
+        : this.options.copilotVoiceHost.snapshot())
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/copilot/voice-host/desired-state') {
+      try {
+        const input = CopilotVoiceHostDesiredStateRequestSchema.parse(await readJsonBody(request))
+        this.writeJson(response, 202, {
+          accepted: true,
+          command: this.options.copilotVoiceHost.request(input.connected)
+        })
+      } catch (cause) {
+        this.writeJson(response, 409, {
+          error: { code: 'voice_host_unavailable', message: errorMessage(cause) }
+        })
+      }
       return
     }
 
@@ -520,6 +584,51 @@ export class PhoenixHttpServer {
     response.write(': connected\n\n')
   }
 
+  private openCopilotVoiceHostStatusStream (request: IncomingMessage, response: ServerResponse): void {
+    this.openVoiceHostStream(request, response, send => {
+      const unsubscribe = this.options.copilotVoiceHost.subscribeStatus(snapshot => send('voice-host', snapshot))
+      send('voice-host', this.options.copilotVoiceHost.snapshot())
+      return unsubscribe
+    })
+  }
+
+  private openCopilotVoiceHostCommandStream (
+    request: IncomingMessage,
+    response: ServerResponse,
+    hostId: string
+  ): void {
+    this.openVoiceHostStream(request, response, send => (
+      this.options.copilotVoiceHost.subscribeCommands(command => {
+        if (command.hostId === hostId) send('voice-host-command', command)
+      })
+    ))
+  }
+
+  private openVoiceHostStream (
+    request: IncomingMessage,
+    response: ServerResponse,
+    subscribe: (send: (event: string, payload: unknown) => void) => () => void
+  ): void {
+    response.writeHead(200, {
+      'cache-control': 'no-cache, no-transform',
+      connection: 'keep-alive',
+      'content-type': 'text/event-stream; charset=utf-8'
+    })
+    response.flushHeaders()
+    this.copilotVoiceHostStreams.add(response)
+    const unsubscribe = subscribe((event, payload) => writeSse(response, event, payload))
+    let closed = false
+    const close = (): void => {
+      if (closed) return
+      closed = true
+      unsubscribe()
+      this.copilotVoiceHostStreams.delete(response)
+    }
+    request.once('close', close)
+    response.once('close', close)
+    response.write(': connected\n\n')
+  }
+
   private async handleCopilotChat (
     request: IncomingMessage,
     response: ServerResponse
@@ -719,6 +828,10 @@ function realtimeError (cause: unknown, code: string): unknown {
       message: cause instanceof Error ? cause.message : 'Realtime Copilot request failed.'
     }
   }
+}
+
+function errorMessage (cause: unknown): string {
+  return cause instanceof Error ? cause.message : 'Unknown PHOENIX error.'
 }
 
 function completedConversationEvent (input: {

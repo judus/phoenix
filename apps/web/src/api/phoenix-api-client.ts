@@ -9,6 +9,9 @@ import {
   CopilotRealtimeTokenResponseSchema,
   CopilotRealtimeToolRequestSchema,
   CopilotRealtimeTurnRequestSchema,
+  CopilotVoiceHostCommandAcceptedSchema,
+  CopilotVoiceHostHeartbeatSchema,
+  CopilotVoiceHostSnapshotSchema,
   CartographyLookupResponseSchema,
   DisplayCommandSchema,
   EngineeringBlueprintDetailSchema,
@@ -35,6 +38,9 @@ import {
   type CopilotRealtimeTokenResponse,
   type CopilotRealtimeToolRequest,
   type CopilotRealtimeTurnRequest,
+  type CopilotVoiceHostCommandAccepted,
+  type CopilotVoiceHostHeartbeat,
+  type CopilotVoiceHostSnapshot,
   type CartographyLookupResponse,
   type DisplayCommand,
   type EngineeringBlueprintDetail,
@@ -82,11 +88,17 @@ export interface PhoenixApi {
   getSystemCartography(systemName?: string): Promise<CartographyLookupResponse>
   persistCopilotRealtimeTurn(input: CopilotRealtimeTurnRequest): Promise<void>
   publishCopilotConversationEvent(event: CopilotConversationEvent): Promise<void>
+  getCopilotVoiceHost(): Promise<CopilotVoiceHostSnapshot>
+  updateCopilotVoiceHost(input: CopilotVoiceHostHeartbeat): Promise<CopilotVoiceHostSnapshot>
+  releaseCopilotVoiceHost(hostId: string): Promise<void>
+  requestCopilotVoiceHostState(connected: boolean): Promise<CopilotVoiceHostCommandAccepted>
   saveControlLayout(layout: ControlGridLayout): Promise<ControlGridLayout>
   runtimeStateStreamUrl(): string
   activityLogStreamUrl(): string
   displayCommandStreamUrl(): string
   copilotConversationStreamUrl(conversationId: string): string
+  copilotVoiceHostStreamUrl(): string
+  copilotVoiceHostCommandStreamUrl(hostId: string): string
   streamCopilotMessage(
     input: CopilotChatRequest,
     onEvent: (event: CopilotStreamEvent) => void,
@@ -220,6 +232,46 @@ export class PhoenixApiClient implements PhoenixApi {
     if (!response.ok) throw await apiError(response)
     const payload = await response.json() as { audioProcessing?: unknown }
     return CopilotAudioProcessingSchema.parse(payload.audioProcessing)
+  }
+
+  public async getCopilotVoiceHost (): Promise<CopilotVoiceHostSnapshot> {
+    const response = await this.request(`${this.baseUrl}/api/copilot/voice-host`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return CopilotVoiceHostSnapshotSchema.parse(await response.json())
+  }
+
+  public async updateCopilotVoiceHost (
+    input: CopilotVoiceHostHeartbeat
+  ): Promise<CopilotVoiceHostSnapshot> {
+    const response = await this.request(`${this.baseUrl}/api/copilot/voice-host`, {
+      body: JSON.stringify(CopilotVoiceHostHeartbeatSchema.parse(input)),
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      method: 'PUT'
+    })
+    if (!response.ok) throw await apiError(response)
+    return CopilotVoiceHostSnapshotSchema.parse(await response.json())
+  }
+
+  public async releaseCopilotVoiceHost (hostId: string): Promise<void> {
+    const response = await this.request(
+      `${this.baseUrl}/api/copilot/voice-host?hostId=${encodeURIComponent(hostId)}`,
+      { method: 'DELETE' }
+    )
+    if (!response.ok) throw await apiError(response)
+  }
+
+  public async requestCopilotVoiceHostState (
+    connected: boolean
+  ): Promise<CopilotVoiceHostCommandAccepted> {
+    const response = await this.request(`${this.baseUrl}/api/copilot/voice-host/desired-state`, {
+      body: JSON.stringify({ connected }),
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      method: 'POST'
+    })
+    if (!response.ok) throw await apiError(response)
+    return CopilotVoiceHostCommandAcceptedSchema.parse(await response.json())
   }
 
   public async getCopilotRealtimeContext (): Promise<{
@@ -429,6 +481,14 @@ export class PhoenixApiClient implements PhoenixApi {
 
   public copilotConversationStreamUrl (conversationId: string): string {
     return `${this.baseUrl}/api/copilot/conversations/${encodeURIComponent(conversationId)}/stream`
+  }
+
+  public copilotVoiceHostStreamUrl (): string {
+    return `${this.baseUrl}/api/copilot/voice-host/stream`
+  }
+
+  public copilotVoiceHostCommandStreamUrl (hostId: string): string {
+    return `${this.baseUrl}/api/copilot/voice-host/commands/stream?hostId=${encodeURIComponent(hostId)}`
   }
 }
 

@@ -117,7 +117,7 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
     event.preventDefault()
     const text = composer.trim()
     if (!text || pending) return
-    if (voice.connected) {
+    if (voice.canSendRealtimeText) {
       try {
         voice.sendText(text)
         setComposer('')
@@ -261,14 +261,16 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
               <h2>Voice channel</h2>
               <div className="copilot-voice__status">
                 <strong>{voice.status}</strong>
-                <span>{voice.connected ? 'Always listening' : 'Connect this PC microphone'}</span>
+                <span>{voice.hostLocation === 'remote'
+                  ? 'Audio hosted by the desktop browser'
+                  : voice.connected ? 'Always listening' : 'Connect this PC microphone'}</span>
                 {voice.audioStatus && <span>{voice.audioStatus}</span>}
               </div>
               <label>
                 Microphone
                 <select
                   value={voice.inputId}
-                  disabled={voice.connected}
+                  disabled={voice.connected || voice.hostLocation === 'remote'}
                   onChange={event => voice.setInputId(event.target.value)}
                 >
                   <option value="">System default</option>
@@ -281,7 +283,7 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
                 Audio output
                 <select
                   value={voice.outputId}
-                  disabled={voice.connected}
+                  disabled={voice.connected || voice.hostLocation === 'remote'}
                   onChange={event => voice.setOutputId(event.target.value)}
                 >
                   <option value="">System default</option>
@@ -294,7 +296,9 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
                 type="button"
                 onClick={() => voice.connected ? voice.disconnect() : void voice.connect()}
               >
-                {voice.connected ? 'Disconnect voice' : 'Connect realtime'}
+                {voice.connected
+                  ? voice.hostLocation === 'remote' ? 'Disconnect desktop voice' : 'Disconnect voice'
+                  : voice.hostLocation === 'remote' ? 'Connect desktop voice' : 'Connect realtime'}
               </button>
             </aside>
           </div>

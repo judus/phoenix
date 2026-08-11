@@ -142,3 +142,55 @@ export type CopilotRealtimeTokenRequest = z.infer<typeof CopilotRealtimeTokenReq
 export type CopilotRealtimeTokenResponse = z.infer<typeof CopilotRealtimeTokenResponseSchema>
 export type CopilotRealtimeToolRequest = z.infer<typeof CopilotRealtimeToolRequestSchema>
 export type CopilotRealtimeTurnRequest = z.infer<typeof CopilotRealtimeTurnRequestSchema>
+
+export const CopilotVoiceHostPhaseSchema = z.enum([
+  'offline',
+  'ready',
+  'connecting',
+  'listening',
+  'thinking',
+  'speaking',
+  'acting',
+  'error'
+])
+
+export const CopilotVoiceHostHeartbeatSchema = z.object({
+  armed: z.literal(true),
+  clientId: NonEmptyTextSchema,
+  connected: z.boolean(),
+  error: z.string().optional(),
+  hostId: NonEmptyTextSchema,
+  phase: CopilotVoiceHostPhaseSchema
+}).strict()
+
+export const CopilotVoiceHostStatusSchema = CopilotVoiceHostHeartbeatSchema.extend({
+  lastSeenAt: z.string().datetime()
+}).strict()
+
+export const CopilotVoiceHostSnapshotSchema = z.object({
+  desiredConnected: z.boolean(),
+  host: CopilotVoiceHostStatusSchema.nullable()
+}).strict()
+
+export const CopilotVoiceHostDesiredStateRequestSchema = z.object({
+  connected: z.boolean()
+}).strict()
+
+export const CopilotVoiceHostCommandSchema = z.object({
+  desiredConnected: z.boolean(),
+  hostId: NonEmptyTextSchema,
+  issuedAt: z.string().datetime(),
+  requestId: NonEmptyTextSchema
+}).strict()
+
+export const CopilotVoiceHostCommandAcceptedSchema = z.object({
+  accepted: z.literal(true),
+  command: CopilotVoiceHostCommandSchema
+}).strict()
+
+export type CopilotVoiceHostHeartbeat = z.infer<typeof CopilotVoiceHostHeartbeatSchema>
+export type CopilotVoiceHostStatus = z.infer<typeof CopilotVoiceHostStatusSchema>
+export type CopilotVoiceHostSnapshot = z.infer<typeof CopilotVoiceHostSnapshotSchema>
+export type CopilotVoiceHostDesiredStateRequest = z.infer<typeof CopilotVoiceHostDesiredStateRequestSchema>
+export type CopilotVoiceHostCommand = z.infer<typeof CopilotVoiceHostCommandSchema>
+export type CopilotVoiceHostCommandAccepted = z.infer<typeof CopilotVoiceHostCommandAcceptedSchema>

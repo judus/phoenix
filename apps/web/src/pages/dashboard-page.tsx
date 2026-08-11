@@ -108,11 +108,17 @@ export function DashboardPage ({ api, error, health, runtimeState }: DashboardPa
                   className={voice.connected ? 'is-connected' : undefined}
                   onClick={() => voice.connected ? voice.disconnect() : void voice.connect()}
                 >
-                  {voice.connected ? 'Disconnect' : 'Connect voice'}
+                  {voice.connected
+                    ? voice.hostLocation === 'remote' ? 'Disconnect desktop' : 'Disconnect'
+                    : voice.hostLocation === 'remote' ? 'Connect desktop' : 'Connect voice'}
                 </button>
               </div>
               <p className="dashboard-copilot__detail">
-                {voice.connected ? (voice.audioStatus ?? 'Realtime voice channel active.') : 'Realtime voice available on this device.'}
+                {voice.hostLocation === 'remote'
+                  ? 'Voice audio is hosted by the desktop browser.'
+                  : voice.connected
+                    ? (voice.audioStatus ?? 'Realtime voice channel active.')
+                    : 'Connect once here to arm this device as the audio host.'}
               </p>
             </DashboardCard>
 

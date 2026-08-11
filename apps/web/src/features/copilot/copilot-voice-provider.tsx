@@ -6,7 +6,13 @@ import {
   useState,
   type ReactNode
 } from 'react'
-import type { CopilotConversationEvent } from '@phoenix/contracts'
+import {
+  CopilotVoiceHostCommandSchema,
+  CopilotVoiceHostSnapshotSchema,
+  type CopilotConversationEvent,
+  type CopilotVoiceHostHeartbeat,
+  type CopilotVoiceHostSnapshot
+} from '@phoenix/contracts'
 import { PhoenixApiClient } from '../../api/phoenix-api-client.js'
 import { copilotClientId } from './copilot-client-identity.js'
 import {
@@ -33,11 +39,13 @@ export interface CopilotVoiceState {
   activeTurn?: ActiveVoiceTurn
   audioStatus?: string
   connect(): Promise<void>
+  canSendRealtimeText: boolean
   connected: boolean
   devices: { inputs: readonly VoiceDevice[], outputs: readonly VoiceDevice[] }
   disconnect(): void
   error?: string
   historyVersion: number
+  hostLocation: 'local' | 'remote' | 'none'
   inputId: string
   outputId: string
   sendText(text: string): void
@@ -65,6 +73,11 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
   const apiRef = useRef(new PhoenixApiClient())
   const clientIdRef = useRef(copilotClientId())
   const [connected, setConnected] = useState(false)
+  const [armed, setArmed] = useState(false)
+  const [voiceHost, setVoiceHost] = useState<CopilotVoiceHostSnapshot>({
+    desiredConnected: false,
+    host: null
+  })
   const [status, setStatus] = useState('Offline')
   const [error, setError] = useState<string>()
   const [toolStatus, setToolStatus] = useState<string>()
@@ -87,8 +100,9 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
   const eventPublishRef = useRef(Promise.resolve())
   const turnRef = useRef<MutableTurn | undefined>(undefined)
   const processedCallsRef = useRef(new Set<string>())
-
-  useEffect(() => () => disconnect(false), [])
+  const connectLocalRef = useRef<() => Promise<void>>(async () => {})
+  const disconnectLocalRef = useRef<(updateState?: boolean) => void>(() => {})
+  const hostStateRef = useRef({ connected: false, error: undefined as string | undefined, status: 'Offline' })
 
   const updateTurn = (turn: MutableTurn | undefined): void => {
     turnRef.current = turn
@@ -113,11 +127,11 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
       .catch(() => {})
   }
 
-  const connect = async (): Promise<void> => {
+  const connectLocal = async (): Promise<void> => {
     setError(undefined)
     setToolStatus(undefined)
     setStatus('Connecting')
-    disconnect(false)
+    disconnectLocal(false)
     try {
       if (!navigator.mediaDevices?.getUserMedia || typeof WebSocket === 'undefined') {
         throw new Error('This browser does not support Realtime microphone audio.')
@@ -133,6 +147,7 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
         audio: inputId ? { deviceId: { exact: inputId } } : true
       })
       streamRef.current = stream
+      setArmed(true)
       await discoverDevices()
       const socket = new WebSocket(
         `wss://api.openai.com/v1/realtime?model=${encodeURIComponent(token.model)}`,
@@ -164,13 +179,13 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
         setStatus('Offline')
       }
     } catch (cause) {
-      disconnect(false)
+      disconnectLocal(false)
       setStatus('Offline')
       setError(errorMessage(cause))
     }
   }
 
-  const disconnect = (updateState = true): void => {
+  const disconnectLocal = (updateState = true): void => {
     streamRef.current?.getTracks().forEach(track => track.stop())
     streamRef.current = undefined
     socketRef.current?.close()
@@ -442,9 +457,121 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
   }
 
   const fail = (cause: unknown): void => {
-    disconnect(false)
+    disconnectLocal(false)
     setStatus('Offline')
     setError(errorMessage(cause))
+  }
+
+  connectLocalRef.current = connectLocal
+  disconnectLocalRef.current = disconnectLocal
+  hostStateRef.current = { connected, error, status }
+
+  const applyDesiredVoiceState = (desiredConnected: boolean): void => {
+    const current = hostStateRef.current
+    if (desiredConnected && !current.connected && current.status !== 'Connecting') {
+      void connectLocalRef.current()
+    } else if (!desiredConnected && current.connected) {
+      disconnectLocalRef.current()
+    }
+  }
+
+  const reconcileVoiceHost = (snapshot: CopilotVoiceHostSnapshot): void => {
+    if (snapshot.host?.hostId === clientIdRef.current) {
+      applyDesiredVoiceState(snapshot.desiredConnected)
+    }
+  }
+
+  useEffect(() => {
+    let active = true
+    void apiRef.current.getCopilotVoiceHost()
+      .then(snapshot => { if (active) setVoiceHost(snapshot) })
+      .catch(() => {})
+    const stream = new EventSource(apiRef.current.copilotVoiceHostStreamUrl())
+    stream.addEventListener('voice-host', event => {
+      try {
+        setVoiceHost(CopilotVoiceHostSnapshotSchema.parse(JSON.parse(event.data)))
+      } catch {}
+    })
+    return () => {
+      active = false
+      stream.close()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!armed) return
+    const hostId = clientIdRef.current
+    const publish = (): void => {
+      const current = hostStateRef.current
+      void apiRef.current.updateCopilotVoiceHost({
+        armed: true,
+        clientId: clientIdRef.current,
+        connected: current.connected,
+        ...(current.error === undefined ? {} : { error: current.error }),
+        hostId,
+        phase: voiceHostPhase(current.status, current.connected, current.error)
+      }).then(snapshot => {
+        setVoiceHost(snapshot)
+        reconcileVoiceHost(snapshot)
+      }).catch(() => {})
+    }
+    publish()
+    const heartbeat = setInterval(publish, 5_000)
+    const commands = new EventSource(apiRef.current.copilotVoiceHostCommandStreamUrl(hostId))
+    commands.addEventListener('voice-host-command', event => {
+      try {
+        const command = CopilotVoiceHostCommandSchema.parse(JSON.parse(event.data))
+        applyDesiredVoiceState(command.desiredConnected)
+      } catch {}
+    })
+    return () => {
+      clearInterval(heartbeat)
+      commands.close()
+      void apiRef.current.releaseCopilotVoiceHost(hostId).catch(() => {})
+    }
+  }, [armed])
+
+  useEffect(() => {
+    if (!armed) return
+    void apiRef.current.updateCopilotVoiceHost({
+      armed: true,
+      clientId: clientIdRef.current,
+      connected,
+      ...(error === undefined ? {} : { error }),
+      hostId: clientIdRef.current,
+      phase: voiceHostPhase(status, connected, error)
+    }).then(snapshot => {
+      setVoiceHost(snapshot)
+      reconcileVoiceHost(snapshot)
+    }).catch(() => {})
+  }, [armed, connected, error, status])
+
+  useEffect(() => () => disconnectLocalRef.current(false), [])
+
+  const remoteHost = !armed && voiceHost.host?.hostId !== clientIdRef.current
+    ? voiceHost.host
+    : undefined
+  const publicConnected = remoteHost?.connected ?? connected
+  const publicStatus = remoteHost ? voiceHostStatusLabel(remoteHost.phase) : status
+  const connect = async (): Promise<void> => {
+    setError(undefined)
+    if (remoteHost) {
+      try {
+        await apiRef.current.requestCopilotVoiceHostState(true)
+      } catch (cause) {
+        setError(errorMessage(cause))
+      }
+      return
+    }
+    await connectLocal()
+  }
+  const disconnect = (): void => {
+    setError(undefined)
+    if (remoteHost) {
+      void apiRef.current.requestCopilotVoiceHostState(false).catch(cause => setError(errorMessage(cause)))
+      return
+    }
+    disconnectLocal()
   }
 
   return (
@@ -452,17 +579,19 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
       ...(activeTurn === undefined ? {} : { activeTurn }),
       ...(audioStatus === undefined ? {} : { audioStatus }),
       connect,
-      connected,
+      canSendRealtimeText: armed && connected,
+      connected: publicConnected,
       devices,
-      disconnect: () => disconnect(),
+      disconnect,
       ...(error === undefined ? {} : { error }),
       historyVersion,
+      hostLocation: armed ? 'local' : remoteHost ? 'remote' : 'none',
       inputId,
       outputId,
       sendText,
       setInputId,
       setOutputId,
-      status,
+      status: publicStatus,
       ...(toolStatus === undefined ? {} : { toolStatus })
     }}>
       {children}
@@ -504,6 +633,33 @@ function errorMessage (cause: unknown): string {
   if (cause instanceof DOMException && cause.name === 'NotAllowedError') return 'Microphone permission was denied.'
   if (cause instanceof DOMException && cause.name === 'NotFoundError') return 'No microphone is available.'
   return cause instanceof Error ? cause.message : 'Realtime voice failed.'
+}
+
+function voiceHostPhase (
+  status: string,
+  connected: boolean,
+  error?: string
+): CopilotVoiceHostHeartbeat['phase'] {
+  if (error) return 'error'
+  if (!connected) return status === 'Connecting' ? 'connecting' : 'ready'
+  const normalized = status.toLowerCase()
+  if (normalized.includes('thinking')) return 'thinking'
+  if (normalized.includes('speaking')) return 'speaking'
+  if (normalized.includes('acting')) return 'acting'
+  return 'listening'
+}
+
+function voiceHostStatusLabel (phase: CopilotVoiceHostHeartbeat['phase']): string {
+  switch (phase) {
+    case 'ready': return 'Desktop ready'
+    case 'connecting': return 'Desktop connecting'
+    case 'listening': return 'Desktop ready · listening'
+    case 'thinking': return 'Desktop thinking'
+    case 'speaking': return 'Desktop speaking'
+    case 'acting': return 'Desktop acting'
+    case 'error': return 'Desktop voice error'
+    default: return 'Offline'
+  }
 }
 
 function isRecord (candidate: unknown): candidate is Record<string, unknown> {
