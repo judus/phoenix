@@ -21,7 +21,12 @@ import { ShipListModulesTool } from './mcp-tools/ship-list-modules-tool.js'
 import { ShipsCompareTool } from './mcp-tools/ships-compare-tool.js'
 import { ShipsGetDefinitionTool } from './mcp-tools/ships-get-definition-tool.js'
 import { SystemsGetDetailsTool } from './mcp-tools/systems-get-details-tool.js'
-import type { CommanderEngineersQuery, DisplayCommands, NavigationQuery, SystemDetailsQuery } from './mcp-tools/tool-gateways.js'
+import { MarketsFindBestTradeTool } from './mcp-tools/markets-find-best-trade-tool.js'
+import { StationsFindNearestTool } from './mcp-tools/stations-find-nearest-tool.js'
+import { StationsGetDetailsTool } from './mcp-tools/stations-get-details-tool.js'
+import { StationsListShipyardStockTool } from './mcp-tools/stations-list-shipyard-stock-tool.js'
+import { StationsSearchOutfittingTool } from './mcp-tools/stations-search-outfitting-tool.js'
+import type { CommanderEngineersQuery, DisplayCommands, NavigationQuery, StationQuery, SystemDetailsQuery, TradeMarketQuery } from './mcp-tools/tool-gateways.js'
 import type { StatefulGameActionService } from './stateful-game-action-service.js'
 
 export interface PhoenixMcpToolDependencies {
@@ -30,8 +35,10 @@ export interface PhoenixMcpToolDependencies {
   engineers: CommanderEngineersQuery
   display: DisplayCommands
   navigation: NavigationQuery
+  markets: TradeMarketQuery
   runtimeState: RuntimeStateReader
   statefulActions: StatefulGameActionService
+  stations: StationQuery
   systems: SystemDetailsQuery
 }
 
@@ -55,11 +62,16 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new DisplayShowSystemTool(dependencies.display),
     new NavigationCanJumpToTool(dependencies.navigation),
     new NavigationGetRouteTool(dependencies.navigation),
+    new MarketsFindBestTradeTool(dependencies.markets),
     new ShipGetCargoTool(dependencies.runtimeState),
     new ShipGetStatusTool(dependencies.runtimeState),
     new ShipListModulesTool(dependencies.runtimeState),
     new ShipsCompareTool(dependencies.gameCatalogue),
     new ShipsGetDefinitionTool(dependencies.gameCatalogue),
+    new StationsFindNearestTool(dependencies.stations),
+    new StationsGetDetailsTool(dependencies.stations),
+    new StationsListShipyardStockTool(dependencies.stations),
+    new StationsSearchOutfittingTool(dependencies.stations),
     new SystemsGetDetailsTool(dependencies.systems)
   ]
 }

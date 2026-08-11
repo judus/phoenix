@@ -65,11 +65,16 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
       'phoenix__display_show_system',
       'phoenix__navigation_can_jump_to',
       'phoenix__navigation_get_route',
+      'phoenix__markets_find_best_trade',
       'phoenix__ship_get_cargo',
       'phoenix__ship_get_status',
       'phoenix__ship_list_modules',
       'phoenix__ships_compare',
       'phoenix__ships_get_definition',
+      'phoenix__stations_find_nearest',
+      'phoenix__stations_get_details',
+      'phoenix__stations_list_shipyard_stock',
+      'phoenix__stations_search_outfitting',
       'phoenix__systems_get_details'
     ])
     expect(provider.requests[1]?.messages.at(-1)).toMatchObject({

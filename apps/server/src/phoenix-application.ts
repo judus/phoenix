@@ -35,10 +35,12 @@ import { DisplayCommandService } from './application/display-command-service.js'
 import { NavigationDataService } from './application/navigation-data-service.js'
 import { EngineeringDataService } from './application/engineering-data-service.js'
 import { DefaultCommanderEngineersQuery } from './application/default-commander-engineers-query.js'
+import { DefaultStationMarketQuery } from './application/default-station-market-query.js'
 import type { CopilotText } from './application/copilot-text-service.js'
 import type { CopilotRealtime } from './application/copilot-realtime-service.js'
 import type { GameActionBindingResolver, InputBackend } from './domain/game-actions.js'
 import type { CartographySource } from './domain/cartography.js'
+import type { StationSearchSource, StationStockSource } from './domain/station-market.js'
 import type { ControlGridLayoutRepository } from './domain/system-configuration.js'
 import { DefaultGameActionCatalog } from './infrastructure/default-game-action-catalog.js'
 import { InMemoryRuntimeStateStore } from './infrastructure/in-memory-runtime-state-store.js'
@@ -52,6 +54,8 @@ import { SqliteDatabase } from './infrastructure/sqlite-database.js'
 import { EdsmCartographySource } from './infrastructure/edsm-cartography-source.js'
 import { createConfiguredCopilot } from './infrastructure/configured-copilot.js'
 import { PhoenixMcpServer } from './infrastructure/phoenix-mcp-server.js'
+import { ArdentStationSearchSource } from './infrastructure/ardent-station-search-source.js'
+import { EdsmStationStockSource } from './infrastructure/edsm-station-stock-source.js'
 
 export interface PhoenixApplicationOptions {
   actionBindingResolver?: GameActionBindingResolver
@@ -69,6 +73,8 @@ export interface PhoenixApplicationOptions {
   moduleCataloguePath?: string
   port?: number
   shipCataloguePath?: string
+  stationSearchSource?: StationSearchSource
+  stationStockSource?: StationStockSource
   webRoot?: string
 }
 
@@ -177,6 +183,13 @@ export class PhoenixApplication {
     )
     const navigation = new DefaultNavigationQuery(navigationRoutes, cartography, this.stateStore)
     const systems = new DefaultSystemDetailsQuery(cartography, this.stateStore)
+    const stationMarkets = new DefaultStationMarketQuery(
+      options.stationSearchSource ?? new ArdentStationSearchSource(),
+      options.stationStockSource ?? new EdsmStationStockSource(),
+      cartography,
+      this.stateStore,
+      this.database
+    )
     const navigationData = new NavigationDataService(cartography, navigationRoutes, this.stateStore)
     const display = new DisplayCommandService(displayCommandUpdates, this.stateStore)
     const engineering = new EngineeringDataService(engineeringCatalogue, this.stateStore)
@@ -186,8 +199,10 @@ export class PhoenixApplication {
       gameActions,
       gameCatalogue,
       navigation,
+      markets: stationMarkets,
       runtimeState: this.stateStore,
       statefulActions,
+      stations: stationMarkets,
       systems
     }))
     const mcpServer = new PhoenixMcpServer(toolRegistry)

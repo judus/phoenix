@@ -12,8 +12,9 @@ import type { CartographyCache } from '../domain/cartography.js'
 import type { CartographyObservationStore, LocalSystemCartographyObservation } from '../domain/cartography.js'
 import type { Database } from '../domain/database.js'
 import type { ActivityLogRepository } from '../domain/elite-journal.js'
+import type { ProviderCacheEntry, ProviderResponseCache } from '../domain/station-market.js'
 
-export class SqliteDatabase implements Database, CartographyCache, CartographyObservationStore, ActivityLogRepository {
+export class SqliteDatabase implements Database, CartographyCache, CartographyObservationStore, ActivityLogRepository, ProviderResponseCache {
   private readonly connection: DatabaseSync
 
   public constructor (path: string) {
@@ -68,11 +69,25 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
       CREATE INDEX IF NOT EXISTS activity_log_source_event
       ON activity_log (source, event, occurred_at DESC);
 
+      CREATE TABLE IF NOT EXISTS provider_response_cache (
+        namespace TEXT NOT NULL,
+        cache_key TEXT NOT NULL,
+        fetched_at TEXT NOT NULL,
+        document TEXT NOT NULL,
+        PRIMARY KEY (namespace, cache_key)
+      ) STRICT;
+
+      CREATE INDEX IF NOT EXISTS provider_response_cache_fetched_at
+      ON provider_response_cache (fetched_at);
+
       INSERT OR IGNORE INTO schema_migrations (version, applied_at)
       VALUES (2, datetime('now'));
 
       INSERT OR IGNORE INTO schema_migrations (version, applied_at)
       VALUES (3, datetime('now'));
+
+      INSERT OR IGNORE INTO schema_migrations (version, applied_at)
+      VALUES (4, datetime('now'));
     `)
   }
 
@@ -153,6 +168,25 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
       validated.actionable ? 1 : 0,
       JSON.stringify(validated)
     )
+  }
+
+  public getProviderResponse (namespace: string, key: string): ProviderCacheEntry | null {
+    const row = this.connection.prepare(`
+      SELECT fetched_at, document
+      FROM provider_response_cache
+      WHERE namespace = ? AND cache_key = ?
+    `).get(namespace, key) as { fetched_at: string, document: string } | undefined
+    return row ? { fetchedAt: row.fetched_at, value: JSON.parse(row.document) as unknown } : null
+  }
+
+  public putProviderResponse (namespace: string, key: string, fetchedAt: string, value: unknown): void {
+    this.connection.prepare(`
+      INSERT INTO provider_response_cache (namespace, cache_key, fetched_at, document)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(namespace, cache_key) DO UPDATE SET
+        fetched_at = excluded.fetched_at,
+        document = excluded.document
+    `).run(namespace, key, fetchedAt, JSON.stringify(value))
   }
 
   public health (): DatabaseHealth {
