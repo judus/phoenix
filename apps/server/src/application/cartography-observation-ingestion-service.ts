@@ -21,6 +21,7 @@ export class CartographyObservationIngestionService {
     const systemName = stringValue(event.SystemName) ?? stringValue(event.StarSystem) ?? this.runtimeState.getCurrent().system.name
     if (!systemName) return
     const current = this.store.getObservation(systemName) ?? emptyObservation(systemName, event)
+    if (event.timestamp < current.updatedAt) return
     const reportedBodyCount = SYSTEM_EVENTS.has(event.event)
       ? integerValue(event.BodyCount) ?? current.reportedBodyCount
       : current.reportedBodyCount

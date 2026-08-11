@@ -9,7 +9,19 @@ export const EliteJournalSourceDiagnosticsSchema = z.object({
   linesRead: z.number().int().nonnegative(),
   lastReadAt: z.iso.datetime().nullable(),
   lastGameTimestamp: z.iso.datetime().nullable(),
-  error: z.string().min(1).nullable()
+  error: z.string().min(1).nullable(),
+  backfill: z.object({
+    status: z.enum(['idle', 'running', 'complete', 'stopped', 'error']),
+    filesDiscovered: z.number().int().nonnegative(),
+    filesCompleted: z.number().int().nonnegative(),
+    bytesTotal: z.number().int().nonnegative(),
+    bytesProcessed: z.number().int().nonnegative(),
+    linesProcessed: z.number().int().nonnegative(),
+    currentFilePath: z.string().min(1).nullable(),
+    startedAt: z.iso.datetime().nullable(),
+    completedAt: z.iso.datetime().nullable(),
+    error: z.string().min(1).nullable()
+  }).optional()
 })
 
 export const ActivityLogEntrySchema = z.object({
@@ -29,5 +41,6 @@ export const ActivityLogResponseSchema = z.object({
 })
 
 export type EliteJournalSourceDiagnostics = z.infer<typeof EliteJournalSourceDiagnosticsSchema>
+export type EliteJournalBackfillDiagnostics = NonNullable<EliteJournalSourceDiagnostics['backfill']>
 export type ActivityLogEntry = z.infer<typeof ActivityLogEntrySchema>
 export type ActivityLogResponse = z.infer<typeof ActivityLogResponseSchema>

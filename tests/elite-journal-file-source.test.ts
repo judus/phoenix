@@ -9,7 +9,13 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, test } from 'vitest'
-import { EliteJournalFileSource, type EliteJournalEvent } from '@phoenix/elite'
+import {
+  EliteJournalFileSource,
+  EliteJournalHistoryBackfill,
+  type EliteJournalCheckpoint,
+  type EliteJournalCheckpointStore,
+  type EliteJournalEvent
+} from '@phoenix/elite'
 
 const fixturePath = fileURLToPath(
   new URL('./fixtures/elite/Journal.2026-08-10T120000.01.log', import.meta.url)
@@ -65,7 +71,7 @@ test('the journal source replays, tails partial writes and follows journal rotat
   }
 })
 
-test('the journal source replays retained journals chronologically before tailing the latest file', async () => {
+test('the live journal source reads only the latest file during startup', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-journal-history-'))
   const events: EliteJournalEvent[] = []
   writeFileSync(
@@ -82,10 +88,70 @@ test('the journal source replays retained journals chronologically before tailin
 
   try {
     await source.start()
-    expect(events.map(event => event.event)).toEqual(['Scan', 'Location'])
-    expect(source.getDiagnostics()).toMatchObject({ linesRead: 2, lastGameTimestamp: '2026-08-10T12:00:00Z' })
+    expect(events.map(event => event.event)).toEqual(['Location'])
+    expect(source.getDiagnostics()).toMatchObject({ linesRead: 1, lastGameTimestamp: '2026-08-10T12:00:00Z' })
   } finally {
     source.stop()
     rmSync(directory, { recursive: true, force: true })
   }
 })
+
+test('historical journal backfill resumes from durable file checkpoints', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-journal-backfill-'))
+  const oldJournal = join(directory, 'Journal.2026-08-09T120000.01.log')
+  const checkpoints = new MemoryCheckpointStore()
+  const events: EliteJournalEvent[] = []
+  writeFileSync(
+    oldJournal,
+    [
+      '{"timestamp":"2026-08-09T12:00:00Z","event":"Scan","BodyName":"Old body"}',
+      '{"timestamp":"2026-08-09T12:01:00Z","event":"FSSAllBodiesFound","SystemName":"Old system"}',
+      ''
+    ].join('\n')
+  )
+  writeFileSync(
+    join(directory, 'Journal.2026-08-10T120000.01.log'),
+    '{"timestamp":"2026-08-10T12:00:00Z","event":"Location","StarSystem":"Current system"}\n'
+  )
+
+  try {
+    const first = new EliteJournalHistoryBackfill(directory, event => events.push(event), checkpoints)
+    await first.start()
+    expect(events.map(event => event.event)).toEqual(['Scan', 'FSSAllBodiesFound'])
+    expect(first.getDiagnostics()).toMatchObject({
+      status: 'complete',
+      filesDiscovered: 1,
+      filesCompleted: 1,
+      linesProcessed: 2
+    })
+    expect(checkpoints.getJournalCheckpoint(oldJournal)?.byteOffset).toBeGreaterThan(0)
+
+    const secondEvents: EliteJournalEvent[] = []
+    const second = new EliteJournalHistoryBackfill(
+      directory,
+      event => secondEvents.push(event),
+      checkpoints
+    )
+    await second.start()
+    expect(secondEvents).toEqual([])
+    expect(second.getDiagnostics()).toMatchObject({
+      status: 'complete',
+      filesCompleted: 1,
+      linesProcessed: 0
+    })
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
+
+class MemoryCheckpointStore implements EliteJournalCheckpointStore {
+  private readonly checkpoints = new Map<string, EliteJournalCheckpoint>()
+
+  public getJournalCheckpoint (filePath: string): EliteJournalCheckpoint | null {
+    return this.checkpoints.get(filePath) ?? null
+  }
+
+  public putJournalCheckpoint (checkpoint: EliteJournalCheckpoint): void {
+    this.checkpoints.set(checkpoint.filePath, checkpoint)
+  }
+}

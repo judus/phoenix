@@ -8,6 +8,7 @@ import {
   EliteKeyboardBindingResolver,
   EliteInventoryFileSource,
   EliteJournalFileSource,
+  EliteJournalHistoryBackfill,
   EliteNavigationRouteFileSource,
   EliteStatusFileSource,
   JsonEngineeringCatalogue,
@@ -26,6 +27,7 @@ import { GameActionService } from './application/game-action-service.js'
 import { createPhoenixMcpTools } from './application/phoenix-mcp-tools.js'
 import { StatefulGameActionService } from './application/stateful-game-action-service.js'
 import { EliteJournalIngestionService } from './application/elite-journal-ingestion-service.js'
+import { EliteJournalDiagnosticsService } from './application/elite-journal-diagnostics-service.js'
 import { EliteInventoryIngestionService } from './application/elite-inventory-ingestion-service.js'
 import { EliteStatusIngestionService } from './application/elite-status-ingestion-service.js'
 import { GameEventIngestionService } from './application/game-event-ingestion-service.js'
@@ -85,6 +87,7 @@ export class PhoenixApplication {
   private readonly database: SqliteDatabase
   private readonly eventIngestion: GameEventIngestionService
   private readonly journalSource: EliteJournalFileSource
+  private readonly journalBackfill: EliteJournalHistoryBackfill
   private readonly inventorySource: EliteInventoryFileSource
   private readonly navigationRouteSource: EliteNavigationRouteFileSource
   private readonly server: PhoenixHttpServer
@@ -145,6 +148,23 @@ export class PhoenixApplication {
     const statusIngestion = new EliteStatusIngestionService(this.eventIngestion)
     const journalIngestion = new EliteJournalIngestionService(this.eventIngestion)
     const cartographyObservationIngestion = new CartographyObservationIngestionService(this.database, this.stateStore)
+    const historicalState = new InMemoryRuntimeStateStore()
+    const historicalEvents = new InProcessPublisher<GameEventEnvelope>()
+    const historicalProjector = new DefaultRuntimeStateProjector(
+      historicalState,
+      new InProcessPublisher<RuntimeState>()
+    )
+    historicalEvents.subscribe(event => {
+      historicalProjector.project(event)
+      activityLog.ingestRuntime(event, 'historical')
+    })
+    const historicalJournalIngestion = new EliteJournalIngestionService(
+      new GameEventIngestionService(historicalEvents)
+    )
+    const historicalCartographyIngestion = new CartographyObservationIngestionService(
+      this.database,
+      historicalState
+    )
     const inventoryIngestion = new EliteInventoryIngestionService(this.eventIngestion)
     this.journalSource = new EliteJournalFileSource(
       configuredEliteDirectory,
@@ -153,6 +173,15 @@ export class PhoenixApplication {
         cartographyObservationIngestion.ingest(event)
         activityLog.ingestJournal(event)
       }
+    )
+    this.journalBackfill = new EliteJournalHistoryBackfill(
+      configuredEliteDirectory,
+      event => {
+        historicalJournalIngestion.ingest(event)
+        historicalCartographyIngestion.ingest(event)
+        activityLog.ingestJournal(event, 'historical')
+      },
+      this.database
     )
     this.statusSource = new EliteStatusFileSource(
       configuredEliteDirectory,
@@ -233,7 +262,10 @@ export class PhoenixApplication {
       copilotConversationEvents,
       copilotRealtime,
       gameActions,
-      eliteJournalDiagnostics: this.journalSource,
+      eliteJournalDiagnostics: new EliteJournalDiagnosticsService(
+        this.journalSource,
+        this.journalBackfill
+      ),
       eliteStatusDiagnostics: this.statusSource,
       healthCheck: new HealthService(this.database),
       host,
@@ -260,7 +292,9 @@ export class PhoenixApplication {
       await this.statusSource.start()
       await this.inventorySource.start()
       await this.navigationRouteSource.start()
-      return await this.server.start()
+      const address = await this.server.start()
+      void this.journalBackfill.start()
+      return address
     } catch (cause) {
       this.journalSource.stop()
       this.statusSource.stop()
@@ -276,6 +310,7 @@ export class PhoenixApplication {
     this.statusSource.stop()
     this.inventorySource.stop()
     this.navigationRouteSource.stop()
+    await this.journalBackfill.stop()
     await this.server.stop()
     this.database.close()
   }

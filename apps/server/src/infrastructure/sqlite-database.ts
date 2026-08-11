@@ -1,6 +1,10 @@
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
+import type {
+  EliteJournalCheckpoint,
+  EliteJournalCheckpointStore
+} from '@phoenix/elite'
 import {
   ActivityLogEntrySchema,
   CartographicSystemSchema,
@@ -18,7 +22,7 @@ import type {
 } from '../domain/exploration.js'
 import type { ProviderCacheEntry, ProviderResponseCache } from '../domain/station-market.js'
 
-export class SqliteDatabase implements Database, CartographyCache, CartographyObservationStore, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository {
+export class SqliteDatabase implements Database, CartographyCache, CartographyObservationStore, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore {
   private readonly connection: DatabaseSync
 
   public constructor (path: string) {
@@ -91,6 +95,13 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
         PRIMARY KEY (body_key, signal_key)
       ) STRICT;
 
+      CREATE TABLE IF NOT EXISTS elite_journal_checkpoints (
+        file_path TEXT PRIMARY KEY,
+        byte_offset INTEGER NOT NULL,
+        file_size INTEGER NOT NULL,
+        updated_at TEXT NOT NULL
+      ) STRICT;
+
       INSERT OR IGNORE INTO schema_migrations (version, applied_at)
       VALUES (2, datetime('now'));
 
@@ -102,6 +113,9 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
 
       INSERT OR IGNORE INTO schema_migrations (version, applied_at)
       VALUES (5, datetime('now'));
+
+      INSERT OR IGNORE INTO schema_migrations (version, applied_at)
+      VALUES (6, datetime('now'));
     `)
   }
 
@@ -218,6 +232,43 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
       validated.importance,
       validated.actionable ? 1 : 0,
       JSON.stringify(validated)
+    )
+  }
+
+  public getJournalCheckpoint (filePath: string): EliteJournalCheckpoint | null {
+    const row = this.connection.prepare(`
+      SELECT file_path, byte_offset, file_size, updated_at
+      FROM elite_journal_checkpoints
+      WHERE file_path = ?
+    `).get(filePath) as {
+      file_path: string
+      byte_offset: number
+      file_size: number
+      updated_at: string
+    } | undefined
+    return row
+      ? {
+          byteOffset: row.byte_offset,
+          filePath: row.file_path,
+          fileSize: row.file_size,
+          updatedAt: row.updated_at
+        }
+      : null
+  }
+
+  public putJournalCheckpoint (checkpoint: EliteJournalCheckpoint): void {
+    this.connection.prepare(`
+      INSERT INTO elite_journal_checkpoints (file_path, byte_offset, file_size, updated_at)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(file_path) DO UPDATE SET
+        byte_offset = excluded.byte_offset,
+        file_size = excluded.file_size,
+        updated_at = excluded.updated_at
+    `).run(
+      checkpoint.filePath,
+      checkpoint.byteOffset,
+      checkpoint.fileSize,
+      checkpoint.updatedAt
     )
   }
 

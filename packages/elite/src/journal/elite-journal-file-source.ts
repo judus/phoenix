@@ -3,7 +3,6 @@ import {
   existsSync,
   fstatSync,
   openSync,
-  readFileSync,
   readSync,
   readdirSync
 } from 'node:fs'
@@ -14,12 +13,12 @@ import {
   type EliteJournalSourceDiagnostics
 } from '@phoenix/contracts'
 
-const JournalEventSchema = z.object({
+export const EliteJournalEventSchema = z.object({
   timestamp: z.iso.datetime(),
   event: z.string().min(1)
 }).loose()
 
-export type EliteJournalEvent = z.infer<typeof JournalEventSchema>
+export type EliteJournalEvent = z.infer<typeof EliteJournalEventSchema>
 export type EliteJournalListener = (event: EliteJournalEvent) => void | Promise<void>
 
 export interface EliteJournalFileSourceOptions {
@@ -57,8 +56,6 @@ export class EliteJournalFileSource {
   public async start (): Promise<EliteJournalSourceDiagnostics> {
     if (!this.directory || this.diagnostics.watching) return this.getDiagnostics()
     this.diagnostics = { ...this.diagnostics, watching: true }
-    const latestFile = this.findLatestJournal()
-    if (latestFile) await this.replayEarlierJournals(latestFile)
     await this.refresh()
     this.timer = setInterval(() => void this.refresh(), this.pollInterval)
     this.timer.unref()
@@ -137,7 +134,7 @@ export class EliteJournalFileSource {
       for (const line of complete.toString('utf8').split(/\r?\n/)) {
         if (line.trim().length === 0) continue
         try {
-          const event = JournalEventSchema.parse(JSON.parse(line))
+          const event = EliteJournalEventSchema.parse(JSON.parse(line))
           await this.listener(event)
           processedLines++
           this.diagnostics = {
@@ -182,30 +179,4 @@ export class EliteJournalFileSource {
       .map(file => join(this.directory!, file))
   }
 
-  private async replayEarlierJournals (latestFile: string): Promise<void> {
-    for (const filePath of this.findJournals()) {
-      if (filePath === latestFile) continue
-      const contents = readFileSync(filePath)
-      let processedLines = 0
-      let lineError: string | null = null
-      for (const line of contents.toString('utf8').split(/\r?\n/)) {
-        if (line.trim().length === 0) continue
-        try {
-          const event = JournalEventSchema.parse(JSON.parse(line))
-          await this.listener(event)
-          processedLines++
-          this.diagnostics = { ...this.diagnostics, lastGameTimestamp: event.timestamp }
-        } catch (cause) {
-          lineError = cause instanceof Error ? cause.message : 'Invalid Elite journal line.'
-        }
-      }
-      this.diagnostics = {
-        ...this.diagnostics,
-        bytesRead: this.diagnostics.bytesRead + contents.length,
-        linesRead: this.diagnostics.linesRead + processedLines,
-        lastReadAt: new Date().toISOString(),
-        error: lineError
-      }
-    }
-  }
 }

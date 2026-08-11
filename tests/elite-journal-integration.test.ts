@@ -1,4 +1,4 @@
-import { copyFileSync, mkdtempSync, rmSync } from 'node:fs'
+import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -187,3 +187,53 @@ test('application startup projects the current commander, ranks, location and sh
     rmSync(eliteDirectory, { recursive: true, force: true })
   }
 })
+
+test('historical journal backfill runs after startup without replacing live runtime state', async () => {
+  const eliteDirectory = mkdtempSync(join(tmpdir(), 'phoenix-journal-background-'))
+  writeFileSync(
+    join(eliteDirectory, 'Journal.2026-08-09T120000.01.log'),
+    [
+      '{"timestamp":"2026-08-09T12:00:00Z","event":"Location","StarSystem":"Old system","SystemAddress":1,"StarPos":[1,2,3]}',
+      '{"timestamp":"2026-08-09T12:01:00Z","event":"FSSDiscoveryScan","SystemName":"Old system","SystemAddress":1,"BodyCount":3}',
+      ''
+    ].join('\n')
+  )
+  copyFileSync(fixturePath, join(eliteDirectory, basename(fixturePath)))
+  const application = new PhoenixApplication({
+    databasePath: ':memory:',
+    eliteDirectory,
+    host: '127.0.0.1',
+    port: 0
+  })
+
+  try {
+    const address = await application.start()
+    const client = new PhoenixApiClient(`http://${address.host}:${address.port}`)
+    expect((await client.getRuntimeState()).system.name).toBe('Sol')
+
+    await waitFor(async () => (
+      (await client.getEliteJournalDiagnostics()).backfill?.status === 'complete'
+    ))
+    expect(await client.getEliteJournalDiagnostics()).toMatchObject({
+      backfill: {
+        status: 'complete',
+        filesDiscovered: 1,
+        filesCompleted: 1,
+        linesProcessed: 2
+      }
+    })
+    expect((await client.getRuntimeState()).system.name).toBe('Sol')
+  } finally {
+    await application.stop()
+    rmSync(eliteDirectory, { recursive: true, force: true })
+  }
+})
+
+async function waitFor (predicate: () => Promise<boolean>): Promise<void> {
+  const deadline = Date.now() + 2_000
+  while (Date.now() < deadline) {
+    if (await predicate()) return
+    await new Promise(resolvePromise => setTimeout(resolvePromise, 10))
+  }
+  throw new Error('Timed out waiting for journal backfill.')
+}

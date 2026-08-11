@@ -20,7 +20,7 @@ export class ActivityLogService implements ActivityLogReader {
     if (!Number.isSafeInteger(capacity) || capacity < 1) throw new Error('Activity log capacity must be positive.')
   }
 
-  public ingestJournal (event: EliteJournalEvent): ActivityLogEntry {
+  public ingestJournal (event: EliteJournalEvent, mode: 'live' | 'historical' = 'live'): ActivityLogEntry {
     const importance = journalImportance(event.event)
     return this.record({
       timestamp: event.timestamp,
@@ -29,10 +29,10 @@ export class ActivityLogService implements ActivityLogReader {
       importance,
       actionable: actionableJournalEvents.has(event.event),
       data: structuredClone(event)
-    }, importance !== 'trace')
+    }, importance !== 'trace', stableJournalId(event), mode === 'live')
   }
 
-  public ingestRuntime (event: GameEventEnvelope): ActivityLogEntry {
+  public ingestRuntime (event: GameEventEnvelope, mode: 'live' | 'historical' = 'live'): ActivityLogEntry {
     const importance = runtimeImportance(event.type)
     return this.record({
       timestamp: event.gameTimestamp ?? event.ingestedAt,
@@ -41,7 +41,7 @@ export class ActivityLogService implements ActivityLogReader {
       importance,
       actionable: actionableRuntimeEvents.has(event.type),
       data: structuredClone(event) as unknown as Record<string, unknown>
-    }, importance !== 'trace', stableRuntimeId(event))
+    }, importance !== 'trace', stableRuntimeId(event), mode === 'live')
   }
 
   public ingestAction (result: GameActionResult): ActivityLogEntry {
@@ -74,17 +74,20 @@ export class ActivityLogService implements ActivityLogReader {
   private record (
     candidate: Omit<ActivityLogEntry, 'id' | 'ingestedAt'>,
     durable: boolean,
-    id: string = randomUUID()
+    id: string = randomUUID(),
+    live = true
   ): ActivityLogEntry {
     const entry = ActivityLogEntrySchema.parse({
       ...candidate,
       id,
       ingestedAt: new Date().toISOString()
     })
-    this.entries.unshift(entry)
-    if (this.entries.length > this.capacity) this.entries.length = this.capacity
+    if (live) {
+      this.entries.unshift(entry)
+      if (this.entries.length > this.capacity) this.entries.length = this.capacity
+    }
     if (durable) this.repository.putActivity(entry)
-    for (const listener of this.listeners) listener(structuredClone(entry))
+    if (live) for (const listener of this.listeners) listener(structuredClone(entry))
     return structuredClone(entry)
   }
 }
@@ -94,6 +97,13 @@ function stableRuntimeId (event: GameEventEnvelope): string {
     .update(JSON.stringify({ type: event.type, gameTimestamp: event.gameTimestamp, payload: event.payload }))
     .digest('hex')
   return `runtime:${fingerprint}`
+}
+
+function stableJournalId (event: EliteJournalEvent): string {
+  const fingerprint = createHash('sha256')
+    .update(JSON.stringify(event))
+    .digest('hex')
+  return `journal:${fingerprint}`
 }
 
 const actionableJournalEvents = new Set([
