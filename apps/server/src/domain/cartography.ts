@@ -14,11 +14,26 @@ export interface LocalBodyCartographyObservation {
   bodyName: string
   bodySignals: Record<string, unknown> | null
   discovered: boolean | null
+  footfalled: boolean | null
   mapped: boolean | null
   observedAt: string
+  organicSamples: LocalOrganicSampleObservation[]
   scan: Record<string, unknown> | null
   surfaceScanCompleted: boolean
   surfaceSignals: Record<string, unknown> | null
+}
+
+export interface LocalOrganicSampleObservation {
+  completed: boolean
+  genus: string
+  genusId: string | null
+  lastUpdated: string
+  progress: number
+  scanTypes: string[]
+  species: string
+  speciesId: string | null
+  variant: string
+  variantId: string | null
 }
 
 export interface LocalSystemCartographyObservation {

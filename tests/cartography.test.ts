@@ -80,6 +80,18 @@ test('local journal scans and signals overlay cached EDSM cartography', async ()
     Signals: [{ Type: '$SAA_SignalType_Biological;', Count: 3 }],
     Genuses: [{ Genus_Localised: 'Bacterium' }]
   })
+  ingestion.ingest({
+    timestamp: '2026-08-11T12:03:05Z', event: 'ScanOrganic', SystemAddress: 10477373803, Body: 1,
+    ScanType: 'Sample', Genus: '$Bacterial;', Genus_Localised: 'Bacterium',
+    Species: '$Bacterial_01;', Species_Localised: 'Bacterium Aurasus',
+    Variant: '$Bacterial_01_F;', Variant_Localised: 'Bacterium Aurasus - Lime'
+  })
+  ingestion.ingest({
+    timestamp: '2026-08-11T12:03:10Z', event: 'ScanOrganic', SystemAddress: 10477373803, Body: 1,
+    ScanType: 'Analyse', Genus: '$Bacterial;', Genus_Localised: 'Bacterium',
+    Species: '$Bacterial_01;', Species_Localised: 'Bacterium Aurasus',
+    Variant: '$Bacterial_01_F;', Variant_Localised: 'Bacterium Aurasus - Lime'
+  })
   const source: CartographySource = { fetchSystem: vi.fn(async () => system) }
   const cartography = new CachedSystemCartographyService(source, database, runtime, database, 300_000, () => new Date('2026-08-11T12:03:30Z'))
 
@@ -96,7 +108,11 @@ test('local journal scans and signals overlay cached EDSM cartography', async ()
         discovered: false,
         mapped: false,
         signals: { biological: 3, geological: 0, human: 0 },
-        biologicalGenuses: ['Bacterium']
+        biologicalGenuses: ['Bacterium'],
+        organicSamples: [{
+          genus: 'Bacterium', species: 'Bacterium Aurasus', variant: 'Bacterium Aurasus - Lime',
+          completed: true, progress: 3, scanTypes: ['Sample', 'Analyse']
+        }]
       }
     })
   } finally {

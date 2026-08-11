@@ -123,6 +123,7 @@ function localBodyData (observation: import('../domain/cartography.js').LocalBod
   return {
     observedAt: observation.observedAt,
     discovered: observation.discovered,
+    footfalled: observation.footfalled ?? null,
     mapped: observation.mapped,
     surfaceScanCompleted: observation.surfaceScanCompleted,
     signals: signalCounts(signalSource?.Signals),
@@ -132,6 +133,7 @@ function localBodyData (observation: import('../domain/cartography.js').LocalBod
           return stringField(record.Genus_Localised) ?? stringField(record.Genus)
         }).filter((value): value is string => value !== null)
       : [],
+    organicSamples: observation.organicSamples ?? [],
     raw: {
       scan: observation.scan,
       bodySignals: observation.bodySignals,

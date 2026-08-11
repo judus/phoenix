@@ -26,7 +26,8 @@ import { StationsFindNearestTool } from './mcp-tools/stations-find-nearest-tool.
 import { StationsGetDetailsTool } from './mcp-tools/stations-get-details-tool.js'
 import { StationsListShipyardStockTool } from './mcp-tools/stations-list-shipyard-stock-tool.js'
 import { StationsSearchOutfittingTool } from './mcp-tools/stations-search-outfitting-tool.js'
-import type { CommanderEngineersQuery, DisplayCommands, NavigationQuery, StationQuery, SystemDetailsQuery, TradeMarketQuery } from './mcp-tools/tool-gateways.js'
+import { ExplorationGetCurrentBodyTool } from './mcp-tools/exploration-get-current-body-tool.js'
+import type { CommanderEngineersQuery, DisplayCommands, ExplorationBodyQuery, NavigationQuery, StationQuery, SystemDetailsQuery, TradeMarketQuery } from './mcp-tools/tool-gateways.js'
 import type { StatefulGameActionService } from './stateful-game-action-service.js'
 
 export interface PhoenixMcpToolDependencies {
@@ -34,6 +35,7 @@ export interface PhoenixMcpToolDependencies {
   gameCatalogue: GameCatalogue
   engineers: CommanderEngineersQuery
   display: DisplayCommands
+  exploration: ExplorationBodyQuery
   navigation: NavigationQuery
   markets: TradeMarketQuery
   runtimeState: RuntimeStateReader
@@ -60,6 +62,7 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new ControlsTapTool(dependencies.gameActions),
     new DisplayShowBodyTool(dependencies.display),
     new DisplayShowSystemTool(dependencies.display),
+    new ExplorationGetCurrentBodyTool(dependencies.exploration),
     new NavigationCanJumpToTool(dependencies.navigation),
     new NavigationGetRouteTool(dependencies.navigation),
     new MarketsFindBestTradeTool(dependencies.markets),

@@ -36,6 +36,7 @@ import { NavigationDataService } from './application/navigation-data-service.js'
 import { EngineeringDataService } from './application/engineering-data-service.js'
 import { DefaultCommanderEngineersQuery } from './application/default-commander-engineers-query.js'
 import { DefaultStationMarketQuery } from './application/default-station-market-query.js'
+import { DefaultExplorationBodyQuery } from './application/default-exploration-body-query.js'
 import type { CopilotText } from './application/copilot-text-service.js'
 import type { CopilotRealtime } from './application/copilot-realtime-service.js'
 import type { GameActionBindingResolver, InputBackend } from './domain/game-actions.js'
@@ -193,9 +194,11 @@ export class PhoenixApplication {
     const navigationData = new NavigationDataService(cartography, navigationRoutes, this.stateStore)
     const display = new DisplayCommandService(displayCommandUpdates, this.stateStore)
     const engineering = new EngineeringDataService(engineeringCatalogue, this.stateStore)
+    const exploration = new DefaultExplorationBodyQuery(this.database, cartography, this.stateStore)
     const toolRegistry = new ToolRegistry(createPhoenixMcpTools({
       display,
       engineers: new DefaultCommanderEngineersQuery(engineering),
+      exploration,
       gameActions,
       gameCatalogue,
       navigation,

@@ -15,6 +15,7 @@ export const CartographicBodySchema = z.object({
   local: z.object({
     observedAt: z.iso.datetime(),
     discovered: z.boolean().nullable(),
+    footfalled: z.boolean().nullable().default(null),
     mapped: z.boolean().nullable(),
     surfaceScanCompleted: z.boolean(),
     signals: z.object({
@@ -23,6 +24,18 @@ export const CartographicBodySchema = z.object({
       human: z.number().int().nonnegative()
     }),
     biologicalGenuses: z.array(z.string().min(1)),
+    organicSamples: z.array(z.object({
+      completed: z.boolean(),
+      genus: z.string().min(1),
+      genusId: z.string().min(1).nullable(),
+      lastUpdated: z.iso.datetime(),
+      progress: z.number().int().min(0).max(3),
+      scanTypes: z.array(z.string().min(1)),
+      species: z.string().min(1),
+      speciesId: z.string().min(1).nullable(),
+      variant: z.string().min(1),
+      variantId: z.string().min(1).nullable()
+    })).default([]),
     raw: z.object({
       scan: ExternalRecordSchema.nullable(),
       bodySignals: ExternalRecordSchema.nullable(),
