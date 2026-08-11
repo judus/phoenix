@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import type { CopilotHistoryMessage, HealthResponse } from '@phoenix/contracts'
+import {
+  CopilotConversationEventSchema,
+  type CopilotHistoryMessage,
+  type HealthResponse
+} from '@phoenix/contracts'
 import {
   PhoenixApiClient,
   type CopilotStreamEvent
@@ -9,6 +13,7 @@ import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 import { useCopilotVoice } from '../features/copilot/copilot-voice-provider.js'
 import { CopilotMarkdown } from '../features/copilot/copilot-markdown.js'
+import { copilotClientId } from '../features/copilot/copilot-client-identity.js'
 
 const DEFAULT_CONVERSATION_ID = 'phoenix-copilot'
 const navigation: NavigationItem[] = [
@@ -21,6 +26,12 @@ export interface CopilotPageProps {
   health?: HealthResponse
 }
 
+interface RemoteTurn {
+  assistantText: string
+  id: string
+  userText: string
+}
+
 export function CopilotPage ({ api, error, health }: CopilotPageProps) {
   const voice = useCopilotVoice()
   const [messages, setMessages] = useState<readonly CopilotHistoryMessage[]>([])
@@ -28,6 +39,8 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
   const [pending, setPending] = useState(false)
   const [chatError, setChatError] = useState<string>()
   const [toolStatus, setToolStatus] = useState<string>()
+  const [remoteTurns, setRemoteTurns] = useState<Record<string, RemoteTurn>>({})
+  const clientIdRef = useRef(copilotClientId())
   const endRef = useRef<HTMLDivElement>(null)
 
   const loadHistory = async (): Promise<void> => {
@@ -42,8 +55,60 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
   }, [voice.historyVersion])
 
   useEffect(() => {
+    if (typeof EventSource === 'undefined') return
+    const stream = new EventSource(api.copilotConversationStreamUrl(DEFAULT_CONVERSATION_ID))
+    stream.addEventListener('conversation-event', rawEvent => {
+      try {
+        const event = CopilotConversationEventSchema.parse(JSON.parse((rawEvent as MessageEvent).data))
+        if (event.clientId === clientIdRef.current) return
+        if (event.type === 'turn.started') {
+          setRemoteTurns(turns => ({
+            ...turns,
+            [event.turnId]: { assistantText: '', id: event.turnId, userText: event.userText }
+          }))
+        } else if (event.type === 'user.transcript') {
+          setRemoteTurns(turns => ({
+            ...turns,
+            [event.turnId]: {
+              assistantText: turns[event.turnId]?.assistantText ?? '',
+              id: event.turnId,
+              userText: event.text
+            }
+          }))
+        } else if (event.type === 'assistant.transcript') {
+          setRemoteTurns(turns => ({
+            ...turns,
+            [event.turnId]: {
+              assistantText: event.text,
+              id: event.turnId,
+              userText: turns[event.turnId]?.userText ?? ''
+            }
+          }))
+        } else if (event.type === 'tool.status') {
+          setToolStatus(event.name ? `${event.name}: ${event.status}` : `Tool: ${event.status}`)
+        } else if (event.type === 'turn.completed') {
+          setRemoteTurns(turns => withoutTurn(turns, event.turnId))
+          setToolStatus(undefined)
+          void loadHistory().catch(cause => setChatError(
+            cause instanceof Error ? cause.message : 'Conversation history unavailable.'
+          ))
+        } else if (event.type === 'turn.failed') {
+          setRemoteTurns(turns => withoutTurn(turns, event.turnId))
+          setChatError(event.message)
+        }
+      } catch {
+        setChatError('Received an invalid live Copilot event.')
+      }
+    })
+    stream.addEventListener('open', () => {
+      void loadHistory().catch(() => {})
+    })
+    return () => stream.close()
+  }, [api])
+
+  useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' })
-  }, [messages])
+  }, [messages, remoteTurns, voice.activeTurn])
 
   const submit = async (event: FormEvent): Promise<void> => {
     event.preventDefault()
@@ -59,8 +124,9 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
       }
       return
     }
-    const userId = `pending-user-${crypto.randomUUID()}`
-    const assistantId = `pending-assistant-${crypto.randomUUID()}`
+    const turnId = crypto.randomUUID()
+    const userId = `pending-user-${turnId}`
+    const assistantId = `pending-assistant-${turnId}`
     setComposer('')
     setChatError(undefined)
     setToolStatus(undefined)
@@ -73,9 +139,11 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
 
     try {
       await api.streamCopilotMessage({
+        clientId: clientIdRef.current,
         conversationId: DEFAULT_CONVERSATION_ID,
         message: text,
-        profileId: 'icarus'
+        profileId: 'icarus',
+        turnId
       }, event => applyStreamEvent(event, assistantId, setMessages, setToolStatus))
       await loadHistory()
     } catch (cause) {
@@ -140,6 +208,22 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
                     </div>
                   </article>
                 )}
+                {Object.values(remoteTurns).map(turn => (
+                  <div key={turn.id} className="copilot-live-turn">
+                    {turn.userText && (
+                      <article className="copilot-message copilot-message--user copilot-message--live">
+                        <span>Commander · live</span>
+                        <div className="copilot-message__text">{turn.userText}</div>
+                      </article>
+                    )}
+                    <article className="copilot-message copilot-message--assistant copilot-message--live">
+                      <span>Copilot · live</span>
+                      <div className="copilot-message__text">
+                        <CopilotMarkdown>{turn.assistantText || '…'}</CopilotMarkdown>
+                      </div>
+                    </article>
+                  </div>
+                ))}
                 <div ref={endRef} />
               </div>
               {(toolStatus ?? voice.toolStatus) && (
@@ -215,6 +299,15 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
       </Page>
     </PhoenixShell>
   )
+}
+
+function withoutTurn (
+  turns: Record<string, RemoteTurn>,
+  turnId: string
+): Record<string, RemoteTurn> {
+  const next = { ...turns }
+  delete next[turnId]
+  return next
 }
 
 function applyStreamEvent (

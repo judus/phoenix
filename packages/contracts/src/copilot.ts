@@ -3,9 +3,11 @@ import { z } from 'zod'
 const NonEmptyTextSchema = z.string().trim().min(1)
 
 export const CopilotChatRequestSchema = z.object({
+  clientId: NonEmptyTextSchema.optional(),
   conversationId: NonEmptyTextSchema.optional(),
   message: NonEmptyTextSchema,
-  profileId: NonEmptyTextSchema.optional()
+  profileId: NonEmptyTextSchema.optional(),
+  turnId: NonEmptyTextSchema.optional()
 }).strict()
 
 export type CopilotChatRequest = z.infer<typeof CopilotChatRequestSchema>
@@ -39,11 +41,52 @@ export const CopilotRealtimeTokenResponseSchema = z.object({
 
 export const CopilotRealtimeTurnRequestSchema = z.object({
   assistantText: NonEmptyTextSchema,
+  clientId: NonEmptyTextSchema.optional(),
   conversationId: NonEmptyTextSchema,
   source: z.enum(['transcribed', 'typed']),
   turnId: NonEmptyTextSchema,
   userText: NonEmptyTextSchema
 }).strict()
+
+const CopilotConversationEventBaseSchema = z.object({
+  clientId: NonEmptyTextSchema,
+  conversationId: NonEmptyTextSchema,
+  occurredAt: z.string().datetime(),
+  turnId: NonEmptyTextSchema
+})
+
+export const CopilotConversationEventSchema = z.discriminatedUnion('type', [
+  CopilotConversationEventBaseSchema.extend({
+    source: z.enum(['realtime', 'text']),
+    type: z.literal('turn.started'),
+    userText: z.string()
+  }).strict(),
+  CopilotConversationEventBaseSchema.extend({
+    final: z.boolean(),
+    text: z.string(),
+    type: z.literal('user.transcript')
+  }).strict(),
+  CopilotConversationEventBaseSchema.extend({
+    final: z.boolean(),
+    text: z.string(),
+    type: z.literal('assistant.transcript')
+  }).strict(),
+  CopilotConversationEventBaseSchema.extend({
+    callId: NonEmptyTextSchema,
+    name: NonEmptyTextSchema.optional(),
+    status: NonEmptyTextSchema,
+    type: z.literal('tool.status')
+  }).strict(),
+  CopilotConversationEventBaseSchema.extend({
+    type: z.literal('turn.completed')
+  }).strict(),
+  CopilotConversationEventBaseSchema.extend({
+    message: NonEmptyTextSchema,
+    type: z.literal('turn.failed')
+  }).strict()
+])
+
+export type CopilotConversationEvent = z.infer<typeof CopilotConversationEventSchema>
 
 export const CopilotRealtimeToolRequestSchema = z.object({
   arguments: z.record(z.string(), z.unknown()).default({}),

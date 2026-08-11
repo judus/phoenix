@@ -3,6 +3,7 @@ import {
   ControlGridLayoutSchema,
   CopilotChatRequestSchema,
   CopilotAudioProcessingSchema,
+  CopilotConversationEventSchema,
   CopilotHistoryResponseSchema,
   CopilotRealtimeTokenRequestSchema,
   CopilotRealtimeTokenResponseSchema,
@@ -28,6 +29,7 @@ import {
   type ControlGridLayout,
   type CopilotChatRequest,
   type CopilotAudioProcessing,
+  type CopilotConversationEvent,
   type CopilotHistoryResponse,
   type CopilotRealtimeTokenRequest,
   type CopilotRealtimeTokenResponse,
@@ -79,10 +81,12 @@ export interface PhoenixApi {
   getNavigationRoute(): Promise<NavigationRoute>
   getSystemCartography(systemName?: string): Promise<CartographyLookupResponse>
   persistCopilotRealtimeTurn(input: CopilotRealtimeTurnRequest): Promise<void>
+  publishCopilotConversationEvent(event: CopilotConversationEvent): Promise<void>
   saveControlLayout(layout: ControlGridLayout): Promise<ControlGridLayout>
   runtimeStateStreamUrl(): string
   activityLogStreamUrl(): string
   displayCommandStreamUrl(): string
+  copilotConversationStreamUrl(conversationId: string): string
   streamCopilotMessage(
     input: CopilotChatRequest,
     onEvent: (event: CopilotStreamEvent) => void,
@@ -270,6 +274,19 @@ export class PhoenixApiClient implements PhoenixApi {
     if (!response.ok) throw await apiError(response)
   }
 
+  public async publishCopilotConversationEvent (event: CopilotConversationEvent): Promise<void> {
+    const validated = CopilotConversationEventSchema.parse(event)
+    const response = await this.request(
+      `${this.baseUrl}/api/copilot/conversations/${encodeURIComponent(validated.conversationId)}/events`,
+      {
+        body: JSON.stringify(validated),
+        headers: { accept: 'application/json', 'content-type': 'application/json' },
+        method: 'POST'
+      }
+    )
+    if (!response.ok) throw await apiError(response)
+  }
+
   public async streamCopilotMessage (
     input: CopilotChatRequest,
     onEvent: (event: CopilotStreamEvent) => void,
@@ -408,6 +425,10 @@ export class PhoenixApiClient implements PhoenixApi {
 
   public displayCommandStreamUrl (): string {
     return `${this.baseUrl}/api/display/stream`
+  }
+
+  public copilotConversationStreamUrl (conversationId: string): string {
+    return `${this.baseUrl}/api/copilot/conversations/${encodeURIComponent(conversationId)}/stream`
   }
 }
 

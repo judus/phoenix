@@ -14,6 +14,7 @@ import {
   JsonGameCatalogue
 } from '@phoenix/elite'
 import { CatalogueShipLoadoutEnricher } from './application/catalogue-ship-loadout-enricher.js'
+import { CopilotConversationEventService } from './application/copilot-conversation-event-service.js'
 import { CatalogueDiagnosticsService } from './application/catalogue-diagnostics-service.js'
 import { CachedSystemCartographyService } from './application/cached-system-cartography-service.js'
 import { CartographyObservationIngestionService } from './application/cartography-observation-ingestion-service.js'
@@ -95,6 +96,7 @@ export class PhoenixApplication {
     const host = options.host ?? process.env.PHOENIX_HOST ?? '0.0.0.0'
     const port = options.port ?? Number(process.env.PHOENIX_PORT ?? 3400)
     const gameEvents = new InProcessPublisher<GameEventEnvelope>()
+    const copilotConversationEvents = new CopilotConversationEventService()
     const runtimeStateUpdates = new InProcessPublisher<RuntimeState>()
     const displayCommandUpdates = new InProcessPublisher<DisplayCommand>()
     this.stateStore = new InMemoryRuntimeStateStore()
@@ -228,6 +230,7 @@ export class PhoenixApplication {
       catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
       controlGridLayouts: options.controlGridLayoutRepository ?? new InMemoryControlGridLayoutRepository(),
       copilot,
+      copilotConversationEvents,
       copilotRealtime,
       gameActions,
       eliteJournalDiagnostics: this.journalSource,

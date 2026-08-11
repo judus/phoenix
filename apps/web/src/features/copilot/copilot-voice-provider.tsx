@@ -6,7 +6,9 @@ import {
   useState,
   type ReactNode
 } from 'react'
+import type { CopilotConversationEvent } from '@phoenix/contracts'
 import { PhoenixApiClient } from '../../api/phoenix-api-client.js'
+import { copilotClientId } from './copilot-client-identity.js'
 import {
   createRealtimeAudioSession,
   signalLevel,
@@ -51,10 +53,17 @@ interface MutableTurn extends ActiveVoiceTurn {
   responseRequested?: boolean
 }
 
+type ConversationEventPayload = CopilotConversationEvent extends infer Event
+  ? Event extends CopilotConversationEvent
+    ? Omit<Event, 'clientId' | 'conversationId' | 'occurredAt' | 'turnId'>
+    : never
+  : never
+
 const CopilotVoiceContext = createContext<CopilotVoiceState | undefined>(undefined)
 
 export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
   const apiRef = useRef(new PhoenixApiClient())
+  const clientIdRef = useRef(copilotClientId())
   const [connected, setConnected] = useState(false)
   const [status, setStatus] = useState('Offline')
   const [error, setError] = useState<string>()
@@ -75,6 +84,7 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
   const runtimeSyncTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const contextFingerprintRef = useRef<string | undefined>(undefined)
   const contextSyncRef = useRef(Promise.resolve())
+  const eventPublishRef = useRef(Promise.resolve())
   const turnRef = useRef<MutableTurn | undefined>(undefined)
   const processedCallsRef = useRef(new Set<string>())
 
@@ -88,6 +98,19 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
       source: turn.source,
       userText: turn.userText
     })
+  }
+
+  const publishTurnEvent = (turnId: string, event: ConversationEventPayload): void => {
+    eventPublishRef.current = eventPublishRef.current
+      .catch(() => {})
+      .then(() => apiRef.current.publishCopilotConversationEvent({
+        ...event,
+        clientId: clientIdRef.current,
+        conversationId: CONVERSATION_ID,
+        occurredAt: new Date().toISOString(),
+        turnId
+      } as CopilotConversationEvent))
+      .catch(() => {})
   }
 
   const connect = async (): Promise<void> => {
@@ -183,6 +206,7 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
       userText: text
     }
     updateTurn(turn)
+    publishTurnEvent(turn.id, { source: 'realtime', type: 'turn.started', userText: text })
     setToolStatus(undefined)
     setStatus('Thinking')
     sendEvent(socket, {
@@ -202,6 +226,7 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
       audioRef.current?.playback.clear()
       const id = typeof candidate.item_id === 'string' ? candidate.item_id : `voice-${Date.now()}`
       updateTurn({ assistantText: '', id, source: 'transcribed', userText: '' })
+      publishTurnEvent(id, { source: 'realtime', type: 'turn.started', userText: '' })
       setToolStatus(undefined)
       setStatus('Listening')
     } else if (candidate.type === 'input_audio_buffer.speech_stopped') {
@@ -217,6 +242,7 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
       }
       turn.userText = text
       updateTurn(turn)
+      publishTurnEvent(turn.id, { final: true, text, type: 'user.transcript' })
       void completeTurn()
     } else if (candidate.type === 'response.output_audio.delta') {
       if (typeof candidate.delta === 'string') audioRef.current?.playback.append(candidate.delta)
@@ -226,6 +252,11 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
       if (turn && typeof candidate.delta === 'string') {
         turn.assistantText += candidate.delta
         updateTurn(turn)
+        publishTurnEvent(turn.id, {
+          final: false,
+          text: turn.assistantText,
+          type: 'assistant.transcript'
+        })
       }
       setStatus('Speaking')
     } else if (candidate.type === 'response.output_audio_transcript.done') {
@@ -233,6 +264,11 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
       if (turn && typeof candidate.transcript === 'string') {
         turn.assistantText = candidate.transcript
         updateTurn(turn)
+        publishTurnEvent(turn.id, {
+          final: true,
+          text: turn.assistantText,
+          type: 'assistant.transcript'
+        })
       }
     } else if (candidate.type === 'response.done') {
       void handleCompletedResponse(isRecord(candidate.response) ? candidate.response : {}, socket)
@@ -243,6 +279,8 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
         : 'OpenAI Realtime reported an error.'
       setStatus('Ready · listening')
       setError(detail)
+      const turn = turnRef.current
+      if (turn) publishTurnEvent(turn.id, { message: detail, type: 'turn.failed' })
     }
   }
 
@@ -293,13 +331,22 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
       arguments_ = {}
     }
     setToolStatus(`${toolLabel(name)}: working…`)
+    const activeTurn = turnRef.current
+    if (activeTurn) publishTurnEvent(activeTurn.id, {
+      callId,
+      name,
+      status: 'working',
+      type: 'tool.status'
+    })
     let result: unknown
     try {
       result = await apiRef.current.executeCopilotRealtimeTool({ arguments: arguments_, name })
       setToolStatus(`${toolLabel(name)}: complete`)
+      if (activeTurn) publishTurnEvent(activeTurn.id, { callId, name, status: 'complete', type: 'tool.status' })
     } catch (cause) {
       result = { error: errorMessage(cause) }
       setToolStatus(`${toolLabel(name)}: failed`)
+      if (activeTurn) publishTurnEvent(activeTurn.id, { callId, name, status: 'failed', type: 'tool.status' })
     }
     sendEvent(socket, {
       item: { call_id: callId, output: JSON.stringify(result), type: 'function_call_output' },
@@ -359,8 +406,10 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
     if (!turn || turn.persisting || !turn.responseDone || !turn.userText.trim() || !turn.assistantText.trim()) return
     turn.persisting = true
     try {
+      await eventPublishRef.current
       await apiRef.current.persistCopilotRealtimeTurn({
         assistantText: turn.assistantText,
+        clientId: clientIdRef.current,
         conversationId: CONVERSATION_ID,
         source: turn.source,
         turnId: turn.id,

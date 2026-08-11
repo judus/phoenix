@@ -1,4 +1,5 @@
 import { createReadStream, existsSync, statSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import {
   createServer,
   type IncomingMessage,
@@ -9,15 +10,18 @@ import { extname, isAbsolute, join, normalize, relative, resolve, sep } from 'no
 import {
   ControlGridLayoutSchema,
   CopilotChatRequestSchema,
+  CopilotConversationEventSchema,
   CopilotRealtimeTokenRequestSchema,
   CopilotRealtimeToolRequestSchema,
   CopilotRealtimeTurnRequestSchema,
   ExplorationManualCompletionRequestSchema,
+  type CopilotConversationEvent,
   type DisplayCommand,
   type RuntimeState
 } from '@phoenix/contracts'
 import { AiError, serializeAiError, type AiStreamEvent } from '@maduser/ai-ts'
 import type { CopilotText, CopilotTextRequest } from '../application/copilot-text-service.js'
+import type { CopilotConversationEvents } from '../application/copilot-conversation-event-service.js'
 import {
   serializeToolOutput,
   type CopilotRealtime
@@ -44,10 +48,17 @@ const CONTENT_TYPES: Record<string, string> = {
   '.svg': 'image/svg+xml'
 }
 
+type CopilotConversationEventPayload = CopilotConversationEvent extends infer Event
+  ? Event extends CopilotConversationEvent
+    ? Omit<Event, 'clientId' | 'conversationId' | 'occurredAt' | 'turnId'>
+    : never
+  : never
+
 export interface PhoenixHttpServerOptions {
   catalogueDiagnostics: CatalogueDiagnosticsReader
   controlGridLayouts: ControlGridLayoutRepository
   copilot?: CopilotText
+  copilotConversationEvents: CopilotConversationEvents
   copilotRealtime?: CopilotRealtime
   gameActions: GameActions
   eliteJournalDiagnostics: EliteJournalDiagnosticsReader
@@ -69,6 +80,7 @@ export interface PhoenixHttpServerOptions {
 export class PhoenixHttpServer {
   private readonly eventStreams = new Set<ServerResponse>()
   private readonly activityStreams = new Set<ServerResponse>()
+  private readonly copilotConversationStreams = new Set<ServerResponse>()
   private readonly displayStreams = new Set<ServerResponse>()
   private readonly server: Server
 
@@ -103,6 +115,8 @@ export class PhoenixHttpServer {
     this.eventStreams.clear()
     for (const stream of this.activityStreams) stream.end()
     this.activityStreams.clear()
+    for (const stream of this.copilotConversationStreams) stream.end()
+    this.copilotConversationStreams.clear()
     for (const stream of this.displayStreams) stream.end()
     this.displayStreams.clear()
     await new Promise<void>((resolvePromise, reject) => {
@@ -289,9 +303,41 @@ export class PhoenixHttpServer {
       try {
         const input = CopilotRealtimeTurnRequestSchema.parse(await readJsonBody(request))
         await this.options.copilotRealtime!.persistTurn(input)
+        this.options.copilotConversationEvents.publish(completedConversationEvent(input))
         this.writeJson(response, 200, { conversationId: input.conversationId })
       } catch (cause) {
         this.writeJson(response, 400, realtimeError(cause, 'realtime_turn_failed'))
+      }
+      return
+    }
+
+    const copilotConversationStreamMatch = url.pathname.match(/^\/api\/copilot\/conversations\/([^/]+)\/stream$/u)
+    if (request.method === 'GET' && copilotConversationStreamMatch) {
+      this.openCopilotConversationStream(
+        request,
+        response,
+        decodeURIComponent(copilotConversationStreamMatch[1]!)
+      )
+      return
+    }
+
+    const copilotConversationEventMatch = url.pathname.match(/^\/api\/copilot\/conversations\/([^/]+)\/events$/u)
+    if (request.method === 'POST' && copilotConversationEventMatch) {
+      try {
+        const conversationId = decodeURIComponent(copilotConversationEventMatch[1]!)
+        const event = CopilotConversationEventSchema.parse(await readJsonBody(request))
+        if (event.conversationId !== conversationId) {
+          throw new Error('Conversation event route and payload do not match.')
+        }
+        this.options.copilotConversationEvents.publish(event)
+        this.writeJson(response, 202, { accepted: true })
+      } catch (cause) {
+        this.writeJson(response, 400, {
+          error: {
+            code: 'invalid_copilot_conversation_event',
+            message: cause instanceof Error ? cause.message : 'Invalid Copilot conversation event.'
+          }
+        })
       }
       return
     }
@@ -444,6 +490,36 @@ export class PhoenixHttpServer {
     response.write(': connected\n\n')
   }
 
+  private openCopilotConversationStream (
+    request: IncomingMessage,
+    response: ServerResponse,
+    conversationId: string
+  ): void {
+    response.writeHead(200, {
+      'cache-control': 'no-cache, no-transform',
+      connection: 'keep-alive',
+      'content-type': 'text/event-stream; charset=utf-8'
+    })
+    response.flushHeaders()
+    this.copilotConversationStreams.add(response)
+    const unsubscribe = this.options.copilotConversationEvents.subscribe(event => {
+      if (event.conversationId === conversationId) writeSse(response, 'conversation-event', event)
+    })
+    for (const event of this.options.copilotConversationEvents.active(conversationId)) {
+      writeSse(response, 'conversation-event', event)
+    }
+    let closed = false
+    const close = (): void => {
+      if (closed) return
+      closed = true
+      unsubscribe()
+      this.copilotConversationStreams.delete(response)
+    }
+    request.once('close', close)
+    response.once('close', close)
+    response.write(': connected\n\n')
+  }
+
   private async handleCopilotChat (
     request: IncomingMessage,
     response: ServerResponse
@@ -543,11 +619,52 @@ export class PhoenixHttpServer {
       if (!response.destroyed) response.write(': keepalive\n\n')
     }, 15_000)
 
+    const turnId = input.turnId ?? randomUUID()
+    const clientId = input.clientId ?? `server-${turnId}`
+    let conversationId = input.conversationId
+    let assistantText = ''
+    let started = false
+    const publish = (event: CopilotConversationEventPayload): void => {
+      if (!conversationId) return
+      this.options.copilotConversationEvents.publish({
+        ...event,
+        clientId,
+        conversationId,
+        occurredAt: new Date().toISOString(),
+        turnId
+      } as CopilotConversationEvent)
+    }
+
     try {
       for await (const event of this.options.copilot!.stream(input, { signal: controller.signal })) {
+        if (event.type === 'run.started') {
+          conversationId = event.chatId
+          if (!started) {
+            started = true
+            publish({ source: 'text', type: 'turn.started', userText: input.message })
+          }
+        } else if (event.type === 'text.reset') {
+          assistantText = ''
+          publish({ final: false, text: assistantText, type: 'assistant.transcript' })
+        } else if (event.type === 'text.delta') {
+          assistantText += event.delta
+          publish({ final: false, text: assistantText, type: 'assistant.transcript' })
+        } else if (event.type === 'tool.call') {
+          publish({ callId: event.call.id, name: event.call.name, status: 'calling', type: 'tool.status' })
+        } else if (event.type === 'tool.result') {
+          publish({ callId: event.callId, status: event.status, type: 'tool.status' })
+        } else if (event.type === 'run.completed') {
+          assistantText = event.result.text
+          publish({ final: true, text: assistantText, type: 'assistant.transcript' })
+          publish({ type: 'turn.completed' })
+        }
         writeCopilotStreamEvent(response, event)
       }
     } catch (cause) {
+      publish({
+        message: cause instanceof Error ? cause.message : 'Copilot request failed.',
+        type: 'turn.failed'
+      })
       if (!response.destroyed) writeSse(response, 'error', { error: serializeCopilotError(cause) })
     } finally {
       clearInterval(heartbeat)
@@ -601,6 +718,20 @@ function realtimeError (cause: unknown, code: string): unknown {
       code,
       message: cause instanceof Error ? cause.message : 'Realtime Copilot request failed.'
     }
+  }
+}
+
+function completedConversationEvent (input: {
+  clientId?: string
+  conversationId: string
+  turnId: string
+}): CopilotConversationEvent {
+  return {
+    clientId: input.clientId ?? `server-${input.turnId}`,
+    conversationId: input.conversationId,
+    occurredAt: new Date().toISOString(),
+    turnId: input.turnId,
+    type: 'turn.completed'
   }
 }
 
