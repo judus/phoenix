@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { FormEvent, MouseEvent, ReactNode } from 'react'
 import type {
   CartographicBody,
   CartographicStation,
@@ -8,7 +8,10 @@ import type {
 export type CartographicSelection = CartographicBody | CartographicStation
 
 export interface SystemSchematicProps {
-  onSelect(name: string): void
+  onQueryChange(value: string): void
+  onSearch(): void
+  onSelect(name?: string): void
+  query: string
   selected?: CartographicSelection | null
   system: CartographicSystem
 }
@@ -23,20 +26,35 @@ interface StarGroup {
   star: CartographicBody
 }
 
-export function SystemSchematic ({ onSelect, selected, system }: SystemSchematicProps) {
+export function SystemSchematic ({ onQueryChange, onSearch, onSelect, query, selected, system }: SystemSchematicProps) {
   const groups = buildStarGroups(system.bodies)
   const ungrouped = system.bodies.filter(body => !groups.some(group => (
     group.star === body || group.branches.some(branch => branch.body === body || branch.children.includes(body))
   )))
 
   return (
-    <div className="system-cartography">
+    <div className={selected ? 'system-cartography has-selection' : 'system-cartography'}>
       <section className="system-schematic" aria-label={`Schematic map of ${system.name}`}>
         <header className="system-schematic__header">
-          <div>
+          <form
+            className="system-schematic__search"
+            onSubmit={(event: FormEvent) => {
+              event.preventDefault()
+              onSearch()
+            }}
+          >
             <span>System schematic</span>
-            <h2>{system.name}</h2>
-          </div>
+            <label>
+              <span className="visually-hidden">System name</span>
+              <input
+                aria-label="System name"
+                onChange={event => onQueryChange(event.target.value)}
+                spellCheck="false"
+                value={query}
+              />
+              <button aria-label="Load system" title="Load system" type="submit">⌕</button>
+            </label>
+          </form>
           <dl>
             <div><dt>Known</dt><dd>{system.scanProgress.knownBodies}</dd></div>
             <div><dt>Reported</dt><dd>{system.scanProgress.reportedBodies ?? '—'}</dd></div>
@@ -44,7 +62,12 @@ export function SystemSchematic ({ onSelect, selected, system }: SystemSchematic
           </dl>
         </header>
 
-        <div className="system-schematic__viewport">
+        <div
+          className="system-schematic__viewport"
+          onClick={(event: MouseEvent<HTMLDivElement>) => {
+            if (!(event.target instanceof Element) || !event.target.closest('button')) onSelect()
+          }}
+        >
           {groups.map(group => (
             <StarGroupView
               group={group}
@@ -91,7 +114,7 @@ export function SystemSchematic ({ onSelect, selected, system }: SystemSchematic
         )}
       </section>
 
-      <CartographyDetail selection={selected} system={system} />
+      {selected && <CartographyDetail selection={selected} />}
     </div>
   )
 }
@@ -238,33 +261,9 @@ function StationGlyph () {
   return <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 5h22v22H5zM10 10h12v12H10zM2 16h7M23 16h7M16 2v7M16 23v7" /></svg>
 }
 
-function CartographyDetail ({ selection, system }: { selection?: CartographicSelection | null, system: CartographicSystem }) {
-  if (!selection) return <SystemDetail system={system} />
+function CartographyDetail ({ selection }: { selection: CartographicSelection }) {
   if (isStation(selection)) return <StationDetail station={selection} />
   return <BodyDetail body={selection} />
-}
-
-function SystemDetail ({ system }: { system: CartographicSystem }) {
-  const info = system.information
-  return (
-    <aside className="cartography-detail">
-      <header><span>System</span><h2>{system.name}</h2><p>Operational cartography overview</p></header>
-      <DetailSection title="Authority">
-        <Fact label="Allegiance" value={info.allegiance} />
-        <Fact label="Government" value={info.government} />
-        <Fact label="Security" value={info.security} />
-        <Fact label="Faction" value={info.controllingFaction} />
-      </DetailSection>
-      <DetailSection title="Economy">
-        <Fact label="Primary" value={info.primaryEconomy} />
-        <Fact label="Secondary" value={info.secondaryEconomy} />
-        <Fact label="Population" value={formatNumber(info.population)} />
-      </DetailSection>
-      <DetailSection title="Coordinates">
-        <p>{system.position?.map(value => value.toFixed(2)).join('  /  ') ?? 'Position unavailable'}</p>
-      </DetailSection>
-    </aside>
-  )
 }
 
 function BodyDetail ({ body }: { body: CartographicBody }) {
@@ -411,10 +410,6 @@ function shortType (body: CartographicBody): string {
 function formatDistance (value: number | null): string {
   if (value == null) return '—'
   return value < 0.1 ? `${Math.round(value * 299_792)} km` : `${Math.round(value).toLocaleString()} ls`
-}
-
-function formatNumber (value: number | null): string | null {
-  return value == null ? null : value.toLocaleString()
 }
 
 function numberValue (value: unknown): number | null {

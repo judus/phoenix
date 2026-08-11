@@ -19,7 +19,10 @@ test('schematic cartography groups planets and moons beneath their star', () => 
 test('schematic cartography renders symbolic bodies, stations, and scan markers', () => {
   const markup = renderToStaticMarkup(
     <SystemSchematic
+      onQueryChange={vi.fn()}
+      onSearch={vi.fn()}
       onSelect={vi.fn()}
+      query="Sol"
       selected={fixtureSystem().bodies[1]}
       system={fixtureSystem()}
     />
@@ -32,6 +35,24 @@ test('schematic cartography renders symbolic bodies, stations, and scan markers'
   expect(markup).toContain('Biological signals')
   expect(markup).toContain('Galileo')
   expect(markup).toContain('Installation')
+  expect(markup).toContain('has-selection')
+  expect(markup).toContain('aria-label="System name"')
+})
+
+test('schematic cartography uses the full map workspace until an object is selected', () => {
+  const markup = renderToStaticMarkup(
+    <SystemSchematic
+      onQueryChange={vi.fn()}
+      onSearch={vi.fn()}
+      onSelect={vi.fn()}
+      query="Sol"
+      system={fixtureSystem()}
+    />
+  )
+
+  expect(markup).toContain('class="system-cartography"')
+  expect(markup).not.toContain('has-selection')
+  expect(markup).not.toContain('cartography-detail')
 })
 
 function fixtureSystem (): CartographicSystem {

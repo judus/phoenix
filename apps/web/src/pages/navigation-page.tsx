@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type {
   CartographicBody,
   CartographicStation,
@@ -68,18 +68,15 @@ export function NavigationPage ({
   const selected = useMemo(() => selectedName && lookup
     ? findSelectedObject(lookup, selectedName)
     : null, [lookup, selectedName])
-  const submit = (event: FormEvent): void => {
-    event.preventDefault()
+  const loadSystem = (): void => {
     const name = query.trim()
     if (!name) return
     window.location.hash = `/navigation/system?name=${encodeURIComponent(name)}`
   }
 
-  const selectObject = (name: string): void => {
-    const parameters = new URLSearchParams({
-      name: lookup?.system.name ?? systemName ?? query,
-      selected: name
-    })
+  const selectObject = (name?: string): void => {
+    const parameters = new URLSearchParams({ name: lookup?.system.name ?? systemName ?? query })
+    if (name) parameters.set('selected', name)
     window.location.hash = `/navigation/system?${parameters.toString()}`
   }
 
@@ -91,50 +88,49 @@ export function NavigationPage ({
       health={health}
       secondaryNavigation={navigation}
     >
-      <Page className="navigation-data-page">
-        <PageHeader
-          title={view === 'route' ? 'Plotted Route' : lookup?.system.name ?? systemName ?? 'Current System'}
-          eyebrow="Navigation data"
-          description={view === 'route'
-            ? 'Live NavRoute data received from Elite Dangerous.'
-            : 'Lossless cartography aggregate from provider data and local observations.'}
-        />
-        <PageContent>
-          {view === 'system' && (
-            <form className="navigation-data-toolbar" onSubmit={submit}>
-              <label>
-                <span>System name</span>
-                <input
-                  value={query}
-                  onChange={event => setQuery(event.target.value)}
-                  placeholder="Current system"
-                />
-              </label>
-              <button type="submit">Load system</button>
-              <dl>
-                <div><dt>Cache</dt><dd>{lookup?.cache ?? '—'}</dd></div>
-                <div><dt>Selected</dt><dd>{selectedName ?? 'None'}</dd></div>
-              </dl>
-            </form>
+      {view === 'system'
+        ? (
+            <Page className="navigation-data-page navigation-system-page">
+              <PageContent>
+                {loading
+                  ? <p className="navigation-data-empty">Loading navigation data…</p>
+                  : navigationError
+                    ? <p className="navigation-data-empty">{navigationError}</p>
+                    : lookup && (
+                      <SystemSchematic
+                        onQueryChange={setQuery}
+                        onSearch={loadSystem}
+                        onSelect={selectObject}
+                        query={query}
+                        selected={selected}
+                        system={lookup.system}
+                      />
+                    )}
+              </PageContent>
+            </Page>
+          )
+        : (
+            <Page className="navigation-data-page">
+              <PageHeader
+                title="Plotted Route"
+                eyebrow="Navigation data"
+                description="Live NavRoute data received from Elite Dangerous."
+              />
+              <PageContent>
+                {loading
+                  ? <p className="navigation-data-empty">Loading navigation data…</p>
+                  : navigationError
+                    ? <p className="navigation-data-empty">{navigationError}</p>
+                    : (
+                        <section className="navigation-data-inspector" aria-label="Raw navigation data">
+                          <header><div><span>Route telemetry</span><h2>NavRoute.json</h2></div>{route && <span>{route.route.length} hops</span>}</header>
+                          <pre>{JSON.stringify(route ?? null, null, 2)}</pre>
+                        </section>
+                      )}
+              </PageContent>
+              <PageFooter><span>Route telemetry</span><span>Raw route telemetry</span></PageFooter>
+            </Page>
           )}
-          {loading
-            ? <p className="navigation-data-empty">Loading navigation data…</p>
-            : navigationError
-              ? <p className="navigation-data-empty">{navigationError}</p>
-              : view === 'system' && lookup
-                ? <SystemSchematic onSelect={selectObject} selected={selected} system={lookup.system} />
-                : (
-                    <section className="navigation-data-inspector" aria-label="Raw navigation data">
-                      <header><div><span>Route telemetry</span><h2>NavRoute.json</h2></div>{route && <span>{route.route.length} hops</span>}</header>
-                      <pre>{JSON.stringify(route ?? null, null, 2)}</pre>
-                    </section>
-                  )}
-        </PageContent>
-        <PageFooter>
-          <span>{view === 'route' ? 'Route telemetry' : 'System cartography'}</span>
-          <span>{selectedName && !selected ? `Selection not found: ${selectedName}` : view === 'system' ? 'Schematic telemetry display' : 'Raw route telemetry'}</span>
-        </PageFooter>
-      </Page>
     </PhoenixShell>
   )
 }

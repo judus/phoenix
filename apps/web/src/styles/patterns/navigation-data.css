@@ -12,6 +12,15 @@
     overflow: hidden;
   }
 
+  .navigation-system-page {
+    padding-inline: 0;
+
+    .page-content {
+      display: block;
+      padding-block: 0;
+    }
+  }
+
   .navigation-data-page .page-content {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
@@ -113,15 +122,15 @@
   }
 
   .system-cartography {
+    position: relative;
+    block-size: 100%;
     min-block-size: 0;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) clamp(19rem, 24vw, 28rem);
-    border: 1px solid var(--color-border);
     background: var(--color-panel);
     overflow: hidden;
   }
 
   .system-schematic {
+    block-size: 100%;
     min-inline-size: 0;
     min-block-size: 0;
     display: grid;
@@ -150,15 +159,6 @@
       text-transform: uppercase;
     }
 
-    h2 {
-      margin-block-start: 0.15rem;
-      color: var(--color-text);
-      font-size: clamp(1.2rem, 2vw, 1.65rem);
-      font-weight: 400;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-
     dl {
       display: flex;
       gap: var(--space-4);
@@ -173,6 +173,56 @@
     dd {
       margin: 0;
       color: var(--color-secondary);
+    }
+  }
+
+  .system-schematic__search {
+    min-inline-size: 0;
+    display: grid;
+
+    > span {
+      pointer-events: none;
+    }
+
+    label {
+      min-inline-size: min(38rem, 58vw);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+    }
+
+    input {
+      min-inline-size: 0;
+      padding: 0;
+      border: 0;
+      border-block-end: 1px solid transparent;
+      outline: 0;
+      color: var(--color-text);
+      background: transparent;
+      font: inherit;
+      font-size: clamp(1.2rem, 2vw, 1.65rem);
+      font-weight: 400;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+
+      &:focus {
+        border-block-end-color: var(--color-secondary);
+        color: var(--color-secondary);
+      }
+    }
+
+    button {
+      inline-size: 2rem;
+      block-size: 2rem;
+      border: 0;
+      color: var(--color-primary);
+      background: transparent;
+      font-size: 1.3rem;
+
+      &:hover,
+      &:focus-visible {
+        color: var(--color-secondary);
+      }
     }
   }
 
@@ -477,9 +527,15 @@
   }
 
   .cartography-detail {
+    position: absolute;
+    z-index: 2;
+    inset-block: var(--space-3);
+    inset-inline-end: var(--space-3);
+    inline-size: clamp(19rem, 24vw, 28rem);
     min-block-size: 0;
     padding: var(--space-4);
-    border-inline-start: 1px solid var(--color-border);
+    border: 1px solid var(--color-border);
+    box-shadow: -1rem 0 2rem rgb(0 0 0 / 38%);
     background:
       linear-gradient(135deg, rgb(255 157 0 / 5%), transparent 38%),
       var(--color-panel-strong);
@@ -607,21 +663,19 @@
       }
     }
 
-    .system-cartography {
-      grid-template-columns: minmax(0, 1fr) clamp(16rem, 34vw, 21rem);
+    .cartography-detail {
+      inline-size: clamp(16rem, 34vw, 21rem);
     }
   }
 
   @media (width < 42rem) {
-    .system-cartography {
-      overflow: auto;
-      grid-template-columns: 1fr;
-      grid-template-rows: minmax(24rem, 1fr) auto;
+    .system-schematic__search label {
+      min-inline-size: 0;
     }
 
     .cartography-detail {
-      border-inline-start: 0;
-      border-block-start: 1px solid var(--color-border);
+      inset-inline: var(--space-2);
+      inline-size: auto;
     }
   }
 }
