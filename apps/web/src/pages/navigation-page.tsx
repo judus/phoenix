@@ -11,11 +11,12 @@ import type { PhoenixApi } from '../api/phoenix-api-client.js'
 import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
+import { SystemSchematic } from '../features/navigation/system-schematic.js'
 
 export type NavigationView = 'system' | 'route'
 
 const navigation: NavigationItem[] = [
-  { href: '#/navigation/system', icon: '◉', id: 'system', label: 'System map data' },
+  { href: '#/navigation/system', icon: '◉', id: 'system', label: 'System map' },
   { href: '#/navigation/route', icon: '⌁', id: 'route', label: 'Plotted route' }
 ]
 
@@ -67,17 +68,19 @@ export function NavigationPage ({
   const selected = useMemo(() => selectedName && lookup
     ? findSelectedObject(lookup, selectedName)
     : null, [lookup, selectedName])
-  const payload = view === 'route'
-    ? route
-    : lookup && selectedName
-      ? { selectedName, selected: selected ?? null, ...lookup }
-      : lookup
-
   const submit = (event: FormEvent): void => {
     event.preventDefault()
     const name = query.trim()
     if (!name) return
     window.location.hash = `/navigation/system?name=${encodeURIComponent(name)}`
+  }
+
+  const selectObject = (name: string): void => {
+    const parameters = new URLSearchParams({
+      name: lookup?.system.name ?? systemName ?? query,
+      selected: name
+    })
+    window.location.hash = `/navigation/system?${parameters.toString()}`
   }
 
   return (
@@ -114,25 +117,22 @@ export function NavigationPage ({
               </dl>
             </form>
           )}
-          <section className="navigation-data-inspector" aria-label="Raw navigation data">
-            <header>
-              <div>
-                <span>Raw data</span>
-                <h2>{view === 'route' ? 'NavRoute.json' : selectedName ? `System · ${selectedName}` : 'System aggregate'}</h2>
-              </div>
-              {lookup && <span>{lookup.system.bodies.length} bodies · {lookup.system.stations.length} stations</span>}
-              {route && <span>{route.route.length} hops</span>}
-            </header>
-            {loading
-              ? <p className="navigation-data-empty">Loading navigation data…</p>
-              : navigationError
-                ? <p className="navigation-data-empty">{navigationError}</p>
-                : <pre>{JSON.stringify(payload ?? null, null, 2)}</pre>}
-          </section>
+          {loading
+            ? <p className="navigation-data-empty">Loading navigation data…</p>
+            : navigationError
+              ? <p className="navigation-data-empty">{navigationError}</p>
+              : view === 'system' && lookup
+                ? <SystemSchematic onSelect={selectObject} selected={selected} system={lookup.system} />
+                : (
+                    <section className="navigation-data-inspector" aria-label="Raw navigation data">
+                      <header><div><span>Route telemetry</span><h2>NavRoute.json</h2></div>{route && <span>{route.route.length} hops</span>}</header>
+                      <pre>{JSON.stringify(route ?? null, null, 2)}</pre>
+                    </section>
+                  )}
         </PageContent>
         <PageFooter>
           <span>{view === 'route' ? 'Route telemetry' : 'System cartography'}</span>
-          <span>{selectedName && !selected ? `Selection not found: ${selectedName}` : 'Raw view · presentation deferred'}</span>
+          <span>{selectedName && !selected ? `Selection not found: ${selectedName}` : view === 'system' ? 'Schematic telemetry display' : 'Raw route telemetry'}</span>
         </PageFooter>
       </Page>
     </PhoenixShell>
