@@ -15,6 +15,7 @@ import './styles/patterns/journal.css'
 import './styles/patterns/navigation-data.css'
 import './styles/patterns/engineering.css'
 import './styles/patterns/dashboard.css'
+import './styles/patterns/ship.css'
 import './styles/utilities.css'
 
 const root = document.getElementById('root')

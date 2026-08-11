@@ -275,6 +275,7 @@ export type CurrentShip = z.infer<typeof CurrentShipSchema>
 export type FactionSummary = z.infer<typeof FactionSummarySchema>
 export type NamedGameValue = z.infer<typeof NamedGameValueSchema>
 export type ShipModule = z.infer<typeof ShipModuleSchema>
+export type ShipModuleSlotGroup = z.infer<typeof ShipModuleSlotGroupSchema>
 export type RuntimeLocationState = z.infer<typeof RuntimeLocationStateSchema>
 export type RuntimeState = z.infer<typeof RuntimeStateSchema>
 

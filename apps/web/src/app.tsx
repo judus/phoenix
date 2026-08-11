@@ -19,6 +19,7 @@ import { LogPage } from './pages/log-page.js'
 import { NavigationPage, type NavigationView } from './pages/navigation-page.js'
 import { EngineeringPage, type EngineeringView } from './pages/engineering-page.js'
 import { DashboardPage } from './pages/dashboard-page.js'
+import { ShipPage, type ShipView } from './pages/ship-page.js'
 
 const api = new PhoenixApiClient()
 
@@ -192,6 +193,17 @@ export function App () {
     )
   }
 
+  if (route.section === 'ship') {
+    return (
+      <ShipPage
+        error={error}
+        health={health}
+        runtimeState={runtimeState}
+        view={route.view}
+      />
+    )
+  }
+
   return <DashboardPage api={api} health={health} error={error} runtimeState={runtimeState} />
 }
 
@@ -201,6 +213,7 @@ type AppRoute =
   | { section: 'log' }
   | { section: 'navigation', view: NavigationView, systemName?: string, selectedName?: string }
   | { section: 'engineering', view: EngineeringView }
+  | { section: 'ship', view: ShipView }
   | { section: 'controls', category: ControlCategory }
   | { section: 'developer', view: DeveloperView }
 
@@ -233,6 +246,10 @@ function readRoute (): AppRoute {
   }
   if (/^#\/?engineering\/engineers$/u.test(window.location.hash)) {
     return { section: 'engineering', view: { type: 'engineers' } }
+  }
+  const shipMatch = window.location.hash.match(/^#\/?ship\/(status|modules|cargo|inventory)$/u)
+  if (shipMatch) {
+    return { section: 'ship', view: shipMatch[1] as ShipView }
   }
   const engineeringBlueprintsMatch = window.location.hash.match(/^#\/?engineering\/blueprints(?:\?(.*))?$/u)
   if (engineeringBlueprintsMatch) {

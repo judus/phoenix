@@ -76,9 +76,11 @@ export const EliteInventoryFileSnapshotSchema = z.discriminatedUnion('kind', [
 ])
 
 export type CargoInventory = z.infer<typeof CargoInventorySchema>
+export type CargoItem = z.infer<typeof CargoItemSchema>
 export type CommanderInventory = z.infer<typeof CommanderInventorySchema>
 export type EliteInventoryFileSnapshot = z.infer<typeof EliteInventoryFileSnapshotSchema>
 export type EngineeringMaterialAdjustment = z.infer<typeof EngineeringMaterialAdjustmentSchema>
 export type EngineeringMaterialConsumption = z.infer<typeof EngineeringMaterialConsumptionSchema>
 export type EngineeringMaterials = z.infer<typeof EngineeringMaterialsSchema>
 export type MicroResourceInventory = z.infer<typeof MicroResourceInventorySchema>
+export type MicroResource = z.infer<typeof MicroResourceSchema>
