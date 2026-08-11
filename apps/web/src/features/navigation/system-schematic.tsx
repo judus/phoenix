@@ -4,6 +4,11 @@ import type {
   CartographicStation,
   CartographicSystem
 } from '@phoenix/contracts'
+import {
+  buildSystemHierarchy,
+  type AttachedInstallation,
+  type BodyHierarchyNode
+} from './system-hierarchy.js'
 
 export type CartographicSelection = CartographicBody | CartographicStation
 
@@ -16,21 +21,8 @@ export interface SystemSchematicProps {
   system: CartographicSystem
 }
 
-interface BodyBranch {
-  body: CartographicBody
-  children: CartographicBody[]
-}
-
-interface StarGroup {
-  branches: BodyBranch[]
-  star: CartographicBody
-}
-
 export function SystemSchematic ({ onQueryChange, onSearch, onSelect, query, selected, system }: SystemSchematicProps) {
-  const groups = buildStarGroups(system.bodies)
-  const ungrouped = system.bodies.filter(body => !groups.some(group => (
-    group.star === body || group.branches.some(branch => branch.body === body || branch.children.includes(body))
-  )))
+  const hierarchy = buildSystemHierarchy(system)
 
   return (
     <div className={selected ? 'system-cartography has-selection' : 'system-cartography'}>
@@ -68,50 +60,38 @@ export function SystemSchematic ({ onQueryChange, onSearch, onSelect, query, sel
             if (!(event.target instanceof Element) || !event.target.closest('button')) onSelect()
           }}
         >
-          {groups.map(group => (
-            <StarGroupView
-              group={group}
-              key={bodyKey(group.star)}
+          {hierarchy.roots.map(root => (
+            <OrbitalGroupView
+              key={bodyKey(root.body)}
               onSelect={onSelect}
+              root={root}
               selectedName={selected?.name}
             />
           ))}
-          {groups.length === 0 && ungrouped.length === 0 && (
+          {hierarchy.roots.length === 0 && hierarchy.unassignedInstallations.length === 0 && (
             <p className="system-schematic__empty">No body catalogue is available for this system.</p>
           )}
-          {ungrouped.length > 0 && (
+          {hierarchy.unassignedInstallations.length > 0 && (
             <section className="system-orbit-group system-orbit-group--ungrouped">
               <div className="system-orbit-group__title">
-                <span>Unresolved orbital parent</span>
-                <strong>{ungrouped.length} objects</strong>
+                <span>Unresolved installations</span>
+                <strong>{hierarchy.unassignedInstallations.length} objects</strong>
               </div>
-              <div className="system-orbit-row">
-                {ungrouped.map(body => (
-                  <BodyNode body={body} key={bodyKey(body)} onSelect={onSelect} selected={selected?.name === body.name} />
+              <div className="system-unassigned-installations">
+                {hierarchy.unassignedInstallations.map(station => (
+                  <InstallationNode
+                    installation={{ source: 'distance', station }}
+                    key={stationKey(station)}
+                    onSelect={onSelect}
+                    selected={selected?.name === station.name}
+                  />
                 ))}
               </div>
             </section>
           )}
         </div>
 
-        {system.stations.length > 0 && (
-          <div className="system-installations" aria-label="System installations">
-            <span>Installations</span>
-            <div>
-              {system.stations.map(station => (
-                <button
-                  className={selected?.name === station.name ? 'is-selected' : undefined}
-                  key={station.marketId ?? station.id ?? station.name}
-                  onClick={() => onSelect(station.name)}
-                  type="button"
-                >
-                  <StationGlyph />
-                  <span><strong>{station.name}</strong><small>{station.type ?? 'Installation'}</small></span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        <SystemSummary system={system} />
       </section>
 
       {selected && <CartographyDetail selection={selected} />}
@@ -119,86 +99,157 @@ export function SystemSchematic ({ onQueryChange, onSearch, onSelect, query, sel
   )
 }
 
-function StarGroupView ({
-  group,
+function OrbitalGroupView ({
   onSelect,
+  root,
   selectedName
 }: {
-  group: StarGroup
+  root: BodyHierarchyNode
   onSelect(name: string): void
   selectedName?: string
 }) {
   return (
     <section className="system-orbit-group">
       <div className="system-orbit-group__title">
-        <span>{group.star.name}</span>
-        <strong>{group.star.subType ?? group.star.type ?? 'Star'}</strong>
+        <span>{root.body.name}</span>
+        <strong>{root.body.subType ?? root.body.type ?? 'Celestial body'}</strong>
       </div>
       <div className="system-orbit-row">
-        <BodyNode body={group.star} onSelect={onSelect} selected={selectedName === group.star.name} star />
+        <BodyNode node={root} onSelect={onSelect} selectedName={selectedName} star />
         <div className="system-orbit-row__line" aria-hidden="true" />
-        {group.branches.map(branch => (
-          <div className="system-body-branch" key={bodyKey(branch.body)}>
-            <BodyNode body={branch.body} onSelect={onSelect} selected={selectedName === branch.body.name} />
-            {branch.children.length > 0 && (
-              <div className="system-body-branch__children">
-                {branch.children.map(child => (
-                  <BodyNode
-                    body={child}
-                    child
-                    key={bodyKey(child)}
-                    onSelect={onSelect}
-                    selected={selectedName === child.name}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+        {root.children.map(child => (
+          <BodyBranchView key={bodyKey(child.body)} node={child} onSelect={onSelect} selectedName={selectedName} />
         ))}
       </div>
     </section>
   )
 }
 
-function BodyNode ({
-  body,
+function BodyBranchView ({
   child = false,
+  node,
   onSelect,
-  selected,
+  selectedName
+}: {
+  child?: boolean
+  node: BodyHierarchyNode
+  onSelect(name: string): void
+  selectedName?: string
+}) {
+  return (
+    <div className="system-body-branch">
+      <BodyNode child={child} node={node} onSelect={onSelect} selectedName={selectedName} />
+      {node.children.length > 0 && (
+        <div className="system-body-branch__children">
+          {node.children.map(descendant => (
+            <BodyBranchView
+              child
+              key={bodyKey(descendant.body)}
+              node={descendant}
+              onSelect={onSelect}
+              selectedName={selectedName}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function BodyNode ({
+  child = false,
+  node,
+  onSelect,
+  selectedName,
   star = false
 }: {
-  body: CartographicBody
   child?: boolean
+  node: BodyHierarchyNode
   onSelect(name: string): void
-  selected: boolean
+  selectedName?: string
   star?: boolean
 }) {
+  const { body, installations } = node
   const kind = bodyKind(body)
   const signals = body.local?.signals
   return (
+    <div className="system-body-node">
+      <button
+        aria-label={`${body.name}, ${body.subType ?? body.type ?? 'unknown body'}`}
+        className={[
+          'system-body',
+          `system-body--${kind}`,
+          star ? 'system-body--star' : '',
+          child ? 'system-body--child' : '',
+          selectedName === body.name ? 'is-selected' : ''
+        ].filter(Boolean).join(' ')}
+        onClick={() => onSelect(body.name)}
+        type="button"
+      >
+        <span className="system-body__distance">{formatDistance(body.distanceToArrival)}</span>
+        <BodyGlyph kind={kind} ringed={isRinged(body)} />
+        <strong>{shortBodyName(body.name)}</strong>
+        <small>{shortType(body)}</small>
+        <span className="system-body__badges">
+          {body.local?.mapped && <i title="Mapped">M</i>}
+          {body.local?.surfaceScanCompleted && <i title="Surface scan complete">S</i>}
+          {signals && signals.biological > 0 && <i className="is-signal" title="Biological signals">B{signals.biological}</i>}
+          {signals && signals.geological > 0 && <i className="is-signal" title="Geological signals">G{signals.geological}</i>}
+        </span>
+      </button>
+      {installations.length > 0 && (
+        <div className="system-body-installations">
+          {installations.map(installation => (
+            <InstallationNode
+              installation={installation}
+              key={stationKey(installation.station)}
+              onSelect={onSelect}
+              selected={selectedName === installation.station.name}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function InstallationNode ({
+  installation,
+  onSelect,
+  selected
+}: {
+  installation: AttachedInstallation
+  onSelect(name: string): void
+  selected: boolean
+}) {
+  const { source, station } = installation
+  return (
     <button
-      aria-label={`${body.name}, ${body.subType ?? body.type ?? 'unknown body'}`}
-      className={[
-        'system-body',
-        `system-body--${kind}`,
-        star ? 'system-body--star' : '',
-        child ? 'system-body--child' : '',
-        selected ? 'is-selected' : ''
-      ].filter(Boolean).join(' ')}
-      onClick={() => onSelect(body.name)}
+      className={`system-installation${selected ? ' is-selected' : ''}`}
+      onClick={() => onSelect(station.name)}
+      title={`${station.type ?? 'Installation'} · parent ${source === 'explicit' ? 'reported' : 'inferred'}`}
       type="button"
     >
-      <span className="system-body__distance">{formatDistance(body.distanceToArrival)}</span>
-      <BodyGlyph kind={kind} ringed={isRinged(body)} />
-      <strong>{shortBodyName(body.name)}</strong>
-      <small>{shortType(body)}</small>
-      <span className="system-body__badges">
-        {body.local?.mapped && <i title="Mapped">M</i>}
-        {body.local?.surfaceScanCompleted && <i title="Surface scan complete">S</i>}
-        {signals && signals.biological > 0 && <i className="is-signal" title="Biological signals">B{signals.biological}</i>}
-        {signals && signals.geological > 0 && <i className="is-signal" title="Geological signals">G{signals.geological}</i>}
-      </span>
+      <StationGlyph />
+      <span><strong>{station.name}</strong><small>{station.type ?? 'Installation'}</small></span>
     </button>
+  )
+}
+
+function SystemSummary ({ system }: { system: CartographicSystem }) {
+  const info = system.information
+  return (
+    <footer className="system-summary">
+      <strong>System summary</strong>
+      <dl>
+        <div><dt>Bodies</dt><dd>{system.bodies.length}</dd></div>
+        <div><dt>Installations</dt><dd>{system.stations.length}</dd></div>
+        <div><dt>Economy</dt><dd>{info.primaryEconomy ?? '—'}</dd></div>
+        <div><dt>Population</dt><dd>{formatNumber(info.population)}</dd></div>
+        <div><dt>Allegiance</dt><dd>{info.allegiance ?? '—'}</dd></div>
+        <div><dt>Security</dt><dd>{info.security ?? '—'}</dd></div>
+      </dl>
+    </footer>
   )
 }
 
@@ -344,43 +395,6 @@ function bodyKind (body: CartographicBody): BodyKind {
   return 'exotic'
 }
 
-export function buildStarGroups (bodies: CartographicBody[]): StarGroup[] {
-  const byBodyId = new Map<number, CartographicBody>()
-  for (const body of bodies) if (body.bodyId != null) byBodyId.set(body.bodyId, body)
-  const stars = bodies.filter(body => bodyKind(body) === 'star' || bodyKind(body) === 'black-hole')
-  return stars.map(star => {
-    const orbiters = bodies.filter(body => !stars.includes(body) && nearestStar(body, byBodyId) === star)
-    const direct = orbiters.filter(body => nearestPlanet(body, byBodyId) === undefined)
-    return {
-      star,
-      branches: direct.map(body => ({
-        body,
-        children: orbiters.filter(candidate => nearestPlanet(candidate, byBodyId) === body)
-          .sort(byArrival)
-      })).sort((left, right) => byArrival(left.body, right.body))
-    }
-  })
-}
-
-function nearestStar (body: CartographicBody, bodies: Map<number, CartographicBody>): CartographicBody | undefined {
-  for (const parent of body.parents) {
-    const id = numericParent(parent, 'Star')
-    if (id !== undefined) return bodies.get(id)
-  }
-}
-
-function nearestPlanet (body: CartographicBody, bodies: Map<number, CartographicBody>): CartographicBody | undefined {
-  for (const parent of body.parents) {
-    const id = numericParent(parent, 'Planet')
-    if (id !== undefined) return bodies.get(id)
-  }
-}
-
-function numericParent (parent: Record<string, unknown>, key: string): number | undefined {
-  const value = parent[key] ?? parent[key.toLocaleLowerCase()]
-  return typeof value === 'number' && Number.isInteger(value) ? value : undefined
-}
-
 function isRinged (body: CartographicBody): boolean {
   const rings = body.raw.rings
   return Array.isArray(rings) && rings.length > 0
@@ -390,12 +404,12 @@ function isStation (selection: CartographicSelection): selection is Cartographic
   return 'services' in selection
 }
 
-function byArrival (left: CartographicBody, right: CartographicBody): number {
-  return (left.distanceToArrival ?? Number.MAX_SAFE_INTEGER) - (right.distanceToArrival ?? Number.MAX_SAFE_INTEGER)
-}
-
 function bodyKey (body: CartographicBody): string | number {
   return body.id64 ?? body.id ?? body.bodyId ?? body.name
+}
+
+function stationKey (station: CartographicStation): string | number {
+  return station.marketId ?? station.id ?? station.name
 }
 
 function shortBodyName (name: string): string {
@@ -410,6 +424,10 @@ function shortType (body: CartographicBody): string {
 function formatDistance (value: number | null): string {
   if (value == null) return '—'
   return value < 0.1 ? `${Math.round(value * 299_792)} km` : `${Math.round(value).toLocaleString()} ls`
+}
+
+function formatNumber (value: number | null): string {
+  return value == null ? '—' : value.toLocaleString()
 }
 
 function numberValue (value: unknown): number | null {

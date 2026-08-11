@@ -18,6 +18,6 @@ test('the template page composes the shared application layout', () => {
   expect(markup).toContain('href="#/developer/overview"')
   expect(markup).toContain('<main class="page">')
   expect(markup).toContain('class="page-header"')
-  expect(markup).toContain('class="page-content"')
+  expect(markup).toContain('class="page-content page-content--inset"')
   expect(markup).toContain('class="page-footer"')
 })

@@ -1,19 +1,36 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test, vi } from 'vitest'
 import type { CartographicBody, CartographicSystem } from '@phoenix/contracts'
-import {
-  buildStarGroups,
-  SystemSchematic
-} from '../apps/web/src/features/navigation/system-schematic.js'
+import { buildSystemHierarchy } from '../apps/web/src/features/navigation/system-hierarchy.js'
+import { SystemSchematic } from '../apps/web/src/features/navigation/system-schematic.js'
 
-test('schematic cartography groups planets and moons beneath their star', () => {
+test('schematic cartography orders bodies by body id and preserves the complete parent hierarchy', () => {
   const system = fixtureSystem()
-  const groups = buildStarGroups(system.bodies)
+  system.bodies.reverse()
+  const hierarchy = buildSystemHierarchy(system)
 
-  expect(groups).toHaveLength(1)
-  expect(groups[0]?.star.name).toBe('Sol')
-  expect(groups[0]?.branches.map(branch => branch.body.name)).toEqual(['Sol A 1', 'Sol A 2'])
-  expect(groups[0]?.branches[0]?.children.map(body => body.name)).toEqual(['Sol A 1 a'])
+  expect(hierarchy.roots).toHaveLength(1)
+  expect(hierarchy.roots[0]?.body.name).toBe('Sol')
+  expect(hierarchy.roots[0]?.children.map(node => node.body.name)).toEqual(['Sol A 1', 'Sol A 2'])
+  expect(hierarchy.roots[0]?.children[0]?.children.map(node => node.body.name)).toEqual(['Sol A 1 a'])
+})
+
+test('schematic cartography prefers reported installation parents and otherwise uses nearest-body distance', () => {
+  const system = fixtureSystem()
+  system.stations.push({
+    ...system.stations[0]!,
+    id: 2,
+    marketId: 2,
+    name: 'Solar Carrier',
+    distanceToArrival: 0,
+    raw: {}
+  })
+  const hierarchy = buildSystemHierarchy(system)
+  const root = hierarchy.roots[0]!
+
+  expect(root.installations.map(item => [item.station.name, item.source])).toEqual([['Solar Carrier', 'distance']])
+  expect(root.children[0]?.installations.map(item => [item.station.name, item.source])).toEqual([['Galileo', 'explicit']])
+  expect(hierarchy.unassignedInstallations).toEqual([])
 })
 
 test('schematic cartography renders symbolic bodies, stations, and scan markers', () => {
@@ -35,6 +52,7 @@ test('schematic cartography renders symbolic bodies, stations, and scan markers'
   expect(markup).toContain('Biological signals')
   expect(markup).toContain('Galileo')
   expect(markup).toContain('Installation')
+  expect(markup).toContain('System summary')
   expect(markup).toContain('has-selection')
   expect(markup).toContain('aria-label="System name"')
 })
@@ -93,7 +111,7 @@ function fixtureSystem (): CartographicSystem {
       controllingFaction: 'Mother Gaia',
       services: ['Repair'],
       facilities: { market: true, shipyard: true, outfitting: true },
-      raw: {}
+      raw: { body: { id: 1, name: 'Sol A 1' } }
     }],
     scanProgress: { knownBodies: 4, reportedBodies: 4, percent: 100 },
     localSystem: null,
