@@ -171,8 +171,8 @@ test('application startup projects the current commander, ranks, location and sh
     }))
     expect(catalogueDiagnostics).toMatchObject({
       shipCount: 47,
-      shipAliasCount: 83,
-      moduleCount: 1068,
+      shipAliasCount: 90,
+      moduleCount: 1190,
       currentShip: {
         typeId: 'cobramkiii',
         displayName: 'Cobra Mk III',

@@ -4,8 +4,11 @@
 
 PHOENIX includes normalized ship and module catalogue snapshots derived from community-maintained Elite Dangerous data projects:
 
-- [EDCD Coriolis Data](https://github.com/EDCD/coriolis-data), ship snapshot commit `0db9234b5b9ce8c939ea84133d7ce336eea88e27`;
-- [EDCD FDevIDs](https://github.com/EDCD/FDevIDs), outfitting identifiers from a legacy snapshot whose upstream revision was not recorded.
+- [EDCD Coriolis Data](https://github.com/EDCD/coriolis-data), for ship and engineering-blueprint data;
+- [EDCD FDevIDs](https://github.com/EDCD/FDevIDs), for ship, outfitting, material, and engineer identifiers;
+- [EDSM](https://www.edsm.net/), for resolving engineer-system names and coordinates.
+
+Exact upstream revisions and refresh timestamps are recorded in `data/catalogue/manifest.json`.
 
 The Coriolis Data license states that its Elite Dangerous data and associated JSON files are intellectual property and copyright of Frontier Developments plc and are subject to Frontier's terms and conditions. The MIT grant in that repository applies to Coriolis-specific code, not the game data.
 

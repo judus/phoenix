@@ -27,3 +27,7 @@ npm run dev
 ```
 
 Expect incomplete features, breaking changes, and no installation support yet.
+
+## Acknowledgements
+
+Thanks to [Iain Collins](https://github.com/iaincollins), author of [ICARUS Terminal](https://github.com/iaincollins/icarus), for the inspiration and the valuable lessons learned from his work.

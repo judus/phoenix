@@ -58,7 +58,7 @@ test('engineering APIs combine the imported catalogue with live commander state'
       grade: 1,
       group: 'Shielding'
     })
-    expect(blueprints.blueprints).toHaveLength(80)
+    expect(blueprints.blueprints).toHaveLength(81)
     expect(blueprint.symbol).toBe('AFM_Shielded')
     expect(blueprint.grades[0]).toMatchObject({
       grade: 1,

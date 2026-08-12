@@ -10,9 +10,7 @@ import {
   EliteJournalFileSource,
   EliteJournalHistoryBackfill,
   EliteNavigationRouteFileSource,
-  EliteStatusFileSource,
-  JsonEngineeringCatalogue,
-  JsonGameCatalogue
+  EliteStatusFileSource
 } from '@phoenix/elite'
 import { CatalogueShipLoadoutEnricher } from './application/catalogue-ship-loadout-enricher.js'
 import { CopilotConversationEventService } from './application/copilot-conversation-event-service.js'
@@ -62,6 +60,7 @@ import { createConfiguredCopilot } from './infrastructure/configured-copilot.js'
 import { PhoenixMcpServer } from './infrastructure/phoenix-mcp-server.js'
 import { ArdentStationSearchSource } from './infrastructure/ardent-station-search-source.js'
 import { EdsmStationStockSource } from './infrastructure/edsm-station-stock-source.js'
+import { CatalogueSnapshotLoader } from './infrastructure/catalogue-snapshot-loader.js'
 
 export interface PhoenixApplicationOptions {
   actionBindingResolver?: GameActionBindingResolver
@@ -112,26 +111,31 @@ export class PhoenixApplication {
       )
     )
     const activityLog = new ActivityLogService(this.database)
-    const gameCatalogue = new JsonGameCatalogue(
-      resolveProjectPath(
-        projectRoot,
-        options.shipCataloguePath ?? process.env.PHOENIX_SHIP_CATALOGUE_PATH ?? 'data/catalogue/ships.json'
-      ),
-      resolveProjectPath(
-        projectRoot,
-        options.moduleCataloguePath ?? process.env.PHOENIX_MODULE_CATALOGUE_PATH ?? 'data/catalogue/modules.json'
-      )
-    )
     const engineeringCatalogueDirectory = resolveProjectPath(
       projectRoot,
       options.engineeringCatalogueDirectory ?? process.env.PHOENIX_ENGINEERING_CATALOGUE_PATH ?? 'data/catalogue/engineering'
     )
-    const engineeringCatalogue = new JsonEngineeringCatalogue({
-      blueprints: resolve(engineeringCatalogueDirectory, 'blueprints.json'),
-      engineers: resolve(engineeringCatalogueDirectory, 'engineers.json'),
-      materials: resolve(engineeringCatalogueDirectory, 'materials.json'),
-      materialUses: resolve(engineeringCatalogueDirectory, 'material-uses.json')
-    })
+    const customCatalogue = options.shipCataloguePath !== undefined || options.moduleCataloguePath !== undefined ||
+      options.engineeringCatalogueDirectory !== undefined || process.env.PHOENIX_SHIP_CATALOGUE_PATH !== undefined ||
+      process.env.PHOENIX_MODULE_CATALOGUE_PATH !== undefined || process.env.PHOENIX_ENGINEERING_CATALOGUE_PATH !== undefined
+    const bundledCatalogueDirectory = resolve(projectRoot, 'data/catalogue')
+    const catalogues = new CatalogueSnapshotLoader().load(
+      customCatalogue ? null : cataloguePaths(resolve(projectRoot, 'data/runtime/catalogue')),
+      {
+        directory: engineeringCatalogueDirectory,
+        engineeringDirectory: engineeringCatalogueDirectory,
+        ships: resolveProjectPath(
+          projectRoot,
+          options.shipCataloguePath ?? process.env.PHOENIX_SHIP_CATALOGUE_PATH ?? `${bundledCatalogueDirectory}/ships.json`
+        ),
+        modules: resolveProjectPath(
+          projectRoot,
+          options.moduleCataloguePath ?? process.env.PHOENIX_MODULE_CATALOGUE_PATH ?? `${bundledCatalogueDirectory}/modules.json`
+        )
+      }
+    )
+    const gameCatalogue = catalogues.game
+    const engineeringCatalogue = catalogues.engineering
     const projector = new DefaultRuntimeStateProjector(
       this.stateStore,
       runtimeStateUpdates,
@@ -344,4 +348,13 @@ function locateBindingsDirectory (
 function resolveProjectPath (projectRoot: string, path: string): string {
   if (path === ':memory:' || isAbsolute(path)) return path
   return resolve(projectRoot, path)
+}
+
+function cataloguePaths (directory: string) {
+  return {
+    directory,
+    engineeringDirectory: resolve(directory, 'engineering'),
+    ships: resolve(directory, 'ships.json'),
+    modules: resolve(directory, 'modules.json')
+  }
 }

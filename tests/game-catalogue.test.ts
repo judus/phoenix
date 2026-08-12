@@ -38,10 +38,10 @@ test('catalogue resolves known modules and labels unknown new modules as inferre
     source: { kind: 'catalogue', name: 'EDCD FDevIDs' }
   })
   expect(catalogue.resolveModule('hpt_miningtoolv2_fixed_large')).toMatchObject({
-    displayName: 'Mining Tool V2',
+    displayName: 'Mining Volley Repeater',
     size: 3,
     mount: 'Fixed',
-    source: { kind: 'inferred' }
+    source: { kind: 'catalogue' }
   })
 })
 
@@ -65,9 +65,9 @@ test('loadout enrichment keeps observed fields separate from expected hull slots
     source: module.definition?.source.kind
   }))).toEqual([
     { slotId: 'PowerPlant', observedSize: 6, expectedSize: 6, expectedName: 'Power Plant', source: 'catalogue' },
-    { slotId: 'LargeMiningHardpoint1', observedSize: 3, expectedSize: 3, expectedName: 'Mining', source: 'inferred' },
+    { slotId: 'LargeMiningHardpoint1', observedSize: 3, expectedSize: 3, expectedName: 'Mining', source: 'catalogue' },
     { slotId: 'TinyHardpoint4', observedSize: null, expectedSize: 0, expectedName: undefined, source: 'catalogue' },
-    { slotId: 'LimpetController01', observedSize: 5, expectedSize: 5, expectedName: 'Limpets', source: 'inferred' },
+    { slotId: 'LimpetController01', observedSize: 5, expectedSize: 5, expectedName: 'Limpets', source: 'catalogue' },
     { slotId: 'Slot06_Size4', observedSize: 4, expectedSize: 4, expectedName: undefined, source: 'catalogue' }
   ])
 })
