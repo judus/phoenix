@@ -27,14 +27,14 @@ test('agent prompts compose mode-specific character and dynamic runtime context'
 
   expect(composer.compose({
     mode: 'speech',
-    profileId: 'icarus',
+    profileId: 'marin',
     runtimeContext: 'LIVE STATE'
   })).toBe('PROLOGUE\nOPERATIONS\nSPEECH CHARACTER\nLIVE STATE')
 
   expect(() => new AgentPromptComposer(new StaticProfileRepository({
     ...profile,
     agent: '{{ UNKNOWN }}'
-  })).compose({ mode: 'text', profileId: 'icarus' })).toThrow('Unknown agent prompt placeholder')
+  })).compose({ mode: 'text', profileId: 'marin' })).toThrow('Unknown agent prompt placeholder')
 })
 
 test('tracked agent profile files compose and reject unsafe profile IDs', () => {
@@ -43,14 +43,14 @@ test('tracked agent profile files compose and reject unsafe profile IDs', () => 
 
   const prompt = composer.compose({
     mode: 'text',
-    profileId: 'icarus',
+    profileId: 'marin',
     runtimeContext: 'LIVE STATE'
   })
 
-  expect(prompt).toContain('You are ICARUS.')
+  expect(prompt).toContain('You are Marin.')
   expect(prompt).toContain('LIVE STATE')
   expect(prompt).not.toContain('{{')
-  expect(() => repository.get('../icarus')).toThrow('Invalid agent profile ID')
+  expect(() => repository.get('../marin')).toThrow('Invalid agent profile ID')
 })
 
 test('runtime context renders typed PHOENIX state without legacy compatibility shapes', () => {
@@ -115,7 +115,7 @@ test('text pipeline delegates execution and streaming to maduser-ai-ts-compatibl
   const turn = {
     conversationId: 'bridge-log',
     message: 'Status report.',
-    profileId: 'icarus',
+    profileId: 'marin',
     runtimeState: createEmptyRuntimeState()
   }
 

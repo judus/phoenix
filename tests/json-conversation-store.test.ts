@@ -19,7 +19,7 @@ test('JSON conversations survive reloads and remain human-readable', async () =>
   const store = new JsonConversationStore(directory, {
     clock: () => new Date('2026-08-10T20:00:00.000Z')
   })
-  const created = await store.create({ id: 'bridge/log', metadata: { agentId: 'icarus' } })
+  const created = await store.create({ id: 'bridge/log', metadata: { agentId: 'marin' } })
   await store.append('bridge/log', [message('bridge/log', 'message-1', 'user', 'Report.')], {
     expectedRevision: created.revision
   })

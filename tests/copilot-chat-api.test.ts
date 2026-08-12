@@ -23,7 +23,7 @@ test('the Copilot API supports buffered and streamed text turns', async () => {
 
   try {
     const buffered = await fetch(endpoint, {
-      body: JSON.stringify({ message: ' Status report. ', profileId: 'icarus' }),
+      body: JSON.stringify({ message: ' Status report. ', profileId: 'marin' }),
       headers: { 'content-type': 'application/json' },
       method: 'POST'
     })
@@ -56,7 +56,7 @@ test('the Copilot API supports buffered and streamed text turns', async () => {
     )
     expect(events).toEqual(['started', 'delta', 'completed'])
     expect(copilot.requests).toEqual([
-      { message: 'Status report.', profileId: 'icarus' },
+      { message: 'Status report.', profileId: 'marin' },
       { conversationId: 'bridge-log', message: 'Continue.' }
     ])
   } finally {

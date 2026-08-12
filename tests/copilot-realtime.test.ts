@@ -22,7 +22,7 @@ import { JsonConversationStore } from '../apps/server/src/infrastructure/json-co
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 
 const projectRoot = fileURLToPath(new URL('../', import.meta.url))
-const audioProcessing = readCopilotAudioProcessing(join(projectRoot, 'agents/icarus/audio.json'))
+const audioProcessing = readCopilotAudioProcessing(join(projectRoot, 'agents/marin/audio.json'))
 
 test('Realtime composition shares profiles, telemetry, tools, and conversation persistence', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-realtime-'))

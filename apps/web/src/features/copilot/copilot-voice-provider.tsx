@@ -141,7 +141,7 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
       const [token, audioProcessing] = await Promise.all([
         apiRef.current.createCopilotRealtimeToken({
           conversationId: CONVERSATION_ID,
-          profileId: 'icarus'
+          profileId: 'marin'
         }),
         apiRef.current.getCopilotAudioProcessing()
       ])

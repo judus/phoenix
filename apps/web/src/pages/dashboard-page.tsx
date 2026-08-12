@@ -98,9 +98,9 @@ export function DashboardPage ({ api, error, health, runtimeState }: DashboardPa
 
             <DashboardCard className="dashboard-card--copilot" title="Copilot" action={<a href="#copilot">Open channel</a>}>
               <div className="dashboard-copilot">
-                <span className="dashboard-copilot__mark" aria-hidden="true">I</span>
+                <span className="dashboard-copilot__mark" aria-hidden="true">M</span>
                 <div>
-                  <strong>ICARUS</strong>
+                  <strong>MARIN</strong>
                   <span>{voice.status}</span>
                 </div>
                 <button

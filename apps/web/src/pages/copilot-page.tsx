@@ -145,7 +145,7 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
         clientId: clientIdRef.current,
         conversationId: DEFAULT_CONVERSATION_ID,
         message: text,
-        profileId: 'icarus',
+        profileId: 'marin',
         turnId
       }, event => applyStreamEvent(event, assistantId, setMessages, setToolStatus))
       await loadHistory()
@@ -177,15 +177,15 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
             <aside className="copilot-sidebar" aria-label="Copilot profile">
               <h2>Copilot profile</h2>
               <button className="copilot-profile" type="button" aria-pressed="true">
-                <span className="copilot-profile__mark">I</span>
-                <span><strong>ICARUS</strong><small>Active profile</small></span>
+                <span className="copilot-profile__mark">M</span>
+                <span><strong>MARIN</strong><small>Active profile</small></span>
               </button>
             </aside>
 
             <section className="copilot-chat" aria-label="Copilot conversation">
               <div className="copilot-messages" aria-live="polite">
                 {messages.length === 0 && (
-                  <p className="copilot-empty">No conversation yet. ICARUS is standing by.</p>
+                  <p className="copilot-empty">No conversation yet. Marin is standing by.</p>
                 )}
                 {messages.map(message => (
                   <article key={message.id} className={`copilot-message copilot-message--${message.role}`}>
@@ -241,7 +241,7 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
                   id="copilot-message"
                   value={composer}
                   disabled={pending}
-                  placeholder="Ask ICARUS…"
+                  placeholder="Ask Marin…"
                   rows={3}
                   onChange={event => setComposer(event.target.value)}
                   onKeyDown={event => {

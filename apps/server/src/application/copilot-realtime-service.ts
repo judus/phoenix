@@ -54,7 +54,7 @@ export class CopilotRealtimeService implements CopilotRealtime {
   private readonly realtimeToolNames = new Map<string, string>()
 
   public constructor (private readonly options: CopilotRealtimeServiceOptions) {
-    this.defaultProfileId = options.defaultProfileId ?? 'icarus'
+    this.defaultProfileId = options.defaultProfileId ?? 'marin'
     for (const definition of options.tools.definitions) {
       this.realtimeToolNames.set(realtimeToolName(definition.name), definition.name)
     }

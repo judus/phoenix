@@ -95,7 +95,7 @@ export function createConfiguredCopilot (
       audioProcessing: readCopilotAudioProcessing(resolve(
         projectRoot,
         options.agentsDirectory ?? 'agents',
-        'icarus',
+        'marin',
         'audio.json'
       )),
       conversations,

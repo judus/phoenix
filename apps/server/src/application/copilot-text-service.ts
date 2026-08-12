@@ -21,7 +21,7 @@ export class CopilotTextService implements CopilotText {
     private readonly pipeline: TextCopilotPipeline,
     private readonly runtimeState: RuntimeStateReader,
     private readonly conversations: ConversationStore,
-    private readonly defaultProfileId = 'icarus'
+    private readonly defaultProfileId = 'marin'
   ) {}
 
   public async getHistory (conversationId: string): Promise<readonly CopilotHistoryMessage[]> {
