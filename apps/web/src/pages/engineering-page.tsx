@@ -284,7 +284,7 @@ function groupBy<T> (values: T[], key: (value: T) => string): Map<string, T[]> {
 
 function unique<T> (values: T[]): T[] { return [...new Set(values)] }
 function capitalize (value: string): string { return value.charAt(0).toLocaleUpperCase() + value.slice(1) }
-function systemHref (systemName: string): string { return `#/navigation/system?name=${encodeURIComponent(systemName)}` }
+function systemHref (systemName: string): string { return `#/galaxy/system?name=${encodeURIComponent(systemName)}` }
 function formatProgress (progress: number): string { return progress > 0 ? `· ${progress.toFixed(0)}%` : '' }
 function gradeRange (grades: number[]): string { const minimum = Math.min(...grades); const maximum = Math.max(...grades); return minimum === maximum ? `Grade ${minimum}` : `Grades ${minimum}–${maximum}` }
 function formatFeatureValues (values: number[]): string { return values.length === 0 ? '—' : values.map(value => `${value >= 0 ? '+' : ''}${value}`).join(' — ') }

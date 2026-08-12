@@ -20,8 +20,14 @@ import { LogPage } from './pages/log-page.js'
 import { NavigationPage, type NavigationView } from './pages/navigation-page.js'
 import { EngineeringPage, type EngineeringView } from './pages/engineering-page.js'
 import { DashboardPage } from './pages/dashboard-page.js'
-import { ShipPage, type ShipView } from './pages/ship-page.js'
+import { ShipPage, type FleetView } from './pages/ship-page.js'
 import { ExplorationPage, type ExplorationView } from './pages/exploration-page.js'
+import { CommanderPage, type CommanderView } from './pages/commander-page.js'
+import {
+  InformationSectionPage,
+  type CommsView,
+  type OperationsView
+} from './pages/information-section-page.js'
 import { PairingPage } from './pages/pairing-page.js'
 import { CopilotVoiceProvider } from './features/copilot/copilot-voice-provider.js'
 import { DesktopWorkspace, type DesktopMode } from './components/layout/desktop-workspace.js'
@@ -131,7 +137,7 @@ function AuthenticatedApplication () {
         const command = parseDisplayCommand(JSON.parse(event.data))
         const parameters = new URLSearchParams({ name: command.systemName })
         if (command.selectedName) parameters.set('selected', command.selectedName)
-        window.location.hash = `/navigation/system?${parameters.toString()}`
+        window.location.hash = `/galaxy/system?${parameters.toString()}`
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : 'Invalid display command received.')
       }
@@ -194,10 +200,10 @@ function AuthenticatedApplication () {
         />
       )
     }
-    if (informationRoute.section === 'log') {
+    if (informationRoute.section === 'records' && informationRoute.view === 'journal') {
       return <LogPage api={api} error={error} health={health} />
     }
-    if (informationRoute.section === 'navigation') {
+    if (informationRoute.section === 'galaxy') {
       return (
         <NavigationPage
           api={api}
@@ -221,7 +227,7 @@ function AuthenticatedApplication () {
         />
       )
     }
-    if (informationRoute.section === 'ship') {
+    if (informationRoute.section === 'fleet') {
       return (
         <ShipPage
           error={error}
@@ -231,7 +237,7 @@ function AuthenticatedApplication () {
         />
       )
     }
-    if (informationRoute.section === 'exploration') {
+    if (informationRoute.section === 'records' && informationRoute.view !== 'journal') {
       return (
         <ExplorationPage
           api={api}
@@ -244,7 +250,30 @@ function AuthenticatedApplication () {
         />
       )
     }
-    return <DashboardPage api={api} health={health} error={error} runtimeState={runtimeState} />
+    if (informationRoute.section === 'commander') {
+      return <CommanderPage error={error} health={health} runtimeState={runtimeState} view={informationRoute.view} />
+    }
+    if (informationRoute.section === 'operations' || informationRoute.section === 'comms') {
+      return (
+        <InformationSectionPage
+          actionCatalog={actionCatalog}
+          error={error}
+          health={health}
+          route={informationRoute}
+          onExecuteAction={(actionId, operation) => api.executeAction(actionId, operation)}
+        />
+      )
+    }
+    return (
+      <DashboardPage
+        actionCatalog={actionCatalog}
+        api={api}
+        health={health}
+        error={error}
+        runtimeState={runtimeState}
+        onExecuteAction={(actionId, operation) => api.executeAction(actionId, operation)}
+      />
+    )
   })()
 
   return (
@@ -274,6 +303,7 @@ function AuthenticatedApplication () {
       topBar={(
         <PhoenixTopBar
           developerSection={informationRoute.section === 'developer'}
+          recordsSection={informationRoute.section === 'records'}
           error={error}
           health={health}
         />
@@ -285,11 +315,13 @@ function AuthenticatedApplication () {
 type AppRoute =
   | { section: 'main' }
   | { section: 'copilot' }
-  | { section: 'log' }
-  | { section: 'navigation', view: NavigationView, systemName?: string, selectedName?: string }
+  | { section: 'commander', view: CommanderView }
+  | { section: 'operations', view: OperationsView }
+  | { section: 'comms', view: CommsView }
+  | { section: 'records', view: 'journal' | ExplorationView, systemName?: string, bodyName?: string }
+  | { section: 'galaxy', view: NavigationView, systemName?: string, selectedName?: string }
   | { section: 'engineering', view: EngineeringView }
-  | { section: 'ship', view: ShipView }
-  | { section: 'exploration', view: ExplorationView, systemName?: string, bodyName?: string }
+  | { section: 'fleet', view: FleetView }
   | { section: 'controls', category: ControlCategory }
   | { section: 'developer', view: DeveloperView }
 
@@ -301,14 +333,21 @@ const INFORMATION_ROUTE_STORAGE_KEY = 'phoenix.desktop.information-route'
 function readRoute (routeHash?: string): AppRoute {
   const hash = routeHash ?? (typeof window === 'undefined' ? '#/' : window.location.hash)
   if (/^#\/?copilot$/u.test(hash)) return { section: 'copilot' }
-  if (/^#\/?log$/u.test(hash)) return { section: 'log' }
-  const navigationMatch = hash.match(/^#\/?navigation\/(system|route)(?:\?(.*))?$/u)
+  if (/^#\/?(?:log|records\/journal)$/u.test(hash)) return { section: 'records', view: 'journal' }
+  const commanderMatch = hash.match(/^#\/?commander\/(overview|inventory|progress)$/u)
+  if (commanderMatch) return { section: 'commander', view: commanderMatch[1] as CommanderView }
+  if (/^#\/?ship\/inventory$/u.test(hash)) return { section: 'commander', view: 'inventory' }
+  const operationsMatch = hash.match(/^#\/?operations(?:\/(overview|missions|objectives|community-goals|powerplay|colonisation))?$/u)
+  if (operationsMatch) return { section: 'operations', view: (operationsMatch[1] ?? 'overview') as OperationsView }
+  const commsMatch = hash.match(/^#\/?comms(?:\/(overview|inbox|traffic|contacts|galnet|radio))?$/u)
+  if (commsMatch) return { section: 'comms', view: (commsMatch[1] ?? 'overview') as CommsView }
+  const navigationMatch = hash.match(/^#\/?(?:navigation|galaxy)\/(system|route)(?:\?(.*))?$/u)
   if (navigationMatch) {
     const parameters = new URLSearchParams(navigationMatch[2] ?? '')
     const systemName = parameters.get('name')?.trim() || undefined
     const selectedName = parameters.get('selected')?.trim() || undefined
     return {
-      section: 'navigation',
+      section: 'galaxy',
       view: navigationMatch[1] as NavigationView,
       ...(systemName ? { systemName } : {}),
       ...(selectedName ? { selectedName } : {})
@@ -324,17 +363,29 @@ function readRoute (routeHash?: string): AppRoute {
   if (/^#\/?engineering\/engineers$/u.test(hash)) {
     return { section: 'engineering', view: { type: 'engineers' } }
   }
-  const shipMatch = hash.match(/^#\/?ship\/(status|modules|cargo|inventory)$/u)
+  const shipMatch = hash.match(/^#\/?ship\/(status|modules|cargo)$/u)
   if (shipMatch) {
-    return { section: 'ship', view: shipMatch[1] as ShipView }
+    return { section: 'fleet', view: shipMatch[1] as FleetView }
   }
-  const explorationMatch = hash.match(/^#\/?exploration\/(ledger|body|biology|geology)(?:\?(.*))?$/u)
+  const currentShipMatch = hash.match(/^#\/?fleet\/ships\/current\/(overview|loadout|cargo)$/u)
+  if (currentShipMatch) {
+    const view = currentShipMatch[1] === 'overview' ? 'status' : currentShipMatch[1] === 'loadout' ? 'modules' : 'cargo'
+    return { section: 'fleet', view }
+  }
+  const fleetSectionMatch = hash.match(/^#\/?fleet\/(overview|carriers|stored-modules|catalogue)$/u)
+  if (fleetSectionMatch) return { section: 'fleet', view: fleetSectionMatch[1] as FleetView }
+  const fleetMatch = hash.match(/^#\/?fleet\/(current|loadout|cargo)$/u)
+  if (fleetMatch) {
+    const view = fleetMatch[1] === 'current' ? 'status' : fleetMatch[1] === 'loadout' ? 'modules' : 'cargo'
+    return { section: 'fleet', view }
+  }
+  const explorationMatch = hash.match(/^#\/?(?:exploration|records\/exploration)\/(ledger|body|biology|geology)(?:\?(.*))?$/u)
   if (explorationMatch) {
     const parameters = new URLSearchParams(explorationMatch[2] ?? '')
     const systemName = parameters.get('system')?.trim() || undefined
     const bodyName = parameters.get('body')?.trim() || undefined
     return {
-      section: 'exploration',
+      section: 'records',
       view: explorationMatch[1] as ExplorationView,
       ...(systemName ? { systemName } : {}),
       ...(bodyName ? { bodyName } : {})

@@ -91,7 +91,7 @@ export function ExplorationPage ({
 
   return (
     <PhoenixShell
-      activePrimaryItemId="exploration"
+      activePrimaryItemId={undefined}
       activeSecondaryItemId={view}
       error={error ?? explorationError}
       health={health}
@@ -489,6 +489,7 @@ function resolveSelection (
 
 function explorationNavigation (system?: string, body?: string): NavigationItem[] {
   return [
+    { href: '#/records/journal', icon: '▤', id: 'journal', label: 'Journal' },
     { href: explorationHref('ledger', system, body), icon: '⌁', id: 'ledger', label: 'Exploration history' },
     { href: explorationHref('body', system, body), icon: '◉', id: 'body', label: 'Body overview' },
     { href: explorationHref('biology', system, body), icon: '♧', id: 'biology', label: 'Biology' },
@@ -508,13 +509,13 @@ function explorationHref (view: ExplorationView, system?: string, body?: string)
   if (system) parameters.set('system', system)
   if (body) parameters.set('body', body)
   const query = parameters.toString()
-  return `#/exploration/${view}${query ? `?${query}` : ''}`
+  return `#/records/exploration/${view}${query ? `?${query}` : ''}`
 }
 
 function navigationHref (system: string, body?: string): string {
   const parameters = new URLSearchParams({ name: system })
   if (body) parameters.set('selected', body)
-  return `#/navigation/system?${parameters.toString()}`
+  return `#/galaxy/system?${parameters.toString()}`
 }
 
 type ExplorationStateFilter = 'all' | 'unscanned' | 'scanned' | 'mapped'

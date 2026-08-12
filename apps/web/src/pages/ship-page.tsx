@@ -12,13 +12,22 @@ import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 
-export type ShipView = 'status' | 'modules' | 'cargo' | 'inventory'
+export type CurrentShipView = 'status' | 'modules' | 'cargo'
+export type FleetView = 'overview' | CurrentShipView | 'carriers' | 'stored-modules' | 'catalogue'
+export type ShipView = FleetView
 
 const navigation: NavigationItem[] = [
-  { href: '#/ship/status', icon: '◇', id: 'status', label: 'Ship status' },
-  { href: '#/ship/modules', icon: '⬡', id: 'modules', label: 'Modules' },
-  { href: '#/ship/cargo', icon: '▤', id: 'cargo', label: 'Cargo' },
-  { href: '#/ship/inventory', icon: '▦', id: 'inventory', label: 'Item storage' }
+  { href: '#/fleet/overview', icon: '◇', id: 'overview', label: 'Overview' },
+  { href: '#/fleet/ships/current/overview', icon: '⬡', id: 'ships', label: 'Ships' },
+  { href: '#/fleet/carriers', icon: '▤', id: 'carriers', label: 'Carriers' },
+  { href: '#/fleet/stored-modules', icon: '⌁', id: 'stored-modules', label: 'Stored modules' },
+  { href: '#/fleet/catalogue', icon: '◎', id: 'catalogue', label: 'Ship catalogue' }
+]
+
+const currentShipNavigation: Array<{ href: string, id: CurrentShipView, label: string }> = [
+  { href: '#/fleet/ships/current/overview', id: 'status', label: 'Overview' },
+  { href: '#/fleet/ships/current/loadout', id: 'modules', label: 'Loadout' },
+  { href: '#/fleet/ships/current/cargo', id: 'cargo', label: 'Cargo' }
 ]
 
 const moduleGroups: Array<{ group: ShipModuleSlotGroup, title: string }> = [
@@ -39,13 +48,14 @@ export interface ShipPageProps {
 
 export function ShipPage ({ error, health, runtimeState, view }: ShipPageProps) {
   const ship = runtimeState?.ship
-  const identity = shipIdentity(ship)
+  const currentShip = view === 'status' || view === 'modules' || view === 'cargo'
+  const identity = currentShip ? shipIdentity(ship) : fleetIdentity(view)
   const page = pageIdentity(view)
 
   return (
     <PhoenixShell
-      activePrimaryItemId="ship"
-      activeSecondaryItemId={view}
+      activePrimaryItemId="fleet"
+      activeSecondaryItemId={currentShip ? 'ships' : view}
       error={error}
       health={health}
       secondaryNavigation={navigation}
@@ -56,16 +66,30 @@ export function ShipPage ({ error, health, runtimeState, view }: ShipPageProps) 
           eyebrow={page.eyebrow}
           description={identity.description}
         />
+        {currentShip && (
+          <nav className="entity-navigation" aria-label="Current ship views">
+            <span>Fleet / Current ship</span>
+            <ul>
+              {currentShipNavigation.map(item => (
+                <li key={item.id}>
+                  <a aria-current={view === item.id ? 'page' : undefined} href={item.href}>{item.label}</a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
         <PageContent>
           {!runtimeState
             ? <p className="ship-empty">Waiting for ship telemetry…</p>
-            : view === 'status'
+            : view === 'overview'
+              ? <FleetOverview state={runtimeState} />
+              : view === 'status'
               ? <ShipStatus state={runtimeState} />
               : view === 'modules'
                 ? <ShipModules ship={runtimeState.ship} />
                 : view === 'cargo'
                   ? <ShipCargo state={runtimeState} />
-                  : <ShipInventory state={runtimeState} />}
+                  : <FleetPlaceholder view={view} />}
         </PageContent>
         <PageFooter>
           <span>{page.footer}</span>
@@ -73,6 +97,46 @@ export function ShipPage ({ error, health, runtimeState, view }: ShipPageProps) 
         </PageFooter>
       </Page>
     </PhoenixShell>
+  )
+}
+
+function FleetOverview ({ state }: { state: RuntimeState }) {
+  const ship = state.ship
+  return (
+    <div className="ship-status-grid">
+      <ShipPanel title="Active vessel">
+        <div className="ship-identity">
+          <strong>{ship.definition?.displayName ?? humanize(ship.typeId) ?? 'Unknown hull'}</strong>
+          <span>{ship.name ?? 'Unnamed vessel'}{ship.identifier ? ` · ${ship.identifier}` : ''}</span>
+        </div>
+        <a className="ship-inline-action" href="#/fleet/ships/current/overview">Open current ship</a>
+      </ShipPanel>
+      <ShipPanel title="Owned ships">
+        <p className="ship-muted">Stored-ship reconstruction has not been implemented yet. The active vessel is known; the rest of the fleet remains explicitly unknown.</p>
+      </ShipPanel>
+      <ShipPanel title="Fleet carriers">
+        <p className="ship-muted">Carrier data will appear after PHOENIX retains CarrierStats and related journal events.</p>
+      </ShipPanel>
+      <ShipPanel title="Catalogue">
+        <p className="ship-muted">The local hull catalogue is available. Its browsing and nearest-stock presentation is the next Fleet data surface.</p>
+        <a className="ship-inline-action" href="#/fleet/catalogue">Open ship catalogue</a>
+      </ShipPanel>
+    </div>
+  )
+}
+
+function FleetPlaceholder ({ view }: { view: Exclude<FleetView, 'overview' | CurrentShipView> }) {
+  const definitions = {
+    carriers: ['Fleet carriers', 'CarrierStats and carrier movement events will become the retained local authority for this surface.'],
+    'stored-modules': ['Stored modules', 'Stored module snapshots have not been reconstructed yet.'],
+    catalogue: ['Ship catalogue', 'The catalogue data exists; its searchable fleet presentation and nearest-shipyard query remain to be implemented.']
+  } as const
+  const definition = definitions[view]
+  return (
+    <section className="content-section fleet-placeholder">
+      <h2 className="section-heading">{definition[0]}</h2>
+      <p>{definition[1]}</p>
+    </section>
   )
 }
 
@@ -229,7 +293,7 @@ function ShipCargo ({ state }: { state: RuntimeState }) {
   )
 }
 
-function ShipInventory ({ state }: { state: RuntimeState }) {
+export function CommanderInventory ({ state }: { state: RuntimeState }) {
   return (
     <div className="ship-sections">
       <ResourceStore title="Ship locker" inventory={state.inventory.shipLocker} />
@@ -302,10 +366,23 @@ function CapacityBar ({ label, maximum, value }: { label: string, maximum: numbe
 }
 
 function pageIdentity (view: ShipView) {
+  if (view === 'overview') return { eyebrow: 'Owned vessels and assets', footer: 'Fleet overview' }
   if (view === 'modules') return { eyebrow: 'Installed loadout', footer: 'Module telemetry' }
   if (view === 'cargo') return { eyebrow: 'Cargo manifest', footer: 'Cargo telemetry' }
-  if (view === 'inventory') return { eyebrow: 'Personal item storage', footer: 'Inventory telemetry' }
+  if (view === 'carriers') return { eyebrow: 'Capital assets', footer: 'Carrier records' }
+  if (view === 'stored-modules') return { eyebrow: 'Stored equipment', footer: 'Module storage' }
+  if (view === 'catalogue') return { eyebrow: 'Known ship hulls', footer: 'Ship database' }
   return { eyebrow: 'Ship status', footer: 'Live vessel telemetry' }
+}
+
+function fleetIdentity (view: Exclude<FleetView, CurrentShipView>) {
+  const identities = {
+    overview: { name: 'Fleet', description: 'Owned ships, carriers, stored equipment, and the ship catalogue.' },
+    carriers: { name: 'Fleet Carriers', description: 'Owned carrier status and movement reconstructed from local events.' },
+    'stored-modules': { name: 'Stored Modules', description: 'Equipment retained outside the current ship.' },
+    catalogue: { name: 'Ship Catalogue', description: 'Known hull specifications and reported shipyard availability.' }
+  } as const
+  return identities[view]
 }
 
 function shipIdentity (ship?: CurrentShip) {

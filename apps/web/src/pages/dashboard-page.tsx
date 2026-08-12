@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   ActivityLogEntrySchema,
   type ActivityLogEntry,
+  type GameActionCatalogResponse,
+  type GameActionOperation,
+  type GameActionResult,
   type HealthResponse,
   type NavigationRoute,
   type RuntimeState
@@ -12,19 +15,22 @@ import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 import { useCopilotVoice } from '../features/copilot/copilot-voice-provider.js'
+import { GalnetRadioControls } from '../components/galnet-radio-controls.js'
 
 const navigation: NavigationItem[] = [
   { href: '#/', icon: '◇', id: 'overview', label: 'Dashboard' }
 ]
 
 export interface DashboardPageProps {
+  actionCatalog?: GameActionCatalogResponse
   api: PhoenixApi
   error?: string
   health?: HealthResponse
   runtimeState?: RuntimeState
+  onExecuteAction: (actionId: string, operation: GameActionOperation) => Promise<GameActionResult>
 }
 
-export function DashboardPage ({ api, error, health, runtimeState }: DashboardPageProps) {
+export function DashboardPage ({ actionCatalog, api, error, health, onExecuteAction, runtimeState }: DashboardPageProps) {
   const voice = useCopilotVoice()
   const [route, setRoute] = useState<NavigationRoute>()
   const [activity, setActivity] = useState<ActivityLogEntry[]>([])
@@ -68,7 +74,7 @@ export function DashboardPage ({ api, error, health, runtimeState }: DashboardPa
 
   return (
     <PhoenixShell
-      activePrimaryItemId="dashboard"
+      activePrimaryItemId="home"
       activeSecondaryItemId="overview"
       error={error ?? dashboardError ?? voice.error}
       health={health}
@@ -83,7 +89,7 @@ export function DashboardPage ({ api, error, health, runtimeState }: DashboardPa
 
         <PageContent>
           <div className="dashboard-grid">
-            <DashboardCard className="dashboard-card--situation" title="Situation" action={<a href="#/navigation/system">Open navigation</a>}>
+            <DashboardCard className="dashboard-card--situation" title="Situation" action={<a href="#/galaxy/system">Open galaxy</a>}>
               <div className="dashboard-metric dashboard-metric--hero">
                 <strong>{currentSystem ?? 'Unknown system'}</strong>
                 <span>{placeName ?? humanize(runtimeState?.location.state ?? 'telemetry pending')}</span>
@@ -140,7 +146,7 @@ export function DashboardPage ({ api, error, health, runtimeState }: DashboardPa
               </div>
             </DashboardCard>
 
-            <DashboardCard title="Route" action={<a href="#/navigation/route">Open route</a>}>
+            <DashboardCard title="Route" action={<a href="#/galaxy/route">Open route</a>}>
               <div className="dashboard-metric dashboard-metric--hero">
                 <strong>{routeSummary.destination}</strong>
                 <span>{routeSummary.detail}</span>
@@ -152,7 +158,7 @@ export function DashboardPage ({ api, error, health, runtimeState }: DashboardPa
               </div>
             </DashboardCard>
 
-            <DashboardCard className="dashboard-card--activity" title="Recent activity" action={<a href="#log">Open journal</a>}>
+            <DashboardCard className="dashboard-card--activity" title="Recent activity" action={<a href="#/records/journal">Open journal</a>}>
               {notableActivity.length === 0
                 ? <p className="dashboard-empty">No recent activity retained.</p>
                 : (
@@ -176,6 +182,14 @@ export function DashboardPage ({ api, error, health, runtimeState }: DashboardPa
                       {attention.map(item => <li key={item}>{item}</li>)}
                     </ul>
                   )}
+            </DashboardCard>
+
+            <DashboardCard className="dashboard-card--radio" title="GalNet Radio" action={<a href="#/comms/radio">Open remote</a>}>
+              <GalnetRadioControls
+                actionCatalog={actionCatalog}
+                compact
+                onExecuteAction={onExecuteAction}
+              />
             </DashboardCard>
           </div>
         </PageContent>

@@ -9,12 +9,13 @@ import {
 import { AppBrand, TopBar } from '../top-bar/top-bar.js'
 
 const primaryNavigation: NavigationItem[] = [
-  { href: '#/', id: 'dashboard', label: 'Dashboard' },
-  { href: '#/navigation/system', id: 'navigation', label: 'Navigation' },
-  { href: '#/ship/status', id: 'ship', label: 'Ship' },
+  { href: '#/', icon: '⌂', iconOnly: true, id: 'home', label: 'Home' },
+  { href: '#/commander/overview', id: 'commander', label: 'Commander' },
+  { href: '#/fleet/overview', id: 'fleet', label: 'Fleet' },
+  { href: '#/galaxy/system', id: 'galaxy', label: 'Galaxy' },
+  { href: '#/operations/overview', id: 'operations', label: 'Operations' },
   { href: '#/engineering/blueprints', id: 'engineering', label: 'Engineering' },
-  { href: '#/exploration/ledger', id: 'exploration', label: 'Exploration' },
-  { href: '#log', id: 'log', label: 'Log' }
+  { href: '#/comms/overview', id: 'comms', label: 'Comms' }
 ]
 
 export interface PhoenixShellProps {
@@ -55,10 +56,12 @@ export function PhoenixShell ({
 
 export function PhoenixTopBar ({
   developerSection = false,
+  recordsSection = false,
   error,
   health
 }: {
   developerSection?: boolean
+  recordsSection?: boolean
   error?: string
   health?: HealthResponse
 }) {
@@ -77,7 +80,12 @@ export function PhoenixTopBar ({
       )}
       actions={(
         <div className="top-bar-actions" aria-label="Application actions">
-          <button type="button" aria-label="Messages">▤</button>
+          <a
+            href="#/records/journal"
+            aria-current={recordsSection ? 'page' : undefined}
+            aria-label="Records"
+            title="Records"
+          >▤</a>
           <button type="button" aria-label="Settings">☷</button>
           <a
             href="#/developer/overview"

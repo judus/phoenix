@@ -6,6 +6,7 @@ export interface NavigationItem {
   icon?: ReactNode
   id: string
   label: string
+  iconOnly?: boolean
   onActivate?: () => void
 }
 
@@ -19,7 +20,7 @@ export function PrimaryNavigation ({ activeItemId, items }: NavigationProps) {
     <nav className="primary-navigation" aria-label="Primary navigation">
       <ul className="primary-navigation__list">
         {items.map(item => (
-          <li key={item.id} className="primary-navigation__item">
+          <li key={item.id} className="primary-navigation__item" data-icon-only={item.iconOnly || undefined}>
             <a
               className="primary-navigation__link"
               href={item.href ?? '#'}
@@ -27,7 +28,9 @@ export function PrimaryNavigation ({ activeItemId, items }: NavigationProps) {
               aria-disabled={item.disabled || undefined}
               tabIndex={item.disabled ? -1 : undefined}
             >
-              {item.label}
+              {item.iconOnly
+                ? <><span className="primary-navigation__icon" aria-hidden="true">{item.icon}</span><span className="visually-hidden">{item.label}</span></>
+                : item.label}
             </a>
           </li>
         ))}

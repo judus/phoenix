@@ -7,7 +7,8 @@ import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 
 const navigation: NavigationItem[] = [
-  { href: '#log', icon: '▤', id: 'journal', label: 'Journal' }
+  { href: '#/records/journal', icon: '▤', id: 'journal', label: 'Journal' },
+  { href: '#/records/exploration/ledger', icon: '⌁', id: 'exploration', label: 'Exploration records' }
 ]
 
 export interface LogPageProps {
@@ -61,7 +62,7 @@ export function LogPage ({ api, error, health }: LogPageProps) {
 
   return (
     <PhoenixShell
-      activePrimaryItemId="log"
+      activePrimaryItemId={undefined}
       activeSecondaryItemId="journal"
       error={error ?? logError}
       health={health}

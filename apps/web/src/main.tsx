@@ -17,6 +17,7 @@ import './styles/patterns/engineering.css'
 import './styles/patterns/dashboard.css'
 import './styles/patterns/ship.css'
 import './styles/patterns/exploration.css'
+import './styles/patterns/information-sections.css'
 import './styles/patterns/pairing.css'
 import './styles/utilities.css'
 
