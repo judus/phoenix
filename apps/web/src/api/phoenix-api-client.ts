@@ -1,5 +1,6 @@
 import {
   CatalogueDiagnosticsSchema,
+  ShipCatalogueResponseSchema,
   ControlGridLayoutSchema,
   CopilotChatRequestSchema,
   CopilotAudioProcessingSchema,
@@ -29,6 +30,7 @@ import {
   NavigationRouteSchema,
   type GameActionCatalogResponse,
   type CatalogueDiagnostics,
+  type ShipCatalogueResponse,
   type ControlGridLayout,
   type CopilotChatRequest,
   type CopilotAudioProcessing,
@@ -68,6 +70,7 @@ export interface PhoenixApi {
   getCopilotAudioProcessing(): Promise<CopilotAudioProcessing>
   getCopilotRealtimeContext(): Promise<{ fingerprint: string, text: string, updatedAt: string | null }>
   getCatalogueDiagnostics(): Promise<CatalogueDiagnostics>
+  getShipCatalogue(): Promise<ShipCatalogueResponse>
   getControlLayout(): Promise<ControlGridLayout>
   getCopilotHistory(conversationId: string): Promise<CopilotHistoryResponse>
   executeDeveloperAction(actionId: string): Promise<GameActionResult>
@@ -233,6 +236,12 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw new Error(`PHOENIX API returned HTTP ${response.status}.`)
     return CatalogueDiagnosticsSchema.parse(await response.json())
+  }
+
+  public async getShipCatalogue (): Promise<ShipCatalogueResponse> {
+    const response = await this.request(`${this.baseUrl}/api/catalogue/ships`)
+    if (!response.ok) throw new Error(`PHOENIX API returned HTTP ${response.status}.`)
+    return ShipCatalogueResponseSchema.parse(await response.json())
   }
 
   public async getControlLayout (): Promise<ControlGridLayout> {

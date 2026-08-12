@@ -1,12 +1,15 @@
 import {
   CatalogueDiagnosticsSchema,
-  type CatalogueDiagnostics
+  ShipCatalogueResponseSchema,
+  type CatalogueDiagnostics,
+  type ShipCatalogueResponse
 } from '@phoenix/contracts'
 import type { GameCatalogue } from '@phoenix/elite'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
 
 export interface CatalogueDiagnosticsReader {
   getDiagnostics(): CatalogueDiagnostics
+  getShips(): ShipCatalogueResponse
 }
 
 export class CatalogueDiagnosticsService implements CatalogueDiagnosticsReader {
@@ -30,5 +33,9 @@ export class CatalogueDiagnosticsService implements CatalogueDiagnosticsReader {
         inferredModules
       }
     })
+  }
+
+  public getShips (): ShipCatalogueResponse {
+    return ShipCatalogueResponseSchema.parse({ ships: this.catalogue.listShips() })
   }
 }

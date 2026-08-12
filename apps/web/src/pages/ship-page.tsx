@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react'
 import type {
   CargoItem,
   CurrentShip,
@@ -5,9 +6,11 @@ import type {
   MicroResourceInventory,
   MicroResource,
   RuntimeState,
+  ShipDefinition,
   ShipModule,
   ShipModuleSlotGroup
 } from '@phoenix/contracts'
+import type { PhoenixApi } from '../api/phoenix-api-client.js'
 import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
@@ -40,17 +43,33 @@ const moduleGroups: Array<{ group: ShipModuleSlotGroup, title: string }> = [
 ]
 
 export interface ShipPageProps {
+  api: PhoenixApi
   error?: string
   health?: HealthResponse
   runtimeState?: RuntimeState
   view: ShipView
 }
 
-export function ShipPage ({ error, health, runtimeState, view }: ShipPageProps) {
+export function ShipPage ({ api, error, health, runtimeState, view }: ShipPageProps) {
+  const [catalogue, setCatalogue] = useState<ShipDefinition[]>()
+  const [catalogueError, setCatalogueError] = useState<string>()
   const ship = runtimeState?.ship
   const currentShip = view === 'status' || view === 'modules' || view === 'cargo'
   const identity = currentShip ? shipIdentity(ship) : fleetIdentity(view)
   const page = pageIdentity(view)
+
+  useEffect(() => {
+    if (view !== 'catalogue' || catalogue !== undefined) return
+    let active = true
+    void api.getShipCatalogue()
+      .then(response => {
+        if (active) setCatalogue(response.ships)
+      })
+      .catch(cause => {
+        if (active) setCatalogueError(cause instanceof Error ? cause.message : 'Ship catalogue unavailable.')
+      })
+    return () => { active = false }
+  }, [api, catalogue, view])
 
   return (
     <PhoenixShell
@@ -89,7 +108,9 @@ export function ShipPage ({ error, health, runtimeState, view }: ShipPageProps) 
                 ? <ShipModules ship={runtimeState.ship} />
                 : view === 'cargo'
                   ? <ShipCargo state={runtimeState} />
-                  : <FleetPlaceholder view={view} />}
+                  : view === 'catalogue'
+                    ? <ShipCatalogue ships={catalogue} error={catalogueError} />
+                    : <FleetPlaceholder view={view} />}
         </PageContent>
         <PageFooter>
           <span>{page.footer}</span>
@@ -125,11 +146,10 @@ function FleetOverview ({ state }: { state: RuntimeState }) {
   )
 }
 
-function FleetPlaceholder ({ view }: { view: Exclude<FleetView, 'overview' | CurrentShipView> }) {
+function FleetPlaceholder ({ view }: { view: Exclude<FleetView, 'overview' | CurrentShipView | 'catalogue'> }) {
   const definitions = {
     carriers: ['Fleet carriers', 'CarrierStats and carrier movement events will become the retained local authority for this surface.'],
-    'stored-modules': ['Stored modules', 'Stored module snapshots have not been reconstructed yet.'],
-    catalogue: ['Ship catalogue', 'The catalogue data exists; its searchable fleet presentation and nearest-shipyard query remain to be implemented.']
+    'stored-modules': ['Stored modules', 'Stored module snapshots have not been reconstructed yet.']
   } as const
   const definition = definitions[view]
   return (
@@ -137,6 +157,92 @@ function FleetPlaceholder ({ view }: { view: Exclude<FleetView, 'overview' | Cur
       <h2 className="section-heading">{definition[0]}</h2>
       <p>{definition[1]}</p>
     </section>
+  )
+}
+
+function ShipCatalogue ({ error, ships }: { error?: string, ships?: ShipDefinition[] }) {
+  const [query, setQuery] = useState('')
+  const [selectedId, setSelectedId] = useState<string>()
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLocaleLowerCase()
+    if (!ships || needle === '') return ships ?? []
+    return ships.filter(ship => [ship.displayName, ship.manufacturer, ship.landingPadSize]
+      .some(value => value?.toLocaleLowerCase().includes(needle)))
+  }, [query, ships])
+  const selected = ships?.find(ship => ship.id === selectedId) ?? filtered[0]
+
+  if (error) return <p className="ship-warning">{error}</p>
+  if (!ships) return <p className="ship-empty">Loading ship catalogue…</p>
+
+  return (
+    <div className="ship-catalogue">
+      <section className="ship-catalogue__index">
+        <label>
+          <span>Search hulls</span>
+          <input value={query} placeholder="Ship or manufacturer…" onChange={event => setQuery(event.target.value)} />
+        </label>
+        <ol>
+          {filtered.map(ship => (
+            <li key={ship.id}>
+              <button
+                type="button"
+                aria-pressed={selected?.id === ship.id}
+                onClick={() => setSelectedId(ship.id)}
+              >
+                <strong>{ship.displayName}</strong>
+                <span>{ship.manufacturer ?? 'Unknown manufacturer'} · {ship.landingPadSize ?? 'Unknown'} pad</span>
+              </button>
+            </li>
+          ))}
+        </ol>
+        {filtered.length === 0 && <p className="ship-empty">No hull matches this search.</p>}
+      </section>
+      <section className="ship-catalogue__detail">
+        {selected
+          ? <ShipDefinitionDetail ship={selected} />
+          : <p className="ship-empty">Select a hull.</p>}
+      </section>
+    </div>
+  )
+}
+
+function ShipDefinitionDetail ({ ship }: { ship: ShipDefinition }) {
+  return (
+    <>
+      <header>
+        <span>Hull definition</span>
+        <h2>{ship.displayName}</h2>
+        <p>{ship.manufacturer ?? 'Unknown manufacturer'} · {capitalize(ship.landingPadSize ?? 'unknown')} landing pad</p>
+      </header>
+      <dl className="ship-facts">
+        <Fact label="Base armour" value={formatUnit(ship.performance.baseArmour, '')} />
+        <Fact label="Base shield" value={formatUnit(ship.performance.baseShieldStrength, '')} />
+        <Fact label="Speed" value={formatUnit(ship.performance.speed, 'm/s')} />
+        <Fact label="Boost" value={formatUnit(ship.performance.boost, 'm/s')} />
+        <Fact label="Hull mass" value={formatUnit(ship.performance.hullMass, 't')} />
+        <Fact label="Frontier ID" value={ship.identifiers.frontierEdId?.toString()} />
+      </dl>
+      <div className="ship-catalogue__slots">
+        <CatalogueSlotSummary label="Core internals" slots={ship.slots.core.map(slot => slot.size)} />
+        <CatalogueSlotSummary label="Hardpoints" slots={ship.slots.hardpoints.map(slot => slot.size)} />
+        <CatalogueSlotSummary label="Optional internals" slots={ship.slots.optional.map(slot => slot.size)} />
+        <CatalogueSlotSummary label="Utility mounts" slots={ship.slots.utilities.map(slot => slot.size)} />
+      </div>
+      <button type="button" className="ship-catalogue__nearest" disabled title="Nearest shipyard stock query is not implemented yet.">
+        Nearest shipyard selling it · Planned
+      </button>
+      <small className="ship-catalogue__source">Source: {ship.source.name}{ship.source.revision ? ` · ${ship.source.revision}` : ''}</small>
+    </>
+  )
+}
+
+function CatalogueSlotSummary ({ label, slots }: { label: string, slots: number[] }) {
+  return (
+    <div>
+      <span>{label}</span>
+      <strong>{slots.length}</strong>
+      <small>{slots.length === 0 ? 'None' : slots.map(size => `S${size}`).join(' · ')}</small>
+    </div>
   )
 }
 

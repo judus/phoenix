@@ -230,6 +230,7 @@ function AuthenticatedApplication () {
     if (informationRoute.section === 'fleet') {
       return (
         <ShipPage
+          api={api}
           error={error}
           health={health}
           runtimeState={runtimeState}

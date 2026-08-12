@@ -508,6 +508,11 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/catalogue/ships') {
+      this.writeJson(response, 200, this.options.catalogueDiagnostics.getShips())
+      return
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/developer/elite-status') {
       this.writeJson(response, 200, this.options.eliteStatusDiagnostics.getDiagnostics())
       return

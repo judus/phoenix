@@ -25,6 +25,7 @@ test('application startup projects the current commander, ranks, location and sh
     const client = new PhoenixApiClient(`http://${address.host}:${address.port}`)
     const state = await client.getRuntimeState()
     const catalogueDiagnostics = await client.getCatalogueDiagnostics()
+    const shipCatalogue = await client.getShipCatalogue()
     const diagnostics = await client.getEliteJournalDiagnostics()
     const journal = await client.getActivityLog()
 
@@ -149,6 +150,10 @@ test('application startup projects the current commander, ranks, location and sh
       },
       gameStatus: null
     })
+    expect(shipCatalogue.ships).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'cobra_mk_iii', displayName: 'Cobra Mk III' }),
+      expect.objectContaining({ id: 'type_11_prospector', displayName: 'Type-11 Prospector' })
+    ]))
     expect(diagnostics).toMatchObject({
       directory: eliteDirectory,
       watching: true,
