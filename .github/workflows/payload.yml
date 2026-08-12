@@ -1,0 +1,36 @@
+name: Payload proof
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  payload:
+    name: ${{ matrix.os }} payload
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.14.0
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run payload:build
+      - run: npm run payload:verify
+      - run: npm run payload:smoke
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phoenix-${{ runner.os }}-${{ runner.arch }}-payload
+          path: dist/payload/*
+          if-no-files-found: error
+          retention-days: 7

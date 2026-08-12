@@ -11,6 +11,13 @@ const temporaryRoot = mkdtempSync(join(tmpdir(), 'phoenix-payload-smoke-'))
 const installRoot = resolve(temporaryRoot, 'installation')
 const userRoot = resolve(temporaryRoot, 'user')
 const runtimeName = process.platform === 'win32' ? 'node.exe' : 'node'
+const windowsUserRoot = resolve(userRoot, 'local-app-data/PHOENIX')
+const configRoot = process.platform === 'win32'
+  ? resolve(windowsUserRoot, 'Config')
+  : resolve(userRoot, 'config/phoenix')
+const dataRoot = process.platform === 'win32'
+  ? resolve(windowsUserRoot, 'Data')
+  : resolve(userRoot, 'data/phoenix')
 let child
 
 try {
@@ -24,6 +31,7 @@ try {
     env: {
       ...process.env,
       HOME: resolve(userRoot, 'home'),
+      LOCALAPPDATA: resolve(userRoot, 'local-app-data'),
       PHOENIX_CATALOGUE_REFRESH: 'false',
       PHOENIX_HOST: '127.0.0.1',
       PHOENIX_PATH_MODE: 'installed',
@@ -43,16 +51,17 @@ try {
   if (response.status !== 200) throw new Error(`Payload health probe returned ${response.status}.`)
 
   for (const required of [
-    resolve(userRoot, 'config/phoenix/pairing.json'),
-    resolve(userRoot, 'config/phoenix/settings.json'),
-    resolve(userRoot, 'data/phoenix/runtime/phoenix.sqlite'),
-    resolve(userRoot, 'data/phoenix/runtime/system.json')
+    resolve(configRoot, 'pairing.json'),
+    resolve(configRoot, 'settings.json'),
+    resolve(dataRoot, 'runtime/phoenix.sqlite'),
+    resolve(dataRoot, 'runtime/system.json')
   ]) {
     if (!existsSync(required)) throw new Error(`Payload did not create expected user state: ${required}`)
   }
 
-  JSON.parse(readFileSync(resolve(userRoot, 'config/phoenix/pairing.json'), 'utf8'))
-  console.log('PHOENIX payload smoke test passed: read-only installation, isolated writable user state.')
+  JSON.parse(readFileSync(resolve(configRoot, 'pairing.json'), 'utf8'))
+  const installationMode = process.platform === 'win32' ? 'isolated installation' : 'read-only installation'
+  console.log(`PHOENIX payload smoke test passed: ${installationMode}, isolated writable user state.`)
 } finally {
   if (child !== undefined && child.exitCode === null) {
     child.kill('SIGTERM')
