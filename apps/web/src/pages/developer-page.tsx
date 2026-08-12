@@ -81,7 +81,6 @@ export function DeveloperPage ({
   return (
     <PhoenixShell
       activeSecondaryItemId={view}
-      developerSection
       error={error}
       health={health}
       secondaryNavigation={developerNavigation}

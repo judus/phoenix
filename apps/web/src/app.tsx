@@ -24,6 +24,8 @@ import { ShipPage, type ShipView } from './pages/ship-page.js'
 import { ExplorationPage, type ExplorationView } from './pages/exploration-page.js'
 import { PairingPage } from './pages/pairing-page.js'
 import { CopilotVoiceProvider } from './features/copilot/copilot-voice-provider.js'
+import { DesktopWorkspace, type DesktopMode } from './components/layout/desktop-workspace.js'
+import { PhoenixTopBar } from './components/layout/phoenix-shell.js'
 
 const api = new PhoenixApiClient()
 
@@ -66,6 +68,11 @@ function AuthenticatedApplication () {
   const [runtimeState, setRuntimeState] = useState<RuntimeState>()
   const [error, setError] = useState<string>()
   const [route, setRoute] = useState(readRoute)
+  const [informationHash, setInformationHash] = useState(readInformationHash)
+  const [informationRoute, setInformationRoute] = useState<AppRoute>(() => readRoute(readInformationHash()))
+  const [controlCategory, setControlCategory] = useState<ControlCategory>(() => (
+    route.section === 'controls' ? route.category : 'ship'
+  ))
 
   useEffect(() => {
     api.getHealth()
@@ -130,7 +137,17 @@ function AuthenticatedApplication () {
       }
     })
 
-    const handleRouteChange = (): void => setRoute(readRoute())
+    const handleRouteChange = (): void => {
+      const nextRoute = readRoute()
+      setRoute(nextRoute)
+      if (nextRoute.section === 'controls') setControlCategory(nextRoute.category)
+      if (isInformationRoute(nextRoute)) {
+        const hash = normalizedHash(window.location.hash)
+        setInformationHash(hash)
+        setInformationRoute(nextRoute)
+        window.sessionStorage.setItem(INFORMATION_ROUTE_STORAGE_KEY, hash)
+      }
+    }
     window.addEventListener('hashchange', handleRouteChange)
 
     return () => {
@@ -140,114 +157,129 @@ function AuthenticatedApplication () {
     }
   }, [])
 
-  if (route.section === 'developer') {
-    return (
-      <DeveloperPage
-        actionCatalog={actionCatalog}
-        actionPending={actionPending}
-        catalogueDiagnostics={catalogueDiagnostics}
-        error={error}
-        eliteJournalDiagnostics={eliteJournalDiagnostics}
-        eliteStatusDiagnostics={eliteStatusDiagnostics}
-        health={health}
-        lastActionResult={lastActionResult}
-        runtimeState={runtimeState}
-        view={route.view}
-        onExecuteAction={async actionId => {
-          setActionPending(actionId)
-          try {
-            setLastActionResult(await api.executeDeveloperAction(actionId))
-          } catch (cause) {
-            setError(cause instanceof Error ? cause.message : 'Action execution failed.')
-          } finally {
-            setActionPending(undefined)
-          }
-        }}
-      />
-    )
+  const activeMode = desktopMode(route)
+  const navigateDesktop = (mode: DesktopMode): void => {
+    const destination = mode === 'controls'
+      ? `#/controls/${controlCategory}`
+      : mode === 'copilot'
+        ? '#copilot'
+        : informationHash
+    if (window.location.hash !== destination) window.location.hash = destination
   }
 
-  if (route.section === 'controls') {
-    return (
-      <ControlsPage
-        actionCatalog={actionCatalog}
-        category={route.category}
-        controlLayout={controlLayout}
-        error={error}
-        health={health}
-        runtimeState={runtimeState}
-        onExecuteAction={(actionId: string, operation: GameActionOperation) => (
-          api.executeAction(actionId, operation)
-        )}
-        onSaveLayout={async layout => {
-          const saved = await api.saveControlLayout(layout)
-          setControlLayout(saved)
-          return saved
-        }}
-      />
-    )
-  }
+  const information = (() => {
+    if (informationRoute.section === 'developer') {
+      return (
+        <DeveloperPage
+          actionCatalog={actionCatalog}
+          actionPending={actionPending}
+          catalogueDiagnostics={catalogueDiagnostics}
+          error={error}
+          eliteJournalDiagnostics={eliteJournalDiagnostics}
+          eliteStatusDiagnostics={eliteStatusDiagnostics}
+          health={health}
+          lastActionResult={lastActionResult}
+          runtimeState={runtimeState}
+          view={informationRoute.view}
+          onExecuteAction={async actionId => {
+            setActionPending(actionId)
+            try {
+              setLastActionResult(await api.executeDeveloperAction(actionId))
+            } catch (cause) {
+              setError(cause instanceof Error ? cause.message : 'Action execution failed.')
+            } finally {
+              setActionPending(undefined)
+            }
+          }}
+        />
+      )
+    }
+    if (informationRoute.section === 'log') {
+      return <LogPage api={api} error={error} health={health} />
+    }
+    if (informationRoute.section === 'navigation') {
+      return (
+        <NavigationPage
+          api={api}
+          error={error}
+          health={health}
+          runtimeState={runtimeState}
+          selectedName={informationRoute.selectedName}
+          systemName={informationRoute.systemName}
+          view={informationRoute.view}
+        />
+      )
+    }
+    if (informationRoute.section === 'engineering') {
+      return (
+        <EngineeringPage
+          api={api}
+          error={error}
+          health={health}
+          runtimeState={runtimeState}
+          view={informationRoute.view}
+        />
+      )
+    }
+    if (informationRoute.section === 'ship') {
+      return (
+        <ShipPage
+          error={error}
+          health={health}
+          runtimeState={runtimeState}
+          view={informationRoute.view}
+        />
+      )
+    }
+    if (informationRoute.section === 'exploration') {
+      return (
+        <ExplorationPage
+          api={api}
+          bodyName={informationRoute.bodyName}
+          error={error}
+          health={health}
+          runtimeState={runtimeState}
+          systemName={informationRoute.systemName}
+          view={informationRoute.view}
+        />
+      )
+    }
+    return <DashboardPage api={api} health={health} error={error} runtimeState={runtimeState} />
+  })()
 
-  if (route.section === 'copilot') {
-    return <CopilotPage api={api} error={error} health={health} />
-  }
-
-  if (route.section === 'log') {
-    return <LogPage api={api} error={error} health={health} />
-  }
-
-  if (route.section === 'navigation') {
-    return (
-      <NavigationPage
-        api={api}
-        error={error}
-        health={health}
-        runtimeState={runtimeState}
-        selectedName={route.selectedName}
-        systemName={route.systemName}
-        view={route.view}
-      />
-    )
-  }
-
-  if (route.section === 'engineering') {
-    return (
-      <EngineeringPage
-        api={api}
-        error={error}
-        health={health}
-        runtimeState={runtimeState}
-        view={route.view}
-      />
-    )
-  }
-
-  if (route.section === 'ship') {
-    return (
-      <ShipPage
-        error={error}
-        health={health}
-        runtimeState={runtimeState}
-        view={route.view}
-      />
-    )
-  }
-
-  if (route.section === 'exploration') {
-    return (
-      <ExplorationPage
-        api={api}
-        bodyName={route.bodyName}
-        error={error}
-        health={health}
-        runtimeState={runtimeState}
-        systemName={route.systemName}
-        view={route.view}
-      />
-    )
-  }
-
-  return <DashboardPage api={api} health={health} error={error} runtimeState={runtimeState} />
+  return (
+    <DesktopWorkspace
+      activeMode={activeMode}
+      controls={(
+        <ControlsPage
+          actionCatalog={actionCatalog}
+          category={controlCategory}
+          controlLayout={controlLayout}
+          error={error}
+          health={health}
+          runtimeState={runtimeState}
+          onExecuteAction={(actionId: string, operation: GameActionOperation) => (
+            api.executeAction(actionId, operation)
+          )}
+          onSaveLayout={async layout => {
+            const saved = await api.saveControlLayout(layout)
+            setControlLayout(saved)
+            return saved
+          }}
+        />
+      )}
+      copilot={<CopilotPage api={api} error={error} health={health} />}
+      information={information}
+      onNavigate={navigateDesktop}
+      topBar={(
+        <PhoenixTopBar
+          developerSection={informationRoute.section === 'developer'}
+          error={error}
+          health={health}
+        />
+      )}
+    />
+  )
 }
 
 type AppRoute =
@@ -264,12 +296,13 @@ type AppRoute =
 const CONTROL_CATEGORIES: ControlCategory[] = [
   'ship', 'combat', 'navigation', 'vessel', 'srv', 'on_foot', 'radio', 'emote', 'misc'
 ]
+const INFORMATION_ROUTE_STORAGE_KEY = 'phoenix.desktop.information-route'
 
-function readRoute (): AppRoute {
-  if (typeof window === 'undefined') return { section: 'main' }
-  if (/^#\/?copilot$/u.test(window.location.hash)) return { section: 'copilot' }
-  if (/^#\/?log$/u.test(window.location.hash)) return { section: 'log' }
-  const navigationMatch = window.location.hash.match(/^#\/?navigation\/(system|route)(?:\?(.*))?$/u)
+function readRoute (routeHash?: string): AppRoute {
+  const hash = routeHash ?? (typeof window === 'undefined' ? '#/' : window.location.hash)
+  if (/^#\/?copilot$/u.test(hash)) return { section: 'copilot' }
+  if (/^#\/?log$/u.test(hash)) return { section: 'log' }
+  const navigationMatch = hash.match(/^#\/?navigation\/(system|route)(?:\?(.*))?$/u)
   if (navigationMatch) {
     const parameters = new URLSearchParams(navigationMatch[2] ?? '')
     const systemName = parameters.get('name')?.trim() || undefined
@@ -281,21 +314,21 @@ function readRoute (): AppRoute {
       ...(selectedName ? { selectedName } : {})
     }
   }
-  const engineeringMaterialsMatch = window.location.hash.match(/^#\/?engineering\/materials\/(raw|manufactured|encoded|xeno)$/u)
+  const engineeringMaterialsMatch = hash.match(/^#\/?engineering\/materials\/(raw|manufactured|encoded|xeno)$/u)
   if (engineeringMaterialsMatch) {
     return {
       section: 'engineering',
       view: { type: 'materials', category: engineeringMaterialsMatch[1] as 'raw' | 'manufactured' | 'encoded' | 'xeno' }
     }
   }
-  if (/^#\/?engineering\/engineers$/u.test(window.location.hash)) {
+  if (/^#\/?engineering\/engineers$/u.test(hash)) {
     return { section: 'engineering', view: { type: 'engineers' } }
   }
-  const shipMatch = window.location.hash.match(/^#\/?ship\/(status|modules|cargo|inventory)$/u)
+  const shipMatch = hash.match(/^#\/?ship\/(status|modules|cargo|inventory)$/u)
   if (shipMatch) {
     return { section: 'ship', view: shipMatch[1] as ShipView }
   }
-  const explorationMatch = window.location.hash.match(/^#\/?exploration\/(ledger|body|biology|geology)(?:\?(.*))?$/u)
+  const explorationMatch = hash.match(/^#\/?exploration\/(ledger|body|biology|geology)(?:\?(.*))?$/u)
   if (explorationMatch) {
     const parameters = new URLSearchParams(explorationMatch[2] ?? '')
     const systemName = parameters.get('system')?.trim() || undefined
@@ -307,7 +340,7 @@ function readRoute (): AppRoute {
       ...(bodyName ? { bodyName } : {})
     }
   }
-  const engineeringBlueprintsMatch = window.location.hash.match(/^#\/?engineering\/blueprints(?:\?(.*))?$/u)
+  const engineeringBlueprintsMatch = hash.match(/^#\/?engineering\/blueprints(?:\?(.*))?$/u)
   if (engineeringBlueprintsMatch) {
     const symbol = new URLSearchParams(engineeringBlueprintsMatch[1] ?? '').get('symbol')?.trim() || undefined
     return {
@@ -315,12 +348,35 @@ function readRoute (): AppRoute {
       view: { type: 'blueprints', ...(symbol ? { symbol } : {}) }
     }
   }
-  const controlsMatch = window.location.hash.match(/^#\/?controls(?:\/([a-z_]+))?$/)
+  const controlsMatch = hash.match(/^#\/?controls(?:\/([a-z_]+))?$/)
   if (controlsMatch) {
     const category = CONTROL_CATEGORIES.find(candidate => candidate === controlsMatch[1]) ?? 'ship'
     return { section: 'controls', category }
   }
-  const match = window.location.hash.match(/^#\/developer\/(overview|runtime|elite|health|tests|controls)$/)
+  const match = hash.match(/^#\/developer\/(overview|runtime|elite|health|tests|controls)$/)
   if (!match) return { section: 'main' }
   return { section: 'developer', view: match[1] as DeveloperView }
+}
+
+function desktopMode (route: AppRoute): DesktopMode {
+  if (route.section === 'controls') return 'controls'
+  if (route.section === 'copilot') return 'copilot'
+  return 'information'
+}
+
+function isInformationRoute (route: AppRoute): boolean {
+  return route.section !== 'controls' && route.section !== 'copilot'
+}
+
+function normalizedHash (hash: string): string {
+  return hash.trim() === '' || hash === '#' ? '#/' : hash
+}
+
+function readInformationHash (): string {
+  if (typeof window === 'undefined') return '#/'
+  const current = normalizedHash(window.location.hash)
+  if (isInformationRoute(readRoute(current))) return current
+  const stored = window.sessionStorage.getItem(INFORMATION_ROUTE_STORAGE_KEY)
+  if (stored && isInformationRoute(readRoute(stored))) return stored
+  return '#/'
 }
