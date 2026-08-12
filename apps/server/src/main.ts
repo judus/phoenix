@@ -9,6 +9,7 @@ import {
   JsonSystemSettingsRepository
 } from './infrastructure/json-system-configuration.js'
 import { PhoenixApplication } from './phoenix-application.js'
+import { ApplicationPaths } from './infrastructure/application-paths.js'
 
 let application: PhoenixApplication | null = null
 
@@ -16,24 +17,25 @@ try {
   const projectRoot = fileURLToPath(new URL('../../../', import.meta.url))
   const environmentFile = resolve(projectRoot, '.env')
   if (existsSync(environmentFile)) loadEnvFile(environmentFile)
+  const paths = process.env.PHOENIX_PATH_MODE === 'installed'
+    ? new ApplicationPaths({ installRoot: projectRoot })
+    : ApplicationPaths.development(projectRoot)
 
-  const settingsPath = resolve(projectRoot, process.env.PHOENIX_SETTINGS_PATH ?? 'data/settings.json')
-  const runtimeSystemPath = resolve(
-    projectRoot,
-    process.env.PHOENIX_RUNTIME_SYSTEM_PATH ?? 'data/runtime/system.json'
-  )
+  const settingsPath = resolve(paths.user.config, process.env.PHOENIX_SETTINGS_PATH ?? 'settings.json')
+  const runtimeSystemPath = resolve(paths.user.data, process.env.PHOENIX_RUNTIME_SYSTEM_PATH ?? 'runtime/system.json')
   const settingsRepository = new JsonSystemSettingsRepository(settingsPath)
   const settings = settingsRepository.loadOrCreate()
   const controls = bootstrapControlBackend(settings)
   new JsonRuntimeSystemSnapshotWriter(runtimeSystemPath).write(controls.snapshot)
 
   application = new PhoenixApplication({
+    applicationPaths: paths,
     controlGridLayoutRepository: settingsRepository,
     inputBackend: controls.backend
   })
   const address = await application.start()
   console.log(`PHOENIX server listening on http://${address.host}:${address.port}`)
-  startCatalogueRefresh(projectRoot)
+  startCatalogueRefresh(paths)
 } catch (error) {
   console.error('ERROR_PHOENIX_START_FAILED', error)
   process.exit(1)
@@ -47,16 +49,16 @@ async function shutdown (): Promise<void> {
 process.once('SIGINT', shutdown)
 process.once('SIGTERM', shutdown)
 
-function startCatalogueRefresh (projectRoot: string): void {
+function startCatalogueRefresh (paths: ApplicationPaths): void {
   if (process.env.PHOENIX_CATALOGUE_REFRESH === 'false') return
   const worker = spawn(process.execPath, [
-    resolve(projectRoot, 'scripts/catalogue/refresh.mjs'),
+    resolve(paths.installRoot, 'scripts/catalogue/refresh.mjs'),
     '--output',
-    'data/runtime/catalogue',
+    resolve(paths.user.data, 'runtime/catalogue'),
     '--max-age-hours',
     process.env.PHOENIX_CATALOGUE_REFRESH_HOURS ?? '24'
   ], {
-    cwd: projectRoot,
+    cwd: paths.installRoot,
     detached: false,
     stdio: 'ignore'
   })

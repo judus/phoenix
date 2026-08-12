@@ -24,13 +24,13 @@ export interface GameActionBindingResolver {
 }
 
 export interface GameActionGateway {
-  execute(command: GameActionCommand): Promise<GameActionResult>
+  execute(command: GameActionCommand, signal?: AbortSignal): Promise<GameActionResult>
   getCatalog(): GameActionCatalogResponse
 }
 
 export interface InputBackend {
   getStatus(): InputBackendStatus
-  send(operation: GameActionOperation, binding: LogicalInputChord): Promise<void>
+  send(operation: GameActionOperation, binding: LogicalInputChord, signal?: AbortSignal): Promise<void>
 }
 
 export function getActionAvailability (

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { memo, useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import {
   CopilotConversationEventSchema,
   type CopilotHistoryMessage,
@@ -39,13 +39,11 @@ interface RemoteTurn {
 export function CopilotPage ({ api, error, health }: CopilotPageProps) {
   const voice = useCopilotVoice()
   const [messages, setMessages] = useState<readonly CopilotHistoryMessage[]>([])
-  const [composer, setComposer] = useState('')
   const [pending, setPending] = useState(false)
   const [chatError, setChatError] = useState<string>()
   const [toolStatus, setToolStatus] = useState<string>()
   const [remoteTurns, setRemoteTurns] = useState<Record<string, RemoteTurn>>({})
   const clientIdRef = useRef(copilotClientId())
-  const endRef = useRef<HTMLDivElement>(null)
 
   const loadHistory = async (): Promise<void> => {
     const history = await api.getCopilotHistory(DEFAULT_CONVERSATION_ID)
@@ -109,18 +107,12 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
     return unsubscribe
   }, [api])
 
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ block: 'end' })
-  }, [messages, remoteTurns, voice.activeTurn])
-
-  const submit = async (event: FormEvent): Promise<void> => {
-    event.preventDefault()
-    const text = composer.trim()
+  const submit = useCallback(async (candidate: string): Promise<void> => {
+    const text = candidate.trim()
     if (!text || pending) return
     if (voice.canSendRealtimeText) {
       try {
         voice.sendText(text)
-        setComposer('')
         setChatError(undefined)
       } catch (cause) {
         setChatError(cause instanceof Error ? cause.message : 'Realtime message failed.')
@@ -130,7 +122,6 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
     const turnId = createCopilotId()
     const userId = `pending-user-${turnId}`
     const assistantId = `pending-assistant-${turnId}`
-    setComposer('')
     setChatError(undefined)
     setToolStatus(undefined)
     setPending(true)
@@ -156,7 +147,7 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
       setPending(false)
       setToolStatus(undefined)
     }
-  }
+  }, [api, pending, voice])
 
   return (
     <PhoenixShell
@@ -183,78 +174,19 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
             </aside>
 
             <section className="copilot-chat" aria-label="Copilot conversation">
-              <div className="copilot-messages" aria-live="polite">
-                {messages.length === 0 && (
-                  <p className="copilot-empty">No conversation yet. Marin is standing by.</p>
-                )}
-                {messages.map(message => (
-                  <article key={message.id} className={`copilot-message copilot-message--${message.role}`}>
-                    <span>{message.role === 'user' ? 'Commander' : 'Copilot'}</span>
-                    <div className="copilot-message__text">
-                      {message.role === 'assistant'
-                        ? <CopilotMarkdown>{message.text || (pending ? '…' : '')}</CopilotMarkdown>
-                        : message.text}
-                    </div>
-                  </article>
-                ))}
-                {voice.activeTurn?.userText && (
-                  <article className="copilot-message copilot-message--user copilot-message--live">
-                    <span>Commander · live</span>
-                    <div className="copilot-message__text">{voice.activeTurn.userText}</div>
-                  </article>
-                )}
-                {voice.activeTurn && (
-                  <article className="copilot-message copilot-message--assistant copilot-message--live">
-                    <span>Copilot · live</span>
-                    <div className="copilot-message__text">
-                      <CopilotMarkdown>{voice.activeTurn.assistantText || '…'}</CopilotMarkdown>
-                    </div>
-                  </article>
-                )}
-                {Object.values(remoteTurns).map(turn => (
-                  <div key={turn.id} className="copilot-live-turn">
-                    {turn.userText && (
-                      <article className="copilot-message copilot-message--user copilot-message--live">
-                        <span>Commander · live</span>
-                        <div className="copilot-message__text">{turn.userText}</div>
-                      </article>
-                    )}
-                    <article className="copilot-message copilot-message--assistant copilot-message--live">
-                      <span>Copilot · live</span>
-                      <div className="copilot-message__text">
-                        <CopilotMarkdown>{turn.assistantText || '…'}</CopilotMarkdown>
-                      </div>
-                    </article>
-                  </div>
-                ))}
-                <div ref={endRef} />
-              </div>
+              <CopilotMessageHistory
+                activeTurn={voice.activeTurn}
+                messages={messages}
+                pending={pending}
+                remoteTurns={remoteTurns}
+              />
               {(toolStatus ?? voice.toolStatus) && (
                 <p className="copilot-tool-status">{toolStatus ?? voice.toolStatus}</p>
               )}
               {(chatError ?? voice.error) && (
                 <p className="copilot-error" role="alert">{chatError ?? voice.error}</p>
               )}
-              <form className="copilot-composer" onSubmit={event => void submit(event)}>
-                <label htmlFor="copilot-message">Message Copilot</label>
-                <textarea
-                  id="copilot-message"
-                  value={composer}
-                  disabled={pending}
-                  placeholder="Ask Marin…"
-                  rows={3}
-                  onChange={event => setComposer(event.target.value)}
-                  onKeyDown={event => {
-                    if (event.key === 'Enter' && !event.shiftKey) {
-                      event.preventDefault()
-                      event.currentTarget.form?.requestSubmit()
-                    }
-                  }}
-                />
-                <button type="submit" disabled={pending || !composer.trim()}>
-                  {pending ? 'Transmitting…' : 'Send'}
-                </button>
-              </form>
+              <CopilotComposer disabled={pending} onSubmitText={submit} />
             </section>
 
             <aside className="copilot-sidebar copilot-voice" aria-label="Voice controls">
@@ -307,6 +239,110 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
     </PhoenixShell>
   )
 }
+
+interface CopilotMessageHistoryProps {
+  activeTurn?: { assistantText: string, userText: string }
+  messages: readonly CopilotHistoryMessage[]
+  pending: boolean
+  remoteTurns: Record<string, RemoteTurn>
+}
+
+const CopilotMessageHistory = memo(function CopilotMessageHistory ({
+  activeTurn,
+  messages,
+  pending,
+  remoteTurns
+}: CopilotMessageHistoryProps) {
+  const endRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: 'end' })
+  }, [activeTurn, messages, remoteTurns])
+
+  return (
+    <div className="copilot-messages" aria-live="polite">
+      {messages.length === 0 && <p className="copilot-empty">No conversation yet. Marin is standing by.</p>}
+      {messages.map(message => (
+        <article key={message.id} className={`copilot-message copilot-message--${message.role}`}>
+          <span>{message.role === 'user' ? 'Commander' : 'Copilot'}</span>
+          <div className="copilot-message__text">
+            {message.role === 'assistant'
+              ? <CopilotMarkdown>{message.text || (pending ? '…' : '')}</CopilotMarkdown>
+              : message.text}
+          </div>
+        </article>
+      ))}
+      {activeTurn?.userText && (
+        <article className="copilot-message copilot-message--user copilot-message--live">
+          <span>Commander · live</span>
+          <div className="copilot-message__text">{activeTurn.userText}</div>
+        </article>
+      )}
+      {activeTurn && (
+        <article className="copilot-message copilot-message--assistant copilot-message--live">
+          <span>Copilot · live</span>
+          <div className="copilot-message__text"><CopilotMarkdown>{activeTurn.assistantText || '…'}</CopilotMarkdown></div>
+        </article>
+      )}
+      {Object.values(remoteTurns).map(turn => (
+        <div key={turn.id} className="copilot-live-turn">
+          {turn.userText && (
+            <article className="copilot-message copilot-message--user copilot-message--live">
+              <span>Commander · live</span>
+              <div className="copilot-message__text">{turn.userText}</div>
+            </article>
+          )}
+          <article className="copilot-message copilot-message--assistant copilot-message--live">
+            <span>Copilot · live</span>
+            <div className="copilot-message__text"><CopilotMarkdown>{turn.assistantText || '…'}</CopilotMarkdown></div>
+          </article>
+        </div>
+      ))}
+      <div ref={endRef} />
+    </div>
+  )
+})
+
+const CopilotComposer = memo(function CopilotComposer ({
+  disabled,
+  onSubmitText
+}: {
+  disabled: boolean
+  onSubmitText: (text: string) => Promise<void>
+}) {
+  const [composer, setComposer] = useState('')
+
+  const submit = (event: FormEvent): void => {
+    event.preventDefault()
+    const text = composer.trim()
+    if (!text || disabled) return
+    setComposer('')
+    void onSubmitText(text)
+  }
+
+  return (
+    <form className="copilot-composer" onSubmit={submit}>
+      <label htmlFor="copilot-message">Message Copilot</label>
+      <textarea
+        id="copilot-message"
+        value={composer}
+        disabled={disabled}
+        placeholder="Ask Marin…"
+        rows={3}
+        onChange={event => setComposer(event.target.value)}
+        onKeyDown={event => {
+          if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault()
+            event.currentTarget.form?.requestSubmit()
+          }
+        }}
+      />
+      <button type="submit" disabled={disabled || !composer.trim()}>
+        {disabled ? 'Transmitting…' : 'Send'}
+      </button>
+    </form>
+  )
+})
 
 function withoutTurn (
   turns: Record<string, RemoteTurn>,

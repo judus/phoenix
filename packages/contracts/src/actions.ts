@@ -8,6 +8,7 @@ export const GameActionResultStatusSchema = z.enum([
   'confirmed',
   'unconfirmed',
   'rejected',
+  'cancelled',
   'timed_out',
   'failed'
 ])
@@ -80,7 +81,11 @@ export const GameActionCatalogResponseSchema = z.object({
 
 export const ExecuteGameActionRequestSchema = z.object({
   actionId: GameActionDefinitionSchema.shape.id,
-  operation: GameActionOperationSchema.default('tap')
+  operation: GameActionOperationSchema.default('tap'),
+  requestId: z.string().min(1).optional(),
+  correlationId: z.string().min(1).optional(),
+  idempotencyKey: z.string().min(1).max(200).optional(),
+  timeoutMs: z.number().int().min(1).max(30_000).optional()
 })
 
 export const GameActionCommandSchema = ExecuteGameActionRequestSchema.extend({
@@ -89,6 +94,7 @@ export const GameActionCommandSchema = ExecuteGameActionRequestSchema.extend({
 
 export const GameActionResultSchema = z.object({
   requestId: z.string().min(1),
+  correlationId: z.string().min(1),
   actionId: GameActionDefinitionSchema.shape.id,
   operation: GameActionOperationSchema,
   origin: GameActionOriginSchema,

@@ -9,7 +9,7 @@ import type {
 import type { InputBackend } from '../domain/game-actions.js'
 
 export interface XdotoolCommandRunner {
-  run(executable: string, arguments_: string[], environment: NodeJS.ProcessEnv): Promise<void>
+  run(executable: string, arguments_: string[], environment: NodeJS.ProcessEnv, signal?: AbortSignal): Promise<void>
 }
 
 export interface LinuxXdotoolInputBackendOptions {
@@ -54,7 +54,7 @@ export class LinuxXdotoolInputBackend implements InputBackend {
     }
   }
 
-  public async send (operation: GameActionOperation, binding: LogicalInputChord): Promise<void> {
+  public async send (operation: GameActionOperation, binding: LogicalInputChord, signal?: AbortSignal): Promise<void> {
     const status = this.getStatus()
     if (!status.available || !this.executablePath) throw new Error(status.detail)
 
@@ -64,7 +64,8 @@ export class LinuxXdotoolInputBackend implements InputBackend {
       : keyCommands(operation === 'press' ? 'keydown' : 'keyup', keys)
 
     for (const arguments_ of commands) {
-      await this.runner.run(this.executablePath, arguments_, this.environment)
+      signal?.throwIfAborted()
+      await this.runner.run(this.executablePath, arguments_, this.environment, signal)
     }
   }
 }
@@ -73,10 +74,11 @@ export class ExecFileXdotoolCommandRunner implements XdotoolCommandRunner {
   public async run (
     executable: string,
     arguments_: string[],
-    environment: NodeJS.ProcessEnv
+    environment: NodeJS.ProcessEnv,
+    signal?: AbortSignal
   ): Promise<void> {
     await new Promise<void>((resolvePromise, reject) => {
-      execFile(executable, arguments_, { env: environment, timeout: 5_000 }, (error, _stdout, stderr) => {
+      execFile(executable, arguments_, { env: environment, timeout: 5_000, signal }, (error, _stdout, stderr) => {
         if (!error) {
           resolvePromise()
           return

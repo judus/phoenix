@@ -61,8 +61,10 @@ import { PhoenixMcpServer } from './infrastructure/phoenix-mcp-server.js'
 import { ArdentStationSearchSource } from './infrastructure/ardent-station-search-source.js'
 import { EdsmStationStockSource } from './infrastructure/edsm-station-stock-source.js'
 import { CatalogueSnapshotLoader } from './infrastructure/catalogue-snapshot-loader.js'
+import { ApplicationPaths } from './infrastructure/application-paths.js'
 
 export interface PhoenixApplicationOptions {
+  applicationPaths?: ApplicationPaths
   actionBindingResolver?: GameActionBindingResolver
   cartographySource?: CartographySource
   controlGridLayoutRepository?: ControlGridLayoutRepository
@@ -96,6 +98,7 @@ export class PhoenixApplication {
 
   public constructor (options: PhoenixApplicationOptions = {}) {
     const projectRoot = fileURLToPath(new URL('../../../', import.meta.url))
+    const paths = options.applicationPaths ?? ApplicationPaths.development(projectRoot)
     const host = options.host ?? process.env.PHOENIX_HOST ?? '0.0.0.0'
     const port = options.port ?? Number(process.env.PHOENIX_PORT ?? 3400)
     const gameEvents = new InProcessPublisher<GameEventEnvelope>()
@@ -107,20 +110,20 @@ export class PhoenixApplication {
     this.database = new SqliteDatabase(
       resolveProjectPath(
         projectRoot,
-        options.databasePath ?? process.env.PHOENIX_DATABASE_PATH ?? 'data/runtime/phoenix.sqlite'
+        options.databasePath ?? process.env.PHOENIX_DATABASE_PATH ?? resolve(paths.user.data, 'runtime/phoenix.sqlite')
       )
     )
     const activityLog = new ActivityLogService(this.database)
     const engineeringCatalogueDirectory = resolveProjectPath(
       projectRoot,
-      options.engineeringCatalogueDirectory ?? process.env.PHOENIX_ENGINEERING_CATALOGUE_PATH ?? 'data/catalogue/engineering'
+      options.engineeringCatalogueDirectory ?? process.env.PHOENIX_ENGINEERING_CATALOGUE_PATH ?? resolve(paths.resources.catalogue, 'engineering')
     )
     const customCatalogue = options.shipCataloguePath !== undefined || options.moduleCataloguePath !== undefined ||
       options.engineeringCatalogueDirectory !== undefined || process.env.PHOENIX_SHIP_CATALOGUE_PATH !== undefined ||
       process.env.PHOENIX_MODULE_CATALOGUE_PATH !== undefined || process.env.PHOENIX_ENGINEERING_CATALOGUE_PATH !== undefined
-    const bundledCatalogueDirectory = resolve(projectRoot, 'data/catalogue')
+    const bundledCatalogueDirectory = paths.resources.catalogue
     const catalogues = new CatalogueSnapshotLoader().load(
-      customCatalogue ? null : cataloguePaths(resolve(projectRoot, 'data/runtime/catalogue')),
+      customCatalogue ? null : cataloguePaths(resolve(paths.user.data, 'runtime/catalogue')),
       {
         directory: engineeringCatalogueDirectory,
         engineeringDirectory: engineeringCatalogueDirectory,
@@ -249,7 +252,7 @@ export class PhoenixApplication {
     }))
     const mcpServer = new PhoenixMcpServer(toolRegistry)
     const configuredCopilot = options.copilot === undefined && options.copilotRealtime === undefined
-      ? createConfiguredCopilot(projectRoot, {
+      ? createConfiguredCopilot(paths, {
           ...(port > 0 ? { mcpUrl: `http://127.0.0.1:${port}/mcp` } : {}),
           runtimeState: this.stateStore,
           tools: toolRegistry
@@ -285,10 +288,7 @@ export class PhoenixApplication {
       engineering,
       explorationData,
       navigationData,
-      webRoot: resolveProjectPath(
-        projectRoot,
-        options.webRoot ?? process.env.PHOENIX_WEB_ROOT ?? 'apps/web/dist'
-      )
+      webRoot: resolveProjectPath(projectRoot, options.webRoot ?? paths.resources.web)
     })
   }
 

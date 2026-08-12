@@ -1,5 +1,4 @@
-import { appendFileSync, mkdirSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { resolve } from 'node:path'
 import { createAiClient, type AiClient, type ToolRegistry } from '@judus/llm-client'
 import { openAI } from '@judus/llm-client/providers/openai'
 import {
@@ -15,6 +14,8 @@ import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import { readCopilotAudioProcessing } from './copilot-audio-config.js'
 import { JsonConversationStore } from './json-conversation-store.js'
 import { OpenAiRealtimeClient } from './openai-realtime-client.js'
+import { RotatingWireLogger } from './rotating-wire-logger.js'
+import type { ApplicationPaths } from './application-paths.js'
 
 export interface ConfiguredCopilot {
   realtime: CopilotRealtime
@@ -33,23 +34,37 @@ export interface ConfiguredCopilotOptions {
   tools: ToolRegistry
   wireLogEnabled?: boolean
   wireLogFile?: string
+  wireLogMaxBytes?: number
+  wireLogMaxFiles?: number
 }
 
 export function createConfiguredCopilot (
-  projectRoot: string,
+  paths: ApplicationPaths,
   options: ConfiguredCopilotOptions
 ): ConfiguredCopilot | undefined {
   const apiKey = options.apiKey ?? process.env.PHOENIX_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY
   if (!apiKey) return undefined
 
   const conversations = new JsonConversationStore(
-    resolve(projectRoot, options.conversationsDirectory ?? 'data/conversations')
+    resolve(paths.user.data, options.conversationsDirectory ?? 'conversations')
   )
   const wireLogger = (options.wireLogEnabled ?? environmentBoolean(
     process.env.PHOENIX_OPENAI_WIRE_LOG_ENABLED,
-    true
+    false
   ))
-    ? createWireLogger(resolve(projectRoot, options.wireLogFile ?? 'data/runtime/openai-wire.ndjson'))
+    ? new RotatingWireLogger({
+        file: resolve(paths.user.logs, options.wireLogFile ?? 'openai-wire.ndjson'),
+        maxBytes: options.wireLogMaxBytes ?? environmentInteger(
+          process.env.PHOENIX_OPENAI_WIRE_LOG_MAX_BYTES,
+          25 * 1024 * 1024,
+          false
+        ),
+        maxFiles: options.wireLogMaxFiles ?? environmentInteger(
+          process.env.PHOENIX_OPENAI_WIRE_LOG_MAX_FILES,
+          3,
+          false
+        )
+      }).write
     : undefined
   const provider = openAI({
     apiKey,
@@ -67,7 +82,7 @@ export function createConfiguredCopilot (
     ...(wireLogger === undefined ? {} : { wireLogger })
   })
   const profiles = new FileAgentProfileRepository(
-    resolve(projectRoot, options.agentsDirectory ?? 'agents')
+    resolve(paths.resources.agents, options.agentsDirectory ?? '.')
   )
   const prompts = new AgentPromptComposer(profiles)
   const runtimeContext = new RuntimeContextRenderer()
@@ -93,8 +108,8 @@ export function createConfiguredCopilot (
     text: new CopilotTextService(pipeline, options.runtimeState, conversations),
     realtime: new CopilotRealtimeService({
       audioProcessing: readCopilotAudioProcessing(resolve(
-        projectRoot,
-        options.agentsDirectory ?? 'agents',
+        paths.resources.agents,
+        options.agentsDirectory ?? '.',
         'marin',
         'audio.json'
       )),
@@ -108,27 +123,6 @@ export function createConfiguredCopilot (
       voice: process.env.PHOENIX_OPENAI_REALTIME_VOICE ?? 'marin'
     })
   }
-}
-
-function createWireLogger (file: string): (event: unknown) => void {
-  mkdirSync(dirname(file), { recursive: true })
-  return (event: unknown): void => {
-    appendFileSync(file, `${JSON.stringify(event, wireLogReplacer)}\n`, 'utf8')
-  }
-}
-
-function wireLogReplacer (key: string, value: unknown): unknown {
-  if (['apiKey', 'api_key', 'authorization'].includes(key)) return '[REDACTED]'
-  if (typeof value === 'bigint') return value.toString()
-  if (value instanceof Error) {
-    return {
-      cause: value.cause,
-      message: value.message,
-      name: value.name,
-      stack: value.stack
-    }
-  }
-  return value
 }
 
 function environmentBoolean (value: string | undefined, fallback: boolean): boolean {

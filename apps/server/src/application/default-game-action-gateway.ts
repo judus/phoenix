@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import {
   GameActionCommandSchema,
   GameActionResultSchema,
@@ -6,6 +5,7 @@ import {
   type GameActionCommand,
   type GameActionResult
 } from '@phoenix/contracts'
+import { randomUUID } from 'node:crypto'
 import {
   getActionAvailability,
   type GameActionBindingResolver,
@@ -34,7 +34,7 @@ export class DefaultGameActionGateway implements GameActionGateway {
     }
   }
 
-  public async execute (candidate: GameActionCommand): Promise<GameActionResult> {
+  public async execute (candidate: GameActionCommand, signal?: AbortSignal): Promise<GameActionResult> {
     const command = GameActionCommandSchema.parse(candidate)
     const definition = this.catalog.find(command.actionId)
     if (!definition) return this.result(command, 'rejected', `Unknown action: ${command.actionId}.`)
@@ -55,10 +55,17 @@ export class DefaultGameActionGateway implements GameActionGateway {
     }
 
     try {
-      await this.backend.send(command.operation, binding)
+      signal?.throwIfAborted()
+      await this.backend.send(command.operation, binding, signal)
       const simulation = backend.simulated ? ' Simulation only; no operating-system input was sent.' : ''
       return this.result(command, 'accepted', `${definition.label} input accepted.${simulation}`)
     } catch (cause) {
+      if (signal?.aborted) {
+        const timedOut = signal.reason instanceof DOMException && signal.reason.name === 'TimeoutError'
+        return this.result(command, timedOut ? 'timed_out' : 'cancelled', timedOut
+          ? `${definition.label} input timed out.`
+          : `${definition.label} input was cancelled.`)
+      }
       const message = cause instanceof Error ? cause.message : 'Unknown input backend failure.'
       return this.result(command, 'failed', `${definition.label} input failed: ${message}`)
     }
@@ -69,8 +76,10 @@ export class DefaultGameActionGateway implements GameActionGateway {
     status: GameActionResult['status'],
     message: string
   ): GameActionResult {
+    const requestId = command.requestId ?? randomUUID()
     return GameActionResultSchema.parse({
-      requestId: randomUUID(),
+      requestId,
+      correlationId: command.correlationId ?? requestId,
       actionId: command.actionId,
       operation: command.operation,
       origin: command.origin,

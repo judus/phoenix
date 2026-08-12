@@ -46,7 +46,7 @@ export class StatefulGameActionService {
       )
     }
 
-    const execution = await this.actions.execute({ actionId: request.actionId, operation: 'tap' }, 'copilot')
+    const execution = await this.actions.execute({ actionId: request.actionId, operation: 'tap' }, 'copilot', signal)
     if (execution.status !== 'accepted') return execution
     const confirmed = await this.waitForState(telemetryKey, request.enabled, signal)
     return GameActionResultSchema.parse({
@@ -79,8 +79,10 @@ export class StatefulGameActionService {
     status: GameActionResult['status'],
     message: string
   ): GameActionResult {
+    const requestId = randomUUID()
     return GameActionResultSchema.parse({
-      requestId: randomUUID(),
+      requestId,
+      correlationId: requestId,
       actionId,
       operation: 'tap',
       origin: 'copilot',

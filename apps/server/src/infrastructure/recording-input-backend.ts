@@ -22,7 +22,8 @@ export class RecordingInputBackend implements InputBackend {
     }
   }
 
-  public async send (operation: GameActionOperation, binding: LogicalInputChord): Promise<void> {
+  public async send (operation: GameActionOperation, binding: LogicalInputChord, signal?: AbortSignal): Promise<void> {
+    signal?.throwIfAborted()
     this.recordedInputs.push({ operation, binding: structuredClone(binding) })
   }
 
