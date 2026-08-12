@@ -1,5 +1,5 @@
 import type { RuntimeState } from '@phoenix/contracts'
-import type { AiResult, AiRunOptions, AiStreamEvent } from '@maduser/ai-ts'
+import type { AiResult, AiRunOptions, AiStreamEvent } from '@judus/llm-client'
 import type { AgentPromptComposer } from './agent-profile.js'
 import type { RuntimeContextRenderer } from './runtime-context-renderer.js'
 

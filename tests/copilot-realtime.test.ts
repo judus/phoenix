@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, test } from 'vitest'
-import { ToolRegistry, type JsonObject } from '@maduser/ai-ts'
+import { ToolRegistry, type JsonObject } from '@judus/llm-client'
 import type {
   CopilotAudioProcessing,
   CopilotRealtimeTokenRequest,

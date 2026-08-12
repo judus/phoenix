@@ -1,4 +1,4 @@
-import type { JsonObject, LocalTool } from '@maduser/ai-ts'
+import type { JsonObject, LocalTool } from '@judus/llm-client'
 import type { ShipModule } from '@phoenix/contracts'
 import type { RuntimeStateReader } from '../../domain/runtime-state.js'
 import { boundedLimit, json, optionalBooleanArgument, optionalIntegerArgument, optionalStringArgument, output } from './tool-support.js'

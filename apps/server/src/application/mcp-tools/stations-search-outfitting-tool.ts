@@ -1,4 +1,4 @@
-import type { JsonObject, LocalTool } from '@maduser/ai-ts'
+import type { JsonObject, LocalTool } from '@judus/llm-client'
 import type { StationQuery } from './tool-gateways.js'
 
 export class StationsSearchOutfittingTool implements LocalTool {

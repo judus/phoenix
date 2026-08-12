@@ -21,7 +21,7 @@ import {
   type DisplayCommand,
   type RuntimeState
 } from '@phoenix/contracts'
-import { AiError, serializeAiError, type AiStreamEvent } from '@maduser/ai-ts'
+import { AiError, serializeAiError, type AiStreamEvent } from '@judus/llm-client'
 import type { CopilotText, CopilotTextRequest } from '../application/copilot-text-service.js'
 import type { CopilotConversationEvents } from '../application/copilot-conversation-event-service.js'
 import type { CopilotVoiceHostControl } from '../application/copilot-voice-host-coordinator.js'

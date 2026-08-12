@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import type { JsonObject } from '@maduser/ai-ts'
+import type { JsonObject } from '@judus/llm-client'
 import { DisplayCommandSchema, type DisplayCommand } from '@phoenix/contracts'
 import type { Publisher, Subscribable, Unsubscribe } from '../domain/publisher.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'

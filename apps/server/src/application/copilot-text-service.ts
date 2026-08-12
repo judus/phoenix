@@ -3,7 +3,7 @@ import type {
   AiRunOptions,
   AiStreamEvent,
   ConversationStore
-} from '@maduser/ai-ts'
+} from '@judus/llm-client'
 import type { CopilotChatRequest, CopilotHistoryMessage } from '@phoenix/contracts'
 import type { TextCopilotPipeline } from '@phoenix/copilot'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'

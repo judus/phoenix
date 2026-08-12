@@ -1,4 +1,4 @@
-import type { JsonObject, ToolExecutionOutput } from '@maduser/ai-ts'
+import type { JsonObject, ToolExecutionOutput } from '@judus/llm-client'
 
 export type DeferredToolResult = Promise<ToolExecutionOutput> | ToolExecutionOutput
 

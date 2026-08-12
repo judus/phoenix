@@ -1,4 +1,4 @@
-import type { LocalTool } from '@maduser/ai-ts'
+import type { LocalTool } from '@judus/llm-client'
 import type { GameActions } from '../game-action-service.js'
 import { emptyObjectSchema, json, output } from './tool-support.js'
 

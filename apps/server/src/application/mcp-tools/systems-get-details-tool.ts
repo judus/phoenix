@@ -1,4 +1,4 @@
-import type { JsonObject, LocalTool } from '@maduser/ai-ts'
+import type { JsonObject, LocalTool } from '@judus/llm-client'
 import type { SystemDetailsQuery } from './tool-gateways.js'
 
 export class SystemsGetDetailsTool implements LocalTool {

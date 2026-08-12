@@ -1,4 +1,4 @@
-import type { JsonObject, LocalTool } from '@maduser/ai-ts'
+import type { JsonObject, LocalTool } from '@judus/llm-client'
 import type { GameActionCategory } from '@phoenix/contracts'
 import type { GameActions } from '../game-action-service.js'
 import { optionalIntegerArgument, optionalStringArgument, output, stringArgument } from './tool-support.js'

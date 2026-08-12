@@ -1,7 +1,7 @@
 import { appendFileSync, mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
-import { createAiClient, type AiClient, type ToolRegistry } from '@maduser/ai-ts'
-import { openAI } from '@maduser/ai-ts/providers/openai'
+import { createAiClient, type AiClient, type ToolRegistry } from '@judus/llm-client'
+import { openAI } from '@judus/llm-client/providers/openai'
 import {
   AgentPromptComposer,
   FileAgentProfileRepository,

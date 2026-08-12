@@ -4,8 +4,8 @@ import {
   type ConfiguredProvider,
   type ConversationMessage,
   type ModelResponse
-} from '@maduser/ai-ts'
-import { ScriptedProvider, textModelCapabilities } from '@maduser/ai-ts/testing'
+} from '@judus/llm-client'
+import { ScriptedProvider, textModelCapabilities } from '@judus/llm-client/testing'
 import { StaticGameActionBindingResolver } from '../apps/server/src/infrastructure/static-game-action-binding-resolver.js'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 

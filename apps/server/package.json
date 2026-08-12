@@ -5,7 +5,7 @@
   "type": "module",
   "exports": "./dist/main.js",
   "dependencies": {
-    "@maduser/ai-ts": "file:../../../maduser-ai-ts",
+    "@judus/llm-client": "git+ssh://git@github.com/judus/llm-client-ts.git#v0.1.1",
     "@phoenix/copilot": "*",
     "@phoenix/contracts": "*",
     "@phoenix/elite": "*"

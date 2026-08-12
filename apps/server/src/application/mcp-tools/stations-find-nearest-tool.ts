@@ -1,4 +1,4 @@
-import type { JsonObject, LocalTool } from '@maduser/ai-ts'
+import type { JsonObject, LocalTool } from '@judus/llm-client'
 import type { StationQuery } from './tool-gateways.js'
 
 const services = ['black-market', 'interstellar-factors', 'material-trader', 'outfitting', 'refuel', 'repair', 'search-and-rescue', 'shipyard', 'technology-broker', 'universal-cartographics']

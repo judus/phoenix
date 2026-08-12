@@ -1,4 +1,4 @@
-import type { JsonObject, LocalTool } from '@maduser/ai-ts'
+import type { JsonObject, LocalTool } from '@judus/llm-client'
 import type { NavigationQuery } from './tool-gateways.js'
 import { emptyObjectSchema } from './tool-support.js'
 

@@ -1,7 +1,7 @@
 import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { DisplayCommand, GameEventEnvelope, RuntimeState } from '@phoenix/contracts'
-import { ToolRegistry } from '@maduser/ai-ts'
+import { ToolRegistry } from '@judus/llm-client'
 import {
   EliteDataDirectoryLocator,
   EliteBindingsDirectoryLocator,

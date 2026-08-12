@@ -1,4 +1,4 @@
-import type { JsonObject, LocalTool } from '@maduser/ai-ts'
+import type { JsonObject, LocalTool } from '@judus/llm-client'
 import type { ShipDefinition, ShipSlotDefinition } from '@phoenix/contracts'
 import type { GameCatalogue } from '@phoenix/elite'
 import { json, output, stringArrayArgument } from './tool-support.js'

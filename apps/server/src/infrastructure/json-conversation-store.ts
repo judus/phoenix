@@ -10,7 +10,7 @@ import {
   type ConversationStore,
   type CreateConversation,
   type MessageQuery
-} from '@maduser/ai-ts'
+} from '@judus/llm-client'
 
 const SCHEMA_VERSION = 1
 

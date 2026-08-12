@@ -17,7 +17,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@maduser/ai-ts": "file:../../../maduser-ai-ts",
+    "@judus/llm-client": "git+ssh://git@github.com/judus/llm-client-ts.git#v0.1.1",
     "@phoenix/contracts": "*"
   }
 }

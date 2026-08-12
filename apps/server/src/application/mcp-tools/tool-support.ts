@@ -1,4 +1,4 @@
-import type { JsonObject, JsonValue, ToolExecutionOutput } from '@maduser/ai-ts'
+import type { JsonObject, JsonValue, ToolExecutionOutput } from '@judus/llm-client'
 
 export function output (text: string, structuredContent: JsonValue): ToolExecutionOutput {
   return {

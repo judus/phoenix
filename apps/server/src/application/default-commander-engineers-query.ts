@@ -1,4 +1,4 @@
-import type { JsonObject } from '@maduser/ai-ts'
+import type { JsonObject } from '@judus/llm-client'
 import type { CommanderEngineersQuery } from './mcp-tools/tool-gateways.js'
 import type { EngineeringDataReader } from './engineering-data-service.js'
 import { json, output } from './mcp-tools/tool-support.js'

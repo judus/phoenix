@@ -1,4 +1,4 @@
-import type { JsonObject, LocalTool } from '@maduser/ai-ts'
+import type { JsonObject, LocalTool } from '@judus/llm-client'
 import type { ExplorationBodyQuery } from './tool-gateways.js'
 import { emptyObjectSchema } from './tool-support.js'
 

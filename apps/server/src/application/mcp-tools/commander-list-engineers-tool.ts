@@ -1,4 +1,4 @@
-import type { JsonObject, LocalTool } from '@maduser/ai-ts'
+import type { JsonObject, LocalTool } from '@judus/llm-client'
 import type { CommanderEngineersQuery } from './tool-gateways.js'
 
 export class CommanderListEngineersTool implements LocalTool {

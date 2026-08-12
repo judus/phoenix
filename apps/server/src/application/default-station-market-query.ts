@@ -1,4 +1,4 @@
-import type { JsonObject } from '@maduser/ai-ts'
+import type { JsonObject } from '@judus/llm-client'
 import type { CartographicStation } from '@phoenix/contracts'
 import type { SystemCartography } from '../domain/cartography.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'

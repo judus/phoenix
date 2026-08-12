@@ -1,4 +1,4 @@
-import type { JsonObject } from '@maduser/ai-ts'
+import type { JsonObject } from '@judus/llm-client'
 import type { RealtimeClientSecretGateway } from '../application/copilot-realtime-service.js'
 
 export interface OpenAiRealtimeClientOptions {

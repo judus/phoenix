@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { resolve } from 'node:path'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
-import type { AiResult, AiStreamEvent } from '@maduser/ai-ts'
+import type { AiResult, AiStreamEvent } from '@judus/llm-client'
 import {
   AgentPromptComposer,
   FileAgentProfileRepository,
@@ -105,7 +105,7 @@ test('runtime context renders typed PHOENIX state without legacy compatibility s
   expect(rendered).not.toContain('undefined')
 })
 
-test('text pipeline delegates execution and streaming to maduser-ai-ts-compatible clients', async () => {
+test('text pipeline delegates execution and streaming to judus-llm-client-compatible clients', async () => {
   const factory = new RecordingClientFactory()
   const pipeline = new TextCopilotPipeline(
     factory,
