@@ -66,7 +66,7 @@ When a trigger appears, split at the demonstrated seam. Do not pre-emptively int
 ## Change discipline
 
 - Add or update contracts before crossing a new process or persistence boundary.
-- Characterize migrated ICARUS behavior with tests before refactoring it.
+- Characterize migrated legacy behavior with tests before refactoring it.
 - Test ordering, retries, reconnection, replay, and stale-data behavior—not only happy paths.
 - Keep copied code and assets attributable and license-compatible.
 - Keep secrets, commander data, runtime state, conversations, caches, and detailed wire logs out of Git.
