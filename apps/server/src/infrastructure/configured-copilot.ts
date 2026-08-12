@@ -28,6 +28,7 @@ export interface ConfiguredCopilotOptions {
   conversationsDirectory?: string
   maxRetries?: number
   mcpUrl?: string
+  mcpToken?: string
   model?: string
   runtimeState: RuntimeStateReader
   timeoutMs?: number
@@ -94,7 +95,13 @@ export function createConfiguredCopilot (
       },
       instructions,
       ...(options.mcpUrl === undefined ? {} : {
-        mcp: [{ name: 'phoenix', url: options.mcpUrl }]
+        mcp: [{
+          name: 'phoenix',
+          url: options.mcpUrl,
+          ...(options.mcpToken === undefined ? {} : {
+            headers: { authorization: `Bearer ${options.mcpToken}` }
+          })
+        }]
       }),
       provider
     })

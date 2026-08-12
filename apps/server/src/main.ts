@@ -10,6 +10,7 @@ import {
 } from './infrastructure/json-system-configuration.js'
 import { PhoenixApplication } from './phoenix-application.js'
 import { ApplicationPaths } from './infrastructure/application-paths.js'
+import { PairingAccessController } from './infrastructure/pairing-access-controller.js'
 
 let application: PhoenixApplication | null = null
 
@@ -22,6 +23,7 @@ try {
     : ApplicationPaths.development(projectRoot)
 
   const settingsPath = resolve(paths.user.config, process.env.PHOENIX_SETTINGS_PATH ?? 'settings.json')
+  const accessControl = new PairingAccessController(resolve(paths.user.config, 'pairing.json'))
   const runtimeSystemPath = resolve(paths.user.data, process.env.PHOENIX_RUNTIME_SYSTEM_PATH ?? 'runtime/system.json')
   const settingsRepository = new JsonSystemSettingsRepository(settingsPath)
   const settings = settingsRepository.loadOrCreate()
@@ -29,12 +31,14 @@ try {
   new JsonRuntimeSystemSnapshotWriter(runtimeSystemPath).write(controls.snapshot)
 
   application = new PhoenixApplication({
+    accessControl,
     applicationPaths: paths,
     controlGridLayoutRepository: settingsRepository,
     inputBackend: controls.backend
   })
   const address = await application.start()
   console.log(`PHOENIX server listening on http://${address.host}:${address.port}`)
+  console.log(`PHOENIX device pairing code: ${accessControl.pairingCode}`)
   startCatalogueRefresh(paths)
 } catch (error) {
   console.error('ERROR_PHOENIX_START_FAILED', error)

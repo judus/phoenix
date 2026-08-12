@@ -136,7 +136,9 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
     disconnectLocal(false)
     try {
       if (!navigator.mediaDevices?.getUserMedia || typeof WebSocket === 'undefined') {
-        throw new Error('This browser does not support Realtime microphone audio.')
+        throw new Error(window.isSecureContext
+          ? 'This browser does not support Realtime microphone audio.'
+          : 'Realtime microphone audio requires localhost or a secure HTTPS connection.')
       }
       const [token, audioProcessing] = await Promise.all([
         apiRef.current.createCopilotRealtimeToken({

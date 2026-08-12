@@ -22,10 +22,39 @@ import { EngineeringPage, type EngineeringView } from './pages/engineering-page.
 import { DashboardPage } from './pages/dashboard-page.js'
 import { ShipPage, type ShipView } from './pages/ship-page.js'
 import { ExplorationPage, type ExplorationView } from './pages/exploration-page.js'
+import { PairingPage } from './pages/pairing-page.js'
+import { CopilotVoiceProvider } from './features/copilot/copilot-voice-provider.js'
 
 const api = new PhoenixApiClient()
 
 export function App () {
+  const [paired, setPaired] = useState<boolean>()
+  const [pairingError, setPairingError] = useState<string>()
+
+  useEffect(() => {
+    void api.getPairingStatus()
+      .then(status => setPaired(status.authenticated))
+      .catch(cause => setPairingError(cause instanceof Error ? cause.message : 'PHOENIX pairing unavailable.'))
+  }, [])
+
+  if (paired !== true) {
+    return (
+      <PairingPage
+        checking={paired === undefined && pairingError === undefined}
+        error={pairingError}
+        onPair={async code => {
+          const status = await api.claimPairing(code)
+          setPairingError(undefined)
+          setPaired(status.authenticated)
+        }}
+      />
+    )
+  }
+
+  return <CopilotVoiceProvider><AuthenticatedApplication /></CopilotVoiceProvider>
+}
+
+function AuthenticatedApplication () {
   const [health, setHealth] = useState<HealthResponse>()
   const [actionCatalog, setActionCatalog] = useState<GameActionCatalogResponse>()
   const [catalogueDiagnostics, setCatalogueDiagnostics] = useState<CatalogueDiagnostics>()

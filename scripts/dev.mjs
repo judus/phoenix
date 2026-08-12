@@ -43,7 +43,7 @@ async function waitForServer () {
   console.log(`Waiting for PHOENIX server on port ${serverPort}…`)
   while (!stopping && Date.now() < deadline) {
     try {
-      const response = await fetch(`http://127.0.0.1:${serverPort}/api/health`)
+      const response = await fetch(`http://127.0.0.1:${serverPort}/api/pairing/status`)
       if (response.ok) return
     } catch {}
     await new Promise(resolve => setTimeout(resolve, 50))

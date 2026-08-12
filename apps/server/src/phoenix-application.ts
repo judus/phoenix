@@ -62,10 +62,12 @@ import { ArdentStationSearchSource } from './infrastructure/ardent-station-searc
 import { EdsmStationStockSource } from './infrastructure/edsm-station-stock-source.js'
 import { CatalogueSnapshotLoader } from './infrastructure/catalogue-snapshot-loader.js'
 import { ApplicationPaths } from './infrastructure/application-paths.js'
+import type { PairingAccessController } from './infrastructure/pairing-access-controller.js'
 
 export interface PhoenixApplicationOptions {
   applicationPaths?: ApplicationPaths
   actionBindingResolver?: GameActionBindingResolver
+  accessControl?: PairingAccessController
   cartographySource?: CartographySource
   controlGridLayoutRepository?: ControlGridLayoutRepository
   copilot?: CopilotText | null
@@ -254,6 +256,7 @@ export class PhoenixApplication {
     const configuredCopilot = options.copilot === undefined && options.copilotRealtime === undefined
       ? createConfiguredCopilot(paths, {
           ...(port > 0 ? { mcpUrl: `http://127.0.0.1:${port}/mcp` } : {}),
+          ...(options.accessControl ? { mcpToken: options.accessControl.bearerToken } : {}),
           runtimeState: this.stateStore,
           tools: toolRegistry
         })
@@ -265,6 +268,7 @@ export class PhoenixApplication {
       ? configuredCopilot?.realtime
       : options.copilotRealtime ?? undefined
     this.server = new PhoenixHttpServer({
+      accessControl: options.accessControl,
       catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
       controlGridLayouts: options.controlGridLayoutRepository ?? new InMemoryControlGridLayoutRepository(),
       copilot,

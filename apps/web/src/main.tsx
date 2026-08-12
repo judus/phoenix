@@ -1,7 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './app.js'
-import { CopilotVoiceProvider } from './features/copilot/copilot-voice-provider.js'
 import './styles/index.css'
 import './styles/tokens.css'
 import './styles/base.css'
@@ -17,6 +16,7 @@ import './styles/patterns/engineering.css'
 import './styles/patterns/dashboard.css'
 import './styles/patterns/ship.css'
 import './styles/patterns/exploration.css'
+import './styles/patterns/pairing.css'
 import './styles/utilities.css'
 
 const root = document.getElementById('root')
@@ -24,8 +24,6 @@ if (!root) throw new Error('PHOENIX root element is missing.')
 
 createRoot(root).render(
   <StrictMode>
-    <CopilotVoiceProvider>
-      <App />
-    </CopilotVoiceProvider>
+    <App />
   </StrictMode>
 )

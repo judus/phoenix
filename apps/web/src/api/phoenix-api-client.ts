@@ -62,6 +62,7 @@ import {
 } from '@phoenix/contracts'
 
 export interface PhoenixApi {
+  claimPairing(code: string): Promise<PairingStatus>
   createCopilotRealtimeToken(input: CopilotRealtimeTokenRequest): Promise<CopilotRealtimeTokenResponse>
   executeCopilotRealtimeTool(input: CopilotRealtimeToolRequest): Promise<unknown>
   getCopilotAudioProcessing(): Promise<CopilotAudioProcessing>
@@ -77,6 +78,7 @@ export interface PhoenixApi {
   getActions(): Promise<GameActionCatalogResponse>
   getDeveloperActions(): Promise<GameActionCatalogResponse>
   getHealth(): Promise<HealthResponse>
+  getPairingStatus(): Promise<PairingStatus>
   getEngineeringBlueprint(symbol: string): Promise<EngineeringBlueprintDetail>
   getEngineeringBlueprints(): Promise<EngineeringBlueprintsResponse>
   getEngineeringEngineers(): Promise<EngineeringEngineersResponse>
@@ -107,6 +109,12 @@ export interface PhoenixApi {
   ): Promise<void>
 }
 
+export interface PairingStatus {
+  authenticated: boolean
+  installationId: string
+  pairingRequired: boolean
+}
+
 export type CopilotStreamEvent =
   | { type: 'started', conversationId: string }
   | { type: 'retrying', attempt: number }
@@ -123,6 +131,24 @@ export class PhoenixApiClient implements PhoenixApi {
     request: typeof fetch = globalThis.fetch
   ) {
     this.request = request.bind(globalThis)
+  }
+
+  public async getPairingStatus (): Promise<PairingStatus> {
+    const response = await this.request(`${this.baseUrl}/api/pairing/status`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return pairingStatus(await response.json())
+  }
+
+  public async claimPairing (code: string): Promise<PairingStatus> {
+    const response = await this.request(`${this.baseUrl}/api/pairing/claim`, {
+      body: JSON.stringify({ code }),
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      method: 'POST'
+    })
+    if (!response.ok) throw await apiError(response)
+    return pairingStatus(await response.json())
   }
 
   public async getHealth (): Promise<HealthResponse> {
@@ -507,6 +533,20 @@ async function apiError (response: Response): Promise<Error> {
     if (typeof payload.error?.message === 'string') return new Error(payload.error.message)
   } catch {}
   return new Error(`PHOENIX API returned HTTP ${response.status}.`)
+}
+
+function pairingStatus (candidate: unknown): PairingStatus {
+  if (typeof candidate !== 'object' || candidate === null) throw new Error('Invalid PHOENIX pairing response.')
+  const value = candidate as Record<string, unknown>
+  if (typeof value.authenticated !== 'boolean' || typeof value.installationId !== 'string' ||
+      typeof value.pairingRequired !== 'boolean') {
+    throw new Error('Invalid PHOENIX pairing response.')
+  }
+  return {
+    authenticated: value.authenticated,
+    installationId: value.installationId,
+    pairingRequired: value.pairingRequired
+  }
 }
 
 function parseCopilotStreamFrame (frame: string): CopilotStreamEvent | undefined {

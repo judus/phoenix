@@ -41,6 +41,7 @@ import type { Subscribable } from '../domain/publisher.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type { ControlGridLayoutRepository } from '../domain/system-configuration.js'
 import type { PhoenixMcpServer } from './phoenix-mcp-server.js'
+import { PairingAttemptLimitError, type PairingAccessController } from './pairing-access-controller.js'
 
 const CONTENT_TYPES: Record<string, string> = {
   '.css': 'text/css; charset=utf-8',
@@ -58,6 +59,7 @@ type CopilotConversationEventPayload = CopilotConversationEvent extends infer Ev
   : never
 
 export interface PhoenixHttpServerOptions {
+  accessControl?: PairingAccessController
   catalogueDiagnostics: CatalogueDiagnosticsReader
   controlGridLayouts: ControlGridLayoutRepository
   copilot?: CopilotText
@@ -136,6 +138,55 @@ export class PhoenixHttpServer {
 
   private async handle (request: IncomingMessage, response: ServerResponse): Promise<void> {
     const url = new URL(request.url ?? '/', 'http://phoenix.local')
+
+    if (request.method === 'GET' && url.pathname === '/api/pairing/status') {
+      this.writeJson(response, 200, this.options.accessControl?.status(request) ?? {
+        authenticated: true,
+        installationId: 'development',
+        pairingRequired: false
+      })
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/pairing/claim') {
+      if (!this.options.accessControl) {
+        this.writeJson(response, 200, { authenticated: true, installationId: 'development', pairingRequired: false })
+        return
+      }
+      try {
+        const body = await readJsonBody(request)
+        const code = isRecord(body) && typeof body.code === 'string' ? body.code : ''
+        if (!this.options.accessControl.claim(code)) {
+          this.writeJson(response, 401, { error: { code: 'pairing_code_invalid', message: 'The pairing code is invalid.' } })
+          return
+        }
+        response.setHeader('set-cookie', this.options.accessControl.sessionCookie())
+        this.writeJson(response, 200, {
+          authenticated: true,
+          installationId: this.options.accessControl.installationId,
+          pairingRequired: true
+        })
+      } catch (cause) {
+        const limited = cause instanceof PairingAttemptLimitError
+        this.writeJson(response, limited ? 429 : 400, {
+          error: { code: limited ? 'pairing_rate_limited' : 'pairing_request_invalid', message: errorMessage(cause) }
+        })
+      }
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/pairing/release') {
+      response.setHeader('set-cookie', this.options.accessControl?.clearSessionCookie() ?? '')
+      this.writeJson(response, 200, { authenticated: false })
+      return
+    }
+
+    if ((url.pathname === '/mcp' || url.pathname.startsWith('/api/')) &&
+        this.options.accessControl && !this.options.accessControl.isAuthorized(request)) {
+      response.setHeader('www-authenticate', 'Bearer realm="PHOENIX"')
+      this.writeJson(response, 401, { error: { code: 'pairing_required', message: 'Pair this device with PHOENIX.' } })
+      return
+    }
 
     if (url.pathname === '/mcp') {
       await this.options.mcpServer.handle(request, response)
@@ -884,6 +935,10 @@ function realtimeError (cause: unknown, code: string): unknown {
 
 function errorMessage (cause: unknown): string {
   return cause instanceof Error ? cause.message : 'Unknown PHOENIX error.'
+}
+
+function isRecord (value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function completedConversationEvent (input: {
