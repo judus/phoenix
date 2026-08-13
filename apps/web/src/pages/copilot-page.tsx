@@ -13,6 +13,7 @@ import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 import { useCopilotVoice } from '../features/copilot/copilot-voice-provider.js'
+import { CopilotVoiceToggle } from '../features/copilot/copilot-voice-toggle.js'
 import { CopilotMarkdown } from '../features/copilot/copilot-markdown.js'
 import {
   copilotClientId,
@@ -224,14 +225,7 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
                   ))}
                 </select>
               </label>
-              <button
-                type="button"
-                onClick={() => voice.connected ? voice.disconnect() : void voice.connect()}
-              >
-                {voice.connected
-                  ? voice.hostLocation === 'remote' ? 'Disconnect desktop voice' : 'Disconnect voice'
-                  : voice.hostLocation === 'remote' ? 'Connect desktop voice' : 'Connect realtime'}
-              </button>
+              <CopilotVoiceToggle voice={voice} />
             </aside>
           </div>
         </PageContent>

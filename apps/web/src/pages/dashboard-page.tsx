@@ -15,6 +15,7 @@ import { Page, PageContent } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 import { useCopilotVoice } from '../features/copilot/copilot-voice-provider.js'
+import { CopilotVoiceToggle } from '../features/copilot/copilot-voice-toggle.js'
 import { GalnetRadioControls } from '../components/galnet-radio-controls.js'
 
 const navigation: NavigationItem[] = [
@@ -117,15 +118,7 @@ export function DashboardPage ({ actionCatalog, api, error, health, onExecuteAct
                   <strong>MARIN</strong>
                   <span>{voice.status}</span>
                 </div>
-                <button
-                  type="button"
-                  className={voice.connected ? 'is-connected' : undefined}
-                  onClick={() => voice.connected ? voice.disconnect() : void voice.connect()}
-                >
-                  {voice.connected
-                    ? voice.hostLocation === 'remote' ? 'Disconnect desktop' : 'Disconnect'
-                    : voice.hostLocation === 'remote' ? 'Connect desktop' : 'Connect voice'}
-                </button>
+                <CopilotVoiceToggle compact voice={voice} />
               </div>
               <p className="dashboard-copilot__detail">
                 {voice.hostLocation === 'remote'

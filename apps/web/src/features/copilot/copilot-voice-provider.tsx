@@ -54,6 +54,7 @@ export interface CopilotVoiceState {
   setOutputId(id: string): void
   status: string
   toolStatus?: string
+  transitioning: boolean
 }
 
 interface MutableTurn extends ActiveVoiceTurn {
@@ -575,6 +576,9 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
     : undefined
   const publicConnected = remoteHost?.connected ?? connected
   const publicStatus = remoteHost ? voiceHostStatusLabel(remoteHost.phase) : status
+  const transitioning = remoteHost
+    ? voiceHost.desiredConnected !== remoteHost.connected
+    : status === 'Connecting'
   const connect = async (): Promise<void> => {
     setError(undefined)
     if (remoteHost) {
@@ -614,7 +618,8 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
       setInputId,
       setOutputId,
       status: publicStatus,
-      ...(toolStatus === undefined ? {} : { toolStatus })
+      ...(toolStatus === undefined ? {} : { toolStatus }),
+      transitioning
     }}>
       {children}
     </CopilotVoiceContext.Provider>
