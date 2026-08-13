@@ -60,6 +60,7 @@ export interface ControlsPageProps {
   api: PhoenixApi
   actionCatalog?: GameActionCatalogResponse
   category: ControlCategory
+  commandCatalogueRevision?: number
   controlLayout?: ControlGridLayout
   error?: string
   health?: HealthResponse
@@ -72,6 +73,7 @@ export function ControlsPage ({
   api,
   actionCatalog,
   category,
+  commandCatalogueRevision,
   controlLayout,
   error,
   health,
@@ -112,7 +114,7 @@ export function ControlsPage ({
         setModuleSettings(modules)
       })
       .catch(cause => setLocalError(cause instanceof Error ? cause.message : 'Macro module unavailable.'))
-  }, [api])
+  }, [api, commandCatalogueRevision])
 
   const cancelEditing = (): void => {
     setDraftLayout(controlLayout)

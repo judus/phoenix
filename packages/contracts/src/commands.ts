@@ -31,6 +31,17 @@ export const CommandCatalogResponseSchema = z.object({
   commands: z.array(CommandDescriptorSchema)
 })
 
+export const CommandCatalogueSnapshotSchema = z.object({
+  revision: z.number().int().positive(),
+  generatedAt: z.iso.datetime(),
+  commands: z.array(CommandDescriptorSchema)
+})
+
+export const CommandCatalogueRevisionSchema = CommandCatalogueSnapshotSchema.pick({
+  revision: true,
+  generatedAt: true
+})
+
 export const ExecuteCommandRequestSchema = z.object({
   target: CommandTargetSchema,
   operation: GameActionOperationSchema.default('tap'),
@@ -55,6 +66,8 @@ export const CommandExecutionResultSchema = z.object({
 })
 
 export type CommandCatalogResponse = z.infer<typeof CommandCatalogResponseSchema>
+export type CommandCatalogueSnapshot = z.infer<typeof CommandCatalogueSnapshotSchema>
+export type CommandCatalogueRevision = z.infer<typeof CommandCatalogueRevisionSchema>
 export type CommandDescriptor = z.infer<typeof CommandDescriptorSchema>
 export type CommandExecutionResult = z.infer<typeof CommandExecutionResultSchema>
 export type CommandRisk = z.infer<typeof CommandRiskSchema>

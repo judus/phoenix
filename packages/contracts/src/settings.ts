@@ -12,10 +12,10 @@ export const PhoenixModulesSchema = z.object({
   }),
   numpadCommands: z.object({
     enabled: z.boolean().default(false),
-    inputAdapter: z.enum(['browser', 'touch', 'both']).default('touch'),
-    alwaysConfirm: z.boolean().default(true),
+    inputAdapter: z.enum(['browser', 'touch', 'both']).default('browser'),
+    presentation: z.enum(['tiles', 'columns']).default('tiles'),
+    alwaysConfirm: z.boolean().default(false),
     cancelAfterMs: z.number().int().min(1000).max(60_000).default(5000),
-    showOverlay: z.boolean().default(true)
   })
 })
 
@@ -91,7 +91,13 @@ export const PhoenixSettingsSchema = z.object({
   }),
   modules: PhoenixModulesSchema.default({
     macros: { enabled: false, copilotExecution: false, dangerousExecution: false },
-    numpadCommands: { enabled: false, inputAdapter: 'touch', alwaysConfirm: true, cancelAfterMs: 5000, showOverlay: true }
+    numpadCommands: {
+      enabled: false,
+      inputAdapter: 'browser',
+      presentation: 'tiles',
+      alwaysConfirm: false,
+      cancelAfterMs: 5000
+    }
   })
 })
 

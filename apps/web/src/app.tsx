@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
+  CommandCatalogueRevisionSchema,
   RuntimeStateSchema,
   type CatalogueDiagnostics,
   type ControlGridLayout,
@@ -68,6 +69,7 @@ function AuthenticatedApplication () {
   const [actionCatalog, setActionCatalog] = useState<GameActionCatalogResponse>()
   const [catalogueDiagnostics, setCatalogueDiagnostics] = useState<CatalogueDiagnostics>()
   const [controlLayout, setControlLayout] = useState<ControlGridLayout>()
+  const [commandCatalogueRevision, setCommandCatalogueRevision] = useState(0)
   const [actionPending, setActionPending] = useState<string>()
   const [lastActionResult, setLastActionResult] = useState<GameActionResult>()
   const [eliteStatusDiagnostics, setEliteStatusDiagnostics] = useState<EliteStatusSourceDiagnostics>()
@@ -144,6 +146,18 @@ function AuthenticatedApplication () {
       }
     })
 
+    const unsubscribeCommandCatalogue = subscribePhoenixEvent(api, 'command-catalogue', event => {
+      try {
+        const revision = CommandCatalogueRevisionSchema.parse(JSON.parse(event.data))
+        setCommandCatalogueRevision(current => Math.max(current, revision.revision))
+        void api.getControlLayout()
+          .then(setControlLayout)
+          .catch(cause => setError(cause instanceof Error ? cause.message : 'Control layout unavailable.'))
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Invalid command catalogue revision received.')
+      }
+    })
+
     const handleRouteChange = (): void => {
       const nextRoute = readRoute()
       setRoute(nextRoute)
@@ -160,6 +174,7 @@ function AuthenticatedApplication () {
     return () => {
       unsubscribeRuntime()
       unsubscribeDisplay()
+      unsubscribeCommandCatalogue()
       window.removeEventListener('hashchange', handleRouteChange)
     }
   }, [])
@@ -288,6 +303,7 @@ function AuthenticatedApplication () {
         <ControlsPage
           api={api}
           actionCatalog={actionCatalog}
+          commandCatalogueRevision={commandCatalogueRevision}
           category={controlCategory}
           controlLayout={controlLayout}
           error={error}

@@ -24,7 +24,13 @@ export const DEFAULT_PHOENIX_SETTINGS: PhoenixSettings = {
   },
   modules: {
     macros: { enabled: false, copilotExecution: false, dangerousExecution: false },
-    numpadCommands: { enabled: false, inputAdapter: 'browser' }
+    numpadCommands: {
+      enabled: false,
+      inputAdapter: 'browser',
+      presentation: 'tiles',
+      alwaysConfirm: false,
+      cancelAfterMs: 5000
+    }
   }
 }
 

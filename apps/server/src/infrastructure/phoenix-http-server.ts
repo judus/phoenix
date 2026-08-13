@@ -48,6 +48,7 @@ import type { Subscribable } from '../domain/publisher.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type { ControlGridLayoutRepository } from '../domain/system-configuration.js'
 import type { SystemSettingsRepository } from '../domain/system-configuration.js'
+import type { CommandCatalogueSnapshots } from '../domain/commands.js'
 import type { Macros } from '../domain/macros.js'
 import type { PhoenixMcpServer } from './phoenix-mcp-server.js'
 import { PairingAttemptLimitError, type PairingAccessController } from './pairing-access-controller.js'
@@ -70,6 +71,7 @@ type CopilotConversationEventPayload = CopilotConversationEvent extends infer Ev
 export interface PhoenixHttpServerOptions {
   accessControl?: PairingAccessController
   catalogueDiagnostics: CatalogueDiagnosticsReader
+  commandCatalogue: CommandCatalogueSnapshots
   controlGridLayouts: ControlGridLayoutRepository
   copilot?: CopilotText
   copilotConversationEvents: CopilotConversationEvents
@@ -648,6 +650,11 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/commands/snapshot') {
+      this.writeJson(response, 200, this.options.commandCatalogue.getSnapshot())
+      return
+    }
+
     if (request.method === 'POST' && url.pathname === '/api/commands/execute') {
       try {
         const result = await this.options.commands.execute(
@@ -763,6 +770,10 @@ export class PhoenixHttpServer {
       this.options.runtimeStateUpdates.subscribe(state => send('runtime-state', state)),
       this.options.activityLog.subscribe(entry => send('activity-entry', entry)),
       this.options.displayCommands.subscribe(command => send('display-command', command)),
+      this.options.commandCatalogue.subscribe(snapshot => send('command-catalogue', {
+        revision: snapshot.revision,
+        generatedAt: snapshot.generatedAt
+      })),
       this.options.copilotVoiceHost.subscribeStatus(snapshot => send('voice-host', snapshot)),
       this.options.copilotVoiceHost.subscribeCommands(command => send('voice-host-command', command)),
       this.options.copilotConversationEvents.subscribe(event => {
@@ -770,6 +781,11 @@ export class PhoenixHttpServer {
       })
     ]
     send('runtime-state', this.options.runtimeState.getCurrent())
+    const commandCatalogue = this.options.commandCatalogue.getSnapshot()
+    send('command-catalogue', {
+      revision: commandCatalogue.revision,
+      generatedAt: commandCatalogue.generatedAt
+    })
     send('voice-host', this.options.copilotVoiceHost.snapshot())
     for (const event of this.options.copilotConversationEvents.active(conversationId)) {
       send('conversation-event', event)

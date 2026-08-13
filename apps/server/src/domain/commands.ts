@@ -1,5 +1,6 @@
 import type {
   CommandCatalogResponse,
+  CommandCatalogueSnapshot,
   CommandDescriptor,
   CommandExecutionResult,
   CommandTarget,
@@ -10,6 +11,21 @@ import type {
 export interface CommandRegistry {
   find(target: CommandTarget): CommandDescriptor | undefined
   getCatalog(): CommandCatalogResponse
+}
+
+export type CommandCatalogueChangeSource =
+  | 'control-layout'
+  | 'macros'
+  | 'module-settings'
+
+export interface CommandCatalogueChange {
+  source: CommandCatalogueChangeSource
+}
+
+export interface CommandCatalogueSnapshots extends CommandRegistry {
+  getSnapshot(): CommandCatalogueSnapshot
+  invalidate(change: CommandCatalogueChange): CommandCatalogueSnapshot
+  subscribe(listener: (snapshot: CommandCatalogueSnapshot) => void): () => void
 }
 
 export interface Commands {

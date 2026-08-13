@@ -2,7 +2,7 @@ import { expect, test } from 'vitest'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
 
-test('the shared browser stream multiplexes runtime and voice-host state', async () => {
+test('the shared browser stream multiplexes runtime, command catalogue, and voice-host state', async () => {
   const application = new PhoenixApplication({
     copilot: null,
     copilotRealtime: null,
@@ -16,8 +16,9 @@ test('the shared browser stream multiplexes runtime and voice-host state', async
 
   try {
     const response = await fetch(client.eventStreamUrl())
-    await expect(readEventNames(response, 2)).resolves.toEqual([
+    await expect(readEventNames(response, 3)).resolves.toEqual([
       'runtime-state',
+      'command-catalogue',
       'voice-host'
     ])
   } finally {

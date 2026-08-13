@@ -3,6 +3,7 @@ import type { PhoenixApi } from './phoenix-api-client.js'
 type PhoenixEventName =
   | 'activity-entry'
   | 'conversation-event'
+  | 'command-catalogue'
   | 'display-command'
   | 'runtime-state'
   | 'voice-host'
@@ -48,6 +49,7 @@ function createSharedStream (url: string): SharedStream {
   const names: PhoenixEventName[] = [
     'activity-entry',
     'conversation-event',
+    'command-catalogue',
     'display-command',
     'runtime-state',
     'voice-host',

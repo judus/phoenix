@@ -1,6 +1,7 @@
 import {
   CatalogueDiagnosticsSchema,
   CommandCatalogResponseSchema,
+  CommandCatalogueSnapshotSchema,
   CommandExecutionResultSchema,
   ShipCatalogueResponseSchema,
   ControlGridLayoutSchema,
@@ -39,6 +40,7 @@ import {
   NavigationRouteSchema,
   type GameActionCatalogResponse,
   type CommandCatalogResponse,
+  type CommandCatalogueSnapshot,
   type CommandExecutionResult,
   type CommandTarget,
   type CatalogueDiagnostics,
@@ -100,6 +102,7 @@ export interface PhoenixApi {
   getEliteStatusDiagnostics(): Promise<EliteStatusSourceDiagnostics>
   getActions(): Promise<GameActionCatalogResponse>
   getCommands(): Promise<CommandCatalogResponse>
+  getCommandCatalogueSnapshot(): Promise<CommandCatalogueSnapshot>
   getMacros(): Promise<MacroLibrary>
   getModuleSettings(): Promise<PhoenixModules>
   getDeveloperActions(): Promise<GameActionCatalogResponse>
@@ -282,6 +285,14 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return CommandCatalogResponseSchema.parse(await response.json())
+  }
+
+  public async getCommandCatalogueSnapshot (): Promise<CommandCatalogueSnapshot> {
+    const response = await this.request(`${this.baseUrl}/api/commands/snapshot`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return CommandCatalogueSnapshotSchema.parse(await response.json())
   }
 
   public async getMacros (): Promise<MacroLibrary> {

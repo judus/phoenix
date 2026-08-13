@@ -23,6 +23,7 @@ import { DefaultSystemDetailsQuery } from './application/default-system-details-
 import { DefaultGameActionGateway } from './application/default-game-action-gateway.js'
 import { DefaultCommandDispatcher } from './application/command-dispatcher.js'
 import { DefaultCommandRegistry, PHOENIX_NAVIGATION_DESTINATIONS } from './application/default-command-registry.js'
+import { CommandCatalogueService } from './application/command-catalogue-service.js'
 import { DefaultRuntimeStateProjector } from './application/default-runtime-state-projector.js'
 import { GameActionService } from './application/game-action-service.js'
 import { createPhoenixMcpTools } from './application/phoenix-mcp-tools.js'
@@ -49,12 +50,18 @@ import type { CartographySource } from './domain/cartography.js'
 import type { StationSearchSource, StationStockSource } from './domain/station-market.js'
 import type { ControlGridLayoutRepository, SystemSettingsRepository } from './domain/system-configuration.js'
 import type { MacroRepository } from './domain/macros.js'
+import type { CommandCatalogueChange } from './domain/commands.js'
 import { DefaultGameActionCatalog } from './infrastructure/default-game-action-catalog.js'
 import { InMemoryRuntimeStateStore } from './infrastructure/in-memory-runtime-state-store.js'
 import { InMemoryNavigationRouteStore } from './infrastructure/in-memory-navigation-route-store.js'
 import { InMemoryControlGridLayoutRepository } from './infrastructure/in-memory-control-grid-layout-repository.js'
 import { InMemorySystemSettingsRepository } from './infrastructure/json-system-configuration.js'
 import { InMemoryMacroRepository } from './infrastructure/macro-repositories.js'
+import {
+  NotifyingControlGridLayoutRepository,
+  NotifyingMacroRepository,
+  NotifyingSystemSettingsRepository
+} from './infrastructure/notifying-command-source-repositories.js'
 import { MacroService } from './application/macro-service.js'
 import { InProcessPublisher } from './infrastructure/in-process-publisher.js'
 import { PhoenixHttpServer } from './infrastructure/phoenix-http-server.js'
@@ -116,6 +123,7 @@ export class PhoenixApplication {
     const copilotVoiceHost = new CopilotVoiceHostCoordinator()
     const runtimeStateUpdates = new InProcessPublisher<RuntimeState>()
     const displayCommandUpdates = new InProcessPublisher<DisplayCommand>()
+    const commandCatalogueChanges = new InProcessPublisher<CommandCatalogueChange>()
     this.stateStore = new InMemoryRuntimeStateStore()
     this.database = new SqliteDatabase(
       resolveProjectPath(
@@ -226,8 +234,18 @@ export class PhoenixApplication {
       options.inputBackend ?? configuredInputBackend(options.inputBackendMode)
     )
     const gameActions = new LoggedGameActions(new GameActionService(actionGateway), activityLog)
-    const systemSettings = options.systemSettingsRepository ?? new InMemorySystemSettingsRepository()
-    const macroRepository = options.macroRepository ?? new InMemoryMacroRepository()
+    const systemSettings = new NotifyingSystemSettingsRepository(
+      options.systemSettingsRepository ?? new InMemorySystemSettingsRepository(),
+      commandCatalogueChanges
+    )
+    const controlGridLayouts = new NotifyingControlGridLayoutRepository(
+      options.controlGridLayoutRepository ?? new InMemoryControlGridLayoutRepository(),
+      commandCatalogueChanges
+    )
+    const macroRepository = new NotifyingMacroRepository(
+      options.macroRepository ?? new InMemoryMacroRepository(),
+      commandCatalogueChanges
+    )
     const macros = new MacroService(macroRepository, gameActions)
     const commandRegistry = new DefaultCommandRegistry(
       gameActions,
@@ -235,8 +253,9 @@ export class PhoenixApplication {
       macroRepository,
       () => systemSettings.loadOrCreate().modules.macros.enabled
     )
+    const commandCatalogue = new CommandCatalogueService(commandRegistry, commandCatalogueChanges)
     const commands = new DefaultCommandDispatcher(
-      commandRegistry,
+      commandCatalogue,
       gameActions,
       PHOENIX_NAVIGATION_DESTINATIONS,
       undefined,
@@ -294,7 +313,8 @@ export class PhoenixApplication {
     this.server = new PhoenixHttpServer({
       accessControl: options.accessControl,
       catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
-      controlGridLayouts: options.controlGridLayoutRepository ?? new InMemoryControlGridLayoutRepository(),
+      commandCatalogue,
+      controlGridLayouts,
       copilot,
       copilotConversationEvents,
       copilotVoiceHost,
