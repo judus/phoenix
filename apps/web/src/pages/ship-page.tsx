@@ -82,21 +82,10 @@ export function ShipPage ({ api, error, health, runtimeState, view }: ShipPagePr
       <Page className="ship-page">
         <PageHeader
           title={identity.name}
-          eyebrow={page.eyebrow}
+          eyebrow={currentShip ? undefined : page.eyebrow}
           description={identity.description}
+          actions={currentShip ? <CurrentShipNavigation view={view} /> : undefined}
         />
-        {currentShip && (
-          <nav className="entity-navigation" aria-label="Current ship views">
-            <span>Fleet / Current ship</span>
-            <ul>
-              {currentShipNavigation.map(item => (
-                <li key={item.id}>
-                  <a aria-current={view === item.id ? 'page' : undefined} href={item.href}>{item.label}</a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        )}
         <PageContent>
           {!runtimeState
             ? <p className="ship-empty">Waiting for ship telemetry…</p>
@@ -114,6 +103,20 @@ export function ShipPage ({ api, error, health, runtimeState, view }: ShipPagePr
         </PageContent>
       </Page>
     </PhoenixShell>
+  )
+}
+
+function CurrentShipNavigation ({ view }: { view: CurrentShipView }) {
+  return (
+    <nav className="entity-navigation" aria-label="Current ship views">
+      <ul>
+        {currentShipNavigation.map(item => (
+          <li key={item.id}>
+            <a aria-current={view === item.id ? 'page' : undefined} href={item.href}>{item.label}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
   )
 }
 

@@ -170,23 +170,11 @@
   }
 
   .entity-navigation {
-    display: flex;
-    min-block-size: 2.5rem;
-    align-items: stretch;
-    justify-content: space-between;
-    gap: var(--space-4);
-    border-block: 1px solid var(--color-border);
-
-    > span {
-      align-self: center;
-      padding-inline: var(--space-3);
-      color: var(--color-muted);
-      font-size: 0.7rem;
-      text-transform: uppercase;
-    }
+    block-size: 100%;
 
     ul {
       display: flex;
+      block-size: 100%;
     }
 
     a {
@@ -378,10 +366,6 @@
     }
 
     .entity-navigation {
-      > span {
-        display: none;
-      }
-
       ul,
       li {
         flex: 1;

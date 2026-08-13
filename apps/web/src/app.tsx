@@ -311,7 +311,7 @@ function AuthenticatedApplication () {
   )
 }
 
-type AppRoute =
+export type AppRoute =
   | { section: 'main' }
   | { section: 'copilot' }
   | { section: 'commander', view: CommanderView }
@@ -329,7 +329,7 @@ const CONTROL_CATEGORIES: ControlCategory[] = [
 ]
 const INFORMATION_ROUTE_STORAGE_KEY = 'phoenix.desktop.information-route'
 
-function readRoute (routeHash?: string): AppRoute {
+export function readRoute (routeHash?: string): AppRoute {
   const hash = routeHash ?? (typeof window === 'undefined' ? '#/' : window.location.hash)
   if (/^#\/?copilot$/u.test(hash)) return { section: 'copilot' }
   if (/^#\/?(?:log|records\/journal)$/u.test(hash)) return { section: 'records', view: 'journal' }
