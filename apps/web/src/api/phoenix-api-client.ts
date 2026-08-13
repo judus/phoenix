@@ -21,6 +21,8 @@ import {
   EngineeringMaterialsResponseSchema,
   ExplorationLedgerResponseSchema,
   ExplorationManualCompletionResponseSchema,
+  GalaxyCommodityMarketsResponseSchema,
+  GalaxyNearestStationsResponseSchema,
   GameActionCatalogResponseSchema,
   GameActionResultSchema,
   EliteJournalSourceDiagnosticsSchema,
@@ -53,6 +55,8 @@ import {
   type ExplorationLedgerResponse,
   type ExplorationManualCompletionRequest,
   type ExplorationManualCompletionResponse,
+  type GalaxyCommodityMarketsResponse,
+  type GalaxyNearestStationsResponse,
   type GameActionResult,
   type GameActionOperation,
   type EliteJournalSourceDiagnostics,
@@ -87,6 +91,8 @@ export interface PhoenixApi {
   getEngineeringEngineers(): Promise<EngineeringEngineersResponse>
   getEngineeringMaterials(category: EngineeringMaterial['category']): Promise<EngineeringMaterialsResponse>
   getExplorationLedger(): Promise<ExplorationLedgerResponse>
+  findGalaxyCommodityMarkets(input: GalaxyCommodityMarketSearch): Promise<GalaxyCommodityMarketsResponse>
+  findGalaxyNearestStations(input: GalaxyNearestStationSearch): Promise<GalaxyNearestStationsResponse>
   setExplorationBiologicalCompletion(input: ExplorationManualCompletionRequest): Promise<ExplorationManualCompletionResponse>
   getRuntimeState(): Promise<RuntimeState>
   getNavigationRoute(): Promise<NavigationRoute>
@@ -116,6 +122,22 @@ export interface PairingStatus {
   authenticated: boolean
   installationId: string
   pairingRequired: boolean
+}
+
+export interface GalaxyCommodityMarketSearch {
+  commodity: string
+  fleetCarriers?: boolean
+  intent: 'buy' | 'sell'
+  maxDaysAgo?: number
+  maxDistance?: number
+  minVolume?: number
+  systemName: string
+}
+
+export interface GalaxyNearestStationSearch {
+  minimumPadSize?: 'small' | 'medium' | 'large'
+  service: string
+  systemName: string
 }
 
 export type CopilotStreamEvent =
@@ -501,6 +523,33 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return CartographyLookupResponseSchema.parse(await response.json())
+  }
+
+  public async findGalaxyNearestStations (input: GalaxyNearestStationSearch): Promise<GalaxyNearestStationsResponse> {
+    const query = new URLSearchParams({ service: input.service, system: input.systemName })
+    if (input.minimumPadSize) query.set('pad', input.minimumPadSize)
+    const response = await this.request(`${this.baseUrl}/api/galaxy/nearest?${query.toString()}`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return GalaxyNearestStationsResponseSchema.parse(await response.json())
+  }
+
+  public async findGalaxyCommodityMarkets (input: GalaxyCommodityMarketSearch): Promise<GalaxyCommodityMarketsResponse> {
+    const query = new URLSearchParams({
+      commodity: input.commodity,
+      intent: input.intent,
+      system: input.systemName
+    })
+    if (input.fleetCarriers !== undefined) query.set('fleetCarriers', String(input.fleetCarriers))
+    if (input.maxDaysAgo !== undefined) query.set('maxDaysAgo', String(input.maxDaysAgo))
+    if (input.maxDistance !== undefined) query.set('maxDistance', String(input.maxDistance))
+    if (input.minVolume !== undefined) query.set('minVolume', String(input.minVolume))
+    const response = await this.request(`${this.baseUrl}/api/galaxy/markets?${query.toString()}`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return GalaxyCommodityMarketsResponseSchema.parse(await response.json())
   }
 
   public runtimeStateStreamUrl (): string {

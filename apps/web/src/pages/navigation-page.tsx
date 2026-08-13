@@ -12,10 +12,12 @@ import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 import { SystemSchematic } from '../features/navigation/system-schematic.js'
+import { GalaxyDatabase } from '../features/galaxy/galaxy-database.js'
 
-export type NavigationView = 'system' | 'route'
+export type NavigationView = 'database' | 'system' | 'route'
 
 const navigation: NavigationItem[] = [
+  { href: '#/galaxy/database', icon: '▤', id: 'database', label: 'Galaxy database' },
   { href: '#/galaxy/system', icon: '◉', id: 'system', label: 'System map' },
   { href: '#/galaxy/route', icon: '⌁', id: 'route', label: 'Plotted route' }
 ]
@@ -54,6 +56,10 @@ export function NavigationPage ({
     let active = true
     setLoading(true)
     setNavigationError(undefined)
+    if (view === 'database') {
+      setLoading(false)
+      return
+    }
     const request = view === 'route'
       ? api.getNavigationRoute().then(result => { if (active) setRoute(result) })
       : api.getSystemCartography(systemName).then(result => { if (active) setLookup(result) })
@@ -88,7 +94,20 @@ export function NavigationPage ({
       health={health}
       secondaryNavigation={navigation}
     >
-      {view === 'system'
+      {view === 'database'
+        ? (
+            <Page className="navigation-data-page galaxy-database-page">
+              <PageHeader
+                title="Galaxy Database"
+                eyebrow="Navigation intelligence"
+                description="Cockpit-native searches over community-reported galactic services and markets."
+              />
+              <PageContent>
+                <GalaxyDatabase api={api} currentSystem={runtimeState?.system.name} />
+              </PageContent>
+            </Page>
+          )
+        : view === 'system'
         ? (
             <Page className="navigation-data-page navigation-system-page">
               <PageContent variant="bleed">
