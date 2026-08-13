@@ -49,8 +49,8 @@
     z-index: 2;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1px;
-    padding: var(--space-1);
+    gap: 0;
+    padding: 0;
     border-block-start: 1px solid var(--color-border);
     background: var(--color-background);
   }
@@ -58,11 +58,16 @@
   .desktop-workspace__switcher-button {
     min-block-size: 2rem;
     padding: var(--space-1) var(--space-3);
-    border: 1px solid var(--color-border);
-    color: var(--color-secondary);
-    background: var(--color-panel);
+    border: 0;
+    border-inline-end: 1px solid rgb(255 157 0 / 18%);
+    color: var(--color-primary);
+    background: transparent;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+
+    &:last-child {
+      border-inline-end: 0;
+    }
 
     &[aria-pressed='true'] {
       color: var(--color-background);
