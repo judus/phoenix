@@ -6,6 +6,7 @@
   }
 
   .dashboard-page {
+    grid-template-rows: minmax(0, 1fr);
     min-block-size: 0;
     overflow: hidden;
   }
@@ -57,6 +58,36 @@
   .dashboard-card--situation,
   .dashboard-card--activity {
     grid-column: span 8;
+  }
+
+  .dashboard-card--commander {
+    grid-column: 1 / -1;
+  }
+
+  .dashboard-commander {
+    display: grid;
+    grid-template-columns: minmax(12rem, 1fr) minmax(18rem, 2fr) minmax(12rem, 1fr);
+    align-items: end;
+    gap: var(--space-4);
+  }
+
+  .dashboard-commander__identity {
+    display: grid;
+    gap: var(--space-1);
+
+    strong {
+      color: var(--color-text);
+      font-size: 1.25rem;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    span {
+      color: var(--color-primary);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+    }
   }
 
   .dashboard-metric {
@@ -261,6 +292,10 @@
 
     .dashboard-facts {
       grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .dashboard-commander {
+      grid-template-columns: 1fr;
     }
   }
 }

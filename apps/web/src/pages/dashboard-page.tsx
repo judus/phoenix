@@ -11,7 +11,7 @@ import {
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../api/phoenix-api-client.js'
 import { subscribePhoenixEvent } from '../api/phoenix-event-stream.js'
-import { Page, PageContent, PageHeader } from '../components/layout/page.js'
+import { Page, PageContent } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 import { useCopilotVoice } from '../features/copilot/copilot-voice-provider.js'
@@ -81,14 +81,22 @@ export function DashboardPage ({ actionCatalog, api, error, health, onExecuteAct
       secondaryNavigation={navigation}
     >
       <Page className="dashboard-page">
-        <PageHeader
-          title={runtimeState?.commander.name ? `Commander ${runtimeState.commander.name}` : 'Command dashboard'}
-          eyebrow={locationLabel(runtimeState)}
-          description={placeName && currentSystem ? `${placeName} · ${currentSystem}` : currentSystem ?? 'Waiting for live telemetry.'}
-        />
-
         <PageContent>
           <div className="dashboard-grid">
+            <DashboardCard className="dashboard-card--commander" title="Commander">
+              <div className="dashboard-commander">
+                <div className="dashboard-commander__identity">
+                  <strong>{runtimeState?.commander.name ?? 'Identity pending'}</strong>
+                  <span>{locationLabel(runtimeState)}</span>
+                </div>
+                <Metric
+                  label="Location"
+                  value={placeName && currentSystem ? `${placeName} · ${currentSystem}` : currentSystem ?? 'Telemetry pending'}
+                />
+                <Metric label="Total credits" value={formatCredits(runtimeState?.gameStatus?.balance)} />
+              </div>
+            </DashboardCard>
+
             <DashboardCard className="dashboard-card--situation" title="Situation" action={<a href="#/galaxy/system">Open galaxy</a>}>
               <div className="dashboard-metric dashboard-metric--hero">
                 <strong>{currentSystem ?? 'Unknown system'}</strong>
@@ -280,6 +288,10 @@ function formatCompact (value?: number | null): string {
 
 function formatNumber (value?: number | null): string | undefined {
   return value == null ? undefined : new Intl.NumberFormat().format(value)
+}
+
+function formatCredits (value?: number | null): string {
+  return value == null ? '—' : `${new Intl.NumberFormat().format(Math.round(value))} CR`
 }
 
 function formatTime (timestamp: string): string {
