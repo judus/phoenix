@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 export const GameActionOperationSchema = z.enum(['tap', 'press', 'release'])
-export const GameActionOriginSchema = z.enum(['ui', 'developer', 'copilot', 'automation'])
+export const GameActionOriginSchema = z.enum(['ui', 'developer', 'copilot', 'automation', 'numpad'])
 export const GameActionResultStatusSchema = z.enum([
   'already_satisfied',
   'accepted',

@@ -10,3 +10,7 @@ test('current ship tabs resolve to distinct Fleet views', () => {
 test('galaxy database resolves as a first-class Galaxy view', () => {
   expect(readRoute('#/galaxy/database')).toEqual({ section: 'galaxy', view: 'database' })
 })
+
+test('numpad resolves as a dedicated information surface', () => {
+  expect(readRoute('#/numpad')).toEqual({ section: 'numpad' })
+})

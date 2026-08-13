@@ -19,6 +19,7 @@ export const MacroDefinitionSchema = z.object({
   description: z.string().max(500).default(''),
   enabled: z.boolean().default(true),
   risk: MacroRiskSchema.default('safe'),
+  numericAddress: z.string().regex(/^\d+$/u).optional(),
   assumptions: z.array(z.string().min(1).max(200)).max(20).default([]),
   steps: z.array(MacroStepSchema).min(1).max(128)
 })

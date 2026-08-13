@@ -24,7 +24,7 @@ export const CommandDescriptorSchema = z.object({
   unavailableReason: z.string().min(1).optional(),
   risk: CommandRiskSchema,
   target: CommandTargetSchema,
-  numericAddress: z.string().min(1).optional()
+  numericAddress: z.string().regex(/^\d+$/u).optional()
 })
 
 export const CommandCatalogResponseSchema = z.object({

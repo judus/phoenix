@@ -56,9 +56,11 @@ export function PhoenixShell ({
 
 export function PhoenixTopBar ({
   developerSection = false,
+  numpadSection = false,
   recordsSection = false
 }: {
   developerSection?: boolean
+  numpadSection?: boolean
   recordsSection?: boolean
 }) {
   return (
@@ -72,6 +74,12 @@ export function PhoenixTopBar ({
             aria-label="Records"
             title="Records"
           >▤</a>
+          <a
+            href="#/numpad"
+            aria-current={numpadSection ? 'page' : undefined}
+            aria-label="Numpad command navigator"
+            title="Numpad command navigator"
+          >123</a>
           <button type="button" aria-label="Settings">☷</button>
           <a
             href="#/developer/overview"

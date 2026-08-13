@@ -29,6 +29,7 @@ import {
   type OperationsView
 } from './pages/information-section-page.js'
 import { PairingPage } from './pages/pairing-page.js'
+import { NumpadPage } from './pages/numpad-page.js'
 import { CopilotVoiceProvider } from './features/copilot/copilot-voice-provider.js'
 import { DesktopWorkspace, type DesktopMode } from './components/layout/desktop-workspace.js'
 import { PhoenixTopBar } from './components/layout/phoenix-shell.js'
@@ -203,6 +204,9 @@ function AuthenticatedApplication () {
     if (informationRoute.section === 'records' && informationRoute.view === 'journal') {
       return <LogPage api={api} error={error} health={health} />
     }
+    if (informationRoute.section === 'numpad') {
+      return <NumpadPage error={error} health={health} />
+    }
     if (informationRoute.section === 'galaxy') {
       return (
         <NavigationPage
@@ -305,6 +309,7 @@ function AuthenticatedApplication () {
       topBar={(
         <PhoenixTopBar
           developerSection={informationRoute.section === 'developer'}
+          numpadSection={informationRoute.section === 'numpad'}
           recordsSection={informationRoute.section === 'records'}
         />
       )}
@@ -315,6 +320,7 @@ function AuthenticatedApplication () {
 export type AppRoute =
   | { section: 'main' }
   | { section: 'copilot' }
+  | { section: 'numpad' }
   | { section: 'commander', view: CommanderView }
   | { section: 'operations', view: OperationsView }
   | { section: 'comms', view: CommsView }
@@ -333,6 +339,7 @@ const INFORMATION_ROUTE_STORAGE_KEY = 'phoenix.desktop.information-route'
 export function readRoute (routeHash?: string): AppRoute {
   const hash = routeHash ?? (typeof window === 'undefined' ? '#/' : window.location.hash)
   if (/^#\/?copilot$/u.test(hash)) return { section: 'copilot' }
+  if (/^#\/?numpad$/u.test(hash)) return { section: 'numpad' }
   if (/^#\/?(?:log|records\/journal)$/u.test(hash)) return { section: 'records', view: 'journal' }
   const commanderMatch = hash.match(/^#\/?commander\/(overview|inventory|progress)$/u)
   if (commanderMatch) return { section: 'commander', view: commanderMatch[1] as CommanderView }
