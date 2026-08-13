@@ -25,6 +25,11 @@ import {
   ExplorationManualCompletionResponseSchema,
   GalaxyCommodityMarketsResponseSchema,
   GalaxyNearestStationsResponseSchema,
+  MacroDefinitionSchema,
+  MacroLibrarySchema,
+  MacroPlaybackSchema,
+  MacroRecordingSchema,
+  PhoenixModulesSchema,
   GameActionCatalogResponseSchema,
   GameActionResultSchema,
   EliteJournalSourceDiagnosticsSchema,
@@ -62,6 +67,11 @@ import {
   type ExplorationManualCompletionResponse,
   type GalaxyCommodityMarketsResponse,
   type GalaxyNearestStationsResponse,
+  type MacroDefinition,
+  type MacroLibrary,
+  type MacroPlayback,
+  type MacroRecording,
+  type PhoenixModules,
   type GameActionResult,
   type GameActionOperation,
   type EliteJournalSourceDiagnostics,
@@ -90,6 +100,8 @@ export interface PhoenixApi {
   getEliteStatusDiagnostics(): Promise<EliteStatusSourceDiagnostics>
   getActions(): Promise<GameActionCatalogResponse>
   getCommands(): Promise<CommandCatalogResponse>
+  getMacros(): Promise<MacroLibrary>
+  getModuleSettings(): Promise<PhoenixModules>
   getDeveloperActions(): Promise<GameActionCatalogResponse>
   getHealth(): Promise<HealthResponse>
   getPairingStatus(): Promise<PairingStatus>
@@ -111,6 +123,15 @@ export interface PhoenixApi {
   releaseCopilotVoiceHost(hostId: string): Promise<void>
   requestCopilotVoiceHostState(connected: boolean): Promise<CopilotVoiceHostCommandAccepted>
   saveControlLayout(layout: ControlGridLayout): Promise<ControlGridLayout>
+  saveMacro(macro: MacroDefinition): Promise<MacroDefinition>
+  saveModuleSettings(settings: PhoenixModules): Promise<PhoenixModules>
+  startMacroRecording(clientId: string): Promise<MacroRecording>
+  recordMacroAction(recordingId: string, clientId: string, actionId: string, operation?: GameActionOperation): Promise<MacroRecording>
+  stopMacroRecording(recordingId: string, clientId: string): Promise<MacroRecording>
+  cancelMacroRecording(recordingId: string, clientId: string): Promise<void>
+  deleteMacro(id: string): Promise<void>
+  playMacro(id: string): Promise<MacroPlayback>
+  abortMacroPlayback(): Promise<MacroPlayback | null>
   runtimeStateStreamUrl(): string
   activityLogStreamUrl(): string
   displayCommandStreamUrl(): string
@@ -261,6 +282,96 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return CommandCatalogResponseSchema.parse(await response.json())
+  }
+
+  public async getMacros (): Promise<MacroLibrary> {
+    const response = await this.request(`${this.baseUrl}/api/macros`)
+    if (!response.ok) throw await apiError(response)
+    return MacroLibrarySchema.parse(await response.json())
+  }
+
+  public async getModuleSettings (): Promise<PhoenixModules> {
+    const response = await this.request(`${this.baseUrl}/api/settings/modules`)
+    if (!response.ok) throw await apiError(response)
+    return PhoenixModulesSchema.parse(await response.json())
+  }
+
+  public async saveModuleSettings (settings: PhoenixModules): Promise<PhoenixModules> {
+    const response = await this.request(`${this.baseUrl}/api/settings/modules`, {
+      body: JSON.stringify(settings),
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      method: 'PUT'
+    })
+    if (!response.ok) throw await apiError(response)
+    return PhoenixModulesSchema.parse(await response.json())
+  }
+
+  public async saveMacro (macro: MacroDefinition): Promise<MacroDefinition> {
+    const response = await this.request(`${this.baseUrl}/api/macros`, {
+      body: JSON.stringify(macro),
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      method: 'POST'
+    })
+    if (!response.ok) throw await apiError(response)
+    return MacroDefinitionSchema.parse(await response.json())
+  }
+
+  public async deleteMacro (id: string): Promise<void> {
+    const response = await this.request(`${this.baseUrl}/api/macros/${encodeURIComponent(id)}`, { method: 'DELETE' })
+    if (!response.ok) throw await apiError(response)
+  }
+
+  public async startMacroRecording (clientId: string): Promise<MacroRecording> {
+    return this.macroRecordingRequest('/api/macros/recordings', { clientId })
+  }
+
+  public async recordMacroAction (
+    recordingId: string,
+    clientId: string,
+    actionId: string,
+    operation: GameActionOperation = 'tap'
+  ): Promise<MacroRecording> {
+    return this.macroRecordingRequest(`/api/macros/recordings/${encodeURIComponent(recordingId)}/action`, {
+      actionId,
+      clientId,
+      operation
+    })
+  }
+
+  public async stopMacroRecording (recordingId: string, clientId: string): Promise<MacroRecording> {
+    return this.macroRecordingRequest(`/api/macros/recordings/${encodeURIComponent(recordingId)}/stop`, { clientId })
+  }
+
+  public async cancelMacroRecording (recordingId: string, clientId: string): Promise<void> {
+    const response = await this.request(`${this.baseUrl}/api/macros/recordings/${encodeURIComponent(recordingId)}/cancel`, {
+      body: JSON.stringify({ clientId }),
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      method: 'POST'
+    })
+    if (!response.ok) throw await apiError(response)
+  }
+
+  public async playMacro (id: string): Promise<MacroPlayback> {
+    const response = await this.request(`${this.baseUrl}/api/macros/${encodeURIComponent(id)}/playback`, { method: 'POST' })
+    if (!response.ok) throw await apiError(response)
+    return MacroPlaybackSchema.parse(await response.json())
+  }
+
+  public async abortMacroPlayback (): Promise<MacroPlayback | null> {
+    const response = await this.request(`${this.baseUrl}/api/macros/playback`, { method: 'DELETE' })
+    if (!response.ok) throw await apiError(response)
+    const payload = await response.json() as { playback?: unknown }
+    return payload.playback == null ? null : MacroPlaybackSchema.parse(payload.playback)
+  }
+
+  private async macroRecordingRequest (path: string, body: unknown): Promise<MacroRecording> {
+    const response = await this.request(`${this.baseUrl}${path}`, {
+      body: JSON.stringify(body),
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      method: 'POST'
+    })
+    if (!response.ok) throw await apiError(response)
+    return MacroRecordingSchema.parse(await response.json())
   }
 
   public async getDeveloperActions (): Promise<GameActionCatalogResponse> {

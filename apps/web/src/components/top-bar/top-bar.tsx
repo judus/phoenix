@@ -22,7 +22,7 @@ export interface AppBrandProps {
 export function AppBrand ({ name, qualifier }: AppBrandProps) {
   return (
     <div className="app-brand">
-      <span className="app-brand__mark" aria-hidden="true">P</span>
+      <span className="app-brand__mark" aria-hidden="true" />
       <span className="app-brand__label">
         <strong>{name}</strong>
         {qualifier && <small>{qualifier}</small>}

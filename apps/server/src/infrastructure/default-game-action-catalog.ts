@@ -33,8 +33,16 @@ const ACTION_METADATA: Readonly<Record<string, ActionMetadata>> = {
     category: 'combat',
     telemetryKey: 'hardpointsDeployed'
   },
-  GalaxyMapOpen: { label: 'Galaxy Map', category: 'navigation' },
-  SystemMapOpen: { label: 'System Map', category: 'navigation' },
+  GalaxyMapOpen: {
+    label: 'Toggle Elite Galaxy Map',
+    description: 'Open or close the full-screen Galaxy Map inside Elite Dangerous. This controls the game through its toggle binding; it does not navigate PHOENIX.',
+    category: 'navigation'
+  },
+  SystemMapOpen: {
+    label: 'Toggle Elite System Map',
+    description: 'Open or close the full-screen System Map inside Elite Dangerous. This controls the game through its toggle binding; it does not display the PHOENIX system schematic.',
+    category: 'navigation'
+  },
   GalnetAudio_Play_Pause: {
     label: 'GalNet Audio Play / Pause',
     description: 'Toggle playback in the Elite Dangerous GalNet Audio player.',

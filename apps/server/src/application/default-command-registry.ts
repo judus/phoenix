@@ -8,6 +8,7 @@ import {
 } from '@phoenix/contracts'
 import type { GameActions } from './game-action-service.js'
 import type { CommandRegistry, NavigationCommandDestination } from '../domain/commands.js'
+import type { MacroRepository } from '../domain/macros.js'
 
 export const PHOENIX_NAVIGATION_DESTINATIONS: readonly NavigationCommandDestination[] = [
   destination('information.home', 'Home', '#/', 'Information', 'Open the operational dashboard.'),
@@ -27,7 +28,9 @@ export const PHOENIX_NAVIGATION_DESTINATIONS: readonly NavigationCommandDestinat
 export class DefaultCommandRegistry implements CommandRegistry {
   public constructor (
     private readonly gameActions: GameActions,
-    private readonly destinations: readonly NavigationCommandDestination[] = PHOENIX_NAVIGATION_DESTINATIONS
+    private readonly destinations: readonly NavigationCommandDestination[] = PHOENIX_NAVIGATION_DESTINATIONS,
+    private readonly macros?: MacroRepository,
+    private readonly macrosEnabled: () => boolean = () => true
   ) {}
 
   public find (target: CommandTarget): CommandDescriptor | undefined {
@@ -64,6 +67,23 @@ export class DefaultCommandRegistry implements CommandRegistry {
         category: entry.category,
         available: true,
         risk: entry.risk ?? 'safe',
+        target
+      }))
+    }
+    const macroModuleEnabled = this.macrosEnabled()
+    for (const macro of this.macros?.getLibrary().macros ?? []) {
+      const target = { type: 'macro' as const, macroId: macro.id }
+      descriptors.set(commandTargetKey(target), CommandDescriptorSchema.parse({
+        id: `command.macro.${macro.id}`,
+        kind: target.type,
+        label: macro.name,
+        ...(macro.description ? { description: macro.description } : {}),
+        category: 'macros',
+        available: macro.enabled && macroModuleEnabled,
+        ...(macro.enabled && macroModuleEnabled
+          ? {}
+          : { unavailableReason: macroModuleEnabled ? 'Macro is disabled.' : 'Macro module is disabled.' }),
+        risk: macro.risk,
         target
       }))
     }

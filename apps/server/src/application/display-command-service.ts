@@ -19,8 +19,8 @@ export class DisplayCommandService implements DisplayCommands, Subscribable<Disp
     this.publish('show_system', systemName, selectedName)
     return output(
       selectedName
-        ? `Opened ${systemName} and selected ${selectedName} for the commander.`
-        : `Opened the ${systemName} system view for the commander.`,
+        ? `Opened the PHOENIX ${systemName} system schematic and selected ${selectedName}.`
+        : `Opened the PHOENIX ${systemName} system schematic.`,
       { displayed: true, systemName, selectedName }
     )
   }
@@ -29,7 +29,7 @@ export class DisplayCommandService implements DisplayCommands, Subscribable<Disp
     const systemName = this.resolveSystemName(optionalStringArgument(arguments_, 'systemName'))
     const bodyName = stringArgument(arguments_, 'bodyName')
     this.publish('show_body', systemName, bodyName)
-    return output(`Opened the detailed ${bodyName} view for the commander.`, {
+    return output(`Opened ${bodyName} body details in PHOENIX.`, {
       bodyName,
       displayed: true,
       systemName

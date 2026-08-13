@@ -68,6 +68,13 @@ export class JsonSystemSettingsRepository implements SystemSettingsRepository, C
   }
 }
 
+export class InMemorySystemSettingsRepository implements SystemSettingsRepository {
+  private settings = PhoenixSettingsSchema.parse(DEFAULT_PHOENIX_SETTINGS)
+
+  public loadOrCreate (): PhoenixSettings { return PhoenixSettingsSchema.parse(this.settings) }
+  public save (settings: PhoenixSettings): void { this.settings = PhoenixSettingsSchema.parse(settings) }
+}
+
 function migrateSettings (candidate: unknown): unknown {
   if (!isRecord(candidate)) return candidate
   const normalized = isRecord(candidate.modules)

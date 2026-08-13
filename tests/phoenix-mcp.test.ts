@@ -7,6 +7,9 @@ import {
 } from '@judus/llm-client'
 import { ScriptedProvider, textModelCapabilities } from '@judus/llm-client/testing'
 import { StaticGameActionBindingResolver } from '../apps/server/src/infrastructure/static-game-action-binding-resolver.js'
+import { InMemorySystemSettingsRepository } from '../apps/server/src/infrastructure/json-system-configuration.js'
+import { InMemoryMacroRepository } from '../apps/server/src/infrastructure/macro-repositories.js'
+import { RecordingInputBackend } from '../apps/server/src/infrastructure/recording-input-backend.js'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 
 test('the portable AI client discovers and calls PHOENIX tools over MCP', async () => {
@@ -58,9 +61,7 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
       'phoenix__commander_list_materials',
       'phoenix__controls_find_actions',
       'phoenix__controls_execute',
-      'phoenix__controls_get_status',
       'phoenix__controls_set_switch',
-      'phoenix__controls_tap',
       'phoenix__display_show_body',
       'phoenix__display_show_system',
       'phoenix__exploration_get_current_body',
@@ -94,7 +95,11 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
           callId: 'find-lights-1',
           status: 'success',
           structuredContent: {
-            matches: [{ actionId: 'elite.ShipSpotLightToggle', label: 'Ship Lights' }]
+            matches: [{
+              commandId: 'command.elite.ShipSpotLightToggle',
+              label: 'Ship Lights',
+              target: { actionId: 'elite.ShipSpotLightToggle', type: 'game-action' }
+            }]
           },
           type: 'tool_result'
         },
@@ -109,6 +114,87 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
         }
       ]
     })
+  } finally {
+    await application.stop()
+  }
+})
+
+test('the Copilot discovers and executes commander-created macros through the consolidated controls tools', async () => {
+  const macroRepository = new InMemoryMacroRepository()
+  macroRepository.save({
+    assumptions: [],
+    description: 'Emergency escape sequence',
+    enabled: true,
+    id: 'panic-button',
+    name: 'Panic Button',
+    risk: 'caution',
+    steps: [{ type: 'game-action', actionId: 'elite.ShipSpotLightToggle', operation: 'tap' }],
+    version: 1
+  })
+  const systemSettingsRepository = new InMemorySystemSettingsRepository()
+  const settings = systemSettingsRepository.loadOrCreate()
+  systemSettingsRepository.save({
+    ...settings,
+    modules: { ...settings.modules, macros: { ...settings.modules.macros, enabled: true } }
+  })
+  const inputBackend = new RecordingInputBackend()
+  const application = new PhoenixApplication({
+    actionBindingResolver: new StaticGameActionBindingResolver(),
+    databasePath: ':memory:',
+    eliteDirectory: null,
+    host: '127.0.0.1',
+    inputBackend,
+    macroRepository,
+    port: 0,
+    systemSettingsRepository
+  })
+  const address = await application.start()
+  const provider = configuredProvider([
+    response('macro-tools', [
+      {
+        arguments: { query: 'panic button' },
+        callId: 'find-panic',
+        name: 'phoenix__controls_find_actions',
+        type: 'tool_call'
+      },
+      {
+        arguments: { target: { macroId: 'panic-button', type: 'macro' } },
+        callId: 'run-panic',
+        name: 'phoenix__controls_execute',
+        type: 'tool_call'
+      }
+    ], 'tool_calls'),
+    response('macro-answer', [{ source: 'generated', text: 'Done.', type: 'text' }], 'stop')
+  ])
+  const client = createAiClient({
+    mcp: [{ name: 'phoenix', url: `http://${address.host}:${address.port}/mcp` }],
+    provider
+  })
+
+  try {
+    await client.user('Use the panic button.').run()
+    const toolResults = provider.requests[1]?.messages.at(-1)?.content
+    expect(toolResults).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        callId: 'find-panic',
+        structuredContent: expect.objectContaining({
+          matches: [expect.objectContaining({
+            kind: 'macro',
+            label: 'Panic Button',
+            target: { macroId: 'panic-button', type: 'macro' }
+          })]
+        })
+      }),
+      expect.objectContaining({
+        callId: 'run-panic',
+        structuredContent: expect.objectContaining({
+          commandId: 'command.macro.panic-button',
+          status: 'accepted',
+          target: { macroId: 'panic-button', type: 'macro' }
+        })
+      })
+    ]))
+    expect(inputBackend.getRecordedInputs()).toHaveLength(1)
   } finally {
     await application.stop()
   }

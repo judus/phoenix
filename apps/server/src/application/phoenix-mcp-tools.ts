@@ -1,16 +1,14 @@
 import type { LocalTool } from '@judus/llm-client'
 import type { GameCatalogue } from '@phoenix/elite'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
-import type { GameActions } from './game-action-service.js'
+import type { Commands } from '../domain/commands.js'
 import { CommanderGetCurrentStateTool } from './mcp-tools/commander-get-current-state-tool.js'
 import { CommanderGetInventoryTool } from './mcp-tools/commander-get-inventory-tool.js'
 import { CommanderListEngineersTool } from './mcp-tools/commander-list-engineers-tool.js'
 import { CommanderListMaterialsTool } from './mcp-tools/commander-list-materials-tool.js'
 import { ControlsExecuteTool } from './mcp-tools/controls-execute-tool.js'
 import { ControlsFindActionsTool } from './mcp-tools/controls-find-actions-tool.js'
-import { ControlsGetStatusTool } from './mcp-tools/controls-get-status-tool.js'
 import { ControlsSetSwitchTool } from './mcp-tools/controls-set-switch-tool.js'
-import { ControlsTapTool } from './mcp-tools/controls-tap-tool.js'
 import { DisplayShowBodyTool } from './mcp-tools/display-show-body-tool.js'
 import { DisplayShowSystemTool } from './mcp-tools/display-show-system-tool.js'
 import { NavigationCanJumpToTool } from './mcp-tools/navigation-can-jump-to-tool.js'
@@ -31,7 +29,7 @@ import type { CommanderEngineersQuery, DisplayCommands, ExplorationBodyQuery, Na
 import type { StatefulGameActionService } from './stateful-game-action-service.js'
 
 export interface PhoenixMcpToolDependencies {
-  gameActions: GameActions
+  commands: Commands
   gameCatalogue: GameCatalogue
   engineers: CommanderEngineersQuery
   display: DisplayCommands
@@ -55,11 +53,9 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new CommanderGetInventoryTool(dependencies.runtimeState),
     new CommanderListEngineersTool(dependencies.engineers),
     new CommanderListMaterialsTool(dependencies.runtimeState),
-    new ControlsFindActionsTool(dependencies.gameActions),
-    new ControlsExecuteTool(dependencies.gameActions),
-    new ControlsGetStatusTool(dependencies.gameActions),
+    new ControlsFindActionsTool(dependencies.commands),
+    new ControlsExecuteTool(dependencies.commands),
     new ControlsSetSwitchTool(dependencies.statefulActions),
-    new ControlsTapTool(dependencies.gameActions),
     new DisplayShowBodyTool(dependencies.display),
     new DisplayShowSystemTool(dependencies.display),
     new ExplorationGetCurrentBodyTool(dependencies.exploration),

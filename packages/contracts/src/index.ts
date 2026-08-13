@@ -9,6 +9,7 @@ export * from './elite-status.js'
 export * from './engineering.js'
 export * from './exploration.js'
 export * from './galaxy.js'
+export * from './macros.js'
 export * from './runtime.js'
 export * from './settings.js'
 

@@ -282,6 +282,7 @@ function AuthenticatedApplication () {
       activeMode={activeMode}
       controls={(
         <ControlsPage
+          api={api}
           actionCatalog={actionCatalog}
           category={controlCategory}
           controlLayout={controlLayout}
@@ -325,7 +326,7 @@ export type AppRoute =
   | { section: 'developer', view: DeveloperView }
 
 const CONTROL_CATEGORIES: ControlCategory[] = [
-  'ship', 'combat', 'navigation', 'vessel', 'srv', 'on_foot', 'radio', 'emote', 'misc'
+  'ship', 'combat', 'navigation', 'vessel', 'srv', 'on_foot', 'radio', 'emote', 'misc', 'macros'
 ]
 const INFORMATION_ROUTE_STORAGE_KEY = 'phoenix.desktop.information-route'
 

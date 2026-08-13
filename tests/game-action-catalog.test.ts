@@ -59,6 +59,22 @@ test('the action catalogue describes GalNet Audio commands as radio controls', (
   ]))
 })
 
+test('the action catalogue describes map bindings as state-unknown toggles', () => {
+  const catalogue = new DefaultGameActionCatalog(new StubBindings([
+    'GalaxyMapOpen',
+    'SystemMapOpen'
+  ], {}))
+
+  expect(catalogue.find('elite.GalaxyMapOpen')).toMatchObject({
+    label: 'Toggle Elite Galaxy Map',
+    description: expect.stringContaining('does not navigate PHOENIX')
+  })
+  expect(catalogue.find('elite.SystemMapOpen')).toMatchObject({
+    label: 'Toggle Elite System Map',
+    description: expect.stringContaining('PHOENIX system schematic')
+  })
+})
+
 class StubBindings implements GameActionBindingResolver {
   public constructor (
     private readonly commands: string[],

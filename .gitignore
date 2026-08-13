@@ -12,6 +12,7 @@ coverage/
 /data/conversations/
 /data/settings.json
 /data/pairing.json
+/data/macros.json
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal

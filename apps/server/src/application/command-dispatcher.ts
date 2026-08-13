@@ -15,13 +15,15 @@ import type {
   NavigationCommandDestination,
   NavigationCommandExecutor
 } from '../domain/commands.js'
+import type { MacroCommandExecutor } from '../domain/macros.js'
 
 export class DefaultCommandDispatcher implements Commands {
   public constructor (
     private readonly registry: CommandRegistry,
     private readonly gameActions: GameActions,
     private readonly destinations: readonly NavigationCommandDestination[],
-    private readonly navigation: NavigationCommandExecutor = new BrowserNavigationCommandExecutor()
+    private readonly navigation: NavigationCommandExecutor = new BrowserNavigationCommandExecutor(),
+    private readonly macros?: MacroCommandExecutor
   ) {}
 
   public getCatalog () { return this.registry.getCatalog() }
@@ -43,7 +45,17 @@ export class DefaultCommandDispatcher implements Commands {
       return this.result(requestId, correlationId, descriptor.id, request.target, request.operation, origin, 'rejected', descriptor.unavailableReason ?? 'Command unavailable.')
     }
     if (request.target.type === 'macro') {
-      return this.result(requestId, correlationId, descriptor.id, request.target, request.operation, origin, 'rejected', 'Macro commands are not enabled.')
+      if (!this.macros) {
+        return this.result(requestId, correlationId, descriptor.id, request.target, request.operation, origin, 'rejected', 'Macro commands are not enabled.')
+      }
+      if (request.operation !== 'tap') {
+        return this.result(requestId, correlationId, descriptor.id, request.target, request.operation, origin, 'rejected', 'Macro commands only support tap execution.')
+      }
+      const playback = await this.macros.execute(request.target.macroId, origin, signal)
+      const status = playback.status === 'completed'
+        ? 'accepted'
+        : playback.status === 'aborted' ? 'cancelled' : playback.status === 'timed_out' ? 'timed_out' : 'failed'
+      return this.result(requestId, correlationId, descriptor.id, request.target, request.operation, origin, status, playback.message)
     }
     if (request.target.type === 'navigation') {
       const destinationId = request.target.destinationId

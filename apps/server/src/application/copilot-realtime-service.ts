@@ -44,7 +44,9 @@ export interface CopilotRealtimeServiceOptions {
 
 const TOOL_INSTRUCTIONS = [
   'Use the available PHOENIX tools whenever fresh telemetry or a game action would improve the answer.',
-  'Use phoenix_controls_find_actions when an exact action ID is unknown.',
+  'Use phoenix_controls_find_actions when an exact control or macro target is unknown, then pass its target unchanged to phoenix_controls_execute.',
+  'Existence and discovery questions such as "do you see", "can you find", "is there", or "list" are read-only: find and report the control, but never execute it unless the commander separately gives an imperative execution request.',
+  'Distinguish the full-screen Elite Galaxy/System Maps from PHOENIX system schematics and body details; ask which interface when a map request is ambiguous.',
   'For observable on/off controls, use phoenix_controls_set_switch and answer from its result.',
   'After a routine action is confirmed, say only "Done." Never invent confirmation.'
 ].join(' ')

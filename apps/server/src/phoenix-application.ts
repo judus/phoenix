@@ -47,11 +47,15 @@ import type { CopilotRealtime } from './application/copilot-realtime-service.js'
 import type { GameActionBindingResolver, InputBackend } from './domain/game-actions.js'
 import type { CartographySource } from './domain/cartography.js'
 import type { StationSearchSource, StationStockSource } from './domain/station-market.js'
-import type { ControlGridLayoutRepository } from './domain/system-configuration.js'
+import type { ControlGridLayoutRepository, SystemSettingsRepository } from './domain/system-configuration.js'
+import type { MacroRepository } from './domain/macros.js'
 import { DefaultGameActionCatalog } from './infrastructure/default-game-action-catalog.js'
 import { InMemoryRuntimeStateStore } from './infrastructure/in-memory-runtime-state-store.js'
 import { InMemoryNavigationRouteStore } from './infrastructure/in-memory-navigation-route-store.js'
 import { InMemoryControlGridLayoutRepository } from './infrastructure/in-memory-control-grid-layout-repository.js'
+import { InMemorySystemSettingsRepository } from './infrastructure/json-system-configuration.js'
+import { InMemoryMacroRepository } from './infrastructure/macro-repositories.js'
+import { MacroService } from './application/macro-service.js'
 import { InProcessPublisher } from './infrastructure/in-process-publisher.js'
 import { PhoenixHttpServer } from './infrastructure/phoenix-http-server.js'
 import { RecordingInputBackend } from './infrastructure/recording-input-backend.js'
@@ -82,10 +86,12 @@ export interface PhoenixApplicationOptions {
   inputBackend?: InputBackend
   inputBackendMode?: 'recording' | 'linux-xdotool'
   moduleCataloguePath?: string
+  macroRepository?: MacroRepository
   port?: number
   shipCataloguePath?: string
   stationSearchSource?: StationSearchSource
   stationStockSource?: StationStockSource
+  systemSettingsRepository?: SystemSettingsRepository
   webRoot?: string
 }
 
@@ -220,11 +226,21 @@ export class PhoenixApplication {
       options.inputBackend ?? configuredInputBackend(options.inputBackendMode)
     )
     const gameActions = new LoggedGameActions(new GameActionService(actionGateway), activityLog)
-    const commandRegistry = new DefaultCommandRegistry(gameActions)
+    const systemSettings = options.systemSettingsRepository ?? new InMemorySystemSettingsRepository()
+    const macroRepository = options.macroRepository ?? new InMemoryMacroRepository()
+    const macros = new MacroService(macroRepository, gameActions)
+    const commandRegistry = new DefaultCommandRegistry(
+      gameActions,
+      PHOENIX_NAVIGATION_DESTINATIONS,
+      macroRepository,
+      () => systemSettings.loadOrCreate().modules.macros.enabled
+    )
     const commands = new DefaultCommandDispatcher(
       commandRegistry,
       gameActions,
-      PHOENIX_NAVIGATION_DESTINATIONS
+      PHOENIX_NAVIGATION_DESTINATIONS,
+      undefined,
+      macros
     )
     const statefulActions = new StatefulGameActionService(gameActions, this.stateStore)
     const cartography = new CachedSystemCartographyService(
@@ -248,10 +264,10 @@ export class PhoenixApplication {
     const exploration = new DefaultExplorationBodyQuery(this.database, cartography, this.stateStore)
     const explorationData = new ExplorationDataService(this.database, this.database)
     const toolRegistry = new ToolRegistry(createPhoenixMcpTools({
+      commands,
       display,
       engineers: new DefaultCommanderEngineersQuery(engineering),
       exploration,
-      gameActions,
       gameCatalogue,
       navigation,
       markets: stationMarkets,
@@ -294,9 +310,11 @@ export class PhoenixApplication {
       host,
       activityLog,
       mcpServer,
+      macros,
       port,
       runtimeState: this.stateStore,
       runtimeStateUpdates,
+      systemSettings,
       displayCommands: display,
       engineering,
       explorationData,

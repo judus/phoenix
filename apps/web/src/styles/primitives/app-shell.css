@@ -24,30 +24,49 @@
 
 .top-bar {
   min-inline-size: 0;
+  min-block-size: var(--size-secondary-navigation);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-2) var(--space-4);
-  border-block-end: 1px solid var(--color-border);
+  gap: 0;
+}
+
+.top-bar__brand,
+.top-bar__brand > a {
+  align-self: stretch;
+  display: flex;
+}
+
+.top-bar__actions {
+  padding-inline-end: var(--space-4);
 }
 
 .app-brand {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: 0;
 
   .app-brand__mark {
+    flex: 0 0 var(--size-secondary-navigation);
     display: grid;
     place-items: center;
-    inline-size: 2.5rem;
-    aspect-ratio: 1;
-    border: 1px solid var(--color-primary);
-    color: var(--color-primary);
+    inline-size: var(--size-secondary-navigation);
+    block-size: var(--size-secondary-navigation);
+    border-inline-end: 1px solid var(--color-border);
+
+    &::before {
+      content: '';
+      inline-size: 68%;
+      block-size: 68%;
+      background: var(--color-primary);
+      -webkit-mask: url('/phoenix.svg') center / contain no-repeat;
+      mask: url('/phoenix.svg') center / contain no-repeat;
+    }
   }
 
   .app-brand__label {
     display: grid;
+    padding-inline: var(--space-3);
 
     strong {
       font-size: 1.25rem;

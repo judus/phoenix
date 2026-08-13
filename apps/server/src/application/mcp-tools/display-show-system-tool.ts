@@ -4,7 +4,7 @@ import type { DisplayCommands } from './tool-gateways.js'
 export class DisplayShowSystemTool implements LocalTool {
   public readonly definition = {
     annotations: { destructive: false, idempotent: true, openWorld: false, readOnly: false },
-    description: 'Show an interactive star-system map to the commander, optionally highlighting a named body or station. Use when the commander asks to see or visually inspect a system; use an information tool when facts are needed.',
+    description: 'Open the PHOENIX Terminal system schematic on the commander\'s connected PHOENIX screens, optionally selecting a named body or station. This navigates PHOENIX; it does not open the full-screen System Map inside Elite Dangerous. If the commander merely says "system map" and the intended interface is unclear, ask which one.',
     inputSchema: { additionalProperties: false, properties: { objectName: { type: 'string' }, systemName: { type: 'string' } }, type: 'object' },
     name: 'display.show_system'
   }

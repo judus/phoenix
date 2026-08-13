@@ -11,6 +11,7 @@ import {
 import { PhoenixApplication } from './phoenix-application.js'
 import { ApplicationPaths } from './infrastructure/application-paths.js'
 import { PairingAccessController } from './infrastructure/pairing-access-controller.js'
+import { JsonMacroRepository } from './infrastructure/macro-repositories.js'
 
 let application: PhoenixApplication | null = null
 
@@ -34,6 +35,8 @@ try {
     accessControl,
     applicationPaths: paths,
     controlGridLayoutRepository: settingsRepository,
+    macroRepository: new JsonMacroRepository(resolve(paths.user.config, 'macros.json')),
+    systemSettingsRepository: settingsRepository,
     inputBackend: controls.backend
   })
   const address = await application.start()

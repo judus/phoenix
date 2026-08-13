@@ -18,6 +18,10 @@ import {
   CopilotRealtimeToolRequestSchema,
   CopilotRealtimeTurnRequestSchema,
   ExplorationManualCompletionRequestSchema,
+  MacroDefinitionSchema,
+  PhoenixModulesSchema,
+  RecordMacroActionRequestSchema,
+  StartMacroRecordingRequestSchema,
   type CopilotConversationEvent,
   type DisplayCommand,
   type RuntimeState
@@ -43,6 +47,8 @@ import type { EliteStatusDiagnosticsReader } from '../domain/elite-status.js'
 import type { Subscribable } from '../domain/publisher.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type { ControlGridLayoutRepository } from '../domain/system-configuration.js'
+import type { SystemSettingsRepository } from '../domain/system-configuration.js'
+import type { Macros } from '../domain/macros.js'
 import type { PhoenixMcpServer } from './phoenix-mcp-server.js'
 import { PairingAttemptLimitError, type PairingAccessController } from './pairing-access-controller.js'
 
@@ -81,10 +87,12 @@ export interface PhoenixHttpServerOptions {
   activityLog: ActivityLogReader
   displayCommands: Subscribable<DisplayCommand>
   mcpServer: PhoenixMcpServer
+  macros: Macros
   navigationData: NavigationDataReader
   port: number
   runtimeState: RuntimeStateReader
   runtimeStateUpdates: Subscribable<RuntimeState>
+  systemSettings: SystemSettingsRepository
   webRoot: string
 }
 
@@ -513,6 +521,105 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/settings/modules') {
+      this.writeJson(response, 200, this.options.systemSettings.loadOrCreate().modules)
+      return
+    }
+
+    if (request.method === 'PUT' && url.pathname === '/api/settings/modules') {
+      try {
+        const modules = PhoenixModulesSchema.parse(await readJsonBody(request))
+        const settings = this.options.systemSettings.loadOrCreate()
+        this.options.systemSettings.save({ ...settings, modules })
+        this.writeJson(response, 200, modules)
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : 'Invalid module settings.'
+        this.writeJson(response, 400, { error: { code: 'invalid_module_settings', message } })
+      }
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/macros') {
+      this.writeJson(response, 200, this.options.macros.getLibrary())
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/macros') {
+      try {
+        this.writeJson(response, 200, this.options.macros.save(MacroDefinitionSchema.parse(await readJsonBody(request))))
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : 'Invalid macro.'
+        this.writeJson(response, 400, { error: { code: 'invalid_macro', message } })
+      }
+      return
+    }
+
+    const macroMatch = url.pathname.match(/^\/api\/macros\/([a-z][a-z0-9-]*)$/u)
+    if (request.method === 'DELETE' && macroMatch && macroMatch[1] !== 'playback') {
+      this.options.macros.delete(macroMatch[1]!)
+      this.writeJson(response, 200, { deleted: true })
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/macros/recordings') {
+      try {
+        this.requireMacroModule()
+        const input = StartMacroRecordingRequestSchema.parse(await readJsonBody(request))
+        this.writeJson(response, 200, this.options.macros.startRecording(input.clientId))
+      } catch (cause) {
+        this.writeMacroError(response, cause)
+      }
+      return
+    }
+
+    const recordingMatch = url.pathname.match(/^\/api\/macros\/recordings\/([^/]+)\/(action|stop|cancel)$/u)
+    if (request.method === 'POST' && recordingMatch) {
+      try {
+        this.requireMacroModule()
+        const recordingId = decodeURIComponent(recordingMatch[1]!)
+        const operation = recordingMatch[2]
+        const body = await readJsonBody(request)
+        if (operation === 'action') {
+          this.writeJson(response, 200, await this.options.macros.recordAction(
+            recordingId,
+            RecordMacroActionRequestSchema.parse(body)
+          ))
+        } else {
+          const input = StartMacroRecordingRequestSchema.parse(body)
+          if (operation === 'stop') {
+            this.writeJson(response, 200, this.options.macros.stopRecording(recordingId, input.clientId))
+          } else {
+            this.options.macros.cancelRecording(recordingId, input.clientId)
+            this.writeJson(response, 200, { cancelled: true })
+          }
+        }
+      } catch (cause) {
+        this.writeMacroError(response, cause)
+      }
+      return
+    }
+
+    const playbackMatch = url.pathname.match(/^\/api\/macros\/([^/]+)\/playback$/u)
+    if (request.method === 'POST' && playbackMatch) {
+      try {
+        this.requireMacroModule()
+        this.writeJson(response, 200, await this.options.macros.execute(decodeURIComponent(playbackMatch[1]!), 'ui'))
+      } catch (cause) {
+        this.writeMacroError(response, cause)
+      }
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/macros/playback') {
+      this.writeJson(response, 200, { playback: this.options.macros.getPlayback() })
+      return
+    }
+
+    if (request.method === 'DELETE' && url.pathname === '/api/macros/playback') {
+      this.writeJson(response, 200, { playback: this.options.macros.abortPlayback() })
+      return
+    }
+
     if (request.method === 'PUT' && url.pathname === '/api/control-layout') {
       try {
         this.writeJson(
@@ -600,6 +707,17 @@ export class PhoenixHttpServer {
     }
 
     this.serveWebAsset(url.pathname, response)
+  }
+
+  private requireMacroModule (): void {
+    if (!this.options.systemSettings.loadOrCreate().modules.macros.enabled) {
+      throw new Error('Macro module is disabled.')
+    }
+  }
+
+  private writeMacroError (response: ServerResponse, cause: unknown): void {
+    const message = cause instanceof Error ? cause.message : 'Macro operation failed.'
+    this.writeJson(response, 400, { error: { code: 'macro_operation_failed', message } })
   }
 
   private openRuntimeStateStream (request: IncomingMessage, response: ServerResponse): void {
