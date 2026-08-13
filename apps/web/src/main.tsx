@@ -20,6 +20,7 @@ import './styles/patterns/ship.css'
 import './styles/patterns/exploration.css'
 import './styles/patterns/information-sections.css'
 import './styles/patterns/pairing.css'
+import './styles/patterns/numpad.css'
 import './styles/utilities.css'
 
 const root = document.getElementById('root')

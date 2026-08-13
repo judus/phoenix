@@ -14,6 +14,7 @@ import {
 } from '@phoenix/contracts'
 import { parseDisplayCommand, PhoenixApiClient } from './api/phoenix-api-client.js'
 import { subscribePhoenixEvent } from './api/phoenix-event-stream.js'
+import { allowsRemoteDisplayCommands } from './features/display/display-command-preferences.js'
 import { DeveloperPage, type DeveloperView } from './pages/developer-page.js'
 import { ControlsPage, type ControlCategory } from './pages/controls-page.js'
 import { CopilotPage } from './pages/copilot-page.js'
@@ -137,6 +138,7 @@ function AuthenticatedApplication () {
 
     const unsubscribeDisplay = subscribePhoenixEvent(api, 'display-command', event => {
       try {
+        if (!allowsRemoteDisplayCommands()) return
         const command = parseDisplayCommand(JSON.parse(event.data))
         const parameters = new URLSearchParams({ name: command.systemName })
         if (command.selectedName) parameters.set('selected', command.selectedName)
@@ -220,7 +222,7 @@ function AuthenticatedApplication () {
       return <LogPage api={api} error={error} health={health} />
     }
     if (informationRoute.section === 'numpad') {
-      return <NumpadPage error={error} health={health} />
+      return <NumpadPage api={api} error={error} health={health} />
     }
     if (informationRoute.section === 'galaxy') {
       return (

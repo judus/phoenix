@@ -24,6 +24,7 @@ export interface PhoenixShellProps {
   children: ReactNode
   error?: string
   health?: HealthResponse
+  showPrimaryNavigation?: boolean
   secondaryNavigation: NavigationItem[]
 }
 
@@ -31,9 +32,10 @@ export function PhoenixShell ({
   activePrimaryItemId,
   activeSecondaryItemId,
   children,
+  showPrimaryNavigation = true,
   secondaryNavigation
 }: PhoenixShellProps) {
-  const informationNavigation = activePrimaryItemId !== 'controls' && activePrimaryItemId !== 'copilot'
+  const informationNavigation = showPrimaryNavigation && activePrimaryItemId !== 'controls' && activePrimaryItemId !== 'copilot'
 
   return (
     <AppShell

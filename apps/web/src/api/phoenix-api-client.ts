@@ -38,6 +38,8 @@ import {
   EliteStatusSourceDiagnosticsSchema,
   RuntimeStateSchema,
   NavigationRouteSchema,
+  NumpadExecutionResultSchema,
+  NumpadTreeSnapshotSchema,
   type GameActionCatalogResponse,
   type CommandCatalogResponse,
   type CommandCatalogueSnapshot,
@@ -81,6 +83,8 @@ import {
   type EliteStatusSourceDiagnostics,
   type HealthResponse,
   type NavigationRoute,
+  type NumpadExecutionResult,
+  type NumpadTreeSnapshot,
   type RuntimeState
 } from '@phoenix/contracts'
 
@@ -103,6 +107,8 @@ export interface PhoenixApi {
   getActions(): Promise<GameActionCatalogResponse>
   getCommands(): Promise<CommandCatalogResponse>
   getCommandCatalogueSnapshot(): Promise<CommandCatalogueSnapshot>
+  getNumpadSnapshot(): Promise<NumpadTreeSnapshot>
+  executeNumpadAddress(address: string, revision: number): Promise<NumpadExecutionResult>
   getMacros(): Promise<MacroLibrary>
   getModuleSettings(): Promise<PhoenixModules>
   getDeveloperActions(): Promise<GameActionCatalogResponse>
@@ -293,6 +299,24 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return CommandCatalogueSnapshotSchema.parse(await response.json())
+  }
+
+  public async getNumpadSnapshot (): Promise<NumpadTreeSnapshot> {
+    const response = await this.request(`${this.baseUrl}/api/numpad`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return NumpadTreeSnapshotSchema.parse(await response.json())
+  }
+
+  public async executeNumpadAddress (address: string, revision: number): Promise<NumpadExecutionResult> {
+    const response = await this.request(`${this.baseUrl}/api/numpad/execute`, {
+      body: JSON.stringify({ address, revision }),
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      method: 'POST'
+    })
+    if (!response.ok) throw await apiError(response)
+    return NumpadExecutionResultSchema.parse(await response.json())
   }
 
   public async getMacros (): Promise<MacroLibrary> {

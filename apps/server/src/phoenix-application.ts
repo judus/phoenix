@@ -24,6 +24,7 @@ import { DefaultGameActionGateway } from './application/default-game-action-gate
 import { DefaultCommandDispatcher } from './application/command-dispatcher.js'
 import { DefaultCommandRegistry, PHOENIX_NAVIGATION_DESTINATIONS } from './application/default-command-registry.js'
 import { CommandCatalogueService } from './application/command-catalogue-service.js'
+import { DefaultNumpadCommands, NumpadTreeProjector } from './application/numpad-command-service.js'
 import { DefaultRuntimeStateProjector } from './application/default-runtime-state-projector.js'
 import { GameActionService } from './application/game-action-service.js'
 import { createPhoenixMcpTools } from './application/phoenix-mcp-tools.js'
@@ -261,6 +262,11 @@ export class PhoenixApplication {
       undefined,
       macros
     )
+    const numpad = new DefaultNumpadCommands(
+      new NumpadTreeProjector(commandCatalogue, controlGridLayouts),
+      commands,
+      systemSettings
+    )
     const statefulActions = new StatefulGameActionService(gameActions, this.stateStore)
     const cartography = new CachedSystemCartographyService(
       options.cartographySource ?? new EdsmCartographySource(),
@@ -340,6 +346,7 @@ export class PhoenixApplication {
       explorationData,
       galaxyData: stationMarkets,
       navigationData,
+      numpad,
       webRoot: resolveProjectPath(projectRoot, options.webRoot ?? paths.resources.web)
     })
   }

@@ -49,6 +49,7 @@ import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type { ControlGridLayoutRepository } from '../domain/system-configuration.js'
 import type { SystemSettingsRepository } from '../domain/system-configuration.js'
 import type { CommandCatalogueSnapshots } from '../domain/commands.js'
+import type { NumpadCommands } from '../domain/numpad.js'
 import type { Macros } from '../domain/macros.js'
 import type { PhoenixMcpServer } from './phoenix-mcp-server.js'
 import { PairingAttemptLimitError, type PairingAccessController } from './pairing-access-controller.js'
@@ -91,6 +92,7 @@ export interface PhoenixHttpServerOptions {
   mcpServer: PhoenixMcpServer
   macros: Macros
   navigationData: NavigationDataReader
+  numpad: NumpadCommands
   port: number
   runtimeState: RuntimeStateReader
   runtimeStateUpdates: Subscribable<RuntimeState>
@@ -652,6 +654,21 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/commands/snapshot') {
       this.writeJson(response, 200, this.options.commandCatalogue.getSnapshot())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/numpad') {
+      this.writeJson(response, 200, this.options.numpad.getSnapshot())
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/numpad/execute') {
+      try {
+        this.writeJson(response, 200, await this.options.numpad.execute(await readJsonBody(request)))
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : 'Invalid numpad request.'
+        this.writeJson(response, 400, { error: { code: 'invalid_numpad_request', message } })
+      }
       return
     }
 
