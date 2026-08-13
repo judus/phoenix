@@ -21,6 +21,10 @@ export const DEFAULT_PHOENIX_SETTINGS: PhoenixSettings = {
     enabled: true,
     backend: 'auto',
     layout: DEFAULT_CONTROL_GRID_LAYOUT
+  },
+  modules: {
+    macros: { enabled: false, copilotExecution: false, dangerousExecution: false },
+    numpadCommands: { enabled: false, inputAdapter: 'browser' }
   }
 }
 
@@ -65,33 +69,56 @@ export class JsonSystemSettingsRepository implements SystemSettingsRepository, C
 }
 
 function migrateSettings (candidate: unknown): unknown {
-  if (!isRecord(candidate) || !isRecord(candidate.controls) || !isRecord(candidate.controls.layout)) {
-    return candidate
+  if (!isRecord(candidate)) return candidate
+  const normalized = isRecord(candidate.modules)
+    ? candidate
+    : { ...candidate, modules: DEFAULT_PHOENIX_SETTINGS.modules }
+  if (!isRecord(normalized.controls) || !isRecord(normalized.controls.layout)) {
+    return normalized
   }
-  if (candidate.controls.layout.version === 1) {
+  if (normalized.controls.layout.version === 1) {
     return {
-      ...candidate,
-      controls: { ...candidate.controls, layout: DEFAULT_CONTROL_GRID_LAYOUT }
+      ...normalized,
+      controls: { ...normalized.controls, layout: DEFAULT_CONTROL_GRID_LAYOUT }
     }
   }
-  if (candidate.controls.layout.version !== 2 || !Array.isArray(candidate.controls.layout.pages)) {
-    return candidate
-  }
-
-  return {
-    ...candidate,
-    controls: {
-      ...candidate.controls,
-      layout: {
-        ...candidate.controls.layout,
+  const layout = normalized.controls.layout
+  if (!Array.isArray(layout.pages)) return normalized
+  const version3 = layout.version === 2
+    ? {
+        ...layout,
         version: 3,
-        pages: candidate.controls.layout.pages.map(page => !isRecord(page) || !Array.isArray(page.cells)
+        pages: layout.pages.map(page => !isRecord(page) || !Array.isArray(page.cells)
           ? page
           : {
               ...page,
               cells: page.cells.map(cell => !isRecord(cell) || cell.actionId !== 'elite.SilentRunning'
                 ? cell
                 : { ...cell, actionId: null })
+            })
+      }
+    : layout
+  if (version3.version !== 3 || !Array.isArray(version3.pages)) return normalized
+  return {
+    ...normalized,
+    controls: {
+      ...normalized.controls,
+      layout: {
+        ...version3,
+        version: 4,
+        pages: version3.pages.map(page => !isRecord(page) || !Array.isArray(page.cells)
+          ? page
+          : {
+              ...page,
+              cells: page.cells.map(cell => !isRecord(cell)
+                ? cell
+                : {
+                    position: cell.position,
+                    ...(cell.span === undefined ? {} : { span: cell.span }),
+                    target: typeof cell.actionId === 'string'
+                      ? { type: 'game-action', actionId: cell.actionId }
+                      : null
+                  })
             })
       }
     }

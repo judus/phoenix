@@ -21,6 +21,8 @@ import { CartographyObservationIngestionService } from './application/cartograph
 import { DefaultNavigationQuery } from './application/default-navigation-query.js'
 import { DefaultSystemDetailsQuery } from './application/default-system-details-query.js'
 import { DefaultGameActionGateway } from './application/default-game-action-gateway.js'
+import { DefaultCommandDispatcher } from './application/command-dispatcher.js'
+import { DefaultCommandRegistry, PHOENIX_NAVIGATION_DESTINATIONS } from './application/default-command-registry.js'
 import { DefaultRuntimeStateProjector } from './application/default-runtime-state-projector.js'
 import { GameActionService } from './application/game-action-service.js'
 import { createPhoenixMcpTools } from './application/phoenix-mcp-tools.js'
@@ -218,6 +220,12 @@ export class PhoenixApplication {
       options.inputBackend ?? configuredInputBackend(options.inputBackendMode)
     )
     const gameActions = new LoggedGameActions(new GameActionService(actionGateway), activityLog)
+    const commandRegistry = new DefaultCommandRegistry(gameActions)
+    const commands = new DefaultCommandDispatcher(
+      commandRegistry,
+      gameActions,
+      PHOENIX_NAVIGATION_DESTINATIONS
+    )
     const statefulActions = new StatefulGameActionService(gameActions, this.stateStore)
     const cartography = new CachedSystemCartographyService(
       options.cartographySource ?? new EdsmCartographySource(),
@@ -275,6 +283,7 @@ export class PhoenixApplication {
       copilotConversationEvents,
       copilotVoiceHost,
       copilotRealtime,
+      commands,
       gameActions,
       eliteJournalDiagnostics: new EliteJournalDiagnosticsService(
         this.journalSource,

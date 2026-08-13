@@ -1,5 +1,7 @@
 import {
   CatalogueDiagnosticsSchema,
+  CommandCatalogResponseSchema,
+  CommandExecutionResultSchema,
   ShipCatalogueResponseSchema,
   ControlGridLayoutSchema,
   CopilotChatRequestSchema,
@@ -31,6 +33,9 @@ import {
   RuntimeStateSchema,
   NavigationRouteSchema,
   type GameActionCatalogResponse,
+  type CommandCatalogResponse,
+  type CommandExecutionResult,
+  type CommandTarget,
   type CatalogueDiagnostics,
   type ShipCatalogueResponse,
   type ControlGridLayout,
@@ -79,10 +84,12 @@ export interface PhoenixApi {
   getCopilotHistory(conversationId: string): Promise<CopilotHistoryResponse>
   executeDeveloperAction(actionId: string): Promise<GameActionResult>
   executeAction(actionId: string, operation?: GameActionOperation): Promise<GameActionResult>
+  executeCommand(target: CommandTarget, operation?: GameActionOperation): Promise<CommandExecutionResult>
   getEliteJournalDiagnostics(): Promise<EliteJournalSourceDiagnostics>
   getActivityLog(limit?: number): Promise<ActivityLogResponse>
   getEliteStatusDiagnostics(): Promise<EliteStatusSourceDiagnostics>
   getActions(): Promise<GameActionCatalogResponse>
+  getCommands(): Promise<CommandCatalogResponse>
   getDeveloperActions(): Promise<GameActionCatalogResponse>
   getHealth(): Promise<HealthResponse>
   getPairingStatus(): Promise<PairingStatus>
@@ -246,6 +253,14 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw new Error(`PHOENIX API returned HTTP ${response.status}.`)
     return GameActionCatalogResponseSchema.parse(await response.json())
+  }
+
+  public async getCommands (): Promise<CommandCatalogResponse> {
+    const response = await this.request(`${this.baseUrl}/api/commands`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return CommandCatalogResponseSchema.parse(await response.json())
   }
 
   public async getDeveloperActions (): Promise<GameActionCatalogResponse> {
@@ -472,6 +487,24 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw new Error(`PHOENIX API returned HTTP ${response.status}.`)
     return GameActionResultSchema.parse(await response.json())
+  }
+
+  public async executeCommand (
+    target: CommandTarget,
+    operation: GameActionOperation = 'tap'
+  ): Promise<CommandExecutionResult> {
+    const response = await this.request(`${this.baseUrl}/api/commands/execute`, {
+      body: JSON.stringify({ target, operation }),
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json'
+      },
+      method: 'POST'
+    })
+    if (!response.ok) throw await apiError(response)
+    const result = CommandExecutionResultSchema.parse(await response.json())
+    if (result.navigationHref && typeof window !== 'undefined') window.location.hash = result.navigationHref
+    return result
   }
 
   public async getEliteStatusDiagnostics (): Promise<EliteStatusSourceDiagnostics> {

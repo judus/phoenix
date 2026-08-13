@@ -288,8 +288,8 @@ function AuthenticatedApplication () {
           error={error}
           health={health}
           runtimeState={runtimeState}
-          onExecuteAction={(actionId: string, operation: GameActionOperation) => (
-            api.executeAction(actionId, operation)
+          onExecuteCommand={(target, operation) => (
+            api.executeCommand(target, operation)
           )}
           onSaveLayout={async layout => {
             const saved = await api.saveControlLayout(layout)

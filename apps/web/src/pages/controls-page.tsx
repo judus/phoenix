@@ -3,8 +3,9 @@ import type {
   GameActionAvailability,
   GameActionDefinition,
   GameActionOperation,
-  GameActionResult,
   GameActionCatalogResponse,
+  CommandExecutionResult,
+  CommandTarget,
   ControlGridLayout,
   HealthResponse,
   RuntimeState
@@ -50,7 +51,7 @@ export interface ControlsPageProps {
   controlLayout?: ControlGridLayout
   error?: string
   health?: HealthResponse
-  onExecuteAction: (actionId: string, operation: GameActionOperation) => Promise<GameActionResult>
+  onExecuteCommand: (target: CommandTarget, operation: GameActionOperation) => Promise<CommandExecutionResult>
   onSaveLayout: (layout: ControlGridLayout) => Promise<ControlGridLayout>
   runtimeState?: RuntimeState
 }
@@ -61,7 +62,7 @@ export function ControlsPage ({
   controlLayout,
   error,
   health,
-  onExecuteAction,
+  onExecuteCommand,
   onSaveLayout,
   runtimeState
 }: ControlsPageProps) {
@@ -74,8 +75,8 @@ export function ControlsPage ({
   const [pendingActions, setPendingActions] = useState<ReadonlySet<string>>(new Set())
   const heldActions = useRef(new Set<string>())
   const actionQueues = useRef(new Map<string, Promise<void>>())
-  const executeAction = useRef(onExecuteAction)
-  executeAction.current = onExecuteAction
+  const executeCommand = useRef(onExecuteCommand)
+  executeCommand.current = onExecuteCommand
 
   const activeLayout = draftLayout ?? controlLayout
   const page = activeLayout?.pages.find(candidate => candidate.category === category)
@@ -123,7 +124,7 @@ export function ControlsPage ({
       .then(async () => {
         setPendingActions(current => new Set(current).add(actionId))
         try {
-          await executeAction.current(actionId, operation)
+          await executeCommand.current({ type: 'game-action', actionId }, operation)
           setLocalError(undefined)
         } catch (cause) {
           setLocalError(cause instanceof Error ? cause.message : 'Control execution failed.')
@@ -173,14 +174,18 @@ export function ControlsPage ({
       pages: draftLayout.pages.map(page => {
         if (page.category !== category) return page
         const cells = page.cells.map(cell => (
-          cell.actionId === actionId ? { ...cell, actionId: null } : cell
+          cell.target?.type === 'game-action' && cell.target.actionId === actionId
+            ? { ...cell, target: null }
+            : cell
         ))
         const target = cells.find(cell => cell.position === editingPosition)
         return {
           ...page,
           cells: (target
-            ? cells.map(cell => cell.position === editingPosition ? { ...cell, actionId } : cell)
-            : [...cells, { position: editingPosition, span: 1, actionId }]
+            ? cells.map(cell => cell.position === editingPosition
+              ? { ...cell, target: { type: 'game-action' as const, actionId } }
+              : cell)
+            : [...cells, { position: editingPosition, span: 1, target: { type: 'game-action' as const, actionId } }]
           ).sort((left, right) => left.position - right.position)
         }
       })
@@ -198,7 +203,7 @@ export function ControlsPage ({
         : {
             ...page,
             cells: page.cells.map(cell => cell.position === editingPosition
-              ? { ...cell, actionId: null }
+              ? { ...cell, target: null }
               : cell)
           })
     })
@@ -232,7 +237,7 @@ export function ControlsPage ({
           <section className="control-toolbar" aria-label="Control layout status">
             <p>
               <strong>{categoryLabel}</strong> ·{' '}
-              <strong>{page?.cells.filter(cell => cell.actionId).length ?? 0}</strong> assigned ·{' '}
+              <strong>{page?.cells.filter(cell => cell.target).length ?? 0}</strong> assigned ·{' '}
               <span>{actionCatalog?.actions.length ?? 0} available commands</span> ·{' '}
               <span>{backend?.id ?? 'backend pending'}</span> ·{' '}
               <span>{backend?.available ? 'live' : 'unavailable'}</span>
@@ -274,7 +279,7 @@ export function ControlsPage ({
                     }}
                   >
                     <span>{position}</span>
-                    {item.actionId && <small>Missing: {item.actionId}</small>}
+                    {item.target && <small>Missing: {commandTargetLabel(item.target)}</small>}
                   </button>
                 )
               }
@@ -399,7 +404,7 @@ function actionComparator (left: GameActionAvailability, right: GameActionAvaila
 
 interface ControlGridItem {
   action?: GameActionAvailability
-  actionId: string | null
+  target: CommandTarget | null
   position: number
   span: number
 }
@@ -420,15 +425,24 @@ function createGridItems (
   for (let position = 1; position <= capacity; position++) {
     if (covered.has(position)) continue
     const cell = cells.get(position)
-    const actionId = cell?.actionId ?? null
+    const target = cell?.target ?? null
+    const actionId = target?.type === 'game-action' ? target.actionId : null
     items.push({
       position,
       span: cell?.span ?? 1,
-      actionId,
+      target,
       action: actionId ? actionsById.get(actionId) : undefined
     })
   }
   return items
+}
+
+function commandTargetLabel (target: CommandTarget): string {
+  switch (target.type) {
+    case 'game-action': return target.actionId
+    case 'navigation': return target.destinationId
+    case 'macro': return target.macroId
+  }
 }
 
 function telemetryState (runtimeState: RuntimeState | undefined, key: string | null): boolean {

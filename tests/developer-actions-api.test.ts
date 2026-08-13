@@ -41,6 +41,37 @@ test('the API exposes actions, executes them, and persists the shared control la
       { operation: 'release', binding: { key: 'Space', modifiers: [], display: 'Space' } }
     ])
 
+    const commands = await client.getCommands()
+    expect(commands.commands).toContainEqual(expect.objectContaining({
+      id: 'command.elite.ShipSpotLightToggle',
+      kind: 'game-action',
+      target: { type: 'game-action', actionId: 'elite.ShipSpotLightToggle' }
+    }))
+    expect(commands.commands).toContainEqual(expect.objectContaining({
+      id: 'command.navigation.galaxy.current-system',
+      kind: 'navigation',
+      target: { type: 'navigation', destinationId: 'galaxy.current-system' }
+    }))
+
+    const commandResult = await client.executeCommand({
+      type: 'game-action',
+      actionId: 'elite.ShipSpotLightToggle'
+    })
+    expect(commandResult).toMatchObject({
+      commandId: 'command.elite.ShipSpotLightToggle',
+      status: 'accepted',
+      target: { type: 'game-action', actionId: 'elite.ShipSpotLightToggle' }
+    })
+
+    const navigationResult = await client.executeCommand({
+      type: 'navigation',
+      destinationId: 'galaxy.current-system'
+    })
+    expect(navigationResult).toMatchObject({
+      navigationHref: '#/galaxy/system',
+      status: 'accepted'
+    })
+
     const initialLayout = await client.getControlLayout()
     const shipPage = initialLayout.pages.find(page => page.id === 'ship')
     expect(shipPage).toMatchObject({ columns: 8, rows: 5 })
@@ -52,8 +83,8 @@ test('the API exposes actions, executes them, and persists the shared control la
         : {
             ...page,
             cells: [
-              ...page.cells.map(cell => cell.position === 1 ? { ...cell, actionId: null } : cell),
-              { position: 2, span: 1, actionId: 'elite.GalaxyMapOpen' }
+              ...page.cells.map(cell => cell.position === 1 ? { ...cell, target: null } : cell),
+              { position: 2, span: 1, target: { type: 'game-action' as const, actionId: 'elite.GalaxyMapOpen' } }
             ]
           })
     }
@@ -61,7 +92,7 @@ test('the API exposes actions, executes them, and persists the shared control la
     expect(savedLayout.pages.find(page => page.id === 'ship')?.cells).toContainEqual({
       position: 2,
       span: 1,
-      actionId: 'elite.GalaxyMapOpen'
+      target: { type: 'game-action', actionId: 'elite.GalaxyMapOpen' }
     })
     expect(await client.getControlLayout()).toEqual(savedLayout)
   } finally {

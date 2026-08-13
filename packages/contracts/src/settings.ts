@@ -1,12 +1,25 @@
 import { z } from 'zod'
-import { GameActionCategorySchema, GameActionDefinitionSchema } from './actions.js'
+import { GameActionCategorySchema } from './actions.js'
+import { CommandTargetSchema, commandTargetKey } from './commands.js'
 
 export const InputBackendModeSchema = z.enum(['auto', 'recording', 'linux-xdotool'])
+
+export const PhoenixModulesSchema = z.object({
+  macros: z.object({
+    enabled: z.boolean(),
+    copilotExecution: z.boolean(),
+    dangerousExecution: z.boolean()
+  }),
+  numpadCommands: z.object({
+    enabled: z.boolean(),
+    inputAdapter: z.enum(['browser'])
+  })
+})
 
 const ControlGridCellSchema = z.object({
   position: z.number().int().positive().max(128),
   span: z.number().int().min(1).max(12).default(1),
-  actionId: GameActionDefinitionSchema.shape.id.nullable()
+  target: CommandTargetSchema.nullable()
 })
 
 const ControlGridPageSchema = z.object({
@@ -19,7 +32,7 @@ const ControlGridPageSchema = z.object({
 }).superRefine((page, context) => {
   const capacity = page.columns * page.rows
   const occupied = new Set<number>()
-  const actions = new Set<string>()
+  const targets = new Set<string>()
 
   for (const cell of page.cells) {
     if (cell.position + cell.span - 1 > capacity) {
@@ -40,17 +53,18 @@ const ControlGridPageSchema = z.object({
       }
       occupied.add(position)
     }
-    if (cell.actionId) {
-      if (actions.has(cell.actionId)) {
-        context.addIssue({ code: 'custom', message: `${cell.actionId} is assigned twice on this page.` })
+    if (cell.target) {
+      const key = commandTargetKey(cell.target)
+      if (targets.has(key)) {
+        context.addIssue({ code: 'custom', message: `${key} is assigned twice on this page.` })
       }
-      actions.add(cell.actionId)
+      targets.add(key)
     }
   }
 })
 
 export const ControlGridLayoutSchema = z.object({
-  version: z.literal(3),
+  version: z.literal(4),
   pages: z.array(ControlGridPageSchema).max(16)
 }).superRefine((layout, context) => {
   const pageIds = new Set<string>()
@@ -70,7 +84,11 @@ export const PhoenixSettingsSchema = z.object({
   controls: z.object({
     enabled: z.boolean(),
     backend: InputBackendModeSchema,
-    layout: ControlGridLayoutSchema.default({ version: 3, pages: [] })
+    layout: ControlGridLayoutSchema.default({ version: 4, pages: [] })
+  }),
+  modules: PhoenixModulesSchema.default({
+    macros: { enabled: false, copilotExecution: false, dangerousExecution: false },
+    numpadCommands: { enabled: false, inputAdapter: 'browser' }
   })
 })
 
@@ -91,6 +109,7 @@ export const RuntimeSystemSnapshotSchema = z.object({
 })
 
 export type InputBackendMode = z.infer<typeof InputBackendModeSchema>
+export type PhoenixModules = z.infer<typeof PhoenixModulesSchema>
 export type ControlGridLayout = z.infer<typeof ControlGridLayoutSchema>
 export type PhoenixSettings = z.infer<typeof PhoenixSettingsSchema>
 export type RuntimeSystemSnapshot = z.infer<typeof RuntimeSystemSnapshotSchema>

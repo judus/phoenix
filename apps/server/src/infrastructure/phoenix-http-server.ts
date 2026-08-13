@@ -9,6 +9,7 @@ import {
 import { extname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path'
 import {
   ControlGridLayoutSchema,
+  ExecuteCommandRequestSchema,
   CopilotChatRequestSchema,
   CopilotConversationEventSchema,
   CopilotVoiceHostDesiredStateRequestSchema,
@@ -31,6 +32,7 @@ import {
 } from '../application/copilot-realtime-service.js'
 import type { CatalogueDiagnosticsReader } from '../application/catalogue-diagnostics-service.js'
 import type { GameActions } from '../application/game-action-service.js'
+import type { Commands } from '../domain/commands.js'
 import type { HealthCheck } from '../application/health-service.js'
 import type { EngineeringDataReader } from '../application/engineering-data-service.js'
 import type { ExplorationDataReader } from '../application/exploration-data-service.js'
@@ -67,6 +69,7 @@ export interface PhoenixHttpServerOptions {
   copilotConversationEvents: CopilotConversationEvents
   copilotVoiceHost: CopilotVoiceHostControl
   copilotRealtime?: CopilotRealtime
+  commands: Commands
   gameActions: GameActions
   eliteJournalDiagnostics: EliteJournalDiagnosticsReader
   eliteStatusDiagnostics: EliteStatusDiagnosticsReader
@@ -530,6 +533,25 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && ['/api/actions', '/api/developer/actions'].includes(url.pathname)) {
       this.writeJson(response, 200, this.options.gameActions.getCatalog())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/commands') {
+      this.writeJson(response, 200, this.options.commands.getCatalog())
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/commands/execute') {
+      try {
+        const result = await this.options.commands.execute(
+          ExecuteCommandRequestSchema.parse(await readJsonBody(request)),
+          'ui'
+        )
+        this.writeJson(response, 200, result)
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : 'Invalid command request.'
+        this.writeJson(response, 400, { error: { code: 'invalid_command_request', message } })
+      }
       return
     }
 
