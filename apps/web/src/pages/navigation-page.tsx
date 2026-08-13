@@ -8,7 +8,7 @@ import type {
   RuntimeState
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../api/phoenix-api-client.js'
-import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/page.js'
+import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 import { SystemSchematic } from '../features/navigation/system-schematic.js'
@@ -128,7 +128,6 @@ export function NavigationPage ({
                         </section>
                       )}
               </PageContent>
-              <PageFooter><span>Route telemetry</span><span>Raw route telemetry</span></PageFooter>
             </Page>
           )}
     </PhoenixShell>

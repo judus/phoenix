@@ -5,7 +5,7 @@ import type {
   HealthResponse
 } from '@phoenix/contracts'
 import { GalnetRadioControls } from '../components/galnet-radio-controls.js'
-import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/page.js'
+import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 
@@ -90,10 +90,6 @@ export function InformationSectionPage ({
               )
             : <SectionScaffold section={route.section} view={route.view} />}
         </PageContent>
-        <PageFooter>
-          <span>{operations ? 'Operational workspace' : 'Communications workspace'}</span>
-          <span>{route.section === 'comms' && route.view === 'radio' ? 'Elite GalNet Audio remote' : 'Data model pending'}</span>
-        </PageFooter>
       </Page>
     </PhoenixShell>
   )

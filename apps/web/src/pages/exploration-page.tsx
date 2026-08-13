@@ -7,7 +7,7 @@ import type {
   RuntimeState
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../api/phoenix-api-client.js'
-import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/page.js'
+import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 
@@ -112,10 +112,6 @@ export function ExplorationPage ({
                     ? <BiologyView body={selection.body} onSetManualCompletion={setManualCompletion} />
                     : <GeologyView body={selection.body} />}
         </PageContent>
-        <PageFooter>
-          <span>Persistent local exploration history</span>
-          <span>{ledger ? `${ledger.totals.systems} systems · ${ledger.totals.bodies} bodies` : 'Ledger pending'}</span>
-        </PageFooter>
       </Page>
     </PhoenixShell>
   )

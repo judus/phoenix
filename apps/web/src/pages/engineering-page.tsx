@@ -8,7 +8,7 @@ import type {
   RuntimeState
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../api/phoenix-api-client.js'
-import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/page.js'
+import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 
@@ -86,10 +86,6 @@ export function EngineeringPage ({ api, error, health, runtimeState, view }: Eng
                     ? blueprint && <BlueprintDetailView blueprint={blueprint} />
                     : <BlueprintsView blueprints={blueprints ?? []} />}
         </PageContent>
-        <PageFooter>
-          <span>Engineering database</span>
-          <span>{footerCount(view, engineers, materials, blueprints, blueprint)}</span>
-        </PageFooter>
       </Page>
     </PhoenixShell>
   )
@@ -262,18 +258,6 @@ function engineeringPageIdentity (view: EngineeringView, blueprint?: Engineering
     return { navigationId: view.category, title, eyebrow: view.category === 'xeno' ? 'Guardian and Thargoid technology' : 'Engineering inventory', description: view.category === 'xeno' ? 'Alien technology used in synthesis and Technology Broker unlocks.' : 'Current inventory, capacity, grade, and known blueprint applications.' }
   }
   return { navigationId: 'blueprints', title: blueprint?.name ?? 'Blueprints', eyebrow: blueprint?.originalName ?? 'Ship & equipment modifications', description: blueprint ? blueprint.moduleNames.join(', ') : 'Modifications, grades, material costs, capable engineers, and current applications.' }
-}
-
-function footerCount (
-  view: EngineeringView,
-  engineers?: EngineeringEngineer[],
-  materials?: EngineeringMaterial[],
-  blueprints?: EngineeringBlueprintSummary[],
-  blueprint?: EngineeringBlueprintDetail
-): string {
-  if (view.type === 'engineers') return `${engineers?.length ?? 0} engineers`
-  if (view.type === 'materials') return `${materials?.length ?? 0} materials`
-  return blueprint ? `${blueprint.grades.length} grades` : `${blueprints?.length ?? 0} blueprints`
 }
 
 function groupBy<T> (values: T[], key: (value: T) => string): Map<string, T[]> {

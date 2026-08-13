@@ -11,7 +11,7 @@ import {
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../api/phoenix-api-client.js'
 import { subscribePhoenixEvent } from '../api/phoenix-event-stream.js'
-import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/page.js'
+import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 import { useCopilotVoice } from '../features/copilot/copilot-voice-provider.js'
@@ -158,6 +158,14 @@ export function DashboardPage ({ actionCatalog, api, error, health, onExecuteAct
               </div>
             </DashboardCard>
 
+            <DashboardCard className="dashboard-card--radio" title="GalNet Radio" action={<a href="#/comms/radio">Open remote</a>}>
+              <GalnetRadioControls
+                actionCatalog={actionCatalog}
+                compact
+                onExecuteAction={onExecuteAction}
+              />
+            </DashboardCard>
+
             <DashboardCard className="dashboard-card--activity" title="Recent activity" action={<a href="#/records/journal">Open journal</a>}>
               {notableActivity.length === 0
                 ? <p className="dashboard-empty">No recent activity retained.</p>
@@ -184,20 +192,8 @@ export function DashboardPage ({ actionCatalog, api, error, health, onExecuteAct
                   )}
             </DashboardCard>
 
-            <DashboardCard className="dashboard-card--radio" title="GalNet Radio" action={<a href="#/comms/radio">Open remote</a>}>
-              <GalnetRadioControls
-                actionCatalog={actionCatalog}
-                compact
-                onExecuteAction={onExecuteAction}
-              />
-            </DashboardCard>
           </div>
         </PageContent>
-
-        <PageFooter>
-          <span>Live operational overview</span>
-          <span>{runtimeState?.updatedAt ? `Telemetry ${formatTime(runtimeState.updatedAt)}` : 'Telemetry pending'}</span>
-        </PageFooter>
       </Page>
     </PhoenixShell>
   )

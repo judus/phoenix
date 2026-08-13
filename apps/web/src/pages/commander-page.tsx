@@ -1,5 +1,5 @@
 import type { HealthResponse, RuntimeState } from '@phoenix/contracts'
-import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/page.js'
+import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 import { CommanderInventory } from './ship-page.js'
@@ -40,7 +40,6 @@ export function CommanderPage ({ error, health, runtimeState, view }: {
               ? <CommanderInventory state={runtimeState} />
               : <CommanderRecord state={runtimeState} progressOnly={view === 'progress'} />}
         </PageContent>
-        <PageFooter><span>Commander telemetry</span><span>{runtimeState?.updatedAt ? new Date(runtimeState.updatedAt).toLocaleString() : 'Pending'}</span></PageFooter>
       </Page>
     </PhoenixShell>
   )

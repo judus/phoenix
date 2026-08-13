@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityLogEntrySchema, type ActivityLogEntry, type HealthResponse } from '@phoenix/contracts'
 import type { PhoenixApi } from '../api/phoenix-api-client.js'
 import { subscribePhoenixEvent } from '../api/phoenix-event-stream.js'
-import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/page.js'
+import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 
@@ -143,10 +143,6 @@ export function LogPage ({ api, error, health }: LogPageProps) {
             </section>
           </div>
         </PageContent>
-        <PageFooter>
-          <span>{visibleEntries.length} shown · {entries.length} retained in browser</span>
-          <span>{following ? 'Live follow active' : 'Selection locked'}</span>
-        </PageFooter>
       </Page>
     </PhoenixShell>
   )

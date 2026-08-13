@@ -305,8 +305,6 @@ function AuthenticatedApplication () {
         <PhoenixTopBar
           developerSection={informationRoute.section === 'developer'}
           recordsSection={informationRoute.section === 'records'}
-          error={error}
-          health={health}
         />
       )}
     />

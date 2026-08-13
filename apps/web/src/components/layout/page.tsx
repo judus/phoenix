@@ -34,7 +34,3 @@ export interface PageContentProps {
 export function PageContent ({ children, variant = 'inset' }: PageContentProps) {
   return <div className={`page-content page-content--${variant}`}>{children}</div>
 }
-
-export function PageFooter ({ children }: { children: ReactNode }) {
-  return <footer className="page-footer">{children}</footer>
-}

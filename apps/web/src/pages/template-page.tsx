@@ -1,5 +1,5 @@
 import type { HealthResponse, RuntimeState } from '@phoenix/contracts'
-import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/page.js'
+import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 
@@ -14,7 +14,7 @@ const secondaryNavigation: NavigationItem[] = [
 
 const templateRows = [
   { description: 'Application chrome, navigation and responsive workspace', label: 'App shell', state: 'Ready' },
-  { description: 'One semantic main region with header, scrolling content and footer', label: 'Page primitive', state: 'Ready' },
+  { description: 'One semantic main region with header and scrolling content', label: 'Page primitive', state: 'Ready' },
   { description: 'Shared custom properties and layered native CSS', label: 'Design system', state: 'Open' },
   { description: 'Journal ingestion, runtime state and Copilot migration', label: 'Backend integration', state: 'Next' }
 ]
@@ -72,10 +72,6 @@ export function TemplatePage ({ error, health, runtimeState }: TemplatePageProps
           </section>
         </PageContent>
 
-        <PageFooter>
-          <span>PHOENIX template</span>
-          <span>{health ? 'Frontend ↔ backend confirmed' : 'Backend link pending'}</span>
-        </PageFooter>
       </Page>
     </PhoenixShell>
   )

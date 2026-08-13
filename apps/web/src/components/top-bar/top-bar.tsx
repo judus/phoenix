@@ -3,14 +3,12 @@ import type { ReactNode } from 'react'
 export interface TopBarProps {
   actions?: ReactNode
   brand: ReactNode
-  status?: ReactNode
 }
 
-export function TopBar ({ actions, brand, status }: TopBarProps) {
+export function TopBar ({ actions, brand }: TopBarProps) {
   return (
     <div className="top-bar">
       <div className="top-bar__brand">{brand}</div>
-      <div className="top-bar__status">{status}</div>
       {actions && <div className="top-bar__actions">{actions}</div>}
     </div>
   )
@@ -32,4 +30,3 @@ export function AppBrand ({ name, qualifier }: AppBrandProps) {
     </div>
   )
 }
-

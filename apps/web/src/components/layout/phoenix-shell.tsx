@@ -56,28 +56,14 @@ export function PhoenixShell ({
 
 export function PhoenixTopBar ({
   developerSection = false,
-  recordsSection = false,
-  error,
-  health
+  recordsSection = false
 }: {
   developerSection?: boolean
   recordsSection?: boolean
-  error?: string
-  health?: HealthResponse
 }) {
-  const coreState = health ? 'Core online' : error ? 'Core unavailable' : 'Establishing link…'
-
   return (
     <TopBar
       brand={<a href="#/"><AppBrand name="PHOENIX" qualifier="Terminal" /></a>}
-      status={(
-        <div className="core-status" aria-live="polite">
-          <span className="core-status__label">{coreState}</span>
-          <span className="core-status__detail">
-            {health ? `${health.database.engine} · API v${health.apiVersion}` : error}
-          </span>
-        </div>
-      )}
       actions={(
         <div className="top-bar-actions" aria-label="Application actions">
           <a
