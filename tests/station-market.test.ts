@@ -81,15 +81,19 @@ test('station and market query resolves current location, formats trade directio
   const shipyard = await service.listShipyardStock({})
   const outfitting = await service.searchOutfitting({ query: 'cargo' })
   const nearest = await service.findNearest({ service: 'repair' })
+  const galaxyMarkets = await service.searchCommodityMarkets({ commodity: 'Gold', includeFleetCarriers: false, intent: 'sell', maxDaysAgo: 30, maxDistance: 100, minVolume: 1, systemName: 'Sol' })
+  const galaxyStations = await service.searchNearestStations({ minimumPadSize: 2, service: 'repair', systemName: 'Sol' }, 20, 'medium')
 
-  expect(search.findCommodityMarkets).toHaveBeenCalledTimes(1)
-  expect(search.findNearestStations).toHaveBeenCalledTimes(1)
+  expect(search.findCommodityMarkets).toHaveBeenCalledTimes(2)
+  expect(search.findNearestStations).toHaveBeenCalledTimes(2)
   expect(firstTrade.structuredContent).toMatchObject({ cache: 'refreshed', intent: 'buy', originSystem: 'Sol' })
   expect(firstTrade.content[0]).toMatchObject({ text: expect.stringContaining('91.5% below average') })
   expect(details.structuredContent).toMatchObject({ station: { name: 'Galileo' }, systemName: 'Sol' })
   expect(shipyard.structuredContent).toMatchObject({ ships: [{ name: 'Type-11 Prospector' }] })
   expect(outfitting.structuredContent).toMatchObject({ modules: [{ name: '6E Cargo Rack' }] })
   expect(nearest.structuredContent).toMatchObject({ service: 'repair', stations: [{ stationName: 'Galileo' }] })
+  expect(galaxyMarkets).toMatchObject({ cache: 'refreshed', commodity: 'Gold', intent: 'sell', markets: [{ stationName: 'Galileo' }] })
+  expect(galaxyStations).toMatchObject({ cache: 'refreshed', minimumPadSize: 'medium', service: 'repair', stations: [{ stationName: 'Galileo' }] })
 })
 
 test('provider response cache persists arbitrary normalized documents in SQLite', () => {

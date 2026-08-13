@@ -1,0 +1,188 @@
+@layer patterns {
+  .galaxy-database {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .galaxy-database__origin {
+    display: grid;
+    grid-template-columns: auto minmax(14rem, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border: 1px solid var(--color-border);
+
+    label {
+      color: var(--color-primary);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+    }
+
+    input {
+      min-inline-size: 0;
+      block-size: 2.4rem;
+      padding-inline: var(--space-3);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      background: var(--color-surface);
+    }
+
+    a {
+      color: var(--color-secondary);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+    }
+  }
+
+  .galaxy-database__tools {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+
+  .galaxy-tool,
+  .galaxy-results,
+  .galaxy-database__welcome {
+    min-inline-size: 0;
+    border: 1px solid var(--color-border);
+    background: rgb(43 5 22 / 42%);
+  }
+
+  .galaxy-tool > header,
+  .galaxy-results > header {
+    display: flex;
+    min-block-size: 3rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-block-end: 1px solid rgb(255 157 0 / 25%);
+
+    span,
+    small {
+      color: var(--color-primary);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      color: var(--color-text);
+      font-size: 1rem;
+      font-weight: 400;
+      text-transform: uppercase;
+    }
+  }
+
+  .galaxy-tool form {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(8rem, 1fr) auto;
+    align-items: end;
+    gap: var(--space-3);
+    padding: var(--space-3);
+
+    label {
+      display: grid;
+      gap: var(--space-1);
+      color: var(--color-muted);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+    }
+
+    input,
+    select,
+    button {
+      block-size: 2.5rem;
+      min-inline-size: 0;
+      padding-inline: var(--space-2);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      background: var(--color-surface);
+    }
+
+    button {
+      padding-inline: var(--space-4);
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+      text-transform: uppercase;
+
+      &:disabled {
+        border-color: var(--color-muted);
+        color: var(--color-muted);
+      }
+    }
+  }
+
+  .galaxy-results {
+    overflow: auto;
+
+    table {
+      inline-size: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: var(--space-2) var(--space-3);
+      border-block-end: 1px solid rgb(255 157 0 / 15%);
+      text-align: start;
+      white-space: nowrap;
+    }
+
+    th {
+      color: var(--color-muted);
+      font-size: 0.66rem;
+      font-weight: 400;
+      text-transform: uppercase;
+    }
+
+    td small {
+      display: block;
+      color: var(--color-muted);
+      font-size: 0.65rem;
+    }
+
+    td a {
+      color: var(--color-secondary);
+    }
+
+    > p {
+      padding: var(--space-4);
+      color: var(--color-muted);
+    }
+  }
+
+  .galaxy-database__welcome {
+    padding: var(--space-5);
+
+    strong {
+      color: var(--color-secondary);
+      font-weight: 400;
+      text-transform: uppercase;
+    }
+
+    p {
+      max-inline-size: 64rem;
+      margin-block-start: var(--space-2);
+      color: var(--color-muted);
+    }
+  }
+
+  .galaxy-database__error {
+    padding: var(--space-2) var(--space-3);
+    border-inline-start: 2px solid var(--color-danger);
+    color: var(--color-danger);
+  }
+
+  @media (width < 70rem) {
+    .galaxy-database__tools {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (width < 48rem) {
+    .galaxy-database__origin,
+    .galaxy-tool form {
+      grid-template-columns: 1fr;
+    }
+  }
+}

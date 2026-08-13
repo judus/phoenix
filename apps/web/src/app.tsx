@@ -340,7 +340,7 @@ export function readRoute (routeHash?: string): AppRoute {
   if (operationsMatch) return { section: 'operations', view: (operationsMatch[1] ?? 'overview') as OperationsView }
   const commsMatch = hash.match(/^#\/?comms(?:\/(overview|inbox|traffic|contacts|galnet|radio))?$/u)
   if (commsMatch) return { section: 'comms', view: (commsMatch[1] ?? 'overview') as CommsView }
-  const navigationMatch = hash.match(/^#\/?(?:navigation|galaxy)\/(system|route)(?:\?(.*))?$/u)
+  const navigationMatch = hash.match(/^#\/?(?:navigation|galaxy)\/(database|system|route)(?:\?(.*))?$/u)
   if (navigationMatch) {
     const parameters = new URLSearchParams(navigationMatch[2] ?? '')
     const systemName = parameters.get('name')?.trim() || undefined

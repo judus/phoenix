@@ -1,10 +1,16 @@
 import type { JsonObject } from '@judus/llm-client'
-import type { CartographicStation } from '@phoenix/contracts'
+import type {
+  CartographicStation,
+  GalaxyCommodityMarketsResponse,
+  GalaxyNearestStationsResponse
+} from '@phoenix/contracts'
 import type { SystemCartography } from '../domain/cartography.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type {
   CommodityMarket,
+  CommodityMarketRequest,
   NearbyStation,
+  NearestStationRequest,
   ProviderResponseCache,
   StationSearchSource,
   StationStockSource,
@@ -66,23 +72,17 @@ export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery
       minVolume: bounded(optionalIntegerArgument(arguments_, 'minVolume'), 1, 1, Number.MAX_SAFE_INTEGER),
       systemName
     } as const
-    const cached = await this.cached(
-      'ardent-market',
-      stableKey(request),
-      MARKET_CACHE_MS,
-      () => this.searchSource.findCommodityMarkets(request),
-      isCommodityMarkets
-    )
-    const markets = cached.value.slice(0, limit)
+    const result = await this.searchCommodityMarkets(request, limit)
+    const markets = result.markets
     const verb = intent === 'sell' ? 'sell' : 'buy'
     if (markets.length === 0) {
       return output(`No nearby markets found to ${verb} ${commodity} from ${systemName}.`, {
-        cache: cached.cache, commodity, intent, markets: [], originSystem: systemName
+        cache: result.cache, commodity, intent, markets: [], originSystem: systemName
       })
     }
     return output(
       [`Best nearby markets to ${verb} ${commodity} from ${systemName}:`, ...markets.map(market => formatMarket(market, intent))].join('\n'),
-      json({ cache: cached.cache, commodity, intent, originSystem: systemName, markets })
+      json(result)
     )
   }
 
@@ -93,11 +93,47 @@ export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery
     if (minimumPadSize && PAD_SIZES[minimumPadSize] === undefined) {
       throw new Error('minimumPadSize must be small, medium, or large.')
     }
-    const request = {
-      minimumPadSize: minimumPadSize ? PAD_SIZES[minimumPadSize]! : null,
+    const padSize = minimumPadSize === 'small' || minimumPadSize === 'medium' || minimumPadSize === 'large'
+      ? minimumPadSize
+      : null
+    const result = await this.searchNearestStations({
+      minimumPadSize: padSize ? PAD_SIZES[padSize]! : null,
       service,
       systemName
+    }, boundedLimit(optionalIntegerArgument(arguments_, 'limit'), 5, 20), padSize)
+    const stations = result.stations
+    const header = `Nearest ${minimumPadSize ? `${minimumPadSize}-pad ` : ''}${service} stations from ${systemName}:`
+    return output(
+      stations.length > 0 ? [header, ...stations.map(formatNearbyStation)].join('\n') : `${header}\nNo matching stations found.`,
+      json(result)
+    )
+  }
+
+  public async searchCommodityMarkets (
+    request: CommodityMarketRequest,
+    limit = 20
+  ): Promise<GalaxyCommodityMarketsResponse> {
+    const cached = await this.cached(
+      'ardent-market',
+      stableKey(request),
+      MARKET_CACHE_MS,
+      () => this.searchSource.findCommodityMarkets(request),
+      isCommodityMarkets
+    )
+    return {
+      cache: cached.cache,
+      commodity: request.commodity,
+      intent: request.intent,
+      markets: cached.value.slice(0, boundedLimit(limit, 20, 100)),
+      originSystem: request.systemName
     }
+  }
+
+  public async searchNearestStations (
+    request: NearestStationRequest,
+    limit = 20,
+    minimumPadSize: 'small' | 'medium' | 'large' | null = null
+  ): Promise<GalaxyNearestStationsResponse> {
     const cached = await this.cached(
       'ardent-nearest',
       stableKey(request),
@@ -105,12 +141,13 @@ export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery
       () => this.searchSource.findNearestStations(request),
       isNearbyStations
     )
-    const stations = cached.value.slice(0, boundedLimit(optionalIntegerArgument(arguments_, 'limit'), 5, 20))
-    const header = `Nearest ${minimumPadSize ? `${minimumPadSize}-pad ` : ''}${service} stations from ${systemName}:`
-    return output(
-      stations.length > 0 ? [header, ...stations.map(formatNearbyStation)].join('\n') : `${header}\nNo matching stations found.`,
-      json({ cache: cached.cache, minimumPadSize: minimumPadSize ?? null, originSystem: systemName, service, stations })
-    )
+    return {
+      cache: cached.cache,
+      minimumPadSize,
+      originSystem: request.systemName,
+      service: request.service,
+      stations: cached.value.slice(0, boundedLimit(limit, 20, 100))
+    }
   }
 
   public async getDetails (arguments_: JsonObject) {

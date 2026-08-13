@@ -291,6 +291,7 @@ export class PhoenixApplication {
       displayCommands: display,
       engineering,
       explorationData,
+      galaxyData: stationMarkets,
       navigationData,
       webRoot: resolveProjectPath(projectRoot, options.webRoot ?? paths.resources.web)
     })

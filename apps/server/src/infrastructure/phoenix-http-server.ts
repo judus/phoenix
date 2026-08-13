@@ -34,6 +34,7 @@ import type { GameActions } from '../application/game-action-service.js'
 import type { HealthCheck } from '../application/health-service.js'
 import type { EngineeringDataReader } from '../application/engineering-data-service.js'
 import type { ExplorationDataReader } from '../application/exploration-data-service.js'
+import type { GalaxyDataReader } from '../application/galaxy-data-service.js'
 import type { NavigationDataReader } from '../application/navigation-data-service.js'
 import type { ActivityLogReader, EliteJournalDiagnosticsReader } from '../domain/elite-journal.js'
 import type { EliteStatusDiagnosticsReader } from '../domain/elite-status.js'
@@ -71,6 +72,7 @@ export interface PhoenixHttpServerOptions {
   eliteStatusDiagnostics: EliteStatusDiagnosticsReader
   engineering: EngineeringDataReader
   explorationData: ExplorationDataReader
+  galaxyData: GalaxyDataReader
   healthCheck: HealthCheck
   host: string
   activityLog: ActivityLogReader
@@ -250,6 +252,34 @@ export class PhoenixHttpServer {
           }
         })
       }
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/nearest') {
+      const systemName = requiredQuery(url, 'system')
+      const service = requiredQuery(url, 'service')
+      const minimumPadSize = optionalPadSize(url.searchParams.get('pad'))
+      const padSizes = { small: 1, medium: 2, large: 3 } as const
+      this.writeJson(response, 200, await this.options.galaxyData.searchNearestStations({
+        minimumPadSize: minimumPadSize ? padSizes[minimumPadSize] : null,
+        service,
+        systemName
+      }, boundedQueryInteger(url, 'limit', 20, 1, 100), minimumPadSize))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/markets') {
+      const intent = url.searchParams.get('intent')
+      if (intent !== 'buy' && intent !== 'sell') throw new Error('intent must be buy or sell.')
+      this.writeJson(response, 200, await this.options.galaxyData.searchCommodityMarkets({
+        commodity: requiredQuery(url, 'commodity'),
+        includeFleetCarriers: url.searchParams.get('fleetCarriers') === 'true',
+        intent,
+        maxDaysAgo: boundedQueryInteger(url, 'maxDaysAgo', 30, 1, 365),
+        maxDistance: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
+        minVolume: boundedQueryInteger(url, 'minVolume', 1, 1, Number.MAX_SAFE_INTEGER),
+        systemName: requiredQuery(url, 'system')
+      }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
       return
     }
 
@@ -1040,4 +1070,24 @@ function isEngineeringMaterialCategory (
   candidate: string
 ): candidate is 'raw' | 'manufactured' | 'encoded' | 'xeno' {
   return ['raw', 'manufactured', 'encoded', 'xeno'].includes(candidate)
+}
+
+function requiredQuery (url: URL, name: string): string {
+  const value = url.searchParams.get(name)?.trim()
+  if (!value) throw new Error(`${name} is required.`)
+  return value
+}
+
+function boundedQueryInteger (url: URL, name: string, fallback: number, minimum: number, maximum: number): number {
+  const raw = url.searchParams.get(name)
+  if (raw === null) return fallback
+  const value = Number.parseInt(raw, 10)
+  if (!Number.isSafeInteger(value)) throw new Error(`${name} must be an integer.`)
+  return Math.min(maximum, Math.max(minimum, value))
+}
+
+function optionalPadSize (value: string | null): 'small' | 'medium' | 'large' | null {
+  if (value === null || value === '') return null
+  if (value === 'small' || value === 'medium' || value === 'large') return value
+  throw new Error('pad must be small, medium, or large.')
 }
