@@ -9,21 +9,19 @@ import {
 import { AppBrand, TopBar } from '../top-bar/top-bar.js'
 
 const primaryNavigation: NavigationItem[] = [
-  { href: '#/', id: 'dashboard', label: 'Dashboard' },
-  { href: '#/navigation/system', id: 'navigation', label: 'Navigation' },
-  { href: '#/ship/status', id: 'ship', label: 'Ship' },
+  { href: '#/', icon: '⌂', iconOnly: true, id: 'home', label: 'Home' },
+  { href: '#/commander/overview', id: 'commander', label: 'Commander' },
+  { href: '#/fleet/overview', id: 'fleet', label: 'Fleet' },
+  { href: '#/galaxy/system', id: 'galaxy', label: 'Galaxy' },
+  { href: '#/operations/overview', id: 'operations', label: 'Operations' },
   { href: '#/engineering/blueprints', id: 'engineering', label: 'Engineering' },
-  { href: '#/exploration/ledger', id: 'exploration', label: 'Exploration' },
-  { href: '#/controls/ship', id: 'controls', label: 'Controls' },
-  { href: '#copilot', id: 'copilot', label: 'Copilot' },
-  { href: '#log', id: 'log', label: 'Log' }
+  { href: '#/comms/overview', id: 'comms', label: 'Comms' }
 ]
 
 export interface PhoenixShellProps {
   activePrimaryItemId?: string
   activeSecondaryItemId?: string
   children: ReactNode
-  developerSection?: boolean
   error?: string
   health?: HealthResponse
   secondaryNavigation: NavigationItem[]
@@ -33,46 +31,17 @@ export function PhoenixShell ({
   activePrimaryItemId,
   activeSecondaryItemId,
   children,
-  developerSection = false,
-  error,
-  health,
   secondaryNavigation
 }: PhoenixShellProps) {
-  const coreState = health ? 'Core online' : error ? 'Core unavailable' : 'Establishing link…'
+  const informationNavigation = activePrimaryItemId !== 'controls' && activePrimaryItemId !== 'copilot'
 
   return (
     <AppShell
-      header={(
+      header={informationNavigation ? (
         <AppHeader
-          topBar={(
-            <TopBar
-              brand={<a href="#/"><AppBrand name="PHOENIX" qualifier="Terminal" /></a>}
-              status={(
-                <div className="core-status" aria-live="polite">
-                  <span className="core-status__label">{coreState}</span>
-                  <span className="core-status__detail">
-                    {health ? `${health.database.engine} · API v${health.apiVersion}` : error}
-                  </span>
-                </div>
-              )}
-              actions={(
-                <div className="top-bar-actions" aria-label="Application actions">
-                  <button type="button" aria-label="Messages">▤</button>
-                  <button type="button" aria-label="Settings">☷</button>
-                  <a
-                    href="#/developer/overview"
-                    aria-current={developerSection ? 'page' : undefined}
-                    aria-label="Developer tools"
-                    title="Developer tools"
-                  >DEV</a>
-                  <FullscreenButton />
-                </div>
-              )}
-            />
-          )}
           navigation={<PrimaryNavigation activeItemId={activePrimaryItemId} items={primaryNavigation} />}
         />
-      )}
+      ) : undefined}
       secondaryNavigation={(
         <SecondaryNavigation
           activeItemId={activeSecondaryItemId}
@@ -82,6 +51,38 @@ export function PhoenixShell ({
     >
       {children}
     </AppShell>
+  )
+}
+
+export function PhoenixTopBar ({
+  developerSection = false,
+  recordsSection = false
+}: {
+  developerSection?: boolean
+  recordsSection?: boolean
+}) {
+  return (
+    <TopBar
+      brand={<a href="#/"><AppBrand name="PHOENIX" qualifier="Terminal" /></a>}
+      actions={(
+        <div className="top-bar-actions" aria-label="Application actions">
+          <a
+            href="#/records/journal"
+            aria-current={recordsSection ? 'page' : undefined}
+            aria-label="Records"
+            title="Records"
+          >▤</a>
+          <button type="button" aria-label="Settings">☷</button>
+          <a
+            href="#/developer/overview"
+            aria-current={developerSection ? 'page' : undefined}
+            aria-label="Developer tools"
+            title="Developer tools"
+          >DEV</a>
+          <FullscreenButton />
+        </div>
+      )}
+    />
   )
 }
 

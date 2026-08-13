@@ -2,29 +2,35 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   ActivityLogEntrySchema,
   type ActivityLogEntry,
+  type GameActionCatalogResponse,
+  type GameActionOperation,
+  type GameActionResult,
   type HealthResponse,
   type NavigationRoute,
   type RuntimeState
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../api/phoenix-api-client.js'
 import { subscribePhoenixEvent } from '../api/phoenix-event-stream.js'
-import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/page.js'
+import { Page, PageContent } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 import { useCopilotVoice } from '../features/copilot/copilot-voice-provider.js'
+import { GalnetRadioControls } from '../components/galnet-radio-controls.js'
 
 const navigation: NavigationItem[] = [
   { href: '#/', icon: '◇', id: 'overview', label: 'Dashboard' }
 ]
 
 export interface DashboardPageProps {
+  actionCatalog?: GameActionCatalogResponse
   api: PhoenixApi
   error?: string
   health?: HealthResponse
   runtimeState?: RuntimeState
+  onExecuteAction: (actionId: string, operation: GameActionOperation) => Promise<GameActionResult>
 }
 
-export function DashboardPage ({ api, error, health, runtimeState }: DashboardPageProps) {
+export function DashboardPage ({ actionCatalog, api, error, health, onExecuteAction, runtimeState }: DashboardPageProps) {
   const voice = useCopilotVoice()
   const [route, setRoute] = useState<NavigationRoute>()
   const [activity, setActivity] = useState<ActivityLogEntry[]>([])
@@ -68,22 +74,30 @@ export function DashboardPage ({ api, error, health, runtimeState }: DashboardPa
 
   return (
     <PhoenixShell
-      activePrimaryItemId="dashboard"
+      activePrimaryItemId="home"
       activeSecondaryItemId="overview"
       error={error ?? dashboardError ?? voice.error}
       health={health}
       secondaryNavigation={navigation}
     >
       <Page className="dashboard-page">
-        <PageHeader
-          title={runtimeState?.commander.name ? `Commander ${runtimeState.commander.name}` : 'Command dashboard'}
-          eyebrow={locationLabel(runtimeState)}
-          description={placeName && currentSystem ? `${placeName} · ${currentSystem}` : currentSystem ?? 'Waiting for live telemetry.'}
-        />
-
         <PageContent>
           <div className="dashboard-grid">
-            <DashboardCard className="dashboard-card--situation" title="Situation" action={<a href="#/navigation/system">Open navigation</a>}>
+            <DashboardCard className="dashboard-card--commander" title="Commander">
+              <div className="dashboard-commander">
+                <div className="dashboard-commander__identity">
+                  <strong>{runtimeState?.commander.name ?? 'Identity pending'}</strong>
+                  <span>{locationLabel(runtimeState)}</span>
+                </div>
+                <Metric
+                  label="Location"
+                  value={placeName && currentSystem ? `${placeName} · ${currentSystem}` : currentSystem ?? 'Telemetry pending'}
+                />
+                <Metric label="Total credits" value={formatCredits(runtimeState?.gameStatus?.balance)} />
+              </div>
+            </DashboardCard>
+
+            <DashboardCard className="dashboard-card--situation" title="Situation" action={<a href="#/galaxy/system">Open galaxy</a>}>
               <div className="dashboard-metric dashboard-metric--hero">
                 <strong>{currentSystem ?? 'Unknown system'}</strong>
                 <span>{placeName ?? humanize(runtimeState?.location.state ?? 'telemetry pending')}</span>
@@ -140,7 +154,7 @@ export function DashboardPage ({ api, error, health, runtimeState }: DashboardPa
               </div>
             </DashboardCard>
 
-            <DashboardCard title="Route" action={<a href="#/navigation/route">Open route</a>}>
+            <DashboardCard title="Route" action={<a href="#/galaxy/route">Open route</a>}>
               <div className="dashboard-metric dashboard-metric--hero">
                 <strong>{routeSummary.destination}</strong>
                 <span>{routeSummary.detail}</span>
@@ -152,7 +166,15 @@ export function DashboardPage ({ api, error, health, runtimeState }: DashboardPa
               </div>
             </DashboardCard>
 
-            <DashboardCard className="dashboard-card--activity" title="Recent activity" action={<a href="#log">Open journal</a>}>
+            <DashboardCard className="dashboard-card--radio" title="GalNet Radio" action={<a href="#/comms/radio">Open remote</a>}>
+              <GalnetRadioControls
+                actionCatalog={actionCatalog}
+                compact
+                onExecuteAction={onExecuteAction}
+              />
+            </DashboardCard>
+
+            <DashboardCard className="dashboard-card--activity" title="Recent activity" action={<a href="#/records/journal">Open journal</a>}>
               {notableActivity.length === 0
                 ? <p className="dashboard-empty">No recent activity retained.</p>
                 : (
@@ -177,13 +199,9 @@ export function DashboardPage ({ api, error, health, runtimeState }: DashboardPa
                     </ul>
                   )}
             </DashboardCard>
+
           </div>
         </PageContent>
-
-        <PageFooter>
-          <span>Live operational overview</span>
-          <span>{runtimeState?.updatedAt ? `Telemetry ${formatTime(runtimeState.updatedAt)}` : 'Telemetry pending'}</span>
-        </PageFooter>
       </Page>
     </PhoenixShell>
   )
@@ -270,6 +288,10 @@ function formatCompact (value?: number | null): string {
 
 function formatNumber (value?: number | null): string | undefined {
   return value == null ? undefined : new Intl.NumberFormat().format(value)
+}
+
+function formatCredits (value?: number | null): string {
+  return value == null ? '—' : `${new Intl.NumberFormat().format(Math.round(value))} CR`
 }
 
 function formatTime (timestamp: string): string {

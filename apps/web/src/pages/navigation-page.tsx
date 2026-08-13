@@ -8,7 +8,7 @@ import type {
   RuntimeState
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../api/phoenix-api-client.js'
-import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/page.js'
+import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 import { SystemSchematic } from '../features/navigation/system-schematic.js'
@@ -16,8 +16,8 @@ import { SystemSchematic } from '../features/navigation/system-schematic.js'
 export type NavigationView = 'system' | 'route'
 
 const navigation: NavigationItem[] = [
-  { href: '#/navigation/system', icon: '◉', id: 'system', label: 'System map' },
-  { href: '#/navigation/route', icon: '⌁', id: 'route', label: 'Plotted route' }
+  { href: '#/galaxy/system', icon: '◉', id: 'system', label: 'System map' },
+  { href: '#/galaxy/route', icon: '⌁', id: 'route', label: 'Plotted route' }
 ]
 
 export interface NavigationPageProps {
@@ -71,18 +71,18 @@ export function NavigationPage ({
   const loadSystem = (): void => {
     const name = query.trim()
     if (!name) return
-    window.location.hash = `/navigation/system?name=${encodeURIComponent(name)}`
+    window.location.hash = `/galaxy/system?name=${encodeURIComponent(name)}`
   }
 
   const selectObject = (name?: string): void => {
     const parameters = new URLSearchParams({ name: lookup?.system.name ?? systemName ?? query })
     if (name) parameters.set('selected', name)
-    window.location.hash = `/navigation/system?${parameters.toString()}`
+    window.location.hash = `/galaxy/system?${parameters.toString()}`
   }
 
   return (
     <PhoenixShell
-      activePrimaryItemId="navigation"
+      activePrimaryItemId="galaxy"
       activeSecondaryItemId={view}
       error={error ?? navigationError}
       health={health}
@@ -128,7 +128,6 @@ export function NavigationPage ({
                         </section>
                       )}
               </PageContent>
-              <PageFooter><span>Route telemetry</span><span>Raw route telemetry</span></PageFooter>
             </Page>
           )}
     </PhoenixShell>

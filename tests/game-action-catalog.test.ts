@@ -43,6 +43,22 @@ test('the action catalogue discovers dashboard commands including unbound contro
   })
 })
 
+test('the action catalogue describes GalNet Audio commands as radio controls', () => {
+  const catalogue = new DefaultGameActionCatalog(new StubBindings([
+    'GalnetAudio_Play_Pause',
+    'GalnetAudio_SkipForward',
+    'GalnetAudio_SkipBackward',
+    'GalnetAudio_ClearQueue'
+  ], {}))
+
+  expect(catalogue.list()).toEqual(expect.arrayContaining([
+    expect.objectContaining({ id: 'elite.GalnetAudio_Play_Pause', label: 'GalNet Audio Play / Pause', category: 'radio' }),
+    expect.objectContaining({ id: 'elite.GalnetAudio_SkipForward', label: 'GalNet Audio Next', category: 'radio' }),
+    expect.objectContaining({ id: 'elite.GalnetAudio_SkipBackward', label: 'GalNet Audio Previous', category: 'radio' }),
+    expect.objectContaining({ id: 'elite.GalnetAudio_ClearQueue', label: 'GalNet Audio Clear Queue', category: 'radio' })
+  ]))
+})
+
 class StubBindings implements GameActionBindingResolver {
   public constructor (
     private readonly commands: string[],

@@ -7,7 +7,7 @@ import type {
   RuntimeState
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../api/phoenix-api-client.js'
-import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/page.js'
+import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 
@@ -91,7 +91,7 @@ export function ExplorationPage ({
 
   return (
     <PhoenixShell
-      activePrimaryItemId="exploration"
+      activePrimaryItemId={undefined}
       activeSecondaryItemId={view}
       error={error ?? explorationError}
       health={health}
@@ -112,10 +112,6 @@ export function ExplorationPage ({
                     ? <BiologyView body={selection.body} onSetManualCompletion={setManualCompletion} />
                     : <GeologyView body={selection.body} />}
         </PageContent>
-        <PageFooter>
-          <span>Persistent local exploration history</span>
-          <span>{ledger ? `${ledger.totals.systems} systems · ${ledger.totals.bodies} bodies` : 'Ledger pending'}</span>
-        </PageFooter>
       </Page>
     </PhoenixShell>
   )
@@ -489,6 +485,7 @@ function resolveSelection (
 
 function explorationNavigation (system?: string, body?: string): NavigationItem[] {
   return [
+    { href: '#/records/journal', icon: '▤', id: 'journal', label: 'Journal' },
     { href: explorationHref('ledger', system, body), icon: '⌁', id: 'ledger', label: 'Exploration history' },
     { href: explorationHref('body', system, body), icon: '◉', id: 'body', label: 'Body overview' },
     { href: explorationHref('biology', system, body), icon: '♧', id: 'biology', label: 'Biology' },
@@ -508,13 +505,13 @@ function explorationHref (view: ExplorationView, system?: string, body?: string)
   if (system) parameters.set('system', system)
   if (body) parameters.set('body', body)
   const query = parameters.toString()
-  return `#/exploration/${view}${query ? `?${query}` : ''}`
+  return `#/records/exploration/${view}${query ? `?${query}` : ''}`
 }
 
 function navigationHref (system: string, body?: string): string {
   const parameters = new URLSearchParams({ name: system })
   if (body) parameters.set('selected', body)
-  return `#/navigation/system?${parameters.toString()}`
+  return `#/galaxy/system?${parameters.toString()}`
 }
 
 type ExplorationStateFilter = 'all' | 'unscanned' | 'scanned' | 'mapped'

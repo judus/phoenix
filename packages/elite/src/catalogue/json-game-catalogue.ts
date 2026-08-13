@@ -29,6 +29,7 @@ const ModuleCatalogueSchema = z.object({
 })
 
 export interface GameCatalogue {
+  listShips(): ShipDefinition[]
   resolveShip(identifier: string): ShipDefinition | null
   resolveModule(journalId: string): ModuleDefinition
   getDiagnostics(): CatalogueInventoryDiagnostics
@@ -69,6 +70,12 @@ export class JsonGameCatalogue implements GameCatalogue {
     const normalized = normalizeIdentifier(identifier)
     const id = this.aliases.get(normalized) ?? normalized
     return this.ships.get(id) ?? null
+  }
+
+  public listShips (): ShipDefinition[] {
+    return structuredClone([...this.ships.values()].sort((left, right) => (
+      left.displayName.localeCompare(right.displayName)
+    )))
   }
 
   public resolveModule (journalId: string): ModuleDefinition {

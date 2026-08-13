@@ -8,7 +8,7 @@ import type {
   RuntimeState
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../api/phoenix-api-client.js'
-import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/page.js'
+import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 
@@ -86,10 +86,6 @@ export function EngineeringPage ({ api, error, health, runtimeState, view }: Eng
                     ? blueprint && <BlueprintDetailView blueprint={blueprint} />
                     : <BlueprintsView blueprints={blueprints ?? []} />}
         </PageContent>
-        <PageFooter>
-          <span>Engineering database</span>
-          <span>{footerCount(view, engineers, materials, blueprints, blueprint)}</span>
-        </PageFooter>
       </Page>
     </PhoenixShell>
   )
@@ -264,18 +260,6 @@ function engineeringPageIdentity (view: EngineeringView, blueprint?: Engineering
   return { navigationId: 'blueprints', title: blueprint?.name ?? 'Blueprints', eyebrow: blueprint?.originalName ?? 'Ship & equipment modifications', description: blueprint ? blueprint.moduleNames.join(', ') : 'Modifications, grades, material costs, capable engineers, and current applications.' }
 }
 
-function footerCount (
-  view: EngineeringView,
-  engineers?: EngineeringEngineer[],
-  materials?: EngineeringMaterial[],
-  blueprints?: EngineeringBlueprintSummary[],
-  blueprint?: EngineeringBlueprintDetail
-): string {
-  if (view.type === 'engineers') return `${engineers?.length ?? 0} engineers`
-  if (view.type === 'materials') return `${materials?.length ?? 0} materials`
-  return blueprint ? `${blueprint.grades.length} grades` : `${blueprints?.length ?? 0} blueprints`
-}
-
 function groupBy<T> (values: T[], key: (value: T) => string): Map<string, T[]> {
   const groups = new Map<string, T[]>()
   for (const value of values) groups.set(key(value), [...(groups.get(key(value)) ?? []), value])
@@ -284,7 +268,7 @@ function groupBy<T> (values: T[], key: (value: T) => string): Map<string, T[]> {
 
 function unique<T> (values: T[]): T[] { return [...new Set(values)] }
 function capitalize (value: string): string { return value.charAt(0).toLocaleUpperCase() + value.slice(1) }
-function systemHref (systemName: string): string { return `#/navigation/system?name=${encodeURIComponent(systemName)}` }
+function systemHref (systemName: string): string { return `#/galaxy/system?name=${encodeURIComponent(systemName)}` }
 function formatProgress (progress: number): string { return progress > 0 ? `· ${progress.toFixed(0)}%` : '' }
 function gradeRange (grades: number[]): string { const minimum = Math.min(...grades); const maximum = Math.max(...grades); return minimum === maximum ? `Grade ${minimum}` : `Grades ${minimum}–${maximum}` }
 function formatFeatureValues (values: number[]): string { return values.length === 0 ? '—' : values.map(value => `${value >= 0 ? '+' : ''}${value}`).join(' — ') }

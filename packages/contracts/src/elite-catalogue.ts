@@ -71,8 +71,13 @@ export const CatalogueDiagnosticsSchema = CatalogueInventoryDiagnosticsSchema.ex
   })
 })
 
+export const ShipCatalogueResponseSchema = z.object({
+  ships: z.array(ShipDefinitionSchema)
+})
+
 export type CatalogueDiagnostics = z.infer<typeof CatalogueDiagnosticsSchema>
 export type CatalogueInventoryDiagnostics = z.infer<typeof CatalogueInventoryDiagnosticsSchema>
 export type ModuleDefinition = z.infer<typeof ModuleDefinitionSchema>
 export type ShipDefinition = z.infer<typeof ShipDefinitionSchema>
+export type ShipCatalogueResponse = z.infer<typeof ShipCatalogueResponseSchema>
 export type ShipSlotDefinition = z.infer<typeof ShipSlotDefinitionSchema>

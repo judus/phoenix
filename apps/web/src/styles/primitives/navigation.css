@@ -5,9 +5,15 @@
 
   .primary-navigation__list {
     min-inline-size: max-content;
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(9rem, 1fr);
+    display: flex;
+  }
+
+  .primary-navigation__item {
+    flex: 1 0 8rem;
+
+    &[data-icon-only='true'] {
+      flex: 0 0 var(--size-secondary-navigation);
+    }
   }
 
   .primary-navigation__link {
@@ -23,6 +29,12 @@
       color: var(--color-background);
       background: var(--color-primary);
     }
+  }
+
+  .primary-navigation__icon {
+    display: grid;
+    place-items: center;
+    font-size: 1.15rem;
   }
 }
 

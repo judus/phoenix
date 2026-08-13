@@ -1,0 +1,92 @@
+@layer primitives {
+  .desktop-workspace {
+    inline-size: 100%;
+    block-size: 100dvh;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    overflow: hidden;
+    background: var(--color-background);
+  }
+
+  .desktop-workspace__top-bar {
+    position: relative;
+    z-index: 2;
+    min-inline-size: 0;
+    border-block-end: 1px solid var(--color-border);
+  }
+
+  .desktop-workspace__viewport {
+    position: relative;
+    min-inline-size: 0;
+    min-block-size: 0;
+    overflow: hidden;
+    touch-action: pan-y;
+  }
+
+  .desktop-workspace__desktop {
+    position: absolute;
+    inset: 0;
+    min-inline-size: 0;
+    min-block-size: 0;
+    block-size: 100%;
+    overflow: hidden;
+    background: var(--color-background);
+    transition: transform 180ms ease-out;
+    will-change: transform;
+
+    .app-shell {
+      min-block-size: 0;
+      block-size: 100%;
+    }
+  }
+
+  .desktop-workspace__viewport.is-dragging .desktop-workspace__desktop {
+    transition: none;
+  }
+
+  .desktop-workspace__switcher {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    padding: 0;
+    border-block-start: 1px solid var(--color-border);
+    background: var(--color-background);
+  }
+
+  .desktop-workspace__switcher-button {
+    min-block-size: 2rem;
+    padding: var(--space-1) var(--space-3);
+    border: 0;
+    border-inline-end: 1px solid rgb(255 157 0 / 18%);
+    color: var(--color-primary);
+    background: transparent;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+
+    &:last-child {
+      border-inline-end: 0;
+    }
+
+    &[aria-pressed='true'] {
+      color: var(--color-background);
+      background: var(--color-primary);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .desktop-workspace__desktop {
+      transition: none;
+    }
+  }
+}
+
+@layer overrides {
+  /* A desktop owns the viewport. Nested page shells must consume its available
+     middle region instead of independently claiming the browser viewport. */
+  .desktop-workspace__desktop .app-shell {
+    block-size: 100%;
+    min-block-size: 0;
+  }
+}

@@ -19,7 +19,7 @@ test('the developer area uses the shared shell and its own secondary navigation'
   )
 
   expect(markup).toContain('class="app-shell"')
-  expect(markup).toContain('aria-label="Developer tools"')
+  expect(markup).toContain('aria-label="Primary navigation"')
   expect(markup).toContain('href="#/developer/health"')
   expect(markup).toContain('aria-current="page"')
   expect(markup).toContain('<main class="page">')

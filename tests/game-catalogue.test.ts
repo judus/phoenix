@@ -30,6 +30,16 @@ test('catalogue resolves Frontier journal aliases and the verified Type-11 hull'
   expect(type11?.slots.optional).toHaveLength(13)
 })
 
+test('catalogue lists canonical hulls alphabetically without exposing mutable storage', () => {
+  const ships = catalogue.listShips()
+  expect(ships.length).toBeGreaterThan(40)
+  expect(ships.map(ship => ship.displayName)).toEqual(
+    [...ships].map(ship => ship.displayName).sort((left, right) => left.localeCompare(right))
+  )
+  ships[0]!.displayName = 'Mutated by caller'
+  expect(catalogue.listShips()[0]?.displayName).not.toBe('Mutated by caller')
+})
+
 test('catalogue resolves known modules and labels unknown new modules as inferred', () => {
   expect(catalogue.resolveModule('int_powerplant_size6_class5')).toMatchObject({
     displayName: 'Power Plant',

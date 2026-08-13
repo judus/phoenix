@@ -8,7 +8,7 @@ import type {
   RuntimeState
 } from '@phoenix/contracts'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
-import { Page, PageContent, PageFooter, PageHeader } from '../components/layout/page.js'
+import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 
 export type DeveloperView = 'overview' | 'runtime' | 'elite' | 'health' | 'tests' | 'controls'
@@ -81,7 +81,6 @@ export function DeveloperPage ({
   return (
     <PhoenixShell
       activeSecondaryItemId={view}
-      developerSection
       error={error}
       health={health}
       secondaryNavigation={developerNavigation}
@@ -107,10 +106,6 @@ export function DeveloperPage ({
             view
           })}
         </PageContent>
-        <PageFooter>
-          <span>Developer section</span>
-          <a href="#/">Return to PHOENIX</a>
-        </PageFooter>
       </Page>
     </PhoenixShell>
   )

@@ -35,6 +35,26 @@ const ACTION_METADATA: Readonly<Record<string, ActionMetadata>> = {
   },
   GalaxyMapOpen: { label: 'Galaxy Map', category: 'navigation' },
   SystemMapOpen: { label: 'System Map', category: 'navigation' },
+  GalnetAudio_Play_Pause: {
+    label: 'GalNet Audio Play / Pause',
+    description: 'Toggle playback in the Elite Dangerous GalNet Audio player.',
+    category: 'radio'
+  },
+  GalnetAudio_SkipForward: {
+    label: 'GalNet Audio Next',
+    description: 'Skip to the next item in the Elite Dangerous GalNet Audio queue.',
+    category: 'radio'
+  },
+  GalnetAudio_SkipBackward: {
+    label: 'GalNet Audio Previous',
+    description: 'Return to the previous item in the Elite Dangerous GalNet Audio queue.',
+    category: 'radio'
+  },
+  GalnetAudio_ClearQueue: {
+    label: 'GalNet Audio Clear Queue',
+    description: 'Clear the Elite Dangerous GalNet Audio playback queue.',
+    category: 'radio'
+  },
   TargetNextRouteSystem: { label: 'Next Route System', category: 'navigation' },
   CycleNextTarget: { label: 'Next Target', category: 'combat' },
   CyclePreviousTarget: { label: 'Previous Target', category: 'combat' },
