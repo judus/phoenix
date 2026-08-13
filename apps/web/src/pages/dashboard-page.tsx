@@ -113,7 +113,7 @@ export function DashboardPage ({ actionCatalog, api, error, health, onExecuteAct
 
             <DashboardCard className="dashboard-card--copilot" title="Copilot" action={<a href="#copilot">Open channel</a>}>
               <div className="dashboard-copilot">
-                <span className="dashboard-copilot__mark" aria-hidden="true">M</span>
+                <span className={`dashboard-copilot__mark${voice.connected ? ' is-connected' : ''}`} aria-hidden="true">M</span>
                 <div>
                   <strong>MARIN</strong>
                   <span>{voice.status}</span>

@@ -17,9 +17,9 @@ import { GalaxyDatabase } from '../features/galaxy/galaxy-database.js'
 export type NavigationView = 'database' | 'system' | 'route'
 
 const navigation: NavigationItem[] = [
-  { href: '#/galaxy/database', icon: '▤', id: 'database', label: 'Galaxy database' },
-  { href: '#/galaxy/system', icon: '◉', id: 'system', label: 'System map' },
-  { href: '#/galaxy/route', icon: '⌁', id: 'route', label: 'Plotted route' }
+  { href: '#/galaxy/system', icon: '◉', id: 'system', label: 'Current system' },
+  { href: '#/galaxy/route', icon: '⌁', id: 'route', label: 'Plotted route' },
+  { href: '#/galaxy/database', icon: '▤', id: 'database', label: 'Galaxy database' }
 ]
 
 export interface NavigationPageProps {

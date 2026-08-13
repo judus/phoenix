@@ -192,7 +192,7 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
 
             <aside className="copilot-sidebar copilot-voice" aria-label="Voice controls">
               <h2>Voice channel</h2>
-              <div className="copilot-voice__status">
+              <div className={`copilot-voice__status${voice.connected ? ' is-connected' : ''}`}>
                 <strong>{voice.status}</strong>
                 <span>{voice.hostLocation === 'remote'
                   ? 'Audio hosted by the desktop browser'

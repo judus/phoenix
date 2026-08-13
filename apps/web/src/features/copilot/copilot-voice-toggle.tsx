@@ -14,7 +14,7 @@ export function CopilotVoiceToggle ({ compact = false, voice }: { compact?: bool
   return (
     <button
       aria-pressed={voice.connected}
-      className={voice.connected ? 'is-connected' : undefined}
+      className={`copilot-voice-toggle${voice.connected ? ' is-connected' : ''}${voice.transitioning ? ' is-transitioning' : ''}`}
       disabled={voice.transitioning}
       type="button"
       onClick={() => voice.connected ? voice.disconnect() : void voice.connect()}
