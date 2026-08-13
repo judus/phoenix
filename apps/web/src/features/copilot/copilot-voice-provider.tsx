@@ -506,6 +506,10 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
+    if (canHostRealtimeAudio()) setArmed(true)
+  }, [])
+
+  useEffect(() => {
     let active = true
     void apiRef.current.getCopilotVoiceHost()
       .then(snapshot => { if (active) setVoiceHost(snapshot) })
@@ -660,6 +664,12 @@ function errorMessage (cause: unknown): string {
   if (cause instanceof DOMException && cause.name === 'NotAllowedError') return 'Microphone permission was denied.'
   if (cause instanceof DOMException && cause.name === 'NotFoundError') return 'No microphone is available.'
   return cause instanceof Error ? cause.message : 'Realtime voice failed.'
+}
+
+function canHostRealtimeAudio (): boolean {
+  return window.isSecureContext &&
+    navigator.mediaDevices?.getUserMedia !== undefined &&
+    typeof WebSocket !== 'undefined'
 }
 
 function voiceHostPhase (

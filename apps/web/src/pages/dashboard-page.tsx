@@ -125,7 +125,7 @@ export function DashboardPage ({ actionCatalog, api, error, health, onExecuteAct
                   ? 'Voice audio is hosted by the desktop browser.'
                   : voice.connected
                     ? (voice.audioStatus ?? 'Realtime voice channel active.')
-                    : 'Connect once here to arm this device as the audio host.'}
+                    : 'This browser is ready to host PHOENIX microphone audio.'}
               </p>
             </DashboardCard>
 
