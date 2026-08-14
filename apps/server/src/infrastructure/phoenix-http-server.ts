@@ -44,6 +44,7 @@ import type { HealthCheck } from '../application/health-service.js'
 import type { EngineeringDataReader } from '../application/engineering-data-service.js'
 import type { ExplorationDataReader } from '../application/exploration-data-service.js'
 import type { GalaxyDataReader } from '../application/galaxy-data-service.js'
+import type { GalnetNewsReader } from '../domain/galnet.js'
 import type { NavigationDataReader } from '../application/navigation-data-service.js'
 import type { ActivityLogReader, EliteJournalDiagnosticsReader } from '../domain/elite-journal.js'
 import type { EliteStatusDiagnosticsReader } from '../domain/elite-status.js'
@@ -89,6 +90,7 @@ export interface PhoenixHttpServerOptions {
   engineering: EngineeringDataReader
   explorationData: ExplorationDataReader
   galaxyData: GalaxyDataReader
+  galnet: GalnetNewsReader
   healthCheck: HealthCheck
   host: string
   activityLog: ActivityLogReader
@@ -242,6 +244,14 @@ export class PhoenixHttpServer {
       const requestedLimit = Number.parseInt(url.searchParams.get('limit') ?? '250', 10)
       this.writeJson(response, 200, this.options.activityLog.getRecent(
         Number.isSafeInteger(requestedLimit) ? requestedLimit : 250
+      ))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/galnet') {
+      const requestedLimit = Number.parseInt(url.searchParams.get('limit') ?? '40', 10)
+      this.writeJson(response, 200, await this.options.galnet.getLatest(
+        Number.isSafeInteger(requestedLimit) ? requestedLimit : 40
       ))
       return
     }

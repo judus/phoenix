@@ -73,6 +73,101 @@
     align-items: start;
   }
 
+  .galnet-news {
+    display: grid;
+    grid-template-columns: minmax(15rem, 0.7fr) minmax(24rem, 1.8fr);
+    block-size: 100%;
+    min-block-size: 0;
+    border: 1px solid var(--color-border);
+  }
+
+  .galnet-news__index {
+    min-block-size: 0;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    border-inline-end: 1px solid var(--color-border);
+    list-style: none;
+
+    li + li {
+      border-block-start: 1px solid rgb(255 157 0 / 18%);
+    }
+
+    button {
+      display: grid;
+      inline-size: 100%;
+      gap: var(--space-2);
+      padding: var(--space-3);
+      border: 0;
+      background: rgb(43 5 22 / 32%);
+      color: var(--color-text);
+      text-align: start;
+
+      &[aria-pressed='true'] {
+        background: rgb(255 157 0 / 16%);
+        box-shadow: inset 3px 0 var(--color-primary);
+      }
+
+      time {
+        color: var(--color-secondary);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+      }
+
+      strong {
+        font-weight: 400;
+      }
+    }
+  }
+
+  .galnet-news__article {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    min-block-size: 0;
+    background: rgb(43 5 22 / 24%);
+
+    > header {
+      padding: var(--space-4);
+      border-block-end: 1px solid var(--color-border);
+
+      span,
+      time {
+        color: var(--color-primary);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+      }
+
+      h2 {
+        margin-block: var(--space-1) var(--space-2);
+        color: var(--color-text);
+        font-size: 1.45rem;
+        font-weight: 400;
+      }
+    }
+
+    > footer {
+      padding: var(--space-2) var(--space-4);
+      border-block-start: 1px solid var(--color-border);
+      color: var(--color-muted);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+    }
+  }
+
+  .galnet-news__body {
+    min-block-size: 0;
+    overflow-y: auto;
+    padding: var(--space-4);
+
+    p {
+      line-height: 1.55;
+
+      & + p {
+        margin-block-start: var(--space-3);
+      }
+    }
+  }
+
   .information-facts {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
@@ -363,6 +458,17 @@
   @media (width < 52rem) {
     .information-surface--radio {
       grid-template-columns: 1fr;
+    }
+
+    .galnet-news {
+      grid-template-columns: 1fr;
+      block-size: auto;
+    }
+
+    .galnet-news__index {
+      max-block-size: 18rem;
+      border-block-end: 1px solid var(--color-border);
+      border-inline-end: 0;
     }
 
     .entity-navigation {

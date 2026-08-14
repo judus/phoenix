@@ -44,12 +44,14 @@ import { EngineeringDataService } from './application/engineering-data-service.j
 import { ExplorationDataService } from './application/exploration-data-service.js'
 import { DefaultCommanderEngineersQuery } from './application/default-commander-engineers-query.js'
 import { DefaultStationMarketQuery } from './application/default-station-market-query.js'
+import { GalnetNewsService } from './application/galnet-news-service.js'
 import { DefaultExplorationBodyQuery } from './application/default-exploration-body-query.js'
 import type { CopilotText } from './application/copilot-text-service.js'
 import type { CopilotRealtime } from './application/copilot-realtime-service.js'
 import type { GameActionBindingResolver, InputBackend } from './domain/game-actions.js'
 import type { CartographySource } from './domain/cartography.js'
 import type { StationSearchSource, StationStockSource } from './domain/station-market.js'
+import type { GalnetSource } from './domain/galnet.js'
 import type { ControlGridLayoutRepository, SystemSettingsRepository } from './domain/system-configuration.js'
 import type { MacroRepository } from './domain/macros.js'
 import type { CommandCatalogueChange } from './domain/commands.js'
@@ -77,6 +79,7 @@ import { ArdentStationSearchSource } from './infrastructure/ardent-station-searc
 import { EdsmStationStockSource } from './infrastructure/edsm-station-stock-source.js'
 import { CatalogueSnapshotLoader } from './infrastructure/catalogue-snapshot-loader.js'
 import { ApplicationPaths } from './infrastructure/application-paths.js'
+import { FrontierGalnetSource } from './infrastructure/frontier-galnet-source.js'
 import type { PairingAccessController } from './infrastructure/pairing-access-controller.js'
 
 export interface PhoenixApplicationOptions {
@@ -93,6 +96,7 @@ export interface PhoenixApplicationOptions {
   engineeringCatalogueDirectory?: string
   eliteBindingsDirectory?: string | null
   host?: string
+  galnetSource?: GalnetSource
   inputBackend?: InputBackend
   inputBackendMode?: 'recording' | 'linux-xdotool'
   moduleCataloguePath?: string
@@ -285,6 +289,7 @@ export class PhoenixApplication {
       this.stateStore,
       this.database
     )
+    const galnet = new GalnetNewsService(options.galnetSource ?? new FrontierGalnetSource(), this.database)
     const navigationData = new NavigationDataService(cartography, navigationRoutes, this.stateStore)
     const display = new DisplayCommandService(displayCommandUpdates, this.stateStore)
     const engineering = new EngineeringDataService(engineeringCatalogue, this.stateStore)
@@ -352,6 +357,7 @@ export class PhoenixApplication {
       engineering,
       explorationData,
       galaxyData: stationMarkets,
+      galnet,
       navigationData,
       numpad,
       webRoot: resolveProjectPath(projectRoot, options.webRoot ?? paths.resources.web)

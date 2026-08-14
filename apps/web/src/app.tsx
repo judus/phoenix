@@ -307,6 +307,7 @@ function AuthenticatedApplication () {
       return (
         <InformationSectionPage
           actionCatalog={actionCatalog}
+          api={api}
           error={error}
           health={health}
           route={informationRoute}

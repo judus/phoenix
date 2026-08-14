@@ -30,6 +30,7 @@ import {
   ExplorationManualCompletionResponseSchema,
   GalaxyCommodityMarketsResponseSchema,
   GalaxyNearestStationsResponseSchema,
+  GalnetNewsResponseSchema,
   MacroDefinitionSchema,
   MacroLibrarySchema,
   MacroPlaybackSchema,
@@ -78,6 +79,7 @@ import {
   type ExplorationManualCompletionResponse,
   type GalaxyCommodityMarketsResponse,
   type GalaxyNearestStationsResponse,
+  type GalnetNewsResponse,
   type MacroDefinition,
   type MacroLibrary,
   type MacroPlayback,
@@ -106,6 +108,7 @@ export interface PhoenixApi {
   getControlLayout(): Promise<ControlGridLayout>
   getCopilotHistory(conversationId: string): Promise<CopilotHistoryResponse>
   getCopilotProfiles(): Promise<CopilotProfilesResponse>
+  getGalnetNews(limit?: number): Promise<GalnetNewsResponse>
   getCopilotProfile(profileId: string): Promise<CopilotProfileDocument>
   createCopilotProfile(input: CopilotProfileWriteRequest): Promise<CopilotProfileDocument>
   updateCopilotProfile(profileId: string, input: CopilotProfileWriteRequest): Promise<CopilotProfileDocument>
@@ -472,6 +475,14 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return CopilotProfilesResponseSchema.parse(await response.json())
+  }
+
+  public async getGalnetNews (limit = 40): Promise<GalnetNewsResponse> {
+    const response = await this.request(`${this.baseUrl}/api/galnet?limit=${encodeURIComponent(String(limit))}`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return GalnetNewsResponseSchema.parse(await response.json())
   }
 
   public async selectCopilotProfile (profileId: string): Promise<CopilotProfilesResponse> {
