@@ -19,7 +19,9 @@
     position: relative;
     min-inline-size: 0;
     min-block-size: 0;
-    overflow: hidden;
+    /* `hidden` creates a scroll container, allowing Chrome to restore a stale
+       vertical offset on refresh. Deskplane owns movement via transforms. */
+    overflow: clip;
   }
 
   .desktop-workspace__desktop {
