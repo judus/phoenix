@@ -23,13 +23,17 @@ import {
 
 const DEFAULT_CONVERSATION_ID = 'phoenix-copilot'
 const navigation: NavigationItem[] = [
-  { href: '#copilot', icon: '◈', id: 'chat', label: 'Chat' }
+  { href: '#/copilot/chat', icon: '◈', id: 'chat', label: 'Chat' },
+  { href: '#/copilot/profiles', icon: '◇', id: 'profiles', label: 'Profiles' }
 ]
+
+export type CopilotView = 'chat' | 'profiles'
 
 export interface CopilotPageProps {
   api: PhoenixApiClient
   error?: string
   health?: HealthResponse
+  view?: CopilotView
 }
 
 interface RemoteTurn {
@@ -49,7 +53,7 @@ interface ProfileDraft {
   voice: string
 }
 
-export function CopilotPage ({ api, error, health }: CopilotPageProps) {
+export function CopilotPage ({ api, error, health, view = 'chat' }: CopilotPageProps) {
   const voice = useCopilotVoice()
   const [messages, setMessages] = useState<readonly CopilotHistoryMessage[]>([])
   const [pending, setPending] = useState(false)
@@ -221,19 +225,21 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
   return (
     <PhoenixShell
       activePrimaryItemId="copilot"
-      activeSecondaryItemId="chat"
+      activeSecondaryItemId={view}
       error={error}
       health={health}
       secondaryNavigation={navigation}
     >
       <Page className="copilot-page">
         <PageHeader
-          title="Copilot"
-          eyebrow="Text channel"
-          description="Persistent shipboard conversation with current PHOENIX telemetry."
+          title={view === 'chat' ? 'Copilot' : 'Profiles'}
+          eyebrow={view === 'chat' ? 'Text channel' : 'Characters'}
+          description={view === 'chat'
+            ? 'Persistent shipboard conversation with current PHOENIX telemetry.'
+            : 'Select, create, and tune Copilot characters.'}
         />
         <PageContent>
-          <div className="copilot-workspace">
+          <div className={`copilot-workspace copilot-workspace--${view}`}>
             <aside className="copilot-sidebar" aria-label="Copilot profile">
               <h2>Copilot profile</h2>
               {voice.profiles.map(profile => (
@@ -245,7 +251,7 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
                   disabled={voice.connected || voice.transitioning}
                   title={profile.description}
                   onClick={() => {
-                    if (profile.id === voice.activeProfile.id) {
+                    if (view === 'profiles') {
                       void editProfile(profile.id)
                       return
                     }
@@ -261,13 +267,16 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
                   </span>
                 </button>
               ))}
-              <div className="copilot-profile-actions">
-                <button type="button" onClick={() => { void editProfile(voice.activeProfile.id) }}>Edit active</button>
-                <button type="button" onClick={() => { void createProfile() }}>New profile</button>
-              </div>
+              {view === 'profiles' && (
+                <div className="copilot-profile-actions">
+                  <button type="button" onClick={() => { void editProfile(voice.activeProfile.id) }}>Edit active</button>
+                  <button type="button" onClick={() => { void createProfile() }}>New profile</button>
+                </div>
+              )}
             </aside>
 
-            {profileDraft
+            {view === 'profiles'
+              ? (profileDraft
               ? <CopilotProfileEditor
                   draft={profileDraft}
                   saving={profileSaving}
@@ -275,6 +284,10 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
                   onChange={setProfileDraft}
                   onSave={saveProfile}
                 />
+              : <section className="copilot-profile-placeholder">
+                  <strong>Select a profile</strong>
+                  <span>Choose a character to edit, or create a new Copilot profile.</span>
+                </section>)
               : <section className="copilot-chat" aria-label="Copilot conversation">
               <CopilotMessageHistory
                 activeTurn={voice.activeTurn}
@@ -292,47 +305,10 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
               <CopilotComposer
                 disabled={pending}
                 profileName={voice.activeProfile.name}
+                voice={voice}
                 onSubmitText={submit}
               />
                 </section>}
-
-            <aside className="copilot-sidebar copilot-voice" aria-label="Voice controls">
-              <h2>Voice channel</h2>
-              <div className={`copilot-voice__status${voice.connected ? ' is-connected' : ''}`}>
-                <strong>{voice.status}</strong>
-                <span>{voice.hostLocation === 'remote'
-                  ? 'Audio hosted by the desktop browser'
-                  : voice.connected ? 'Always listening' : 'Connect this PC microphone'}</span>
-                {voice.audioStatus && <span>{voice.audioStatus}</span>}
-              </div>
-              <label>
-                Microphone
-                <select
-                  value={voice.inputId}
-                  disabled={voice.connected || voice.hostLocation === 'remote'}
-                  onChange={event => voice.setInputId(event.target.value)}
-                >
-                  <option value="">System default</option>
-                  {voice.devices.inputs.map(device => (
-                    <option key={device.id} value={device.id}>{device.label}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Audio output
-                <select
-                  value={voice.outputId}
-                  disabled={voice.connected || voice.hostLocation === 'remote'}
-                  onChange={event => voice.setOutputId(event.target.value)}
-                >
-                  <option value="">System default</option>
-                  {voice.devices.outputs.map(device => (
-                    <option key={device.id} value={device.id}>{device.label}</option>
-                  ))}
-                </select>
-              </label>
-              <CopilotVoiceToggle voice={voice} />
-            </aside>
           </div>
         </PageContent>
       </Page>
@@ -463,10 +439,12 @@ const CopilotMessageHistory = memo(function CopilotMessageHistory ({
 const CopilotComposer = memo(function CopilotComposer ({
   disabled,
   profileName,
+  voice,
   onSubmitText
 }: {
   disabled: boolean
   profileName: string
+  voice: ReturnType<typeof useCopilotVoice>
   onSubmitText: (text: string) => Promise<void>
 }) {
   const [composer, setComposer] = useState('')
@@ -499,6 +477,7 @@ const CopilotComposer = memo(function CopilotComposer ({
       <button type="submit" disabled={disabled || !composer.trim()}>
         {disabled ? 'Transmitting…' : 'Send'}
       </button>
+      <CopilotVoiceToggle iconOnly voice={voice} />
     </form>
   )
 })

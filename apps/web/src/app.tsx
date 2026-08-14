@@ -19,7 +19,7 @@ import { allowsRemoteDisplayCommands } from './features/display/display-command-
 import { armNumpadRoute } from './features/numpad/numpad-route-session.js'
 import { DeveloperPage, type DeveloperView } from './pages/developer-page.js'
 import { ControlsPage, type ControlCategory } from './pages/controls-page.js'
-import { CopilotPage } from './pages/copilot-page.js'
+import { CopilotPage, type CopilotView } from './pages/copilot-page.js'
 import { LogPage } from './pages/log-page.js'
 import { NavigationPage, type NavigationView } from './pages/navigation-page.js'
 import { EngineeringPage, type EngineeringView } from './pages/engineering-page.js'
@@ -34,6 +34,7 @@ import {
 } from './pages/information-section-page.js'
 import { PairingPage } from './pages/pairing-page.js'
 import { NumpadPage } from './pages/numpad-page.js'
+import { SettingsPage, type SettingsView } from './pages/settings-page.js'
 import { CopilotVoiceProvider } from './features/copilot/copilot-voice-provider.js'
 import { DesktopWorkspace, type DesktopMode } from './components/layout/desktop-workspace.js'
 import { PhoenixTopBar } from './components/layout/phoenix-shell.js'
@@ -210,7 +211,7 @@ function AuthenticatedApplication () {
     const destination = mode === 'controls'
       ? `#/controls/${controlCategory}`
       : mode === 'copilot'
-        ? '#copilot'
+        ? '#/copilot/chat'
         : informationHash
     if (window.location.hash !== destination) window.location.hash = destination
   }
@@ -247,6 +248,9 @@ function AuthenticatedApplication () {
     }
     if (informationRoute.section === 'numpad') {
       return <NumpadPage api={api} error={error} health={health} view={informationRoute.view} />
+    }
+    if (informationRoute.section === 'settings') {
+      return <SettingsPage health={health} view={informationRoute.view} />
     }
     if (informationRoute.section === 'galaxy') {
       return (
@@ -345,7 +349,12 @@ function AuthenticatedApplication () {
           }}
         />
       )}
-      copilot={<CopilotPage api={api} error={error} health={health} />}
+      copilot={<CopilotPage
+        api={api}
+        error={error}
+        health={health}
+        view={route.section === 'copilot' ? route.view : 'chat'}
+      />}
       information={information}
       onNavigate={navigateDesktop}
       topBar={(
@@ -353,6 +362,7 @@ function AuthenticatedApplication () {
           developerSection={informationRoute.section === 'developer'}
           numpadSection={informationRoute.section === 'numpad'}
           recordsSection={informationRoute.section === 'records'}
+          settingsSection={informationRoute.section === 'settings'}
         />
       )}
     />
@@ -361,8 +371,9 @@ function AuthenticatedApplication () {
 
 export type AppRoute =
   | { section: 'main' }
-  | { section: 'copilot' }
+  | { section: 'copilot', view: CopilotView }
   | { section: 'numpad', view: 'navigator' | 'shortcuts' }
+  | { section: 'settings', view: SettingsView }
   | { section: 'commander', view: CommanderView }
   | { section: 'operations', view: OperationsView }
   | { section: 'comms', view: CommsView }
@@ -380,9 +391,12 @@ const INFORMATION_ROUTE_STORAGE_KEY = 'phoenix.desktop.information-route'
 
 export function readRoute (routeHash?: string): AppRoute {
   const hash = routeHash ?? (typeof window === 'undefined' ? '#/' : window.location.hash)
-  if (/^#\/?copilot$/u.test(hash)) return { section: 'copilot' }
+  const copilotMatch = hash.match(/^#\/?copilot(?:\/(chat|profiles))?$/u)
+  if (copilotMatch) return { section: 'copilot', view: (copilotMatch[1] ?? 'chat') as CopilotView }
   const numpadMatch = hash.match(/^#\/?numpad(?:\/(shortcuts))?$/u)
   if (numpadMatch) return { section: 'numpad', view: numpadMatch[1] === 'shortcuts' ? 'shortcuts' : 'navigator' }
+  const settingsMatch = hash.match(/^#\/?settings(?:\/(system|audio|modules|pairing))?$/u)
+  if (settingsMatch) return { section: 'settings', view: (settingsMatch[1] ?? 'system') as SettingsView }
   if (/^#\/?(?:log|records\/journal)$/u.test(hash)) return { section: 'records', view: 'journal' }
   const commanderMatch = hash.match(/^#\/?commander\/(overview|inventory|progress)$/u)
   if (commanderMatch) return { section: 'commander', view: commanderMatch[1] as CommanderView }
