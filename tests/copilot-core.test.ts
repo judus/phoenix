@@ -50,13 +50,24 @@ test('tracked agent profile files compose and reject unsafe profile IDs', () => 
   expect(prompt).toContain('You are Marin.')
   expect(prompt).toContain('LIVE STATE')
   expect(prompt).not.toContain('{{')
-  expect(repository.list()).toEqual([{
-    description: 'Dry, observant shipboard copilot.',
-    id: 'marin',
-    mark: 'M',
-    name: 'Marin',
-    voice: 'marin'
-  }])
+  expect(repository.list()).toEqual([
+    {
+      description: 'Gruff, terse, no-nonsense shipboard copilot.',
+      id: 'ash',
+      mark: 'A',
+      name: 'Ash',
+      voice: 'ash'
+    },
+    {
+      description: 'Dry, observant shipboard copilot.',
+      id: 'marin',
+      mark: 'M',
+      name: 'Marin',
+      voice: 'marin'
+    }
+  ])
+  expect(composer.compose({ mode: 'speech', profileId: 'ash' }))
+    .toContain("You are the commander's veteran shipboard copilot.")
   expect(() => repository.get('../marin')).toThrow('Invalid agent profile ID')
 })
 
