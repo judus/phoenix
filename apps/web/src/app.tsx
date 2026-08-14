@@ -37,7 +37,7 @@ import { NumpadPage } from './pages/numpad-page.js'
 import { SettingsPage, type SettingsView } from './pages/settings-page.js'
 import { CopilotVoiceProvider } from './features/copilot/copilot-voice-provider.js'
 import { MacroRuntimeProvider } from './features/macros/macro-runtime-provider.js'
-import { DesktopWorkspace, type DesktopMode } from './components/layout/desktop-workspace.js'
+import { DesktopWorkspace, type DesktopMode, type WorkspaceDesktop } from './components/layout/desktop-workspace.js'
 import { PhoenixTopBar } from './components/layout/phoenix-shell.js'
 
 const api = new PhoenixApiClient()
@@ -182,13 +182,11 @@ function AuthenticatedApplication () {
       const nextRoute = readRoute()
       setRoute(nextRoute)
       if (nextRoute.section === 'controls') setControlCategory(nextRoute.category)
-      if (isInformationRoute(nextRoute)) {
+      if (isBaseInformationRoute(nextRoute)) {
         setInformationRoute(nextRoute)
-        if (nextRoute.section !== 'numpad') {
-          const hash = normalizedHash(window.location.hash)
-          setInformationHash(hash)
-          window.sessionStorage.setItem(INFORMATION_ROUTE_STORAGE_KEY, hash)
-        }
+        const hash = normalizedHash(window.location.hash)
+        setInformationHash(hash)
+        window.sessionStorage.setItem(INFORMATION_ROUTE_STORAGE_KEY, hash)
       }
     }
     window.addEventListener('hashchange', handleRouteChange)
@@ -214,67 +212,27 @@ function AuthenticatedApplication () {
   }, [moduleSettings?.numpadCommands.enabled])
 
   const activeMode = desktopMode(route)
-  const navigateDesktop = (mode: DesktopMode): void => {
-    const destination = mode === 'controls'
+  const activeDesktop = workspaceDesktop(route)
+  const navigateDesktop = (desktop: WorkspaceDesktop): void => {
+    const destination = desktop === 'controls'
       ? `#/controls/${controlCategory}`
-      : mode === 'copilot'
+      : desktop === 'copilot'
         ? '#/copilot/chat'
-        : informationHash
+        : desktop === 'information'
+          ? informationHash
+          : desktop === 'numpad'
+            ? '#/numpad'
+            : desktop === 'macros'
+              ? '#/macros'
+              : desktop === 'journal'
+                ? '#/records/journal'
+                : desktop === 'developer'
+                  ? '#/developer/overview'
+                  : '#/settings/system'
     if (window.location.hash !== destination) window.location.hash = destination
   }
 
   const information = (() => {
-    if (informationRoute.section === 'macros') {
-      return (
-        <ControlsPage
-          api={api}
-          actionCatalog={actionCatalog}
-          commandCatalogueRevision={commandCatalogueRevision}
-          category="macros"
-          controlLayout={controlLayout}
-          error={error}
-          health={health}
-          runtimeState={runtimeState}
-          onExecuteCommand={(target, operation) => api.executeCommand(target, operation)}
-          onSaveLayout={async layout => api.saveControlLayout(layout)}
-        />
-      )
-    }
-    if (informationRoute.section === 'developer') {
-      return (
-        <DeveloperPage
-          actionCatalog={actionCatalog}
-          actionPending={actionPending}
-          catalogueDiagnostics={catalogueDiagnostics}
-          error={error}
-          eliteJournalDiagnostics={eliteJournalDiagnostics}
-          eliteStatusDiagnostics={eliteStatusDiagnostics}
-          health={health}
-          lastActionResult={lastActionResult}
-          runtimeState={runtimeState}
-          view={informationRoute.view}
-          onExecuteAction={async actionId => {
-            setActionPending(actionId)
-            try {
-              setLastActionResult(await api.executeDeveloperAction(actionId))
-            } catch (cause) {
-              setError(cause instanceof Error ? cause.message : 'Action execution failed.')
-            } finally {
-              setActionPending(undefined)
-            }
-          }}
-        />
-      )
-    }
-    if (informationRoute.section === 'records' && informationRoute.view === 'journal') {
-      return <LogPage api={api} error={error} health={health} />
-    }
-    if (informationRoute.section === 'numpad') {
-      return <NumpadPage api={api} error={error} health={health} view={informationRoute.view} />
-    }
-    if (informationRoute.section === 'settings') {
-      return <SettingsPage health={health} view={informationRoute.view} />
-    }
     if (informationRoute.section === 'galaxy') {
       return (
         <NavigationPage
@@ -352,6 +310,7 @@ function AuthenticatedApplication () {
 
   return (
     <DesktopWorkspace
+      activeDesktop={activeDesktop}
       activeMode={activeMode}
       controls={(
         <ControlsPage
@@ -379,15 +338,56 @@ function AuthenticatedApplication () {
         health={health}
         view={route.section === 'copilot' ? route.view : 'chat'}
       />}
+      developer={(
+        <DeveloperPage
+          actionCatalog={actionCatalog}
+          actionPending={actionPending}
+          catalogueDiagnostics={catalogueDiagnostics}
+          error={error}
+          eliteJournalDiagnostics={eliteJournalDiagnostics}
+          eliteStatusDiagnostics={eliteStatusDiagnostics}
+          health={health}
+          lastActionResult={lastActionResult}
+          runtimeState={runtimeState}
+          view={route.section === 'developer' ? route.view : 'overview'}
+          onExecuteAction={async actionId => {
+            setActionPending(actionId)
+            try {
+              setLastActionResult(await api.executeDeveloperAction(actionId))
+            } catch (cause) {
+              setError(cause instanceof Error ? cause.message : 'Action execution failed.')
+            } finally {
+              setActionPending(undefined)
+            }
+          }}
+        />
+      )}
       information={information}
+      journal={<LogPage api={api} error={error} health={health} />}
+      macros={(
+        <ControlsPage
+          api={api}
+          actionCatalog={actionCatalog}
+          commandCatalogueRevision={commandCatalogueRevision}
+          category="macros"
+          controlLayout={controlLayout}
+          error={error}
+          health={health}
+          runtimeState={runtimeState}
+          onExecuteCommand={(target, operation) => api.executeCommand(target, operation)}
+          onSaveLayout={async layout => api.saveControlLayout(layout)}
+        />
+      )}
+      numpad={<NumpadPage api={api} error={error} health={health} view={route.section === 'numpad' ? route.view : 'navigator'} />}
       onNavigate={navigateDesktop}
+      settings={<SettingsPage health={health} view={route.section === 'settings' ? route.view : 'system'} />}
       topBar={(
         <PhoenixTopBar
-          developerSection={informationRoute.section === 'developer'}
-          macroSection={informationRoute.section === 'macros'}
-          numpadSection={informationRoute.section === 'numpad'}
-          recordsSection={informationRoute.section === 'records'}
-          settingsSection={informationRoute.section === 'settings'}
+          developerSection={route.section === 'developer'}
+          macroSection={route.section === 'macros'}
+          numpadSection={route.section === 'numpad'}
+          recordsSection={route.section === 'records' && route.view === 'journal'}
+          settingsSection={route.section === 'settings'}
         />
       )}
     />
@@ -506,8 +506,20 @@ function desktopMode (route: AppRoute): DesktopMode {
   return 'information'
 }
 
-function isInformationRoute (route: AppRoute): boolean {
-  return route.section !== 'controls' && route.section !== 'copilot'
+function workspaceDesktop (route: AppRoute): WorkspaceDesktop {
+  if (route.section === 'numpad') return 'numpad'
+  if (route.section === 'macros') return 'macros'
+  if (route.section === 'developer') return 'developer'
+  if (route.section === 'settings') return 'settings'
+  if (route.section === 'records' && route.view === 'journal') return 'journal'
+  return desktopMode(route)
+}
+
+function isBaseInformationRoute (route: AppRoute): boolean {
+  if (route.section === 'controls' || route.section === 'copilot') return false
+  if (route.section === 'numpad' || route.section === 'macros') return false
+  if (route.section === 'developer' || route.section === 'settings') return false
+  return !(route.section === 'records' && route.view === 'journal')
 }
 
 function normalizedHash (hash: string): string {
@@ -517,9 +529,9 @@ function normalizedHash (hash: string): string {
 function readInformationHash (): string {
   if (typeof window === 'undefined') return '#/'
   const current = normalizedHash(window.location.hash)
-  if (isInformationRoute(readRoute(current))) return current
+  if (isBaseInformationRoute(readRoute(current))) return current
   const stored = window.sessionStorage.getItem(INFORMATION_ROUTE_STORAGE_KEY)
-  if (stored && isInformationRoute(readRoute(stored))) return stored
+  if (stored && isBaseInformationRoute(readRoute(stored))) return stored
   return '#/'
 }
 
