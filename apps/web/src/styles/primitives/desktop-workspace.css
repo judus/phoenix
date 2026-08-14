@@ -20,19 +20,14 @@
     min-inline-size: 0;
     min-block-size: 0;
     overflow: hidden;
-    touch-action: pan-y;
   }
 
   .desktop-workspace__desktop {
-    position: absolute;
-    inset: 0;
     min-inline-size: 0;
     min-block-size: 0;
     block-size: 100%;
     overflow: hidden;
     background: var(--color-background);
-    transition: transform 180ms ease-out;
-    will-change: transform;
 
     .app-shell {
       min-block-size: 0;
@@ -40,8 +35,28 @@
     }
   }
 
-  .desktop-workspace__viewport.is-dragging .desktop-workspace__desktop {
-    transition: none;
+  .desktop-workspace__surface {
+    position: relative;
+    min-inline-size: 0;
+    min-block-size: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    overflow: hidden;
+  }
+
+  .desktop-workspace__swipe-zone {
+    position: absolute;
+    z-index: 4;
+    inset-block: 0;
+    inline-size: 2rem;
+  }
+
+  .desktop-workspace__swipe-zone--left {
+    inset-inline-start: 0;
+  }
+
+  .desktop-workspace__swipe-zone--right {
+    inset-inline-end: 0;
   }
 
   .desktop-workspace__switcher {
@@ -75,11 +90,6 @@
     }
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .desktop-workspace__desktop {
-      transition: none;
-    }
-  }
 }
 
 @layer overrides {
