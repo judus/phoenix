@@ -1,5 +1,8 @@
 import type {
   ActivityLogEntry,
+  CommunicationContact,
+  CommunicationMessage,
+  CommunicationsResponse,
   GalnetArticle,
   GalnetNewsResponse,
   GameActionCatalogResponse,
@@ -87,7 +90,9 @@ export function InformationSectionPage ({
       <Page className={`information-section-page ${route.section}-page`}>
         <PageHeader title={definition.title} eyebrow={definition.eyebrow} description={definition.description} />
         <PageContent>
-          {route.section === 'comms' && route.view === 'galnet'
+          {route.section === 'comms' && (route.view === 'inbox' || route.view === 'traffic' || route.view === 'contacts')
+            ? <Communications api={api} view={route.view} />
+            : route.section === 'comms' && route.view === 'galnet'
             ? <GalnetNews api={api} />
             : route.section === 'operations' && route.view === 'missions'
             ? <Missions api={api} />
@@ -108,6 +113,135 @@ export function InformationSectionPage ({
       </Page>
     </PhoenixShell>
   )
+}
+
+function Communications ({ api, view }: { api: PhoenixApiClient, view: 'inbox' | 'traffic' | 'contacts' }) {
+  const queryView = view === 'contacts' ? 'all' : view
+  const [response, setResponse] = useState<CommunicationsResponse>()
+  const [selectedId, setSelectedId] = useState<string>()
+  const [error, setError] = useState<string>()
+
+  useEffect(() => {
+    let active = true
+    const refresh = (): void => {
+      void api.getCommunications(queryView, 500).then(result => {
+        if (!active) return
+        setError(undefined)
+        setResponse(result)
+        const candidates = view === 'contacts' ? result.contacts : result.messages
+        setSelectedId(current => current && candidates.some(candidate => candidate.id === current)
+          ? current
+          : candidates[0]?.id)
+      }).catch(cause => {
+        if (active) setError(cause instanceof Error ? cause.message : 'Communications are unavailable.')
+      })
+    }
+    refresh()
+    const unsubscribe = subscribePhoenixEvent(api, 'activity-entry', event => {
+      try {
+        const entry = ActivityLogEntrySchema.parse(JSON.parse(event.data))
+        if (entry.source === 'journal' && (entry.event === 'ReceiveText' || entry.event === 'SendText')) refresh()
+      } catch (cause) {
+        if (active) setError(cause instanceof Error ? cause.message : 'Invalid communications update received.')
+      }
+    })
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [api, queryView, view])
+
+  if (error) return <section className="information-surface information-surface--empty"><strong>Communications unavailable</strong><p>{error}</p></section>
+  if (!response) return <section className="information-surface information-surface--empty"><strong>Reconstructing communications</strong><p>Reading retained journal messages.</p></section>
+  if (view === 'contacts') return <ContactLedger contacts={response.contacts} selectedId={selectedId} onSelect={setSelectedId} />
+  return <MessageLedger messages={response.messages} selectedId={selectedId} onSelect={setSelectedId} summary={response.summary} view={view} />
+}
+
+function MessageLedger ({ messages, onSelect, selectedId, summary, view }: {
+  messages: CommunicationMessage[]
+  onSelect: (id: string) => void
+  selectedId?: string
+  summary: CommunicationsResponse['summary']
+  view: 'inbox' | 'traffic'
+}) {
+  const selected = messages.find(message => message.id === selectedId) ?? messages[0]
+  return (
+    <section className="communications-ledger">
+      <header className="communications-ledger__summary">
+        <span>{view}</span><strong>{view === 'inbox' ? summary.inbox : summary.traffic}</strong>
+        <span>Inbound</span><strong>{summary.inbound}</strong>
+        <span>Outbound</span><strong>{summary.outbound}</strong>
+      </header>
+      {messages.length === 0
+        ? <div className="communications-ledger__empty">No retained {view} messages.</div>
+        : (
+            <div className="communications-ledger__body">
+              <ol className="communications-ledger__index">
+                <li className="communications-ledger__columns"><span>Correspondent</span><span>Message</span><span>Received</span></li>
+                {messages.map(message => (
+                  <li key={message.id}>
+                    <button type="button" aria-pressed={message.id === selected?.id} onClick={() => onSelect(message.id)}>
+                      <span><strong>{message.sender ?? message.recipient ?? message.senderKind}</strong><small>{message.channel} · {message.direction}</small></span>
+                      <span className="communications-ledger__preview">{message.message}</span>
+                      <time dateTime={message.timestamp}>{communicationTime(message.timestamp)}</time>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+              {selected ? <CommunicationDetail message={selected} /> : null}
+            </div>
+          )}
+    </section>
+  )
+}
+
+function CommunicationDetail ({ message }: { message: CommunicationMessage }) {
+  return (
+    <article className="communication-detail">
+      <header><span>{message.channel} · {message.direction}</span><h2>{message.sender ?? message.recipient ?? message.senderKind}</h2><time dateTime={message.timestamp}>{new Date(message.timestamp).toLocaleString()}</time></header>
+      <p>{message.message}</p>
+      <dl>
+        <dt>Source</dt><dd>{message.sourceEvent}</dd>
+        <dt>Kind</dt><dd>{message.senderKind}</dd>
+        <dt>Channel</dt><dd>{message.channel}</dd>
+      </dl>
+      {message.rawMessage && message.rawMessage !== message.message ? <details><summary>Raw Frontier message</summary><code>{message.rawMessage}</code></details> : null}
+    </article>
+  )
+}
+
+function ContactLedger ({ contacts, onSelect, selectedId }: { contacts: CommunicationContact[], onSelect: (id: string) => void, selectedId?: string }) {
+  const selected = contacts.find(contact => contact.id === selectedId) ?? contacts[0]
+  return (
+    <section className="communications-ledger">
+      <header className="communications-ledger__summary"><span>Observed commanders</span><strong>{contacts.length}</strong><small>Last-seen evidence only</small></header>
+      {contacts.length === 0
+        ? <div className="communications-ledger__empty">No commander correspondents observed yet.</div>
+        : (
+            <div className="communications-ledger__body">
+              <ol className="communications-ledger__index communications-ledger__index--contacts">
+                <li className="communications-ledger__columns"><span>Commander</span><span>Channels</span><span>Last seen</span></li>
+                {contacts.map(contact => (
+                  <li key={contact.id}>
+                    <button type="button" aria-pressed={contact.id === selected?.id} onClick={() => onSelect(contact.id)}>
+                      <span><strong>{contact.name}</strong><small>{contact.inboundCount} retained messages</small></span>
+                      <span>{contact.channels.join(', ')}</span>
+                      <time dateTime={contact.lastSeenAt}>{communicationTime(contact.lastSeenAt)}</time>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+              {selected
+                ? <article className="communication-detail"><header><span>Observed contact</span><h2>{selected.name}</h2><time dateTime={selected.lastSeenAt}>{new Date(selected.lastSeenAt).toLocaleString()}</time></header><p>{selected.lastMessage ?? 'No retained message text.'}</p><dl><dt>Channels</dt><dd>{selected.channels.join(', ')}</dd><dt>Inbound</dt><dd>{selected.inboundCount}</dd><dt>Outbound</dt><dd>{selected.outboundCount}</dd><dt>Presence</dt><dd>Unknown</dd></dl></article>
+                : null}
+            </div>
+          )}
+    </section>
+  )
+}
+
+function communicationTime (timestamp: string): string {
+  return new Intl.DateTimeFormat(undefined, { day: '2-digit', hour: '2-digit', minute: '2-digit', month: 'short' }).format(new Date(timestamp))
 }
 
 function Missions ({ api }: { api: PhoenixApiClient }) {

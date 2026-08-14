@@ -46,6 +46,7 @@ import { DefaultCommanderEngineersQuery } from './application/default-commander-
 import { DefaultStationMarketQuery } from './application/default-station-market-query.js'
 import { GalnetNewsService } from './application/galnet-news-service.js'
 import { MissionDataService } from './application/mission-data-service.js'
+import { CommunicationDataService } from './application/communication-data-service.js'
 import { DefaultExplorationBodyQuery } from './application/default-exploration-body-query.js'
 import type { CopilotText } from './application/copilot-text-service.js'
 import type { CopilotRealtime } from './application/copilot-realtime-service.js'
@@ -141,6 +142,7 @@ export class PhoenixApplication {
     )
     const activityLog = new ActivityLogService(this.database)
     const missions = new MissionDataService(this.database)
+    const communications = new CommunicationDataService(this.database)
     const engineeringCatalogueDirectory = resolveProjectPath(
       projectRoot,
       options.engineeringCatalogueDirectory ?? process.env.PHOENIX_ENGINEERING_CATALOGUE_PATH ?? resolve(paths.resources.catalogue, 'engineering')
@@ -208,6 +210,7 @@ export class PhoenixApplication {
         journalIngestion.ingest(event)
         cartographyObservationIngestion.ingest(event)
         missions.ingest(event, 'live-journal')
+        communications.ingest(event)
         activityLog.ingestJournal(event)
       }
     )
@@ -217,6 +220,7 @@ export class PhoenixApplication {
         historicalJournalIngestion.ingest(event)
         historicalCartographyIngestion.ingest(event)
         missions.ingest(event, 'historical-journal')
+        communications.ingest(event)
         activityLog.ingestJournal(event, 'historical')
       },
       this.database
@@ -308,6 +312,7 @@ export class PhoenixApplication {
       navigation,
       markets: stationMarkets,
       missions,
+      communications,
       runtimeState: this.stateStore,
       statefulActions,
       stations: stationMarkets,
@@ -356,6 +361,7 @@ export class PhoenixApplication {
       mcpServer,
       macros,
       missions,
+      communications,
       port,
       runtimeState: this.stateStore,
       runtimeStateUpdates,

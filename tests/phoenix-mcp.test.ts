@@ -59,6 +59,7 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
       'phoenix__commander_get_inventory',
       'phoenix__commander_list_engineers',
       'phoenix__commander_list_materials',
+      'phoenix__comms_list_messages',
       'phoenix__controls_find_actions',
       'phoenix__controls_execute',
       'phoenix__controls_set_switch',

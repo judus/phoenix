@@ -8,9 +8,11 @@ import type {
 import {
   ActivityLogEntrySchema,
   CartographicSystemSchema,
+  CommunicationMessageSchema,
   MissionSchema,
   type ActivityLogEntry,
   type CartographicSystem,
+  type CommunicationMessage,
   type DatabaseHealth,
   type Mission
 } from '@phoenix/contracts'
@@ -24,8 +26,9 @@ import type {
 } from '../domain/exploration.js'
 import type { ProviderCacheEntry, ProviderResponseCache } from '../domain/station-market.js'
 import type { MissionRepository } from '../domain/missions.js'
+import type { CommunicationQueryView, CommunicationRepository } from '../domain/communications.js'
 
-export class SqliteDatabase implements Database, CartographyCache, CartographyObservationStore, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository {
+export class SqliteDatabase implements Database, CartographyCache, CartographyObservationStore, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository, CommunicationRepository {
   private readonly connection: DatabaseSync
 
   public constructor (path: string) {
@@ -116,6 +119,19 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
       CREATE INDEX IF NOT EXISTS missions_status_updated_at
       ON missions (status, status_updated_at DESC);
 
+      CREATE TABLE IF NOT EXISTS communications (
+        message_id TEXT PRIMARY KEY,
+        occurred_at TEXT NOT NULL,
+        direction TEXT NOT NULL,
+        view TEXT NOT NULL,
+        channel TEXT NOT NULL,
+        sender_kind TEXT NOT NULL,
+        document TEXT NOT NULL
+      ) STRICT;
+
+      CREATE INDEX IF NOT EXISTS communications_view_occurred_at
+      ON communications (view, occurred_at DESC);
+
       INSERT OR IGNORE INTO schema_migrations (version, applied_at)
       VALUES (2, datetime('now'));
 
@@ -137,6 +153,13 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
       VALUES (7, datetime('now'))
     `).run()
     if (missionMigration.changes > 0) {
+      this.connection.exec('DELETE FROM elite_journal_checkpoints;')
+    }
+    const communicationsMigration = this.connection.prepare(`
+      INSERT OR IGNORE INTO schema_migrations (version, applied_at)
+      VALUES (8, datetime('now'))
+    `).run()
+    if (communicationsMigration.changes > 0) {
       this.connection.exec('DELETE FROM elite_journal_checkpoints;')
     }
   }
@@ -329,6 +352,64 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
       validated.updatedAt,
       JSON.stringify(validated)
     )
+  }
+
+  public listCommunicationMessages (view: CommunicationQueryView, limit: number): CommunicationMessage[] {
+    const rows = view === 'all'
+      ? this.connection.prepare(`
+          SELECT document FROM communications
+          ORDER BY occurred_at DESC, message_id DESC
+          LIMIT ?
+        `).all(limit) as Array<{ document: string }>
+      : this.connection.prepare(`
+          SELECT document FROM communications
+          WHERE view = ?
+          ORDER BY occurred_at DESC, message_id DESC
+          LIMIT ?
+        `).all(view, limit) as Array<{ document: string }>
+    return rows.map(row => CommunicationMessageSchema.parse(JSON.parse(row.document)))
+  }
+
+  public putCommunicationMessage (message: CommunicationMessage): void {
+    const validated = CommunicationMessageSchema.parse(message)
+    this.connection.prepare(`
+      INSERT OR IGNORE INTO communications (
+        message_id, occurred_at, direction, view, channel, sender_kind, document
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      validated.id,
+      validated.timestamp,
+      validated.direction,
+      validated.view,
+      validated.channel,
+      validated.senderKind,
+      JSON.stringify(validated)
+    )
+  }
+
+  public summarizeCommunications (): {
+    inbound: number
+    inbox: number
+    outbound: number
+    total: number
+    traffic: number
+  } {
+    const row = this.connection.prepare(`
+      SELECT
+        COUNT(*) AS total,
+        SUM(CASE WHEN view = 'inbox' THEN 1 ELSE 0 END) AS inbox,
+        SUM(CASE WHEN view = 'traffic' THEN 1 ELSE 0 END) AS traffic,
+        SUM(CASE WHEN direction = 'inbound' THEN 1 ELSE 0 END) AS inbound,
+        SUM(CASE WHEN direction = 'outbound' THEN 1 ELSE 0 END) AS outbound
+      FROM communications
+    `).get() as Record<'inbound' | 'inbox' | 'outbound' | 'total' | 'traffic', number | null>
+    return {
+      inbound: row.inbound ?? 0,
+      inbox: row.inbox ?? 0,
+      outbound: row.outbound ?? 0,
+      total: row.total ?? 0,
+      traffic: row.traffic ?? 0
+    }
   }
 
   public getProviderResponse (namespace: string, key: string): ProviderCacheEntry | null {

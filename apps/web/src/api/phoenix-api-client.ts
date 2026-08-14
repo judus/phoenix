@@ -2,6 +2,7 @@ import {
   CatalogueDiagnosticsSchema,
   CommandCatalogResponseSchema,
   CommandCatalogueSnapshotSchema,
+  CommunicationsResponseSchema,
   CommandExecutionResultSchema,
   ShipCatalogueResponseSchema,
   ControlGridLayoutSchema,
@@ -49,6 +50,7 @@ import {
   type GameActionCatalogResponse,
   type CommandCatalogResponse,
   type CommandCatalogueSnapshot,
+  type CommunicationsResponse,
   type CommandExecutionResult,
   type CommandTarget,
   type CatalogueDiagnostics,
@@ -494,6 +496,15 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return MissionsResponseSchema.parse(await response.json())
+  }
+
+  public async getCommunications (view: 'all' | 'inbox' | 'traffic' = 'all', limit = 250): Promise<CommunicationsResponse> {
+    const query = new URLSearchParams({ limit: String(limit), view })
+    const response = await this.request(`${this.baseUrl}/api/comms/messages?${query.toString()}`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return CommunicationsResponseSchema.parse(await response.json())
   }
 
   public async selectCopilotProfile (profileId: string): Promise<CopilotProfilesResponse> {

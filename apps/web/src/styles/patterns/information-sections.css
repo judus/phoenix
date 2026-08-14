@@ -178,6 +178,97 @@
     color: var(--color-muted);
   }
 
+  .communications-ledger {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-block-size: 0;
+    block-size: 100%;
+  }
+
+  .communications-ledger__summary {
+    display: flex;
+    min-inline-size: 0;
+    align-items: baseline;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-block: 1px solid var(--color-border);
+    color: var(--color-primary);
+    text-transform: uppercase;
+
+    strong { margin-inline-end: var(--space-4); color: var(--color-secondary); font-size: 1.15rem; font-weight: 400; }
+    small { margin-inline-start: auto; color: var(--color-muted); }
+  }
+
+  .communications-ledger__body {
+    display: grid;
+    grid-template-columns: minmax(28rem, 1.35fr) minmax(20rem, 0.65fr);
+    min-block-size: 0;
+  }
+
+  .communications-ledger__index {
+    min-block-size: 0;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    border-inline-end: 1px solid var(--color-border);
+    list-style: none;
+
+    li { border-block-end: 1px solid rgb(255 157 0 / 18%); }
+    button,
+    .communications-ledger__columns {
+      display: grid;
+      grid-template-columns: minmax(9rem, 0.7fr) minmax(16rem, 1.5fr) minmax(7rem, 0.5fr);
+      inline-size: 100%;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      border: 0;
+      background: rgb(43 5 22 / 28%);
+      color: var(--color-text);
+      text-align: start;
+    }
+    button[aria-pressed='true'] { background: rgb(255 157 0 / 14%); box-shadow: inset 3px 0 var(--color-primary); }
+    button > span { min-inline-size: 0; }
+    strong { display: block; overflow: hidden; font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
+    small { display: block; margin-block-start: var(--space-1); color: var(--color-muted); font-size: 0.7rem; text-transform: uppercase; }
+    time { color: var(--color-muted); font-size: 0.75rem; }
+    .communications-ledger__columns { color: var(--color-muted); font-size: 0.7rem; text-transform: uppercase; }
+  }
+
+  .communications-ledger__preview {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .communications-ledger__empty {
+    display: grid;
+    place-items: center;
+    color: var(--color-muted);
+  }
+
+  .communication-detail {
+    min-block-size: 0;
+    overflow-y: auto;
+    padding: var(--space-4);
+
+    header { border-block-end: 1px solid var(--color-border); padding-block-end: var(--space-3); }
+    header > span { color: var(--color-secondary); font-size: 0.7rem; text-transform: uppercase; }
+    h2 { margin-block: var(--space-1); color: var(--color-text); font-size: 1.35rem; font-weight: 400; }
+    time { color: var(--color-muted); font-size: 0.75rem; }
+    p { line-height: 1.55; }
+    dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-2) var(--space-4); border-block-start: 1px solid var(--color-border); padding-block-start: var(--space-3); }
+    dt { color: var(--color-muted); }
+    dd { margin: 0; }
+    details { margin-block-start: var(--space-4); color: var(--color-muted); }
+    code { display: block; margin-block-start: var(--space-2); overflow-wrap: anywhere; color: var(--color-text); }
+  }
+
+  @media (max-width: 58rem) {
+    .communications-ledger__body { grid-template-columns: minmax(0, 1fr); }
+    .communications-ledger__index { border-inline-end: 0; }
+    .communication-detail { display: none; }
+  }
+
   .galnet-news {
     display: grid;
     grid-template-columns: minmax(15rem, 0.7fr) minmax(24rem, 1.8fr);
