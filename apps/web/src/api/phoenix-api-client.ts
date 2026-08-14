@@ -35,6 +35,7 @@ import {
   MacroLibrarySchema,
   MacroPlaybackSchema,
   MacroRecordingSchema,
+  MissionsResponseSchema,
   PhoenixModulesSchema,
   GameActionCatalogResponseSchema,
   GameActionResultSchema,
@@ -84,6 +85,7 @@ import {
   type MacroLibrary,
   type MacroPlayback,
   type MacroRecording,
+  type MissionsResponse,
   type PhoenixModules,
   type GameActionResult,
   type GameActionOperation,
@@ -109,6 +111,7 @@ export interface PhoenixApi {
   getCopilotHistory(conversationId: string): Promise<CopilotHistoryResponse>
   getCopilotProfiles(): Promise<CopilotProfilesResponse>
   getGalnetNews(limit?: number): Promise<GalnetNewsResponse>
+  getMissions(): Promise<MissionsResponse>
   getCopilotProfile(profileId: string): Promise<CopilotProfileDocument>
   createCopilotProfile(input: CopilotProfileWriteRequest): Promise<CopilotProfileDocument>
   updateCopilotProfile(profileId: string, input: CopilotProfileWriteRequest): Promise<CopilotProfileDocument>
@@ -483,6 +486,14 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return GalnetNewsResponseSchema.parse(await response.json())
+  }
+
+  public async getMissions (): Promise<MissionsResponse> {
+    const response = await this.request(`${this.baseUrl}/api/operations/missions`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return MissionsResponseSchema.parse(await response.json())
   }
 
   public async selectCopilotProfile (profileId: string): Promise<CopilotProfilesResponse> {

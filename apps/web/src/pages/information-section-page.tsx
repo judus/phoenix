@@ -1,13 +1,18 @@
 import type {
+  ActivityLogEntry,
   GalnetArticle,
   GalnetNewsResponse,
   GameActionCatalogResponse,
   GameActionOperation,
   GameActionResult,
-  HealthResponse
+  HealthResponse,
+  Mission,
+  MissionsResponse
 } from '@phoenix/contracts'
+import { ActivityLogEntrySchema } from '@phoenix/contracts'
 import { useEffect, useState } from 'react'
 import type { PhoenixApiClient } from '../api/phoenix-api-client.js'
+import { subscribePhoenixEvent } from '../api/phoenix-event-stream.js'
 import { GalnetRadioControls } from '../components/galnet-radio-controls.js'
 import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
@@ -84,6 +89,8 @@ export function InformationSectionPage ({
         <PageContent>
           {route.section === 'comms' && route.view === 'galnet'
             ? <GalnetNews api={api} />
+            : route.section === 'operations' && route.view === 'missions'
+            ? <Missions api={api} />
             : route.section === 'comms' && route.view === 'radio'
             ? (
                 <section className="information-surface information-surface--radio">
@@ -101,6 +108,118 @@ export function InformationSectionPage ({
       </Page>
     </PhoenixShell>
   )
+}
+
+function Missions ({ api }: { api: PhoenixApiClient }) {
+  const [response, setResponse] = useState<MissionsResponse>()
+  const [selectedId, setSelectedId] = useState<number>()
+  const [filter, setFilter] = useState<'active' | 'history' | 'all'>('active')
+  const [error, setError] = useState<string>()
+
+  useEffect(() => {
+    let active = true
+    const refresh = (): void => {
+      void api.getMissions().then(result => {
+        if (!active) return
+        setError(undefined)
+        setResponse(result)
+        setSelectedId(current => current && result.missions.some(mission => mission.id === current)
+          ? current
+          : result.missions.find(mission => mission.status === 'active')?.id ?? result.missions[0]?.id)
+      }).catch(cause => {
+        if (active) setError(cause instanceof Error ? cause.message : 'Mission records are unavailable.')
+      })
+    }
+    refresh()
+    const unsubscribe = subscribePhoenixEvent(api, 'activity-entry', event => {
+      try {
+        const entry = ActivityLogEntrySchema.parse(JSON.parse(event.data))
+        if (isMissionActivity(entry)) refresh()
+      } catch (cause) {
+        if (active) setError(cause instanceof Error ? cause.message : 'Invalid mission update received.')
+      }
+    })
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [api])
+
+  if (error) return <section className="information-surface information-surface--empty"><strong>Missions unavailable</strong><p>{error}</p></section>
+  if (!response) return <section className="information-surface information-surface--empty"><strong>Reconstructing missions</strong><p>Reading durable journal-backed mission records.</p></section>
+  const visible = response.missions.filter(mission => filter === 'all' || (filter === 'active' ? mission.status === 'active' : mission.status !== 'active'))
+  const selected = visible.find(mission => mission.id === selectedId) ?? visible[0]
+
+  return (
+    <section className="missions-ledger">
+      <header className="missions-ledger__summary">
+        <button type="button" aria-pressed={filter === 'active'} onClick={() => setFilter('active')}><span>Active</span><strong>{response.summary.active}</strong></button>
+        <button type="button" aria-pressed={filter === 'history'} onClick={() => setFilter('history')}><span>History</span><strong>{response.summary.completed + response.summary.failed + response.summary.abandoned + response.summary.unknown}</strong></button>
+        <button type="button" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}><span>All retained</span><strong>{response.summary.total}</strong></button>
+        <span className="missions-ledger__partial">{response.summary.partial} incomplete</span>
+      </header>
+      {visible.length === 0
+        ? <div className="missions-ledger__empty">No {filter === 'all' ? '' : `${filter} `}missions retained.</div>
+        : (
+            <div className="missions-ledger__body">
+              <ol className="missions-ledger__index">
+                <li className="missions-ledger__columns"><span>Mission</span><span>Destination</span><span>Status</span></li>
+                {visible.map(mission => (
+                  <li key={mission.id}>
+                    <button type="button" aria-pressed={mission.id === selected?.id} onClick={() => setSelectedId(mission.id)}>
+                      <span><strong>{missionTitle(mission)}</strong><small>{mission.faction ?? `Mission ${mission.id}`}</small></span>
+                      <span>{mission.destinationSystem ?? '—'}<small>{mission.destinationStation ?? mission.destinationSettlement ?? ''}</small></span>
+                      <span className={`mission-status mission-status--${mission.status}`}>{mission.status}<small>{mission.provenance.details === 'partial' ? 'Incomplete details' : mission.expiry ?? ''}</small></span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+              {selected ? <MissionDetail mission={selected} /> : null}
+            </div>
+          )}
+    </section>
+  )
+}
+
+const missionJournalEvents = new Set([
+  'CargoDepot',
+  'MissionAbandoned',
+  'MissionAccepted',
+  'MissionCompleted',
+  'MissionFailed',
+  'MissionRedirected',
+  'Missions'
+])
+
+function isMissionActivity (entry: ActivityLogEntry): boolean {
+  return entry.source === 'journal' && missionJournalEvents.has(entry.event)
+}
+
+function MissionDetail ({ mission }: { mission: Mission }) {
+  const progress = mission.progress.required === null ? null : `${mission.progress.delivered ?? 0} / ${mission.progress.required}`
+  return (
+    <article className="mission-detail">
+      <header><span>Mission {mission.id}</span><h2>{missionTitle(mission)}</h2><strong className={`mission-status mission-status--${mission.status}`}>{mission.status}</strong></header>
+      {mission.provenance.details === 'partial' ? <p className="mission-detail__notice">Acceptance detail was not observed. This record is intentionally incomplete.</p> : null}
+      <dl>
+        <dt>Faction</dt><dd>{mission.faction ?? '—'}</dd>
+        <dt>Destination</dt><dd>{[mission.destinationSystem, mission.destinationStation ?? mission.destinationSettlement].filter(Boolean).join(' / ') || '—'}</dd>
+        <dt>Target</dt><dd>{[mission.target, mission.targetType, mission.targetFaction].filter(Boolean).join(' / ') || '—'}</dd>
+        <dt>Cargo</dt><dd>{mission.commodity ? `${mission.commodity}${mission.commodityCount === null ? '' : ` × ${mission.commodityCount}`}` : '—'}</dd>
+        <dt>Delivery progress</dt><dd>{progress ?? '—'}</dd>
+        <dt>Required kills</dt><dd>{mission.killCount ?? '—'}</dd>
+        <dt>Donation</dt><dd>{mission.donation === null ? '—' : `${mission.donation.toLocaleString()} CR${mission.donated === null ? '' : ` · ${mission.donated.toLocaleString()} donated`}`}</dd>
+        <dt>Reward</dt><dd>{mission.reward === null ? '—' : `${mission.reward.toLocaleString()} CR`}</dd>
+        <dt>Accepted</dt><dd>{mission.acceptedAt ? new Date(mission.acceptedAt).toLocaleString() : 'Not observed'}</dd>
+        <dt>Expiry</dt><dd>{mission.expiry ?? '—'}</dd>
+      </dl>
+      <footer>{mission.provenance.sources.join(' · ')}</footer>
+    </article>
+  )
+}
+
+function missionTitle (mission: Mission): string {
+  return mission.localizedName ?? mission.name?.replace(/^Mission_/u, '').replace(/_name$/u, '').replaceAll('_', ' ') ?? `Mission ${mission.id}`
 }
 
 function GalnetNews ({ api }: { api: PhoenixApiClient }) {

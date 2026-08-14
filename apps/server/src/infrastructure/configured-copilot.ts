@@ -13,6 +13,8 @@ import { CopilotProfileService, type CopilotProfiles } from '../application/copi
 import { CopilotRealtimeService, type CopilotRealtime } from '../application/copilot-realtime-service.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type { SystemSettingsRepository } from '../domain/system-configuration.js'
+import type { MissionDataReader } from '../domain/missions.js'
+import { MissionRuntimeContext } from '../application/mission-runtime-context.js'
 import { readCopilotAudioProcessing } from './copilot-audio-config.js'
 import { JsonConversationStore } from './json-conversation-store.js'
 import { OpenAiRealtimeClient } from './openai-realtime-client.js'
@@ -33,6 +35,7 @@ export interface ConfiguredCopilotOptions {
   mcpUrl?: string
   mcpToken?: string
   model?: string
+  missions: MissionDataReader
   runtimeState: RuntimeStateReader
   systemSettings: SystemSettingsRepository
   timeoutMs?: number
@@ -91,7 +94,7 @@ export function createConfiguredCopilot (
   )
   const prompts = new AgentPromptComposer(profiles)
   const profileService = new CopilotProfileService(profiles, options.systemSettings)
-  const runtimeContext = new RuntimeContextRenderer()
+  const runtimeContext = new RuntimeContextRenderer([new MissionRuntimeContext(options.missions)])
   const clients: CopilotAiClientFactory = {
     create: (instructions: string): AiClient => createAiClient({
       history: {

@@ -30,6 +30,8 @@ test('SQLite persists journal backfill checkpoints', () => {
       fileSize: 8192,
       updatedAt: '2026-08-11T12:00:00.000Z'
     })
+    database.initialize()
+    expect(database.getJournalCheckpoint('/journals/Journal.test.log')).not.toBeNull()
   } finally {
     database.close()
   }

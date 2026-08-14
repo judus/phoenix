@@ -234,6 +234,34 @@ test('historical journal backfill runs after startup without replacing live runt
   }
 })
 
+test('mission history and startup snapshot feed the durable Operations API', async () => {
+  const eliteDirectory = mkdtempSync(join(tmpdir(), 'phoenix-mission-integration-'))
+  writeFileSync(join(eliteDirectory, 'Journal.2026-08-14T120000.01.log'), [
+    '{"timestamp":"2026-08-14T12:00:00Z","event":"MissionAccepted","MissionID":42,"LocalisedName":"Deliver medicines","Faction":"Rescue Wing","DestinationSystem":"Sol","DestinationStation":"Galileo","Commodity":"$BasicMedicines_Name;","Count":12,"Reward":90000}',
+    ''
+  ].join('\n'))
+  writeFileSync(join(eliteDirectory, 'Journal.2026-08-15T120000.01.log'), [
+    '{"timestamp":"2026-08-15T12:00:00Z","event":"Missions","Active":[{"MissionID":42,"Name":"Mission_Delivery_name"},{"MissionID":77,"Name":"Mission_Courier_name"}],"Failed":[],"Complete":[]}',
+    ''
+  ].join('\n'))
+  const application = new PhoenixApplication({ databasePath: ':memory:', eliteDirectory, host: '127.0.0.1', port: 0 })
+
+  try {
+    const address = await application.start()
+    const client = new PhoenixApiClient(`http://${address.host}:${address.port}`)
+    await waitFor(async () => (await client.getEliteJournalDiagnostics()).backfill?.status === 'complete')
+    const response = await client.getMissions()
+    expect(response.summary).toMatchObject({ active: 2, partial: 1, total: 2 })
+    expect(response.missions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 42, localizedName: 'Deliver medicines', status: 'active', provenance: expect.objectContaining({ details: 'complete' }) }),
+      expect.objectContaining({ id: 77, status: 'active', provenance: expect.objectContaining({ details: 'partial' }) })
+    ]))
+  } finally {
+    await application.stop()
+    rmSync(eliteDirectory, { recursive: true, force: true })
+  }
+})
+
 async function waitFor (predicate: () => Promise<boolean>): Promise<void> {
   const deadline = Date.now() + 2_000
   while (Date.now() < deadline) {

@@ -31,7 +31,13 @@ const LIVE_FLAGS = [
   'overheating', 'scoopingFuel', 'shieldsUp', 'silentRunning', 'supercruise'
 ] as const
 
+export interface RuntimeContextSupplement {
+  render(): string
+}
+
 export class RuntimeContextRenderer {
+  public constructor (private readonly supplements: readonly RuntimeContextSupplement[] = []) {}
+
   public render (state: RuntimeState): string {
     const sections = [
       '## Runtime Context',
@@ -47,6 +53,10 @@ export class RuntimeContextRenderer {
     addSection(sections, 'Current Ship', shipLines(state))
     addSection(sections, 'Current Status', statusLines(state))
     addOutfitting(sections, state.ship.modules)
+    for (const supplement of this.supplements) {
+      const rendered = supplement.render().trim()
+      if (rendered) sections.push('', rendered)
+    }
     return sections.join('\n')
   }
 }

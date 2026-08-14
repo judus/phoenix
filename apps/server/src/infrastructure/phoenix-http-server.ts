@@ -55,6 +55,7 @@ import type { SystemSettingsRepository } from '../domain/system-configuration.js
 import type { CommandCatalogueSnapshots } from '../domain/commands.js'
 import type { NumpadCommands } from '../domain/numpad.js'
 import type { Macros } from '../domain/macros.js'
+import type { MissionDataReader } from '../domain/missions.js'
 import type { PhoenixMcpServer } from './phoenix-mcp-server.js'
 import { PairingAttemptLimitError, type PairingAccessController } from './pairing-access-controller.js'
 
@@ -97,6 +98,7 @@ export interface PhoenixHttpServerOptions {
   displayCommands: Subscribable<DisplayCommand>
   mcpServer: PhoenixMcpServer
   macros: Macros
+  missions: MissionDataReader
   navigationData: NavigationDataReader
   numpad: NumpadCommands
   port: number
@@ -253,6 +255,11 @@ export class PhoenixHttpServer {
       this.writeJson(response, 200, await this.options.galnet.getLatest(
         Number.isSafeInteger(requestedLimit) ? requestedLimit : 40
       ))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/operations/missions') {
+      this.writeJson(response, 200, this.options.missions.getMissions())
       return
     }
 

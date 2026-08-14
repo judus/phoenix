@@ -8,9 +8,11 @@ import type {
 import {
   ActivityLogEntrySchema,
   CartographicSystemSchema,
+  MissionSchema,
   type ActivityLogEntry,
   type CartographicSystem,
-  type DatabaseHealth
+  type DatabaseHealth,
+  type Mission
 } from '@phoenix/contracts'
 import type { CartographyCache } from '../domain/cartography.js'
 import type { CartographyObservationStore, LocalSystemCartographyObservation } from '../domain/cartography.js'
@@ -21,8 +23,9 @@ import type {
   BiologicalCompletionOverrideRepository
 } from '../domain/exploration.js'
 import type { ProviderCacheEntry, ProviderResponseCache } from '../domain/station-market.js'
+import type { MissionRepository } from '../domain/missions.js'
 
-export class SqliteDatabase implements Database, CartographyCache, CartographyObservationStore, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore {
+export class SqliteDatabase implements Database, CartographyCache, CartographyObservationStore, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository {
   private readonly connection: DatabaseSync
 
   public constructor (path: string) {
@@ -102,6 +105,17 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
         updated_at TEXT NOT NULL
       ) STRICT;
 
+      CREATE TABLE IF NOT EXISTS missions (
+        mission_id INTEGER PRIMARY KEY,
+        status TEXT NOT NULL,
+        status_updated_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        document TEXT NOT NULL
+      ) STRICT;
+
+      CREATE INDEX IF NOT EXISTS missions_status_updated_at
+      ON missions (status, status_updated_at DESC);
+
       INSERT OR IGNORE INTO schema_migrations (version, applied_at)
       VALUES (2, datetime('now'));
 
@@ -116,7 +130,15 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
 
       INSERT OR IGNORE INTO schema_migrations (version, applied_at)
       VALUES (6, datetime('now'));
+
     `)
+    const missionMigration = this.connection.prepare(`
+      INSERT OR IGNORE INTO schema_migrations (version, applied_at)
+      VALUES (7, datetime('now'))
+    `).run()
+    if (missionMigration.changes > 0) {
+      this.connection.exec('DELETE FROM elite_journal_checkpoints;')
+    }
   }
 
   public getSystem (systemName: string): CartographicSystem | null {
@@ -269,6 +291,43 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
       checkpoint.byteOffset,
       checkpoint.fileSize,
       checkpoint.updatedAt
+    )
+  }
+
+  public getMission (id: number): Mission | null {
+    const row = this.connection.prepare(`
+      SELECT document
+      FROM missions
+      WHERE mission_id = ?
+    `).get(id) as { document: string } | undefined
+    return row ? MissionSchema.parse(JSON.parse(row.document)) : null
+  }
+
+  public listMissions (): Mission[] {
+    const rows = this.connection.prepare(`
+      SELECT document
+      FROM missions
+      ORDER BY CASE status WHEN 'active' THEN 0 ELSE 1 END, updated_at DESC, mission_id DESC
+    `).all() as Array<{ document: string }>
+    return rows.map(row => MissionSchema.parse(JSON.parse(row.document)))
+  }
+
+  public putMission (mission: Mission): void {
+    const validated = MissionSchema.parse(mission)
+    this.connection.prepare(`
+      INSERT INTO missions (mission_id, status, status_updated_at, updated_at, document)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(mission_id) DO UPDATE SET
+        status = excluded.status,
+        status_updated_at = excluded.status_updated_at,
+        updated_at = excluded.updated_at,
+        document = excluded.document
+    `).run(
+      validated.id,
+      validated.status,
+      validated.statusUpdatedAt,
+      validated.updatedAt,
+      JSON.stringify(validated)
     )
   }
 

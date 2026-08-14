@@ -45,6 +45,7 @@ import { ExplorationDataService } from './application/exploration-data-service.j
 import { DefaultCommanderEngineersQuery } from './application/default-commander-engineers-query.js'
 import { DefaultStationMarketQuery } from './application/default-station-market-query.js'
 import { GalnetNewsService } from './application/galnet-news-service.js'
+import { MissionDataService } from './application/mission-data-service.js'
 import { DefaultExplorationBodyQuery } from './application/default-exploration-body-query.js'
 import type { CopilotText } from './application/copilot-text-service.js'
 import type { CopilotRealtime } from './application/copilot-realtime-service.js'
@@ -139,6 +140,7 @@ export class PhoenixApplication {
       )
     )
     const activityLog = new ActivityLogService(this.database)
+    const missions = new MissionDataService(this.database)
     const engineeringCatalogueDirectory = resolveProjectPath(
       projectRoot,
       options.engineeringCatalogueDirectory ?? process.env.PHOENIX_ENGINEERING_CATALOGUE_PATH ?? resolve(paths.resources.catalogue, 'engineering')
@@ -205,6 +207,7 @@ export class PhoenixApplication {
       event => {
         journalIngestion.ingest(event)
         cartographyObservationIngestion.ingest(event)
+        missions.ingest(event, 'live-journal')
         activityLog.ingestJournal(event)
       }
     )
@@ -213,6 +216,7 @@ export class PhoenixApplication {
       event => {
         historicalJournalIngestion.ingest(event)
         historicalCartographyIngestion.ingest(event)
+        missions.ingest(event, 'historical-journal')
         activityLog.ingestJournal(event, 'historical')
       },
       this.database
@@ -303,6 +307,7 @@ export class PhoenixApplication {
       gameCatalogue,
       navigation,
       markets: stationMarkets,
+      missions,
       runtimeState: this.stateStore,
       statefulActions,
       stations: stationMarkets,
@@ -314,6 +319,7 @@ export class PhoenixApplication {
           ...(port > 0 ? { mcpUrl: `http://127.0.0.1:${port}/mcp` } : {}),
           ...(options.accessControl ? { mcpToken: options.accessControl.bearerToken } : {}),
           runtimeState: this.stateStore,
+          missions,
           systemSettings,
           tools: toolRegistry
         })
@@ -349,6 +355,7 @@ export class PhoenixApplication {
       activityLog,
       mcpServer,
       macros,
+      missions,
       port,
       runtimeState: this.stateStore,
       runtimeStateUpdates,
