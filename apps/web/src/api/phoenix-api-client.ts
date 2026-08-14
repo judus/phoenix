@@ -10,6 +10,8 @@ import {
   CopilotConversationEventSchema,
   CopilotHistoryResponseSchema,
   CopilotProfileSelectionRequestSchema,
+  CopilotProfileDocumentSchema,
+  CopilotProfileWriteRequestSchema,
   CopilotProfilesResponseSchema,
   CopilotRealtimeTokenRequestSchema,
   CopilotRealtimeTokenResponseSchema,
@@ -55,6 +57,8 @@ import {
   type CopilotConversationEvent,
   type CopilotHistoryResponse,
   type CopilotProfilesResponse,
+  type CopilotProfileDocument,
+  type CopilotProfileWriteRequest,
   type CopilotRealtimeTokenRequest,
   type CopilotRealtimeTokenResponse,
   type CopilotRealtimeToolRequest,
@@ -102,6 +106,9 @@ export interface PhoenixApi {
   getControlLayout(): Promise<ControlGridLayout>
   getCopilotHistory(conversationId: string): Promise<CopilotHistoryResponse>
   getCopilotProfiles(): Promise<CopilotProfilesResponse>
+  getCopilotProfile(profileId: string): Promise<CopilotProfileDocument>
+  createCopilotProfile(input: CopilotProfileWriteRequest): Promise<CopilotProfileDocument>
+  updateCopilotProfile(profileId: string, input: CopilotProfileWriteRequest): Promise<CopilotProfileDocument>
   selectCopilotProfile(profileId: string): Promise<CopilotProfilesResponse>
   executeDeveloperAction(actionId: string): Promise<GameActionResult>
   executeAction(actionId: string, operation?: GameActionOperation): Promise<GameActionResult>
@@ -475,6 +482,37 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return CopilotProfilesResponseSchema.parse(await response.json())
+  }
+
+  public async getCopilotProfile (profileId: string): Promise<CopilotProfileDocument> {
+    const response = await this.request(`${this.baseUrl}/api/copilot/profiles/${encodeURIComponent(profileId)}`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return CopilotProfileDocumentSchema.parse(await response.json())
+  }
+
+  public async createCopilotProfile (input: CopilotProfileWriteRequest): Promise<CopilotProfileDocument> {
+    const response = await this.request(`${this.baseUrl}/api/copilot/profiles`, {
+      body: JSON.stringify(CopilotProfileWriteRequestSchema.parse(input)),
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      method: 'POST'
+    })
+    if (!response.ok) throw await apiError(response)
+    return CopilotProfileDocumentSchema.parse(await response.json())
+  }
+
+  public async updateCopilotProfile (
+    profileId: string,
+    input: CopilotProfileWriteRequest
+  ): Promise<CopilotProfileDocument> {
+    const response = await this.request(`${this.baseUrl}/api/copilot/profiles/${encodeURIComponent(profileId)}`, {
+      body: JSON.stringify(CopilotProfileWriteRequestSchema.parse(input)),
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      method: 'PUT'
+    })
+    if (!response.ok) throw await apiError(response)
+    return CopilotProfileDocumentSchema.parse(await response.json())
   }
 
   public async getCopilotVoiceHost (): Promise<CopilotVoiceHostSnapshot> {

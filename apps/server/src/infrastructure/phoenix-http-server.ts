@@ -12,6 +12,7 @@ import {
   ExecuteCommandRequestSchema,
   CopilotChatRequestSchema,
   CopilotProfileSelectionRequestSchema,
+  CopilotProfileWriteRequestSchema,
   CopilotConversationEventSchema,
   CopilotVoiceHostDesiredStateRequestSchema,
   CopilotVoiceHostHeartbeatSchema,
@@ -384,6 +385,48 @@ export class PhoenixHttpServer {
       try {
         const input = CopilotProfileSelectionRequestSchema.parse(await readJsonBody(request))
         this.writeJson(response, 200, this.options.copilotProfiles.select(input.profileId))
+      } catch (cause) {
+        this.writeJson(response, 400, { error: { code: 'invalid_copilot_profile', message: errorMessage(cause) } })
+      }
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/copilot/profiles') {
+      if (!this.options.copilotProfiles) {
+        this.writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot is not configured.' } })
+        return
+      }
+      try {
+        const input = CopilotProfileWriteRequestSchema.parse(await readJsonBody(request))
+        this.writeJson(response, 201, this.options.copilotProfiles.create(input))
+      } catch (cause) {
+        this.writeJson(response, 400, { error: { code: 'invalid_copilot_profile', message: errorMessage(cause) } })
+      }
+      return
+    }
+
+    const copilotProfileMatch = url.pathname.match(/^\/api\/copilot\/profiles\/([a-z][a-z0-9_-]*)$/u)
+    if (request.method === 'GET' && copilotProfileMatch) {
+      if (!this.options.copilotProfiles) {
+        this.writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot is not configured.' } })
+        return
+      }
+      try {
+        this.writeJson(response, 200, this.options.copilotProfiles.getDocument(copilotProfileMatch[1]!))
+      } catch (cause) {
+        this.writeJson(response, 404, { error: { code: 'copilot_profile_not_found', message: errorMessage(cause) } })
+      }
+      return
+    }
+
+    if (request.method === 'PUT' && copilotProfileMatch) {
+      if (!this.options.copilotProfiles) {
+        this.writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot is not configured.' } })
+        return
+      }
+      try {
+        const input = CopilotProfileWriteRequestSchema.parse(await readJsonBody(request))
+        this.writeJson(response, 200, this.options.copilotProfiles.update(copilotProfileMatch[1]!, input))
       } catch (cause) {
         this.writeJson(response, 400, { error: { code: 'invalid_copilot_profile', message: errorMessage(cause) } })
       }

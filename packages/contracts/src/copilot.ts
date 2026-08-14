@@ -19,9 +19,21 @@ export const CopilotProfileSelectionRequestSchema = z.object({
   profileId: CopilotProfileSchema.shape.id
 }).strict()
 
+export const CopilotProfileDocumentSchema = z.object({
+  characterSpeech: NonEmptyTextSchema,
+  characterText: NonEmptyTextSchema,
+  profile: CopilotProfileSchema
+}).strict()
+
+export const CopilotProfileWriteRequestSchema = CopilotProfileDocumentSchema.extend({
+  templateProfileId: CopilotProfileSchema.shape.id.optional()
+}).strict()
+
 export type CopilotProfile = z.infer<typeof CopilotProfileSchema>
 export type CopilotProfilesResponse = z.infer<typeof CopilotProfilesResponseSchema>
 export type CopilotProfileSelectionRequest = z.infer<typeof CopilotProfileSelectionRequestSchema>
+export type CopilotProfileDocument = z.infer<typeof CopilotProfileDocumentSchema>
+export type CopilotProfileWriteRequest = z.infer<typeof CopilotProfileWriteRequestSchema>
 
 export const CopilotChatRequestSchema = z.object({
   clientId: NonEmptyTextSchema.optional(),

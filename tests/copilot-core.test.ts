@@ -1,5 +1,7 @@
 import { expect, test } from 'vitest'
-import { resolve } from 'node:path'
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
 import type { AiResult, AiStreamEvent } from '@judus/llm-client'
 import {
@@ -69,6 +71,54 @@ test('tracked agent profile files compose and reject unsafe profile IDs', () => 
   expect(composer.compose({ mode: 'speech', profileId: 'ash' }))
     .toContain("You are the commander's veteran shipboard copilot.")
   expect(() => repository.get('../marin')).toThrow('Invalid agent profile ID')
+})
+
+test('file-backed profile editing preserves protected prompt scaffolding', () => {
+  const profilesDirectory = mkdtempSync(join(tmpdir(), 'phoenix-profiles-'))
+  const templateDirectory = join(profilesDirectory, 'template')
+  mkdirSync(templateDirectory)
+  const protectedFiles = {
+    'agent.md': '{{ PROLOGUE }}\n{{ OPERATIONAL }}\n{{ CHARACTER }}',
+    'operational.md': 'PROTECTED OPERATIONS',
+    'prologue.md': 'PROTECTED PROLOGUE',
+    'audio.json': '{"enabled":false}'
+  }
+  for (const [filename, content] of Object.entries(protectedFiles)) {
+    writeFileSync(join(templateDirectory, filename), content)
+  }
+  writeFileSync(join(templateDirectory, 'character.text.md'), 'TEMPLATE TEXT')
+  writeFileSync(join(templateDirectory, 'character.speech.md'), 'TEMPLATE SPEECH')
+  writeFileSync(join(templateDirectory, 'profile.json'), JSON.stringify({
+    description: 'Template', id: 'template', mark: 'T', name: 'Template', voice: 'marin'
+  }))
+
+  try {
+    const repository = new FileAgentProfileRepository(profilesDirectory)
+    const created = repository.create({
+      characterSpeech: 'CREATED SPEECH',
+      characterText: 'CREATED TEXT',
+      descriptor: { description: 'Created', id: 'created', mark: 'C', name: 'Created', voice: 'ash' }
+    }, 'template')
+    expect(created.characterText).toBe('CREATED TEXT')
+    expect(readFileSync(join(profilesDirectory, 'created', 'operational.md'), 'utf8')).toBe('PROTECTED OPERATIONS')
+
+    repository.update({
+      ...created,
+      characterSpeech: 'UPDATED SPEECH',
+      characterText: 'UPDATED TEXT',
+      descriptor: { ...created.descriptor, name: 'Updated' }
+    })
+    expect(repository.getEditable('created')).toMatchObject({
+      characterSpeech: 'UPDATED SPEECH',
+      characterText: 'UPDATED TEXT',
+      descriptor: { id: 'created', name: 'Updated' }
+    })
+    expect(readFileSync(join(profilesDirectory, 'created', 'agent.md'), 'utf8')).toBe(protectedFiles['agent.md'])
+    expect(readFileSync(join(profilesDirectory, 'created', 'operational.md'), 'utf8')).toBe(protectedFiles['operational.md'])
+    expect(() => repository.create(created, 'template')).toThrow('already exists')
+  } finally {
+    rmSync(profilesDirectory, { force: true, recursive: true })
+  }
 })
 
 test('runtime context renders typed PHOENIX state without legacy compatibility shapes', () => {

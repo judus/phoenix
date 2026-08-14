@@ -90,6 +90,115 @@
     }
   }
 
+  .copilot-profile-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-block-start: var(--space-3);
+
+    button {
+      min-inline-size: 0;
+      padding: var(--space-2);
+      border: 1px solid var(--color-border);
+      color: var(--color-primary);
+      background: transparent;
+      text-transform: uppercase;
+
+      & + button {
+        border-inline-start: 0;
+      }
+    }
+  }
+
+  .copilot-profile-editor {
+    min-inline-size: 0;
+    min-block-size: 0;
+    overflow-y: auto;
+    padding: var(--space-3);
+    border: 1px solid var(--color-border);
+    background: var(--color-panel);
+
+    header,
+    footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+    }
+
+    header {
+      padding-block-end: var(--space-3);
+      border-block-end: 1px solid var(--color-border);
+
+      span {
+        color: var(--color-primary);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+      }
+
+      h2 {
+        margin-block-start: var(--space-1);
+        font-size: 1.25rem;
+        font-weight: 400;
+      }
+    }
+
+    label {
+      display: grid;
+      gap: var(--space-1);
+      margin-block-start: var(--space-3);
+      color: var(--color-primary);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+    }
+
+    input,
+    textarea {
+      min-inline-size: 0;
+      padding: var(--space-2);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      background: rgb(0 0 0 / 35%);
+      font: inherit;
+      text-transform: none;
+    }
+
+    input:disabled {
+      color: var(--color-muted);
+      opacity: 0.75;
+    }
+
+    textarea {
+      min-block-size: 9rem;
+      resize: vertical;
+      line-height: 1.4;
+    }
+
+    button {
+      padding: var(--space-2) var(--space-3);
+      border: 1px solid var(--color-primary);
+      color: var(--color-primary);
+      background: transparent;
+      text-transform: uppercase;
+    }
+
+    footer {
+      margin-block-start: var(--space-3);
+      padding-block-start: var(--space-3);
+      border-block-start: 1px solid var(--color-border);
+
+      span {
+        color: var(--color-muted);
+        font-size: 0.75rem;
+      }
+    }
+  }
+
+  .copilot-profile-editor__metadata {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-2);
+  }
+
   .copilot-chat {
     display: grid;
     grid-template-rows: minmax(0, 1fr) auto auto auto;
@@ -363,6 +472,10 @@
 
     .copilot-sidebar {
       display: none;
+    }
+
+    .copilot-profile-editor__metadata {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 }

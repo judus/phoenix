@@ -1,15 +1,22 @@
 import {
   CopilotProfileSelectionRequestSchema,
+  CopilotProfileDocumentSchema,
+  CopilotProfileWriteRequestSchema,
   CopilotProfilesResponseSchema,
+  type CopilotProfileDocument,
+  type CopilotProfileWriteRequest,
   type CopilotProfilesResponse
 } from '@phoenix/contracts'
-import type { AgentProfileCatalog } from '@phoenix/copilot'
+import type { AgentProfileEditor } from '@phoenix/copilot'
 import type { SystemSettingsRepository } from '../domain/system-configuration.js'
 import type { Unsubscribe } from '../domain/publisher.js'
 
 export interface CopilotProfiles {
   activeProfileId(): string
   get(): CopilotProfilesResponse
+  getDocument(profileId: string): CopilotProfileDocument
+  create(input: CopilotProfileWriteRequest): CopilotProfileDocument
+  update(profileId: string, input: CopilotProfileWriteRequest): CopilotProfileDocument
   select(profileId: string): CopilotProfilesResponse
   subscribe(listener: (profiles: CopilotProfilesResponse) => void): Unsubscribe
 }
@@ -17,7 +24,7 @@ export interface CopilotProfiles {
 export class CopilotProfileService implements CopilotProfiles {
   private readonly listeners = new Set<(profiles: CopilotProfilesResponse) => void>()
   public constructor (
-    private readonly profiles: AgentProfileCatalog,
+    private readonly profiles: AgentProfileEditor,
     private readonly settings: SystemSettingsRepository
   ) {}
 
@@ -43,12 +50,57 @@ export class CopilotProfileService implements CopilotProfiles {
     const settings = this.settings.loadOrCreate()
     this.settings.save({ ...settings, copilot: { activeProfileId: selected } })
     const result = this.get()
-    for (const listener of this.listeners) listener(result)
+    this.publish(result)
     return result
+  }
+
+  public getDocument (profileId: string): CopilotProfileDocument {
+    const editable = this.profiles.getEditable(profileId)
+    return CopilotProfileDocumentSchema.parse({
+      characterSpeech: editable.characterSpeech,
+      characterText: editable.characterText,
+      profile: editable.descriptor
+    })
+  }
+
+  public create (candidate: CopilotProfileWriteRequest): CopilotProfileDocument {
+    const input = CopilotProfileWriteRequestSchema.parse(candidate)
+    const created = this.profiles.create({
+      characterSpeech: input.characterSpeech,
+      characterText: input.characterText,
+      descriptor: input.profile
+    }, input.templateProfileId ?? this.activeProfileId())
+    const document = CopilotProfileDocumentSchema.parse({
+      characterSpeech: created.characterSpeech,
+      characterText: created.characterText,
+      profile: created.descriptor
+    })
+    this.publish(this.get())
+    return document
+  }
+
+  public update (profileId: string, candidate: CopilotProfileWriteRequest): CopilotProfileDocument {
+    const input = CopilotProfileWriteRequestSchema.parse(candidate)
+    if (input.profile.id !== profileId) throw new Error('Copilot profile ID cannot be changed.')
+    const updated = this.profiles.update({
+      characterSpeech: input.characterSpeech,
+      characterText: input.characterText,
+      descriptor: input.profile
+    })
+    const document = CopilotProfileDocumentSchema.parse({
+      characterSpeech: updated.characterSpeech,
+      characterText: updated.characterText,
+      profile: updated.descriptor
+    })
+    this.publish(this.get())
+    return document
   }
 
   public subscribe (listener: (profiles: CopilotProfilesResponse) => void): Unsubscribe {
     this.listeners.add(listener)
     return () => this.listeners.delete(listener)
+  }
+  private publish (result: CopilotProfilesResponse): void {
+    for (const listener of this.listeners) listener(result)
   }
 }

@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 export type CopilotMode = 'speech' | 'text'
@@ -28,6 +28,18 @@ export interface AgentProfileCatalog extends AgentProfileRepository {
   list(): readonly AgentProfileDescriptor[]
 }
 
+export interface EditableAgentProfile {
+  characterSpeech: string
+  characterText: string
+  descriptor: AgentProfileDescriptor
+}
+
+export interface AgentProfileEditor extends AgentProfileCatalog {
+  create(profile: EditableAgentProfile, templateProfileId: string): EditableAgentProfile
+  getEditable(profileId: string): EditableAgentProfile
+  update(profile: EditableAgentProfile): EditableAgentProfile
+}
+
 export interface ComposeAgentPrompt {
   mode: CopilotMode
   profileId: string
@@ -53,7 +65,7 @@ export class AgentPromptComposer {
   }
 }
 
-export class FileAgentProfileRepository implements AgentProfileCatalog {
+export class FileAgentProfileRepository implements AgentProfileEditor {
   public constructor (private readonly profilesDirectory: string) {}
 
   public get (profileId: string): AgentProfile {
@@ -90,6 +102,49 @@ export class FileAgentProfileRepository implements AgentProfileCatalog {
       .map(entry => this.getDescriptor(entry.name))
       .sort((left, right) => left.name.localeCompare(right.name))
   }
+
+  public getEditable (profileId: string): EditableAgentProfile {
+    const profile = this.get(profileId)
+    return {
+      characterSpeech: profile.characterSpeech,
+      characterText: profile.characterText,
+      descriptor: this.getDescriptor(profileId)
+    }
+  }
+
+  public create (profile: EditableAgentProfile, templateProfileId: string): EditableAgentProfile {
+    validateEditable(profile)
+    validateProfileId(templateProfileId)
+    const directory = join(this.profilesDirectory, profile.descriptor.id)
+    if (existsSync(directory)) throw new Error(`Agent profile already exists: ${profile.descriptor.id}`)
+    const template = join(this.profilesDirectory, templateProfileId)
+    this.get(templateProfileId)
+    mkdirSync(directory)
+    try {
+      for (const filename of ['agent.md', 'operational.md', 'prologue.md', 'audio.json']) {
+        copyFileSync(join(template, filename), join(directory, filename))
+      }
+      this.writeEditable(profile)
+      return this.getEditable(profile.descriptor.id)
+    } catch (cause) {
+      rmSync(directory, { force: true, recursive: true })
+      throw new Error(`Unable to create agent profile: ${profile.descriptor.id}`, { cause })
+    }
+  }
+
+  public update (profile: EditableAgentProfile): EditableAgentProfile {
+    validateEditable(profile)
+    this.get(profile.descriptor.id)
+    this.writeEditable(profile)
+    return this.getEditable(profile.descriptor.id)
+  }
+
+  private writeEditable (profile: EditableAgentProfile): void {
+    const directory = join(this.profilesDirectory, profile.descriptor.id)
+    writeAtomically(join(directory, 'profile.json'), `${JSON.stringify(profile.descriptor, null, 2)}\n`)
+    writeAtomically(join(directory, 'character.text.md'), `${profile.characterText.trim()}\n`)
+    writeAtomically(join(directory, 'character.speech.md'), `${profile.characterSpeech.trim()}\n`)
+  }
 }
 
 function validateProfileId (profileId: string): void {
@@ -98,6 +153,20 @@ function validateProfileId (profileId: string): void {
 
 function isRecord (candidate: unknown): candidate is Record<string, unknown> {
   return typeof candidate === 'object' && candidate !== null && !Array.isArray(candidate)
+}
+
+function validateEditable (profile: EditableAgentProfile): void {
+  validateProfileId(profile.descriptor.id)
+  for (const value of [profile.descriptor.name, profile.descriptor.mark, profile.descriptor.voice,
+    profile.characterSpeech, profile.characterText]) {
+    if (!value.trim()) throw new Error(`Agent profile ${profile.descriptor.id} contains an empty required field.`)
+  }
+}
+
+function writeAtomically (path: string, content: string): void {
+  const temporary = `${path}.tmp`
+  writeFileSync(temporary, content, 'utf8')
+  renameSync(temporary, path)
 }
 
 function readRequired (path: string): string {

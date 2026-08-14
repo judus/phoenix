@@ -1,6 +1,7 @@
-import { memo, useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { memo, useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import {
   CopilotConversationEventSchema,
+  type CopilotProfileDocument,
   type CopilotHistoryMessage,
   type HealthResponse
 } from '@phoenix/contracts'
@@ -37,6 +38,17 @@ interface RemoteTurn {
   userText: string
 }
 
+interface ProfileDraft {
+  characterSpeech: string
+  characterText: string
+  description: string
+  id: string
+  mark: string
+  name: string
+  templateProfileId?: string
+  voice: string
+}
+
 export function CopilotPage ({ api, error, health }: CopilotPageProps) {
   const voice = useCopilotVoice()
   const [messages, setMessages] = useState<readonly CopilotHistoryMessage[]>([])
@@ -44,6 +56,8 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
   const [chatError, setChatError] = useState<string>()
   const [toolStatus, setToolStatus] = useState<string>()
   const [remoteTurns, setRemoteTurns] = useState<Record<string, RemoteTurn>>({})
+  const [profileDraft, setProfileDraft] = useState<ProfileDraft>()
+  const [profileSaving, setProfileSaving] = useState(false)
   const clientIdRef = useRef(copilotClientId())
 
   const loadHistory = async (): Promise<void> => {
@@ -149,6 +163,61 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
     }
   }, [api, pending, voice])
 
+  const editProfile = async (profileId: string): Promise<void> => {
+    try {
+      setChatError(undefined)
+      setProfileDraft(toProfileDraft(await api.getCopilotProfile(profileId)))
+    } catch (cause) {
+      setChatError(cause instanceof Error ? cause.message : 'Unable to load Copilot profile.')
+    }
+  }
+
+  const createProfile = async (): Promise<void> => {
+    try {
+      setChatError(undefined)
+      const source = await api.getCopilotProfile(voice.activeProfile.id)
+      setProfileDraft({
+        characterSpeech: source.characterSpeech,
+        characterText: source.characterText,
+        description: '',
+        id: '',
+        mark: '?',
+        name: '',
+        templateProfileId: source.profile.id,
+        voice: source.profile.voice
+      })
+    } catch (cause) {
+      setChatError(cause instanceof Error ? cause.message : 'Unable to prepare a new Copilot profile.')
+    }
+  }
+
+  const saveProfile = async (draft: ProfileDraft): Promise<void> => {
+    setProfileSaving(true)
+    setChatError(undefined)
+    try {
+      const input = {
+        characterSpeech: draft.characterSpeech,
+        characterText: draft.characterText,
+        profile: {
+          description: draft.description,
+          id: draft.id,
+          mark: draft.mark,
+          name: draft.name,
+          voice: draft.voice
+        },
+        ...(draft.templateProfileId === undefined ? {} : { templateProfileId: draft.templateProfileId })
+      }
+      const saved = draft.templateProfileId === undefined
+        ? await api.updateCopilotProfile(draft.id, input)
+        : await api.createCopilotProfile(input)
+      setProfileDraft(toProfileDraft(saved))
+    } catch (cause) {
+      setChatError(cause instanceof Error ? cause.message : 'Unable to save Copilot profile.')
+    } finally {
+      setProfileSaving(false)
+    }
+  }
+
   return (
     <PhoenixShell
       activePrimaryItemId="copilot"
@@ -176,6 +245,10 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
                   disabled={voice.connected || voice.transitioning}
                   title={profile.description}
                   onClick={() => {
+                    if (profile.id === voice.activeProfile.id) {
+                      void editProfile(profile.id)
+                      return
+                    }
                     void voice.selectProfile(profile.id).catch(cause => setChatError(
                       cause instanceof Error ? cause.message : 'Unable to change Copilot profile.'
                     ))
@@ -188,9 +261,21 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
                   </span>
                 </button>
               ))}
+              <div className="copilot-profile-actions">
+                <button type="button" onClick={() => { void editProfile(voice.activeProfile.id) }}>Edit active</button>
+                <button type="button" onClick={() => { void createProfile() }}>New profile</button>
+              </div>
             </aside>
 
-            <section className="copilot-chat" aria-label="Copilot conversation">
+            {profileDraft
+              ? <CopilotProfileEditor
+                  draft={profileDraft}
+                  saving={profileSaving}
+                  onCancel={() => setProfileDraft(undefined)}
+                  onChange={setProfileDraft}
+                  onSave={saveProfile}
+                />
+              : <section className="copilot-chat" aria-label="Copilot conversation">
               <CopilotMessageHistory
                 activeTurn={voice.activeTurn}
                 messages={messages}
@@ -209,7 +294,7 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
                 profileName={voice.activeProfile.name}
                 onSubmitText={submit}
               />
-            </section>
+                </section>}
 
             <aside className="copilot-sidebar copilot-voice" aria-label="Voice controls">
               <h2>Voice channel</h2>
@@ -253,6 +338,61 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
       </Page>
     </PhoenixShell>
   )
+}
+
+function CopilotProfileEditor ({
+  draft,
+  onCancel,
+  onChange,
+  onSave,
+  saving
+}: {
+  draft: ProfileDraft
+  onCancel: () => void
+  onChange: (draft: ProfileDraft) => void
+  onSave: (draft: ProfileDraft) => Promise<void>
+  saving: boolean
+}) {
+  const update = (field: keyof ProfileDraft) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    onChange({ ...draft, [field]: event.target.value })
+  }
+  const creating = draft.templateProfileId !== undefined
+  return (
+    <form className="copilot-profile-editor" onSubmit={event => {
+      event.preventDefault()
+      void onSave(draft)
+    }}>
+      <header>
+        <div><span>Copilot profile</span><h2>{creating ? 'Create character' : `Edit ${draft.name}`}</h2></div>
+        <button type="button" onClick={onCancel}>Return to channel</button>
+      </header>
+      <div className="copilot-profile-editor__metadata">
+        <label>Profile ID<input value={draft.id} disabled={!creating} pattern="[a-z][a-z0-9_-]*" onChange={update('id')} /></label>
+        <label>Name<input value={draft.name} maxLength={48} required onChange={update('name')} /></label>
+        <label>Mark<input value={draft.mark} maxLength={3} required onChange={update('mark')} /></label>
+        <label>Realtime voice<input value={draft.voice} required onChange={update('voice')} /></label>
+      </div>
+      <label>Description<input value={draft.description} maxLength={240} onChange={update('description')} /></label>
+      <label>Text character prompt<textarea value={draft.characterText} required onChange={update('characterText')} /></label>
+      <label>Speech character prompt<textarea value={draft.characterSpeech} required onChange={update('characterSpeech')} /></label>
+      <footer>
+        <span>Operational rules and agent composition are protected.</span>
+        <button type="submit" disabled={saving}>{saving ? 'Saving…' : creating ? 'Create profile' : 'Save profile'}</button>
+      </footer>
+    </form>
+  )
+}
+
+function toProfileDraft (document: CopilotProfileDocument): ProfileDraft {
+  return {
+    characterSpeech: document.characterSpeech,
+    characterText: document.characterText,
+    description: document.profile.description,
+    id: document.profile.id,
+    mark: document.profile.mark,
+    name: document.profile.name,
+    voice: document.profile.voice
+  }
 }
 
 interface CopilotMessageHistoryProps {
