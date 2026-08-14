@@ -42,16 +42,27 @@ export function DesktopWorkspace ({
   const controller = useRef<Deskplane | null>(null)
   const initialDesktop = useRef(activeDesktop)
   const activeDesktopRef = useRef(activeDesktop)
+  const programmaticTargetRef = useRef<WorkspaceDesktop | undefined>(undefined)
   const onNavigateRef = useRef(onNavigate)
   activeDesktopRef.current = activeDesktop
   onNavigateRef.current = onNavigate
 
   useEffect(() => {
-    void controller.current?.goTo(activeDesktop)
+    const deskplane = controller.current
+    if (!deskplane) return
+    programmaticTargetRef.current = activeDesktop
+    void deskplane.goTo(activeDesktop).finally(() => {
+      if (programmaticTargetRef.current === activeDesktop) programmaticTargetRef.current = undefined
+    })
   }, [activeDesktop])
 
   const handleSnapshotChange = (snapshot: DeskplaneSnapshot): void => {
     const desktop = snapshot.activeDesktopId
+    const programmaticTarget = programmaticTargetRef.current
+    if (programmaticTarget) {
+      if (desktop === programmaticTarget) programmaticTargetRef.current = undefined
+      return
+    }
     if (isWorkspaceDesktop(desktop) && desktop !== activeDesktopRef.current) onNavigateRef.current(desktop)
   }
 
