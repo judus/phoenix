@@ -9,6 +9,8 @@ import {
   CopilotAudioProcessingSchema,
   CopilotConversationEventSchema,
   CopilotHistoryResponseSchema,
+  CopilotProfileSelectionRequestSchema,
+  CopilotProfilesResponseSchema,
   CopilotRealtimeTokenRequestSchema,
   CopilotRealtimeTokenResponseSchema,
   CopilotRealtimeToolRequestSchema,
@@ -52,6 +54,7 @@ import {
   type CopilotAudioProcessing,
   type CopilotConversationEvent,
   type CopilotHistoryResponse,
+  type CopilotProfilesResponse,
   type CopilotRealtimeTokenRequest,
   type CopilotRealtimeTokenResponse,
   type CopilotRealtimeToolRequest,
@@ -92,12 +95,14 @@ export interface PhoenixApi {
   claimPairing(code: string): Promise<PairingStatus>
   createCopilotRealtimeToken(input: CopilotRealtimeTokenRequest): Promise<CopilotRealtimeTokenResponse>
   executeCopilotRealtimeTool(input: CopilotRealtimeToolRequest): Promise<unknown>
-  getCopilotAudioProcessing(): Promise<CopilotAudioProcessing>
+  getCopilotAudioProcessing(profileId?: string): Promise<CopilotAudioProcessing>
   getCopilotRealtimeContext(): Promise<{ fingerprint: string, text: string, updatedAt: string | null }>
   getCatalogueDiagnostics(): Promise<CatalogueDiagnostics>
   getShipCatalogue(): Promise<ShipCatalogueResponse>
   getControlLayout(): Promise<ControlGridLayout>
   getCopilotHistory(conversationId: string): Promise<CopilotHistoryResponse>
+  getCopilotProfiles(): Promise<CopilotProfilesResponse>
+  selectCopilotProfile(profileId: string): Promise<CopilotProfilesResponse>
   executeDeveloperAction(actionId: string): Promise<GameActionResult>
   executeAction(actionId: string, operation?: GameActionOperation): Promise<GameActionResult>
   executeCommand(target: CommandTarget, operation?: GameActionOperation): Promise<CommandExecutionResult>
@@ -444,13 +449,32 @@ export class PhoenixApiClient implements PhoenixApi {
     return CopilotHistoryResponseSchema.parse(await response.json())
   }
 
-  public async getCopilotAudioProcessing (): Promise<CopilotAudioProcessing> {
-    const response = await this.request(`${this.baseUrl}/api/copilot/realtime/audio-processing`, {
+  public async getCopilotAudioProcessing (profileId?: string): Promise<CopilotAudioProcessing> {
+    const query = profileId ? `?profileId=${encodeURIComponent(profileId)}` : ''
+    const response = await this.request(`${this.baseUrl}/api/copilot/realtime/audio-processing${query}`, {
       headers: { accept: 'application/json' }
     })
     if (!response.ok) throw await apiError(response)
     const payload = await response.json() as { audioProcessing?: unknown }
     return CopilotAudioProcessingSchema.parse(payload.audioProcessing)
+  }
+
+  public async getCopilotProfiles (): Promise<CopilotProfilesResponse> {
+    const response = await this.request(`${this.baseUrl}/api/copilot/profiles`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return CopilotProfilesResponseSchema.parse(await response.json())
+  }
+
+  public async selectCopilotProfile (profileId: string): Promise<CopilotProfilesResponse> {
+    const response = await this.request(`${this.baseUrl}/api/copilot/profiles/active`, {
+      body: JSON.stringify(CopilotProfileSelectionRequestSchema.parse({ profileId })),
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      method: 'PUT'
+    })
+    if (!response.ok) throw await apiError(response)
+    return CopilotProfilesResponseSchema.parse(await response.json())
   }
 
   public async getCopilotVoiceHost (): Promise<CopilotVoiceHostSnapshot> {

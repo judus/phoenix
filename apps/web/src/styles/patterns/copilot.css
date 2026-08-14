@@ -56,6 +56,20 @@
     background: rgb(255 157 0 / 9%);
     text-align: start;
 
+    & + .copilot-profile {
+      margin-block-start: var(--space-2);
+    }
+
+    &[aria-pressed='false'] {
+      border-color: var(--color-border);
+      background: transparent;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
     .copilot-profile__mark {
       display: grid;
       inline-size: 2rem;

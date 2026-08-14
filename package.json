@@ -24,7 +24,7 @@
     "payload:verify": "node scripts/package/verify-payload.mjs",
     "start": "npm run start --workspace @phoenix/server",
     "test": "vitest run",
-    "typecheck": "npm run build --workspace @phoenix/contracts && npm run build --workspace @phoenix/elite && npm run typecheck --workspace @phoenix/copilot && npm run typecheck --workspace @phoenix/server && npm run typecheck --workspace @phoenix/web"
+    "typecheck": "npm run build --workspace @phoenix/contracts && npm run build --workspace @phoenix/elite && npm run build --workspace @phoenix/copilot && npm run typecheck --workspace @phoenix/server && npm run typecheck --workspace @phoenix/web"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",

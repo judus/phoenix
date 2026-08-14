@@ -40,7 +40,7 @@ test('Realtime composition shares profiles, telemetry, tools, and conversation p
     })
   }])
   const service = new CopilotRealtimeService({
-    audioProcessing,
+    audioProcessing: () => audioProcessing,
     conversations,
     gateway,
     model: 'gpt-realtime-test',
@@ -48,7 +48,7 @@ test('Realtime composition shares profiles, telemetry, tools, and conversation p
     runtimeContext: new RuntimeContextRenderer(),
     runtimeState: new InMemoryRuntimeStateStore(),
     tools,
-    voice: 'marin'
+    voice: () => 'marin'
   })
 
   try {

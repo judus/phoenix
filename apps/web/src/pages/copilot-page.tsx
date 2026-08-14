@@ -137,7 +137,6 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
         clientId: clientIdRef.current,
         conversationId: DEFAULT_CONVERSATION_ID,
         message: text,
-        profileId: 'marin',
         turnId
       }, event => applyStreamEvent(event, assistantId, setMessages, setToolStatus))
       await loadHistory()
@@ -168,10 +167,27 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
           <div className="copilot-workspace">
             <aside className="copilot-sidebar" aria-label="Copilot profile">
               <h2>Copilot profile</h2>
-              <button className="copilot-profile" type="button" aria-pressed="true">
-                <span className="copilot-profile__mark">M</span>
-                <span><strong>MARIN</strong><small>Active profile</small></span>
-              </button>
+              {voice.profiles.map(profile => (
+                <button
+                  className="copilot-profile"
+                  type="button"
+                  key={profile.id}
+                  aria-pressed={profile.id === voice.activeProfile.id}
+                  disabled={voice.connected || voice.transitioning}
+                  title={profile.description}
+                  onClick={() => {
+                    void voice.selectProfile(profile.id).catch(cause => setChatError(
+                      cause instanceof Error ? cause.message : 'Unable to change Copilot profile.'
+                    ))
+                  }}
+                >
+                  <span className="copilot-profile__mark">{profile.mark}</span>
+                  <span>
+                    <strong>{profile.name.toUpperCase()}</strong>
+                    <small>{profile.id === voice.activeProfile.id ? 'Active profile' : profile.description}</small>
+                  </span>
+                </button>
+              ))}
             </aside>
 
             <section className="copilot-chat" aria-label="Copilot conversation">
@@ -179,6 +195,7 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
                 activeTurn={voice.activeTurn}
                 messages={messages}
                 pending={pending}
+                profileName={voice.activeProfile.name}
                 remoteTurns={remoteTurns}
               />
               {(toolStatus ?? voice.toolStatus) && (
@@ -187,7 +204,11 @@ export function CopilotPage ({ api, error, health }: CopilotPageProps) {
               {(chatError ?? voice.error) && (
                 <p className="copilot-error" role="alert">{chatError ?? voice.error}</p>
               )}
-              <CopilotComposer disabled={pending} onSubmitText={submit} />
+              <CopilotComposer
+                disabled={pending}
+                profileName={voice.activeProfile.name}
+                onSubmitText={submit}
+              />
             </section>
 
             <aside className="copilot-sidebar copilot-voice" aria-label="Voice controls">
@@ -238,6 +259,7 @@ interface CopilotMessageHistoryProps {
   activeTurn?: { assistantText: string, userText: string }
   messages: readonly CopilotHistoryMessage[]
   pending: boolean
+  profileName: string
   remoteTurns: Record<string, RemoteTurn>
 }
 
@@ -245,6 +267,7 @@ const CopilotMessageHistory = memo(function CopilotMessageHistory ({
   activeTurn,
   messages,
   pending,
+  profileName,
   remoteTurns
 }: CopilotMessageHistoryProps) {
   const endRef = useRef<HTMLDivElement>(null)
@@ -255,7 +278,7 @@ const CopilotMessageHistory = memo(function CopilotMessageHistory ({
 
   return (
     <div className="copilot-messages" aria-live="polite">
-      {messages.length === 0 && <p className="copilot-empty">No conversation yet. Marin is standing by.</p>}
+      {messages.length === 0 && <p className="copilot-empty">No conversation yet. {profileName} is standing by.</p>}
       {messages.map(message => (
         <article key={message.id} className={`copilot-message copilot-message--${message.role}`}>
           <span>{message.role === 'user' ? 'Commander' : 'Copilot'}</span>
@@ -299,9 +322,11 @@ const CopilotMessageHistory = memo(function CopilotMessageHistory ({
 
 const CopilotComposer = memo(function CopilotComposer ({
   disabled,
+  profileName,
   onSubmitText
 }: {
   disabled: boolean
+  profileName: string
   onSubmitText: (text: string) => Promise<void>
 }) {
   const [composer, setComposer] = useState('')
@@ -321,7 +346,7 @@ const CopilotComposer = memo(function CopilotComposer ({
         id="copilot-message"
         value={composer}
         disabled={disabled}
-        placeholder="Ask Marin…"
+        placeholder={`Ask ${profileName}…`}
         rows={3}
         onChange={event => setComposer(event.target.value)}
         onKeyDown={event => {

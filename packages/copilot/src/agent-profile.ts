@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 export type CopilotMode = 'speech' | 'text'
@@ -11,8 +11,21 @@ export interface AgentProfile {
   prologue: string
 }
 
+export interface AgentProfileDescriptor {
+  description: string
+  id: string
+  mark: string
+  name: string
+  voice: string
+}
+
 export interface AgentProfileRepository {
   get(profileId: string): AgentProfile
+}
+
+export interface AgentProfileCatalog extends AgentProfileRepository {
+  getDescriptor(profileId: string): AgentProfileDescriptor
+  list(): readonly AgentProfileDescriptor[]
 }
 
 export interface ComposeAgentPrompt {
@@ -40,13 +53,11 @@ export class AgentPromptComposer {
   }
 }
 
-export class FileAgentProfileRepository implements AgentProfileRepository {
+export class FileAgentProfileRepository implements AgentProfileCatalog {
   public constructor (private readonly profilesDirectory: string) {}
 
   public get (profileId: string): AgentProfile {
-    if (!/^[a-z][a-z0-9_-]*$/u.test(profileId)) {
-      throw new Error(`Invalid agent profile ID: ${profileId}`)
-    }
+    validateProfileId(profileId)
     const directory = join(this.profilesDirectory, profileId)
     return {
       agent: readRequired(join(directory, 'agent.md')),
@@ -56,6 +67,37 @@ export class FileAgentProfileRepository implements AgentProfileRepository {
       prologue: readRequired(join(directory, 'prologue.md'))
     }
   }
+
+  public getDescriptor (profileId: string): AgentProfileDescriptor {
+    validateProfileId(profileId)
+    const candidate = JSON.parse(readRequired(join(this.profilesDirectory, profileId, 'profile.json'))) as unknown
+    if (!isRecord(candidate) || candidate.id !== profileId || typeof candidate.name !== 'string' ||
+      typeof candidate.mark !== 'string' || typeof candidate.voice !== 'string') {
+      throw new Error(`Invalid agent profile metadata: ${profileId}`)
+    }
+    return {
+      description: typeof candidate.description === 'string' ? candidate.description : '',
+      id: profileId,
+      mark: candidate.mark,
+      name: candidate.name,
+      voice: candidate.voice
+    }
+  }
+
+  public list (): readonly AgentProfileDescriptor[] {
+    return readdirSync(this.profilesDirectory, { withFileTypes: true })
+      .filter(entry => entry.isDirectory() && /^[a-z][a-z0-9_-]*$/u.test(entry.name))
+      .map(entry => this.getDescriptor(entry.name))
+      .sort((left, right) => left.name.localeCompare(right.name))
+  }
+}
+
+function validateProfileId (profileId: string): void {
+  if (!/^[a-z][a-z0-9_-]*$/u.test(profileId)) throw new Error(`Invalid agent profile ID: ${profileId}`)
+}
+
+function isRecord (candidate: unknown): candidate is Record<string, unknown> {
+  return typeof candidate === 'object' && candidate !== null && !Array.isArray(candidate)
 }
 
 function readRequired (path: string): string {

@@ -15,6 +15,7 @@ import {
 import { CatalogueShipLoadoutEnricher } from './application/catalogue-ship-loadout-enricher.js'
 import { CopilotConversationEventService } from './application/copilot-conversation-event-service.js'
 import { CopilotVoiceHostCoordinator } from './application/copilot-voice-host-coordinator.js'
+import type { CopilotProfiles } from './application/copilot-profile-service.js'
 import { CatalogueDiagnosticsService } from './application/catalogue-diagnostics-service.js'
 import { CachedSystemCartographyService } from './application/cached-system-cartography-service.js'
 import { CartographyObservationIngestionService } from './application/cartography-observation-ingestion-service.js'
@@ -86,6 +87,7 @@ export interface PhoenixApplicationOptions {
   controlGridLayoutRepository?: ControlGridLayoutRepository
   copilot?: CopilotText | null
   copilotRealtime?: CopilotRealtime | null
+  copilotProfiles?: CopilotProfiles | null
   databasePath?: string
   eliteDirectory?: string | null
   engineeringCatalogueDirectory?: string
@@ -307,6 +309,7 @@ export class PhoenixApplication {
           ...(port > 0 ? { mcpUrl: `http://127.0.0.1:${port}/mcp` } : {}),
           ...(options.accessControl ? { mcpToken: options.accessControl.bearerToken } : {}),
           runtimeState: this.stateStore,
+          systemSettings,
           tools: toolRegistry
         })
       : undefined
@@ -316,12 +319,16 @@ export class PhoenixApplication {
     const copilotRealtime = options.copilotRealtime === undefined
       ? configuredCopilot?.realtime
       : options.copilotRealtime ?? undefined
+    const copilotProfiles = options.copilotProfiles === undefined
+      ? configuredCopilot?.profiles
+      : options.copilotProfiles ?? undefined
     this.server = new PhoenixHttpServer({
       accessControl: options.accessControl,
       catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
       commandCatalogue,
       controlGridLayouts,
       copilot,
+      copilotProfiles,
       copilotConversationEvents,
       copilotVoiceHost,
       copilotRealtime,

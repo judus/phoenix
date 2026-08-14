@@ -9,6 +9,8 @@ import {
 import {
   CopilotVoiceHostCommandSchema,
   CopilotVoiceHostSnapshotSchema,
+  CopilotProfilesResponseSchema,
+  type CopilotProfile,
   type CopilotConversationEvent,
   type CopilotVoiceHostHeartbeat,
   type CopilotVoiceHostSnapshot
@@ -37,6 +39,7 @@ export interface ActiveVoiceTurn {
 }
 
 export interface CopilotVoiceState {
+  activeProfile: CopilotProfile
   activeTurn?: ActiveVoiceTurn
   audioStatus?: string
   connect(): Promise<void>
@@ -49,7 +52,9 @@ export interface CopilotVoiceState {
   hostLocation: 'local' | 'remote' | 'none'
   inputId: string
   outputId: string
+  profiles: readonly CopilotProfile[]
   sendText(text: string): void
+  selectProfile(profileId: string): Promise<void>
   setInputId(id: string): void
   setOutputId(id: string): void
   status: string
@@ -91,6 +96,10 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
   const [outputId, setOutputId] = useState('')
   const [activeTurn, setActiveTurn] = useState<ActiveVoiceTurn>()
   const [historyVersion, setHistoryVersion] = useState(0)
+  const [profiles, setProfiles] = useState<readonly CopilotProfile[]>([
+    { description: '', id: 'marin', mark: 'M', name: 'Marin', voice: 'marin' }
+  ])
+  const [activeProfileId, setActiveProfileId] = useState('marin')
   const socketRef = useRef<WebSocket | undefined>(undefined)
   const streamRef = useRef<MediaStream | undefined>(undefined)
   const audioRef = useRef<AudioProcessingSession | undefined>(undefined)
@@ -143,8 +152,7 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
       }
       const [token, audioProcessing] = await Promise.all([
         apiRef.current.createCopilotRealtimeToken({
-          conversationId: CONVERSATION_ID,
-          profileId: 'marin'
+          conversationId: CONVERSATION_ID
         }),
         apiRef.current.getCopilotAudioProcessing()
       ])
@@ -506,6 +514,21 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
+    void apiRef.current.getCopilotProfiles().then(result => {
+      setProfiles(result.profiles)
+      setActiveProfileId(result.activeProfileId)
+    }).catch(cause => setError(errorMessage(cause)))
+    const unsubscribe = subscribePhoenixEvent(apiRef.current, 'copilot-profiles', event => {
+      try {
+        const result = CopilotProfilesResponseSchema.parse(JSON.parse(event.data))
+        setProfiles(result.profiles)
+        setActiveProfileId(result.activeProfileId)
+      } catch {}
+    })
+    return unsubscribe
+  }, [])
+
+  useEffect(() => {
     if (canHostRealtimeAudio()) setArmed(true)
   }, [])
 
@@ -603,9 +626,17 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
     }
     disconnectLocal()
   }
+  const selectProfile = async (profileId: string): Promise<void> => {
+    if (publicConnected || transitioning) throw new Error('Disconnect voice before changing Copilot profile.')
+    const result = await apiRef.current.selectCopilotProfile(profileId)
+    setProfiles(result.profiles)
+    setActiveProfileId(result.activeProfileId)
+  }
+  const activeProfile = profiles.find(profile => profile.id === activeProfileId) ?? profiles[0]!
 
   return (
     <CopilotVoiceContext.Provider value={{
+      activeProfile,
       ...(activeTurn === undefined ? {} : { activeTurn }),
       ...(audioStatus === undefined ? {} : { audioStatus }),
       connect,
@@ -618,7 +649,9 @@ export function CopilotVoiceProvider ({ children }: { children: ReactNode }) {
       hostLocation: armed ? 'local' : remoteHost ? 'remote' : 'none',
       inputId,
       outputId,
+      profiles,
       sendText,
+      selectProfile,
       setInputId,
       setOutputId,
       status: publicStatus,
