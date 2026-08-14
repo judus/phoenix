@@ -18,6 +18,8 @@
     "dev": "node scripts/dev.mjs",
     "dev:server": "npm run dev --workspace @phoenix/server",
     "dev:web": "npm run dev --workspace @phoenix/web",
+    "storybook": "npm run storybook --workspace @phoenix/storybook",
+    "storybook:build": "npm run build-storybook --workspace @phoenix/storybook",
     "pretest": "npm run build --workspace @phoenix/contracts && npm run build --workspace @phoenix/elite && npm run build --workspace @phoenix/copilot",
     "payload:build": "npm run build && node scripts/package/build-payload.mjs",
     "payload:smoke": "node scripts/package/smoke-test-payload.mjs",

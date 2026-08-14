@@ -1,4 +1,4 @@
-.context/
+.context
 .env
 .env.*
 !.env.example
@@ -22,3 +22,6 @@ coverage/
 .idea/
 .vscode/
 .DS_Store
+
+*storybook.log
+storybook-static
