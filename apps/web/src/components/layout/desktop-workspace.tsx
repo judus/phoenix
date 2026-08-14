@@ -3,13 +3,20 @@ import type { Deskplane, DeskplaneSnapshot } from 'deskplane'
 import { DeskplaneViewport } from 'deskplane/react'
 
 export type DesktopMode = 'controls' | 'information' | 'copilot'
+export type WorkspaceDesktop = DesktopMode | 'numpad' | 'macros' | 'journal' | 'developer' | 'settings'
 
 export interface DesktopWorkspaceProps {
+  activeDesktop: WorkspaceDesktop
   activeMode: DesktopMode
   controls: ReactNode
   copilot: ReactNode
+  developer: ReactNode
   information: ReactNode
-  onNavigate: (mode: DesktopMode) => void
+  journal: ReactNode
+  macros: ReactNode
+  numpad: ReactNode
+  onNavigate: (desktop: WorkspaceDesktop) => void
+  settings: ReactNode
   topBar: ReactNode
 }
 
@@ -19,27 +26,33 @@ const TRANSITION = {
 } as const
 
 export function DesktopWorkspace ({
+  activeDesktop,
   activeMode,
   controls,
   copilot,
+  developer,
   information,
+  journal,
+  macros,
+  numpad,
   onNavigate,
+  settings,
   topBar
 }: DesktopWorkspaceProps) {
   const controller = useRef<Deskplane | null>(null)
-  const initialMode = useRef(activeMode)
-  const activeModeRef = useRef(activeMode)
+  const initialDesktop = useRef(activeDesktop)
+  const activeDesktopRef = useRef(activeDesktop)
   const onNavigateRef = useRef(onNavigate)
-  activeModeRef.current = activeMode
+  activeDesktopRef.current = activeDesktop
   onNavigateRef.current = onNavigate
 
   useEffect(() => {
-    void controller.current?.goTo(activeMode)
-  }, [activeMode])
+    void controller.current?.goTo(activeDesktop)
+  }, [activeDesktop])
 
   const handleSnapshotChange = (snapshot: DeskplaneSnapshot): void => {
-    const mode = snapshot.activeDesktopId as DesktopMode
-    if (mode !== activeModeRef.current) onNavigateRef.current(mode)
+    const desktop = snapshot.activeDesktopId
+    if (isWorkspaceDesktop(desktop) && desktop !== activeDesktopRef.current) onNavigateRef.current(desktop)
   }
 
   return (
@@ -48,7 +61,7 @@ export function DesktopWorkspace ({
       <DeskplaneViewport
         aria-label="PHOENIX desktop workspace"
         className="desktop-workspace__viewport"
-        initialDesktopId={initialMode.current}
+        initialDesktopId={initialDesktop.current}
         onReady={deskplane => {
           controller.current = deskplane
           return () => {
@@ -56,29 +69,41 @@ export function DesktopWorkspace ({
           }
         }}
         onSnapshotChange={handleSnapshotChange}
-        rows={[{
-          id: 'primary',
-          desktops: [
-            {
-              id: 'controls',
-              ariaLabel: 'Controls desktop',
-              className: 'desktop-workspace__desktop desktop-workspace__desktop--controls',
-              children: <DesktopSurface edges="right">{controls}</DesktopSurface>
-            },
-            {
-              id: 'information',
-              ariaLabel: 'Information desktop',
-              className: 'desktop-workspace__desktop desktop-workspace__desktop--information',
-              children: <DesktopSurface edges="both">{information}</DesktopSurface>
-            },
-            {
-              id: 'copilot',
-              ariaLabel: 'Copilot desktop',
-              className: 'desktop-workspace__desktop desktop-workspace__desktop--copilot',
-              children: <DesktopSurface edges="left">{copilot}</DesktopSurface>
-            }
-          ]
-        }]}
+        rows={[
+          {
+            id: 'utilities',
+            desktops: [
+              utilityDesktop('numpad', 'Numpad module', numpad, 'right'),
+              utilityDesktop('macros', 'Macro module', macros, 'both'),
+              utilityDesktop('journal', 'Journal module', journal, 'both'),
+              utilityDesktop('developer', 'Developer module', developer, 'both'),
+              utilityDesktop('settings', 'Settings module', settings, 'left')
+            ]
+          },
+          {
+            id: 'primary',
+            desktops: [
+              {
+                id: 'controls',
+                ariaLabel: 'Controls desktop',
+                className: 'desktop-workspace__desktop desktop-workspace__desktop--controls',
+                children: <DesktopSurface edges="right">{controls}</DesktopSurface>
+              },
+              {
+                id: 'information',
+                ariaLabel: 'Information desktop',
+                className: 'desktop-workspace__desktop desktop-workspace__desktop--information',
+                children: <DesktopSurface edges="both">{information}</DesktopSurface>
+              },
+              {
+                id: 'copilot',
+                ariaLabel: 'Copilot desktop',
+                className: 'desktop-workspace__desktop desktop-workspace__desktop--copilot',
+                children: <DesktopSurface edges="left">{copilot}</DesktopSurface>
+              }
+            ]
+          }
+        ]}
         transition={TRANSITION}
       />
       <nav className="desktop-workspace__switcher" aria-label="PHOENIX desktops">
@@ -88,6 +113,24 @@ export function DesktopWorkspace ({
       </nav>
     </div>
   )
+}
+
+function utilityDesktop (
+  id: Extract<WorkspaceDesktop, 'numpad' | 'macros' | 'journal' | 'developer' | 'settings'>,
+  ariaLabel: string,
+  children: ReactNode,
+  edges: 'both' | 'left' | 'right'
+) {
+  return {
+    id,
+    ariaLabel,
+    className: `desktop-workspace__desktop desktop-workspace__desktop--${id}`,
+    children: <DesktopSurface edges={edges}>{children}</DesktopSurface>
+  }
+}
+
+function isWorkspaceDesktop (desktop: string): desktop is WorkspaceDesktop {
+  return ['controls', 'information', 'copilot', 'numpad', 'macros', 'journal', 'developer', 'settings'].includes(desktop)
 }
 
 function DesktopSurface ({

@@ -22,12 +22,6 @@
   grid-template-columns: auto minmax(0, 1fr);
 }
 
-.top-bar-frame {
-  min-inline-size: 0;
-  display: grid;
-  grid-template-rows: auto auto;
-}
-
 .top-bar {
   min-inline-size: 0;
   min-block-size: var(--size-secondary-navigation);
@@ -45,13 +39,6 @@
 
 .top-bar__actions {
   padding-inline-end: var(--space-4);
-}
-
-.top-bar__utility-actions {
-  min-inline-size: 0;
-  display: flex;
-  justify-content: flex-end;
-  border-block-end: 1px solid var(--color-border);
 }
 
 .app-brand {
@@ -117,19 +104,6 @@
       color: var(--color-background);
       background: var(--color-primary);
     }
-  }
-}
-
-.top-bar-actions--utilities {
-  gap: 0;
-
-  button, a {
-    min-inline-size: 3rem;
-    min-block-size: 1.75rem;
-    aspect-ratio: auto;
-    border-block: 0;
-    border-inline-start: 1px solid var(--color-border);
-    border-inline-end: 0;
   }
 }
 }

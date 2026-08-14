@@ -72,9 +72,8 @@ export function PhoenixTopBar ({
   return (
     <TopBar
       brand={<a href="#/"><AppBrand name="PHOENIX" qualifier="Terminal" /></a>}
-      actions={<div className="top-bar-actions" aria-label="Window actions"><FullscreenButton /></div>}
-      utilityActions={(
-        <nav className="top-bar-actions top-bar-actions--utilities" aria-label="Application utilities">
+      actions={(
+        <div className="top-bar-actions" aria-label="Application actions">
           <a
             href="#/numpad"
             aria-current={numpadSection ? 'page' : undefined}
@@ -105,7 +104,8 @@ export function PhoenixTopBar ({
             aria-label="Settings"
             title="Settings"
           >⚙</a>
-        </nav>
+          <FullscreenButton />
+        </div>
       )}
     />
   )
