@@ -242,37 +242,60 @@ export function CopilotPage ({ api, error, health, view = 'chat' }: CopilotPageP
           <div className={`copilot-workspace copilot-workspace--${view}`}>
             <aside className="copilot-sidebar" aria-label="Copilot profile">
               <h2>Copilot profile</h2>
-              {voice.profiles.map(profile => (
-                <button
-                  className="copilot-profile"
-                  type="button"
-                  key={profile.id}
-                  aria-pressed={profile.id === voice.activeProfile.id}
-                  disabled={voice.connected || voice.transitioning}
-                  title={profile.description}
-                  onClick={() => {
-                    if (view === 'profiles') {
-                      void editProfile(profile.id)
-                      return
-                    }
-                    void voice.selectProfile(profile.id).catch(cause => setChatError(
-                      cause instanceof Error ? cause.message : 'Unable to change Copilot profile.'
-                    ))
-                  }}
-                >
-                  <span className="copilot-profile__mark">{profile.mark}</span>
-                  <span>
-                    <strong>{profile.name.toUpperCase()}</strong>
-                    <small>{profile.id === voice.activeProfile.id ? 'Active profile' : profile.description}</small>
-                  </span>
-                </button>
-              ))}
-              {view === 'profiles' && (
-                <div className="copilot-profile-actions">
-                  <button type="button" onClick={() => { void editProfile(voice.activeProfile.id) }}>Edit active</button>
-                  <button type="button" onClick={() => { void createProfile() }}>New profile</button>
-                </div>
-              )}
+              {view === 'chat'
+                ? <>
+                    <article className="copilot-identity-card">
+                      <div className="copilot-identity-card__portrait" aria-hidden="true">
+                        {voice.activeProfile.mark}
+                      </div>
+                      <div className="copilot-identity-card__name">
+                        <strong>{voice.activeProfile.name.toUpperCase()}</strong>
+                        <span>{voice.connected ? 'Voice online' : 'Standing by'}</span>
+                      </div>
+                      <p>{voice.activeProfile.description}</p>
+                      <dl>
+                        <div><dt>Voice</dt><dd>{voice.activeProfile.voice}</dd></div>
+                        <div><dt>Channel</dt><dd>{voice.connected ? 'Realtime' : 'Text'}</dd></div>
+                      </dl>
+                    </article>
+                    <label className="copilot-profile-select">
+                      Quick switch
+                      <select
+                        value={voice.activeProfile.id}
+                        disabled={voice.connected || voice.transitioning}
+                        onChange={event => void voice.selectProfile(event.target.value).catch(cause => setChatError(
+                          cause instanceof Error ? cause.message : 'Unable to change Copilot profile.'
+                        ))}
+                      >
+                        {voice.profiles.map(profile => (
+                          <option key={profile.id} value={profile.id}>{profile.name}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </>
+                : <>
+                    {voice.profiles.map(profile => (
+                      <button
+                        className="copilot-profile"
+                        type="button"
+                        key={profile.id}
+                        aria-pressed={profile.id === voice.activeProfile.id}
+                        disabled={voice.connected || voice.transitioning}
+                        title={profile.description}
+                        onClick={() => { void editProfile(profile.id) }}
+                      >
+                        <span className="copilot-profile__mark">{profile.mark}</span>
+                        <span>
+                          <strong>{profile.name.toUpperCase()}</strong>
+                          <small>{profile.id === voice.activeProfile.id ? 'Active profile' : profile.description}</small>
+                        </span>
+                      </button>
+                    ))}
+                    <div className="copilot-profile-actions">
+                      <button type="button" onClick={() => { void editProfile(voice.activeProfile.id) }}>Edit active</button>
+                      <button type="button" onClick={() => { void createProfile() }}>New profile</button>
+                    </div>
+                  </>}
             </aside>
 
             {view === 'profiles'

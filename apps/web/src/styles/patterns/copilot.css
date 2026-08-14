@@ -105,6 +105,99 @@
     }
   }
 
+  .copilot-identity-card {
+    border: 1px solid var(--color-border);
+    background: rgb(255 157 0 / 5%);
+
+    .copilot-identity-card__portrait {
+      display: grid;
+      aspect-ratio: 4 / 3;
+      place-items: center;
+      border-block-end: 1px solid var(--color-border);
+      color: var(--color-primary);
+      background:
+        linear-gradient(135deg, transparent 49.5%, rgb(255 157 0 / 12%) 50%, transparent 50.5%),
+        rgb(0 0 0 / 24%);
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      font-weight: 300;
+    }
+
+    .copilot-identity-card__name,
+    p,
+    dl {
+      padding: var(--space-3);
+    }
+
+    .copilot-identity-card__name {
+      strong,
+      span {
+        display: block;
+      }
+
+      strong {
+        color: var(--color-text);
+        font-size: 1.2rem;
+        font-weight: 400;
+      }
+
+      span {
+        margin-block-start: var(--space-1);
+        color: var(--color-secondary);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+      }
+    }
+
+    p,
+    dl {
+      border-block-start: 1px solid var(--color-border);
+    }
+
+    p {
+      color: var(--color-muted);
+      line-height: 1.35;
+    }
+
+    dl {
+      display: grid;
+      gap: var(--space-2);
+      margin: 0;
+
+      div {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--space-2);
+      }
+
+      dt {
+        color: var(--color-muted);
+      }
+
+      dd {
+        margin: 0;
+        color: var(--color-text);
+        text-transform: capitalize;
+      }
+    }
+  }
+
+  .copilot-profile-select {
+    display: grid;
+    gap: var(--space-1);
+    margin-block-start: var(--space-3);
+    color: var(--color-primary);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+
+    select {
+      min-inline-size: 0;
+      padding: var(--space-2);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      background: rgb(0 0 0 / 35%);
+    }
+  }
+
   .copilot-profile-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
