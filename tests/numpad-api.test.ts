@@ -26,11 +26,23 @@ test('the numpad API projects and executes the current authoritative command map
     expect(disabled).toMatchObject({ status: 'rejected', message: 'Numpad command module is disabled.' })
 
     const settings = await client.getModuleSettings()
+    const shortcutTarget = destination!.target!
     await client.saveModuleSettings({
       ...settings,
-      numpadCommands: { ...settings.numpadCommands, enabled: true }
+      numpadCommands: {
+        ...settings.numpadCommands,
+        enabled: true,
+        shortcuts: [{ id: 'panic-route', selector: '2', label: 'Panic route', target: shortcutTarget }]
+      }
     })
     const current = await client.getNumpadSnapshot()
+    expect(current.nodes).toContainEqual(expect.objectContaining({ id: 'desktop.shortcuts', address: '9' }))
+    expect(current.nodes).toContainEqual(expect.objectContaining({
+      id: 'shortcut.panic-route',
+      address: '92',
+      label: 'Panic route',
+      target: shortcutTarget
+    }))
     const currentDestination = current.nodes.find(node => node.id === destination!.id)!
     const executed = await client.executeNumpadAddress(currentDestination.address, current.revision)
     expect(executed).toMatchObject({
@@ -40,6 +52,25 @@ test('the numpad API projects and executes the current authoritative command map
 
     const stale = await client.executeNumpadAddress(currentDestination.address, initial.revision)
     expect(stale.status).toBe('stale')
+
+    const latestSettings = await client.getModuleSettings()
+    await client.saveModuleSettings({
+      ...latestSettings,
+      numpadCommands: {
+        ...latestSettings.numpadCommands,
+        shortcuts: [{
+          id: 'missing-macro',
+          selector: '7',
+          target: { type: 'macro', macroId: 'deleted-macro' }
+        }]
+      }
+    })
+    expect((await client.getNumpadSnapshot()).nodes).toContainEqual(expect.objectContaining({
+      id: 'shortcut.missing-macro',
+      address: '97',
+      available: false,
+      target: { type: 'macro', macroId: 'deleted-macro' }
+    }))
   } finally {
     await application.stop()
   }

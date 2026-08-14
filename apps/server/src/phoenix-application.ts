@@ -263,7 +263,7 @@ export class PhoenixApplication {
       macros
     )
     const numpad = new DefaultNumpadCommands(
-      new NumpadTreeProjector(commandCatalogue, controlGridLayouts),
+      new NumpadTreeProjector(commandCatalogue, controlGridLayouts, systemSettings),
       commands,
       systemSettings
     )

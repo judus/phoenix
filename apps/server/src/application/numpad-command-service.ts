@@ -71,7 +71,8 @@ const INFORMATION_MENUS: readonly MenuDefinition[] = [
 export class NumpadTreeProjector {
   public constructor (
     private readonly catalogues: CommandCatalogueSnapshots,
-    private readonly layouts: ControlGridLayoutRepository
+    private readonly layouts: ControlGridLayoutRepository,
+    private readonly settings: SystemSettingsRepository
   ) {}
 
   public getSnapshot (): NumpadTreeSnapshot {
@@ -85,6 +86,7 @@ export class NumpadTreeProjector {
     appendDestination(nodes, descriptors, null, '3', 'copilot.channel', diagnostics)
 
     this.appendControls(nodes, descriptors, controls, diagnostics)
+    this.appendShortcuts(nodes, descriptors, diagnostics)
     appendDestination(nodes, descriptors, information.id, '0', 'information.home', diagnostics)
     for (const definition of INFORMATION_MENUS) {
       const parent = branch(nodes, information.id, definition.id, definition.selector, definition.label)
@@ -101,6 +103,39 @@ export class NumpadTreeProjector {
       nodes,
       revision: catalogue.revision
     })
+  }
+
+  private appendShortcuts (
+    nodes: NumpadTreeNode[],
+    descriptors: Map<string, CommandDescriptor>,
+    diagnostics: string[]
+  ): void {
+    const shortcuts = this.settings.loadOrCreate().modules.numpadCommands.shortcuts
+    if (shortcuts.length === 0) return
+    const parent = branch(nodes, null, 'desktop.shortcuts', '9', 'Shortcuts')
+    for (const shortcut of shortcuts) {
+      const descriptor = descriptors.get(commandTargetKey(shortcut.target))
+      if (!descriptor) {
+        diagnostics.push(`Shortcut ${shortcut.selector} targets an unknown command.`)
+        nodes.push(NumpadTreeNodeSchema.parse({
+          address: parent.address + shortcut.selector,
+          available: false,
+          id: `shortcut.${shortcut.id}`,
+          kind: shortcut.target.type,
+          label: shortcut.label ?? commandTargetKey(shortcut.target),
+          parentId: parent.id,
+          risk: 'safe',
+          selector: shortcut.selector,
+          target: shortcut.target,
+          unavailableReason: 'The assigned command is no longer available.'
+        }))
+        continue
+      }
+      leaf(nodes, parent.id, `shortcut.${shortcut.id}`, shortcut.selector, {
+        ...descriptor,
+        ...(shortcut.label ? { label: shortcut.label } : {})
+      })
+    }
   }
 
   private appendControls (

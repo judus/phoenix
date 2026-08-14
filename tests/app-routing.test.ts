@@ -12,5 +12,6 @@ test('galaxy database resolves as a first-class Galaxy view', () => {
 })
 
 test('numpad resolves as a dedicated information surface', () => {
-  expect(readRoute('#/numpad')).toEqual({ section: 'numpad' })
+  expect(readRoute('#/numpad')).toEqual({ section: 'numpad', view: 'navigator' })
+  expect(readRoute('#/numpad/shortcuts')).toEqual({ section: 'numpad', view: 'shortcuts' })
 })

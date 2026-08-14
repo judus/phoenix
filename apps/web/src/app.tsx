@@ -246,7 +246,7 @@ function AuthenticatedApplication () {
       return <LogPage api={api} error={error} health={health} />
     }
     if (informationRoute.section === 'numpad') {
-      return <NumpadPage api={api} error={error} health={health} />
+      return <NumpadPage api={api} error={error} health={health} view={informationRoute.view} />
     }
     if (informationRoute.section === 'galaxy') {
       return (
@@ -362,7 +362,7 @@ function AuthenticatedApplication () {
 export type AppRoute =
   | { section: 'main' }
   | { section: 'copilot' }
-  | { section: 'numpad' }
+  | { section: 'numpad', view: 'navigator' | 'shortcuts' }
   | { section: 'commander', view: CommanderView }
   | { section: 'operations', view: OperationsView }
   | { section: 'comms', view: CommsView }
@@ -381,7 +381,8 @@ const INFORMATION_ROUTE_STORAGE_KEY = 'phoenix.desktop.information-route'
 export function readRoute (routeHash?: string): AppRoute {
   const hash = routeHash ?? (typeof window === 'undefined' ? '#/' : window.location.hash)
   if (/^#\/?copilot$/u.test(hash)) return { section: 'copilot' }
-  if (/^#\/?numpad$/u.test(hash)) return { section: 'numpad' }
+  const numpadMatch = hash.match(/^#\/?numpad(?:\/(shortcuts))?$/u)
+  if (numpadMatch) return { section: 'numpad', view: numpadMatch[1] === 'shortcuts' ? 'shortcuts' : 'navigator' }
   if (/^#\/?(?:log|records\/journal)$/u.test(hash)) return { section: 'records', view: 'journal' }
   const commanderMatch = hash.match(/^#\/?commander\/(overview|inventory|progress)$/u)
   if (commanderMatch) return { section: 'commander', view: commanderMatch[1] as CommanderView }

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { GameActionCategorySchema } from './actions.js'
 import { CommandTargetSchema, commandTargetKey } from './commands.js'
+import { NumpadShortcutCollectionSchema } from './numpad.js'
 
 export const InputBackendModeSchema = z.enum(['auto', 'recording', 'linux-xdotool'])
 
@@ -16,6 +17,7 @@ export const PhoenixModulesSchema = z.object({
     presentation: z.enum(['tiles', 'columns']).default('tiles'),
     alwaysConfirm: z.boolean().default(false),
     cancelAfterMs: z.number().int().min(1000).max(60_000).default(5000),
+    shortcuts: NumpadShortcutCollectionSchema.default([])
   })
 })
 
@@ -96,7 +98,8 @@ export const PhoenixSettingsSchema = z.object({
       inputAdapter: 'browser',
       presentation: 'tiles',
       alwaysConfirm: false,
-      cancelAfterMs: 5000
+      cancelAfterMs: 5000,
+      shortcuts: []
     }
   })
 })

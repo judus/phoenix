@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   CommandCatalogueRevisionSchema,
   type HealthResponse,
+  type CommandDescriptor,
   type NumpadExecutionResult,
   type NumpadTreeNode,
   type NumpadTreeSnapshot,
@@ -13,6 +14,7 @@ import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 import { NumpadTileGrid } from '../features/numpad/numpad-tile-grid.js'
+import { NumpadShortcutEditor } from '../features/numpad/numpad-shortcut-editor.js'
 import {
   allowsRemoteDisplayCommands,
   setAllowsRemoteDisplayCommands
@@ -40,16 +42,18 @@ import {
 } from '../features/numpad/numpad-session.js'
 
 const navigation: NavigationItem[] = [
-  { href: '#/numpad', icon: '123', id: 'navigator', label: 'Command navigator' }
+  { href: '#/numpad', icon: '123', id: 'navigator', label: 'Command navigator' },
+  { href: '#/numpad/shortcuts', icon: '✎', id: 'shortcuts', label: 'Custom shortcuts' }
 ]
 
 export interface NumpadPageProps {
   api: PhoenixApi
   error?: string
   health?: HealthResponse
+  view?: 'navigator' | 'shortcuts'
 }
 
-export function NumpadPage ({ api, error, health }: NumpadPageProps) {
+export function NumpadPage ({ api, error, health, view = 'navigator' }: NumpadPageProps) {
   const [snapshot, setSnapshot] = useState<NumpadTreeSnapshot>()
   const [settings, setSettings] = useState<PhoenixModules>()
   const [session, setSession] = useState<NumpadSessionState>(() => (
@@ -57,6 +61,7 @@ export function NumpadPage ({ api, error, health }: NumpadPageProps) {
   ))
   const [localError, setLocalError] = useState<string>()
   const [allowRemoteDisplay, setAllowRemoteDisplay] = useState(allowsRemoteDisplayCommands)
+  const [commands, setCommands] = useState<CommandDescriptor[]>([])
   const snapshotRevision = useRef(0)
 
   useEffect(() => {
@@ -70,20 +75,22 @@ export function NumpadPage ({ api, error, health }: NumpadPageProps) {
   useEffect(() => {
     let active = true
     const load = async (): Promise<void> => {
-      const [nextSnapshot, nextSettings] = await Promise.all([api.getNumpadSnapshot(), api.getModuleSettings()])
+      const [nextSnapshot, nextSettings, nextCommands] = await Promise.all([api.getNumpadSnapshot(), api.getModuleSettings(), api.getCommands()])
       if (!active) return
       setSnapshot(nextSnapshot)
       setSettings(nextSettings)
+      setCommands(nextCommands.commands)
     }
     void load().catch(cause => setLocalError(message(cause, 'Numpad command map unavailable.')))
     const unsubscribe = subscribePhoenixEvent(api, 'command-catalogue', event => {
       try {
         const revision = CommandCatalogueRevisionSchema.parse(JSON.parse(event.data))
-        void Promise.all([api.getNumpadSnapshot(), api.getModuleSettings()])
-          .then(([nextSnapshot, nextSettings]) => {
+        void Promise.all([api.getNumpadSnapshot(), api.getModuleSettings(), api.getCommands()])
+          .then(([nextSnapshot, nextSettings, nextCommands]) => {
             if (!active) return
             setSnapshot(nextSnapshot)
             setSettings(nextSettings)
+            setCommands(nextCommands.commands)
             setSession(current => current.active && revision.revision !== snapshotRevision.current
               ? finishNumpadSession(current, 'stale', 'Command map updated. Press 0 to restart.')
               : current)
@@ -177,19 +184,21 @@ export function NumpadPage ({ api, error, health }: NumpadPageProps) {
     leaveNumpadRoute()
   }
 
-  const saveNumpadSettings = async (next: PhoenixModules['numpadCommands']): Promise<void> => {
-    if (!settings) return
+  const saveNumpadSettings = async (next: PhoenixModules['numpadCommands']): Promise<boolean> => {
+    if (!settings) return false
     try {
       setSettings(await api.saveModuleSettings({ ...settings, numpadCommands: next }))
       setLocalError(undefined)
+      return true
     } catch (cause) {
       setLocalError(message(cause, 'Unable to save numpad settings.'))
+      return false
     }
   }
 
   return (
     <PhoenixShell
-      activeSecondaryItemId="navigator"
+      activeSecondaryItemId={view}
       error={error ?? localError}
       health={health}
       secondaryNavigation={navigation}
@@ -228,21 +237,29 @@ export function NumpadPage ({ api, error, health }: NumpadPageProps) {
             </div>
           )}
         />
-        <PageContent variant="bleed">
-          {!settings || !snapshot
-            ? <div className="numpad-standby">Loading command map…</div>
-            : !enabled
-              ? (
-                  <div className="numpad-standby">
-                    <strong>Numpad module disabled</strong>
-                    <span>Enable it on this PHOENIX installation to accept numerical commands.</span>
-                    <button
-                      type="button"
-                      onClick={() => void saveNumpadSettings({ ...settings.numpadCommands, enabled: true })}
-                    >Enable numpad</button>
-                  </div>
-                )
-              : (
+        <PageContent variant={view === 'navigator' ? 'bleed' : 'inset'}>
+          {view === 'shortcuts' && settings
+            ? (
+                <NumpadShortcutEditor
+                  commands={commands}
+                  shortcuts={settings.numpadCommands.shortcuts}
+                  onSave={shortcuts => saveNumpadSettings({ ...settings.numpadCommands, shortcuts })}
+                />
+              )
+            : (!settings || !snapshot
+                ? <div className="numpad-standby">Loading command map…</div>
+                : !enabled
+                  ? (
+                      <div className="numpad-standby">
+                        <strong>Numpad module disabled</strong>
+                        <span>Enable it on this PHOENIX installation to accept numerical commands.</span>
+                        <button
+                          type="button"
+                          onClick={() => void saveNumpadSettings({ ...settings.numpadCommands, enabled: true })}
+                        >Enable numpad</button>
+                      </div>
+                    )
+                  : (
                     <div className="numpad-console">
                       <header className="numpad-console__status">
                         <div><span>Address</span><strong>{address}</strong></div>
@@ -263,7 +280,7 @@ export function NumpadPage ({ api, error, health }: NumpadPageProps) {
                         ))}
                       />
                     </div>
-                  )}
+                    ))}
         </PageContent>
       </Page>
     </PhoenixShell>

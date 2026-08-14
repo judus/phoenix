@@ -8,6 +8,24 @@ import {
 export const NumpadSelectorSchema = z.string().regex(/^\d+$/u).max(3)
 export const NumpadAddressSchema = z.string().regex(/^\d+$/u).max(32)
 
+export const NumpadShortcutSchema = z.object({
+  id: z.string().regex(/^[a-z][a-z0-9-]*$/u),
+  selector: NumpadSelectorSchema,
+  label: z.string().min(1).max(80).optional(),
+  target: CommandTargetSchema
+})
+
+export const NumpadShortcutCollectionSchema = z.array(NumpadShortcutSchema).max(100).superRefine((shortcuts, context) => {
+  const ids = new Set<string>()
+  const selectors = new Set<string>()
+  for (const [index, shortcut] of shortcuts.entries()) {
+    if (ids.has(shortcut.id)) context.addIssue({ code: 'custom', message: `Duplicate shortcut id: ${shortcut.id}.`, path: [index, 'id'] })
+    if (selectors.has(shortcut.selector)) context.addIssue({ code: 'custom', message: `Shortcut ${shortcut.selector} is assigned twice.`, path: [index, 'selector'] })
+    ids.add(shortcut.id)
+    selectors.add(shortcut.selector)
+  }
+})
+
 export const NumpadTreeNodeSchema = z.object({
   id: z.string().min(1),
   parentId: z.string().min(1).nullable(),
@@ -61,6 +79,7 @@ export type NumpadTreeSnapshot = z.infer<typeof NumpadTreeSnapshotSchema>
 export type NumpadLevelResolution = z.infer<typeof NumpadLevelResolutionSchema>
 export type NumpadExecuteRequest = z.infer<typeof NumpadExecuteRequestSchema>
 export type NumpadExecutionResult = z.infer<typeof NumpadExecutionResultSchema>
+export type NumpadShortcut = z.infer<typeof NumpadShortcutSchema>
 
 export function numpadChildren (
   snapshot: NumpadTreeSnapshot,
