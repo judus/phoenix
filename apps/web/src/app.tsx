@@ -10,11 +10,13 @@ import {
   type EliteJournalSourceDiagnostics,
   type EliteStatusSourceDiagnostics,
   type HealthResponse,
+  type PhoenixModules,
   type RuntimeState
 } from '@phoenix/contracts'
 import { parseDisplayCommand, PhoenixApiClient } from './api/phoenix-api-client.js'
 import { subscribePhoenixEvent } from './api/phoenix-event-stream.js'
 import { allowsRemoteDisplayCommands } from './features/display/display-command-preferences.js'
+import { armNumpadRoute } from './features/numpad/numpad-route-session.js'
 import { DeveloperPage, type DeveloperView } from './pages/developer-page.js'
 import { ControlsPage, type ControlCategory } from './pages/controls-page.js'
 import { CopilotPage } from './pages/copilot-page.js'
@@ -83,6 +85,7 @@ function AuthenticatedApplication () {
   const [controlCategory, setControlCategory] = useState<ControlCategory>(() => (
     route.section === 'controls' ? route.category : 'ship'
   ))
+  const [moduleSettings, setModuleSettings] = useState<PhoenixModules>()
 
   useEffect(() => {
     api.getHealth()
@@ -104,6 +107,10 @@ function AuthenticatedApplication () {
     api.getControlLayout()
       .then(setControlLayout)
       .catch(cause => setError(cause instanceof Error ? cause.message : 'Control layout unavailable.'))
+
+    api.getModuleSettings()
+      .then(setModuleSettings)
+      .catch(cause => setError(cause instanceof Error ? cause.message : 'Module settings unavailable.'))
 
     api.getEliteStatusDiagnostics()
       .then(setEliteStatusDiagnostics)
@@ -155,6 +162,9 @@ function AuthenticatedApplication () {
         void api.getControlLayout()
           .then(setControlLayout)
           .catch(cause => setError(cause instanceof Error ? cause.message : 'Control layout unavailable.'))
+        void api.getModuleSettings()
+          .then(setModuleSettings)
+          .catch(cause => setError(cause instanceof Error ? cause.message : 'Module settings unavailable.'))
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : 'Invalid command catalogue revision received.')
       }
@@ -165,10 +175,12 @@ function AuthenticatedApplication () {
       setRoute(nextRoute)
       if (nextRoute.section === 'controls') setControlCategory(nextRoute.category)
       if (isInformationRoute(nextRoute)) {
-        const hash = normalizedHash(window.location.hash)
-        setInformationHash(hash)
         setInformationRoute(nextRoute)
-        window.sessionStorage.setItem(INFORMATION_ROUTE_STORAGE_KEY, hash)
+        if (nextRoute.section !== 'numpad') {
+          const hash = normalizedHash(window.location.hash)
+          setInformationHash(hash)
+          window.sessionStorage.setItem(INFORMATION_ROUTE_STORAGE_KEY, hash)
+        }
       }
     }
     window.addEventListener('hashchange', handleRouteChange)
@@ -180,6 +192,18 @@ function AuthenticatedApplication () {
       window.removeEventListener('hashchange', handleRouteChange)
     }
   }, [])
+
+  useEffect(() => {
+    if (moduleSettings?.numpadCommands.enabled !== true) return
+    const activateNumpad = (event: KeyboardEvent): void => {
+      if (event.code !== 'Numpad0' || isEditableTarget(event.target) || readRoute().section === 'numpad') return
+      event.preventDefault()
+      armNumpadRoute(window.location.hash)
+      window.location.hash = '#/numpad'
+    }
+    window.addEventListener('keydown', activateNumpad)
+    return () => window.removeEventListener('keydown', activateNumpad)
+  }, [moduleSettings?.numpadCommands.enabled])
 
   const activeMode = desktopMode(route)
   const navigateDesktop = (mode: DesktopMode): void => {
@@ -455,4 +479,10 @@ function readInformationHash (): string {
   const stored = window.sessionStorage.getItem(INFORMATION_ROUTE_STORAGE_KEY)
   if (stored && isInformationRoute(readRoute(stored))) return stored
   return '#/'
+}
+
+function isEditableTarget (target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && (
+    target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+  )
 }

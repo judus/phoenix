@@ -56,11 +56,15 @@
 
   .numpad-grid {
     --numpad-columns: 3;
+    --numpad-rows: 1;
     min-inline-size: 0;
     min-block-size: 0;
     display: grid;
     grid-template-columns: repeat(var(--numpad-columns), minmax(0, 1fr));
-    grid-auto-rows: minmax(0, 1fr);
+    grid-template-rows: repeat(var(--numpad-rows), minmax(0, 1fr));
+    gap: 1px;
+    border: 1px solid var(--color-border);
+    background: rgb(255 157 0 / 24%);
     overflow: hidden;
   }
 
@@ -68,38 +72,48 @@
     min-inline-size: 0;
     min-block-size: 0;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
-    gap: var(--space-2);
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: var(--space-1);
     padding: var(--space-3);
     border: 0;
-    border-inline-end: 1px solid var(--color-border-subtle);
-    border-block-end: 1px solid var(--color-border-subtle);
+    border: 0;
     text-align: start;
     background: var(--color-panel);
+    overflow: hidden;
 
     &[data-matching='true'] { background: rgb(255 157 0 / 12%); }
     &[data-exact='true'] { color: var(--color-background); background: var(--color-primary); }
     &:disabled { opacity: 0.42; }
+    &:hover:not(:disabled), &:focus-visible {
+      outline: 1px solid var(--color-primary);
+      outline-offset: -1px;
+      background: rgb(68 20 20 / 94%);
+    }
   }
 
   .numpad-tile__selector {
+    grid-column: 2;
+    grid-row: 1;
     color: var(--color-primary);
-    font-size: clamp(1rem, 2vw, 1.6rem);
+    font-size: clamp(0.85rem, 1.4vw, 1.15rem);
   }
 
   .numpad-tile[data-exact='true'] .numpad-tile__selector { color: currentColor; }
 
   .numpad-tile__label {
+    grid-column: 1 / -1;
+    grid-row: 2;
     align-self: center;
     overflow: hidden;
-    font-size: clamp(0.85rem, 1.45vw, 1.25rem);
-    text-overflow: ellipsis;
+    font-size: clamp(0.78rem, 1.25vw, 1rem);
+    overflow-wrap: anywhere;
     text-transform: uppercase;
   }
 
   .numpad-tile__meta {
     grid-column: 1 / -1;
+    grid-row: 3;
     color: var(--color-muted);
     font-size: 0.65rem;
     text-transform: uppercase;

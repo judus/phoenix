@@ -3,16 +3,18 @@ import type { NumpadTreeNode } from '@phoenix/contracts'
 
 interface NumpadTileGridProps {
   columns?: number
+  rows?: number
   nodes: NumpadTreeNode[]
   pendingDigits: string
   onSelect: (nodeId: string) => void
 }
 
-type GridStyle = CSSProperties & { '--numpad-columns': number }
+type GridStyle = CSSProperties & { '--numpad-columns': number, '--numpad-rows': number }
 
-export function NumpadTileGrid ({ columns, nodes, onSelect, pendingDigits }: NumpadTileGridProps) {
-  const count = columns ?? Math.max(1, Math.min(nodes.length, 10))
-  const style: GridStyle = { '--numpad-columns': count }
+export function NumpadTileGrid ({ columns, nodes, onSelect, pendingDigits, rows: configuredRows }: NumpadTileGridProps) {
+  const count = columns ?? balancedColumnCount(nodes.length)
+  const rows = configuredRows ?? Math.max(1, Math.ceil(nodes.length / count))
+  const style: GridStyle = { '--numpad-columns': count, '--numpad-rows': rows }
 
   return (
     <div className="numpad-grid" style={style} aria-label="Numpad command choices">
@@ -48,4 +50,9 @@ export function NumpadTileGrid ({ columns, nodes, onSelect, pendingDigits }: Num
       })}
     </div>
   )
+}
+
+export function balancedColumnCount (itemCount: number): number {
+  if (itemCount <= 3) return Math.max(1, itemCount)
+  return Math.min(10, Math.ceil(Math.sqrt(itemCount * 1.6)))
 }

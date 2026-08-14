@@ -18,6 +18,12 @@ import {
   setAllowsRemoteDisplayCommands
 } from '../features/display/display-command-preferences.js'
 import {
+  acknowledgeNumpadRouteActivation,
+  discardNumpadReturnRoute,
+  leaveNumpadRoute,
+  numpadRouteIsArmed
+} from '../features/numpad/numpad-route-session.js'
+import {
   activateNumpadSession,
   cancelNumpadSession,
   confirmNumpadSelection,
@@ -46,7 +52,9 @@ export interface NumpadPageProps {
 export function NumpadPage ({ api, error, health }: NumpadPageProps) {
   const [snapshot, setSnapshot] = useState<NumpadTreeSnapshot>()
   const [settings, setSettings] = useState<PhoenixModules>()
-  const [session, setSession] = useState<NumpadSessionState>(idleNumpadSession)
+  const [session, setSession] = useState<NumpadSessionState>(() => (
+    numpadRouteIsArmed() ? activateNumpadSession().state : idleNumpadSession()
+  ))
   const [localError, setLocalError] = useState<string>()
   const [allowRemoteDisplay, setAllowRemoteDisplay] = useState(allowsRemoteDisplayCommands)
   const snapshotRevision = useRef(0)
@@ -54,6 +62,10 @@ export function NumpadPage ({ api, error, health }: NumpadPageProps) {
   useEffect(() => {
     snapshotRevision.current = snapshot?.revision ?? 0
   }, [snapshot?.revision])
+
+  useEffect(() => {
+    acknowledgeNumpadRouteActivation()
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -108,9 +120,11 @@ export function NumpadPage ({ api, error, health }: NumpadPageProps) {
 
   const applyExecutionResult = (result: NumpadExecutionResult): void => {
     if (result.command?.navigationHref) {
+      discardNumpadReturnRoute()
       window.location.hash = result.command.navigationHref
       return
     }
+    if (result.status === 'accepted' && leaveNumpadRoute()) return
     setSession(current => finishNumpadSession(
       current,
       result.status === 'accepted' ? 'completed' : result.status === 'stale' ? 'stale' : 'error',
@@ -136,7 +150,7 @@ export function NumpadPage ({ api, error, health }: NumpadPageProps) {
       }
       if (event.code === 'NumpadDecimal' || event.key === '.') {
         event.preventDefault()
-        apply(cancelNumpadSession())
+        cancelAndReturn()
         return
       }
       if (event.code === 'NumpadEnter' || event.key === 'Enter') {
@@ -150,13 +164,18 @@ export function NumpadPage ({ api, error, health }: NumpadPageProps) {
 
   useEffect(() => {
     if (!session.active || session.status === 'executing') return
-    const timeout = window.setTimeout(() => setSession(idleNumpadSession()), settings?.numpadCommands.cancelAfterMs ?? 5000)
+    const timeout = window.setTimeout(cancelAndReturn, settings?.numpadCommands.cancelAfterMs ?? 5000)
     return () => window.clearTimeout(timeout)
   }, [session, settings?.numpadCommands.cancelAfterMs])
 
   const parent = snapshot ? currentNumpadParent(snapshot, session) : undefined
-  const nodes = snapshot && session.active ? visibleNumpadNodes(snapshot, session) : []
+  const nodes = snapshot ? visibleNumpadNodes(snapshot, session) : []
   const address = snapshot ? displayedNumpadAddress(snapshot, session) : '0'
+
+  const cancelAndReturn = (): void => {
+    setSession(cancelNumpadSession().state)
+    leaveNumpadRoute()
+  }
 
   const saveNumpadSettings = async (next: PhoenixModules['numpadCommands']): Promise<void> => {
     if (!settings) return
@@ -223,26 +242,25 @@ export function NumpadPage ({ api, error, health }: NumpadPageProps) {
                     >Enable numpad</button>
                   </div>
                 )
-              : !session.active
-                ? (
-                    <button type="button" className="numpad-standby numpad-standby--activation" onClick={() => apply(activateNumpadSession())}>
-                      <strong>0</strong>
-                      <span>Press Numpad 0 to activate</span>
-                    </button>
-                  )
-                : (
+              : (
                     <div className="numpad-console">
                       <header className="numpad-console__status">
                         <div><span>Address</span><strong>{address}</strong></div>
                         <div><span>Context</span><strong>{parent?.label ?? 'Command root'}</strong></div>
-                        <div><span>Status</span><strong data-status={session.status}>{session.message ?? session.status}</strong></div>
-                        <button type="button" onClick={() => apply(cancelNumpadSession())}>Cancel ·</button>
+                        <div><span>Status</span><strong data-status={session.status}>{session.active ? session.message ?? session.status : 'Press Numpad 0'}</strong></div>
+                        <button type="button" onClick={cancelAndReturn}>Cancel ·</button>
                       </header>
                       <NumpadTileGrid
                         columns={parent?.columns ?? (parent ? undefined : 3)}
+                        rows={parent?.rows}
                         nodes={nodes}
                         pendingDigits={session.pendingDigits}
-                        onSelect={nodeId => apply(selectNumpadNode(snapshot, session, nodeId, alwaysConfirm))}
+                        onSelect={nodeId => apply(selectNumpadNode(
+                          snapshot,
+                          session.active ? session : activateNumpadSession().state,
+                          nodeId,
+                          alwaysConfirm
+                        ))}
                       />
                     </div>
                   )}
