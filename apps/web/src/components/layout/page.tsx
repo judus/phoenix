@@ -30,9 +30,12 @@ export function PageHeader ({ actions, description, eyebrow, title }: PageHeader
 
 export interface PageContentProps {
   children: ReactNode
-  variant?: 'inset' | 'bleed'
+  variant?: 'inset' | 'bleed' | 'plain'
 }
 
 export function PageContent ({ children, variant = 'inset' }: PageContentProps) {
-  return <div className={`page-content page-content--${variant}`}>{children}</div>
+  const classes = ['page-content', variant === 'plain' ? undefined : `page-content--${variant}`]
+    .filter(Boolean)
+    .join(' ')
+  return <div className={classes}>{children}</div>
 }

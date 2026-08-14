@@ -44,12 +44,12 @@ export function PhoenixShell ({
           navigation={<PrimaryNavigation activeItemId={activePrimaryItemId} items={primaryNavigation} />}
         />
       ) : undefined}
-      secondaryNavigation={(
+      secondaryNavigation={secondaryNavigation.length > 0 ? (
         <SecondaryNavigation
           activeItemId={activeSecondaryItemId}
           items={secondaryNavigation}
         />
-      )}
+      ) : undefined}
     >
       {children}
     </AppShell>
@@ -58,11 +58,13 @@ export function PhoenixShell ({
 
 export function PhoenixTopBar ({
   developerSection = false,
+  macroSection = false,
   numpadSection = false,
   recordsSection = false,
   settingsSection = false
 }: {
   developerSection?: boolean
+  macroSection?: boolean
   numpadSection?: boolean
   recordsSection?: boolean
   settingsSection?: boolean
@@ -73,29 +75,35 @@ export function PhoenixTopBar ({
       actions={(
         <div className="top-bar-actions" aria-label="Application actions">
           <a
-            href="#/records/journal"
-            aria-current={recordsSection ? 'page' : undefined}
-            aria-label="Records"
-            title="Records"
-          >▤</a>
-          <a
             href="#/numpad"
             aria-current={numpadSection ? 'page' : undefined}
             aria-label="Numpad command navigator"
             title="Numpad command navigator"
           >123</a>
           <a
-            href="#/settings/system"
-            aria-current={settingsSection ? 'page' : undefined}
-            aria-label="Settings"
-            title="Settings"
-          >☷</a>
+            href="#/macros"
+            aria-current={macroSection ? 'page' : undefined}
+            aria-label="Macros"
+            title="Macros"
+          >MAC</a>
+          <a
+            href="#/records/journal"
+            aria-current={recordsSection ? 'page' : undefined}
+            aria-label="Records"
+            title="Records"
+          >LOG</a>
           <a
             href="#/developer/overview"
             aria-current={developerSection ? 'page' : undefined}
             aria-label="Developer tools"
             title="Developer tools"
           >DEV</a>
+          <a
+            href="#/settings/system"
+            aria-current={settingsSection ? 'page' : undefined}
+            aria-label="Settings"
+            title="Settings"
+          >⚙</a>
           <FullscreenButton />
         </div>
       )}

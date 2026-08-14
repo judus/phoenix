@@ -36,6 +36,7 @@ import { PairingPage } from './pages/pairing-page.js'
 import { NumpadPage } from './pages/numpad-page.js'
 import { SettingsPage, type SettingsView } from './pages/settings-page.js'
 import { CopilotVoiceProvider } from './features/copilot/copilot-voice-provider.js'
+import { MacroRuntimeProvider } from './features/macros/macro-runtime-provider.js'
 import { DesktopWorkspace, type DesktopMode } from './components/layout/desktop-workspace.js'
 import { PhoenixTopBar } from './components/layout/phoenix-shell.js'
 
@@ -65,7 +66,13 @@ export function App () {
     )
   }
 
-  return <CopilotVoiceProvider><AuthenticatedApplication /></CopilotVoiceProvider>
+  return (
+    <CopilotVoiceProvider>
+      <MacroRuntimeProvider api={api}>
+        <AuthenticatedApplication />
+      </MacroRuntimeProvider>
+    </CopilotVoiceProvider>
+  )
 }
 
 function AuthenticatedApplication () {
@@ -217,6 +224,22 @@ function AuthenticatedApplication () {
   }
 
   const information = (() => {
+    if (informationRoute.section === 'macros') {
+      return (
+        <ControlsPage
+          api={api}
+          actionCatalog={actionCatalog}
+          commandCatalogueRevision={commandCatalogueRevision}
+          category="macros"
+          controlLayout={controlLayout}
+          error={error}
+          health={health}
+          runtimeState={runtimeState}
+          onExecuteCommand={(target, operation) => api.executeCommand(target, operation)}
+          onSaveLayout={async layout => api.saveControlLayout(layout)}
+        />
+      )
+    }
     if (informationRoute.section === 'developer') {
       return (
         <DeveloperPage
@@ -361,6 +384,7 @@ function AuthenticatedApplication () {
       topBar={(
         <PhoenixTopBar
           developerSection={informationRoute.section === 'developer'}
+          macroSection={informationRoute.section === 'macros'}
           numpadSection={informationRoute.section === 'numpad'}
           recordsSection={informationRoute.section === 'records'}
           settingsSection={informationRoute.section === 'settings'}
@@ -374,6 +398,7 @@ export type AppRoute =
   | { section: 'main' }
   | { section: 'copilot', view: CopilotView }
   | { section: 'numpad', view: 'navigator' | 'shortcuts' }
+  | { section: 'macros' }
   | { section: 'settings', view: SettingsView }
   | { section: 'commander', view: CommanderView }
   | { section: 'operations', view: OperationsView }
@@ -386,7 +411,7 @@ export type AppRoute =
   | { section: 'developer', view: DeveloperView }
 
 const CONTROL_CATEGORIES: ControlCategory[] = [
-  'ship', 'combat', 'navigation', 'vessel', 'srv', 'on_foot', 'radio', 'emote', 'misc', 'macros'
+  'ship', 'combat', 'navigation', 'vessel', 'srv', 'on_foot', 'radio', 'emote', 'misc'
 ]
 const INFORMATION_ROUTE_STORAGE_KEY = 'phoenix.desktop.information-route'
 
@@ -398,6 +423,7 @@ export function readRoute (routeHash?: string): AppRoute {
   if (numpadMatch) return { section: 'numpad', view: numpadMatch[1] === 'shortcuts' ? 'shortcuts' : 'navigator' }
   const settingsMatch = hash.match(/^#\/?settings(?:\/(system|audio|modules|pairing))?$/u)
   if (settingsMatch) return { section: 'settings', view: (settingsMatch[1] ?? 'system') as SettingsView }
+  if (/^#\/?macros$/u.test(hash)) return { section: 'macros' }
   if (/^#\/?(?:log|records\/journal)$/u.test(hash)) return { section: 'records', view: 'journal' }
   const commanderMatch = hash.match(/^#\/?commander\/(overview|inventory|progress)$/u)
   if (commanderMatch) return { section: 'commander', view: commanderMatch[1] as CommanderView }

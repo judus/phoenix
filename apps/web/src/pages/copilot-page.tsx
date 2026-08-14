@@ -22,6 +22,7 @@ import {
 } from '../features/copilot/copilot-client-identity.js'
 
 const DEFAULT_CONVERSATION_ID = 'phoenix-copilot'
+const REALTIME_VOICES = ['alloy', 'ash', 'ballad', 'cedar', 'coral', 'echo', 'marin', 'sage', 'shimmer', 'verse'] as const
 const navigation: NavigationItem[] = [
   { href: '#/copilot/chat', icon: '◈', id: 'chat', label: 'Chat' },
   { href: '#/copilot/profiles', icon: '◇', id: 'profiles', label: 'Profiles' }
@@ -199,19 +200,21 @@ export function CopilotPage ({ api, error, health, view = 'chat' }: CopilotPageP
     setProfileSaving(true)
     setChatError(undefined)
     try {
+      const creating = draft.templateProfileId !== undefined
+      const profileId = creating ? profileIdFromName(draft.name) : draft.id
       const input = {
         characterSpeech: draft.characterSpeech,
         characterText: draft.characterText,
         profile: {
           description: draft.description,
-          id: draft.id,
-          mark: draft.mark,
+          id: profileId,
+          mark: creating ? draft.name.trim().charAt(0).toUpperCase() || '?' : draft.mark,
           name: draft.name,
           voice: draft.voice
         },
         ...(draft.templateProfileId === undefined ? {} : { templateProfileId: draft.templateProfileId })
       }
-      const saved = draft.templateProfileId === undefined
+      const saved = !creating
         ? await api.updateCopilotProfile(draft.id, input)
         : await api.createCopilotProfile(input)
       setProfileDraft(toProfileDraft(saved))
@@ -230,18 +233,17 @@ export function CopilotPage ({ api, error, health, view = 'chat' }: CopilotPageP
       health={health}
       secondaryNavigation={navigation}
     >
-      <Page className="copilot-page">
-        <PageHeader
-          title={view === 'chat' ? 'Copilot' : 'Profiles'}
-          eyebrow={view === 'chat' ? 'Text channel' : 'Characters'}
-          description={view === 'chat'
-            ? 'Persistent shipboard conversation with current PHOENIX telemetry.'
-            : 'Select, create, and tune Copilot characters.'}
-        />
-        <PageContent>
+      <Page className={`copilot-page copilot-page--${view}`}>
+        {view === 'profiles' && (
+          <PageHeader
+            title="Profiles"
+            eyebrow="Characters"
+            description="Select, create, and tune Copilot characters."
+          />
+        )}
+        <PageContent variant={view === 'chat' ? 'plain' : 'inset'}>
           <div className={`copilot-workspace copilot-workspace--${view}`}>
             <aside className="copilot-sidebar" aria-label="Copilot profile">
-              <h2>Copilot profile</h2>
               {view === 'chat'
                 ? <>
                     <article className="copilot-identity-card">
@@ -274,25 +276,27 @@ export function CopilotPage ({ api, error, health, view = 'chat' }: CopilotPageP
                     </label>
                   </>
                 : <>
-                    {voice.profiles.map(profile => (
-                      <button
-                        className="copilot-profile"
-                        type="button"
-                        key={profile.id}
-                        aria-pressed={profile.id === voice.activeProfile.id}
-                        disabled={voice.connected || voice.transitioning}
-                        title={profile.description}
-                        onClick={() => { void editProfile(profile.id) }}
-                      >
-                        <span className="copilot-profile__mark">{profile.mark}</span>
-                        <span>
-                          <strong>{profile.name.toUpperCase()}</strong>
-                          <small>{profile.id === voice.activeProfile.id ? 'Active profile' : profile.description}</small>
-                        </span>
-                      </button>
-                    ))}
+                    <h2 className="section-heading">Profiles</h2>
+                    <table className="data-table copilot-profile-table">
+                      <tbody>
+                        {voice.profiles.map(profile => (
+                          <tr key={profile.id} className={profile.id === voice.activeProfile.id ? 'is-highlighted' : undefined}>
+                            <td>
+                              <button
+                                type="button"
+                                aria-pressed={profile.id === voice.activeProfile.id}
+                                disabled={voice.connected || voice.transitioning}
+                                title={profile.description}
+                                onClick={() => { void editProfile(profile.id) }}
+                              >
+                                <strong>{profile.name}</strong>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                     <div className="copilot-profile-actions">
-                      <button type="button" onClick={() => { void editProfile(voice.activeProfile.id) }}>Edit active</button>
                       <button type="button" onClick={() => { void createProfile() }}>New profile</button>
                     </div>
                   </>}
@@ -303,7 +307,6 @@ export function CopilotPage ({ api, error, health, view = 'chat' }: CopilotPageP
               ? <CopilotProfileEditor
                   draft={profileDraft}
                   saving={profileSaving}
-                  onCancel={() => setProfileDraft(undefined)}
                   onChange={setProfileDraft}
                   onSave={saveProfile}
                 />
@@ -341,13 +344,11 @@ export function CopilotPage ({ api, error, health, view = 'chat' }: CopilotPageP
 
 function CopilotProfileEditor ({
   draft,
-  onCancel,
   onChange,
   onSave,
   saving
 }: {
   draft: ProfileDraft
-  onCancel: () => void
   onChange: (draft: ProfileDraft) => void
   onSave: (draft: ProfileDraft) => Promise<void>
   saving: boolean
@@ -362,24 +363,31 @@ function CopilotProfileEditor ({
       void onSave(draft)
     }}>
       <header>
-        <div><span>Copilot profile</span><h2>{creating ? 'Create character' : `Edit ${draft.name}`}</h2></div>
-        <button type="button" onClick={onCancel}>Return to channel</button>
+        <h2>{creating ? 'Create character' : `Edit ${draft.name}`}</h2>
+        <button type="submit" disabled={saving}>{saving ? 'Saving…' : creating ? 'Create profile' : 'Save profile'}</button>
       </header>
       <div className="copilot-profile-editor__metadata">
-        <label>Profile ID<input value={draft.id} disabled={!creating} pattern="[a-z][a-z0-9_-]*" onChange={update('id')} /></label>
         <label>Name<input value={draft.name} maxLength={48} required onChange={update('name')} /></label>
-        <label>Mark<input value={draft.mark} maxLength={3} required onChange={update('mark')} /></label>
-        <label>Realtime voice<input value={draft.voice} required onChange={update('voice')} /></label>
+        <label>Realtime voice
+          <select value={draft.voice} required onChange={event => onChange({ ...draft, voice: event.target.value })}>
+            {Array.from(new Set([...REALTIME_VOICES, draft.voice])).sort().map(voice => (
+              <option key={voice} value={voice}>{voice}</option>
+            ))}
+          </select>
+        </label>
       </div>
       <label>Description<input value={draft.description} maxLength={240} onChange={update('description')} /></label>
       <label>Text character prompt<textarea value={draft.characterText} required onChange={update('characterText')} /></label>
       <label>Speech character prompt<textarea value={draft.characterSpeech} required onChange={update('characterSpeech')} /></label>
-      <footer>
-        <span>Operational rules and agent composition are protected.</span>
-        <button type="submit" disabled={saving}>{saving ? 'Saving…' : creating ? 'Create profile' : 'Save profile'}</button>
-      </footer>
     </form>
   )
+}
+
+function profileIdFromName (name: string): string {
+  const id = name.trim().toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return /^[a-z]/.test(id) ? id : `copilot-${id || 'profile'}`
 }
 
 function toProfileDraft (document: CopilotProfileDocument): ProfileDraft {
@@ -454,7 +462,7 @@ const CopilotMessageHistory = memo(function CopilotMessageHistory ({
           </article>
         </div>
       ))}
-      <div ref={endRef} />
+      <div className="copilot-messages__end" ref={endRef} />
     </div>
   )
 })

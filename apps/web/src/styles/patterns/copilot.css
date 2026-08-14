@@ -18,12 +18,22 @@
     overflow: hidden;
   }
 
+  .copilot-page--chat {
+    grid-template-rows: minmax(0, 1fr);
+    padding-inline: 0;
+  }
+
   .copilot-workspace {
     block-size: 100%;
     min-block-size: 0;
     display: grid;
     grid-template-columns: minmax(12rem, 0.65fr) minmax(20rem, 2.8fr);
     gap: var(--space-3);
+  }
+
+  .copilot-workspace--chat {
+    grid-template-columns: minmax(14rem, 1fr) minmax(0, 3fr);
+    gap: 0;
   }
 
   .copilot-sidebar,
@@ -33,6 +43,25 @@
     min-block-size: 0;
     border: 1px solid var(--color-border);
     background: var(--color-panel);
+  }
+
+  .copilot-workspace--chat .copilot-sidebar {
+    display: flex;
+    flex-direction: column;
+    padding-block: 0;
+    border: 0;
+    border-inline-end: 1px solid var(--color-border);
+    background: transparent;
+  }
+
+  .copilot-workspace--chat .copilot-chat {
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+  }
+
+  .copilot-workspace--chat .copilot-profile-select {
+    margin-block-start: auto;
   }
 
   .copilot-profile-placeholder {
@@ -61,47 +90,17 @@
     }
   }
 
-  .copilot-profile {
+  .copilot-profile-table button {
     inline-size: 100%;
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-3);
-    border: 1px solid var(--color-primary);
-    background: rgb(255 157 0 / 9%);
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
     text-align: start;
-
-    & + .copilot-profile {
-      margin-block-start: var(--space-2);
-    }
-
-    &[aria-pressed='false'] {
-      border-color: var(--color-border);
-      background: transparent;
-    }
 
     &:disabled {
       cursor: not-allowed;
       opacity: 0.55;
-    }
-
-    .copilot-profile__mark {
-      display: grid;
-      inline-size: 2rem;
-      block-size: 2rem;
-      place-items: center;
-      border: 1px solid var(--color-primary);
-      color: var(--color-primary);
-    }
-
-    strong,
-    small {
-      display: block;
-    }
-
-    small {
-      margin-block-start: var(--space-1);
-      color: var(--color-muted);
     }
   }
 
@@ -199,9 +198,7 @@
   }
 
   .copilot-profile-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-block-start: var(--space-3);
+    margin-block-start: auto;
 
     button {
       min-inline-size: 0;
@@ -211,10 +208,27 @@
       background: transparent;
       text-transform: uppercase;
 
-      & + button {
-        border-inline-start: 0;
-      }
+      inline-size: 100%;
     }
+  }
+
+  .copilot-workspace--profiles .copilot-sidebar {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .copilot-workspace--profiles {
+    gap: var(--space-5);
+  }
+
+  .copilot-workspace--profiles .copilot-profile-editor,
+  .copilot-workspace--profiles .copilot-profile-placeholder {
+    padding: 0;
+    border: 0;
+    background: transparent;
   }
 
   .copilot-profile-editor {
@@ -225,8 +239,7 @@
     border: 1px solid var(--color-border);
     background: var(--color-panel);
 
-    header,
-    footer {
+    header {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -237,14 +250,7 @@
       padding-block-end: var(--space-3);
       border-block-end: 1px solid var(--color-border);
 
-      span {
-        color: var(--color-primary);
-        font-size: 0.7rem;
-        text-transform: uppercase;
-      }
-
       h2 {
-        margin-block-start: var(--space-1);
         font-size: 1.25rem;
         font-weight: 400;
       }
@@ -260,6 +266,7 @@
     }
 
     input,
+    select,
     textarea {
       min-inline-size: 0;
       padding: var(--space-2);
@@ -289,21 +296,11 @@
       text-transform: uppercase;
     }
 
-    footer {
-      margin-block-start: var(--space-3);
-      padding-block-start: var(--space-3);
-      border-block-start: 1px solid var(--color-border);
-
-      span {
-        color: var(--color-muted);
-        font-size: 0.75rem;
-      }
-    }
   }
 
   .copilot-profile-editor__metadata {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-2);
   }
 
@@ -317,6 +314,10 @@
     overflow-x: hidden;
     overflow-y: auto;
     padding: var(--space-4);
+  }
+
+  .copilot-messages__end {
+    block-size: var(--space-4);
   }
 
   .copilot-empty {
@@ -473,7 +474,7 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto auto;
     gap: var(--space-2);
-    padding: var(--space-3);
+    margin-inline: var(--space-3);
     border-block-start: 1px solid var(--color-border);
 
     label {
@@ -487,6 +488,7 @@
     textarea {
       min-inline-size: 0;
       resize: none;
+      margin-block-start: var(--space-3);
       padding: var(--space-2);
       border: 1px solid var(--color-border);
       color: var(--color-text);
@@ -494,6 +496,7 @@
     }
 
     button {
+      margin-block-start: var(--space-3);
       padding-inline: var(--space-4);
       border: 1px solid var(--color-primary);
       color: var(--color-primary);
@@ -597,7 +600,8 @@
       grid-template-columns: minmax(0, 1fr);
     }
 
-    .copilot-sidebar {
+    .copilot-sidebar,
+    .copilot-workspace--chat .copilot-sidebar {
       display: none;
     }
 
