@@ -1,9 +1,13 @@
 import type {
+  GalnetArticle,
+  GalnetNewsResponse,
   GameActionCatalogResponse,
   GameActionOperation,
   GameActionResult,
   HealthResponse
 } from '@phoenix/contracts'
+import { useEffect, useState } from 'react'
+import type { PhoenixApiClient } from '../api/phoenix-api-client.js'
 import { GalnetRadioControls } from '../components/galnet-radio-controls.js'
 import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
@@ -50,12 +54,14 @@ const commsViews: Record<CommsView, { title: string, eyebrow: string, descriptio
 
 export function InformationSectionPage ({
   actionCatalog,
+  api,
   error,
   health,
   onExecuteAction,
   route
 }: {
   actionCatalog?: GameActionCatalogResponse
+  api: PhoenixApiClient
   error?: string
   health?: HealthResponse
   onExecuteAction: (actionId: string, operation: GameActionOperation) => Promise<GameActionResult>
@@ -76,7 +82,9 @@ export function InformationSectionPage ({
       <Page className={`information-section-page ${route.section}-page`}>
         <PageHeader title={definition.title} eyebrow={definition.eyebrow} description={definition.description} />
         <PageContent>
-          {route.section === 'comms' && route.view === 'radio'
+          {route.section === 'comms' && route.view === 'galnet'
+            ? <GalnetNews api={api} />
+            : route.section === 'comms' && route.view === 'radio'
             ? (
                 <section className="information-surface information-surface--radio">
                   <GalnetRadioControls actionCatalog={actionCatalog} onExecuteAction={onExecuteAction} />
@@ -93,6 +101,70 @@ export function InformationSectionPage ({
       </Page>
     </PhoenixShell>
   )
+}
+
+function GalnetNews ({ api }: { api: PhoenixApiClient }) {
+  const [news, setNews] = useState<GalnetNewsResponse>()
+  const [selectedId, setSelectedId] = useState<string>()
+  const [error, setError] = useState<string>()
+
+  useEffect(() => {
+    void api.getGalnetNews().then(result => {
+      setNews(result)
+      setSelectedId(current => current && result.articles.some(article => article.id === current)
+        ? current
+        : result.articles[0]?.id)
+    }).catch(cause => setError(cause instanceof Error ? cause.message : 'GalNet is unavailable.'))
+  }, [api])
+
+  if (error) return <section className="information-surface information-surface--empty"><strong>GalNet unavailable</strong><p>{error}</p></section>
+  if (!news) return <section className="information-surface information-surface--empty"><strong>Receiving GalNet</strong><p>Synchronising the latest Frontier news feed.</p></section>
+  const selected = news.articles.find(article => article.id === selectedId) ?? news.articles[0]
+  if (!selected) return <section className="information-surface information-surface--empty"><strong>No broadcasts</strong><p>Frontier returned no GalNet articles.</p></section>
+
+  return (
+    <section className="galnet-news">
+      <ol className="galnet-news__index">
+        {news.articles.map(article => (
+          <li key={article.id}>
+            <button type="button" aria-pressed={article.id === selected.id} onClick={() => setSelectedId(article.id)}>
+              <time dateTime={article.publishedAt}>{galnetDate(article.publishedAt)}</time>
+              <strong>{article.title}</strong>
+            </button>
+          </li>
+        ))}
+      </ol>
+      <GalnetArticleDetail article={selected} cache={news.cache} fetchedAt={news.fetchedAt} />
+    </section>
+  )
+}
+
+function GalnetArticleDetail ({
+  article,
+  cache,
+  fetchedAt
+}: {
+  article: GalnetArticle
+  cache: GalnetNewsResponse['cache']
+  fetchedAt: string
+}) {
+  return (
+    <article className="galnet-news__article">
+      <header>
+        <span>GalNet</span>
+        <h2>{article.title}</h2>
+        <time dateTime={article.publishedAt}>{galnetDate(article.publishedAt)}</time>
+      </header>
+      <div className="galnet-news__body">
+        {article.body.split(/\r?\n/u).filter(Boolean).map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+      </div>
+      <footer>{cache} feed · received {new Date(fetchedAt).toLocaleString()}</footer>
+    </article>
+  )
+}
+
+function galnetDate (date: string): string {
+  return new Intl.DateTimeFormat(undefined, { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(date))
 }
 
 function SectionScaffold ({ section, view }: { section: 'operations' | 'comms', view: OperationsView | CommsView }) {

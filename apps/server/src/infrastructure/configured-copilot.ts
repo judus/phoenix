@@ -9,8 +9,10 @@ import {
   type CopilotAiClientFactory
 } from '@phoenix/copilot'
 import { CopilotTextService, type CopilotText } from '../application/copilot-text-service.js'
+import { CopilotProfileService, type CopilotProfiles } from '../application/copilot-profile-service.js'
 import { CopilotRealtimeService, type CopilotRealtime } from '../application/copilot-realtime-service.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
+import type { SystemSettingsRepository } from '../domain/system-configuration.js'
 import { readCopilotAudioProcessing } from './copilot-audio-config.js'
 import { JsonConversationStore } from './json-conversation-store.js'
 import { OpenAiRealtimeClient } from './openai-realtime-client.js'
@@ -18,6 +20,7 @@ import { RotatingWireLogger } from './rotating-wire-logger.js'
 import type { ApplicationPaths } from './application-paths.js'
 
 export interface ConfiguredCopilot {
+  profiles: CopilotProfiles
   realtime: CopilotRealtime
   text: CopilotText
 }
@@ -31,6 +34,7 @@ export interface ConfiguredCopilotOptions {
   mcpToken?: string
   model?: string
   runtimeState: RuntimeStateReader
+  systemSettings: SystemSettingsRepository
   timeoutMs?: number
   tools: ToolRegistry
   wireLogEnabled?: boolean
@@ -86,6 +90,7 @@ export function createConfiguredCopilot (
     resolve(paths.resources.agents, options.agentsDirectory ?? '.')
   )
   const prompts = new AgentPromptComposer(profiles)
+  const profileService = new CopilotProfileService(profiles, options.systemSettings)
   const runtimeContext = new RuntimeContextRenderer()
   const clients: CopilotAiClientFactory = {
     create: (instructions: string): AiClient => createAiClient({
@@ -112,13 +117,12 @@ export function createConfiguredCopilot (
     runtimeContext
   )
   return {
-    text: new CopilotTextService(pipeline, options.runtimeState, conversations),
+    profiles: profileService,
+    text: new CopilotTextService(pipeline, options.runtimeState, conversations, () => profileService.activeProfileId()),
     realtime: new CopilotRealtimeService({
-      audioProcessing: readCopilotAudioProcessing(resolve(
-        paths.resources.agents,
-        options.agentsDirectory ?? '.',
-        'marin',
-        'audio.json'
+      activeProfileId: () => profileService.activeProfileId(),
+      audioProcessing: profileId => readCopilotAudioProcessing(resolve(
+        paths.resources.agents, options.agentsDirectory ?? '.', profileId, 'audio.json'
       )),
       conversations,
       gateway: new OpenAiRealtimeClient({ apiKey, wireLogger }),
@@ -127,7 +131,7 @@ export function createConfiguredCopilot (
       runtimeContext,
       runtimeState: options.runtimeState,
       tools: options.tools,
-      voice: process.env.PHOENIX_OPENAI_REALTIME_VOICE ?? 'marin'
+      voice: profileId => process.env.PHOENIX_OPENAI_REALTIME_VOICE ?? profiles.getDescriptor(profileId).voice
     })
   }
 }

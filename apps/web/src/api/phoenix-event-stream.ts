@@ -4,6 +4,7 @@ type PhoenixEventName =
   | 'activity-entry'
   | 'conversation-event'
   | 'command-catalogue'
+  | 'copilot-profiles'
   | 'display-command'
   | 'runtime-state'
   | 'voice-host'
@@ -50,6 +51,7 @@ function createSharedStream (url: string): SharedStream {
     'activity-entry',
     'conversation-event',
     'command-catalogue',
+    'copilot-profiles',
     'display-command',
     'runtime-state',
     'voice-host',

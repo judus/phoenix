@@ -11,6 +11,8 @@ import {
   ControlGridLayoutSchema,
   ExecuteCommandRequestSchema,
   CopilotChatRequestSchema,
+  CopilotProfileSelectionRequestSchema,
+  CopilotProfileWriteRequestSchema,
   CopilotConversationEventSchema,
   CopilotVoiceHostDesiredStateRequestSchema,
   CopilotVoiceHostHeartbeatSchema,
@@ -30,6 +32,7 @@ import { AiError, serializeAiError, type AiStreamEvent } from '@judus/llm-client
 import type { CopilotText, CopilotTextRequest } from '../application/copilot-text-service.js'
 import type { CopilotConversationEvents } from '../application/copilot-conversation-event-service.js'
 import type { CopilotVoiceHostControl } from '../application/copilot-voice-host-coordinator.js'
+import type { CopilotProfiles } from '../application/copilot-profile-service.js'
 import {
   serializeToolOutput,
   type CopilotRealtime
@@ -41,6 +44,7 @@ import type { HealthCheck } from '../application/health-service.js'
 import type { EngineeringDataReader } from '../application/engineering-data-service.js'
 import type { ExplorationDataReader } from '../application/exploration-data-service.js'
 import type { GalaxyDataReader } from '../application/galaxy-data-service.js'
+import type { GalnetNewsReader } from '../domain/galnet.js'
 import type { NavigationDataReader } from '../application/navigation-data-service.js'
 import type { ActivityLogReader, EliteJournalDiagnosticsReader } from '../domain/elite-journal.js'
 import type { EliteStatusDiagnosticsReader } from '../domain/elite-status.js'
@@ -75,6 +79,7 @@ export interface PhoenixHttpServerOptions {
   commandCatalogue: CommandCatalogueSnapshots
   controlGridLayouts: ControlGridLayoutRepository
   copilot?: CopilotText
+  copilotProfiles?: CopilotProfiles
   copilotConversationEvents: CopilotConversationEvents
   copilotVoiceHost: CopilotVoiceHostControl
   copilotRealtime?: CopilotRealtime
@@ -85,6 +90,7 @@ export interface PhoenixHttpServerOptions {
   engineering: EngineeringDataReader
   explorationData: ExplorationDataReader
   galaxyData: GalaxyDataReader
+  galnet: GalnetNewsReader
   healthCheck: HealthCheck
   host: string
   activityLog: ActivityLogReader
@@ -242,6 +248,14 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/galnet') {
+      const requestedLimit = Number.parseInt(url.searchParams.get('limit') ?? '40', 10)
+      this.writeJson(response, 200, await this.options.galnet.getLatest(
+        Number.isSafeInteger(requestedLimit) ? requestedLimit : 40
+      ))
+      return
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/log/stream') {
       this.openActivityStream(request, response)
       return
@@ -364,6 +378,71 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/copilot/profiles') {
+      if (!this.options.copilotProfiles) {
+        this.writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot is not configured.' } })
+        return
+      }
+      this.writeJson(response, 200, this.options.copilotProfiles.get())
+      return
+    }
+
+    if (request.method === 'PUT' && url.pathname === '/api/copilot/profiles/active') {
+      if (!this.options.copilotProfiles) {
+        this.writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot is not configured.' } })
+        return
+      }
+      try {
+        const input = CopilotProfileSelectionRequestSchema.parse(await readJsonBody(request))
+        this.writeJson(response, 200, this.options.copilotProfiles.select(input.profileId))
+      } catch (cause) {
+        this.writeJson(response, 400, { error: { code: 'invalid_copilot_profile', message: errorMessage(cause) } })
+      }
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/copilot/profiles') {
+      if (!this.options.copilotProfiles) {
+        this.writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot is not configured.' } })
+        return
+      }
+      try {
+        const input = CopilotProfileWriteRequestSchema.parse(await readJsonBody(request))
+        this.writeJson(response, 201, this.options.copilotProfiles.create(input))
+      } catch (cause) {
+        this.writeJson(response, 400, { error: { code: 'invalid_copilot_profile', message: errorMessage(cause) } })
+      }
+      return
+    }
+
+    const copilotProfileMatch = url.pathname.match(/^\/api\/copilot\/profiles\/([a-z][a-z0-9_-]*)$/u)
+    if (request.method === 'GET' && copilotProfileMatch) {
+      if (!this.options.copilotProfiles) {
+        this.writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot is not configured.' } })
+        return
+      }
+      try {
+        this.writeJson(response, 200, this.options.copilotProfiles.getDocument(copilotProfileMatch[1]!))
+      } catch (cause) {
+        this.writeJson(response, 404, { error: { code: 'copilot_profile_not_found', message: errorMessage(cause) } })
+      }
+      return
+    }
+
+    if (request.method === 'PUT' && copilotProfileMatch) {
+      if (!this.options.copilotProfiles) {
+        this.writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot is not configured.' } })
+        return
+      }
+      try {
+        const input = CopilotProfileWriteRequestSchema.parse(await readJsonBody(request))
+        this.writeJson(response, 200, this.options.copilotProfiles.update(copilotProfileMatch[1]!, input))
+      } catch (cause) {
+        this.writeJson(response, 400, { error: { code: 'invalid_copilot_profile', message: errorMessage(cause) } })
+      }
+      return
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/copilot/voice-host') {
       this.writeJson(response, 200, this.options.copilotVoiceHost.snapshot())
       return
@@ -423,8 +502,9 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/copilot/realtime/audio-processing') {
       if (!this.requireRealtime(response)) return
+      const profileId = url.searchParams.get('profileId')?.trim() || undefined
       this.writeJson(response, 200, {
-        audioProcessing: this.options.copilotRealtime!.audioProcessing()
+        audioProcessing: this.options.copilotRealtime!.audioProcessing(profileId)
       })
       return
     }
@@ -791,6 +871,9 @@ export class PhoenixHttpServer {
         revision: snapshot.revision,
         generatedAt: snapshot.generatedAt
       })),
+      ...(this.options.copilotProfiles
+        ? [this.options.copilotProfiles.subscribe(profiles => send('copilot-profiles', profiles))]
+        : []),
       this.options.copilotVoiceHost.subscribeStatus(snapshot => send('voice-host', snapshot)),
       this.options.copilotVoiceHost.subscribeCommands(command => send('voice-host-command', command)),
       this.options.copilotConversationEvents.subscribe(event => {
@@ -804,6 +887,7 @@ export class PhoenixHttpServer {
       generatedAt: commandCatalogue.generatedAt
     })
     send('voice-host', this.options.copilotVoiceHost.snapshot())
+    if (this.options.copilotProfiles) send('copilot-profiles', this.options.copilotProfiles.get())
     for (const event of this.options.copilotConversationEvents.active(conversationId)) {
       send('conversation-event', event)
     }

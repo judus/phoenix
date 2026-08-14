@@ -17,6 +17,7 @@ import { DEFAULT_CONTROL_GRID_LAYOUT } from './default-control-grid-layout.js'
 
 export const DEFAULT_PHOENIX_SETTINGS: PhoenixSettings = {
   version: 1,
+  copilot: { activeProfileId: 'marin' },
   controls: {
     enabled: true,
     backend: 'auto',

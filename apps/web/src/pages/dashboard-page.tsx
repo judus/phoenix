@@ -115,7 +115,7 @@ export function DashboardPage ({ actionCatalog, api, error, health, onExecuteAct
               <div className="dashboard-copilot">
                 <span className={`dashboard-copilot__mark${voice.connected ? ' is-connected' : ''}`} aria-hidden="true">M</span>
                 <div>
-                  <strong>MARIN</strong>
+                  <strong>{voice.activeProfile.name.toUpperCase()}</strong>
                   <span>{voice.status}</span>
                 </div>
                 <CopilotVoiceToggle compact voice={voice} />

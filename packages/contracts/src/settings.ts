@@ -86,6 +86,9 @@ export const ControlGridLayoutSchema = z.object({
 
 export const PhoenixSettingsSchema = z.object({
   version: z.literal(1),
+  copilot: z.object({
+    activeProfileId: z.string().regex(/^[a-z][a-z0-9_-]*$/u).default('marin')
+  }).default({ activeProfileId: 'marin' }),
   controls: z.object({
     enabled: z.boolean(),
     backend: InputBackendModeSchema,

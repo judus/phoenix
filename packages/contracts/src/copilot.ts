@@ -2,6 +2,39 @@ import { z } from 'zod'
 
 const NonEmptyTextSchema = z.string().trim().min(1)
 
+export const CopilotProfileSchema = z.object({
+  description: z.string().trim().max(240).default(''),
+  id: z.string().regex(/^[a-z][a-z0-9_-]*$/u),
+  mark: z.string().trim().min(1).max(3),
+  name: NonEmptyTextSchema.max(48),
+  voice: NonEmptyTextSchema
+}).strict()
+
+export const CopilotProfilesResponseSchema = z.object({
+  activeProfileId: CopilotProfileSchema.shape.id,
+  profiles: z.array(CopilotProfileSchema).min(1)
+}).strict()
+
+export const CopilotProfileSelectionRequestSchema = z.object({
+  profileId: CopilotProfileSchema.shape.id
+}).strict()
+
+export const CopilotProfileDocumentSchema = z.object({
+  characterSpeech: NonEmptyTextSchema,
+  characterText: NonEmptyTextSchema,
+  profile: CopilotProfileSchema
+}).strict()
+
+export const CopilotProfileWriteRequestSchema = CopilotProfileDocumentSchema.extend({
+  templateProfileId: CopilotProfileSchema.shape.id.optional()
+}).strict()
+
+export type CopilotProfile = z.infer<typeof CopilotProfileSchema>
+export type CopilotProfilesResponse = z.infer<typeof CopilotProfilesResponseSchema>
+export type CopilotProfileSelectionRequest = z.infer<typeof CopilotProfileSelectionRequestSchema>
+export type CopilotProfileDocument = z.infer<typeof CopilotProfileDocumentSchema>
+export type CopilotProfileWriteRequest = z.infer<typeof CopilotProfileWriteRequestSchema>
+
 export const CopilotChatRequestSchema = z.object({
   clientId: NonEmptyTextSchema.optional(),
   conversationId: NonEmptyTextSchema.optional(),

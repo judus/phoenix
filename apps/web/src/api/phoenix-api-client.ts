@@ -9,6 +9,10 @@ import {
   CopilotAudioProcessingSchema,
   CopilotConversationEventSchema,
   CopilotHistoryResponseSchema,
+  CopilotProfileSelectionRequestSchema,
+  CopilotProfileDocumentSchema,
+  CopilotProfileWriteRequestSchema,
+  CopilotProfilesResponseSchema,
   CopilotRealtimeTokenRequestSchema,
   CopilotRealtimeTokenResponseSchema,
   CopilotRealtimeToolRequestSchema,
@@ -26,6 +30,7 @@ import {
   ExplorationManualCompletionResponseSchema,
   GalaxyCommodityMarketsResponseSchema,
   GalaxyNearestStationsResponseSchema,
+  GalnetNewsResponseSchema,
   MacroDefinitionSchema,
   MacroLibrarySchema,
   MacroPlaybackSchema,
@@ -52,6 +57,9 @@ import {
   type CopilotAudioProcessing,
   type CopilotConversationEvent,
   type CopilotHistoryResponse,
+  type CopilotProfilesResponse,
+  type CopilotProfileDocument,
+  type CopilotProfileWriteRequest,
   type CopilotRealtimeTokenRequest,
   type CopilotRealtimeTokenResponse,
   type CopilotRealtimeToolRequest,
@@ -71,6 +79,7 @@ import {
   type ExplorationManualCompletionResponse,
   type GalaxyCommodityMarketsResponse,
   type GalaxyNearestStationsResponse,
+  type GalnetNewsResponse,
   type MacroDefinition,
   type MacroLibrary,
   type MacroPlayback,
@@ -92,12 +101,18 @@ export interface PhoenixApi {
   claimPairing(code: string): Promise<PairingStatus>
   createCopilotRealtimeToken(input: CopilotRealtimeTokenRequest): Promise<CopilotRealtimeTokenResponse>
   executeCopilotRealtimeTool(input: CopilotRealtimeToolRequest): Promise<unknown>
-  getCopilotAudioProcessing(): Promise<CopilotAudioProcessing>
+  getCopilotAudioProcessing(profileId?: string): Promise<CopilotAudioProcessing>
   getCopilotRealtimeContext(): Promise<{ fingerprint: string, text: string, updatedAt: string | null }>
   getCatalogueDiagnostics(): Promise<CatalogueDiagnostics>
   getShipCatalogue(): Promise<ShipCatalogueResponse>
   getControlLayout(): Promise<ControlGridLayout>
   getCopilotHistory(conversationId: string): Promise<CopilotHistoryResponse>
+  getCopilotProfiles(): Promise<CopilotProfilesResponse>
+  getGalnetNews(limit?: number): Promise<GalnetNewsResponse>
+  getCopilotProfile(profileId: string): Promise<CopilotProfileDocument>
+  createCopilotProfile(input: CopilotProfileWriteRequest): Promise<CopilotProfileDocument>
+  updateCopilotProfile(profileId: string, input: CopilotProfileWriteRequest): Promise<CopilotProfileDocument>
+  selectCopilotProfile(profileId: string): Promise<CopilotProfilesResponse>
   executeDeveloperAction(actionId: string): Promise<GameActionResult>
   executeAction(actionId: string, operation?: GameActionOperation): Promise<GameActionResult>
   executeCommand(target: CommandTarget, operation?: GameActionOperation): Promise<CommandExecutionResult>
@@ -444,13 +459,71 @@ export class PhoenixApiClient implements PhoenixApi {
     return CopilotHistoryResponseSchema.parse(await response.json())
   }
 
-  public async getCopilotAudioProcessing (): Promise<CopilotAudioProcessing> {
-    const response = await this.request(`${this.baseUrl}/api/copilot/realtime/audio-processing`, {
+  public async getCopilotAudioProcessing (profileId?: string): Promise<CopilotAudioProcessing> {
+    const query = profileId ? `?profileId=${encodeURIComponent(profileId)}` : ''
+    const response = await this.request(`${this.baseUrl}/api/copilot/realtime/audio-processing${query}`, {
       headers: { accept: 'application/json' }
     })
     if (!response.ok) throw await apiError(response)
     const payload = await response.json() as { audioProcessing?: unknown }
     return CopilotAudioProcessingSchema.parse(payload.audioProcessing)
+  }
+
+  public async getCopilotProfiles (): Promise<CopilotProfilesResponse> {
+    const response = await this.request(`${this.baseUrl}/api/copilot/profiles`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return CopilotProfilesResponseSchema.parse(await response.json())
+  }
+
+  public async getGalnetNews (limit = 40): Promise<GalnetNewsResponse> {
+    const response = await this.request(`${this.baseUrl}/api/galnet?limit=${encodeURIComponent(String(limit))}`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return GalnetNewsResponseSchema.parse(await response.json())
+  }
+
+  public async selectCopilotProfile (profileId: string): Promise<CopilotProfilesResponse> {
+    const response = await this.request(`${this.baseUrl}/api/copilot/profiles/active`, {
+      body: JSON.stringify(CopilotProfileSelectionRequestSchema.parse({ profileId })),
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      method: 'PUT'
+    })
+    if (!response.ok) throw await apiError(response)
+    return CopilotProfilesResponseSchema.parse(await response.json())
+  }
+
+  public async getCopilotProfile (profileId: string): Promise<CopilotProfileDocument> {
+    const response = await this.request(`${this.baseUrl}/api/copilot/profiles/${encodeURIComponent(profileId)}`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return CopilotProfileDocumentSchema.parse(await response.json())
+  }
+
+  public async createCopilotProfile (input: CopilotProfileWriteRequest): Promise<CopilotProfileDocument> {
+    const response = await this.request(`${this.baseUrl}/api/copilot/profiles`, {
+      body: JSON.stringify(CopilotProfileWriteRequestSchema.parse(input)),
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      method: 'POST'
+    })
+    if (!response.ok) throw await apiError(response)
+    return CopilotProfileDocumentSchema.parse(await response.json())
+  }
+
+  public async updateCopilotProfile (
+    profileId: string,
+    input: CopilotProfileWriteRequest
+  ): Promise<CopilotProfileDocument> {
+    const response = await this.request(`${this.baseUrl}/api/copilot/profiles/${encodeURIComponent(profileId)}`, {
+      body: JSON.stringify(CopilotProfileWriteRequestSchema.parse(input)),
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      method: 'PUT'
+    })
+    if (!response.ok) throw await apiError(response)
+    return CopilotProfileDocumentSchema.parse(await response.json())
   }
 
   public async getCopilotVoiceHost (): Promise<CopilotVoiceHostSnapshot> {

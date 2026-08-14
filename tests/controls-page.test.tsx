@@ -2,17 +2,21 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test } from 'vitest'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
 import { ControlsPage } from '../apps/web/src/pages/controls-page.js'
+import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
+import { MacroRuntimeProvider } from '../apps/web/src/features/macros/macro-runtime-provider.js'
 import { DEFAULT_CONTROL_GRID_LAYOUT } from '../apps/server/src/infrastructure/default-control-grid-layout.js'
 
 test('the controls page renders bound and unbound discovered commands', () => {
   const markup = renderToStaticMarkup(
-    <ControlsPage
-      category="ship"
-      controlLayout={DEFAULT_CONTROL_GRID_LAYOUT}
-      runtimeState={createEmptyRuntimeState()}
-      onExecuteAction={() => Promise.reject(new Error('not executed during server rendering'))}
-      onSaveLayout={layout => Promise.resolve(layout)}
-      actionCatalog={{
+    <MacroRuntimeProvider api={new PhoenixApiClient()}>
+      <ControlsPage
+        api={new PhoenixApiClient()}
+        category="ship"
+        controlLayout={DEFAULT_CONTROL_GRID_LAYOUT}
+        runtimeState={createEmptyRuntimeState()}
+        onExecuteCommand={() => Promise.reject(new Error('not executed during server rendering'))}
+        onSaveLayout={layout => Promise.resolve(layout)}
+        actionCatalog={{
         backend: {
           id: 'linux-xdotool',
           available: true,
@@ -33,8 +37,9 @@ test('the controls page renders bound and unbound discovered commands', () => {
           action('elite.ShipSpotLightToggle', 'ShipSpotLightToggle', 'Ship Lights', 'L'),
           action('elite.UseBoostJuice', 'UseBoostJuice', 'Boost', null)
         ]
-      }}
-    />
+        }}
+      />
+    </MacroRuntimeProvider>
   )
 
   expect(markup).toContain('Ship Lights')

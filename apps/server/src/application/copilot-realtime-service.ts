@@ -22,7 +22,7 @@ export interface RealtimeClientSecretGateway {
 }
 
 export interface CopilotRealtime {
-  audioProcessing(): CopilotAudioProcessing
+  audioProcessing(profileId?: string): CopilotAudioProcessing
   context(): { fingerprint: string, text: string, updatedAt: string | null }
   createToken(request: CopilotRealtimeTokenRequest): Promise<CopilotRealtimeTokenResponse>
   executeTool(request: CopilotRealtimeToolRequest, signal?: AbortSignal): Promise<ToolExecutionOutput>
@@ -30,7 +30,8 @@ export interface CopilotRealtime {
 }
 
 export interface CopilotRealtimeServiceOptions {
-  audioProcessing: CopilotAudioProcessing
+  activeProfileId?: () => string
+  audioProcessing: (profileId: string) => CopilotAudioProcessing
   conversations: ConversationStore
   defaultProfileId?: string
   gateway: RealtimeClientSecretGateway
@@ -39,7 +40,7 @@ export interface CopilotRealtimeServiceOptions {
   runtimeContext: RuntimeContextRenderer
   runtimeState: RuntimeStateReader
   tools: ToolRegistry
-  voice: string
+  voice: (profileId: string) => string
 }
 
 const TOOL_INSTRUCTIONS = [
@@ -62,8 +63,8 @@ export class CopilotRealtimeService implements CopilotRealtime {
     }
   }
 
-  public audioProcessing (): CopilotAudioProcessing {
-    return structuredClone(this.options.audioProcessing)
+  public audioProcessing (profileId?: string): CopilotAudioProcessing {
+    return structuredClone(this.options.audioProcessing(profileId ?? this.activeProfileId()))
   }
 
   public context (): { fingerprint: string, text: string, updatedAt: string | null } {
@@ -79,7 +80,7 @@ export class CopilotRealtimeService implements CopilotRealtime {
   public async createToken (
     request: CopilotRealtimeTokenRequest
   ): Promise<CopilotRealtimeTokenResponse> {
-    const profileId = request.profileId ?? this.defaultProfileId
+    const profileId = request.profileId ?? this.activeProfileId()
     const runtimeContext = this.options.runtimeContext.render(this.options.runtimeState.getCurrent())
     const recentConversation = request.conversationId === undefined
       ? ''
@@ -104,7 +105,7 @@ export class CopilotRealtimeService implements CopilotRealtime {
           },
           output: {
             format: { rate: 24_000, type: 'audio/pcm' },
-            voice: this.options.voice
+            voice: this.options.voice(profileId)
           }
         },
         instructions,
@@ -125,6 +126,10 @@ export class CopilotRealtimeService implements CopilotRealtime {
       model: this.options.model,
       ...(secret.expiresAt === undefined ? {} : { expiresAt: secret.expiresAt })
     }
+  }
+
+  private activeProfileId (): string {
+    return this.options.activeProfileId?.() ?? this.defaultProfileId
   }
 
   public executeTool (

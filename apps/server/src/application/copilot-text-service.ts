@@ -21,7 +21,7 @@ export class CopilotTextService implements CopilotText {
     private readonly pipeline: TextCopilotPipeline,
     private readonly runtimeState: RuntimeStateReader,
     private readonly conversations: ConversationStore,
-    private readonly defaultProfileId = 'marin'
+    private readonly activeProfileId: () => string = () => 'marin'
   ) {}
 
   public async getHistory (conversationId: string): Promise<readonly CopilotHistoryMessage[]> {
@@ -59,7 +59,7 @@ export class CopilotTextService implements CopilotText {
     return {
       ...(request.conversationId === undefined ? {} : { conversationId: request.conversationId }),
       message: request.message,
-      profileId: request.profileId ?? this.defaultProfileId,
+      profileId: request.profileId ?? this.activeProfileId(),
       runtimeState: this.runtimeState.getCurrent()
     }
   }

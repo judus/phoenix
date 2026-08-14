@@ -12,7 +12,6 @@ import type {
   MacroLibrary,
   MacroPlayback,
   MacroRecording,
-  PhoenixModules,
   RuntimeState
 } from '@phoenix/contracts'
 import { commandTargetKey } from '@phoenix/contracts'
@@ -20,11 +19,9 @@ import type { PhoenixApi } from '../api/phoenix-api-client.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import { Page } from '../components/layout/page.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
-import { createCopilotId } from '../features/copilot/copilot-client-identity.js'
+import { useMacroRuntime } from '../features/macros/macro-runtime-provider.js'
 
 export type ControlCategory = GameActionDefinition['category'] | 'macros'
-
-let fallbackMacroClientId: string | undefined
 
 const CATEGORY_METADATA: Array<{
   id: ControlCategory
@@ -39,8 +36,7 @@ const CATEGORY_METADATA: Array<{
   { id: 'on_foot', icon: 'OFT', label: 'On Foot' },
   { id: 'radio', icon: 'RAD', label: 'Radio' },
   { id: 'emote', icon: 'EMO', label: 'Emotes' },
-  { id: 'misc', icon: 'MSC', label: 'Miscellaneous' },
-  { id: 'macros', icon: 'MAC', label: 'Macros' }
+  { id: 'misc', icon: 'MSC', label: 'Miscellaneous' }
 ]
 
 const controlsNavigation: NavigationItem[] = CATEGORY_METADATA.map(category => ({
@@ -70,10 +66,8 @@ export interface ControlsPageProps {
 }
 
 export function ControlsPage ({
-  api,
   actionCatalog,
   category,
-  commandCatalogueRevision,
   controlLayout,
   error,
   health,
@@ -88,12 +82,7 @@ export function ControlsPage ({
   const [localError, setLocalError] = useState<string>()
   const [pendingConfirmation, setPendingConfirmation] = useState<GameActionAvailability>()
   const [pendingActions, setPendingActions] = useState<ReadonlySet<string>>(new Set())
-  const [macroLibrary, setMacroLibrary] = useState<MacroLibrary>({ version: 1, macros: [] })
-  const [moduleSettings, setModuleSettings] = useState<PhoenixModules>()
-  const [recording, setRecording] = useState<MacroRecording>()
-  const [recordingDraft, setRecordingDraft] = useState<MacroRecording>()
-  const [playback, setPlayback] = useState<MacroPlayback>()
-  const clientId = useRef(browserClientId())
+  const macros = useMacroRuntime()
   const heldActions = useRef(new Set<string>())
   const actionQueues = useRef(new Map<string, Promise<void>>())
   const executeCommand = useRef(onExecuteCommand)
@@ -103,18 +92,9 @@ export function ControlsPage ({
   const page = activeLayout?.pages.find(candidate => candidate.category === category)
   const gridItems = useMemo(() => createGridItems(
     actionCatalog?.actions ?? [],
-    macroLibrary.macros,
+    macros.library.macros,
     page
-  ), [actionCatalog, macroLibrary, page])
-
-  useEffect(() => {
-    void Promise.all([api.getMacros(), api.getModuleSettings()])
-      .then(([library, modules]) => {
-        setMacroLibrary(library)
-        setModuleSettings(modules)
-      })
-      .catch(cause => setLocalError(cause instanceof Error ? cause.message : 'Macro module unavailable.'))
-  }, [api, commandCatalogueRevision])
+  ), [actionCatalog, macros.library, page])
 
   const cancelEditing = (): void => {
     setDraftLayout(controlLayout)
@@ -156,9 +136,8 @@ export function ControlsPage ({
       .then(async () => {
         setPendingActions(current => new Set(current).add(key))
         try {
-          if (recording && target.type === 'game-action') {
-            const updated = await api.recordMacroAction(recording.id, clientId.current, target.actionId, operation)
-            setRecording(updated)
+          if (macros.recording && target.type === 'game-action') {
+            await macros.recordAction(target.actionId, operation)
           } else {
             await executeCommand.current(target, operation)
           }
@@ -267,111 +246,28 @@ export function ControlsPage ({
     }
   }
 
-  const enableMacros = async (): Promise<void> => {
-    if (!moduleSettings) return
-    try {
-      const saved = await api.saveModuleSettings({
-        ...moduleSettings,
-        macros: { ...moduleSettings.macros, enabled: true }
-      })
-      setModuleSettings(saved)
-      setLocalError(undefined)
-    } catch (cause) {
-      setLocalError(cause instanceof Error ? cause.message : 'Unable to enable macro module.')
-    }
-  }
-
-  const startRecording = async (): Promise<void> => {
-    try {
-      setRecording(await api.startMacroRecording(clientId.current))
-      setRecordingDraft(undefined)
-      setLocalError(undefined)
-      window.location.hash = '#/controls/ship'
-    } catch (cause) {
-      setLocalError(cause instanceof Error ? cause.message : 'Unable to start recording.')
-    }
-  }
-
-  const stopRecording = async (): Promise<void> => {
-    if (!recording) return
-    try {
-      setRecordingDraft(await api.stopMacroRecording(recording.id, clientId.current))
-      setRecording(undefined)
-      window.location.hash = '#/controls/macros'
-    } catch (cause) {
-      setLocalError(cause instanceof Error ? cause.message : 'Unable to stop recording.')
-    }
-  }
-
-  const cancelRecording = async (): Promise<void> => {
-    if (!recording) return
-    try {
-      await api.cancelMacroRecording(recording.id, clientId.current)
-      setRecording(undefined)
-      setRecordingDraft(undefined)
-      window.location.hash = '#/controls/macros'
-    } catch (cause) {
-      setLocalError(cause instanceof Error ? cause.message : 'Unable to cancel recording.')
-    }
-  }
-
-  const saveRecording = async (name: string): Promise<void> => {
-    if (!recordingDraft) return
-    try {
-      await api.saveMacro(recordingDefinition(name, recordingDraft))
-      setMacroLibrary(await api.getMacros())
-      setRecordingDraft(undefined)
-      setLocalError(undefined)
-    } catch (cause) {
-      setLocalError(cause instanceof Error ? cause.message : 'Unable to save macro.')
-    }
-  }
-
-  const playMacro = async (macro: MacroDefinition): Promise<void> => {
-    try {
-      setPlayback({
-        completedSteps: 0,
-        macroId: macro.id,
-        message: 'Starting macro playback.',
-        runId: createCopilotId(),
-        startedAt: new Date().toISOString(),
-        status: 'running',
-        totalSteps: macro.steps.length
-      })
-      setPlayback(await api.playMacro(macro.id))
-      setLocalError(undefined)
-    } catch (cause) {
-      setLocalError(cause instanceof Error ? cause.message : 'Macro playback failed.')
-      setPlayback(undefined)
-    }
-  }
-
   if (category === 'macros') {
     return (
       <PhoenixShell
         activePrimaryItemId="controls"
-        activeSecondaryItemId="macros"
-        error={error ?? localError}
+        error={error ?? localError ?? macros.error}
         health={health}
-        secondaryNavigation={secondaryNavigation}
+        secondaryNavigation={[]}
       >
         <Page className="controls-page controls-page--macros">
           <div className="controls-page__content">
             <MacroWorkbench
-              draft={recordingDraft}
-              enabled={moduleSettings?.macros.enabled === true}
-              library={macroLibrary}
-              playback={playback}
-              onAbort={async () => { setPlayback(await api.abortMacroPlayback() ?? undefined) }}
-              onDelete={async id => {
-                await api.deleteMacro(id)
-                setMacroLibrary(await api.getMacros())
-              }}
-              onDraftChange={setRecordingDraft}
-              onEnable={() => void enableMacros()}
-              onPlay={macro => void playMacro(macro)}
-              onSave={name => void saveRecording(name)}
-              onStart={() => void startRecording()}
+              draft={macros.draft}
+              enabled={macros.enabled}
+              library={macros.library}
+              playback={macros.playback}
+              onAbort={macros.abort}
+              onDelete={macros.deleteMacro}
+              onDraftChange={macros.setDraft}
+              onEnable={() => void macros.enable()}
+              onPlay={macro => void macros.play(macro)}
+              onSave={name => void macros.save(name)}
+              onStart={() => void macros.startRecording()}
             />
           </div>
         </Page>
@@ -383,18 +279,18 @@ export function ControlsPage ({
     <PhoenixShell
       activePrimaryItemId="controls"
       activeSecondaryItemId={editMode ? 'edit' : category}
-      error={error ?? localError}
+      error={error ?? localError ?? macros.error}
       health={health}
       secondaryNavigation={secondaryNavigation}
     >
       <Page className={`controls-page${editMode ? ' controls-page--editing' : ''}`}>
         <div className="controls-page__content">
-          {recording && (
+          {macros.recording && (
             <section className="macro-recording-bar" aria-live="polite">
               <strong>Recording macro</strong>
-              <span>{recording.entries.length} commands captured</span>
-              <button type="button" onClick={() => void cancelRecording()}>Cancel</button>
-              <button type="button" onClick={() => void stopRecording()}>Stop and review</button>
+              <span>{macros.recording.entries.length} commands captured</span>
+              <button type="button" onClick={() => void macros.cancelRecording()}>Cancel</button>
+              <button type="button" onClick={() => void macros.stopRecording()}>Stop and review</button>
             </section>
           )}
           {editMode && (
@@ -538,7 +434,7 @@ export function ControlsPage ({
               />
               <button type="button" onClick={clearPosition}>Clear explicit assignment</button>
               <div className="control-picker__list">
-                {macroLibrary.macros
+                {macros.library.macros
                   .filter(macro => macro.name.toLowerCase().includes(pickerFilter.trim().toLowerCase()))
                   .map(macro => (
                     <button
@@ -725,49 +621,8 @@ function MacroWorkbench ({
   )
 }
 
-function recordingDefinition (name: string, recording: MacroRecording): MacroDefinition {
-  const successful = recording.entries.filter(entry => successfulRecording(entry.status))
-  const steps: MacroDefinition['steps'] = []
-  successful.forEach((entry, index) => {
-    if (index > 0 && entry.delayBeforeMs > 0) {
-      steps.push({ type: 'wait', durationMs: Math.min(entry.delayBeforeMs, 30_000) })
-    }
-    steps.push({ type: 'game-action', actionId: entry.actionId, operation: entry.operation })
-  })
-  return {
-    assumptions: [],
-    description: '',
-    enabled: true,
-    id: macroId(name),
-    name,
-    risk: 'safe',
-    steps,
-    version: 1
-  }
-}
-
 function successfulRecording (status: MacroRecording['entries'][number]['status']): boolean {
   return ['accepted', 'confirmed', 'unconfirmed', 'already_satisfied'].includes(status)
-}
-
-function macroId (name: string): string {
-  const normalized = name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/gu, '-').replace(/^-|-$/gu, '')
-  return /^[a-z]/u.test(normalized) ? normalized : `macro-${normalized || createCopilotId().slice(-8)}`
-}
-
-function browserClientId (): string {
-  if (fallbackMacroClientId) return fallbackMacroClientId
-  if (typeof window === 'undefined') return 'server-render'
-  const key = 'phoenix.macro.client-id'
-  try {
-    const existing = window.localStorage.getItem(key)
-    if (existing) return (fallbackMacroClientId = existing)
-    const created = createCopilotId()
-    window.localStorage.setItem(key, created)
-    return (fallbackMacroClientId = created)
-  } catch {
-    return (fallbackMacroClientId = createCopilotId())
-  }
 }
 
 function actionComparator (left: GameActionAvailability, right: GameActionAvailability): number {

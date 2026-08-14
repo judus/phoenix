@@ -15,3 +15,7 @@ test('numpad resolves as a dedicated information surface', () => {
   expect(readRoute('#/numpad')).toEqual({ section: 'numpad', view: 'navigator' })
   expect(readRoute('#/numpad/shortcuts')).toEqual({ section: 'numpad', view: 'shortcuts' })
 })
+
+test('macros resolve as a docked information module', () => {
+  expect(readRoute('#/macros')).toEqual({ section: 'macros' })
+})
