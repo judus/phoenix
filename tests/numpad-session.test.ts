@@ -49,6 +49,15 @@ test('tile selection addresses the exact node without prefix ambiguity', () => {
   expect(selectNumpadNode(snapshot, branch, 'first', false).execute?.id).toBe('first')
 })
 
+test('an empty menu still opens instead of being treated as an unavailable command', () => {
+  const emptyMenuSnapshot: NumpadTreeSnapshot = {
+    ...snapshot,
+    nodes: [node('shortcuts', null, '9', '9', null)]
+  }
+  const result = enterNumpadDigit(emptyMenuSnapshot, activateNumpadSession().state, '9', false)
+  expect(result.state).toMatchObject({ pathIds: ['shortcuts'], status: 'browsing' })
+})
+
 function node (
   id: string,
   parentId: string | null,

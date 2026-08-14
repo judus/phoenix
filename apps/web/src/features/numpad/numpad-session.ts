@@ -138,8 +138,7 @@ function chooseNode (
   alwaysConfirm: boolean,
   confirmed: boolean
 ): NumpadSessionTransition {
-  const children = numpadChildren(snapshot, node.id)
-  if (children.length > 0) {
+  if (node.kind === 'menu') {
     return {
       state: {
         active: true,

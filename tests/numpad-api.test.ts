@@ -19,6 +19,7 @@ test('the numpad API projects and executes the current authoritative command map
   try {
     const initial = await client.getNumpadSnapshot()
     expect(initial.nodes).toContainEqual(expect.objectContaining({ id: 'desktop.controls', address: '1' }))
+    expect(initial.nodes).toContainEqual(expect.objectContaining({ id: 'desktop.shortcuts', address: '9' }))
     const destination = initial.nodes.find(node => node.target?.type === 'navigation')
     expect(destination).toBeDefined()
 

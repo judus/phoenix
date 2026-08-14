@@ -18,6 +18,12 @@ export function NumpadTileGrid ({ columns, nodes, onSelect, pendingDigits, rows:
 
   return (
     <div className="numpad-grid" style={style} aria-label="Numpad command choices">
+      {nodes.length === 0 && (
+        <div className="numpad-grid__empty">
+          <strong>No shortcuts configured</strong>
+          <span>Open the pencil tab to assign stable command addresses.</span>
+        </div>
+      )}
       {nodes.map(node => {
         const matching = pendingDigits !== '' && node.selector.startsWith(pendingDigits)
         const exact = pendingDigits !== '' && node.selector === pendingDigits

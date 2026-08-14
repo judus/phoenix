@@ -111,7 +111,6 @@ export class NumpadTreeProjector {
     diagnostics: string[]
   ): void {
     const shortcuts = this.settings.loadOrCreate().modules.numpadCommands.shortcuts
-    if (shortcuts.length === 0) return
     const parent = branch(nodes, null, 'desktop.shortcuts', '9', 'Shortcuts')
     for (const shortcut of shortcuts) {
       const descriptor = descriptors.get(commandTargetKey(shortcut.target))
