@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type {
   GalaxyCommodityMarketsResponse,
   GalaxyNearbySystemsResponse,
@@ -21,6 +21,7 @@ const SERVICES = [
 ] as const
 
 export function GalaxyDatabase ({ api, currentSystem }: { api: PhoenixApi, currentSystem?: string | null }) {
+  const autoShipyardSearch = useRef(initialShipyardSearchRequested())
   const [origin, setOrigin] = useState(currentSystem ?? '')
   const [service, setService] = useState('material-trader')
   const [pad, setPad] = useState<'small' | 'medium' | 'large'>('medium')
@@ -38,6 +39,17 @@ export function GalaxyDatabase ({ api, currentSystem }: { api: PhoenixApi, curre
   useEffect(() => {
     if (!origin && currentSystem) setOrigin(currentSystem)
   }, [currentSystem, origin])
+
+  useEffect(() => {
+    if (!autoShipyardSearch.current || !origin.trim() || !hull.trim()) return
+    autoShipyardSearch.current = false
+    setPending('shipyards')
+    setError(undefined)
+    void api.findGalaxyShipyards({ hullName: hull.trim(), systemName: origin.trim() })
+      .then(setShipyards)
+      .catch(cause => setError(errorMessage(cause)))
+      .finally(() => setPending(undefined))
+  }, [api, hull, origin])
 
   const findNearest = (event: FormEvent): void => {
     event.preventDefault()
@@ -202,9 +214,11 @@ function systemHref (systemName: string): string {
 }
 
 function initialHullName (): string {
-  const query = window.location.hash.split('?')[1]
-  return query ? new URLSearchParams(query).get('hull') ?? '' : ''
+  return hashQuery().get('hull') ?? ''
 }
+
+function initialShipyardSearchRequested (): boolean { return hashQuery().get('search') === 'shipyards' }
+function hashQuery (): URLSearchParams { return new URLSearchParams(window.location.hash.split('?')[1] ?? '') }
 
 function distance (value: number | null, unit: string): string { return value === null ? '—' : `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value)} ${unit}` }
 function credits (value: number | null): string { return value === null ? '—' : `${new Intl.NumberFormat().format(value)} CR` }
