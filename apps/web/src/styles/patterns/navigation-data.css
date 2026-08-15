@@ -112,6 +112,201 @@
     }
   }
 
+  .plotted-route-page .page-content {
+    overflow: hidden;
+  }
+
+  .plotted-route {
+    block-size: 100%;
+    min-block-size: 0;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .plotted-route--empty {
+    place-content: center;
+    justify-items: center;
+    color: var(--color-muted);
+
+    p {
+      margin: 0;
+      color: var(--color-text);
+      font-size: 1.6rem;
+      text-transform: uppercase;
+    }
+  }
+
+  .plotted-route__summary {
+    display: grid;
+    grid-template-columns: minmax(20rem, 1fr) auto;
+    align-items: end;
+    gap: var(--space-5);
+    padding-block-end: var(--space-3);
+    border-block-end: 1px solid var(--color-border);
+
+    dl {
+      display: flex;
+      gap: var(--space-5);
+      margin: 0;
+    }
+
+    dl div {
+      display: grid;
+      gap: var(--space-1);
+    }
+
+    dt,
+    span {
+      color: var(--color-primary);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+    }
+
+    dd {
+      margin: 0;
+      color: var(--color-text);
+    }
+  }
+
+  .plotted-route__endpoints {
+    min-inline-size: 0;
+    display: grid;
+    grid-template-columns: auto minmax(2rem, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+
+    span {
+      grid-column: 1 / -1;
+    }
+
+    a {
+      min-inline-size: 0;
+      overflow: hidden;
+      color: var(--color-text);
+      font-size: 1.3rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    a:last-child {
+      text-align: end;
+    }
+
+    i {
+      block-size: 1px;
+      min-inline-size: 2rem;
+      background: var(--color-secondary);
+    }
+  }
+
+  .plotted-route__body {
+    min-block-size: 0;
+    display: grid;
+    grid-template-columns: clamp(17rem, 24vw, 24rem) minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .plotted-route__next {
+    display: grid;
+    align-content: start;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-4) 0 0;
+    border-inline-end: 1px solid var(--color-border);
+
+    > span,
+    dt {
+      color: var(--color-primary);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+    }
+
+    > a,
+    > strong {
+      color: var(--color-secondary);
+      font-size: 1.4rem;
+      font-weight: 400;
+    }
+
+    dl {
+      margin: 0;
+    }
+
+    dl div {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding-block: var(--space-2);
+      border-block-end: 1px solid rgb(255 157 0 / 16%);
+    }
+
+    dd {
+      margin: 0;
+      text-align: end;
+    }
+
+    small {
+      color: var(--color-muted);
+    }
+  }
+
+  .plotted-route__hops {
+    min-block-size: 0;
+    padding-inline-start: var(--space-4);
+    overflow: auto;
+  }
+
+  .plotted-route__table {
+    th:nth-child(1) { inline-size: 6rem; }
+    th:nth-child(3) { inline-size: 6rem; }
+    th:nth-child(4),
+    th:nth-child(5) { inline-size: 9rem; }
+
+    tr.is-complete {
+      color: var(--color-muted);
+    }
+
+    tr.is-current {
+      background: rgb(75 20 30 / 68%);
+      box-shadow: inset 0.2rem 0 var(--color-secondary);
+    }
+
+    tr.is-current td:first-child {
+      color: var(--color-secondary);
+    }
+  }
+
+  @media (width < 64rem) {
+    .plotted-route__summary {
+      grid-template-columns: 1fr;
+
+      dl {
+        justify-content: space-between;
+      }
+    }
+
+    .plotted-route__body {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .plotted-route__next {
+      grid-template-columns: minmax(0, 1fr) minmax(18rem, auto);
+      padding: var(--space-3) 0;
+      border-inline-end: 0;
+      border-block-end: 1px solid var(--color-border);
+
+      dl {
+        grid-column: 2;
+        grid-row: 1 / span 3;
+      }
+    }
+
+    .plotted-route__hops {
+      padding-inline-start: 0;
+    }
+  }
+
   .system-cartography {
     block-size: 100%;
     min-block-size: 0;

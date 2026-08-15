@@ -26,6 +26,7 @@ import {
   StartMacroRecordingRequestSchema,
   type CopilotConversationEvent,
   type DisplayCommand,
+  type NavigationRoute,
   type RuntimeState
 } from '@phoenix/contracts'
 import { AiError, serializeAiError, type AiStreamEvent } from '@judus/llm-client'
@@ -104,6 +105,7 @@ export interface PhoenixHttpServerOptions {
   missions: MissionDataReader
   communications: CommunicationDataReader
   navigationData: NavigationDataReader
+  navigationRouteUpdates: Subscribable<NavigationRoute>
   numpad: NumpadCommands
   port: number
   runtimeState: RuntimeStateReader
@@ -894,6 +896,7 @@ export class PhoenixHttpServer {
       this.options.runtimeStateUpdates.subscribe(state => send('runtime-state', state)),
       this.options.activityLog.subscribe(entry => send('activity-entry', entry)),
       this.options.displayCommands.subscribe(command => send('display-command', command)),
+      this.options.navigationRouteUpdates.subscribe(route => send('navigation-route', route)),
       this.options.commandCatalogue.subscribe(snapshot => send('command-catalogue', {
         revision: snapshot.revision,
         generatedAt: snapshot.generatedAt
@@ -908,6 +911,7 @@ export class PhoenixHttpServer {
       })
     ]
     send('runtime-state', this.options.runtimeState.getCurrent())
+    send('navigation-route', this.options.navigationData.getRoute())
     const commandCatalogue = this.options.commandCatalogue.getSnapshot()
     send('command-catalogue', {
       revision: commandCatalogue.revision,

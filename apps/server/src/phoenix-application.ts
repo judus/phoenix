@@ -1,6 +1,6 @@
 import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { DisplayCommand, GameEventEnvelope, RuntimeState } from '@phoenix/contracts'
+import type { DisplayCommand, GameEventEnvelope, NavigationRoute, RuntimeState } from '@phoenix/contracts'
 import { ToolRegistry } from '@judus/llm-client'
 import {
   EliteDataDirectoryLocator,
@@ -243,9 +243,13 @@ export class PhoenixApplication {
       snapshot => { inventoryIngestion.ingest(snapshot) }
     )
     const navigationRoutes = new InMemoryNavigationRouteStore()
+    const navigationRouteUpdates = new InProcessPublisher<NavigationRoute>()
     this.navigationRouteSource = new EliteNavigationRouteFileSource(
       configuredEliteDirectory,
-      route => navigationRoutes.replace(route)
+      route => {
+        navigationRoutes.replace(route)
+        navigationRouteUpdates.publish(route)
+      }
     )
     const actionBindingResolver = options.actionBindingResolver ?? new EliteKeyboardBindingResolver(
       locateBindingsDirectory(options, configuredEliteDirectory)
@@ -381,6 +385,7 @@ export class PhoenixApplication {
       galaxyData: stationMarkets,
       galnet,
       navigationData,
+      navigationRouteUpdates,
       numpad,
       webRoot: resolveProjectPath(projectRoot, options.webRoot ?? paths.resources.web)
     })
