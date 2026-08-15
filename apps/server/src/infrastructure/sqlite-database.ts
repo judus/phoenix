@@ -9,12 +9,16 @@ import {
   ActivityLogEntrySchema,
   CartographicSystemSchema,
   CommunicationMessageSchema,
+  FleetShipSchema,
   MissionSchema,
+  StoredModuleSchema,
   type ActivityLogEntry,
   type CartographicSystem,
   type CommunicationMessage,
   type DatabaseHealth,
-  type Mission
+  type FleetShip,
+  type Mission,
+  type StoredModule
 } from '@phoenix/contracts'
 import type { CartographyCache } from '../domain/cartography.js'
 import type { CartographyObservationStore, LocalSystemCartographyObservation } from '../domain/cartography.js'
@@ -27,8 +31,9 @@ import type {
 import type { ProviderCacheEntry, ProviderResponseCache } from '../domain/station-market.js'
 import type { MissionRepository } from '../domain/missions.js'
 import type { CommunicationQueryView, CommunicationRepository } from '../domain/communications.js'
+import type { FleetRepository } from '../domain/fleet.js'
 
-export class SqliteDatabase implements Database, CartographyCache, CartographyObservationStore, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository, CommunicationRepository {
+export class SqliteDatabase implements Database, CartographyCache, CartographyObservationStore, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository, CommunicationRepository, FleetRepository {
   private readonly connection: DatabaseSync
 
   public constructor (path: string) {
@@ -132,6 +137,27 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
       CREATE INDEX IF NOT EXISTS communications_view_occurred_at
       ON communications (view, occurred_at DESC);
 
+      CREATE TABLE IF NOT EXISTS fleet_ships (
+        ship_id INTEGER PRIMARY KEY,
+        state TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        document TEXT NOT NULL
+      ) STRICT;
+
+      CREATE INDEX IF NOT EXISTS fleet_ships_state
+      ON fleet_ships (state, updated_at DESC);
+
+      CREATE TABLE IF NOT EXISTS fleet_stored_modules (
+        storage_slot INTEGER PRIMARY KEY,
+        updated_at TEXT NOT NULL,
+        document TEXT NOT NULL
+      ) STRICT;
+
+      CREATE TABLE IF NOT EXISTS fleet_projection_state (
+        state_key TEXT PRIMARY KEY,
+        timestamp TEXT NOT NULL
+      ) STRICT;
+
       INSERT OR IGNORE INTO schema_migrations (version, applied_at)
       VALUES (2, datetime('now'));
 
@@ -160,6 +186,13 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
       VALUES (8, datetime('now'))
     `).run()
     if (communicationsMigration.changes > 0) {
+      this.connection.exec('DELETE FROM elite_journal_checkpoints;')
+    }
+    const fleetMigration = this.connection.prepare(`
+      INSERT OR IGNORE INTO schema_migrations (version, applied_at)
+      VALUES (9, datetime('now'))
+    `).run()
+    if (fleetMigration.changes > 0) {
       this.connection.exec('DELETE FROM elite_journal_checkpoints;')
     }
   }
@@ -409,6 +442,67 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
       outbound: row.outbound ?? 0,
       total: row.total ?? 0,
       traffic: row.traffic ?? 0
+    }
+  }
+
+  public getFleetProjectionTimestamp (key: string): string | null {
+    const row = this.connection.prepare(`
+      SELECT timestamp FROM fleet_projection_state WHERE state_key = ?
+    `).get(key) as { timestamp: string } | undefined
+    return row?.timestamp ?? null
+  }
+
+  public putFleetProjectionTimestamp (key: string, timestamp: string): void {
+    this.connection.prepare(`
+      INSERT INTO fleet_projection_state (state_key, timestamp)
+      VALUES (?, ?)
+      ON CONFLICT(state_key) DO UPDATE SET timestamp = excluded.timestamp
+    `).run(key, timestamp)
+  }
+
+  public getFleetShip (id: number): FleetShip | null {
+    const row = this.connection.prepare(`SELECT document FROM fleet_ships WHERE ship_id = ?`).get(id) as { document: string } | undefined
+    return row ? FleetShipSchema.parse(JSON.parse(row.document)) : null
+  }
+
+  public listFleetShips (): FleetShip[] {
+    const rows = this.connection.prepare(`SELECT document FROM fleet_ships ORDER BY updated_at DESC, ship_id ASC`).all() as Array<{ document: string }>
+    return rows.map(row => FleetShipSchema.parse(JSON.parse(row.document)))
+  }
+
+  public putFleetShip (ship: FleetShip): void {
+    const validated = FleetShipSchema.parse(ship)
+    this.connection.prepare(`
+      INSERT INTO fleet_ships (ship_id, state, updated_at, document)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(ship_id) DO UPDATE SET
+        state = excluded.state,
+        updated_at = excluded.updated_at,
+        document = excluded.document
+    `).run(validated.id, validated.state, validated.updatedAt, JSON.stringify(validated))
+  }
+
+  public listStoredModules (): StoredModule[] {
+    const rows = this.connection.prepare(`SELECT document FROM fleet_stored_modules ORDER BY storage_slot ASC`).all() as Array<{ document: string }>
+    return rows.map(row => StoredModuleSchema.parse(JSON.parse(row.document)))
+  }
+
+  public replaceStoredModules (modules: StoredModule[]): void {
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      this.connection.exec('DELETE FROM fleet_stored_modules')
+      const statement = this.connection.prepare(`
+        INSERT INTO fleet_stored_modules (storage_slot, updated_at, document)
+        VALUES (?, ?, ?)
+      `)
+      for (const module of modules) {
+        const validated = StoredModuleSchema.parse(module)
+        statement.run(validated.storageSlot, validated.updatedAt, JSON.stringify(validated))
+      }
+      this.connection.exec('COMMIT')
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
     }
   }
 

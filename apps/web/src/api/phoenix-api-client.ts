@@ -29,6 +29,7 @@ import {
   EngineeringMaterialsResponseSchema,
   ExplorationLedgerResponseSchema,
   ExplorationManualCompletionResponseSchema,
+  FleetResponseSchema,
   GalaxyCommodityMarketsResponseSchema,
   GalaxyNearestStationsResponseSchema,
   GalnetNewsResponseSchema,
@@ -48,6 +49,7 @@ import {
   NumpadExecutionResultSchema,
   NumpadTreeSnapshotSchema,
   type GameActionCatalogResponse,
+  type FleetResponse,
   type CommandCatalogResponse,
   type CommandCatalogueSnapshot,
   type CommunicationsResponse,
@@ -114,6 +116,7 @@ export interface PhoenixApi {
   getCopilotProfiles(): Promise<CopilotProfilesResponse>
   getGalnetNews(limit?: number): Promise<GalnetNewsResponse>
   getMissions(): Promise<MissionsResponse>
+  getFleet(): Promise<FleetResponse>
   getCopilotProfile(profileId: string): Promise<CopilotProfileDocument>
   createCopilotProfile(input: CopilotProfileWriteRequest): Promise<CopilotProfileDocument>
   updateCopilotProfile(profileId: string, input: CopilotProfileWriteRequest): Promise<CopilotProfileDocument>
@@ -496,6 +499,14 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return MissionsResponseSchema.parse(await response.json())
+  }
+
+  public async getFleet (): Promise<FleetResponse> {
+    const response = await this.request(`${this.baseUrl}/api/fleet`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return FleetResponseSchema.parse(await response.json())
   }
 
   public async getCommunications (view: 'all' | 'inbox' | 'traffic' = 'all', limit = 250): Promise<CommunicationsResponse> {

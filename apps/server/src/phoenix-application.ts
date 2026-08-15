@@ -47,6 +47,7 @@ import { DefaultStationMarketQuery } from './application/default-station-market-
 import { GalnetNewsService } from './application/galnet-news-service.js'
 import { MissionDataService } from './application/mission-data-service.js'
 import { CommunicationDataService } from './application/communication-data-service.js'
+import { FleetDataService } from './application/fleet-data-service.js'
 import { DefaultExplorationBodyQuery } from './application/default-exploration-body-query.js'
 import type { CopilotText } from './application/copilot-text-service.js'
 import type { CopilotRealtime } from './application/copilot-realtime-service.js'
@@ -168,6 +169,10 @@ export class PhoenixApplication {
     )
     const gameCatalogue = catalogues.game
     const engineeringCatalogue = catalogues.engineering
+    const fleet = new FleetDataService(
+      this.database,
+      identifier => gameCatalogue.resolveShip(identifier)?.displayName ?? null
+    )
     const projector = new DefaultRuntimeStateProjector(
       this.stateStore,
       runtimeStateUpdates,
@@ -211,6 +216,7 @@ export class PhoenixApplication {
         cartographyObservationIngestion.ingest(event)
         missions.ingest(event, 'live-journal')
         communications.ingest(event)
+        fleet.ingest(event)
         activityLog.ingestJournal(event)
       }
     )
@@ -221,6 +227,7 @@ export class PhoenixApplication {
         historicalCartographyIngestion.ingest(event)
         missions.ingest(event, 'historical-journal')
         communications.ingest(event)
+        fleet.ingest(event)
         activityLog.ingestJournal(event, 'historical')
       },
       this.database
@@ -308,6 +315,7 @@ export class PhoenixApplication {
       display,
       engineers: new DefaultCommanderEngineersQuery(engineering),
       exploration,
+      fleet,
       gameCatalogue,
       navigation,
       markets: stationMarkets,
@@ -369,6 +377,7 @@ export class PhoenixApplication {
       displayCommands: display,
       engineering,
       explorationData,
+      fleet,
       galaxyData: stationMarkets,
       galnet,
       navigationData,

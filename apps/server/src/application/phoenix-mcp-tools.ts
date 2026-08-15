@@ -27,10 +27,13 @@ import { StationsSearchOutfittingTool } from './mcp-tools/stations-search-outfit
 import { ExplorationGetCurrentBodyTool } from './mcp-tools/exploration-get-current-body-tool.js'
 import { OperationsListMissionsTool } from './mcp-tools/operations-list-missions-tool.js'
 import { CommsListMessagesTool } from './mcp-tools/comms-list-messages-tool.js'
+import { FleetListShipsTool } from './mcp-tools/fleet-list-ships-tool.js'
+import { FleetListStoredModulesTool } from './mcp-tools/fleet-list-stored-modules-tool.js'
 import type { CommanderEngineersQuery, DisplayCommands, ExplorationBodyQuery, NavigationQuery, StationQuery, SystemDetailsQuery, TradeMarketQuery } from './mcp-tools/tool-gateways.js'
 import type { StatefulGameActionService } from './stateful-game-action-service.js'
 import type { MissionDataReader } from '../domain/missions.js'
 import type { CommunicationDataReader } from '../domain/communications.js'
+import type { FleetDataReader } from '../domain/fleet.js'
 
 export interface PhoenixMcpToolDependencies {
   commands: Commands
@@ -39,6 +42,7 @@ export interface PhoenixMcpToolDependencies {
   engineers: CommanderEngineersQuery
   display: DisplayCommands
   exploration: ExplorationBodyQuery
+  fleet: FleetDataReader
   navigation: NavigationQuery
   markets: TradeMarketQuery
   missions: MissionDataReader
@@ -66,6 +70,8 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new DisplayShowBodyTool(dependencies.display),
     new DisplayShowSystemTool(dependencies.display),
     new ExplorationGetCurrentBodyTool(dependencies.exploration),
+    new FleetListShipsTool(dependencies.fleet),
+    new FleetListStoredModulesTool(dependencies.fleet),
     new NavigationCanJumpToTool(dependencies.navigation),
     new NavigationGetRouteTool(dependencies.navigation),
     new OperationsListMissionsTool(dependencies.missions),

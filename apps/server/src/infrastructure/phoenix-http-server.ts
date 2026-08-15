@@ -57,6 +57,7 @@ import type { NumpadCommands } from '../domain/numpad.js'
 import type { Macros } from '../domain/macros.js'
 import type { MissionDataReader } from '../domain/missions.js'
 import type { CommunicationDataReader, CommunicationQueryView } from '../domain/communications.js'
+import type { FleetDataReader } from '../domain/fleet.js'
 import type { PhoenixMcpServer } from './phoenix-mcp-server.js'
 import { PairingAttemptLimitError, type PairingAccessController } from './pairing-access-controller.js'
 
@@ -91,6 +92,7 @@ export interface PhoenixHttpServerOptions {
   eliteStatusDiagnostics: EliteStatusDiagnosticsReader
   engineering: EngineeringDataReader
   explorationData: ExplorationDataReader
+  fleet: FleetDataReader
   galaxyData: GalaxyDataReader
   galnet: GalnetNewsReader
   healthCheck: HealthCheck
@@ -262,6 +264,11 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/operations/missions') {
       this.writeJson(response, 200, this.options.missions.getMissions())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/fleet') {
+      this.writeJson(response, 200, this.options.fleet.getFleet())
       return
     }
 
