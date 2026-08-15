@@ -31,6 +31,19 @@ export interface CommodityMarket {
   updatedAt: string | null
 }
 
+export interface NearbySystem {
+  distanceLy: number
+  position: [number, number, number]
+  systemAddress: number | null
+  systemName: string
+  updatedAt: string | null
+}
+
+export interface NearbySystemRequest {
+  maxDistance: number
+  systemName: string
+}
+
 export interface NearestStationRequest {
   minimumPadSize: number | null
   service: string
@@ -50,6 +63,7 @@ export interface CommodityMarketRequest {
 export interface StationSearchSource {
   findCommodityMarkets(request: CommodityMarketRequest): Promise<CommodityMarket[]>
   findNearestStations(request: NearestStationRequest): Promise<NearbyStation[]>
+  findNearbySystems(request: NearbySystemRequest): Promise<NearbySystem[]>
 }
 
 export interface StockItem {

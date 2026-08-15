@@ -5,6 +5,7 @@ import type { SystemCartography } from '../apps/server/src/domain/cartography.js
 import type {
   CommodityMarket,
   CommodityMarketRequest,
+  NearbySystem,
   NearbyStation,
   NearestStationRequest,
   ProviderCacheEntry,
@@ -23,18 +24,24 @@ test('Ardent source maps current station and commodity response contracts', asyn
     if (url.pathname.includes('/commodity/')) {
       return response([{ commodityName: 'gold', stationName: 'Galileo', systemName: 'Sol', marketId: 128016640, buyPrice: 4000, sellPrice: 3900, meanPrice: 50000, stock: 25, demand: 3, distance: 0, distanceToArrival: 495.3, updatedAt: '2026-08-11T02:38:22.982Z' }])
     }
+    if (url.pathname.endsWith('/nearby')) {
+      return response([{ systemName: 'Sol', systemAddress: 10477373803, systemX: 0, systemY: 0, systemZ: 0, distance: 0, updatedAt: '2026-08-11T02:38:22.982Z' }])
+    }
     return response([{ stationName: 'Galileo', systemName: 'Sol', marketId: 128016640, stationType: 'Ocellus', maxLandingPadSize: 3, distance: 0, distanceToArrival: 495.3, updatedAt: '2026-08-11T02:38:22.982Z' }])
   })
   const source = new ArdentStationSearchSource({ fetch: fetcher as typeof fetch })
 
   const stations = await source.findNearestStations({ minimumPadSize: 2, service: 'repair', systemName: 'Sol' })
   const markets = await source.findCommodityMarkets({ commodity: 'Gold', includeFleetCarriers: false, intent: 'buy', maxDaysAgo: 30, maxDistance: 100, minVolume: 1, systemName: 'Sol' })
+  const systems = await source.findNearbySystems({ maxDistance: 25, systemName: 'Sol' })
 
   expect(stations[0]).toMatchObject({ stationName: 'Galileo', marketId: 128016640, maxLandingPadSize: 3 })
   expect(markets[0]).toMatchObject({ commodityName: 'gold', buyPrice: 4000, meanPrice: 50000, stock: 25 })
+  expect(systems[0]).toMatchObject({ systemName: 'Sol', distanceLy: 0, position: [0, 0, 0] })
   expect(fetcher.mock.calls.map(call => new URL(String(call[0])).pathname)).toEqual([
     '/v2/system/name/Sol/nearest/repair',
-    '/v2/system/name/Sol/commodity/name/Gold/nearby/exports'
+    '/v2/system/name/Sol/commodity/name/Gold/nearby/exports',
+    '/v2/system/name/Sol/nearby'
   ])
 })
 
@@ -67,7 +74,8 @@ test('station and market query resolves current location, formats trade directio
   })
   const search: StationSearchSource = {
     findCommodityMarkets: vi.fn(async () => [market()]),
-    findNearestStations: vi.fn(async () => [nearbyStation()])
+    findNearestStations: vi.fn(async () => [nearbyStation()]),
+    findNearbySystems: vi.fn(async () => [nearbySystem()])
   }
   const stock: StationStockSource = {
     getOutfitting: vi.fn(async () => [{ id: 'rack', name: '6E Cargo Rack' }, { id: 'laser', name: '2D Mining Laser' }]),
@@ -83,9 +91,11 @@ test('station and market query resolves current location, formats trade directio
   const nearest = await service.findNearest({ service: 'repair' })
   const galaxyMarkets = await service.searchCommodityMarkets({ commodity: 'Gold', includeFleetCarriers: false, intent: 'sell', maxDaysAgo: 30, maxDistance: 100, minVolume: 1, systemName: 'Sol' })
   const galaxyStations = await service.searchNearestStations({ minimumPadSize: 2, service: 'repair', systemName: 'Sol' }, 20, 'medium')
+  const galaxySystems = await service.searchNearbySystems({ maxDistance: 25, systemName: 'Sol' })
 
   expect(search.findCommodityMarkets).toHaveBeenCalledTimes(2)
   expect(search.findNearestStations).toHaveBeenCalledTimes(2)
+  expect(search.findNearbySystems).toHaveBeenCalledTimes(1)
   expect(firstTrade.structuredContent).toMatchObject({ cache: 'refreshed', intent: 'buy', originSystem: 'Sol' })
   expect(firstTrade.content[0]).toMatchObject({ text: expect.stringContaining('91.5% below average') })
   expect(details.structuredContent).toMatchObject({ station: { name: 'Galileo' }, systemName: 'Sol' })
@@ -94,6 +104,7 @@ test('station and market query resolves current location, formats trade directio
   expect(nearest.structuredContent).toMatchObject({ service: 'repair', stations: [{ stationName: 'Galileo' }] })
   expect(galaxyMarkets).toMatchObject({ cache: 'refreshed', commodity: 'Gold', intent: 'sell', markets: [{ stationName: 'Galileo' }] })
   expect(galaxyStations).toMatchObject({ cache: 'refreshed', minimumPadSize: 'medium', service: 'repair', stations: [{ stationName: 'Galileo' }] })
+  expect(galaxySystems).toMatchObject({ cache: 'refreshed', maxDistanceLy: 25, systems: [{ systemName: 'Alpha Centauri' }] })
 })
 
 test('provider response cache persists arbitrary normalized documents in SQLite', () => {
@@ -152,6 +163,16 @@ function nearbyStation (): NearbyStation {
     stationName: 'Galileo', systemName: 'Sol', marketId: 128016640, stationType: 'Ocellus', maxLandingPadSize: 3,
     distanceLy: 0, distanceToArrivalLs: 495.3, allegiance: 'Federation', government: 'Democracy',
     controllingFaction: 'Mother Gaia', primaryEconomy: 'Refinery', secondaryEconomy: null, updatedAt: '2026-08-11T02:38:22.982Z'
+  }
+}
+
+function nearbySystem (): NearbySystem {
+  return {
+    distanceLy: 4.37,
+    position: [3.03125, -0.09375, 3.15625],
+    systemAddress: 1178707802194,
+    systemName: 'Alpha Centauri',
+    updatedAt: '2026-08-11T02:38:22.982Z'
   }
 }
 

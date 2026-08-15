@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type {
   GalaxyCommodityMarketsResponse,
+  GalaxyNearbySystemsResponse,
   GalaxyNearestStationsResponse
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../api/phoenix-api-client.js'
@@ -23,10 +24,12 @@ export function GalaxyDatabase ({ api, currentSystem }: { api: PhoenixApi, curre
   const [service, setService] = useState('material-trader')
   const [pad, setPad] = useState<'small' | 'medium' | 'large'>('medium')
   const [nearest, setNearest] = useState<GalaxyNearestStationsResponse>()
+  const [radius, setRadius] = useState(50)
+  const [nearbySystems, setNearbySystems] = useState<GalaxyNearbySystemsResponse>()
   const [commodity, setCommodity] = useState('gold')
   const [intent, setIntent] = useState<'buy' | 'sell'>('sell')
   const [markets, setMarkets] = useState<GalaxyCommodityMarketsResponse>()
-  const [pending, setPending] = useState<'nearest' | 'markets'>()
+  const [pending, setPending] = useState<'nearest' | 'markets' | 'systems'>()
   const [error, setError] = useState<string>()
 
   useEffect(() => {
@@ -59,6 +62,16 @@ export function GalaxyDatabase ({ api, currentSystem }: { api: PhoenixApi, curre
       .finally(() => setPending(undefined))
   }
 
+  const findNearbySystems = (event: FormEvent): void => {
+    event.preventDefault()
+    setPending('systems')
+    setError(undefined)
+    void api.findGalaxyNearbySystems({ maxDistance: radius, systemName: origin.trim() })
+      .then(setNearbySystems)
+      .catch(cause => setError(errorMessage(cause)))
+      .finally(() => setPending(undefined))
+  }
+
   return (
     <div className="galaxy-database">
       <section className="galaxy-database__origin">
@@ -70,6 +83,15 @@ export function GalaxyDatabase ({ api, currentSystem }: { api: PhoenixApi, curre
       {error && <p className="galaxy-database__error">{error}</p>}
 
       <div className="galaxy-database__tools">
+        <section className="galaxy-tool">
+          <header><span>Systems</span><h2>Find nearby systems</h2></header>
+          <form onSubmit={findNearbySystems}>
+            <label>Radius<input min="1" max="500" type="number" value={radius} onChange={event => setRadius(Number(event.target.value))} /></label>
+            <span />
+            <button disabled={!origin.trim() || radius < 1 || radius > 500 || pending !== undefined} type="submit">{pending === 'systems' ? 'Searching…' : 'Search'}</button>
+          </form>
+        </section>
+
         <section className="galaxy-tool">
           <header><span>Services</span><h2>Find nearest facility</h2></header>
           <form onSubmit={findNearest}>
@@ -89,15 +111,28 @@ export function GalaxyDatabase ({ api, currentSystem }: { api: PhoenixApi, curre
         </section>
       </div>
 
+      {nearbySystems && <NearbySystemResults result={nearbySystems} />}
       {nearest && <NearestResults result={nearest} />}
       {markets && <MarketResults result={markets} />}
-      {!nearest && !markets && (
+      {!nearbySystems && !nearest && !markets && (
         <section className="galaxy-database__welcome">
           <strong>PHOENIX galaxy services online</strong>
           <p>Searches use community-reported EDDN data through Ardent. Results are cached locally and include their last reported age where available.</p>
         </section>
       )}
     </div>
+  )
+}
+
+function NearbySystemResults ({ result }: { result: GalaxyNearbySystemsResponse }) {
+  return (
+    <section className="galaxy-results">
+      <header><div><span>Nearby systems</span><h2>{result.originSystem}</h2></div><small>{result.cache} cache · {result.systems.length} within {result.maxDistanceLy} ly</small></header>
+      <table><thead><tr><th>System</th><th>Distance</th><th>Coordinates</th><th>Reported</th></tr></thead>
+        <tbody>{result.systems.map(system => <tr key={`${system.systemAddress ?? ''}:${system.systemName}`}><td><a href={systemHref(system.systemName)}>{system.systemName}</a></td><td>{distance(system.distanceLy, 'ly')}</td><td>{coordinates(system.position)}</td><td>{reportedAge(system.updatedAt)}</td></tr>)}</tbody>
+      </table>
+      {result.systems.length === 0 && <p>No systems were reported within this radius.</p>}
+    </section>
   )
 }
 
@@ -134,6 +169,7 @@ function systemHref (systemName: string): string {
 function distance (value: number | null, unit: string): string { return value === null ? '—' : `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value)} ${unit}` }
 function credits (value: number | null): string { return value === null ? '—' : `${new Intl.NumberFormat().format(value)} CR` }
 function number (value: number | null): string { return value === null ? '—' : new Intl.NumberFormat().format(value) }
+function coordinates (value: [number, number, number]): string { return value.map(axis => new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(axis)).join(' · ') }
 function padLabel (value: number | null): string { return value === 3 ? 'Large' : value === 2 ? 'Medium' : value === 1 ? 'Small' : '—' }
 function labelService (value: string): string { return value.replaceAll('-', ' ') }
 function reportedAge (value: string | null): string { return value ? new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : 'Unknown' }

@@ -2,6 +2,7 @@ import type { JsonObject } from '@judus/llm-client'
 import type {
   CartographicStation,
   GalaxyCommodityMarketsResponse,
+  GalaxyNearbySystemsResponse,
   GalaxyNearestStationsResponse
 } from '@phoenix/contracts'
 import type { SystemCartography } from '../domain/cartography.js'
@@ -9,6 +10,8 @@ import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type {
   CommodityMarket,
   CommodityMarketRequest,
+  NearbySystem,
+  NearbySystemRequest,
   NearbyStation,
   NearestStationRequest,
   ProviderResponseCache,
@@ -28,6 +31,7 @@ import {
 } from './mcp-tools/tool-support.js'
 
 const MARKET_CACHE_MS = 5 * 60 * 1000
+const NEARBY_SYSTEM_CACHE_MS = 30 * 60 * 1000
 const NEAREST_CACHE_MS = 30 * 60 * 1000
 const STOCK_CACHE_MS = 6 * 60 * 60 * 1000
 const PAD_SIZES: Record<string, number> = { small: 1, medium: 2, large: 3 }
@@ -147,6 +151,25 @@ export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery
       originSystem: request.systemName,
       service: request.service,
       stations: cached.value.slice(0, boundedLimit(limit, 20, 100))
+    }
+  }
+
+  public async searchNearbySystems (
+    request: NearbySystemRequest,
+    limit = 100
+  ): Promise<GalaxyNearbySystemsResponse> {
+    const cached = await this.cached(
+      'ardent-nearby-systems',
+      stableKey(request),
+      NEARBY_SYSTEM_CACHE_MS,
+      () => this.searchSource.findNearbySystems(request),
+      isNearbySystems
+    )
+    return {
+      cache: cached.cache,
+      maxDistanceLy: request.maxDistance,
+      originSystem: request.systemName,
+      systems: cached.value.slice(0, boundedLimit(limit, 100, 1000))
     }
   }
 
@@ -387,6 +410,16 @@ function sameName (left: string, right: string): boolean {
 
 function isNearbyStations (candidate: unknown): candidate is NearbyStation[] {
   return Array.isArray(candidate) && candidate.every(item => isRecord(item) && typeof item.stationName === 'string' && typeof item.systemName === 'string')
+}
+
+function isNearbySystems (candidate: unknown): candidate is NearbySystem[] {
+  return Array.isArray(candidate) && candidate.every(item => (
+    isRecord(item) &&
+    typeof item.systemName === 'string' &&
+    typeof item.distanceLy === 'number' &&
+    Array.isArray(item.position) &&
+    item.position.length === 3
+  ))
 }
 
 function isCommodityMarkets (candidate: unknown): candidate is CommodityMarket[] {

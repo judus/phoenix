@@ -17,6 +17,13 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       government: null, marketId: 42, maxLandingPadSize: 3, primaryEconomy: 'Industrial',
       secondaryEconomy: null, stationName: 'Test Exchange', stationType: 'Orbis',
       systemName: 'Nearby', updatedAt: '2026-08-13T08:00:00.000Z'
+    }],
+    findNearbySystems: async () => [{
+      distanceLy: 4.37,
+      position: [3.03125, -0.09375, 3.15625],
+      systemAddress: 1178707802194,
+      systemName: 'Alpha Centauri',
+      updatedAt: '2026-08-13T08:00:00.000Z'
     }]
   }
   const application = new PhoenixApplication({
@@ -39,6 +46,8 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       .resolves.toMatchObject({ originSystem: 'Sol', stations: [{ stationName: 'Test Exchange' }] })
     await expect(client.findGalaxyCommodityMarkets({ commodity: 'gold', intent: 'sell', systemName: 'Sol' }))
       .resolves.toMatchObject({ commodity: 'gold', intent: 'sell', markets: [{ sellPrice: 1500 }] })
+    await expect(client.findGalaxyNearbySystems({ maxDistance: 25, systemName: 'Sol' }))
+      .resolves.toMatchObject({ maxDistanceLy: 25, systems: [{ systemName: 'Alpha Centauri' }] })
   } finally {
     await application.stop()
   }

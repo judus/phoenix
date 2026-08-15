@@ -326,6 +326,14 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/systems') {
+      this.writeJson(response, 200, await this.options.galaxyData.searchNearbySystems({
+        maxDistance: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
+        systemName: requiredQuery(url, 'system')
+      }, boundedQueryInteger(url, 'limit', 100, 1, 1000)))
+      return
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/galaxy/markets') {
       const intent = url.searchParams.get('intent')
       if (intent !== 'buy' && intent !== 'sell') throw new Error('intent must be buy or sell.')

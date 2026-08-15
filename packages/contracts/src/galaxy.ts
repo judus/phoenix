@@ -5,6 +5,21 @@ const nullableString = z.string().min(1).nullable()
 
 export const GalaxyCacheStateSchema = z.enum(['fresh', 'refreshed', 'stale'])
 
+export const GalaxyNearbySystemSchema = z.object({
+  distanceLy: z.number().finite().nonnegative(),
+  position: z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]),
+  systemAddress: z.number().int().nonnegative().nullable(),
+  systemName: z.string().min(1),
+  updatedAt: z.string().datetime().nullable()
+})
+
+export const GalaxyNearbySystemsResponseSchema = z.object({
+  cache: GalaxyCacheStateSchema,
+  maxDistanceLy: z.number().int().min(1).max(500),
+  originSystem: z.string().min(1),
+  systems: z.array(GalaxyNearbySystemSchema)
+})
+
 export const GalaxyNearbyStationSchema = z.object({
   allegiance: nullableString,
   controllingFaction: nullableString,
@@ -56,5 +71,7 @@ export const GalaxyCommodityMarketsResponseSchema = z.object({
 
 export type GalaxyCommodityMarket = z.infer<typeof GalaxyCommodityMarketSchema>
 export type GalaxyCommodityMarketsResponse = z.infer<typeof GalaxyCommodityMarketsResponseSchema>
+export type GalaxyNearbySystem = z.infer<typeof GalaxyNearbySystemSchema>
+export type GalaxyNearbySystemsResponse = z.infer<typeof GalaxyNearbySystemsResponseSchema>
 export type GalaxyNearbyStation = z.infer<typeof GalaxyNearbyStationSchema>
 export type GalaxyNearestStationsResponse = z.infer<typeof GalaxyNearestStationsResponseSchema>
