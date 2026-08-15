@@ -18,12 +18,7 @@ import {
 import type { NavigationItem } from '../src/components/app-shell'
 import { CurrentShipConsolidatedPage } from '../src/pages/current-ship-consolidated-page'
 import { CurrentShipLoadoutPage } from '../src/pages/current-ship-loadout-page'
-import {
-  ShipCatalogueDossierPage,
-  ShipCatalogueFirstPassPage,
-  ShipCataloguePage,
-  ShipCatalogueSplitPage
-} from '../src/pages/ship-catalogue-page'
+import { ShipCataloguePage } from '../src/pages/ship-catalogue-page'
 import '../src/styles/tablet-shell-stories.css'
 
 const utilityItems: NavigationItem[] = [
@@ -134,36 +129,6 @@ function ShipCatalogueShell() {
     <div className="tablet-shell-story">
       <BaselineShell context="overview">
         <ShipCataloguePage />
-      </BaselineShell>
-    </div>
-  )
-}
-
-function ShipCatalogueFirstPassShell() {
-  return (
-    <div className="tablet-shell-story">
-      <BaselineShell context="overview">
-        <ShipCatalogueFirstPassPage />
-      </BaselineShell>
-    </div>
-  )
-}
-
-function ShipCatalogueSplitShell() {
-  return (
-    <div className="tablet-shell-story">
-      <BaselineShell context="overview">
-        <ShipCatalogueSplitPage />
-      </BaselineShell>
-    </div>
-  )
-}
-
-function ShipCatalogueDossierShell() {
-  return (
-    <div className="tablet-shell-story">
-      <BaselineShell context="overview">
-        <ShipCatalogueDossierPage />
       </BaselineShell>
     </div>
   )
@@ -334,6 +299,3 @@ export const DeskplaneWorkspaces: Story = {}
 export const CurrentShipTilesActions: Story = { render: () => <CurrentShipTilesActionsShell /> }
 export const CurrentShipLoadout: Story = { render: () => <CurrentShipLoadoutShell /> }
 export const ShipCatalogue: Story = { render: () => <ShipCatalogueShell /> }
-export const ShipCatalogueFirstPass: Story = { render: () => <ShipCatalogueFirstPassShell /> }
-export const ShipCatalogueSplitView: Story = { render: () => <ShipCatalogueSplitShell /> }
-export const ShipCatalogueDossierView: Story = { render: () => <ShipCatalogueDossierShell /> }
