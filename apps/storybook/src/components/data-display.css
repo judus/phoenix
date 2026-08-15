@@ -392,6 +392,7 @@
 
   .data-table-group {
     display: grid;
+    align-content: start;
     min-inline-size: 0;
 
     > header {
@@ -410,11 +411,16 @@
         text-transform: uppercase;
       }
 
-      small {
+      > span {
         color: var(--color-text-muted);
         font-size: var(--font-size-xs);
         text-transform: uppercase;
       }
+    }
+
+    &.muted > header {
+      h2,
+      > span { color: var(--color-text-muted); }
     }
   }
 

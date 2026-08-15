@@ -20,6 +20,7 @@ import { CurrentShipConsolidatedPage } from '../src/pages/current-ship-consolida
 import { CurrentShipLoadoutPage } from '../src/pages/current-ship-loadout-page'
 import { FleetPage } from '../src/pages/fleet-page'
 import { HomeDashboardPage } from '../src/pages/home-dashboard-page'
+import { PersonalStoresPage } from '../src/pages/personal-stores-page'
 import { ShipCataloguePage } from '../src/pages/ship-catalogue-page'
 import { StoredModulesPage } from '../src/pages/stored-modules-page'
 import '../src/styles/tablet-shell-stories.css'
@@ -68,10 +69,12 @@ function Brand() {
 
 function BaselineShell({
   children,
-  context = 'ship'
+  context = 'ship',
+  primary = 'fleet'
 }: {
   children?: React.ReactNode
   context?: string
+  primary?: string
 }) {
   return (
     <ApplicationShell>
@@ -80,7 +83,7 @@ function BaselineShell({
         utilities={<Navigation variant="compact" label="Utilities" items={utilityItems} />}
       />
       <PrimaryBar launcher={<a href="#home" aria-label="Home">⌂</a>}>
-        <Navigation label="Primary" current="fleet" items={primaryItems} />
+        <Navigation label="Primary" current={primary} items={primaryItems} />
       </PrimaryBar>
       <Workspace>
         <Rail label="Commander views">
@@ -162,6 +165,16 @@ function StoredModulesShell() {
     <div className="tablet-shell-story">
       <BaselineShell context="overview">
         <StoredModulesPage />
+      </BaselineShell>
+    </div>
+  )
+}
+
+function PersonalStoresShell() {
+  return (
+    <div className="tablet-shell-story">
+      <BaselineShell context="overview" primary="commander">
+        <PersonalStoresPage />
       </BaselineShell>
     </div>
   )
@@ -335,3 +348,4 @@ export const CurrentLoadout: Story = { render: () => <CurrentLoadoutShell /> }
 export const Fleet: Story = { render: () => <FleetShell /> }
 export const ShipCatalogue: Story = { render: () => <ShipCatalogueShell /> }
 export const StoredModules: Story = { render: () => <StoredModulesShell /> }
+export const PersonalStores: Story = { render: () => <PersonalStoresShell /> }

@@ -23,6 +23,7 @@
     &.grid-sm { grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); }
     &.grid-md { grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); }
     &.grid-lg { grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); }
+    &.grid-xl { grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr)); }
   }
 
   .equal-grid {

@@ -54,14 +54,18 @@ export function DataTable({
 type DataTableGroupProps = HTMLAttributes<HTMLElement> & {
   meta?: ReactNode
   title: string
+  tone?: 'default' | 'muted'
 }
 
-export function DataTableGroup({ children, className, meta, title, ...props }: DataTableGroupProps) {
+export function DataTableGroup({ children, className, meta, title, tone = 'default', ...props }: DataTableGroupProps) {
   return (
-    <section className={['data-table-group', className].filter(Boolean).join(' ')} {...props}>
+    <section
+      className={['data-table-group', tone === 'muted' && 'muted', className].filter(Boolean).join(' ')}
+      {...props}
+    >
       <header>
         <h2>{title}</h2>
-        {meta && <small>{meta}</small>}
+        {meta !== undefined && meta !== null && <span>{meta}</span>}
       </header>
       {children}
     </section>

@@ -60,7 +60,7 @@ export function Inline({
 type AutoGridProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode
   gap?: Space
-  minimum?: 'xs' | 'sm' | 'md' | 'lg'
+  minimum?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 }
 export function AutoGrid({ gap = 'sm', minimum = 'md', className, ...props }: AutoGridProps) {
   return (
