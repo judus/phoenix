@@ -6,11 +6,13 @@ import { DataTable } from '../components/data-table'
 import { DescriptionItem, DescriptionList } from '../components/description-list'
 import { TextInput } from '../components/field'
 import { Breadcrumbs, PageFrame, PageHeader } from '../components/page'
+import { ViewSwitcher } from '../components/view-switcher'
 import './ship-catalogue-page.css'
 
 type Ship = (typeof catalogue.ships)[number]
 type SortKey = 'displayName' | 'manufacturer' | 'landingPadSize' | 'baseArmour' | 'baseShieldStrength' | 'speed' | 'boost' | 'hullMass'
 type DossierSortKey = 'displayName' | 'manufacturer' | 'landingPadSize'
+type CatalogueView = 'dossier' | 'table'
 
 const ships = [...catalogue.ships].sort((left, right) =>
   left.displayName.localeCompare(right.displayName)
@@ -170,6 +172,7 @@ function HullSchematic({ ship }: { ship: Ship }) {
         <div><dt>Speed</dt><dd>{valueOrDash(ship.performance.speed, ' m/s')}</dd></div>
         <div><dt>Boost</dt><dd>{valueOrDash(ship.performance.boost, ' m/s')}</dd></div>
         <div><dt>Mass</dt><dd>{valueOrDash(ship.performance.hullMass, ' t')}</dd></div>
+        <div><dt>Price</dt><dd>— CR</dd></div>
       </dl>
 
       <section className="capacity-matrix">
@@ -215,19 +218,47 @@ export function ShipCatalogueFirstPassPage() {
 
 export function ShipCataloguePage() {
   const [selected, setSelected] = useState<Ship>(ships[0])
+  const [view, setView] = useState<CatalogueView>('dossier')
 
   return (
     <PageFrame layout="fit">
-      <div className="ship-catalogue schematic">
+      <div className="ship-catalogue schematic split-view">
         <PageHeader
           variant="cockpit"
           context={<Breadcrumbs items={[{ label: 'Fleet', href: '#fleet' }, { label: 'Ship catalogue' }]} />}
           title="Ship catalogue"
+          actions={
+            <ViewSwitcher
+              startLabel="Dossier"
+              startIcon={<svg aria-hidden="true" viewBox="0 0 16 16">
+                <rect x="2" y="2" width="12" height="12" />
+                <path d="M4 5h8M4 8h3M8 8h4M4 11h5M10 11h2" />
+              </svg>}
+              endLabel="Table"
+              endIcon={<svg aria-hidden="true" viewBox="0 0 16 16">
+                <rect x="2" y="2" width="12" height="12" />
+                <path d="M2 6h12M7 2v12" />
+              </svg>}
+              position={view === 'dossier' ? 'start' : 'end'}
+              onPositionChange={(position) => setView(position === 'start' ? 'dossier' : 'table')}
+            />
+          }
         />
-        <div className="catalogue-deck">
-          <HullRoster current={selected.id} onSelect={setSelected} />
-          <HullSchematic ship={selected} />
-        </div>
+        {view === 'dossier' ? (
+          <div className="catalogue-deck">
+            <HullRoster current={selected.id} onSelect={setSelected} />
+            <HullSchematic ship={selected} />
+          </div>
+        ) : (
+          <CatalogueTable
+            searchable={false}
+            selected={selected}
+            onSelect={(ship) => {
+              setSelected(ship)
+              setView('dossier')
+            }}
+          />
+        )}
       </div>
     </PageFrame>
   )
@@ -419,8 +450,15 @@ export function ShipCatalogueDossierPage() {
   )
 }
 
-export function ShipCatalogueSplitPage() {
-  const [selected, setSelected] = useState<Ship | null>(ships[0])
+function CatalogueTable({
+  searchable = true,
+  selected,
+  onSelect
+}: {
+  searchable?: boolean
+  selected: Ship | null
+  onSelect: (ship: Ship) => void
+}) {
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('displayName')
   const [sortDirection, setSortDirection] = useState<'ascending' | 'descending'>('ascending')
@@ -466,6 +504,76 @@ export function ShipCatalogueSplitPage() {
   }
 
   return (
+    <div className="catalogue-table-view">
+      {searchable && (
+        <div className="catalogue-table-toolbar">
+          <label>
+            <span className="sr-only">Filter hulls</span>
+            <TextInput
+              type="search"
+              value={query}
+              placeholder="Filter hull or manufacturer…"
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+          <small>{visibleShips.length} / {ships.length}</small>
+        </div>
+      )}
+      <DataTable density="compact" label="Known ship hulls" minimum="wide">
+        <thead>
+          <tr>
+            <th scope="col" aria-sort={sortState('displayName')}><button onClick={() => changeSort('displayName')}>Hull</button></th>
+            <th scope="col" aria-sort={sortState('manufacturer')}><button onClick={() => changeSort('manufacturer')}>Manufacturer</button></th>
+            <th scope="col" aria-sort={sortState('landingPadSize')}><button onClick={() => changeSort('landingPadSize')}>Pad</button></th>
+            <th className="numeric" scope="col" aria-sort={sortState('baseArmour')}><button onClick={() => changeSort('baseArmour')}>Armour</button></th>
+            <th className="numeric" scope="col" aria-sort={sortState('baseShieldStrength')}><button onClick={() => changeSort('baseShieldStrength')}>Shield</button></th>
+            <th className="numeric" scope="col" aria-sort={sortState('speed')}><button onClick={() => changeSort('speed')}>Speed</button></th>
+            <th className="numeric" scope="col" aria-sort={sortState('boost')}><button onClick={() => changeSort('boost')}>Boost</button></th>
+            <th className="numeric" scope="col" aria-sort={sortState('hullMass')}><button onClick={() => changeSort('hullMass')}>Mass</button></th>
+            <th className="numeric" scope="col">Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          {visibleShips.map((ship) => (
+            <tr
+              className={selected?.id === ship.id ? 'active' : undefined}
+              aria-selected={selected?.id === ship.id}
+              tabIndex={0}
+              key={ship.id}
+              onClick={() => onSelect(ship)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  onSelect(ship)
+                }
+              }}
+            >
+              <th scope="row">{ship.displayName}</th>
+              <td>{ship.manufacturer ?? '—'}</td>
+              <td>{ship.landingPadSize ?? '—'}</td>
+              <td className="numeric">{ship.performance.baseArmour ?? '—'}</td>
+              <td className="numeric">{ship.performance.baseShieldStrength ?? '—'}</td>
+              <td className="numeric">{valueOrDash(ship.performance.speed, ' m/s')}</td>
+              <td className="numeric">{valueOrDash(ship.performance.boost, ' m/s')}</td>
+              <td className="numeric">{valueOrDash(ship.performance.hullMass, ' t')}</td>
+              <td className="numeric">— CR</td>
+            </tr>
+          ))}
+          {visibleShips.length === 0 && (
+            <tr>
+              <td className="empty-result" colSpan={9}>No matching hulls</td>
+            </tr>
+          )}
+        </tbody>
+      </DataTable>
+    </div>
+  )
+}
+
+export function ShipCatalogueSplitPage() {
+  const [selected, setSelected] = useState<Ship | null>(ships[0])
+
+  return (
     <PageFrame layout="fit">
       <div className="ship-catalogue split-view">
         <PageHeader
@@ -474,65 +582,7 @@ export function ShipCatalogueSplitPage() {
           title="Ship catalogue"
         />
         <div className={['catalogue-split', selected && 'open'].filter(Boolean).join(' ')}>
-          <div className="catalogue-table-view">
-            <div className="catalogue-table-toolbar">
-              <label>
-                <span className="sr-only">Filter hulls</span>
-                <TextInput
-                  type="search"
-                  value={query}
-                  placeholder="Filter hull or manufacturer…"
-                  onChange={(event) => setQuery(event.target.value)}
-                />
-              </label>
-              <small>{visibleShips.length} / {ships.length}</small>
-            </div>
-            <DataTable density="compact" label="Known ship hulls" minimum="wide">
-              <thead>
-                <tr>
-                  <th scope="col" aria-sort={sortState('displayName')}><button onClick={() => changeSort('displayName')}>Hull</button></th>
-                  <th scope="col" aria-sort={sortState('manufacturer')}><button onClick={() => changeSort('manufacturer')}>Manufacturer</button></th>
-                  <th scope="col" aria-sort={sortState('landingPadSize')}><button onClick={() => changeSort('landingPadSize')}>Pad</button></th>
-                  <th className="numeric" scope="col" aria-sort={sortState('baseArmour')}><button onClick={() => changeSort('baseArmour')}>Armour</button></th>
-                  <th className="numeric" scope="col" aria-sort={sortState('baseShieldStrength')}><button onClick={() => changeSort('baseShieldStrength')}>Shield</button></th>
-                  <th className="numeric" scope="col" aria-sort={sortState('speed')}><button onClick={() => changeSort('speed')}>Speed</button></th>
-                  <th className="numeric" scope="col" aria-sort={sortState('boost')}><button onClick={() => changeSort('boost')}>Boost</button></th>
-                  <th className="numeric" scope="col" aria-sort={sortState('hullMass')}><button onClick={() => changeSort('hullMass')}>Mass</button></th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleShips.map((ship) => (
-                  <tr
-                    className={selected?.id === ship.id ? 'active' : undefined}
-                    aria-selected={selected?.id === ship.id}
-                    tabIndex={0}
-                    key={ship.id}
-                    onClick={() => setSelected(ship)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault()
-                        setSelected(ship)
-                      }
-                    }}
-                  >
-                    <th scope="row">{ship.displayName}</th>
-                    <td>{ship.manufacturer ?? '—'}</td>
-                    <td>{ship.landingPadSize ?? '—'}</td>
-                    <td className="numeric">{ship.performance.baseArmour ?? '—'}</td>
-                    <td className="numeric">{ship.performance.baseShieldStrength ?? '—'}</td>
-                    <td className="numeric">{valueOrDash(ship.performance.speed, ' m/s')}</td>
-                    <td className="numeric">{valueOrDash(ship.performance.boost, ' m/s')}</td>
-                    <td className="numeric">{valueOrDash(ship.performance.hullMass, ' t')}</td>
-                  </tr>
-                ))}
-                {visibleShips.length === 0 && (
-                  <tr>
-                    <td className="empty-result" colSpan={8}>No matching hulls</td>
-                  </tr>
-                )}
-              </tbody>
-            </DataTable>
-          </div>
+          <CatalogueTable selected={selected} onSelect={setSelected} />
           {selected && <ShipDetailsPanel ship={selected} onClose={() => setSelected(null)} />}
         </div>
       </div>

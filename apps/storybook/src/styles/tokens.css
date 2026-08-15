@@ -94,6 +94,10 @@
     --shell-navigation-gap: var(--spacing-xxs);
     --shell-navigation-padding: var(--spacing-xs);
     --shell-chrome-background: var(--color-surface);
+    --shell-workspace-background:
+      radial-gradient(circle at 82% 16%, rgb(94 234 255 / 4%), transparent 28%),
+      linear-gradient(135deg, rgb(43 5 22 / 26%), transparent 52%),
+      var(--color-canvas);
     --shell-navigation-active-background: var(--color-selected-surface);
     --shell-navigation-active-text: var(--color-text);
 

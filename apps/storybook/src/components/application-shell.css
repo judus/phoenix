@@ -126,6 +126,7 @@
       min-block-size: 0;
       overflow: auto;
       overscroll-behavior: contain;
+      background: var(--shell-workspace-background);
     }
 
     > .workspace-navigation {

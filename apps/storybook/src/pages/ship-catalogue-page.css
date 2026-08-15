@@ -199,6 +199,8 @@
   }
 
   .ship-catalogue.schematic {
+    .page-header > .actions { align-self: end; }
+
     .catalogue-deck {
       display: grid;
       grid-template-columns: minmax(13rem, 0.45fr) minmax(0, 1.55fr);
@@ -213,7 +215,6 @@
       grid-template-rows: minmax(0, 1fr);
       min-inline-size: 0;
       min-block-size: 0;
-      margin-block: var(--spacing-sm);
       background: var(--color-surface-subtle);
       overflow: hidden;
 
@@ -259,7 +260,6 @@
       gap: var(--spacing-xl);
       min-inline-size: 0;
       min-block-size: 0;
-      padding-block: var(--spacing-sm);
       overflow: hidden;
 
       > header {
@@ -268,7 +268,7 @@
         justify-content: space-between;
         gap: var(--spacing-lg);
 
-        div {
+        > div {
           display: grid;
           gap: var(--spacing-xxs);
         }
@@ -294,7 +294,7 @@
 
     .flight-profile {
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(6, minmax(0, 1fr));
       gap: var(--spacing-lg);
       margin: 0;
       padding: var(--spacing-sm) 0;
@@ -411,10 +411,14 @@
 
     .catalogue-table-view {
       display: grid;
-      grid-template-rows: auto minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr);
       min-inline-size: 0;
       min-block-size: 0;
       overflow: auto;
+
+      &:has(> .catalogue-table-toolbar) {
+        grid-template-rows: auto minmax(0, 1fr);
+      }
 
       .catalogue-table-toolbar {
         display: grid;

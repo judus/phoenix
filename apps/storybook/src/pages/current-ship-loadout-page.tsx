@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
-import { Button } from '../components/button'
 import { Breadcrumbs, PageFrame, PageHeader } from '../components/page'
+import { ViewSwitcher } from '../components/view-switcher'
 import './current-ship-loadout-page.css'
 
 type LoadoutView = 'list' | 'grid'
@@ -140,27 +140,21 @@ export function CurrentShipLoadoutPage() {
           }
           title="Type-11 Prospector"
           actions={
-            <Button
-              className="view-switcher"
-              variant="quiet"
-              role="switch"
-              aria-checked={view === 'grid'}
-              aria-label="Grid view"
-              data-view={view}
-              title={`Switch to ${view === 'list' ? 'grid' : 'list'} view`}
-              onClick={() => setView(view === 'list' ? 'grid' : 'list')}
-            >
-              <svg aria-hidden="true" viewBox="0 0 16 16">
+            <ViewSwitcher
+              startLabel="List"
+              startIcon={<svg aria-hidden="true" viewBox="0 0 16 16">
                 <path d="M2 3.5h12M2 8h12M2 12.5h12" />
-              </svg>
-              <span className="track" aria-hidden="true"><span /></span>
-              <svg aria-hidden="true" viewBox="0 0 16 16">
+              </svg>}
+              endLabel="Grid"
+              endIcon={<svg aria-hidden="true" viewBox="0 0 16 16">
                 <rect x="2" y="2" width="4" height="4" />
                 <rect x="10" y="2" width="4" height="4" />
                 <rect x="2" y="10" width="4" height="4" />
                 <rect x="10" y="10" width="4" height="4" />
-              </svg>
-            </Button>
+              </svg>}
+              position={view === 'list' ? 'start' : 'end'}
+              onPositionChange={(position) => setView(position === 'start' ? 'list' : 'grid')}
+            />
           }
         />
         <SlotInventory view={view} />
