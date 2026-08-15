@@ -1,0 +1,203 @@
+@layer tokens {
+  :root {
+    color-scheme: dark;
+
+    /* Typography */
+    --font-family-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+
+    --font-size-xxs: 0.625rem;
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-md: 1rem;
+    --font-size-lg: 1.25rem;
+    --font-size-xl: 1.5rem;
+    --font-size-xxl: 2rem;
+
+    --line-height-tight: 1.1;
+    --line-height-compact: 1.25;
+    --line-height-normal: 1.5;
+
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+
+    /* Spacing: extracted from the current PHOENIX scale and given semantic names. */
+    --spacing-xxs: 0.25rem;
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 0.75rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.25rem;
+    --spacing-xl: 1.5rem;
+    --spacing-xxl: 2rem;
+
+    /* Raw palette: extracted from the current application. */
+    --palette-black: #08080c;
+    --palette-wine: #160912;
+    --palette-wine-strong: #1e0712;
+    --palette-amber: #ff9d00;
+    --palette-cyan: #5eeaff;
+    --palette-ice: #d8ecff;
+    --palette-slate: #788399;
+    --palette-coral: #ff6176;
+
+    /* Semantic color roles. Components use these rather than raw palette values. */
+    --color-canvas: var(--palette-black);
+    --color-surface: rgb(22 9 18 / 88%);
+    --color-surface-strong: rgb(30 7 18 / 96%);
+    --color-surface-subtle: rgb(43 5 22 / 34%);
+    --color-action: var(--palette-amber);
+    --color-information: var(--palette-cyan);
+    --color-text: var(--palette-ice);
+    --color-text-muted: var(--palette-slate);
+    --color-danger: var(--palette-coral);
+    --color-danger-surface: rgb(68 20 20 / 94%);
+    --color-positive: var(--palette-cyan);
+    --color-warning: var(--palette-amber);
+    --color-border: rgb(255 157 0 / 65%);
+    --color-border-subtle: rgb(255 157 0 / 18%);
+    --color-focus: var(--palette-cyan);
+
+    /* Momentary interaction feedback. Focus remains a separate accessibility state. */
+    --color-pressed-background: var(--color-action);
+    --color-pressed-border: var(--color-action);
+    --color-pressed-text: var(--color-canvas);
+    --color-pressed-danger-background: var(--color-danger);
+    --color-interactive-surface: var(--color-surface-subtle);
+    --color-selected-surface: rgb(255 157 0 / 10%);
+
+    /* Global scrollbar fallback. */
+    --scrollbar-size: var(--spacing-xs);
+    --scrollbar-track: var(--color-canvas);
+    --scrollbar-thumb: var(--color-border);
+    --scrollbar-thumb-hover: var(--color-action);
+
+    /* Data display roles. */
+    --status-color: var(--color-text);
+    --status-marker-background: currentColor;
+    --status-marker-size: var(--spacing-xs);
+    --selection-indicator-width: 2px;
+    --list-row-padding-block: var(--spacing-sm);
+    --list-row-padding-inline: var(--spacing-sm);
+    --table-cell-padding-block: var(--spacing-sm);
+    --table-cell-padding-inline: var(--spacing-sm);
+    --table-min-width: var(--container-sm);
+    --table-wide-min-width: var(--container-lg);
+
+    /* Application shell roles. */
+    --shell-sidebar-width: 12rem;
+    --shell-header-size: 3.25rem;
+    --shell-navigation-item-size: 2.75rem;
+    --shell-navigation-gap: var(--spacing-xxs);
+    --shell-navigation-padding: var(--spacing-xs);
+    --shell-chrome-background: var(--color-surface);
+    --shell-navigation-active-background: var(--color-selected-surface);
+    --shell-navigation-active-text: var(--color-text);
+
+    /* Application shell geometry. */
+    --application-shell-chrome-size: 3.25rem;
+    --application-shell-primary-item-min: 8rem;
+    --application-shell-workspace-item-min: 10rem;
+
+    /* Page composition roles. */
+    --page-padding-inline: var(--spacing-xl);
+    --page-padding-block: var(--spacing-xl);
+    --page-title-size: var(--font-size-xxl);
+    --page-header-title: var(--color-text);
+    --page-header-border-width: 1px;
+    --section-gap: var(--spacing-md);
+    --panel-padding: var(--spacing-md);
+    --panel-border-width: 1px;
+    --panel-border: var(--color-border-subtle);
+    --panel-background: var(--color-surface);
+    --panel-title: var(--color-action);
+
+    /* Control roles: PHOENIX presentation defaults. */
+    --control-block-size: 2.75rem;
+    --control-padding-inline: var(--spacing-sm);
+    --control-gap: var(--spacing-xs);
+    --control-border-width: 1px;
+
+    --button-primary-background: var(--color-surface-strong);
+    --button-primary-border: var(--color-action);
+    --button-primary-text: var(--color-action);
+    --button-secondary-background: var(--color-surface);
+    --button-secondary-border: var(--color-border-subtle);
+    --button-secondary-text: var(--color-text);
+    --button-quiet-background: transparent;
+    --button-quiet-border: transparent;
+    --button-quiet-text: var(--color-text-muted);
+    --button-danger-background: rgb(68 20 20 / 94%);
+    --button-danger-border: var(--color-danger);
+    --button-danger-text: var(--color-text);
+
+    --field-background: rgb(8 8 12 / 82%);
+    --field-border: var(--color-border);
+    --field-text: var(--color-text);
+    --field-placeholder: var(--color-text-muted);
+
+    --command-background: var(--color-surface);
+    --command-border: var(--color-border-subtle);
+    --command-text: var(--color-text);
+    --command-meta: var(--color-action);
+    --command-selected-background: rgb(94 234 255 / 16%);
+    --command-selected-border: var(--color-information);
+    --command-selected-text: var(--color-text);
+    --command-unavailable-background: rgb(10 7 12 / 82%);
+    --command-unavailable-text: var(--color-text-muted);
+    --command-danger-background: rgb(68 20 20 / 94%);
+    --command-danger-border: var(--color-danger);
+
+    /* Shared responsive scale. CSS queries repeat these values as literals because
+       custom properties cannot be evaluated in media or container conditions. */
+    --breakpoint-xxs: 20rem;
+    --breakpoint-xs: 30rem;
+    --breakpoint-sm: 42rem;
+    --breakpoint-md: 48rem;
+    --breakpoint-lg: 60rem;
+    --breakpoint-xl: 70rem;
+    --breakpoint-xxl: 90rem;
+
+    --container-xxs: 20rem;
+    --container-xs: 30rem;
+    --container-sm: 42rem;
+    --container-md: 48rem;
+    --container-lg: 60rem;
+    --container-xl: 70rem;
+    --container-xxl: 90rem;
+  }
+
+  [data-presentation='elite'] {
+    --control-block-size: 3rem;
+    --control-padding-inline: var(--spacing-md);
+    --control-border-width: 2px;
+    --page-header-border-width: 2px;
+    --page-header-title: var(--color-action);
+    --panel-border: var(--color-border);
+    --shell-header-size: 3.5rem;
+    --shell-navigation-item-size: 3rem;
+    --shell-navigation-active-background: var(--color-action);
+    --shell-navigation-active-text: var(--color-canvas);
+
+    --button-primary-background: var(--color-action);
+    --button-primary-border: var(--color-action);
+    --button-primary-text: var(--color-canvas);
+    --button-secondary-background: var(--color-surface-strong);
+    --button-secondary-border: var(--color-action);
+    --button-secondary-text: var(--color-action);
+    --button-quiet-text: var(--color-text);
+    --button-danger-background: #b70d2c;
+
+    --command-background: var(--color-action);
+    --command-border: var(--color-canvas);
+    --command-text: var(--color-canvas);
+    --command-meta: var(--color-information);
+    --command-selected-background: #11b4c9;
+    --command-selected-border: var(--color-canvas);
+    --command-selected-text: var(--color-canvas);
+    --command-unavailable-background: rgb(16 9 16 / 96%);
+    --command-unavailable-text: var(--color-text-muted);
+    --command-danger-background: #b70d2c;
+    --command-danger-border: var(--color-canvas);
+  }
+}

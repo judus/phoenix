@@ -1,0 +1,84 @@
+@layer stories {
+  .page-story__form {
+    display: grid;
+    gap: var(--spacing-md);
+  }
+
+  .page-story__form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--spacing-xs);
+  }
+
+  .metric {
+    display: grid;
+    gap: var(--spacing-xs);
+  }
+
+  .metric__value {
+    color: var(--color-text);
+    font-size: var(--font-size-xl);
+    line-height: var(--line-height-tight);
+  }
+
+  .metric__detail {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+  }
+
+  .route-summary {
+    display: grid;
+    gap: var(--spacing-sm);
+    margin: 0;
+  }
+
+  .route-summary__row {
+    display: grid;
+    grid-template-columns: minmax(8rem, 0.4fr) minmax(0, 1fr);
+    gap: var(--spacing-md);
+    padding-block: var(--spacing-xs);
+    border-block-end: 1px solid var(--color-border-subtle);
+  }
+
+  .route-summary__row:last-child { border-block-end: 0; }
+  .route-summary dt { color: var(--color-text-muted); }
+  .route-summary dd { margin: 0; }
+
+  .boundary-example {
+    min-block-size: 10rem;
+  }
+
+  .boundary-example__open {
+    display: grid;
+    align-content: start;
+    gap: var(--spacing-sm);
+    padding-block: var(--spacing-md);
+  }
+
+  .boundary-example h3,
+  .boundary-example p { margin: 0; }
+
+  .boundary-example h3 {
+    color: var(--color-action);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+  }
+
+  .boundary-example p { color: var(--color-text-muted); }
+
+  @container page-frame (width < 30rem) {
+    .page-story__form-actions {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+
+    .page-story__form-actions .button { inline-size: 100%; }
+
+    .route-summary__row {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-xxs);
+    }
+  }
+}

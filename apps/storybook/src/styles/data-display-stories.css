@@ -1,0 +1,29 @@
+@layer stories {
+  .data-story__identifier {
+    display: grid;
+    place-items: center;
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    border: 1px solid var(--color-border-subtle);
+    color: var(--color-action);
+    background: var(--color-surface);
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+  }
+
+  .data-story__name {
+    display: grid;
+    gap: var(--spacing-xxs);
+  }
+
+  .data-story__secondary {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+  }
+
+  .data-story__note {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+  }
+}

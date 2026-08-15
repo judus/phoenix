@@ -1,0 +1,182 @@
+@layer components {
+  .page-frame {
+    container: page-frame / inline-size;
+    inline-size: 100%;
+    min-inline-size: 0;
+    padding: var(--page-padding-block) var(--page-padding-inline);
+  }
+
+  .page-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: var(--spacing-lg);
+    padding-block-end: var(--spacing-md);
+    border-block-end: var(--page-header-border-width) solid var(--color-border);
+  }
+
+  .page-header__content,
+  .section__heading,
+  .panel__heading {
+    display: grid;
+    gap: var(--spacing-xxs);
+    min-inline-size: 0;
+  }
+
+  .page-header__context {
+    color: var(--color-information);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .page-header__title,
+  .section__title,
+  .panel__title {
+    margin: 0;
+    font-weight: var(--font-weight-normal);
+  }
+
+  .page-header__title {
+    color: var(--page-header-title);
+    font-size: var(--page-title-size);
+    line-height: var(--line-height-tight);
+  }
+
+  .page-header__description,
+  .page-header__metadata,
+  .section__description,
+  .panel__description {
+    color: var(--color-text-muted);
+  }
+
+  .page-header__description { max-inline-size: 68ch; }
+  .page-header__metadata { font-size: var(--font-size-xs); }
+
+  .page-header__actions,
+  .section__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--spacing-xs);
+  }
+
+  .page-header[data-variant='compact'] {
+    --page-title-size: var(--font-size-xl);
+    gap: var(--spacing-sm);
+    padding-block-end: var(--spacing-sm);
+  }
+
+  .page-header[data-variant='entity'] .page-header__title {
+    color: var(--color-text);
+  }
+
+  .section {
+    display: grid;
+    gap: var(--section-gap);
+    min-inline-size: 0;
+  }
+
+  .section[data-divider='true'] {
+    padding-block-start: var(--spacing-xl);
+    border-block-start: 1px solid var(--color-border-subtle);
+  }
+
+  .section__header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: var(--spacing-md);
+  }
+
+  .section__title {
+    color: var(--color-action);
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-compact);
+  }
+
+  .section__description,
+  .panel__description { font-size: var(--font-size-sm); }
+
+  .section__content { min-inline-size: 0; }
+
+  .panel {
+    display: grid;
+    align-content: start;
+    gap: var(--spacing-md);
+    min-inline-size: 0;
+    padding: var(--panel-padding);
+    border: var(--panel-border-width) solid var(--panel-border);
+    color: var(--color-text);
+    background: var(--panel-background);
+  }
+
+  .panel__header {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+  }
+
+  .panel__title {
+    color: var(--panel-title);
+    font-size: var(--font-size-sm);
+    letter-spacing: 0.04em;
+    line-height: var(--line-height-compact);
+    text-transform: uppercase;
+  }
+
+  .panel__content { min-inline-size: 0; }
+
+  .panel[data-variant='quiet'] {
+    --panel-background: var(--color-surface-subtle);
+    --panel-border: var(--color-border-subtle);
+  }
+
+  .panel[data-variant='danger'] {
+    --panel-background: var(--color-danger-surface);
+    --panel-border: var(--color-danger);
+    --panel-title: var(--color-danger);
+  }
+
+  [data-presentation='elite'] .page-header__title,
+  [data-presentation='elite'] .section__title {
+    text-transform: uppercase;
+  }
+
+  [data-presentation='elite'] .panel {
+    border-inline-start-width: var(--spacing-xxs);
+  }
+
+  @container page-frame (width < 42rem) {
+    .page-header,
+    .section__header {
+      grid-template-columns: minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .page-header__actions,
+    .section__actions {
+      justify-content: flex-start;
+    }
+  }
+
+  @container page-frame (width < 30rem) {
+    .page-frame {
+      --page-padding-inline: var(--spacing-md);
+      --page-padding-block: var(--spacing-lg);
+    }
+
+    .page-header__actions,
+    .section__actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+      inline-size: 100%;
+    }
+
+    .page-header__actions .button,
+    .section__actions .button { inline-size: 100%; }
+  }
+}

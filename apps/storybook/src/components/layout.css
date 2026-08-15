@@ -1,0 +1,26 @@
+@layer components {
+  .stack {
+    display: flex;
+    flex-direction: column;
+    align-items: var(--stack-align);
+    gap: var(--layout-gap);
+    min-inline-size: 0;
+  }
+
+  .inline {
+    display: flex;
+    align-items: var(--inline-align);
+    justify-content: var(--inline-justify);
+    gap: var(--layout-gap);
+    min-inline-size: 0;
+  }
+
+  .inline[data-wrap='true'] { flex-wrap: wrap; }
+
+  .auto-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--grid-minimum)), 1fr));
+    gap: var(--layout-gap);
+    min-inline-size: 0;
+  }
+}
