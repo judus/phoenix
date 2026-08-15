@@ -21,7 +21,8 @@ describe('Galaxy query catalogue', () => {
       'nearby-systems',
       'shipyards',
       'facilities',
-      'commodity-markets'
+      'commodity-markets',
+      'outfitting-stock'
     ])
   })
 })

@@ -40,6 +40,33 @@ export const GalaxyShipyardsResponseSchema = z.object({
   shipyards: z.array(GalaxyShipyardSchema)
 })
 
+export const GalaxyOutfittingMatchSchema = z.object({
+  category: nullableString,
+  distanceLy: z.number().finite().nonnegative(),
+  distanceToArrivalLs: nullableNumber,
+  marketId: z.number().int().nonnegative().nullable(),
+  maxLandingPadSize: z.number().int().min(1).max(3).nullable(),
+  moduleClass: z.number().int().min(0).max(8).nullable(),
+  moduleName: z.string().min(1),
+  moduleRating: nullableString,
+  moduleSymbol: nullableString,
+  price: nullableNumber,
+  ship: nullableString,
+  stationName: z.string().min(1),
+  stationType: nullableString,
+  systemName: z.string().min(1),
+  updatedAt: z.string().datetime().nullable()
+})
+
+export const GalaxyOutfittingResponseSchema = z.object({
+  cache: GalaxyCacheStateSchema,
+  matches: z.array(GalaxyOutfittingMatchSchema),
+  moduleClass: z.number().int().min(0).max(8).nullable(),
+  moduleName: z.string().min(1),
+  moduleRating: nullableString,
+  originSystem: z.string().min(1)
+})
+
 export const GalaxyNearbyStationSchema = z.object({
   allegiance: nullableString,
   controllingFaction: nullableString,
@@ -93,6 +120,8 @@ export type GalaxyCommodityMarket = z.infer<typeof GalaxyCommodityMarketSchema>
 export type GalaxyCommodityMarketsResponse = z.infer<typeof GalaxyCommodityMarketsResponseSchema>
 export type GalaxyNearbySystem = z.infer<typeof GalaxyNearbySystemSchema>
 export type GalaxyNearbySystemsResponse = z.infer<typeof GalaxyNearbySystemsResponseSchema>
+export type GalaxyOutfittingMatch = z.infer<typeof GalaxyOutfittingMatchSchema>
+export type GalaxyOutfittingResponse = z.infer<typeof GalaxyOutfittingResponseSchema>
 export type GalaxyShipyard = z.infer<typeof GalaxyShipyardSchema>
 export type GalaxyShipyardsResponse = z.infer<typeof GalaxyShipyardsResponseSchema>
 export type GalaxyNearbyStation = z.infer<typeof GalaxyNearbyStationSchema>

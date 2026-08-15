@@ -2,7 +2,7 @@ import { expect, test } from 'vitest'
 import { PHOENIX_API_VERSION, type CartographicSystem } from '@phoenix/contracts'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
-import type { ShipyardSearchSource, StationSearchSource } from '../apps/server/src/domain/station-market.js'
+import type { OutfittingSearchSource, ShipyardSearchSource, StationSearchSource } from '../apps/server/src/domain/station-market.js'
 
 test('the frontend API client communicates with the PHOENIX backend', async () => {
   const stationSearchSource: StationSearchSource = {
@@ -33,6 +33,15 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       systemName: 'Nearby', updatedAt: '2026-08-13T08:00:00.000Z'
     }]
   }
+  const outfittingSearchSource: OutfittingSearchSource = {
+    findOutfitting: async request => [{
+      category: 'standard', distanceLy: 4.2, distanceToArrivalLs: 300, marketId: 42,
+      maxLandingPadSize: 3, moduleClass: request.moduleClass, moduleName: request.moduleName,
+      moduleRating: request.moduleRating, moduleSymbol: 'int_powerplant_size6_class5', price: 16257880,
+      ship: null, stationName: 'Test Exchange', stationType: 'Orbis', systemName: 'Nearby',
+      updatedAt: '2026-08-15T08:00:00.000Z'
+    }]
+  }
   const application = new PhoenixApplication({
     databasePath: ':memory:',
     eliteDirectory: null,
@@ -40,6 +49,7 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
     port: 0,
     stationSearchSource,
     shipyardSearchSource,
+    outfittingSearchSource,
     cartographySource: { fetchSystem: async () => fixtureSystem() }
   })
   const address = await application.start()
@@ -59,6 +69,8 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       .resolves.toMatchObject({ maxDistanceLy: 25, systems: [{ systemName: 'Alpha Centauri' }] })
     await expect(client.findGalaxyShipyards({ hullName: 'Type-11 Prospector', systemName: 'Sol' }))
       .resolves.toMatchObject({ hullName: 'Type-11 Prospector', shipyards: [{ stationName: 'Test Exchange' }] })
+    await expect(client.findGalaxyOutfitting({ maxDaysAgo: 30, maxDistance: 100, minimumPadSize: 'large', module: '6A Power Plant', systemName: 'Sol' }))
+      .resolves.toMatchObject({ moduleClass: 6, moduleName: 'Power Plant', moduleRating: 'A', matches: [{ stationName: 'Test Exchange' }] })
   } finally {
     await application.stop()
   }

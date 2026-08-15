@@ -8,6 +8,7 @@ import type {
   NearbySystem,
   NearbyStation,
   NearestStationRequest,
+  OutfittingSearchSource,
   ProviderCacheEntry,
   ProviderResponseCache,
   ShipyardSearchSource,
@@ -19,6 +20,7 @@ import { EdsmStationStockSource } from '../apps/server/src/infrastructure/edsm-s
 import { InMemoryRuntimeStateStore } from '../apps/server/src/infrastructure/in-memory-runtime-state-store.js'
 import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
 import { SpanshShipyardSearchSource } from '../apps/server/src/infrastructure/spansh-shipyard-search-source.js'
+import { SpanshOutfittingSearchSource } from '../apps/server/src/infrastructure/spansh-outfitting-search-source.js'
 
 test('Ardent source maps current station and commodity response contracts', async () => {
   const fetcher = vi.fn(async (input: string | URL | Request) => {
@@ -94,6 +96,46 @@ test('Spansh source searches and normalizes stations selling a requested hull', 
   })
 })
 
+test('Spansh source searches and normalizes stations stocking a requested module', async () => {
+  const fetcher = vi.fn(async () => response({
+    results: [{
+      distance: 4.2,
+      distance_to_arrival: 321.5,
+      has_large_pad: true,
+      market_id: 42,
+      modules: [{ category: 'standard', class: 6, ed_symbol: 'int_powerplant_size6_class5', name: 'Power Plant', price: 16257880, rating: 'A' }],
+      name: 'Test Exchange',
+      outfitting_updated_at: '2026-08-15 17:20:23+00',
+      system_name: 'Nearby',
+      type: 'Orbis Starport'
+    }]
+  }))
+  const source = new SpanshOutfittingSearchSource({ fetch: fetcher as typeof fetch })
+
+  await expect(source.findOutfitting({
+    maxDistanceLy: 100,
+    minimumPadSize: 3,
+    moduleClass: 6,
+    moduleName: 'Power Plant',
+    moduleRating: 'A',
+    referencePosition: [1, 2, 3]
+  })).resolves.toEqual([{
+    category: 'standard', distanceLy: 4.2, distanceToArrivalLs: 321.5, marketId: 42,
+    maxLandingPadSize: 3, moduleClass: 6, moduleName: 'Power Plant', moduleRating: 'A',
+    moduleSymbol: 'int_powerplant_size6_class5', price: 16257880, ship: null,
+    stationName: 'Test Exchange', stationType: 'Orbis Starport', systemName: 'Nearby',
+    updatedAt: '2026-08-15T17:20:23.000Z'
+  }])
+  expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toMatchObject({
+    filters: {
+      distance: { max: '100', min: 0 },
+      has_large_pad: { value: true },
+      modules: { class: ['6'], name: ['Power Plant'], rating: ['A'] }
+    },
+    reference_coords: { x: 1, y: 2, z: 3 }
+  })
+})
+
 test('station and market query resolves current location, formats trade direction, and caches providers', async () => {
   const runtime = new InMemoryRuntimeStateStore()
   const state = createEmptyRuntimeState()
@@ -124,7 +166,16 @@ test('station and market query resolves current location, formats trade directio
       systemName: 'Nearby', updatedAt: '2026-08-15T17:20:23.000Z'
     }])
   }
-  const service = new DefaultStationMarketQuery(search, stock, shipyards, cartography(), runtime, new MemoryProviderCache(), () => new Date('2026-08-11T12:00:00Z'))
+  const outfittingMarkets: OutfittingSearchSource = {
+    findOutfitting: vi.fn(async () => [{
+      category: 'standard', distanceLy: 4.2, distanceToArrivalLs: 321.5, marketId: 42,
+      maxLandingPadSize: 3, moduleClass: 6, moduleName: 'Power Plant', moduleRating: 'A',
+      moduleSymbol: 'int_powerplant_size6_class5', price: 16257880, ship: null,
+      stationName: 'Test Exchange', stationType: 'Orbis', systemName: 'Nearby',
+      updatedAt: '2026-08-11T10:00:00.000Z'
+    }])
+  }
+  const service = new DefaultStationMarketQuery(search, stock, shipyards, outfittingMarkets, cartography(), runtime, new MemoryProviderCache(), () => new Date('2026-08-11T12:00:00Z'))
 
   const firstTrade = await service.findBestTrade({ commodity: 'Gold', intent: 'buy' })
   await service.findBestTrade({ commodity: 'Gold', intent: 'buy' })
@@ -136,6 +187,8 @@ test('station and market query resolves current location, formats trade directio
   const galaxyStations = await service.searchNearestStations({ minimumPadSize: 2, service: 'repair', systemName: 'Sol' }, 20, 'medium')
   const galaxySystems = await service.searchNearbySystems({ maxDistance: 25, systemName: 'Sol' })
   const galaxyShipyards = await service.searchShipyards('Type-11 Prospector', 'Sol')
+  const galaxyOutfitting = await service.searchOutfittingMarkets({ maxDaysAgo: 30, maxDistanceLy: 100, minimumPadSize: 3, query: '6A Power Plant', systemName: 'Sol' })
+  const toolOutfitting = await service.findOutfitting({ query: '6A Power Plant', systemName: 'Sol' })
 
   expect(search.findCommodityMarkets).toHaveBeenCalledTimes(2)
   expect(search.findNearestStations).toHaveBeenCalledTimes(2)
@@ -150,6 +203,8 @@ test('station and market query resolves current location, formats trade directio
   expect(galaxyStations).toMatchObject({ cache: 'refreshed', minimumPadSize: 'medium', service: 'repair', stations: [{ stationName: 'Galileo' }] })
   expect(galaxySystems).toMatchObject({ cache: 'refreshed', maxDistanceLy: 25, systems: [{ systemName: 'Alpha Centauri' }] })
   expect(galaxyShipyards).toMatchObject({ cache: 'refreshed', hullName: 'Type-11 Prospector', shipyards: [{ stationName: 'Test Exchange' }] })
+  expect(galaxyOutfitting).toMatchObject({ cache: 'refreshed', moduleClass: 6, moduleName: 'Power Plant', moduleRating: 'A', matches: [{ stationName: 'Test Exchange' }] })
+  expect(toolOutfitting.structuredContent).toMatchObject({ moduleClass: 6, moduleName: 'Power Plant', moduleRating: 'A', matches: [{ stationName: 'Test Exchange' }] })
 })
 
 test('provider response cache persists arbitrary normalized documents in SQLite', () => {

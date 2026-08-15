@@ -2,6 +2,7 @@ import type {
   GalaxyCommodityMarketsResponse,
   GalaxyNearbySystemsResponse,
   GalaxyNearestStationsResponse,
+  GalaxyOutfittingResponse,
   GalaxyShipyardsResponse
 } from '@phoenix/contracts'
 import type { CommodityMarketRequest, NearbySystemRequest, NearestStationRequest } from '../domain/station-market.js'
@@ -9,6 +10,13 @@ import type { CommodityMarketRequest, NearbySystemRequest, NearestStationRequest
 export interface GalaxyDataReader {
   searchCommodityMarkets(request: CommodityMarketRequest, limit?: number): Promise<GalaxyCommodityMarketsResponse>
   searchNearbySystems(request: NearbySystemRequest, limit?: number): Promise<GalaxyNearbySystemsResponse>
+  searchOutfittingMarkets(input: {
+    maxDaysAgo: number
+    maxDistanceLy: number
+    minimumPadSize: number | null
+    query: string
+    systemName: string
+  }, limit?: number): Promise<GalaxyOutfittingResponse>
   searchShipyards(hullName: string, systemName: string, limit?: number): Promise<GalaxyShipyardsResponse>
   searchNearestStations(
     request: NearestStationRequest,

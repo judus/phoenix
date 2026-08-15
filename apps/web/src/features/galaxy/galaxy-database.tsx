@@ -3,6 +3,7 @@ import type {
   GalaxyCommodityMarketsResponse,
   GalaxyNearbySystemsResponse,
   GalaxyNearestStationsResponse,
+  GalaxyOutfittingResponse,
   GalaxyShipyardsResponse
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../api/phoenix-api-client.js'
@@ -18,6 +19,7 @@ type GalaxyQueryResult =
   | { id: 'commodity-markets', value: GalaxyCommodityMarketsResponse }
   | { id: 'facilities', value: GalaxyNearestStationsResponse }
   | { id: 'nearby-systems', value: GalaxyNearbySystemsResponse }
+  | { id: 'outfitting-stock', value: GalaxyOutfittingResponse }
   | { id: 'shipyards', value: GalaxyShipyardsResponse }
 
 type ConsoleMode = 'configure' | 'results' | 'select'
@@ -162,6 +164,7 @@ function QueryResults ({ result, summary, onModify }: { result: GalaxyQueryResul
       {result.id === 'nearby-systems' && <NearbySystemResults result={result.value} />}
       {result.id === 'shipyards' && <ShipyardResults result={result.value} />}
       {result.id === 'facilities' && <NearestResults result={result.value} />}
+      {result.id === 'outfitting-stock' && <OutfittingResults result={result.value} />}
       {result.id === 'commodity-markets' && <MarketResults result={result.value} />}
     </section>
   )
@@ -213,6 +216,18 @@ function MarketResults ({ result }: { result: GalaxyCommodityMarketsResponse }) 
         <tbody>{result.markets.map(market => <tr key={`${market.systemName}:${market.stationName}:${market.marketId ?? ''}`}><td>{market.stationName}<small>{market.stationType ?? 'Market'}</small></td><td><a href={systemHref(market.systemName)}>{market.systemName}</a></td><td>{credits(price(market))}</td><td>{number(volume(market))}</td><td>{distance(market.distanceLy, 'ly')}</td><td>{reportedAge(market.updatedAt)}</td></tr>)}</tbody>
       </table>
       {result.markets.length === 0 && <p>No matching commodity markets were reported.</p>}
+    </section>
+  )
+}
+
+function OutfittingResults ({ result }: { result: GalaxyOutfittingResponse }) {
+  return (
+    <section className="galaxy-results">
+      <header><div><span>Outfitting stock</span><h2>{moduleLabel(result)}</h2></div><small>{result.cache} cache · {result.matches.length} matches</small></header>
+      <table><thead><tr><th>Station</th><th>System</th><th>Module</th><th>Price</th><th>Distance</th><th>Arrival</th><th>Pad</th><th>Reported</th></tr></thead>
+        <tbody>{result.matches.map(match => <tr key={`${match.systemName}:${match.stationName}:${match.moduleSymbol ?? moduleLabel(match)}`}><td>{match.stationName}<small>{match.stationType ?? 'Outfitting'}</small></td><td><a href={systemHref(match.systemName)}>{match.systemName}</a></td><td>{moduleLabel(match)}{match.ship && <small>{match.ship}</small>}</td><td>{credits(match.price)}</td><td>{distance(match.distanceLy, 'ly')}</td><td>{distance(match.distanceToArrivalLs, 'ls')}</td><td>{padLabel(match.maxLandingPadSize)}</td><td>{reportedAge(match.updatedAt)}</td></tr>)}</tbody>
+      </table>
+      {result.matches.length === 0 && <p>No sufficiently recent stock reports matched this module.</p>}
     </section>
   )
 }
@@ -279,6 +294,17 @@ async function executeGalaxyQuery (api: PhoenixApi, id: GalaxyQueryId, values: R
           systemName: values.origin
         })
       }
+    case 'outfitting-stock':
+      return {
+        id,
+        value: await api.findGalaxyOutfitting({
+          maxDaysAgo: numeric(values.maxDaysAgo),
+          maxDistance: numeric(values.maxDistance),
+          minimumPadSize: values.pad as 'large' | 'medium' | 'small',
+          module: values.module,
+          systemName: values.origin
+        })
+      }
     default:
       throw new Error(`${galaxyQueryDefinition(id).title} is not connected to a backend adapter.`)
   }
@@ -289,6 +315,7 @@ function querySummary (id: GalaxyQueryResult['id'], values: Record<string, strin
   if (id === 'shipyards') return `Shipyards · ${values.hull} · from ${origin}`
   if (id === 'facilities') return `${labelService(values.service)} · minimum ${values.pad} pad · from ${origin}`
   if (id === 'commodity-markets') return `${values.intent} ${values.commodity} · from ${origin}`
+  if (id === 'outfitting-stock') return `${values.module} · minimum ${values.pad} pad · from ${origin}`
   return `Systems within ${values.radius} ly · from ${origin}`
 }
 
@@ -302,4 +329,5 @@ function coordinates (value: [number, number, number]): string { return value.ma
 function padLabel (value: number | null): string { return value === 3 ? 'Large' : value === 2 ? 'Medium' : value === 1 ? 'Small' : '—' }
 function labelService (value: string): string { return value.replaceAll('-', ' ') }
 function reportedAge (value: string | null): string { return value ? new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : 'Unknown' }
+function moduleLabel (value: { moduleClass: number | null, moduleName: string, moduleRating: string | null }): string { return `${value.moduleClass ?? ''}${value.moduleRating ?? ''}${value.moduleClass !== null || value.moduleRating !== null ? ' ' : ''}${value.moduleName}` }
 function errorMessage (cause: unknown): string { return cause instanceof Error ? cause.message : 'Galaxy search failed.' }

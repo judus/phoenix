@@ -119,7 +119,7 @@ export const GALAXY_QUERY_CATALOGUE: GalaxyQueryDefinition[] = [
     id: 'outfitting-stock',
     priority: 1,
     purpose: 'Locate stations reporting a named module in stock.',
-    status: 'planned',
+    status: 'available',
     title: 'Outfitting stock'
   },
   {

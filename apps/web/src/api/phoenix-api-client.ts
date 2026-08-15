@@ -33,6 +33,7 @@ import {
   GalaxyCommodityMarketsResponseSchema,
   GalaxyNearbySystemsResponseSchema,
   GalaxyNearestStationsResponseSchema,
+  GalaxyOutfittingResponseSchema,
   GalaxyShipyardsResponseSchema,
   GalnetNewsResponseSchema,
   MacroDefinitionSchema,
@@ -87,6 +88,7 @@ import {
   type GalaxyCommodityMarketsResponse,
   type GalaxyNearbySystemsResponse,
   type GalaxyNearestStationsResponse,
+  type GalaxyOutfittingResponse,
   type GalaxyShipyardsResponse,
   type GalnetNewsResponse,
   type MacroDefinition,
@@ -149,6 +151,7 @@ export interface PhoenixApi {
   findGalaxyCommodityMarkets(input: GalaxyCommodityMarketSearch): Promise<GalaxyCommodityMarketsResponse>
   findGalaxyNearbySystems(input: GalaxyNearbySystemSearch): Promise<GalaxyNearbySystemsResponse>
   findGalaxyNearestStations(input: GalaxyNearestStationSearch): Promise<GalaxyNearestStationsResponse>
+  findGalaxyOutfitting(input: GalaxyOutfittingSearch): Promise<GalaxyOutfittingResponse>
   findGalaxyShipyards(input: GalaxyShipyardSearch): Promise<GalaxyShipyardsResponse>
   setExplorationBiologicalCompletion(input: ExplorationManualCompletionRequest): Promise<ExplorationManualCompletionResponse>
   getRuntimeState(): Promise<RuntimeState>
@@ -209,6 +212,15 @@ export interface GalaxyNearestStationSearch {
 export interface GalaxyNearbySystemSearch {
   limit?: number
   maxDistance?: number
+  systemName: string
+}
+
+export interface GalaxyOutfittingSearch {
+  limit?: number
+  maxDaysAgo?: number
+  maxDistance?: number
+  minimumPadSize?: 'small' | 'medium' | 'large'
+  module: string
   systemName: string
 }
 
@@ -857,6 +869,19 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return GalaxyShipyardsResponseSchema.parse(await response.json())
+  }
+
+  public async findGalaxyOutfitting (input: GalaxyOutfittingSearch): Promise<GalaxyOutfittingResponse> {
+    const query = new URLSearchParams({ module: input.module, system: input.systemName })
+    if (input.limit !== undefined) query.set('limit', String(input.limit))
+    if (input.maxDaysAgo !== undefined) query.set('maxDaysAgo', String(input.maxDaysAgo))
+    if (input.maxDistance !== undefined) query.set('maxDistance', String(input.maxDistance))
+    if (input.minimumPadSize) query.set('pad', input.minimumPadSize)
+    const response = await this.request(`${this.baseUrl}/api/galaxy/outfitting?${query.toString()}`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return GalaxyOutfittingResponseSchema.parse(await response.json())
   }
 
   public async findGalaxyCommodityMarkets (input: GalaxyCommodityMarketSearch): Promise<GalaxyCommodityMarketsResponse> {

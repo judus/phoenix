@@ -343,6 +343,19 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/outfitting') {
+      const minimumPadSize = optionalPadSize(url.searchParams.get('pad'))
+      const padSizes = { small: 1, medium: 2, large: 3 } as const
+      this.writeJson(response, 200, await this.options.galaxyData.searchOutfittingMarkets({
+        maxDaysAgo: boundedQueryInteger(url, 'maxDaysAgo', 30, 1, 365),
+        maxDistanceLy: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
+        minimumPadSize: minimumPadSize ? padSizes[minimumPadSize] : null,
+        query: requiredQuery(url, 'module'),
+        systemName: requiredQuery(url, 'system')
+      }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
+      return
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/galaxy/markets') {
       const intent = url.searchParams.get('intent')
       if (intent !== 'buy' && intent !== 'sell') throw new Error('intent must be buy or sell.')

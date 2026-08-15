@@ -62,6 +62,33 @@ export interface ShipyardSearchRequest {
   referencePosition: [number, number, number]
 }
 
+export interface OutfittingModuleSpec {
+  moduleClass: number | null
+  moduleName: string
+  moduleRating: string | null
+}
+
+export interface OutfittingSearchResult extends OutfittingModuleSpec {
+  category: string | null
+  distanceLy: number
+  distanceToArrivalLs: number | null
+  marketId: number | null
+  maxLandingPadSize: number | null
+  moduleSymbol: string | null
+  price: number | null
+  ship: string | null
+  stationName: string
+  stationType: string | null
+  systemName: string
+  updatedAt: string | null
+}
+
+export interface OutfittingSearchRequest extends OutfittingModuleSpec {
+  maxDistanceLy: number
+  minimumPadSize: number | null
+  referencePosition: [number, number, number]
+}
+
 export interface NearestStationRequest {
   minimumPadSize: number | null
   service: string
@@ -96,6 +123,10 @@ export interface StationStockSource {
 
 export interface ShipyardSearchSource {
   findShipyards(request: ShipyardSearchRequest): Promise<ShipyardSearchResult[]>
+}
+
+export interface OutfittingSearchSource {
+  findOutfitting(request: OutfittingSearchRequest): Promise<OutfittingSearchResult[]>
 }
 
 export interface ProviderCacheEntry {

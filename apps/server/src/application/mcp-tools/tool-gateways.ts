@@ -27,6 +27,7 @@ export interface NavigationQuery {
 
 export interface StationQuery {
   findNearest(arguments_: JsonObject): DeferredToolResult
+  findOutfitting(arguments_: JsonObject): DeferredToolResult
   findShipyards(arguments_: JsonObject): DeferredToolResult
   getDetails(arguments_: JsonObject): DeferredToolResult
   listShipyardStock(arguments_: JsonObject): DeferredToolResult

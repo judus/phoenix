@@ -27,6 +27,7 @@ import { StationsListShipyardStockTool } from './mcp-tools/stations-list-shipyar
 import { StationsSearchOutfittingTool } from './mcp-tools/stations-search-outfitting-tool.js'
 import { ExplorationGetCurrentBodyTool } from './mcp-tools/exploration-get-current-body-tool.js'
 import { OperationsListMissionsTool } from './mcp-tools/operations-list-missions-tool.js'
+import { OutfittingFindModuleTool } from './mcp-tools/outfitting-find-module-tool.js'
 import { CommsListMessagesTool } from './mcp-tools/comms-list-messages-tool.js'
 import { FleetListShipsTool } from './mcp-tools/fleet-list-ships-tool.js'
 import { FleetListStoredModulesTool } from './mcp-tools/fleet-list-stored-modules-tool.js'
@@ -76,6 +77,7 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new NavigationCanJumpToTool(dependencies.navigation),
     new NavigationGetRouteTool(dependencies.navigation),
     new OperationsListMissionsTool(dependencies.missions),
+    new OutfittingFindModuleTool(dependencies.stations),
     new MarketsFindBestTradeTool(dependencies.markets),
     new ShipGetCargoTool(dependencies.runtimeState),
     new ShipGetStatusTool(dependencies.runtimeState),

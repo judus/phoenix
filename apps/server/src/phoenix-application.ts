@@ -53,7 +53,7 @@ import type { CopilotText } from './application/copilot-text-service.js'
 import type { CopilotRealtime } from './application/copilot-realtime-service.js'
 import type { GameActionBindingResolver, InputBackend } from './domain/game-actions.js'
 import type { CartographySource } from './domain/cartography.js'
-import type { ShipyardSearchSource, StationSearchSource, StationStockSource } from './domain/station-market.js'
+import type { OutfittingSearchSource, ShipyardSearchSource, StationSearchSource, StationStockSource } from './domain/station-market.js'
 import type { GalnetSource } from './domain/galnet.js'
 import type { ControlGridLayoutRepository, SystemSettingsRepository } from './domain/system-configuration.js'
 import type { MacroRepository } from './domain/macros.js'
@@ -81,6 +81,7 @@ import { PhoenixMcpServer } from './infrastructure/phoenix-mcp-server.js'
 import { ArdentStationSearchSource } from './infrastructure/ardent-station-search-source.js'
 import { EdsmStationStockSource } from './infrastructure/edsm-station-stock-source.js'
 import { SpanshShipyardSearchSource } from './infrastructure/spansh-shipyard-search-source.js'
+import { SpanshOutfittingSearchSource } from './infrastructure/spansh-outfitting-search-source.js'
 import { CatalogueSnapshotLoader } from './infrastructure/catalogue-snapshot-loader.js'
 import { ApplicationPaths } from './infrastructure/application-paths.js'
 import { FrontierGalnetSource } from './infrastructure/frontier-galnet-source.js'
@@ -109,6 +110,7 @@ export interface PhoenixApplicationOptions {
   shipCataloguePath?: string
   stationSearchSource?: StationSearchSource
   shipyardSearchSource?: ShipyardSearchSource
+  outfittingSearchSource?: OutfittingSearchSource
   stationStockSource?: StationStockSource
   systemSettingsRepository?: SystemSettingsRepository
   webRoot?: string
@@ -307,6 +309,7 @@ export class PhoenixApplication {
       options.stationSearchSource ?? new ArdentStationSearchSource(),
       options.stationStockSource ?? new EdsmStationStockSource(),
       options.shipyardSearchSource ?? new SpanshShipyardSearchSource(),
+      options.outfittingSearchSource ?? new SpanshOutfittingSearchSource(),
       cartography,
       this.stateStore,
       this.database

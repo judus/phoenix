@@ -4,6 +4,7 @@ import type {
   GalaxyCommodityMarketsResponse,
   GalaxyNearbySystemsResponse,
   GalaxyNearestStationsResponse,
+  GalaxyOutfittingResponse,
   GalaxyShipyardsResponse
 } from '@phoenix/contracts'
 import type { SystemCartography } from '../domain/cartography.js'
@@ -15,6 +16,8 @@ import type {
   NearbySystemRequest,
   NearbyStation,
   NearestStationRequest,
+  OutfittingSearchResult,
+  OutfittingSearchSource,
   ProviderResponseCache,
   StationSearchSource,
   ShipyardSearchResult,
@@ -38,6 +41,7 @@ const NEARBY_SYSTEM_CACHE_MS = 30 * 60 * 1000
 const NEAREST_CACHE_MS = 30 * 60 * 1000
 const STOCK_CACHE_MS = 6 * 60 * 60 * 1000
 const SHIPYARD_SEARCH_CACHE_MS = 30 * 60 * 1000
+const OUTFITTING_SEARCH_CACHE_MS = 30 * 60 * 1000
 const PAD_SIZES: Record<string, number> = { small: 1, medium: 2, large: 3 }
 
 interface CachedResult<T> {
@@ -58,6 +62,7 @@ export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery
     private readonly searchSource: StationSearchSource,
     private readonly stockSource: StationStockSource,
     private readonly shipyardSearchSource: ShipyardSearchSource,
+    private readonly outfittingSearchSource: OutfittingSearchSource,
     private readonly cartography: SystemCartography,
     private readonly runtimeState: RuntimeStateReader,
     private readonly cache: ProviderResponseCache,
@@ -132,6 +137,30 @@ export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery
             `- ${shipyard.stationName} (${shipyard.systemName}) - ${formatDistance(shipyard.distanceLy, 'ly')}, ${formatDistance(shipyard.distanceToArrivalLs, 'ls')}; ${shipyard.price === null ? 'price unknown' : `${formatNumber(shipyard.price)} CR`}; ${shipyard.maxLandingPadSize ? `${padLabel(shipyard.maxLandingPadSize)} pad` : 'pad unknown'}`
           ))].join('\n')
         : `No nearby shipyards currently report selling ${hullName}.`,
+      json(result)
+    )
+  }
+
+  public async findOutfitting (arguments_: JsonObject) {
+    const query = stringArgument(arguments_, 'query')
+    const systemName = this.originSystem(optionalStringArgument(arguments_, 'systemName'))
+    const minimumPadSize = optionalStringArgument(arguments_, 'minimumPadSize')
+    if (minimumPadSize && PAD_SIZES[minimumPadSize] === undefined) {
+      throw new Error('minimumPadSize must be small, medium, or large.')
+    }
+    const result = await this.searchOutfittingMarkets({
+      maxDaysAgo: bounded(optionalIntegerArgument(arguments_, 'maxDaysAgo'), 30, 1, 365),
+      maxDistanceLy: bounded(optionalIntegerArgument(arguments_, 'maxDistance'), 100, 1, 500),
+      minimumPadSize: minimumPadSize ? PAD_SIZES[minimumPadSize]! : null,
+      query,
+      systemName
+    }, boundedLimit(optionalIntegerArgument(arguments_, 'limit'), 5, 20))
+    return output(
+      result.matches.length > 0
+        ? [`Nearest reported outfitting stock for ${formatModuleSpec(result)} from ${result.originSystem}:`, ...result.matches.map(match => (
+            `- ${formatModuleSpec(match)} at ${match.stationName} (${match.systemName}) - ${formatDistance(match.distanceLy, 'ly')}, ${formatDistance(match.distanceToArrivalLs, 'ls')}; ${match.price === null ? 'price unknown' : `${formatNumber(match.price)} CR`}; ${match.maxLandingPadSize ? `${padLabel(match.maxLandingPadSize)} pad` : 'pad unknown'}`
+          ))].join('\n')
+        : `No nearby stations currently report ${formatModuleSpec(result)} in stock.`,
       json(result)
     )
   }
@@ -216,6 +245,44 @@ export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery
       hullName,
       originSystem: origin.system.name,
       shipyards: cached.value.slice(0, boundedLimit(limit, 20, 100))
+    }
+  }
+
+  public async searchOutfittingMarkets (
+    input: {
+      maxDaysAgo: number
+      maxDistanceLy: number
+      minimumPadSize: number | null
+      query: string
+      systemName: string
+    },
+    limit = 20
+  ): Promise<GalaxyOutfittingResponse> {
+    const origin = await this.cartography.getSystem(input.systemName)
+    if (!origin.system.position) throw new Error(`Coordinates for ${input.systemName} are unavailable.`)
+    const module = parseModuleQuery(input.query)
+    const request = {
+      ...module,
+      maxDistanceLy: input.maxDistanceLy,
+      minimumPadSize: input.minimumPadSize,
+      referencePosition: origin.system.position
+    }
+    const cached = await this.cached(
+      'spansh-outfitting',
+      stableKey({ ...request, systemName: origin.system.name }),
+      OUTFITTING_SEARCH_CACHE_MS,
+      () => this.outfittingSearchSource.findOutfitting(request),
+      isOutfittingSearchResults
+    )
+    const newestAllowed = this.now().getTime() - input.maxDaysAgo * 24 * 60 * 60 * 1000
+    const matches = cached.value
+      .filter(match => match.updatedAt !== null && Date.parse(match.updatedAt) >= newestAllowed)
+      .slice(0, boundedLimit(limit, 20, 100))
+    return {
+      cache: cached.cache,
+      matches,
+      ...module,
+      originSystem: origin.system.name
     }
   }
 
@@ -483,6 +550,31 @@ function isShipyardSearchResults (candidate: unknown): candidate is ShipyardSear
     typeof item.systemName === 'string' &&
     typeof item.distanceLy === 'number'
   ))
+}
+
+function isOutfittingSearchResults (candidate: unknown): candidate is OutfittingSearchResult[] {
+  return Array.isArray(candidate) && candidate.every(item => (
+    isRecord(item) &&
+    typeof item.moduleName === 'string' &&
+    typeof item.stationName === 'string' &&
+    typeof item.systemName === 'string' &&
+    typeof item.distanceLy === 'number'
+  ))
+}
+
+function parseModuleQuery (query: string): { moduleClass: number | null, moduleName: string, moduleRating: string | null } {
+  const normalized = query.trim().replace(/\s+/g, ' ')
+  const rated = /^(\d)([A-I])\s+(.+)$/i.exec(normalized)
+  if (!rated) return { moduleClass: null, moduleName: normalized, moduleRating: null }
+  return {
+    moduleClass: Number(rated[1]),
+    moduleName: rated[3]!,
+    moduleRating: rated[2]!.toUpperCase()
+  }
+}
+
+function formatModuleSpec (module: { moduleClass: number | null, moduleName: string, moduleRating: string | null }): string {
+  return `${module.moduleClass ?? ''}${module.moduleRating ?? ''}${module.moduleClass !== null || module.moduleRating !== null ? ' ' : ''}${module.moduleName}`
 }
 
 function isRecord (candidate: unknown): candidate is Record<string, unknown> {
