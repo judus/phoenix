@@ -25,6 +25,7 @@ import { StationsFindNearestTool } from './mcp-tools/stations-find-nearest-tool.
 import { StationsGetDetailsTool } from './mcp-tools/stations-get-details-tool.js'
 import { StationsListShipyardStockTool } from './mcp-tools/stations-list-shipyard-stock-tool.js'
 import { StationsSearchOutfittingTool } from './mcp-tools/stations-search-outfitting-tool.js'
+import { StationsLookupTool } from './mcp-tools/stations-lookup-tool.js'
 import { ExplorationGetCurrentBodyTool } from './mcp-tools/exploration-get-current-body-tool.js'
 import { OperationsListMissionsTool } from './mcp-tools/operations-list-missions-tool.js'
 import { OutfittingFindModuleTool } from './mcp-tools/outfitting-find-module-tool.js'
@@ -88,6 +89,7 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new StationsFindNearestTool(dependencies.stations),
     new StationsGetDetailsTool(dependencies.stations),
     new StationsListShipyardStockTool(dependencies.stations),
+    new StationsLookupTool(dependencies.stations),
     new StationsSearchOutfittingTool(dependencies.stations),
     new SystemsGetDetailsTool(dependencies.systems)
   ]

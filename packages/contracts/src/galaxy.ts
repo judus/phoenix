@@ -91,6 +91,20 @@ export const GalaxyNearestStationsResponseSchema = z.object({
   stations: z.array(GalaxyNearbyStationSchema)
 })
 
+export const GalaxyStationLookupResultSchema = GalaxyNearbyStationSchema.extend({
+  services: z.array(z.string().min(1))
+})
+
+export const GalaxyStationLookupResponseSchema = z.object({
+  cache: GalaxyCacheStateSchema,
+  matches: z.array(GalaxyStationLookupResultSchema),
+  maxDistanceLy: z.number().int().min(1).max(500),
+  minimumPadSize: z.enum(['small', 'medium', 'large']).nullable(),
+  name: z.string().min(1),
+  originSystem: z.string().min(1),
+  stationType: z.enum(['any', 'carrier', 'orbital', 'surface'])
+})
+
 export const GalaxyCommodityMarketSchema = z.object({
   buyPrice: nullableNumber,
   commodityName: z.string().min(1),
@@ -126,3 +140,5 @@ export type GalaxyShipyard = z.infer<typeof GalaxyShipyardSchema>
 export type GalaxyShipyardsResponse = z.infer<typeof GalaxyShipyardsResponseSchema>
 export type GalaxyNearbyStation = z.infer<typeof GalaxyNearbyStationSchema>
 export type GalaxyNearestStationsResponse = z.infer<typeof GalaxyNearestStationsResponseSchema>
+export type GalaxyStationLookupResult = z.infer<typeof GalaxyStationLookupResultSchema>
+export type GalaxyStationLookupResponse = z.infer<typeof GalaxyStationLookupResponseSchema>

@@ -31,6 +31,7 @@ export interface StationQuery {
   findShipyards(arguments_: JsonObject): DeferredToolResult
   getDetails(arguments_: JsonObject): DeferredToolResult
   listShipyardStock(arguments_: JsonObject): DeferredToolResult
+  lookup(arguments_: JsonObject): DeferredToolResult
   searchOutfitting(arguments_: JsonObject): DeferredToolResult
 }
 

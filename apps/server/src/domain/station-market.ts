@@ -129,6 +129,24 @@ export interface OutfittingSearchSource {
   findOutfitting(request: OutfittingSearchRequest): Promise<OutfittingSearchResult[]>
 }
 
+export type StationLocationType = 'any' | 'carrier' | 'orbital' | 'surface'
+
+export interface StationLookupRequest {
+  maxDistanceLy: number
+  minimumPadSize: number | null
+  name: string
+  referencePosition: [number, number, number]
+  stationType: StationLocationType
+}
+
+export interface StationLookupResult extends NearbyStation {
+  services: string[]
+}
+
+export interface StationLookupSource {
+  findStations(request: StationLookupRequest): Promise<StationLookupResult[]>
+}
+
 export interface ProviderCacheEntry {
   fetchedAt: string
   value: unknown

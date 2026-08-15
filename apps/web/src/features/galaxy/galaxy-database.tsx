@@ -4,6 +4,7 @@ import type {
   GalaxyNearbySystemsResponse,
   GalaxyNearestStationsResponse,
   GalaxyOutfittingResponse,
+  GalaxyStationLookupResponse,
   GalaxyShipyardsResponse
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../api/phoenix-api-client.js'
@@ -21,6 +22,7 @@ type GalaxyQueryResult =
   | { id: 'nearby-systems', value: GalaxyNearbySystemsResponse }
   | { id: 'outfitting-stock', value: GalaxyOutfittingResponse }
   | { id: 'shipyards', value: GalaxyShipyardsResponse }
+  | { id: 'station-lookup', value: GalaxyStationLookupResponse }
 
 type ConsoleMode = 'configure' | 'results' | 'select'
 
@@ -166,6 +168,7 @@ function QueryResults ({ result, summary, onModify }: { result: GalaxyQueryResul
       {result.id === 'facilities' && <NearestResults result={result.value} />}
       {result.id === 'outfitting-stock' && <OutfittingResults result={result.value} />}
       {result.id === 'commodity-markets' && <MarketResults result={result.value} />}
+      {result.id === 'station-lookup' && <StationLookupResults result={result.value} />}
     </section>
   )
 }
@@ -228,6 +231,18 @@ function OutfittingResults ({ result }: { result: GalaxyOutfittingResponse }) {
         <tbody>{result.matches.map(match => <tr key={`${match.systemName}:${match.stationName}:${match.moduleSymbol ?? moduleLabel(match)}`}><td>{match.stationName}<small>{match.stationType ?? 'Outfitting'}</small></td><td><a href={systemHref(match.systemName)}>{match.systemName}</a></td><td>{moduleLabel(match)}{match.ship && <small>{match.ship}</small>}</td><td>{credits(match.price)}</td><td>{distance(match.distanceLy, 'ly')}</td><td>{distance(match.distanceToArrivalLs, 'ls')}</td><td>{padLabel(match.maxLandingPadSize)}</td><td>{reportedAge(match.updatedAt)}</td></tr>)}</tbody>
       </table>
       {result.matches.length === 0 && <p>No sufficiently recent stock reports matched this module.</p>}
+    </section>
+  )
+}
+
+function StationLookupResults ({ result }: { result: GalaxyStationLookupResponse }) {
+  return (
+    <section className="galaxy-results">
+      <header><div><span>Station lookup</span><h2>{result.name}</h2></div><small>{result.cache} cache · {result.matches.length} matches near {result.originSystem}</small></header>
+      <table><thead><tr><th>Station</th><th>System</th><th>Distance</th><th>Arrival</th><th>Pad</th><th>Economy</th><th>Government</th><th>Services</th><th>Reported</th></tr></thead>
+        <tbody>{result.matches.map(station => <tr key={`${station.systemName}:${station.stationName}:${station.marketId ?? ''}`}><td>{station.stationName}<small>{station.stationType ?? 'Station'}</small></td><td><a href={systemHref(station.systemName)}>{station.systemName}</a></td><td>{distance(station.distanceLy, 'ly')}</td><td>{distance(station.distanceToArrivalLs, 'ls')}</td><td>{padLabel(station.maxLandingPadSize)}</td><td>{[station.primaryEconomy, station.secondaryEconomy].filter(Boolean).join(' / ') || '—'}</td><td>{station.government ?? '—'}{station.controllingFaction && <small>{station.controllingFaction}</small>}</td><td>{station.services.length > 0 ? station.services.join(', ') : '—'}</td><td>{reportedAge(station.updatedAt)}</td></tr>)}</tbody>
+      </table>
+      {result.matches.length === 0 && <p>No reported stations matched this partial name and filter set.</p>}
     </section>
   )
 }
@@ -305,6 +320,17 @@ async function executeGalaxyQuery (api: PhoenixApi, id: GalaxyQueryId, values: R
           systemName: values.origin
         })
       }
+    case 'station-lookup':
+      return {
+        id,
+        value: await api.findGalaxyStations({
+          maxDistance: numeric(values.radius),
+          minimumPadSize: values.pad as 'large' | 'medium' | 'small',
+          name: values.name,
+          stationType: values.stationType as 'any' | 'carrier' | 'orbital' | 'surface',
+          systemName: values.origin
+        })
+      }
     default:
       throw new Error(`${galaxyQueryDefinition(id).title} is not connected to a backend adapter.`)
   }
@@ -316,6 +342,7 @@ function querySummary (id: GalaxyQueryResult['id'], values: Record<string, strin
   if (id === 'facilities') return `${labelService(values.service)} · minimum ${values.pad} pad · from ${origin}`
   if (id === 'commodity-markets') return `${values.intent} ${values.commodity} · from ${origin}`
   if (id === 'outfitting-stock') return `${values.module} · minimum ${values.pad} pad · from ${origin}`
+  if (id === 'station-lookup') return `Stations matching ${values.name} · ${values.stationType} · from ${origin}`
   return `Systems within ${values.radius} ly · from ${origin}`
 }
 

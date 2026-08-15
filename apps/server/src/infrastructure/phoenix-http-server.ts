@@ -356,6 +356,23 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/stations') {
+      const minimumPadSize = optionalPadSize(url.searchParams.get('pad'))
+      const padSizes = { small: 1, medium: 2, large: 3 } as const
+      const stationType = url.searchParams.get('type') ?? 'any'
+      if (stationType !== 'any' && stationType !== 'orbital' && stationType !== 'surface' && stationType !== 'carrier') {
+        throw new Error('type must be any, orbital, surface, or carrier.')
+      }
+      this.writeJson(response, 200, await this.options.galaxyData.searchStations({
+        maxDistanceLy: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
+        minimumPadSize: minimumPadSize ? padSizes[minimumPadSize] : null,
+        name: requiredQuery(url, 'name'),
+        stationType,
+        systemName: requiredQuery(url, 'system')
+      }, boundedQueryInteger(url, 'limit', 20, 1, 100), minimumPadSize))
+      return
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/galaxy/markets') {
       const intent = url.searchParams.get('intent')
       if (intent !== 'buy' && intent !== 'sell') throw new Error('intent must be buy or sell.')

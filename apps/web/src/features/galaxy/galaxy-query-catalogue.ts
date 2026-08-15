@@ -135,7 +135,7 @@ export const GALAXY_QUERY_CATALOGUE: GalaxyQueryDefinition[] = [
     id: 'station-lookup',
     priority: 1,
     purpose: 'Locate a known or partially remembered station.',
-    status: 'planned',
+    status: 'available',
     title: 'Station lookup'
   },
   {

@@ -34,6 +34,7 @@ import {
   GalaxyNearbySystemsResponseSchema,
   GalaxyNearestStationsResponseSchema,
   GalaxyOutfittingResponseSchema,
+  GalaxyStationLookupResponseSchema,
   GalaxyShipyardsResponseSchema,
   GalnetNewsResponseSchema,
   MacroDefinitionSchema,
@@ -89,6 +90,7 @@ import {
   type GalaxyNearbySystemsResponse,
   type GalaxyNearestStationsResponse,
   type GalaxyOutfittingResponse,
+  type GalaxyStationLookupResponse,
   type GalaxyShipyardsResponse,
   type GalnetNewsResponse,
   type MacroDefinition,
@@ -152,6 +154,7 @@ export interface PhoenixApi {
   findGalaxyNearbySystems(input: GalaxyNearbySystemSearch): Promise<GalaxyNearbySystemsResponse>
   findGalaxyNearestStations(input: GalaxyNearestStationSearch): Promise<GalaxyNearestStationsResponse>
   findGalaxyOutfitting(input: GalaxyOutfittingSearch): Promise<GalaxyOutfittingResponse>
+  findGalaxyStations(input: GalaxyStationLookupSearch): Promise<GalaxyStationLookupResponse>
   findGalaxyShipyards(input: GalaxyShipyardSearch): Promise<GalaxyShipyardsResponse>
   setExplorationBiologicalCompletion(input: ExplorationManualCompletionRequest): Promise<ExplorationManualCompletionResponse>
   getRuntimeState(): Promise<RuntimeState>
@@ -227,6 +230,15 @@ export interface GalaxyOutfittingSearch {
 export interface GalaxyShipyardSearch {
   hullName: string
   limit?: number
+  systemName: string
+}
+
+export interface GalaxyStationLookupSearch {
+  limit?: number
+  maxDistance?: number
+  minimumPadSize?: 'small' | 'medium' | 'large'
+  name: string
+  stationType?: 'any' | 'carrier' | 'orbital' | 'surface'
   systemName: string
 }
 
@@ -882,6 +894,19 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return GalaxyOutfittingResponseSchema.parse(await response.json())
+  }
+
+  public async findGalaxyStations (input: GalaxyStationLookupSearch): Promise<GalaxyStationLookupResponse> {
+    const query = new URLSearchParams({ name: input.name, system: input.systemName })
+    if (input.limit !== undefined) query.set('limit', String(input.limit))
+    if (input.maxDistance !== undefined) query.set('maxDistance', String(input.maxDistance))
+    if (input.minimumPadSize) query.set('pad', input.minimumPadSize)
+    if (input.stationType) query.set('type', input.stationType)
+    const response = await this.request(`${this.baseUrl}/api/galaxy/stations?${query.toString()}`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return GalaxyStationLookupResponseSchema.parse(await response.json())
   }
 
   public async findGalaxyCommodityMarkets (input: GalaxyCommodityMarketSearch): Promise<GalaxyCommodityMarketsResponse> {

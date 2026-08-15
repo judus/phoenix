@@ -2,7 +2,7 @@ import { expect, test } from 'vitest'
 import { PHOENIX_API_VERSION, type CartographicSystem } from '@phoenix/contracts'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
-import type { OutfittingSearchSource, ShipyardSearchSource, StationSearchSource } from '../apps/server/src/domain/station-market.js'
+import type { OutfittingSearchSource, ShipyardSearchSource, StationLookupSource, StationSearchSource } from '../apps/server/src/domain/station-market.js'
 
 test('the frontend API client communicates with the PHOENIX backend', async () => {
   const stationSearchSource: StationSearchSource = {
@@ -42,6 +42,15 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       updatedAt: '2026-08-15T08:00:00.000Z'
     }]
   }
+  const stationLookupSource: StationLookupSource = {
+    findStations: async () => [{
+      allegiance: 'Independent', controllingFaction: 'Test Faction', distanceLy: 4.2,
+      distanceToArrivalLs: 300, government: 'Democracy', marketId: 42,
+      maxLandingPadSize: 3, primaryEconomy: 'Industrial', secondaryEconomy: null,
+      services: ['Dock', 'Repair'], stationName: 'Test Exchange', stationType: 'Orbis',
+      systemName: 'Nearby', updatedAt: '2026-08-15T08:00:00.000Z'
+    }]
+  }
   const application = new PhoenixApplication({
     databasePath: ':memory:',
     eliteDirectory: null,
@@ -50,6 +59,7 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
     stationSearchSource,
     shipyardSearchSource,
     outfittingSearchSource,
+    stationLookupSource,
     cartographySource: { fetchSystem: async () => fixtureSystem() }
   })
   const address = await application.start()
@@ -71,6 +81,8 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       .resolves.toMatchObject({ hullName: 'Type-11 Prospector', shipyards: [{ stationName: 'Test Exchange' }] })
     await expect(client.findGalaxyOutfitting({ maxDaysAgo: 30, maxDistance: 100, minimumPadSize: 'large', module: '6A Power Plant', systemName: 'Sol' }))
       .resolves.toMatchObject({ moduleClass: 6, moduleName: 'Power Plant', moduleRating: 'A', matches: [{ stationName: 'Test Exchange' }] })
+    await expect(client.findGalaxyStations({ maxDistance: 100, minimumPadSize: 'large', name: 'Test', stationType: 'orbital', systemName: 'Sol' }))
+      .resolves.toMatchObject({ name: 'Test', stationType: 'orbital', matches: [{ stationName: 'Test Exchange', services: ['Dock', 'Repair'] }] })
   } finally {
     await application.stop()
   }

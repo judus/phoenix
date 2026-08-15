@@ -82,6 +82,7 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
       'phoenix__stations_find_nearest',
       'phoenix__stations_get_details',
       'phoenix__stations_list_shipyard_stock',
+      'phoenix__stations_lookup',
       'phoenix__stations_search_outfitting',
       'phoenix__systems_get_details'
     ])

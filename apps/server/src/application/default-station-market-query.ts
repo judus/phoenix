@@ -5,6 +5,7 @@ import type {
   GalaxyNearbySystemsResponse,
   GalaxyNearestStationsResponse,
   GalaxyOutfittingResponse,
+  GalaxyStationLookupResponse,
   GalaxyShipyardsResponse
 } from '@phoenix/contracts'
 import type { SystemCartography } from '../domain/cartography.js'
@@ -20,6 +21,9 @@ import type {
   OutfittingSearchSource,
   ProviderResponseCache,
   StationSearchSource,
+  StationLocationType,
+  StationLookupResult,
+  StationLookupSource,
   ShipyardSearchResult,
   ShipyardSearchSource,
   StationStockSource,
@@ -42,6 +46,7 @@ const NEAREST_CACHE_MS = 30 * 60 * 1000
 const STOCK_CACHE_MS = 6 * 60 * 60 * 1000
 const SHIPYARD_SEARCH_CACHE_MS = 30 * 60 * 1000
 const OUTFITTING_SEARCH_CACHE_MS = 30 * 60 * 1000
+const STATION_LOOKUP_CACHE_MS = 30 * 60 * 1000
 const PAD_SIZES: Record<string, number> = { small: 1, medium: 2, large: 3 }
 
 interface CachedResult<T> {
@@ -63,6 +68,7 @@ export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery
     private readonly stockSource: StationStockSource,
     private readonly shipyardSearchSource: ShipyardSearchSource,
     private readonly outfittingSearchSource: OutfittingSearchSource,
+    private readonly stationLookupSource: StationLookupSource,
     private readonly cartography: SystemCartography,
     private readonly runtimeState: RuntimeStateReader,
     private readonly cache: ProviderResponseCache,
@@ -161,6 +167,29 @@ export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery
             `- ${formatModuleSpec(match)} at ${match.stationName} (${match.systemName}) - ${formatDistance(match.distanceLy, 'ly')}, ${formatDistance(match.distanceToArrivalLs, 'ls')}; ${match.price === null ? 'price unknown' : `${formatNumber(match.price)} CR`}; ${match.maxLandingPadSize ? `${padLabel(match.maxLandingPadSize)} pad` : 'pad unknown'}`
           ))].join('\n')
         : `No nearby stations currently report ${formatModuleSpec(result)} in stock.`,
+      json(result)
+    )
+  }
+
+  public async lookup (arguments_: JsonObject) {
+    const name = stringArgument(arguments_, 'name')
+    const systemName = this.originSystem(optionalStringArgument(arguments_, 'systemName'))
+    const minimumPadSize = optionalStringArgument(arguments_, 'minimumPadSize')
+    if (minimumPadSize && PAD_SIZES[minimumPadSize] === undefined) {
+      throw new Error('minimumPadSize must be small, medium, or large.')
+    }
+    const stationType = stationLocationType(optionalStringArgument(arguments_, 'stationType'))
+    const result = await this.searchStations({
+      maxDistanceLy: bounded(optionalIntegerArgument(arguments_, 'maxDistance'), 100, 1, 500),
+      minimumPadSize: minimumPadSize ? PAD_SIZES[minimumPadSize]! : null,
+      name,
+      stationType,
+      systemName
+    }, boundedLimit(optionalIntegerArgument(arguments_, 'limit'), 5, 20), minimumPadSize === undefined ? null : minimumPadSize as 'small' | 'medium' | 'large')
+    return output(
+      result.matches.length > 0
+        ? [`Stations matching "${name}" near ${result.originSystem}:`, ...result.matches.map(formatStationLookup)].join('\n')
+        : `No stations matching "${name}" were reported within ${result.maxDistanceLy} ly of ${result.originSystem}.`,
       json(result)
     )
   }
@@ -283,6 +312,44 @@ export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery
       matches,
       ...module,
       originSystem: origin.system.name
+    }
+  }
+
+  public async searchStations (
+    input: {
+      maxDistanceLy: number
+      minimumPadSize: number | null
+      name: string
+      stationType: StationLocationType
+      systemName: string
+    },
+    limit = 20,
+    minimumPadSize: 'small' | 'medium' | 'large' | null = null
+  ): Promise<GalaxyStationLookupResponse> {
+    const origin = await this.cartography.getSystem(input.systemName)
+    if (!origin.system.position) throw new Error(`Coordinates for ${input.systemName} are unavailable.`)
+    const request = {
+      maxDistanceLy: input.maxDistanceLy,
+      minimumPadSize: input.minimumPadSize,
+      name: input.name.trim(),
+      referencePosition: origin.system.position,
+      stationType: input.stationType
+    }
+    const cached = await this.cached(
+      'spansh-stations',
+      stableKey({ ...request, systemName: origin.system.name }),
+      STATION_LOOKUP_CACHE_MS,
+      () => this.stationLookupSource.findStations(request),
+      isStationLookupResults
+    )
+    return {
+      cache: cached.cache,
+      matches: cached.value.slice(0, boundedLimit(limit, 20, 100)),
+      maxDistanceLy: input.maxDistanceLy,
+      minimumPadSize,
+      name: request.name,
+      originSystem: origin.system.name,
+      stationType: input.stationType
     }
   }
 
@@ -483,6 +550,15 @@ function formatNearbyStation (station: NearbyStation): string {
   return `- ${station.stationName} (${station.systemName}) - ${formatDistance(station.distanceLy, 'ly')}, ${formatDistance(station.distanceToArrivalLs, 'ls')}${details ? `; ${details}` : ''}`
 }
 
+function formatStationLookup (station: StationLookupResult): string {
+  const details = [
+    station.stationType,
+    station.maxLandingPadSize ? `${padLabel(station.maxLandingPadSize)} pad` : null,
+    station.services.length > 0 ? `services: ${station.services.join(', ')}` : null
+  ].filter(Boolean).join('; ')
+  return `- ${station.stationName} (${station.systemName}) - ${formatDistance(station.distanceLy, 'ly')}, ${formatDistance(station.distanceToArrivalLs, 'ls')}${details ? `; ${details}` : ''}`
+}
+
 function formatMarket (market: CommodityMarket, intent: 'buy' | 'sell'): string {
   const price = intent === 'sell' ? market.sellPrice : market.buyPrice
   const volume = intent === 'sell' ? market.demand : market.stock
@@ -560,6 +636,22 @@ function isOutfittingSearchResults (candidate: unknown): candidate is Outfitting
     typeof item.systemName === 'string' &&
     typeof item.distanceLy === 'number'
   ))
+}
+
+function isStationLookupResults (candidate: unknown): candidate is StationLookupResult[] {
+  return Array.isArray(candidate) && candidate.every(item => (
+    isRecord(item) &&
+    typeof item.stationName === 'string' &&
+    typeof item.systemName === 'string' &&
+    typeof item.distanceLy === 'number' &&
+    Array.isArray(item.services)
+  ))
+}
+
+function stationLocationType (candidate?: string): StationLocationType {
+  if (candidate === undefined) return 'any'
+  if (candidate === 'any' || candidate === 'carrier' || candidate === 'orbital' || candidate === 'surface') return candidate
+  throw new Error('stationType must be any, orbital, surface, or carrier.')
 }
 
 function parseModuleQuery (query: string): { moduleClass: number | null, moduleName: string, moduleRating: string | null } {

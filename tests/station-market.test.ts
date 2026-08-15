@@ -12,6 +12,7 @@ import type {
   ProviderCacheEntry,
   ProviderResponseCache,
   ShipyardSearchSource,
+  StationLookupSource,
   StationSearchSource,
   StationStockSource
 } from '../apps/server/src/domain/station-market.js'
@@ -21,6 +22,7 @@ import { InMemoryRuntimeStateStore } from '../apps/server/src/infrastructure/in-
 import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
 import { SpanshShipyardSearchSource } from '../apps/server/src/infrastructure/spansh-shipyard-search-source.js'
 import { SpanshOutfittingSearchSource } from '../apps/server/src/infrastructure/spansh-outfitting-search-source.js'
+import { SpanshStationLookupSource } from '../apps/server/src/infrastructure/spansh-station-lookup-source.js'
 
 test('Ardent source maps current station and commodity response contracts', async () => {
   const fetcher = vi.fn(async (input: string | URL | Request) => {
@@ -136,6 +138,56 @@ test('Spansh source searches and normalizes stations stocking a requested module
   })
 })
 
+test('Spansh source resolves partial station names and normalizes station metadata', async () => {
+  const fetcher = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+    const url = new URL(input instanceof Request ? input.url : input.toString())
+    if (url.pathname.endsWith('/field_values/name')) return response({ values: ['Locke Terminal', 'Locke Hub', 'Locke Terminal'] })
+    return response({
+      results: [{
+        allegiance: 'Independent',
+        controlling_minor_faction: 'Alchemy Den',
+        distance: 4.2,
+        distance_to_arrival: 321.5,
+        government: 'Democracy',
+        has_large_pad: true,
+        is_planetary: false,
+        market_id: '42',
+        name: 'Locke Terminal',
+        primary_economy: 'Agriculture',
+        secondary_economy: 'Extraction',
+        services: [{ name: 'Dock' }, { name: 'Shipyard' }],
+        system_name: 'Nearby',
+        type: 'Orbis Starport',
+        updated_at: '2026-08-15 17:20:23+00'
+      }]
+    })
+  })
+  const source = new SpanshStationLookupSource({ fetch: fetcher as typeof fetch })
+
+  await expect(source.findStations({
+    maxDistanceLy: 100,
+    minimumPadSize: 3,
+    name: 'Locke',
+    referencePosition: [1, 2, 3],
+    stationType: 'orbital'
+  })).resolves.toEqual([{
+    allegiance: 'Independent', controllingFaction: 'Alchemy Den', distanceLy: 4.2,
+    distanceToArrivalLs: 321.5, government: 'Democracy', marketId: 42,
+    maxLandingPadSize: 3, primaryEconomy: 'Agriculture', secondaryEconomy: 'Extraction',
+    services: ['Dock', 'Shipyard'], stationName: 'Locke Terminal', stationType: 'Orbis Starport',
+    systemName: 'Nearby', updatedAt: '2026-08-15T17:20:23.000Z'
+  }])
+  expect(new URL(String(fetcher.mock.calls[0]?.[0])).searchParams.get('q')).toBe('Locke')
+  expect(JSON.parse(String(fetcher.mock.calls[1]?.[1]?.body))).toMatchObject({
+    filters: {
+      has_large_pad: { value: true },
+      name: { value: ['Locke Terminal', 'Locke Hub'] },
+      type: { value: expect.arrayContaining(['Orbis Starport', 'Outpost']) }
+    },
+    reference_coords: { x: 1, y: 2, z: 3 }
+  })
+})
+
 test('station and market query resolves current location, formats trade direction, and caches providers', async () => {
   const runtime = new InMemoryRuntimeStateStore()
   const state = createEmptyRuntimeState()
@@ -175,7 +227,13 @@ test('station and market query resolves current location, formats trade directio
       updatedAt: '2026-08-11T10:00:00.000Z'
     }])
   }
-  const service = new DefaultStationMarketQuery(search, stock, shipyards, outfittingMarkets, cartography(), runtime, new MemoryProviderCache(), () => new Date('2026-08-11T12:00:00Z'))
+  const stations: StationLookupSource = {
+    findStations: vi.fn(async () => [{
+      ...nearbyStation(),
+      services: ['Dock', 'Repair']
+    }])
+  }
+  const service = new DefaultStationMarketQuery(search, stock, shipyards, outfittingMarkets, stations, cartography(), runtime, new MemoryProviderCache(), () => new Date('2026-08-11T12:00:00Z'))
 
   const firstTrade = await service.findBestTrade({ commodity: 'Gold', intent: 'buy' })
   await service.findBestTrade({ commodity: 'Gold', intent: 'buy' })
@@ -189,6 +247,8 @@ test('station and market query resolves current location, formats trade directio
   const galaxyShipyards = await service.searchShipyards('Type-11 Prospector', 'Sol')
   const galaxyOutfitting = await service.searchOutfittingMarkets({ maxDaysAgo: 30, maxDistanceLy: 100, minimumPadSize: 3, query: '6A Power Plant', systemName: 'Sol' })
   const toolOutfitting = await service.findOutfitting({ query: '6A Power Plant', systemName: 'Sol' })
+  const galaxyStationLookup = await service.searchStations({ maxDistanceLy: 100, minimumPadSize: 2, name: 'Gal', stationType: 'orbital', systemName: 'Sol' }, 20, 'medium')
+  const toolStationLookup = await service.lookup({ minimumPadSize: 'medium', name: 'Gal', stationType: 'orbital' })
 
   expect(search.findCommodityMarkets).toHaveBeenCalledTimes(2)
   expect(search.findNearestStations).toHaveBeenCalledTimes(2)
@@ -205,6 +265,8 @@ test('station and market query resolves current location, formats trade directio
   expect(galaxyShipyards).toMatchObject({ cache: 'refreshed', hullName: 'Type-11 Prospector', shipyards: [{ stationName: 'Test Exchange' }] })
   expect(galaxyOutfitting).toMatchObject({ cache: 'refreshed', moduleClass: 6, moduleName: 'Power Plant', moduleRating: 'A', matches: [{ stationName: 'Test Exchange' }] })
   expect(toolOutfitting.structuredContent).toMatchObject({ moduleClass: 6, moduleName: 'Power Plant', moduleRating: 'A', matches: [{ stationName: 'Test Exchange' }] })
+  expect(galaxyStationLookup).toMatchObject({ cache: 'refreshed', name: 'Gal', stationType: 'orbital', matches: [{ stationName: 'Galileo', services: ['Dock', 'Repair'] }] })
+  expect(toolStationLookup.structuredContent).toMatchObject({ minimumPadSize: 'medium', name: 'Gal', matches: [{ stationName: 'Galileo' }] })
 })
 
 test('provider response cache persists arbitrary normalized documents in SQLite', () => {
