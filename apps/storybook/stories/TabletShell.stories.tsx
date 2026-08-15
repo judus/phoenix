@@ -17,6 +17,7 @@ import {
 } from '../src/components/application-shell'
 import type { NavigationItem } from '../src/components/app-shell'
 import { CurrentShipConsolidatedPage } from '../src/pages/current-ship-consolidated-page'
+import { CurrentShipLoadoutPage } from '../src/pages/current-ship-loadout-page'
 import '../src/styles/tablet-shell-stories.css'
 
 const utilityItems: NavigationItem[] = [
@@ -96,45 +97,21 @@ function BaselineShell({ children }: { children?: React.ReactNode }) {
   )
 }
 
-function FullBaseline() {
-  return <div className="tablet-shell-story"><BaselineShell /></div>
-}
-
-function CurrentShipShell() {
-  return (
-    <div className="tablet-shell-story">
-      <BaselineShell>
-        <CurrentShipConsolidatedPage />
-      </BaselineShell>
-    </div>
-  )
-}
-
-function CurrentShipSystemsLeftShell() {
-  return (
-    <div className="tablet-shell-story">
-      <BaselineShell>
-        <CurrentShipConsolidatedPage arrangement="systems-left" />
-      </BaselineShell>
-    </div>
-  )
-}
-
-function CurrentShipInlineMetersShell() {
-  return (
-    <div className="tablet-shell-story">
-      <BaselineShell>
-        <CurrentShipConsolidatedPage meterLayout="inline" />
-      </BaselineShell>
-    </div>
-  )
-}
-
-function CurrentShipTileActionsShell() {
+function CurrentShipTilesActionsShell() {
   return (
     <div className="tablet-shell-story">
       <BaselineShell>
         <CurrentShipConsolidatedPage actionStyle="tile" meterLayout="inline" />
+      </BaselineShell>
+    </div>
+  )
+}
+
+function CurrentShipLoadoutShell() {
+  return (
+    <div className="tablet-shell-story">
+      <BaselineShell>
+        <CurrentShipLoadoutPage />
       </BaselineShell>
     </div>
   )
@@ -294,16 +271,13 @@ function DeskplaneShell() {
 
 const meta = {
   title: 'Shell/Tablet baseline',
-  component: FullBaseline,
+  component: DeskplaneShell,
   parameters: { layout: 'fullscreen' }
-} satisfies Meta<typeof FullBaseline>
+} satisfies Meta<typeof DeskplaneShell>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const ResponsiveCanvas: Story = {}
-export const DeskplaneWorkspaces: Story = { render: () => <DeskplaneShell /> }
-export const CurrentShip: Story = { render: () => <CurrentShipShell /> }
-export const CurrentShipSystemsLeft: Story = { render: () => <CurrentShipSystemsLeftShell /> }
-export const CurrentShipInlineMeters: Story = { render: () => <CurrentShipInlineMetersShell /> }
-export const CurrentShipTileActions: Story = { render: () => <CurrentShipTileActionsShell /> }
+export const DeskplaneWorkspaces: Story = {}
+export const CurrentShipTilesActions: Story = { render: () => <CurrentShipTilesActionsShell /> }
+export const CurrentShipLoadout: Story = { render: () => <CurrentShipLoadoutShell /> }

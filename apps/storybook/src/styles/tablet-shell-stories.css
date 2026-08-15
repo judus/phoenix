@@ -58,6 +58,8 @@
     min-inline-size: 0;
     min-block-size: 0;
     overflow: hidden;
+
+    > .tablet-deskplane-page { flex: 1 1 auto; }
   }
 
   .shell-body.deskplane-viewport .deskplane-desktop {

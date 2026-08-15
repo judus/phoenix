@@ -22,6 +22,7 @@ function VesselPanels() {
         <DescriptionList className="adaptive-columns" columns="two" density="compact">
           <DescriptionItem label="Name" value="Unnamed vessel" />
           <DescriptionItem label="Identifier" value="EL-06L" />
+          <DescriptionItem label="Model" value="Type-11 Prospector" />
           <DescriptionItem label="Manufacturer" value="Lakon Spaceways" />
           <DescriptionItem label="Landing pad" value="Medium" />
           <DescriptionItem label="Hull value" value="67,861,850 CR" />

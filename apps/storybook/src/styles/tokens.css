@@ -52,6 +52,9 @@
     --color-text-muted: var(--palette-slate);
     --color-danger: var(--palette-coral);
     --color-danger-surface: rgb(68 20 20 / 94%);
+    --color-engineered-surface: rgb(68 20 20 / 48%);
+    --color-broken-surface: rgb(12 3 7 / 96%);
+    --color-broken-text: rgb(255 97 118 / 62%);
     --color-positive: var(--palette-cyan);
     --color-warning: var(--palette-amber);
     --color-border: rgb(255 157 0 / 65%);
