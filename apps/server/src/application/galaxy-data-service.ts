@@ -1,13 +1,15 @@
 import type {
   GalaxyCommodityMarketsResponse,
   GalaxyNearbySystemsResponse,
-  GalaxyNearestStationsResponse
+  GalaxyNearestStationsResponse,
+  GalaxyShipyardsResponse
 } from '@phoenix/contracts'
 import type { CommodityMarketRequest, NearbySystemRequest, NearestStationRequest } from '../domain/station-market.js'
 
 export interface GalaxyDataReader {
   searchCommodityMarkets(request: CommodityMarketRequest, limit?: number): Promise<GalaxyCommodityMarketsResponse>
   searchNearbySystems(request: NearbySystemRequest, limit?: number): Promise<GalaxyNearbySystemsResponse>
+  searchShipyards(hullName: string, systemName: string, limit?: number): Promise<GalaxyShipyardsResponse>
   searchNearestStations(
     request: NearestStationRequest,
     limit?: number,

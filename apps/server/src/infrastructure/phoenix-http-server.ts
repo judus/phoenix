@@ -334,6 +334,15 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/shipyards') {
+      this.writeJson(response, 200, await this.options.galaxyData.searchShipyards(
+        requiredQuery(url, 'hull'),
+        requiredQuery(url, 'system'),
+        boundedQueryInteger(url, 'limit', 20, 1, 100)
+      ))
+      return
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/galaxy/markets') {
       const intent = url.searchParams.get('intent')
       if (intent !== 'buy' && intent !== 'sell') throw new Error('intent must be buy or sell.')

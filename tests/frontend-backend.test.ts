@@ -1,8 +1,8 @@
 import { expect, test } from 'vitest'
-import { PHOENIX_API_VERSION } from '@phoenix/contracts'
+import { PHOENIX_API_VERSION, type CartographicSystem } from '@phoenix/contracts'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
-import type { StationSearchSource } from '../apps/server/src/domain/station-market.js'
+import type { ShipyardSearchSource, StationSearchSource } from '../apps/server/src/domain/station-market.js'
 
 test('the frontend API client communicates with the PHOENIX backend', async () => {
   const stationSearchSource: StationSearchSource = {
@@ -26,12 +26,21 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       updatedAt: '2026-08-13T08:00:00.000Z'
     }]
   }
+  const shipyardSearchSource: ShipyardSearchSource = {
+    findShipyards: async () => [{
+      distanceLy: 4.2, distanceToArrivalLs: 300, marketId: 42, maxLandingPadSize: 3,
+      price: 67861851, shipSymbol: 'LakonMiner', stationName: 'Test Exchange', stationType: 'Orbis',
+      systemName: 'Nearby', updatedAt: '2026-08-13T08:00:00.000Z'
+    }]
+  }
   const application = new PhoenixApplication({
     databasePath: ':memory:',
     eliteDirectory: null,
     host: '127.0.0.1',
     port: 0,
-    stationSearchSource
+    stationSearchSource,
+    shipyardSearchSource,
+    cartographySource: { fetchSystem: async () => fixtureSystem() }
   })
   const address = await application.start()
 
@@ -48,7 +57,31 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       .resolves.toMatchObject({ commodity: 'gold', intent: 'sell', markets: [{ sellPrice: 1500 }] })
     await expect(client.findGalaxyNearbySystems({ maxDistance: 25, systemName: 'Sol' }))
       .resolves.toMatchObject({ maxDistanceLy: 25, systems: [{ systemName: 'Alpha Centauri' }] })
+    await expect(client.findGalaxyShipyards({ hullName: 'Type-11 Prospector', systemName: 'Sol' }))
+      .resolves.toMatchObject({ hullName: 'Type-11 Prospector', shipyards: [{ stationName: 'Test Exchange' }] })
   } finally {
     await application.stop()
   }
 })
+
+function fixtureSystem (): CartographicSystem {
+  return {
+    schemaVersion: 1,
+    name: 'Sol',
+    address: 10477373803,
+    position: [0, 0, 0],
+    permitRequired: null,
+    permitName: null,
+    information: {
+      allegiance: null, government: null, security: null, state: null, primaryEconomy: null,
+      secondaryEconomy: null, population: null, controllingFaction: null
+    },
+    primaryStar: null,
+    bodies: [],
+    stations: [],
+    scanProgress: { knownBodies: 0, reportedBodies: null, percent: null },
+    localSystem: null,
+    source: { provider: 'edsm', fetchedAt: '2026-08-15T00:00:00.000Z' },
+    raw: { system: {}, bodies: {}, stations: {} }
+  }
+}

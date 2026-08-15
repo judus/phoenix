@@ -2,7 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react'
 import type {
   GalaxyCommodityMarketsResponse,
   GalaxyNearbySystemsResponse,
-  GalaxyNearestStationsResponse
+  GalaxyNearestStationsResponse,
+  GalaxyShipyardsResponse
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../api/phoenix-api-client.js'
 
@@ -26,10 +27,12 @@ export function GalaxyDatabase ({ api, currentSystem }: { api: PhoenixApi, curre
   const [nearest, setNearest] = useState<GalaxyNearestStationsResponse>()
   const [radius, setRadius] = useState(50)
   const [nearbySystems, setNearbySystems] = useState<GalaxyNearbySystemsResponse>()
+  const [hull, setHull] = useState(initialHullName)
+  const [shipyards, setShipyards] = useState<GalaxyShipyardsResponse>()
   const [commodity, setCommodity] = useState('gold')
   const [intent, setIntent] = useState<'buy' | 'sell'>('sell')
   const [markets, setMarkets] = useState<GalaxyCommodityMarketsResponse>()
-  const [pending, setPending] = useState<'nearest' | 'markets' | 'systems'>()
+  const [pending, setPending] = useState<'nearest' | 'markets' | 'shipyards' | 'systems'>()
   const [error, setError] = useState<string>()
 
   useEffect(() => {
@@ -72,6 +75,16 @@ export function GalaxyDatabase ({ api, currentSystem }: { api: PhoenixApi, curre
       .finally(() => setPending(undefined))
   }
 
+  const findShipyards = (event: FormEvent): void => {
+    event.preventDefault()
+    setPending('shipyards')
+    setError(undefined)
+    void api.findGalaxyShipyards({ hullName: hull.trim(), systemName: origin.trim() })
+      .then(setShipyards)
+      .catch(cause => setError(errorMessage(cause)))
+      .finally(() => setPending(undefined))
+  }
+
   return (
     <div className="galaxy-database">
       <section className="galaxy-database__origin">
@@ -89,6 +102,15 @@ export function GalaxyDatabase ({ api, currentSystem }: { api: PhoenixApi, curre
             <label>Radius<input min="1" max="500" type="number" value={radius} onChange={event => setRadius(Number(event.target.value))} /></label>
             <span />
             <button disabled={!origin.trim() || radius < 1 || radius > 500 || pending !== undefined} type="submit">{pending === 'systems' ? 'Searching…' : 'Search'}</button>
+          </form>
+        </section>
+
+        <section className="galaxy-tool">
+          <header><span>Shipyards</span><h2>Find a ship hull</h2></header>
+          <form onSubmit={findShipyards}>
+            <label>Hull<input placeholder="Type-11 Prospector" value={hull} onChange={event => setHull(event.target.value)} /></label>
+            <span />
+            <button disabled={!origin.trim() || !hull.trim() || pending !== undefined} type="submit">{pending === 'shipyards' ? 'Searching…' : 'Search'}</button>
           </form>
         </section>
 
@@ -112,15 +134,28 @@ export function GalaxyDatabase ({ api, currentSystem }: { api: PhoenixApi, curre
       </div>
 
       {nearbySystems && <NearbySystemResults result={nearbySystems} />}
+      {shipyards && <ShipyardResults result={shipyards} />}
       {nearest && <NearestResults result={nearest} />}
       {markets && <MarketResults result={markets} />}
-      {!nearbySystems && !nearest && !markets && (
+      {!nearbySystems && !nearest && !markets && !shipyards && (
         <section className="galaxy-database__welcome">
           <strong>PHOENIX galaxy services online</strong>
           <p>Searches use community-reported EDDN data through Ardent. Results are cached locally and include their last reported age where available.</p>
         </section>
       )}
     </div>
+  )
+}
+
+function ShipyardResults ({ result }: { result: GalaxyShipyardsResponse }) {
+  return (
+    <section className="galaxy-results">
+      <header><div><span>Shipyards selling</span><h2>{result.hullName}</h2></div><small>{result.cache} cache · {result.shipyards.length} matches</small></header>
+      <table><thead><tr><th>Shipyard</th><th>System</th><th>Price</th><th>Distance</th><th>Arrival</th><th>Pad</th><th>Reported</th></tr></thead>
+        <tbody>{result.shipyards.map(shipyard => <tr key={`${shipyard.systemName}:${shipyard.stationName}:${shipyard.marketId ?? ''}`}><td>{shipyard.stationName}<small>{shipyard.stationType ?? 'Shipyard'}</small></td><td><a href={systemHref(shipyard.systemName)}>{shipyard.systemName}</a></td><td>{credits(shipyard.price)}</td><td>{distance(shipyard.distanceLy, 'ly')}</td><td>{distance(shipyard.distanceToArrivalLs, 'ls')}</td><td>{padLabel(shipyard.maxLandingPadSize)}</td><td>{reportedAge(shipyard.updatedAt)}</td></tr>)}</tbody>
+      </table>
+      {result.shipyards.length === 0 && <p>No reported shipyards currently sell this hull.</p>}
+    </section>
   )
 }
 
@@ -164,6 +199,11 @@ function MarketResults ({ result }: { result: GalaxyCommodityMarketsResponse }) 
 
 function systemHref (systemName: string): string {
   return systemName.trim() ? `#/galaxy/system?name=${encodeURIComponent(systemName.trim())}` : '#/galaxy/system'
+}
+
+function initialHullName (): string {
+  const query = window.location.hash.split('?')[1]
+  return query ? new URLSearchParams(query).get('hull') ?? '' : ''
 }
 
 function distance (value: number | null, unit: string): string { return value === null ? '—' : `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value)} ${unit}` }

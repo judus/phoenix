@@ -10,6 +10,7 @@ import type {
   NearestStationRequest,
   ProviderCacheEntry,
   ProviderResponseCache,
+  ShipyardSearchSource,
   StationSearchSource,
   StationStockSource
 } from '../apps/server/src/domain/station-market.js'
@@ -17,6 +18,7 @@ import { ArdentStationSearchSource } from '../apps/server/src/infrastructure/ard
 import { EdsmStationStockSource } from '../apps/server/src/infrastructure/edsm-station-stock-source.js'
 import { InMemoryRuntimeStateStore } from '../apps/server/src/infrastructure/in-memory-runtime-state-store.js'
 import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
+import { SpanshShipyardSearchSource } from '../apps/server/src/infrastructure/spansh-shipyard-search-source.js'
 
 test('Ardent source maps current station and commodity response contracts', async () => {
   const fetcher = vi.fn(async (input: string | URL | Request) => {
@@ -58,6 +60,40 @@ test('EDSM source normalizes shipyard and outfitting stock', async () => {
   await expect(source.getOutfitting(128016640)).resolves.toEqual([{ id: 'int_cargorack_size6_class1', name: '6E Cargo Rack' }])
 })
 
+test('Spansh source searches and normalizes stations selling a requested hull', async () => {
+  const fetcher = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => response({
+    results: [{
+      distance: 4.2,
+      distance_to_arrival: 321.5,
+      has_large_pad: true,
+      market_id: 42,
+      name: 'Test Exchange',
+      ships: [{ name: 'Type-11 Prospector', price: 67861851, symbol: 'LakonMiner' }],
+      shipyard_updated_at: '2026-08-15 17:20:23+00',
+      system_name: 'Nearby',
+      type: 'Orbis Starport'
+    }]
+  }))
+  const source = new SpanshShipyardSearchSource({ fetch: fetcher as typeof fetch })
+
+  await expect(source.findShipyards({ hullName: 'Type-11 Prospector', referencePosition: [1, 2, 3] })).resolves.toEqual([{
+    distanceLy: 4.2,
+    distanceToArrivalLs: 321.5,
+    marketId: 42,
+    maxLandingPadSize: 3,
+    price: 67861851,
+    shipSymbol: 'LakonMiner',
+    stationName: 'Test Exchange',
+    stationType: 'Orbis Starport',
+    systemName: 'Nearby',
+    updatedAt: '2026-08-15T17:20:23.000Z'
+  }])
+  expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toMatchObject({
+    filters: { ships: { value: ['Type-11 Prospector'] } },
+    reference_coords: { x: 1, y: 2, z: 3 }
+  })
+})
+
 test('station and market query resolves current location, formats trade direction, and caches providers', async () => {
   const runtime = new InMemoryRuntimeStateStore()
   const state = createEmptyRuntimeState()
@@ -81,7 +117,14 @@ test('station and market query resolves current location, formats trade directio
     getOutfitting: vi.fn(async () => [{ id: 'rack', name: '6E Cargo Rack' }, { id: 'laser', name: '2D Mining Laser' }]),
     getShipyard: vi.fn(async () => [{ id: 1, name: 'Type-11 Prospector' }])
   }
-  const service = new DefaultStationMarketQuery(search, stock, cartography(), runtime, new MemoryProviderCache(), () => new Date('2026-08-11T12:00:00Z'))
+  const shipyards: ShipyardSearchSource = {
+    findShipyards: vi.fn(async () => [{
+      distanceLy: 4.2, distanceToArrivalLs: 321.5, marketId: 42, maxLandingPadSize: 3,
+      price: 67861851, shipSymbol: 'LakonMiner', stationName: 'Test Exchange', stationType: 'Orbis',
+      systemName: 'Nearby', updatedAt: '2026-08-15T17:20:23.000Z'
+    }])
+  }
+  const service = new DefaultStationMarketQuery(search, stock, shipyards, cartography(), runtime, new MemoryProviderCache(), () => new Date('2026-08-11T12:00:00Z'))
 
   const firstTrade = await service.findBestTrade({ commodity: 'Gold', intent: 'buy' })
   await service.findBestTrade({ commodity: 'Gold', intent: 'buy' })
@@ -92,6 +135,7 @@ test('station and market query resolves current location, formats trade directio
   const galaxyMarkets = await service.searchCommodityMarkets({ commodity: 'Gold', includeFleetCarriers: false, intent: 'sell', maxDaysAgo: 30, maxDistance: 100, minVolume: 1, systemName: 'Sol' })
   const galaxyStations = await service.searchNearestStations({ minimumPadSize: 2, service: 'repair', systemName: 'Sol' }, 20, 'medium')
   const galaxySystems = await service.searchNearbySystems({ maxDistance: 25, systemName: 'Sol' })
+  const galaxyShipyards = await service.searchShipyards('Type-11 Prospector', 'Sol')
 
   expect(search.findCommodityMarkets).toHaveBeenCalledTimes(2)
   expect(search.findNearestStations).toHaveBeenCalledTimes(2)
@@ -105,6 +149,7 @@ test('station and market query resolves current location, formats trade directio
   expect(galaxyMarkets).toMatchObject({ cache: 'refreshed', commodity: 'Gold', intent: 'sell', markets: [{ stationName: 'Galileo' }] })
   expect(galaxyStations).toMatchObject({ cache: 'refreshed', minimumPadSize: 'medium', service: 'repair', stations: [{ stationName: 'Galileo' }] })
   expect(galaxySystems).toMatchObject({ cache: 'refreshed', maxDistanceLy: 25, systems: [{ systemName: 'Alpha Centauri' }] })
+  expect(galaxyShipyards).toMatchObject({ cache: 'refreshed', hullName: 'Type-11 Prospector', shipyards: [{ stationName: 'Test Exchange' }] })
 })
 
 test('provider response cache persists arbitrary normalized documents in SQLite', () => {

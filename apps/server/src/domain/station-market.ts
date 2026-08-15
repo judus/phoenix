@@ -44,6 +44,24 @@ export interface NearbySystemRequest {
   systemName: string
 }
 
+export interface ShipyardSearchResult {
+  distanceLy: number
+  distanceToArrivalLs: number | null
+  marketId: number | null
+  maxLandingPadSize: number | null
+  price: number | null
+  shipSymbol: string | null
+  stationName: string
+  stationType: string | null
+  systemName: string
+  updatedAt: string | null
+}
+
+export interface ShipyardSearchRequest {
+  hullName: string
+  referencePosition: [number, number, number]
+}
+
 export interface NearestStationRequest {
   minimumPadSize: number | null
   service: string
@@ -74,6 +92,10 @@ export interface StockItem {
 export interface StationStockSource {
   getOutfitting(marketId: number): Promise<StockItem[]>
   getShipyard(marketId: number): Promise<StockItem[]>
+}
+
+export interface ShipyardSearchSource {
+  findShipyards(request: ShipyardSearchRequest): Promise<ShipyardSearchResult[]>
 }
 
 export interface ProviderCacheEntry {

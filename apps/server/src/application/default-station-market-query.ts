@@ -3,7 +3,8 @@ import type {
   CartographicStation,
   GalaxyCommodityMarketsResponse,
   GalaxyNearbySystemsResponse,
-  GalaxyNearestStationsResponse
+  GalaxyNearestStationsResponse,
+  GalaxyShipyardsResponse
 } from '@phoenix/contracts'
 import type { SystemCartography } from '../domain/cartography.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
@@ -16,6 +17,8 @@ import type {
   NearestStationRequest,
   ProviderResponseCache,
   StationSearchSource,
+  ShipyardSearchResult,
+  ShipyardSearchSource,
   StationStockSource,
   StockItem
 } from '../domain/station-market.js'
@@ -34,6 +37,7 @@ const MARKET_CACHE_MS = 5 * 60 * 1000
 const NEARBY_SYSTEM_CACHE_MS = 30 * 60 * 1000
 const NEAREST_CACHE_MS = 30 * 60 * 1000
 const STOCK_CACHE_MS = 6 * 60 * 60 * 1000
+const SHIPYARD_SEARCH_CACHE_MS = 30 * 60 * 1000
 const PAD_SIZES: Record<string, number> = { small: 1, medium: 2, large: 3 }
 
 interface CachedResult<T> {
@@ -53,6 +57,7 @@ export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery
   public constructor (
     private readonly searchSource: StationSearchSource,
     private readonly stockSource: StationStockSource,
+    private readonly shipyardSearchSource: ShipyardSearchSource,
     private readonly cartography: SystemCartography,
     private readonly runtimeState: RuntimeStateReader,
     private readonly cache: ProviderResponseCache,
@@ -109,6 +114,24 @@ export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery
     const header = `Nearest ${minimumPadSize ? `${minimumPadSize}-pad ` : ''}${service} stations from ${systemName}:`
     return output(
       stations.length > 0 ? [header, ...stations.map(formatNearbyStation)].join('\n') : `${header}\nNo matching stations found.`,
+      json(result)
+    )
+  }
+
+  public async findShipyards (arguments_: JsonObject) {
+    const hullName = stringArgument(arguments_, 'hullName')
+    const systemName = this.originSystem(optionalStringArgument(arguments_, 'systemName'))
+    const result = await this.searchShipyards(
+      hullName,
+      systemName,
+      boundedLimit(optionalIntegerArgument(arguments_, 'limit'), 5, 20)
+    )
+    return output(
+      result.shipyards.length > 0
+        ? [`Nearest reported shipyards selling ${hullName} from ${systemName}:`, ...result.shipyards.map(shipyard => (
+            `- ${shipyard.stationName} (${shipyard.systemName}) - ${formatDistance(shipyard.distanceLy, 'ly')}, ${formatDistance(shipyard.distanceToArrivalLs, 'ls')}; ${shipyard.price === null ? 'price unknown' : `${formatNumber(shipyard.price)} CR`}; ${shipyard.maxLandingPadSize ? `${padLabel(shipyard.maxLandingPadSize)} pad` : 'pad unknown'}`
+          ))].join('\n')
+        : `No nearby shipyards currently report selling ${hullName}.`,
       json(result)
     )
   }
@@ -170,6 +193,29 @@ export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery
       maxDistanceLy: request.maxDistance,
       originSystem: request.systemName,
       systems: cached.value.slice(0, boundedLimit(limit, 100, 1000))
+    }
+  }
+
+  public async searchShipyards (
+    hullName: string,
+    systemName: string,
+    limit = 20
+  ): Promise<GalaxyShipyardsResponse> {
+    const origin = await this.cartography.getSystem(systemName)
+    if (!origin.system.position) throw new Error(`Coordinates for ${systemName} are unavailable.`)
+    const request = { hullName, referencePosition: origin.system.position }
+    const cached = await this.cached(
+      'spansh-shipyards',
+      stableKey({ hullName, systemName }),
+      SHIPYARD_SEARCH_CACHE_MS,
+      () => this.shipyardSearchSource.findShipyards(request),
+      isShipyardSearchResults
+    )
+    return {
+      cache: cached.cache,
+      hullName,
+      originSystem: origin.system.name,
+      shipyards: cached.value.slice(0, boundedLimit(limit, 20, 100))
     }
   }
 
@@ -428,6 +474,15 @@ function isCommodityMarkets (candidate: unknown): candidate is CommodityMarket[]
 
 function isStockItems (candidate: unknown): candidate is StockItem[] {
   return Array.isArray(candidate) && candidate.every(item => isRecord(item) && typeof item.name === 'string')
+}
+
+function isShipyardSearchResults (candidate: unknown): candidate is ShipyardSearchResult[] {
+  return Array.isArray(candidate) && candidate.every(item => (
+    isRecord(item) &&
+    typeof item.stationName === 'string' &&
+    typeof item.systemName === 'string' &&
+    typeof item.distanceLy === 'number'
+  ))
 }
 
 function isRecord (candidate: unknown): candidate is Record<string, unknown> {

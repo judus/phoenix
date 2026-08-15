@@ -33,6 +33,7 @@ import {
   GalaxyCommodityMarketsResponseSchema,
   GalaxyNearbySystemsResponseSchema,
   GalaxyNearestStationsResponseSchema,
+  GalaxyShipyardsResponseSchema,
   GalnetNewsResponseSchema,
   MacroDefinitionSchema,
   MacroLibrarySchema,
@@ -86,6 +87,7 @@ import {
   type GalaxyCommodityMarketsResponse,
   type GalaxyNearbySystemsResponse,
   type GalaxyNearestStationsResponse,
+  type GalaxyShipyardsResponse,
   type GalnetNewsResponse,
   type MacroDefinition,
   type MacroLibrary,
@@ -147,6 +149,7 @@ export interface PhoenixApi {
   findGalaxyCommodityMarkets(input: GalaxyCommodityMarketSearch): Promise<GalaxyCommodityMarketsResponse>
   findGalaxyNearbySystems(input: GalaxyNearbySystemSearch): Promise<GalaxyNearbySystemsResponse>
   findGalaxyNearestStations(input: GalaxyNearestStationSearch): Promise<GalaxyNearestStationsResponse>
+  findGalaxyShipyards(input: GalaxyShipyardSearch): Promise<GalaxyShipyardsResponse>
   setExplorationBiologicalCompletion(input: ExplorationManualCompletionRequest): Promise<ExplorationManualCompletionResponse>
   getRuntimeState(): Promise<RuntimeState>
   getNavigationRoute(): Promise<NavigationRoute>
@@ -206,6 +209,12 @@ export interface GalaxyNearestStationSearch {
 export interface GalaxyNearbySystemSearch {
   limit?: number
   maxDistance?: number
+  systemName: string
+}
+
+export interface GalaxyShipyardSearch {
+  hullName: string
+  limit?: number
   systemName: string
 }
 
@@ -838,6 +847,16 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return GalaxyNearbySystemsResponseSchema.parse(await response.json())
+  }
+
+  public async findGalaxyShipyards (input: GalaxyShipyardSearch): Promise<GalaxyShipyardsResponse> {
+    const query = new URLSearchParams({ hull: input.hullName, system: input.systemName })
+    if (input.limit !== undefined) query.set('limit', String(input.limit))
+    const response = await this.request(`${this.baseUrl}/api/galaxy/shipyards?${query.toString()}`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return GalaxyShipyardsResponseSchema.parse(await response.json())
   }
 
   public async findGalaxyCommodityMarkets (input: GalaxyCommodityMarketSearch): Promise<GalaxyCommodityMarketsResponse> {

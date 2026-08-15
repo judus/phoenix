@@ -18,6 +18,7 @@ import { ShipGetStatusTool } from './mcp-tools/ship-get-status-tool.js'
 import { ShipListModulesTool } from './mcp-tools/ship-list-modules-tool.js'
 import { ShipsCompareTool } from './mcp-tools/ships-compare-tool.js'
 import { ShipsGetDefinitionTool } from './mcp-tools/ships-get-definition-tool.js'
+import { ShipsFindShipyardsTool } from './mcp-tools/ships-find-shipyards-tool.js'
 import { SystemsGetDetailsTool } from './mcp-tools/systems-get-details-tool.js'
 import { MarketsFindBestTradeTool } from './mcp-tools/markets-find-best-trade-tool.js'
 import { StationsFindNearestTool } from './mcp-tools/stations-find-nearest-tool.js'
@@ -80,6 +81,7 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new ShipGetStatusTool(dependencies.runtimeState),
     new ShipListModulesTool(dependencies.runtimeState),
     new ShipsCompareTool(dependencies.gameCatalogue),
+    new ShipsFindShipyardsTool(dependencies.stations),
     new ShipsGetDefinitionTool(dependencies.gameCatalogue),
     new StationsFindNearestTool(dependencies.stations),
     new StationsGetDetailsTool(dependencies.stations),
