@@ -21,7 +21,7 @@ const preview: Preview = {
   },
   decorators: [
     (Story, context) => (
-      <div className="storybook-root" data-presentation={context.globals.presentation}>
+      <div className={`storybook-root presentation-${context.globals.presentation}`}>
         <Story />
       </div>
     )

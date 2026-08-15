@@ -52,13 +52,24 @@ A page may:
 - supply content, actions, status, and slots;
 - compose a genuinely unique widget from existing primitives.
 
+Pages choose one of two explicit workspace contracts:
+
+- **flow** pages may scroll when their content is genuinely sequential or unbounded;
+- **fit** pages own the available workspace, prohibit page scrolling, and compress or expand their
+  complete composition across the supported desktop and tablet container sizes.
+
+A fit page is not a clipped flow page. Its component must define both inline- and block-size
+adaptation, preserve every required value and action, and use stable spatial placement that users
+can learn. Internal scrolling is allowed only for a genuinely unbounded child such as a log or
+inventory list, never to rescue the page composition itself.
+
 A page must not:
 
 - redeclare the page frame, content width, header spacing, section rhythm, or standard grid;
 - impose a centered website-style maximum width on the application workspace; page content uses
   the full region assigned by the shell and creates structure through its internal composition;
 - set raw colours, font sizes, borders, shadows, radii, or z-index values;
-- reach into a component with descendant selectors;
+- target generated component internals with page-specific selectors;
 - use `!important` to change a design-system component;
 - copy component CSS to obtain a slightly different arrangement;
 - introduce a breakpoint solely to repair a standard component;
@@ -67,6 +78,12 @@ A page must not:
 If a page cannot work with a component, first determine whether it needs an existing variant, a
 new generally useful variant, a different composition, or a genuinely unique widget. A local CSS
 override is not the default answer.
+
+PHOENIX is a cockpit extension, not a website or KPI dashboard. Content rewards learned spatial
+memory and repeated use. Labels exist to disambiguate values or actions, not to explain obvious
+domain knowledge. Do not repeat a fact as helper text, add onboarding prose to a routine operational
+surface, or turn a coherent instrument pane into a row of isolated KPI cards. Prefer the value, the
+state, and the action. Deeper explanation belongs in help, onboarding, or an explicit detail view.
 
 ## 4. Layout primitives
 
@@ -179,6 +196,11 @@ materially changes the arrangement; orientation is not a proxy for device type o
 
 Standard data-display contracts:
 
+- primitives use one stable root class and semantic HTML beneath it. Prefer cascade selectors such
+  as `dl.dl-list dt` and `dl.dl-list dd` over classes on every generated child;
+- documented primitive modifiers such as `.compact`, `.inset`, and `.text-muted` express reusable
+  variation. Do not create page-specific element modifier classes for ordinary typography or
+  spacing;
 - lists are open compositions with row separators; selection may add a semantic indicator and
   restrained surface, but the list does not gain a decorative outer frame;
 - `DataTable` owns its overflow and exposes named narrow strategies rather than relying on a page

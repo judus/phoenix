@@ -21,20 +21,24 @@ export function DataTable({
 }: DataTableProps) {
   return (
     <div
-      className="data-table-region"
-      data-minimum={minimum}
-      data-narrow={narrow}
+      className={[
+        'table-region',
+        `table-${narrow}`,
+        minimum === 'wide' && 'table-wide'
+      ].filter(Boolean).join(' ')}
       role={narrow === 'scroll' ? 'region' : undefined}
       aria-label={narrow === 'scroll' ? `${label}, horizontally scrollable` : undefined}
       tabIndex={narrow === 'scroll' ? 0 : undefined}
     >
       <table
-        className={['data-table', className].filter(Boolean).join(' ')}
-        data-density={density}
-        data-narrow={narrow}
+        className={[
+          'data-table',
+          density !== 'standard' && density,
+          className
+        ].filter(Boolean).join(' ')}
         {...props}
       >
-        <caption className="data-table__caption">{label}</caption>
+        <caption>{label}</caption>
         {children}
       </table>
     </div>

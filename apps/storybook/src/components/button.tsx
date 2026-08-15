@@ -22,9 +22,12 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={['button', className].filter(Boolean).join(' ')}
-      data-size={size}
-      data-variant={variant}
+      className={[
+        'btn',
+        `btn-${variant}`,
+        size !== 'inherit' && `btn-${size}`,
+        className
+      ].filter(Boolean).join(' ')}
       aria-busy={busy || undefined}
       disabled={disabled || busy}
       {...props}

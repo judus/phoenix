@@ -14,7 +14,7 @@ function MissionList() {
       <ItemListItem
         href="#mission-supply"
         selected
-        leading={<span className="data-story__identifier">CG</span>}
+        leading={<span className="identifier">CG</span>}
         title="Supply medicines to HIP 97950"
         description="Deliver 42 tonnes of basic medicines before the operation closes."
         meta="Expires in 2 h 18 min"
@@ -23,7 +23,7 @@ function MissionList() {
       />
       <ItemListItem
         href="#mission-courier"
-        leading={<span className="data-story__identifier">CR</span>}
+        leading={<span className="identifier">CR</span>}
         title="Courier data to Lave Station"
         description="Mission cargo is already aboard."
         meta="Reward 1,240,000 CR"
@@ -31,7 +31,7 @@ function MissionList() {
       />
       <ItemListItem
         href="#mission-scan"
-        leading={<span className="data-story__identifier">EX</span>}
+        leading={<span className="identifier">EX</span>}
         title="Scan the Colonia Bridge beacon"
         description="The target system has incomplete navigation data."
         meta="12 jumps from current position"
@@ -39,7 +39,7 @@ function MissionList() {
       />
       <ItemListItem
         disabled
-        leading={<span className="data-story__identifier">AX</span>}
+        leading={<span className="identifier">AX</span>}
         title="Threat response contract"
         description="Required combat loadout is not installed."
         meta="Unavailable for this ship"
@@ -56,36 +56,36 @@ function FleetTable({ narrow = 'priority' }: { narrow?: 'priority' | 'scroll' })
         <tr>
           <th scope="col">Ship</th>
           <th scope="col">Status</th>
-          <th scope="col" data-priority="secondary">Role</th>
-          <th scope="col" data-priority="secondary">Location</th>
-          <th scope="col" data-priority="tertiary" data-align="numeric">Range</th>
-          <th scope="col" data-priority="tertiary">Updated</th>
+          <th className="priority-secondary" scope="col">Role</th>
+          <th className="priority-secondary" scope="col">Location</th>
+          <th className="priority-tertiary numeric" scope="col">Range</th>
+          <th className="priority-tertiary" scope="col">Updated</th>
         </tr>
       </thead>
       <tbody>
-        <tr data-selected="true">
-          <td><div className="data-story__name"><strong>Nightjar</strong><span className="data-story__secondary">Krait Mk II</span></div></td>
+        <tr className="active">
+          <td><div className="entity-name"><strong>Nightjar</strong><small>Krait Mk II</small></div></td>
           <td><Status tone="positive">Active</Status></td>
-          <td data-priority="secondary">Multipurpose</td>
-          <td data-priority="secondary">Col 285 Sector OK-C B14-5</td>
-          <td data-priority="tertiary" data-align="numeric">31.4 ly</td>
-          <td data-priority="tertiary">2 min ago</td>
+          <td className="priority-secondary">Multipurpose</td>
+          <td className="priority-secondary">Col 285 Sector OK-C B14-5</td>
+          <td className="priority-tertiary numeric">31.4 ly</td>
+          <td className="priority-tertiary">2 min ago</td>
         </tr>
         <tr>
-          <td><div className="data-story__name"><strong>Far Lantern</strong><span className="data-story__secondary">Diamondback Explorer</span></div></td>
+          <td><div className="entity-name"><strong>Far Lantern</strong><small>Diamondback Explorer</small></div></td>
           <td><Status tone="information">Stored</Status></td>
-          <td data-priority="secondary">Exploration</td>
-          <td data-priority="secondary">Jameson Memorial</td>
-          <td data-priority="tertiary" data-align="numeric">67.8 ly</td>
-          <td data-priority="tertiary">Yesterday</td>
+          <td className="priority-secondary">Exploration</td>
+          <td className="priority-secondary">Jameson Memorial</td>
+          <td className="priority-tertiary numeric">67.8 ly</td>
+          <td className="priority-tertiary">Yesterday</td>
         </tr>
         <tr>
-          <td><div className="data-story__name"><strong>Red Shift</strong><span className="data-story__secondary">Fer-de-Lance</span></div></td>
+          <td><div className="entity-name"><strong>Red Shift</strong><small>Fer-de-Lance</small></div></td>
           <td><Status tone="warning">Maintenance</Status></td>
-          <td data-priority="secondary">Combat</td>
-          <td data-priority="secondary">Ray Gateway</td>
-          <td data-priority="tertiary" data-align="numeric">18.2 ly</td>
-          <td data-priority="tertiary">4 days ago</td>
+          <td className="priority-secondary">Combat</td>
+          <td className="priority-secondary">Ray Gateway</td>
+          <td className="priority-tertiary numeric">18.2 ly</td>
+          <td className="priority-tertiary">4 days ago</td>
         </tr>
       </tbody>
     </DataTable>
@@ -130,7 +130,7 @@ function ScrollTable() {
           title="Scrollable table"
           description="Use horizontal scrolling when every column remains necessary for comparison."
         />
-        <p className="data-story__note">Focus the table region, then scroll horizontally on a narrow canvas.</p>
+        <p className="text-muted text-sm">Focus the table region, then scroll horizontally on a narrow canvas.</p>
         <FleetTable narrow="scroll" />
       </Stack>
     </PageFrame>

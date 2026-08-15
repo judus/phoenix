@@ -20,21 +20,26 @@ export function CommandTile({
   selected = false,
   tone = 'normal',
   unavailable = false,
+  className,
   ...props
 }: CommandTileProps) {
   return (
     <button
-      className="command-tile"
-      data-kind={kind}
-      data-selected={selected || undefined}
-      data-tone={tone}
-      data-unavailable={unavailable || undefined}
+      className={[
+        'command-tile',
+        kind === 'macro' && 'command-macro',
+        selected && 'active',
+        tone === 'danger' && 'command-danger',
+        unavailable && 'unavailable',
+        className
+      ].filter(Boolean).join(' ')}
+      aria-pressed={selected || undefined}
       disabled={unavailable}
       {...props}
     >
-      <span className="command-tile__label">{label}</span>
-      <span className="command-tile__binding">{kind === 'macro' ? 'Macro' : (binding ?? 'Unbound')}</span>
-      <span className="command-tile__meta">{kind === 'macro' ? meta : 'Tap'}</span>
+      <strong>{label}</strong>
+      <span>{kind === 'macro' ? 'Macro' : (binding ?? 'Unbound')}</span>
+      <small>{kind === 'macro' ? meta : 'Tap'}</small>
     </button>
   )
 }

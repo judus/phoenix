@@ -1,0 +1,104 @@
+@layer components {
+  .current-ship {
+    container: current-ship / size;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--spacing-sm);
+    inline-size: 100%;
+    block-size: 100%;
+    min-inline-size: 0;
+    min-block-size: 0;
+    overflow: hidden;
+
+    .ship-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+      grid-template-areas:
+        'vessel performance'
+        'vessel power';
+      gap: var(--spacing-sm);
+      min-inline-size: 0;
+      min-block-size: 0;
+      overflow: hidden;
+
+      &.matrix {
+        grid-template-areas:
+          'vessel performance'
+          'status power';
+      }
+    }
+
+    .vessel-panel { grid-area: vessel; }
+    .performance-panel { grid-area: performance; }
+    .power-panel { grid-area: power; }
+    .status-panel { grid-area: status; }
+
+    .vessel-content {
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      gap: var(--spacing-lg);
+      block-size: 100%;
+      min-block-size: 0;
+    }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+      align-content: end;
+      gap: var(--spacing-xs);
+      min-block-size: 0;
+    }
+
+    .performance-content,
+    .power-content {
+      display: grid;
+      align-content: space-between;
+      gap: var(--spacing-sm);
+      block-size: 100%;
+      min-block-size: 0;
+    }
+
+    .readout-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--spacing-sm);
+
+      &.four-columns {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--spacing-sm);
+      margin-block-end: var(--spacing-sm);
+    }
+  }
+
+  @container current-ship (height < 40rem) {
+    .current-ship {
+      gap: var(--spacing-xs);
+
+      .ship-grid,
+      .performance-content,
+      .power-content { gap: var(--spacing-xs); }
+
+      .vessel-content { gap: var(--spacing-sm); }
+    }
+  }
+
+  @container current-ship (width < 42rem) {
+    .current-ship {
+      .readout-grid,
+      .control-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  }
+
+  @container current-ship (width < 60rem) {
+    .current-ship .status-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+}

@@ -7,8 +7,8 @@
     padding: var(--spacing-xl);
   }
 
-  .foundations__header,
-  .foundations__section {
+  .foundations > header,
+  .foundations > section {
     display: grid;
     gap: var(--spacing-md);
   }
@@ -35,11 +35,6 @@
     text-transform: uppercase;
   }
 
-  .foundations__intro,
-  .foundations__note {
-    color: var(--color-text-muted);
-  }
-
   .token-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
@@ -54,7 +49,8 @@
     background: var(--color-surface);
   }
 
-  .color-token__swatch {
+  .color-token > i {
+    display: block;
     min-block-size: 5rem;
     background: var(--token-value);
   }
@@ -93,12 +89,13 @@
     padding: var(--spacing-sm);
   }
 
-  .type-sample {
+  .type-scale .sample {
     font-size: var(--token-value);
     line-height: var(--line-height-compact);
   }
 
-  .spacing-sample {
+  .spacing-scale .sample {
+    display: block;
     inline-size: min(100%, calc(var(--token-value) * 8));
     block-size: var(--spacing-sm);
     background: var(--color-action);
@@ -114,13 +111,13 @@
     container: orientation-demo / inline-size;
   }
 
-  .orientation-demo__grid {
+  .orientation-demo .layout {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--spacing-sm);
   }
 
-  .orientation-demo__item {
+  .orientation-demo .layout > div {
     display: grid;
     place-items: center;
     min-block-size: 8rem;
@@ -130,7 +127,7 @@
   }
 
   @container orientation-demo (width < 30rem) {
-    .orientation-demo__grid {
+    .orientation-demo .layout {
       grid-template-columns: 1fr;
     }
   }

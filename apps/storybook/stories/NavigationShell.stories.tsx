@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { AppNavigation, AppShell, type NavigationItem } from '../src/components/app-shell'
 import { Button } from '../src/components/button'
 import { AutoGrid, Stack } from '../src/components/layout'
+import { Metric } from '../src/components/metric'
 import { PageFrame, PageHeader, Panel, Section } from '../src/components/page'
 import { Status } from '../src/components/status'
 import '../src/styles/shell-stories.css'
@@ -25,8 +26,8 @@ const secondaryItems: NavigationItem[] = [
 function Brand() {
   return (
     <div className="shell-brand">
-      <strong className="shell-brand__name">PHOENIX</strong>
-      <span className="shell-brand__context">Pilot operations</span>
+      <strong>PHOENIX</strong>
+      <small>Pilot operations</small>
     </div>
   )
 }
@@ -44,27 +45,18 @@ function Dashboard() {
         <Section title="Current state">
           <AutoGrid minimum="sm" gap="sm">
             <Panel title="Fuel">
-              <div className="shell-story__metric">
-                <strong className="shell-story__metric-value">86%</strong>
-                <span className="shell-story__metric-detail">Main tank · 27.5 t remaining</span>
-              </div>
+              <Metric value="86%" detail="Main tank · 27.5 t remaining" />
             </Panel>
             <Panel title="Jump range">
-              <div className="shell-story__metric">
-                <strong className="shell-story__metric-value">31.4 ly</strong>
-                <span className="shell-story__metric-detail">Laden configuration</span>
-              </div>
+              <Metric value="31.4 ly" detail="Laden configuration" />
             </Panel>
             <Panel title="Cargo">
-              <div className="shell-story__metric">
-                <strong className="shell-story__metric-value">42 / 128 t</strong>
-                <span className="shell-story__metric-detail">Basic medicines</span>
-              </div>
+              <Metric value="42 / 128 t" detail="Basic medicines" />
             </Panel>
           </AutoGrid>
         </Section>
         <Section divider title="Recent activity">
-          <ul className="shell-story__activity">
+          <ul className="activity-list">
             <li><strong>Route calculation completed</strong><span>2 min ago</span></li>
             <li><strong>Mission cargo loaded</strong><span>18 min ago</span></li>
             <li><strong>Ship data synchronized</strong><span>24 min ago</span></li>
@@ -105,8 +97,8 @@ function FullShell({ navigation }: { navigation: 'sidebar' | 'bands' }) {
 
 function BoundedWorkspace() {
   return (
-    <div className="shell-story shell-story--bounded">
-      <div className="shell-story__deskplane">
+    <div className="shell-story bounded">
+      <div className="deskplane-example">
         <Shell navigation="sidebar" />
       </div>
     </div>

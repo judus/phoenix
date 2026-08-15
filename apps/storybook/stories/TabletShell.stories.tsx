@@ -1,12 +1,10 @@
-import { useRef, useState, type CSSProperties } from 'react'
+import { useRef, useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import type { Deskplane } from 'deskplane'
 import { DeskplaneViewport } from 'deskplane/react'
 import 'deskplane/style.css'
 
-import { Button } from '../src/components/button'
-import { AutoGrid, Stack } from '../src/components/layout'
-import { PageFrame, PageHeader, Panel, Section } from '../src/components/page'
+import { PageFrame, PageHeader } from '../src/components/page'
 import {
   ApplicationShell,
   BottomBar,
@@ -19,7 +17,6 @@ import {
 } from '../src/components/application-shell'
 import type { NavigationItem } from '../src/components/app-shell'
 import '../src/styles/tablet-shell-stories.css'
-import phoenixMarkUrl from '../../web/public/phoenix.svg?url'
 
 const utilityItems: NavigationItem[] = [
   { id: 'telemetry', label: 'Telemetry', shortLabel: '123', href: '#telemetry' },
@@ -52,55 +49,14 @@ const workspaceItems: NavigationItem[] = [
 ]
 
 function Brand() {
-  const markStyle = {
-    '--tablet-brand-mark-image': `url("${phoenixMarkUrl}")`
-  } as CSSProperties
-
   return (
-    <div className="tablet-brand">
-      <span className="tablet-brand__mark" style={markStyle} aria-hidden="true" />
-      <span className="tablet-brand__text">
-        <strong className="tablet-brand__name">PHOENIX</strong>
-        <span className="tablet-brand__context">Terminal</span>
+    <div className="product-brand">
+      <i aria-hidden="true" />
+      <span>
+        <strong>PHOENIX</strong>
+        <small>Terminal</small>
       </span>
     </div>
-  )
-}
-
-function CommanderContent() {
-  return (
-    <PageFrame>
-      <Stack gap="xxl">
-        <PageHeader
-          context="Commander"
-          title="Ellan Murdock"
-          description="Docked at Locke Terminal · Col 285 Sector OK-C B14-5"
-          metadata="616,187,357 CR"
-          actions={<Button variant="primary">Open galaxy</Button>}
-        />
-        <Section title="Situation">
-          <AutoGrid minimum="sm" gap="sm">
-            <Panel title="Current ship">
-              <div className="tablet-content__metric"><strong>Type-11 Prospector</strong><span>Hull 100% · Cargo 3 / 196</span></div>
-            </Panel>
-            <Panel title="Jump range">
-              <div className="tablet-content__metric"><strong>22.4 ly</strong><span>Laden configuration</span></div>
-            </Panel>
-            <Panel title="Route">
-              <div className="tablet-content__metric"><strong>No route plotted</strong><span>Navigation computer idle</span></div>
-            </Panel>
-          </AutoGrid>
-        </Section>
-        <Section divider title="Recent activity">
-          <ul className="tablet-content__activity">
-            <li><time>12:52 AM</time><strong>Mission completed</strong><span>Journal</span></li>
-            <li><time>12:50 AM</time><strong>Mission accepted</strong><span>Journal</span></li>
-            <li><time>12:49 AM</time><strong>Action executed</strong><span>Runtime</span></li>
-            <li><time>12:45 AM</time><strong>Inventory cargo changed</strong><span>Journal</span></li>
-          </ul>
-        </Section>
-      </Stack>
-    </PageFrame>
   )
 }
 
@@ -124,7 +80,7 @@ function BaselineShell() {
             items={contextItems}
           />
         </Rail>
-        <Content><CommanderContent /></Content>
+        <Content />
       </Workspace>
       <BottomBar>
         <Navigation
@@ -143,7 +99,7 @@ function FullBaseline() {
   return <div className="tablet-shell-story"><BaselineShell /></div>
 }
 
-function DeskplanePage({ children }: { children: React.ReactNode }) {
+function DeskplanePage({ children }: { children?: React.ReactNode }) {
   return (
     <div className="tablet-deskplane-page">
       <Rail label="Commander views">
@@ -174,7 +130,7 @@ function InformationDesktop() {
       <PrimaryBar launcher={<a href="#home" aria-label="Home">⌂</a>}>
         <Navigation label="Primary" current="fleet" items={primaryItems} />
       </PrimaryBar>
-      <DeskplanePage><CommanderContent /></DeskplanePage>
+      <DeskplanePage />
     </div>
   )
 }
@@ -210,7 +166,7 @@ function DeskplaneShell() {
         />
         <DeskplaneViewport
           aria-label="Application workspaces"
-          className="application-shell__body"
+          className="shell-body"
           initialDesktopId="info"
           onReady={(deskplane) => {
             controller.current = deskplane

@@ -12,11 +12,10 @@ type StatusProps = HTMLAttributes<HTMLSpanElement> & {
 export function Status({ children, className, tone = 'neutral', ...props }: StatusProps) {
   return (
     <span
-      className={['status', className].filter(Boolean).join(' ')}
-      data-tone={tone}
+      className={['status', `status-${tone}`, className].filter(Boolean).join(' ')}
       {...props}
     >
-      <span className="status__marker" aria-hidden="true" />
+      <i aria-hidden="true" />
       <span>{children}</span>
     </span>
   )

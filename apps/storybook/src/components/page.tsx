@@ -3,10 +3,14 @@ import { useId, type HTMLAttributes, type ReactNode } from 'react'
 import { ControlContext } from './control-context'
 import './page.css'
 
-export function PageFrame({ className, ...props }: HTMLAttributes<HTMLElement>) {
+type PageFrameProps = HTMLAttributes<HTMLElement> & {
+  layout?: 'flow' | 'fit'
+}
+
+export function PageFrame({ className, layout = 'flow', ...props }: PageFrameProps) {
   return (
     <main
-      className={['page-frame', className].filter(Boolean).join(' ')}
+      className={['page-frame', `page-${layout}`, className].filter(Boolean).join(' ')}
       {...props}
     />
   )
@@ -14,11 +18,12 @@ export function PageFrame({ className, ...props }: HTMLAttributes<HTMLElement>) 
 
 type PageHeaderProps = HTMLAttributes<HTMLElement> & {
   actions?: ReactNode
-  context?: string
+  context?: ReactNode
   description?: ReactNode
   metadata?: ReactNode
+  navigation?: ReactNode
   title: string
-  variant?: 'standard' | 'entity' | 'compact'
+  variant?: 'standard' | 'entity' | 'compact' | 'cockpit'
 }
 
 export function PageHeader({
@@ -27,28 +32,54 @@ export function PageHeader({
   context,
   description,
   metadata,
+  navigation,
   title,
   variant = 'standard',
   ...props
 }: PageHeaderProps) {
   return (
     <header
-      className={['page-header', className].filter(Boolean).join(' ')}
-      data-variant={variant}
+      className={['page-header', `page-header-${variant}`, className].filter(Boolean).join(' ')}
       {...props}
     >
-      <div className="page-header__content">
-        {context && <span className="page-header__context">{context}</span>}
-        <h1 className="page-header__title">{title}</h1>
-        {description && <div className="page-header__description">{description}</div>}
-        {metadata && <div className="page-header__metadata">{metadata}</div>}
+      <div>
+        {context && <div>{context}</div>}
+        <h1>{title}</h1>
+        {description && <p>{description}</p>}
+        {metadata && <small>{metadata}</small>}
       </div>
       {actions && (
-        <ControlContext className="page-header__actions" context="toolbar" density="compact">
+        <ControlContext className="actions" context="toolbar" density="compact">
           {actions}
         </ControlContext>
       )}
+      {navigation && <div className="navigation">{navigation}</div>}
     </header>
+  )
+}
+
+type BreadcrumbItem = {
+  href?: string
+  label: string
+}
+
+type BreadcrumbsProps = HTMLAttributes<HTMLElement> & {
+  items: BreadcrumbItem[]
+}
+
+export function Breadcrumbs({ className, items, ...props }: BreadcrumbsProps) {
+  return (
+    <nav aria-label="Breadcrumb" className={['breadcrumbs', className].filter(Boolean).join(' ')} {...props}>
+      <ol>
+        {items.map((item, index) => (
+          <li key={item.label}>
+            {item.href
+              ? <a href={item.href}>{item.label}</a>
+              : <span aria-current={index === items.length - 1 ? 'page' : undefined}>{item.label}</span>}
+          </li>
+        ))}
+      </ol>
+    </nav>
   )
 }
 
@@ -73,23 +104,22 @@ export function Section({
 
   return (
     <section
-      className={['section', className].filter(Boolean).join(' ')}
-      data-divider={divider || undefined}
+      className={['section', divider && 'divided', className].filter(Boolean).join(' ')}
       aria-labelledby={headingId}
       {...props}
     >
-      <div className="section__header">
-        <div className="section__heading">
-          <h2 className="section__title" id={headingId}>{title}</h2>
-          {description && <div className="section__description">{description}</div>}
+      <header>
+        <div>
+          <h2 id={headingId}>{title}</h2>
+          {description && <p>{description}</p>}
         </div>
         {actions && (
-          <ControlContext className="section__actions" context="toolbar" density="compact">
+          <ControlContext className="actions" context="toolbar" density="compact">
             {actions}
           </ControlContext>
         )}
-      </div>
-      <div className="section__content">{children}</div>
+      </header>
+      <div>{children}</div>
     </section>
   )
 }
@@ -98,7 +128,7 @@ type PanelProps = HTMLAttributes<HTMLElement> & {
   actions?: ReactNode
   description?: ReactNode
   title?: string
-  variant?: 'standard' | 'quiet' | 'danger'
+  variant?: 'standard' | 'quiet' | 'cockpit' | 'danger'
 }
 
 export function Panel({
@@ -115,21 +145,20 @@ export function Panel({
 
   return (
     <article
-      className={['panel', className].filter(Boolean).join(' ')}
-      data-variant={variant}
+      className={['panel', `panel-${variant}`, className].filter(Boolean).join(' ')}
       aria-labelledby={headingId}
       {...props}
     >
       {(title || description || actions) && (
-        <div className="panel__header">
-          <div className="panel__heading">
-            {title && <h3 className="panel__title" id={headingId}>{title}</h3>}
-            {description && <div className="panel__description">{description}</div>}
+        <header>
+          <div>
+            {title && <h3 id={headingId}>{title}</h3>}
+            {description && <p>{description}</p>}
           </div>
-          {actions && <div className="panel__actions">{actions}</div>}
-        </div>
+          {actions && <div className="actions">{actions}</div>}
+        </header>
       )}
-      <div className="panel__content">{children}</div>
+      <div>{children}</div>
     </article>
   )
 }

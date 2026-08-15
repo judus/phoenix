@@ -9,9 +9,15 @@ type ControlContextProps = ComponentPropsWithoutRef<'div'> & {
 }
 
 export function ControlContext({
+  className,
   context = 'panel',
   density = 'regular',
   ...props
 }: ControlContextProps) {
-  return <div data-control-context={context} data-density={density} {...props} />
+  return (
+    <div
+      className={['controls', `controls-${context}`, `density-${density}`, className].filter(Boolean).join(' ')}
+      {...props}
+    />
+  )
 }

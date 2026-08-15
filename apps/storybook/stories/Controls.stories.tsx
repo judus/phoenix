@@ -23,16 +23,16 @@ function ButtonSection() {
   return (
     <Stack gap="sm">
       <h2>Buttons and context</h2>
-      <ControlContext className="control-story__toolbar" context="toolbar" density="compact">
+      <ControlContext context="toolbar" density="compact">
         <Inline gap="xs">
-          <strong className="control-story__toolbar-title">Toolbar context</strong>
+          <strong>Toolbar context</strong>
           <Button variant="quiet">Cancel</Button>
           <Button variant="primary">Save layout</Button>
         </Inline>
       </ControlContext>
-      <ControlContext className="control-story__panel" context="panel">
+      <ControlContext context="panel">
         <Stack gap="sm">
-          <p className="control-story__caption">
+          <p className="text-muted">
             Variants keep their meaning while presentation and density are inherited explicitly.
           </p>
           <Inline>
@@ -58,7 +58,7 @@ function FormSection() {
   return (
     <Stack gap="sm">
       <h2>Form controls</h2>
-      <ControlContext className="control-story__panel" context="panel">
+      <ControlContext context="panel">
         <Stack>
           <AutoGrid minimum="md">
             <Field htmlFor="reference-system" label="Reference system" hint="Current location is used by default.">
@@ -75,7 +75,7 @@ function FormSection() {
               <TextInput placeholder="Search commodities" />
             </Field>
           </AutoGrid>
-          <Inline className="control-story__form-actions" justify="end">
+          <Inline className="actions" justify="end">
             <Button variant="quiet">Reset</Button>
             <Button variant="primary">Search</Button>
           </Inline>
@@ -89,7 +89,7 @@ function CommandSection() {
   return (
     <Stack gap="sm">
       <h2>Adaptive command grid</h2>
-      <p className="control-story__caption">
+      <p className="text-muted">
         Resize the canvas and switch PHOENIX/ELITE in the Storybook toolbar. The same semantic tiles
         become restrained terminal controls or bold cockpit blocks.
       </p>
@@ -108,7 +108,7 @@ function ControlsOverview() {
       <Stack gap="xxl">
         <Stack gap="xs">
           <h1>Controls</h1>
-          <p className="control-story__intro">
+          <p className="text-muted">
             Atomic controls composed through explicit context, density, and responsive primitives.
           </p>
         </Stack>

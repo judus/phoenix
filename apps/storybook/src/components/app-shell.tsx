@@ -28,29 +28,28 @@ export function AppNavigation({
 }: AppNavigationProps) {
   return (
     <nav
-      className={['app-navigation', className].filter(Boolean).join(' ')}
-      data-slot={slot}
+      className={['app-navigation', `navigation-${slot}`, className].filter(Boolean).join(' ')}
       aria-label={label}
       {...props}
     >
-      <ul className="app-navigation__list">
+      <ul>
         {items.map((item) => (
-          <li key={item.id} className="app-navigation__entry">
+          <li key={item.id}>
             {item.disabled ? (
-              <span className="app-navigation__item" aria-disabled="true" data-disabled="true">
-                {item.shortLabel && <span className="app-navigation__short" aria-hidden="true">{item.shortLabel}</span>}
-                <span className="app-navigation__label">{item.label}</span>
-                {item.badge && <span className="app-navigation__badge">{item.badge}</span>}
+              <span className="nav-item disabled" aria-disabled="true">
+                {item.shortLabel && <abbr title={item.label} aria-hidden="true">{item.shortLabel}</abbr>}
+                <span>{item.label}</span>
+                {item.badge && <small>{item.badge}</small>}
               </span>
             ) : (
               <a
-                className={['app-navigation__item', current === item.id && 'active'].filter(Boolean).join(' ')}
+                className={['nav-item', current === item.id && 'active'].filter(Boolean).join(' ')}
                 href={item.href}
                 aria-current={current === item.id ? 'page' : undefined}
               >
-                {item.shortLabel && <span className="app-navigation__short" aria-hidden="true">{item.shortLabel}</span>}
-                <span className="app-navigation__label">{item.label}</span>
-                {item.badge && <span className="app-navigation__badge">{item.badge}</span>}
+                {item.shortLabel && <abbr title={item.label} aria-hidden="true">{item.shortLabel}</abbr>}
+                <span>{item.label}</span>
+                {item.badge && <small>{item.badge}</small>}
               </a>
             )}
           </li>
@@ -86,17 +85,17 @@ export function AppShell({
       className={['app-shell-container', className].filter(Boolean).join(' ')}
       {...props}
     >
-      <div className="app-shell" data-navigation={navigation}>
-        <header className="app-shell__header">
-          <div className="app-shell__brand">{brand}</div>
-          {status && <div className="app-shell__status">{status}</div>}
-          {utilities && <div className="app-shell__utilities">{utilities}</div>}
+      <div className={['app-shell', `navigation-${navigation}`].join(' ')}>
+        <header className="topbar">
+          <div className="brand">{brand}</div>
+          {status && <div className="status-area">{status}</div>}
+          {utilities && <div className="utilities">{utilities}</div>}
         </header>
-        <div className="app-shell__primary">{primaryNavigation}</div>
-        <div className="app-shell__workspace" data-scroll-owner="workspace">
+        <div className="primary-navigation">{primaryNavigation}</div>
+        <div className="workspace">
           {children}
         </div>
-        {secondaryNavigation && <div className="app-shell__secondary">{secondaryNavigation}</div>}
+        {secondaryNavigation && <div className="secondary-navigation">{secondaryNavigation}</div>}
       </div>
     </div>
   )

@@ -28,14 +28,14 @@ export function Field({ children, htmlFor, label, hint, error, required = false 
   })
 
   return (
-    <div className="field" data-invalid={Boolean(error) || undefined}>
-      <label className="field__label" htmlFor={htmlFor}>
+    <div className={['field', error && 'invalid'].filter(Boolean).join(' ')}>
+      <label htmlFor={htmlFor}>
         {label}
-        {required && <span className="field__required">Required</span>}
+        {required && <small className="text-muted text-xxs">Required</small>}
       </label>
       {control}
       {(error || hint) && (
-        <p className="field__message" data-error={Boolean(error) || undefined} id={messageId}>
+        <p className={error ? 'text-danger' : undefined} id={messageId}>
           {error ?? hint}
         </p>
       )}
@@ -44,12 +44,12 @@ export function Field({ children, htmlFor, label, hint, error, required = false 
 }
 
 export function TextInput({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={['text-input', className].filter(Boolean).join(' ')} {...props} />
+  return <input className={['form-control', className].filter(Boolean).join(' ')} {...props} />
 }
 
 export function Select({ className, children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select className={['select', className].filter(Boolean).join(' ')} {...props}>
+    <select className={['form-select', className].filter(Boolean).join(' ')} {...props}>
       {children}
     </select>
   )

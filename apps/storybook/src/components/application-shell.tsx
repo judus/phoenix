@@ -24,26 +24,29 @@ export function Navigation({
 }: NavigationProps) {
   return (
     <nav
-      className={['application-navigation', className].filter(Boolean).join(' ')}
-      data-selection={selection}
-      data-variant={variant}
+      className={[
+        'application-navigation',
+        `navigation-${variant}`,
+        `selection-${selection}`,
+        className
+      ].filter(Boolean).join(' ')}
       aria-label={label}
       {...props}
     >
-      <ul className="application-navigation__list">
+      <ul>
         {items.map((item) => (
-          <li key={item.id} className="application-navigation__entry">
+          <li key={item.id}>
             {item.disabled ? (
-              <span className="application-navigation__item" data-disabled="true" aria-disabled="true">
-                <span className="application-navigation__compact" aria-hidden="true">
+              <span className="nav-item disabled" aria-disabled="true">
+                <abbr title={item.label} aria-hidden="true">
                   {item.shortLabel ?? item.label.slice(0, 3)}
-                </span>
-                <span className="application-navigation__label">{item.label}</span>
-                {item.badge && <span className="application-navigation__badge">{item.badge}</span>}
+                </abbr>
+                <span>{item.label}</span>
+                {item.badge && <small>{item.badge}</small>}
               </span>
             ) : (
               <a
-                className={['application-navigation__item', current === item.id && 'active'].filter(Boolean).join(' ')}
+                className={['nav-item', current === item.id && 'active'].filter(Boolean).join(' ')}
                 href={item.href}
                 aria-current={current === item.id ? 'page' : undefined}
                 onClick={(event) => {
@@ -53,11 +56,11 @@ export function Navigation({
                 }}
                 title={variant === 'compact' ? item.label : undefined}
               >
-                <span className="application-navigation__compact" aria-hidden="true">
+                <abbr title={item.label} aria-hidden="true">
                   {item.shortLabel ?? item.label.slice(0, 3)}
-                </span>
-                <span className="application-navigation__label">{item.label}</span>
-                {item.badge && <span className="application-navigation__badge">{item.badge}</span>}
+                </abbr>
+                <span>{item.label}</span>
+                {item.badge && <small>{item.badge}</small>}
               </a>
             )}
           </li>
@@ -83,10 +86,10 @@ type TopBarProps = HTMLAttributes<HTMLElement> & {
 
 export function TopBar({ brand, className, status, utilities, ...props }: TopBarProps) {
   return (
-    <header className={['application-shell__topbar', className].filter(Boolean).join(' ')} {...props}>
-      <div className="application-shell__brand">{brand}</div>
-      {status && <div className="application-shell__status">{status}</div>}
-      {utilities && <div className="application-shell__utilities">{utilities}</div>}
+    <header className={['topbar', className].filter(Boolean).join(' ')} {...props}>
+      <div className="brand">{brand}</div>
+      {status && <div className="status-area">{status}</div>}
+      {utilities && <div className="utilities">{utilities}</div>}
     </header>
   )
 }
@@ -98,18 +101,17 @@ type PrimaryBarProps = HTMLAttributes<HTMLDivElement> & {
 export function PrimaryBar({ children, className, launcher, ...props }: PrimaryBarProps) {
   return (
     <div
-      className={['application-shell__primary-band', className].filter(Boolean).join(' ')}
-      data-launcher={Boolean(launcher)}
+      className={['primary-bar', launcher && 'has-launcher', className].filter(Boolean).join(' ')}
       {...props}
     >
-      {launcher && <div className="application-shell__launcher">{launcher}</div>}
-      <div className="application-shell__primary">{children}</div>
+      {launcher && <div className="launcher">{launcher}</div>}
+      <div className="primary-navigation">{children}</div>
     </div>
   )
 }
 
 export function Workspace({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={['application-shell__body', className].filter(Boolean).join(' ')} {...props} />
+  return <div className={['shell-body', className].filter(Boolean).join(' ')} {...props} />
 }
 
 type RailProps = HTMLAttributes<HTMLElement> & {
@@ -119,7 +121,7 @@ type RailProps = HTMLAttributes<HTMLElement> & {
 export function Rail({ className, label, ...props }: RailProps) {
   return (
     <aside
-      className={['application-shell__context', className].filter(Boolean).join(' ')}
+      className={['context-rail', className].filter(Boolean).join(' ')}
       aria-label={label}
       {...props}
     />
@@ -129,8 +131,7 @@ export function Rail({ className, label, ...props }: RailProps) {
 export function Content({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={['application-shell__workspace', className].filter(Boolean).join(' ')}
-      data-scroll-owner="workspace"
+      className={['workspace', className].filter(Boolean).join(' ')}
       {...props}
     />
   )
@@ -139,7 +140,7 @@ export function Content({ className, ...props }: HTMLAttributes<HTMLDivElement>)
 export function BottomBar({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={['application-shell__workspace-navigation', className].filter(Boolean).join(' ')}
+      className={['workspace-navigation', className].filter(Boolean).join(' ')}
       {...props}
     />
   )

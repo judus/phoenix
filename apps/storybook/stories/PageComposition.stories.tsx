@@ -3,13 +3,15 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { Button } from '../src/components/button'
 import { ControlContext } from '../src/components/control-context'
 import { Field, Select, TextInput } from '../src/components/field'
-import { AutoGrid, Stack } from '../src/components/layout'
+import { AutoGrid, Inline, Stack } from '../src/components/layout'
+import { DescriptionItem, DescriptionList } from '../src/components/description-list'
+import { Metric } from '../src/components/metric'
 import { PageFrame, PageHeader, Panel, Section } from '../src/components/page'
 import '../src/styles/page-stories.css'
 
 function RouteForm() {
   return (
-    <ControlContext className="page-story__form" context="panel">
+    <ControlContext className="route-form" context="panel">
       <AutoGrid gap="md" minimum="md">
         <Field htmlFor="route-origin" label="Origin" hint="Uses the current system when empty.">
           <TextInput defaultValue="Col 285 Sector OK-C B14-5" />
@@ -25,20 +27,11 @@ function RouteForm() {
           </Select>
         </Field>
       </AutoGrid>
-      <div className="page-story__form-actions">
+      <Inline justify="end">
         <Button variant="quiet">Clear</Button>
         <Button variant="primary">Calculate route</Button>
-      </div>
+      </Inline>
     </ControlContext>
-  )
-}
-
-function Metric({ detail, value }: { detail: string; value: string }) {
-  return (
-    <div className="metric">
-      <strong className="metric__value">{value}</strong>
-      <span className="metric__detail">{detail}</span>
-    </div>
   )
 }
 
@@ -79,11 +72,11 @@ function OperationsPage() {
         </Section>
 
         <Section divider title="Route summary">
-          <dl className="route-summary">
-            <div className="route-summary__row"><dt>First waypoint</dt><dd>HIP 97950</dd></div>
-            <div className="route-summary__row"><dt>Refuel strategy</dt><dd>Scoop when projected reserve falls below 45%</dd></div>
-            <div className="route-summary__row"><dt>Warnings</dt><dd>Two systems have incomplete service data</dd></div>
-          </dl>
+          <DescriptionList className="route-summary">
+            <DescriptionItem label="First waypoint" value="HIP 97950" />
+            <DescriptionItem label="Refuel strategy" value="Scoop when projected reserve falls below 45%" />
+            <DescriptionItem label="Warnings" value="Two systems have incomplete service data" />
+          </DescriptionList>
         </Section>
       </Stack>
     </PageFrame>
@@ -116,7 +109,7 @@ function BoundaryDiscipline() {
           description="Spacing creates ordinary groups. Panels identify independent widgets."
         />
         <AutoGrid gap="xl" minimum="md">
-          <div className="boundary-example boundary-example__open">
+          <div className="boundary-example open">
             <h3>Open content group</h3>
             <p>Use for forms, lists, tables, and related page content.</p>
           </div>

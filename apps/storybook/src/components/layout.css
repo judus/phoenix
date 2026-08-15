@@ -2,25 +2,42 @@
   .stack {
     display: flex;
     flex-direction: column;
-    align-items: var(--stack-align);
-    gap: var(--layout-gap);
     min-inline-size: 0;
   }
 
   .inline {
     display: flex;
-    align-items: var(--inline-align);
-    justify-content: var(--inline-justify);
-    gap: var(--layout-gap);
     min-inline-size: 0;
-  }
 
-  .inline[data-wrap='true'] { flex-wrap: wrap; }
+    &.wrap { flex-wrap: wrap; }
+    &.nowrap { flex-wrap: nowrap; }
+  }
 
   .auto-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--grid-minimum)), 1fr));
-    gap: var(--layout-gap);
     min-inline-size: 0;
+
+    &.grid-sm { grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); }
+    &.grid-md { grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); }
+    &.grid-lg { grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); }
   }
+
+  .gap-xxs { gap: var(--spacing-xxs); }
+  .gap-xs { gap: var(--spacing-xs); }
+  .gap-sm { gap: var(--spacing-sm); }
+  .gap-md { gap: var(--spacing-md); }
+  .gap-lg { gap: var(--spacing-lg); }
+  .gap-xl { gap: var(--spacing-xl); }
+  .gap-xxl { gap: var(--spacing-xxl); }
+
+  .align-stretch { align-items: stretch; }
+  .align-start { align-items: flex-start; }
+  .align-center { align-items: center; }
+  .align-end { align-items: flex-end; }
+  .align-baseline { align-items: baseline; }
+
+  .justify-start { justify-content: flex-start; }
+  .justify-center { justify-content: center; }
+  .justify-end { justify-content: flex-end; }
+  .justify-space-between { justify-content: space-between; }
 }

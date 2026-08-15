@@ -1,5 +1,5 @@
 @layer stories {
-  .data-story__identifier {
+  .identifier {
     display: grid;
     place-items: center;
     inline-size: 2.5rem;
@@ -11,19 +11,13 @@
     text-transform: uppercase;
   }
 
-  .data-story__name {
+  .entity-name {
     display: grid;
     gap: var(--spacing-xxs);
-  }
 
-  .data-story__secondary {
-    color: var(--color-text-muted);
-    font-size: var(--font-size-xs);
-  }
-
-  .data-story__note {
-    margin: 0;
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
+    small {
+      color: var(--color-text-muted);
+      font-size: var(--font-size-xs);
+    }
   }
 }

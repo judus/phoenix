@@ -167,7 +167,7 @@
     --container-xxl: 90rem;
   }
 
-  [data-presentation='elite'] {
+  .presentation-elite {
     --control-block-size: 3rem;
     --control-padding-inline: var(--spacing-md);
     --control-border-width: 2px;

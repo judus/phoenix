@@ -27,19 +27,19 @@ function tokenStyle(token: string): CSSProperties {
 function Foundations() {
   return (
     <main className="foundations">
-      <header className="foundations__header">
+      <header>
         <h1>PHOENIX foundations</h1>
-        <p className="foundations__intro">
+        <p className="text-muted">
           Extracted from the current interface, normalized into reusable semantic scales.
         </p>
       </header>
 
-      <section className="foundations__section">
+      <section>
         <h2>Semantic colors</h2>
         <div className="token-grid">
           {colors.map(([label, token]) => (
             <article className="color-token" key={token}>
-              <div className="color-token__swatch" style={tokenStyle(token)} />
+              <i style={tokenStyle(token)} />
               <div className="token-label">
                 <strong>{label}</strong>
                 <code>{token}</code>
@@ -49,7 +49,7 @@ function Foundations() {
         </div>
       </section>
 
-      <section className="foundations__section">
+      <section>
         <h2>Type scale</h2>
         <div className="type-scale">
           {sizes.map((size) => {
@@ -60,14 +60,14 @@ function Foundations() {
                   <strong>{size.toUpperCase()}</strong>
                   <code>{token}</code>
                 </div>
-                <span className="type-sample" style={tokenStyle(token)}>Flight systems nominal</span>
+                <span className="sample" style={tokenStyle(token)}>Flight systems nominal</span>
               </article>
             )
           })}
         </div>
       </section>
 
-      <section className="foundations__section">
+      <section>
         <h2>Spacing scale</h2>
         <div className="spacing-scale">
           {sizes.map((size) => {
@@ -78,16 +78,16 @@ function Foundations() {
                   <strong>{size.toUpperCase()}</strong>
                   <code>{token}</code>
                 </div>
-                <span className="spacing-sample" style={tokenStyle(token)} />
+                <i className="sample" style={tokenStyle(token)} />
               </article>
             )
           })}
         </div>
       </section>
 
-      <section className="foundations__section">
+      <section>
         <h2>Responsive scale</h2>
-        <p className="foundations__note">
+        <p className="text-muted">
           Viewport and container scales share names and values. Components prefer container queries;
           viewport queries are reserved for shell-level behavior.
         </p>
@@ -101,9 +101,9 @@ function Foundations() {
           ))}
         </div>
         <div className="orientation-demo">
-          <div className="orientation-demo__grid">
-            <div className="orientation-demo__item">Landscape arrangement</div>
-            <div className="orientation-demo__item">Portrait collapse</div>
+          <div className="layout">
+            <div>Landscape arrangement</div>
+            <div>Portrait collapse</div>
           </div>
         </div>
       </section>
