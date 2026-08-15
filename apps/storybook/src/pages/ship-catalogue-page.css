@@ -44,34 +44,6 @@
         overflow: auto;
       }
 
-      tbody tr {
-        cursor: pointer;
-
-        &:focus-visible {
-          outline: 2px solid var(--color-focus);
-          outline-offset: -2px;
-        }
-      }
-
-      tbody th {
-        strong,
-        small { display: block; }
-
-        strong {
-          color: var(--color-text);
-          font-size: var(--font-size-sm);
-          font-weight: var(--font-weight-normal);
-        }
-
-        small {
-          margin-block-start: var(--spacing-xxs);
-          color: var(--color-text-muted);
-          font-size: var(--font-size-xs);
-          font-weight: var(--font-weight-normal);
-          letter-spacing: normal;
-          text-transform: none;
-        }
-      }
     }
 
     .hull-schematic {
@@ -232,68 +204,6 @@
         overflow: auto;
       }
 
-      thead {
-        position: sticky;
-        z-index: 1;
-        inset-block-start: 0;
-        background: var(--color-canvas);
-
-        th {
-          padding: 0;
-
-          button {
-            inline-size: 100%;
-            padding: var(--table-cell-padding-block) var(--table-cell-padding-inline);
-            border: 0;
-            color: inherit;
-            background: transparent;
-            font: inherit;
-            letter-spacing: inherit;
-            text-align: inherit;
-            text-transform: inherit;
-            cursor: pointer;
-
-            &::after {
-              margin-inline-start: var(--spacing-xxs);
-              color: var(--color-text-muted);
-              content: '⇅';
-            }
-
-            &:hover { color: var(--color-text); }
-
-            &:focus-visible {
-              outline: 2px solid var(--color-focus);
-              outline-offset: -2px;
-            }
-          }
-
-          &[aria-sort='ascending'] button::after {
-            color: var(--color-information);
-            content: '↑';
-          }
-
-          &[aria-sort='descending'] button::after {
-            color: var(--color-information);
-            content: '↓';
-          }
-        }
-      }
-
-      tbody tr {
-        cursor: pointer;
-
-        &:focus-visible {
-          outline: 2px solid var(--color-focus);
-          outline-offset: -2px;
-        }
-
-        &.active {
-          color: var(--color-information);
-          background: rgb(94 234 255 / 8%);
-        }
-      }
-
-      tbody th { white-space: nowrap; }
     }
   }
 

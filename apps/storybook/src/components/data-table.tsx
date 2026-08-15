@@ -1,4 +1,4 @@
-import type { ReactNode, TableHTMLAttributes } from 'react'
+import type { HTMLAttributes, ReactNode, TableHTMLAttributes } from 'react'
 
 import './data-display.css'
 
@@ -7,6 +7,8 @@ type DataTableProps = Omit<TableHTMLAttributes<HTMLTableElement>, 'aria-label'> 
   label: string
   minimum?: 'standard' | 'wide'
   narrow?: 'scroll' | 'priority'
+  scheme?: 'default' | 'surface' | 'information'
+  stickyHeader?: boolean
   children: ReactNode
 }
 
@@ -17,6 +19,8 @@ export function DataTable({
   label,
   minimum = 'standard',
   narrow = 'scroll',
+  scheme = 'default',
+  stickyHeader = false,
   ...props
 }: DataTableProps) {
   return (
@@ -34,6 +38,8 @@ export function DataTable({
         className={[
           'data-table',
           density !== 'standard' && density,
+          scheme !== 'default' && scheme,
+          stickyHeader && 'sticky-header',
           className
         ].filter(Boolean).join(' ')}
         {...props}
@@ -42,5 +48,22 @@ export function DataTable({
         {children}
       </table>
     </div>
+  )
+}
+
+type DataTableGroupProps = HTMLAttributes<HTMLElement> & {
+  meta?: ReactNode
+  title: string
+}
+
+export function DataTableGroup({ children, className, meta, title, ...props }: DataTableGroupProps) {
+  return (
+    <section className={['data-table-group', className].filter(Boolean).join(' ')} {...props}>
+      <header>
+        <h2>{title}</h2>
+        {meta && <small>{meta}</small>}
+      </header>
+      {children}
+    </section>
   )
 }

@@ -1,111 +1,168 @@
-import { Button } from '../components/button'
-import { DataTable } from '../components/data-table'
-import { AutoGrid, Stack } from '../components/layout'
-import { Metric } from '../components/metric'
-import { PageFrame, PageHeader, Panel, Section } from '../components/page'
-import { Status, type StatusTone } from '../components/status'
+import { DataTable, DataTableGroup } from '../components/data-table'
+import { PageFrame, PageHeader } from '../components/page'
+import './fleet-page.css'
 
-type Ship = {
+type Vessel = {
   location: string
   name: string
-  role: string
-  status: string
-  statusTone: StatusTone
+  observed: string
+  state: string
   type: string
+  value: string
 }
 
-const ships: Ship[] = [
+const vessels: Vessel[] = [
   {
     name: 'Type-11 Prospector',
-    type: 'Type-11 Prospector',
-    role: 'Mining and heavy cargo',
-    location: 'Col 285 Sector OK-C B14-5',
-    status: 'Current ship',
-    statusTone: 'positive'
+    type: 'Type-11 Prospector · EL-06L',
+    state: 'Active',
+    location: 'Locke Terminal · Col 285 Sector OK-C B14-5',
+    value: '119,608,273 CR',
+    observed: '15 Aug · 18:28'
   },
   {
-    name: 'Nightjar',
+    name: 'Alliance Chieftain',
+    type: 'Alliance Chieftain',
+    state: 'Stored remote',
+    location: 'Capricorni Sector DG-X b1-1',
+    value: '98,508,667 CR',
+    observed: '15 Aug · 09:39'
+  },
+  {
+    name: 'Eagle',
+    type: 'Eagle',
+    state: 'Stored remote',
+    location: 'Atata',
+    value: '38,970 CR',
+    observed: '15 Aug · 09:39'
+  },
+  {
+    name: 'Imperial Eagle',
+    type: 'Imperial Eagle',
+    state: 'Stored remote',
+    location: 'Atata',
+    value: '98,392 CR',
+    observed: '15 Aug · 09:39'
+  },
+  {
+    name: 'Krait Mk II',
     type: 'Krait Mk II',
-    role: 'Multipurpose combat',
-    location: 'Jameson Memorial',
-    status: 'Stored',
-    statusTone: 'muted'
+    state: 'Stored remote',
+    location: 'Suhte',
+    value: '152,991,505 CR',
+    observed: '15 Aug · 09:39'
   },
   {
-    name: 'Wayfarer',
-    type: 'Diamondback Explorer',
-    role: 'Long-range exploration',
-    location: 'Ray Gateway',
-    status: 'Transfer available',
-    statusTone: 'information'
+    name: 'Mandalay',
+    type: 'Mandalay',
+    state: 'Stored remote',
+    location: 'Suhte',
+    value: '48,587,246 CR',
+    observed: '15 Aug · 09:39'
   },
   {
-    name: 'Iron Kestrel',
-    type: 'Vulture',
-    role: 'Bounty hunting',
-    location: 'Lave Station',
-    status: 'Stored',
-    statusTone: 'muted'
+    name: 'Python',
+    type: 'Python',
+    state: 'Stored remote',
+    location: 'Atata',
+    value: '126,311,549 CR',
+    observed: '15 Aug · 09:39'
+  },
+  {
+    name: 'Sidewinder',
+    type: 'Sidewinder',
+    state: 'Stored remote',
+    location: 'Atata',
+    value: '27,450 CR',
+    observed: '15 Aug · 09:39'
+  },
+  {
+    name: 'Type-6 Transporter',
+    type: 'Type-6 Transporter',
+    state: 'Stored remote',
+    location: 'Atata',
+    value: '4,696,963 CR',
+    observed: '15 Aug · 09:39'
+  },
+  {
+    name: 'MURDOCK',
+    type: 'Viper Mk IV',
+    state: 'Stored remote',
+    location: 'Atata',
+    value: '5,091,762 CR',
+    observed: '15 Aug · 09:39'
   }
+]
+
+const fleetSummary = [
+  ['Active', '1'],
+  ['Owned', '10'],
+  ['Stored', '9'],
+  ['Transferring', '0'],
+  ['Unknown', '0']
 ]
 
 export function FleetPage() {
   return (
-    <PageFrame>
-      <Stack gap="xxl">
+    <PageFrame layout="fit">
+      <div className="fleet-overview">
         <PageHeader
-          context="Fleet"
-          title="Ship registry"
-          description="Review registered vessels, current assignments, and transfer availability."
-          metadata="4 registered vessels · 1 active · Last synchronized 2 minutes ago"
-          actions={<Button variant="primary">Open shipyard</Button>}
+          variant="cockpit"
+          title="Fleet"
         />
 
-        <Section title="Fleet overview">
-          <AutoGrid minimum="sm" gap="sm">
-            <Panel title="Current ship">
-              <Metric value="Type-11 Prospector" detail="Docked locally · Hull 100%" />
-            </Panel>
-            <Panel title="Stored vessels">
-              <Metric value="3" detail="Across three stations" />
-            </Panel>
-            <Panel title="Insurance exposure">
-              <Metric value="41.8 M CR" detail="Combined rebuy value" />
-            </Panel>
-          </AutoGrid>
-        </Section>
+        <dl className="fleet-summary">
+          {fleetSummary.map(([label, value]) => (
+            <div key={label}>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
 
-        <Section
-          divider
-          title="Registered ships"
-          description="Locations and availability reflect the last successful game sync."
-        >
-          <DataTable label="Registered ships" narrow="priority">
+        <DataTableGroup className="vessels" title="Owned vessels">
+          <DataTable density="compact" label="Owned vessels" minimum="wide" narrow="priority" scheme="surface">
             <thead>
               <tr>
-                <th scope="col">Ship</th>
-                <th className="priority-secondary" scope="col">Type</th>
-                <th className="priority-tertiary" scope="col">Assignment</th>
+                <th scope="col">Vessel</th>
+                <th scope="col">State</th>
                 <th className="priority-secondary" scope="col">Location</th>
-                <th scope="col">Status</th>
-                <th scope="col"><span className="sr-only">Actions</span></th>
+                <th className="numeric" scope="col">Value</th>
+                <th className="priority-tertiary" scope="col">Transfer</th>
+                <th className="priority-tertiary" scope="col">Observed</th>
               </tr>
             </thead>
             <tbody>
-              {ships.map((ship, index) => (
-                <tr className={index === 0 ? 'active' : undefined} key={ship.name}>
-                  <th scope="row">{ship.name}</th>
-                  <td className="priority-secondary">{ship.type}</td>
-                  <td className="priority-tertiary">{ship.role}</td>
-                  <td className="priority-secondary">{ship.location}</td>
-                  <td><Status tone={ship.statusTone}>{ship.status}</Status></td>
-                  <td><Button size="sm" variant="quiet">View</Button></td>
+              {vessels.map((vessel, index) => (
+                <tr className={index === 0 ? 'active' : undefined} key={vessel.name}>
+                  <td>
+                    <strong>{vessel.name}</strong>
+                    <small>{vessel.type}</small>
+                  </td>
+                  <td>{vessel.state}</td>
+                  <td className="priority-secondary">{vessel.location}</td>
+                  <td className="numeric">{vessel.value}</td>
+                  <td className="priority-tertiary">—</td>
+                  <td className="priority-tertiary">{vessel.observed}</td>
                 </tr>
               ))}
             </tbody>
           </DataTable>
-        </Section>
-      </Stack>
+        </DataTableGroup>
+
+        <dl className="asset-summary">
+          <div>
+            <dt>Stored equipment</dt>
+            <dd>89</dd>
+            <small>Authoritative snapshot</small>
+          </div>
+          <div>
+            <dt>Fleet carriers</dt>
+            <dd>0</dd>
+            <small>No authoritative record observed</small>
+          </div>
+        </dl>
+      </div>
     </PageFrame>
   )
 }

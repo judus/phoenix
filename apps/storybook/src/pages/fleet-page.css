@@ -1,0 +1,96 @@
+@layer components {
+  .fleet-overview {
+    container: fleet-overview / size;
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    gap: var(--spacing-sm);
+    inline-size: 100%;
+    block-size: 100%;
+    min-inline-size: 0;
+    min-block-size: 0;
+    overflow: hidden;
+
+    dl { margin: 0; }
+
+    .fleet-summary,
+    .asset-summary {
+      display: grid;
+      border-block: 1px solid var(--color-border-subtle);
+
+      > div {
+        display: grid;
+        align-content: center;
+        min-inline-size: 0;
+        padding: var(--spacing-sm);
+
+        &:not(:last-child) { border-inline-end: 1px solid var(--color-border-subtle); }
+      }
+
+      dt {
+        color: var(--color-action);
+        font-size: var(--font-size-sm);
+        text-transform: uppercase;
+      }
+
+      dd {
+        margin: 0;
+        color: var(--color-text);
+        font-size: var(--font-size-xl);
+        line-height: var(--line-height-tight);
+      }
+    }
+
+    .fleet-summary {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .vessels {
+      grid-template-rows: auto minmax(0, 1fr);
+      min-inline-size: 0;
+      min-block-size: 0;
+      overflow: hidden;
+
+      .table-region {
+        min-block-size: 0;
+        overflow: auto;
+      }
+    }
+
+    .asset-summary {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+
+      > div { padding-block: var(--spacing-xs); }
+
+      small {
+        color: var(--color-text-muted);
+        font-size: var(--font-size-xs);
+      }
+    }
+  }
+
+  @container fleet-overview (height < 44rem) {
+    .fleet-overview {
+      gap: var(--spacing-xs);
+
+      .fleet-summary,
+      .asset-summary {
+        > div { padding-block: var(--spacing-xs); }
+      }
+
+      .fleet-summary dd,
+      .asset-summary dd { font-size: var(--font-size-lg); }
+    }
+  }
+
+  @container fleet-overview (width < 44rem) {
+    .fleet-overview {
+      .fleet-summary {
+        overflow-x: auto;
+
+        > div { min-inline-size: 7rem; }
+      }
+
+      .asset-summary small { display: none; }
+    }
+  }
+}

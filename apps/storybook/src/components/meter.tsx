@@ -13,7 +13,7 @@ type MeterProps = HTMLAttributes<HTMLDivElement> & {
 
 export function Meter({ className, label, layout = 'stacked', max = 100, tone = 'information', value, valueLabel, ...props }: MeterProps) {
   return (
-    <div className={['meter', `meter-${tone}`, layout === 'inline' && 'inline', className].filter(Boolean).join(' ')} {...props}>
+    <div className={['meter', `meter-${tone}`, layout === 'inline' && 'meter-inline', className].filter(Boolean).join(' ')} {...props}>
       <span>{label}</span>
       <progress aria-label={label} max={max} value={value} />
       <output>{valueLabel}</output>

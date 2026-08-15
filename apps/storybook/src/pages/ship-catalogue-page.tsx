@@ -38,10 +38,10 @@ function HullRoster({ current, onSelect }: { current: string, onSelect: (ship: S
                 }
               }}
             >
-              <th scope="row">
+              <td>
                 <strong>{ship.displayName}</strong>
                 <small>{ship.manufacturer ?? '—'}</small>
-              </th>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -202,7 +202,7 @@ function CatalogueTable({
 
   return (
     <div className="catalogue-table-view">
-      <DataTable density="compact" label="Known ship hulls" minimum="wide">
+      <DataTable density="compact" label="Known ship hulls" minimum="wide" scheme="information" stickyHeader>
         <thead>
           <tr>
             <th scope="col" aria-sort={sortState('displayName')}><button onClick={() => changeSort('displayName')}>Hull</button></th>

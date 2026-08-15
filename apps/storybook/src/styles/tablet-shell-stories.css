@@ -1,8 +1,17 @@
 @layer stories {
+  html:has(.tablet-shell-story),
+  body:has(.tablet-shell-story),
+  #storybook-root:has(.tablet-shell-story),
+  .storybook-root:has(.tablet-shell-story) {
+    block-size: 100%;
+    min-block-size: 0;
+    overflow: hidden;
+  }
+
   .tablet-shell-story {
     inline-size: 100%;
-    block-size: 100vh;
-    min-block-size: 36rem;
+    block-size: 100%;
+    min-block-size: 0;
   }
 
   .product-brand {

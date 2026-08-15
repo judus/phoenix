@@ -1,0 +1,67 @@
+@layer components {
+  .stored-modules {
+    container: stored-modules / size;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--spacing-sm);
+    inline-size: 100%;
+    block-size: 100%;
+    min-inline-size: 0;
+    min-block-size: 0;
+    overflow: hidden;
+
+    .module-groups {
+      display: grid;
+      align-content: start;
+      gap: var(--spacing-xl);
+      min-inline-size: 0;
+      min-block-size: 0;
+      padding-inline-end: var(--spacing-xs);
+      overflow: auto;
+      overscroll-behavior: contain;
+
+      &:focus-visible {
+        outline: 2px solid var(--color-focus);
+        outline-offset: -2px;
+      }
+    }
+
+    .module-storage {
+      min-inline-size: 0;
+    }
+
+    .module-groups > footer {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--spacing-sm);
+      padding-block: var(--spacing-xs);
+      border-block-start: 1px solid var(--color-border-subtle);
+
+      strong {
+        color: var(--color-information);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-normal);
+        text-transform: uppercase;
+      }
+
+      small {
+        color: var(--color-text-muted);
+        font-size: var(--font-size-xs);
+      }
+    }
+  }
+
+  @container stored-modules (width < 44rem) {
+    .stored-modules .module-groups > footer {
+      align-items: start;
+      flex-direction: column;
+      gap: var(--spacing-xxs);
+    }
+  }
+
+  @container stored-modules (height < 44rem) {
+    .stored-modules,
+    .stored-modules .module-groups { gap: var(--spacing-xs); }
+  }
+}

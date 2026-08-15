@@ -18,7 +18,9 @@ import {
 import type { NavigationItem } from '../src/components/app-shell'
 import { CurrentShipConsolidatedPage } from '../src/pages/current-ship-consolidated-page'
 import { CurrentShipLoadoutPage } from '../src/pages/current-ship-loadout-page'
+import { FleetPage } from '../src/pages/fleet-page'
 import { ShipCataloguePage } from '../src/pages/ship-catalogue-page'
+import { StoredModulesPage } from '../src/pages/stored-modules-page'
 import '../src/styles/tablet-shell-stories.css'
 
 const utilityItems: NavigationItem[] = [
@@ -124,11 +126,31 @@ function CurrentShipLoadoutShell() {
   )
 }
 
+function FleetShell() {
+  return (
+    <div className="tablet-shell-story">
+      <BaselineShell context="overview">
+        <FleetPage />
+      </BaselineShell>
+    </div>
+  )
+}
+
 function ShipCatalogueShell() {
   return (
     <div className="tablet-shell-story">
       <BaselineShell context="overview">
         <ShipCataloguePage />
+      </BaselineShell>
+    </div>
+  )
+}
+
+function StoredModulesShell() {
+  return (
+    <div className="tablet-shell-story">
+      <BaselineShell context="overview">
+        <StoredModulesPage />
       </BaselineShell>
     </div>
   )
@@ -298,4 +320,6 @@ type Story = StoryObj<typeof meta>
 export const DeskplaneWorkspaces: Story = {}
 export const CurrentShipTilesActions: Story = { render: () => <CurrentShipTilesActionsShell /> }
 export const CurrentShipLoadout: Story = { render: () => <CurrentShipLoadoutShell /> }
+export const Fleet: Story = { render: () => <FleetShell /> }
 export const ShipCatalogue: Story = { render: () => <ShipCatalogueShell /> }
+export const StoredModules: Story = { render: () => <StoredModulesShell /> }

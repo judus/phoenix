@@ -31,7 +31,7 @@
       outline-offset: -2px;
     }
 
-    > section {
+    &.grid > section {
       display: grid;
       gap: var(--spacing-xs);
       min-inline-size: 0;
@@ -169,19 +169,19 @@
     }
 
     &.list {
-      li {
-        display: grid;
-        grid-template-columns:
-          minmax(7rem, 0.55fr)
-          minmax(12rem, 1fr)
-          minmax(10rem, 0.8fr)
-          minmax(7rem, auto);
-        gap: var(--spacing-sm);
-        padding: var(--spacing-xs) var(--spacing-sm);
-        border-block-end: 1px solid var(--color-border-subtle);
+      .data-table-group { min-inline-size: 0; }
 
-        &:last-child { border-block-end: 0; }
+      table {
+        table-layout: fixed;
 
+        tr > :first-child { inline-size: 18%; }
+        tr > :nth-child(2) { inline-size: 36%; }
+        tr > :nth-child(3) { inline-size: 28%; }
+        tr > :last-child { inline-size: 18%; }
+
+        tr.empty > * { background: transparent; }
+
+        tr.empty > :nth-child(2) strong { color: var(--color-text-muted); }
       }
     }
 
@@ -245,23 +245,8 @@
     }
   }
 
-  @container current-ship-loadout (width < 50rem) {
-    .loadout-inventory.list li {
-      grid-template-columns: minmax(6rem, 0.6fr) minmax(0, 1fr) auto;
-
-      > div:last-of-type { grid-column: 2; }
-
-      > footer {
-        grid-column: 3;
-        grid-row: 1 / span 2;
-      }
-    }
-  }
-
   @container current-ship-loadout (height < 44rem) {
     .current-ship-loadout,
     .loadout-inventory { gap: var(--spacing-xs); }
-
-    .loadout-inventory.list li { padding-block: var(--spacing-xxs); }
   }
 }

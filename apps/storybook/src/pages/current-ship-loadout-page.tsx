@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { DataTable, DataTableGroup } from '../components/data-table'
 import { Breadcrumbs, PageFrame, PageHeader } from '../components/page'
 import { ViewSwitcher } from '../components/view-switcher'
 import './current-ship-loadout-page.css'
@@ -72,51 +73,100 @@ const loadout: SlotGroup[] = [
   }
 ]
 
+function slotClassName(slot: Slot) {
+  return [
+    !slot.module && 'empty',
+    slot.engineering && (slot.engineering.endsWith('G5') ? 'engineered-max' : 'engineered'),
+    slot.status
+  ].filter(Boolean).join(' ') || undefined
+}
+
+function SlotTable({ group }: { group: SlotGroup }) {
+  const mounted = group.slots.filter((slot) => slot.module).length
+
+  return (
+    <DataTableGroup meta={`${mounted} / ${group.slots.length} mounted`} title={group.label}>
+      <DataTable density="compact" label={`${group.label} slots`} minimum="wide" scheme="surface">
+        <thead className="sr-only">
+          <tr>
+            <th scope="col">Slot</th>
+            <th scope="col">Module</th>
+            <th scope="col">Engineering</th>
+            <th scope="col">Condition</th>
+          </tr>
+        </thead>
+        <tbody>
+          {group.slots.map((slot) => (
+            <tr className={slotClassName(slot)} key={slot.slot}>
+              <th scope="row">
+                <strong>{slot.slot}</strong>
+                <small>Size {slot.size}</small>
+              </th>
+              <td>
+                <strong>{slot.module ? `${slot.moduleClass} ${slot.module}` : 'Empty slot'}</strong>
+                <small>{slot.type}</small>
+              </td>
+              <td className={slot.engineering ? 'text-information' : undefined}>
+                <strong>{slot.engineering ?? 'Standard'}</strong>
+                <small>{slot.engineering ? 'Engineered' : 'Configuration'}</small>
+              </td>
+              <td className="numeric">
+                <strong>{slot.condition ?? '—'}</strong>
+                <small>{slot.state ?? 'Available'}</small>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </DataTable>
+    </DataTableGroup>
+  )
+}
+
+function SlotGrid({ group }: { group: SlotGroup }) {
+  const mounted = group.slots.filter((slot) => slot.module).length
+
+  return (
+    <section>
+      <header>
+        <h2>{group.label}</h2>
+        <small>{mounted} / {group.slots.length} mounted</small>
+      </header>
+      <ol>
+        {group.slots.map((slot) => (
+          <li
+            className={slotClassName(slot)}
+            data-slot-size={`S${slot.size}`}
+            key={slot.slot}
+          >
+            <header>
+              <strong>{slot.slot}</strong>
+              <small>Size {slot.size}</small>
+            </header>
+            <div>
+              <strong>{slot.module ? `${slot.moduleClass} ${slot.module}` : 'Empty slot'}</strong>
+              <small>{slot.type}</small>
+            </div>
+            <div>
+              <span>{slot.engineering ?? 'Standard'}</span>
+              <small>{slot.engineering ? 'Engineered' : 'Configuration'}</small>
+            </div>
+            <footer>
+              <strong>{slot.condition ?? '—'}</strong>
+              <small>{slot.state ?? 'Available'}</small>
+            </footer>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
 function SlotInventory({ view }: { view: LoadoutView }) {
   return (
     <div className={`loadout-inventory ${view}`} tabIndex={0}>
-      {loadout.map((group) => {
-        const mounted = group.slots.filter((slot) => slot.module).length
-
-        return (
-          <section key={group.label}>
-            <header>
-              <h2>{group.label}</h2>
-              <small>{mounted} / {group.slots.length} mounted</small>
-            </header>
-            <ol>
-              {group.slots.map((slot) => (
-                <li
-                  className={[
-                    !slot.module && 'empty',
-                    slot.engineering && (slot.engineering.endsWith('G5') ? 'engineered-max' : 'engineered'),
-                    slot.status
-                  ].filter(Boolean).join(' ') || undefined}
-                  data-slot-size={`S${slot.size}`}
-                  key={slot.slot}
-                >
-                  <header>
-                    <strong>{slot.slot}</strong>
-                    <small>Size {slot.size}</small>
-                  </header>
-                  <div>
-                    <strong>{slot.module ? `${slot.moduleClass} ${slot.module}` : 'Empty slot'}</strong>
-                    <small>{slot.type}</small>
-                  </div>
-                  <div>
-                    <span>{slot.engineering ?? 'Standard'}</span>
-                    <small>{slot.engineering ? 'Engineered' : 'Configuration'}</small>
-                  </div>
-                  <footer>
-                    <strong>{slot.condition ?? '—'}</strong>
-                    <small>{slot.state ?? 'Available'}</small>
-                  </footer>
-                </li>
-              ))}
-            </ol>
-          </section>
-        )
-      })}
+      {loadout.map((group) => view === 'list'
+        ? <SlotTable group={group} key={group.label} />
+        : <SlotGrid group={group} key={group.label} />)}
     </div>
   )
 }

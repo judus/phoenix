@@ -11,13 +11,4 @@
     text-transform: uppercase;
   }
 
-  .entity-name {
-    display: grid;
-    gap: var(--spacing-xxs);
-
-    small {
-      color: var(--color-text-muted);
-      font-size: var(--font-size-xs);
-    }
-  }
 }
