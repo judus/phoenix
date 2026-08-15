@@ -94,6 +94,7 @@
   .text-xxs { font-size: var(--font-size-xxs); }
   .text-xs { font-size: var(--font-size-xs); }
   .text-sm { font-size: var(--font-size-sm); }
+  .text-end { text-align: end; }
   .text-muted { color: var(--color-text-muted); }
   .text-information { color: var(--color-information); }
   .text-warning { color: var(--color-warning); }

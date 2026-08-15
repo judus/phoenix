@@ -107,8 +107,8 @@
     --application-shell-workspace-item-min: 10rem;
 
     /* Page composition roles. */
-    --page-padding-inline: var(--spacing-xl);
-    --page-padding-block: var(--spacing-xl);
+    --page-padding-inline: var(--spacing-sm);
+    --page-padding-block: var(--spacing-sm);
     --page-title-size: var(--font-size-xxl);
     --page-header-title: var(--color-text);
     --page-header-border-width: 1px;

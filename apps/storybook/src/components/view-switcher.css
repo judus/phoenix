@@ -9,6 +9,8 @@
     color: var(--color-text-muted);
     background: transparent;
 
+    &::after { display: none; }
+
     svg {
       inline-size: 0.875rem;
       block-size: 0.875rem;

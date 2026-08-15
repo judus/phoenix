@@ -1,4 +1,44 @@
 @layer components {
+  .avatar {
+    display: grid;
+    place-items: center;
+    inline-size: var(--control-block-size);
+    aspect-ratio: 1;
+    border: var(--control-border-width) solid var(--color-border);
+    color: var(--color-action);
+    font-size: var(--font-size-sm);
+    line-height: 1;
+  }
+
+  .identity {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    min-inline-size: 0;
+
+    figure {
+      flex: none;
+      margin: 0;
+    }
+
+    > div {
+      display: grid;
+      gap: var(--spacing-xxs);
+      min-inline-size: 0;
+    }
+
+    strong {
+      color: var(--color-text);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+    }
+
+    small {
+      color: var(--color-text-muted);
+      font-size: var(--font-size-xs);
+    }
+  }
+
   .status {
     --status-color: var(--color-text);
 

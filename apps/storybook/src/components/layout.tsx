@@ -7,12 +7,21 @@ type Space = 'xxs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl'
 type StackProps = HTMLAttributes<HTMLDivElement> & {
   gap?: Space
   align?: 'stretch' | 'start' | 'center' | 'end'
+  fill?: boolean
+  justify?: 'start' | 'center' | 'end' | 'space-between'
 }
 
-export function Stack({ gap = 'md', align = 'stretch', className, ...props }: StackProps) {
+export function Stack({ gap = 'md', align = 'stretch', className, fill = false, justify = 'start', ...props }: StackProps) {
   return (
     <div
-      className={['stack', `gap-${gap}`, `align-${align}`, className].filter(Boolean).join(' ')}
+      className={[
+        'stack',
+        `gap-${gap}`,
+        `align-${align}`,
+        `justify-${justify}`,
+        fill && 'fill',
+        className
+      ].filter(Boolean).join(' ')}
       {...props}
     />
   )
@@ -51,7 +60,7 @@ export function Inline({
 type AutoGridProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode
   gap?: Space
-  minimum?: 'sm' | 'md' | 'lg'
+  minimum?: 'xs' | 'sm' | 'md' | 'lg'
 }
 export function AutoGrid({ gap = 'sm', minimum = 'md', className, ...props }: AutoGridProps) {
   return (
@@ -59,5 +68,48 @@ export function AutoGrid({ gap = 'sm', minimum = 'md', className, ...props }: Au
       className={['auto-grid', `grid-${minimum}`, `gap-${gap}`, className].filter(Boolean).join(' ')}
       {...props}
     />
+  )
+}
+
+type EqualGridProps = HTMLAttributes<HTMLDivElement> & {
+  children: ReactNode
+  columns?: 2 | 3 | 4
+  gap?: Space
+}
+
+export function EqualGrid({ columns = 2, gap = 'sm', className, ...props }: EqualGridProps) {
+  return (
+    <div
+      className={['equal-grid', `columns-${columns}`, `gap-${gap}`, className].filter(Boolean).join(' ')}
+      {...props}
+    />
+  )
+}
+
+type ThirdsGridProps = HTMLAttributes<HTMLDivElement> & {
+  children: ReactNode
+  gap?: Space
+}
+
+export function ThirdsGrid({ gap = 'sm', className, ...props }: ThirdsGridProps) {
+  return (
+    <div className="thirds-layout">
+      <div className={['thirds-grid', `gap-${gap}`, className].filter(Boolean).join(' ')} {...props} />
+    </div>
+  )
+}
+
+type DashboardGridProps = HTMLAttributes<HTMLDivElement> & {
+  children: ReactNode
+  gap?: Space
+  lastRow: ReactNode
+}
+
+export function DashboardGrid({ children, className, gap = 'sm', lastRow, ...props }: DashboardGridProps) {
+  return (
+    <div className={['dashboard-grid', `gap-${gap}`, className].filter(Boolean).join(' ')} {...props}>
+      <ThirdsGrid gap={gap}>{children}</ThirdsGrid>
+      <ThirdsGrid gap={gap}>{lastRow}</ThirdsGrid>
+    </div>
   )
 }

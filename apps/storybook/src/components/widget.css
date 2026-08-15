@@ -1,0 +1,58 @@
+@layer components {
+  .widget {
+    container: panel / inline-size;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    align-content: start;
+    gap: var(--spacing-sm);
+    min-inline-size: 0;
+    min-block-size: 0;
+    block-size: 100%;
+    padding: var(--spacing-sm);
+    border: var(--panel-border-width) solid var(--panel-border);
+    color: var(--color-text);
+    background: var(--panel-background);
+    overflow: hidden;
+
+    > header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--spacing-sm);
+      min-inline-size: 0;
+
+      h3 {
+        margin: 0;
+        color: var(--panel-title);
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-normal);
+        letter-spacing: 0.04em;
+        line-height: var(--line-height-compact);
+        text-transform: uppercase;
+      }
+
+      a {
+        color: var(--color-information);
+        font-size: var(--font-size-xs);
+        line-height: var(--line-height-compact);
+        text-decoration: none;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      > span {
+        color: var(--color-text-muted);
+        font-size: var(--font-size-xs);
+        line-height: var(--line-height-compact);
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+    }
+
+    > div {
+      min-inline-size: 0;
+      min-block-size: 0;
+      overflow: hidden;
+    }
+  }
+}

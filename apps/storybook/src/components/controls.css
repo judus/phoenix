@@ -67,6 +67,23 @@
       background: var(--button-danger-background);
     }
 
+    &.btn-icon {
+      padding: 0;
+
+      &.btn-icon-square { aspect-ratio: 1; }
+      &.btn-icon-landscape { aspect-ratio: 3 / 2; }
+
+      svg {
+        inline-size: 1.25rem;
+        block-size: 1.25rem;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: square;
+        stroke-linejoin: miter;
+        stroke-width: 1.5;
+      }
+    }
+
     &:hover:not(:disabled) {
       filter: brightness(1.15);
     }

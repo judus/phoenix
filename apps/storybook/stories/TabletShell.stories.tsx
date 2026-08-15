@@ -19,6 +19,7 @@ import type { NavigationItem } from '../src/components/app-shell'
 import { CurrentShipConsolidatedPage } from '../src/pages/current-ship-consolidated-page'
 import { CurrentShipLoadoutPage } from '../src/pages/current-ship-loadout-page'
 import { FleetPage } from '../src/pages/fleet-page'
+import { HomeDashboardPage } from '../src/pages/home-dashboard-page'
 import { ShipCataloguePage } from '../src/pages/ship-catalogue-page'
 import { StoredModulesPage } from '../src/pages/stored-modules-page'
 import '../src/styles/tablet-shell-stories.css'
@@ -106,7 +107,7 @@ function BaselineShell({
   )
 }
 
-function CurrentShipTilesActionsShell() {
+function CurrentShipShell() {
   return (
     <div className="tablet-shell-story">
       <BaselineShell>
@@ -116,7 +117,17 @@ function CurrentShipTilesActionsShell() {
   )
 }
 
-function CurrentShipLoadoutShell() {
+function HomeDashboardShell() {
+  return (
+    <div className="tablet-shell-story">
+      <BaselineShell context="overview">
+        <HomeDashboardPage />
+      </BaselineShell>
+    </div>
+  )
+}
+
+function CurrentLoadoutShell() {
   return (
     <div className="tablet-shell-story">
       <BaselineShell>
@@ -318,8 +329,9 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const DeskplaneWorkspaces: Story = {}
-export const CurrentShipTilesActions: Story = { render: () => <CurrentShipTilesActionsShell /> }
-export const CurrentShipLoadout: Story = { render: () => <CurrentShipLoadoutShell /> }
+export const HomeDashboard: Story = { render: () => <HomeDashboardShell /> }
+export const CurrentShip: Story = { render: () => <CurrentShipShell /> }
+export const CurrentLoadout: Story = { render: () => <CurrentLoadoutShell /> }
 export const Fleet: Story = { render: () => <FleetShell /> }
 export const ShipCatalogue: Story = { render: () => <ShipCatalogueShell /> }
 export const StoredModules: Story = { render: () => <StoredModulesShell /> }

@@ -3,7 +3,8 @@ import { Button } from '../components/button'
 import { ControlContext } from '../components/control-context'
 import { DescriptionItem, DescriptionList } from '../components/description-list'
 import { Meter } from '../components/meter'
-import { Breadcrumbs, PageFrame, PageHeader, Panel } from '../components/page'
+import { Breadcrumbs, PageFrame, PageHeader } from '../components/page'
+import { Widget } from '../components/widget'
 import './current-ship-page.css'
 import './current-ship-consolidated-page.css'
 
@@ -18,7 +19,7 @@ type CurrentShipConsolidatedPageProps = {
 function VesselPanels() {
   return (
     <>
-      <Panel className="fixed-data" variant="cockpit" title="Vessel">
+      <Widget className="fixed-data" title="Vessel">
         <DescriptionList className="adaptive-columns" columns="two" density="compact">
           <DescriptionItem label="Name" value="Unnamed vessel" />
           <DescriptionItem label="Identifier" value="EL-06L" />
@@ -27,9 +28,9 @@ function VesselPanels() {
           <DescriptionItem label="Landing pad" value="Medium" />
           <DescriptionItem label="Hull value" value="67,861,850 CR" />
         </DescriptionList>
-      </Panel>
+      </Widget>
 
-      <Panel className="fixed-data" variant="cockpit" title="Operational status">
+      <Widget className="fixed-data" title="Operational status">
         <DescriptionList className="adaptive-columns" columns="two" density="compact">
           <DescriptionItem label="Unladen mass" value="599.8 t" />
           <DescriptionItem label="Jump range" value="22.4 ly" />
@@ -38,36 +39,36 @@ function VesselPanels() {
           <DescriptionItem label="Modules" value="36" />
           <DescriptionItem label="Legal state" value="Clean" />
         </DescriptionList>
-      </Panel>
+      </Widget>
     </>
   )
 }
 
 function IntegrityPanel({ meterLayout }: { meterLayout: 'stacked' | 'inline' }) {
   return (
-    <Panel variant="cockpit" title="Integrity">
+    <Widget title="Integrity">
       <div className="meter-stack">
         <Meter label="Hull" layout={meterLayout} tone="action" value={100} valueLabel="100%" />
         <Meter label="Shields" layout={meterLayout} tone="action" value={100} valueLabel="100%" />
       </div>
-    </Panel>
+    </Widget>
   )
 }
 
 function FuelPanel({ meterLayout }: { meterLayout: 'stacked' | 'inline' }) {
   return (
-    <Panel variant="cockpit" title="Fuel">
+    <Widget title="Fuel">
       <div className="meter-stack">
         <Meter label="Main fuel" layout={meterLayout} tone="action" value={78} valueLabel="78%" />
         <Meter label="Reservoir" layout={meterLayout} tone="action" value={42} valueLabel="42%" />
       </div>
-    </Panel>
+    </Widget>
   )
 }
 
 function CargoPanel({ meterLayout }: { meterLayout: 'stacked' | 'inline' }) {
   return (
-    <Panel variant="cockpit" title="Cargo">
+    <Widget title="Cargo">
       <div className="cargo-content">
         <Meter layout={meterLayout} max={196} tone="action" value={45} valueLabel="45 / 196 t" label="Capacity" />
         <DescriptionList aria-label="Cargo manifest" columns="one" density="compact" inset tabIndex={0}>
@@ -80,7 +81,7 @@ function CargoPanel({ meterLayout }: { meterLayout: 'stacked' | 'inline' }) {
           <DescriptionItem label="Serendibite" value="2 t" />
         </DescriptionList>
       </div>
-    </Panel>
+    </Widget>
   )
 }
 

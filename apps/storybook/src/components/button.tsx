@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react'
 
 import './controls.css'
+import './control-surface.css'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'danger'
 export type ButtonSize = 'inherit' | 'sm' | 'md' | 'lg'
@@ -34,5 +35,23 @@ export function Button({
     >
       {busy ? 'Working…' : children}
     </button>
+  )
+}
+
+type IconButtonProps = ButtonProps & {
+  label: string
+  shape?: 'square' | 'landscape'
+}
+
+export function IconButton({ children, className, label, shape = 'square', title, ...props }: IconButtonProps) {
+  return (
+    <Button
+      className={['btn-icon', `btn-icon-${shape}`, className].filter(Boolean).join(' ')}
+      aria-label={label}
+      title={title ?? label}
+      {...props}
+    >
+      {children}
+    </Button>
   )
 }

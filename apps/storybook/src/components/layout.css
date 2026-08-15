@@ -3,6 +3,8 @@
     display: flex;
     flex-direction: column;
     min-inline-size: 0;
+
+    &.fill { block-size: 100%; }
   }
 
   .inline {
@@ -17,10 +19,58 @@
     display: grid;
     min-inline-size: 0;
 
+    &.grid-xs { grid-template-columns: repeat(auto-fit, minmax(min(100%, 6rem), 1fr)); }
     &.grid-sm { grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); }
     &.grid-md { grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); }
     &.grid-lg { grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); }
   }
+
+  .equal-grid {
+    display: grid;
+    min-inline-size: 0;
+
+    &.columns-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    &.columns-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    &.columns-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+
+  .thirds-layout {
+    container: thirds-layout / inline-size;
+    min-inline-size: 0;
+  }
+
+  .thirds-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    min-inline-size: 0;
+
+    > .span-two { grid-column: span 2; }
+    > .span-full { grid-column: 1 / -1; }
+  }
+
+  .dashboard-grid {
+    display: grid;
+    grid-template-rows: max-content minmax(0, 1fr);
+    min-inline-size: 0;
+    min-block-size: 0;
+    block-size: 100%;
+
+    > .thirds-layout:last-child,
+    > .thirds-layout:last-child > .thirds-grid {
+      min-block-size: 0;
+      block-size: 100%;
+    }
+  }
+
+  @container thirds-layout (inline-size < 48rem) {
+    .thirds-grid {
+      grid-template-columns: minmax(0, 1fr);
+
+      > .span-two,
+      > .span-full { grid-column: auto; }
+    }
+  }
+
 
   .gap-xxs { gap: var(--spacing-xxs); }
   .gap-xs { gap: var(--spacing-xs); }

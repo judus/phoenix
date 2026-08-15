@@ -9,7 +9,6 @@
       container-type: size;
       block-size: 100%;
       min-block-size: 0;
-      padding: var(--spacing-sm);
       overflow: hidden;
     }
   }

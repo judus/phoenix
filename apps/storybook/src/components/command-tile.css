@@ -19,24 +19,6 @@
       transform 50ms ease-out;
     cursor: pointer;
 
-    &::after {
-      position: absolute;
-      inset-inline-end: var(--spacing-sm);
-      inset-block-end: var(--spacing-sm);
-      inline-size: 0.9rem;
-      aspect-ratio: 1;
-      background:
-        radial-gradient(
-          circle,
-          var(--color-action) 0 0.08rem,
-          transparent 0.1rem
-        )
-        0 0 / 33.333% 33.333%;
-      opacity: 0.12;
-      content: '';
-      pointer-events: none;
-    }
-
     strong {
       font-size: var(--font-size-sm);
       font-weight: var(--font-weight-normal);
