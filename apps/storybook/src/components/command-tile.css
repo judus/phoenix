@@ -109,7 +109,13 @@
     &.label-only {
       grid-template-rows: minmax(0, 1fr);
 
-      strong { align-self: start; }
+      strong { align-self: center; }
+
+      &::after {
+        inset-block-start: 50%;
+        inset-block-end: auto;
+        transform: translateY(-50%);
+      }
     }
   }
 
