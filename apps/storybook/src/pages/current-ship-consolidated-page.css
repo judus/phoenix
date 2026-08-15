@@ -8,16 +8,46 @@
     .vessel-column,
     .instrument-column {
       display: grid;
-      grid-template-rows: auto auto minmax(0, 1fr);
       gap: var(--spacing-sm);
       min-inline-size: 0;
       min-block-size: 0;
     }
 
+    .vessel-column {
+      grid-template-rows: auto auto minmax(0, 1fr);
+    }
+
+    .instrument-column {
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--spacing-sm);
+    }
+
+    .systems-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--spacing-sm);
+    }
+
+    &.systems-left {
+      .vessel-column {
+        grid-template-rows: auto auto auto auto;
+        align-content: start;
+      }
+
+      .instrument-column {
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+    }
+
     .command-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      grid-template-rows: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(3, minmax(0, 1fr));
       gap: var(--spacing-xs);
       block-size: 100%;
     }
@@ -32,7 +62,7 @@
 
     .cargo-content {
       display: grid;
-      grid-template-rows: auto minmax(0, 1fr) auto;
+      grid-template-rows: auto minmax(0, 1fr);
       gap: var(--spacing-sm);
       block-size: 100%;
       min-block-size: 0;
@@ -41,42 +71,32 @@
         min-block-size: 0;
         overflow: auto;
       }
-
-      .btn { inline-size: 100%; }
-    }
-
-    .panel-stack {
-      display: grid;
-      gap: var(--spacing-sm);
-
-      .btn { inline-size: 100%; }
     }
   }
 
-  @container current-ship (width < 40rem) {
+  @container current-ship (aspect-ratio > 1 / 1) {
     .current-ship.consolidated .command-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-rows: repeat(2, minmax(0, 1fr));
     }
   }
 
   @container current-ship (height < 50rem) {
     .current-ship.consolidated {
-      .fixed-data dl.dl-list {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        column-gap: var(--spacing-sm);
-
-        > div {
-          grid-template-columns: minmax(5rem, 0.8fr) minmax(0, 1fr);
-          gap: var(--spacing-xs);
-        }
-      }
-
       .ship-grid,
       .vessel-column,
       .instrument-column,
       .meter-stack { gap: var(--spacing-xs); }
 
       .cargo-content { gap: var(--spacing-xs); }
+    }
+  }
+
+  @container current-ship (height >= 64rem) {
+    .current-ship.consolidated .adaptive-columns {
+      grid-template-columns: minmax(0, 1fr);
+
+      > div:nth-last-child(2)::after { display: block; }
     }
   }
 }

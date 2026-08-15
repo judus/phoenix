@@ -16,6 +16,7 @@ import {
   Workspace
 } from '../src/components/application-shell'
 import type { NavigationItem } from '../src/components/app-shell'
+import { CurrentShipConsolidatedPage } from '../src/pages/current-ship-consolidated-page'
 import '../src/styles/tablet-shell-stories.css'
 
 const utilityItems: NavigationItem[] = [
@@ -60,7 +61,7 @@ function Brand() {
   )
 }
 
-function BaselineShell() {
+function BaselineShell({ children }: { children?: React.ReactNode }) {
   return (
     <ApplicationShell>
       <TopBar
@@ -80,7 +81,7 @@ function BaselineShell() {
             items={contextItems}
           />
         </Rail>
-        <Content />
+        <Content>{children}</Content>
       </Workspace>
       <BottomBar>
         <Navigation
@@ -97,6 +98,46 @@ function BaselineShell() {
 
 function FullBaseline() {
   return <div className="tablet-shell-story"><BaselineShell /></div>
+}
+
+function CurrentShipShell() {
+  return (
+    <div className="tablet-shell-story">
+      <BaselineShell>
+        <CurrentShipConsolidatedPage />
+      </BaselineShell>
+    </div>
+  )
+}
+
+function CurrentShipSystemsLeftShell() {
+  return (
+    <div className="tablet-shell-story">
+      <BaselineShell>
+        <CurrentShipConsolidatedPage arrangement="systems-left" />
+      </BaselineShell>
+    </div>
+  )
+}
+
+function CurrentShipInlineMetersShell() {
+  return (
+    <div className="tablet-shell-story">
+      <BaselineShell>
+        <CurrentShipConsolidatedPage meterLayout="inline" />
+      </BaselineShell>
+    </div>
+  )
+}
+
+function CurrentShipTileActionsShell() {
+  return (
+    <div className="tablet-shell-story">
+      <BaselineShell>
+        <CurrentShipConsolidatedPage actionStyle="tile" meterLayout="inline" />
+      </BaselineShell>
+    </div>
+  )
 }
 
 function DeskplanePage({ children }: { children?: React.ReactNode }) {
@@ -262,3 +303,7 @@ type Story = StoryObj<typeof meta>
 
 export const ResponsiveCanvas: Story = {}
 export const DeskplaneWorkspaces: Story = { render: () => <DeskplaneShell /> }
+export const CurrentShip: Story = { render: () => <CurrentShipShell /> }
+export const CurrentShipSystemsLeft: Story = { render: () => <CurrentShipSystemsLeftShell /> }
+export const CurrentShipInlineMeters: Story = { render: () => <CurrentShipInlineMetersShell /> }
+export const CurrentShipTileActions: Story = { render: () => <CurrentShipTileActionsShell /> }

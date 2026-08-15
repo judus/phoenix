@@ -61,6 +61,7 @@
   }
 
   dl.dl-list {
+    align-content: start;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
     gap: 0 var(--spacing-xl);
@@ -101,6 +102,8 @@
 
     &.two-columns {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+
+      > div:nth-last-child(-n + 2)::after { display: none; }
     }
 
     &.compact {
@@ -111,8 +114,10 @@
     }
 
     &.compact.two-columns {
+      column-gap: var(--spacing-sm);
+
       > div {
-        grid-template-columns: minmax(5.5rem, 0.45fr) minmax(0, 1fr);
+        grid-template-columns: minmax(5rem, 0.8fr) minmax(0, 1fr);
         gap: var(--spacing-xs);
       }
     }
@@ -136,22 +141,49 @@
     --meter-color: var(--color-information);
 
     display: grid;
-    gap: var(--spacing-xs);
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--spacing-xs) var(--spacing-sm);
     min-inline-size: 0;
 
     &.meter-action { --meter-color: var(--color-action); }
     &.meter-warning { --meter-color: var(--color-warning); }
     &.meter-danger { --meter-color: var(--color-danger); }
 
-    header {
-      display: flex;
-      justify-content: space-between;
+    &.inline {
+      --meter-label-size: 5.5rem;
+      --meter-value-size: 5.5rem;
+
+      grid-template-columns:
+        var(--meter-label-size)
+        minmax(0, 1fr)
+        var(--meter-value-size);
+      align-items: center;
       gap: var(--spacing-sm);
+
+      progress {
+        grid-column: 2;
+        grid-row: 1;
+      }
+
+      > output { grid-column: 3; }
+    }
+
+    > span,
+    > output {
+      grid-row: 1;
       color: var(--color-text-muted);
       font-size: var(--font-size-sm);
+      white-space: nowrap;
+    }
+
+    > output {
+      grid-column: 2;
+      text-align: end;
     }
 
     progress {
+      grid-column: 1 / -1;
+      grid-row: 2;
       display: block;
       inline-size: 100%;
       block-size: var(--spacing-xs);
@@ -169,6 +201,7 @@
 
   ul.item-list {
     container: item-list / inline-size;
+    align-content: start;
     display: grid;
     margin: 0;
     padding: 0;
@@ -388,6 +421,8 @@
   @container panel (width < 24rem) {
     dl.dl-list.two-columns {
       grid-template-columns: minmax(0, 1fr);
+
+      > div:nth-last-child(2)::after { display: block; }
 
       > div {
         grid-template-columns: minmax(6rem, 0.45fr) minmax(0, 1fr);

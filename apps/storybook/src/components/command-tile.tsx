@@ -4,6 +4,7 @@ import './command-tile.css'
 
 type CommandTileProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> & {
   binding?: string
+  details?: boolean
   kind?: 'action' | 'macro'
   label: string
   meta?: string
@@ -14,6 +15,7 @@ type CommandTileProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> & 
 
 export function CommandTile({
   binding,
+  details = true,
   kind = 'action',
   label,
   meta = 'Tap',
@@ -27,6 +29,7 @@ export function CommandTile({
     <button
       className={[
         'command-tile',
+        !details && 'label-only',
         kind === 'macro' && 'command-macro',
         selected && 'active',
         tone === 'danger' && 'command-danger',
@@ -38,8 +41,12 @@ export function CommandTile({
       {...props}
     >
       <strong>{label}</strong>
-      <span>{kind === 'macro' ? 'Macro' : (binding ?? 'Unbound')}</span>
-      <small>{kind === 'macro' ? meta : 'Tap'}</small>
+      {details && (
+        <>
+          <span>{kind === 'macro' ? 'Macro' : (binding ?? 'Unbound')}</span>
+          <small>{kind === 'macro' ? meta : 'Tap'}</small>
+        </>
+      )}
     </button>
   )
 }
