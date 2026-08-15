@@ -108,11 +108,6 @@ export function NavigationPage ({
       {view === 'database'
         ? (
             <Page className="navigation-data-page galaxy-database-page">
-              <PageHeader
-                title="Galaxy Database"
-                eyebrow="Navigation intelligence"
-                description="Cockpit-native searches over community-reported galactic services and markets."
-              />
               <PageContent>
                 <GalaxyDatabase api={api} currentSystem={runtimeState?.system.name} />
               </PageContent>

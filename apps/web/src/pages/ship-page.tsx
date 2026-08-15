@@ -328,7 +328,7 @@ function ShipDefinitionDetail ({ ship }: { ship: ShipDefinition }) {
         <CatalogueSlotSummary label="Optional internals" slots={ship.slots.optional.map(slot => slot.size)} />
         <CatalogueSlotSummary label="Utility mounts" slots={ship.slots.utilities.map(slot => slot.size)} />
       </div>
-      <a className="ship-catalogue__nearest" href={`#/galaxy/database?hull=${encodeURIComponent(ship.displayName)}&search=shipyards`}>
+      <a className="ship-catalogue__nearest" href={`#/galaxy/database?query=shipyards&hull=${encodeURIComponent(ship.displayName)}&execute=1`}>
         Nearest shipyard selling it
       </a>
       <small className="ship-catalogue__source">Source: {ship.source.name}{ship.source.revision ? ` · ${ship.source.revision}` : ''}</small>

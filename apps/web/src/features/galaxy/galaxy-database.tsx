@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import type {
   GalaxyCommodityMarketsResponse,
   GalaxyNearbySystemsResponse,
@@ -6,156 +6,164 @@ import type {
   GalaxyShipyardsResponse
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../api/phoenix-api-client.js'
+import {
+  GALAXY_QUERY_CATALOGUE,
+  galaxyQueryDefinition,
+  type GalaxyQueryDefinition,
+  type GalaxyQueryField,
+  type GalaxyQueryId
+} from './galaxy-query-catalogue.js'
 
-const SERVICES = [
-  ['interstellar-factors', 'Interstellar factors'],
-  ['material-trader', 'Material trader'],
-  ['technology-broker', 'Technology broker'],
-  ['black-market', 'Black market'],
-  ['universal-cartographics', 'Universal Cartographics'],
-  ['refuel', 'Refuel'],
-  ['repair', 'Repair'],
-  ['shipyard', 'Shipyard'],
-  ['outfitting', 'Outfitting'],
-  ['search-and-rescue', 'Search and rescue']
-] as const
+type GalaxyQueryResult =
+  | { id: 'commodity-markets', value: GalaxyCommodityMarketsResponse }
+  | { id: 'facilities', value: GalaxyNearestStationsResponse }
+  | { id: 'nearby-systems', value: GalaxyNearbySystemsResponse }
+  | { id: 'shipyards', value: GalaxyShipyardsResponse }
+
+type ConsoleMode = 'configure' | 'results' | 'select'
 
 export function GalaxyDatabase ({ api, currentSystem }: { api: PhoenixApi, currentSystem?: string | null }) {
-  const autoShipyardSearch = useRef(initialShipyardSearchRequested())
-  const [origin, setOrigin] = useState(currentSystem ?? '')
-  const [service, setService] = useState('material-trader')
-  const [pad, setPad] = useState<'small' | 'medium' | 'large'>('medium')
-  const [nearest, setNearest] = useState<GalaxyNearestStationsResponse>()
-  const [radius, setRadius] = useState(50)
-  const [nearbySystems, setNearbySystems] = useState<GalaxyNearbySystemsResponse>()
-  const [hull, setHull] = useState(initialHullName)
-  const [shipyards, setShipyards] = useState<GalaxyShipyardsResponse>()
-  const [commodity, setCommodity] = useState('gold')
-  const [intent, setIntent] = useState<'buy' | 'sell'>('sell')
-  const [markets, setMarkets] = useState<GalaxyCommodityMarketsResponse>()
-  const [pending, setPending] = useState<'nearest' | 'markets' | 'shipyards' | 'systems'>()
+  const initialRequest = useRef(readInitialRequest())
+  const [selectedQueryId, setSelectedQueryId] = useState<GalaxyQueryId | undefined>(initialRequest.current.queryId)
+  const [mode, setMode] = useState<ConsoleMode>(initialRequest.current.queryId ? 'configure' : 'select')
+  const [values, setValues] = useState<Record<string, string>>(() => initialValues(initialRequest.current, currentSystem))
+  const [result, setResult] = useState<GalaxyQueryResult>()
+  const [pending, setPending] = useState(false)
   const [error, setError] = useState<string>()
+  const definition = selectedQueryId ? galaxyQueryDefinition(selectedQueryId) : undefined
+  const valid = definition ? fieldsValid(definition, values) : false
 
   useEffect(() => {
-    if (!origin && currentSystem) setOrigin(currentSystem)
-  }, [currentSystem, origin])
+    if (!currentSystem) return
+    setValues(current => current.origin ? current : { ...current, origin: currentSystem })
+  }, [currentSystem])
+
+  const execute = useCallback((): void => {
+    if (!selectedQueryId || !definition || definition.status !== 'available' || !fieldsValid(definition, values)) return
+    setPending(true)
+    setError(undefined)
+    void executeGalaxyQuery(api, selectedQueryId, values)
+      .then(nextResult => {
+        setResult(nextResult)
+        setMode('results')
+      })
+      .catch(cause => setError(errorMessage(cause)))
+      .finally(() => setPending(false))
+  }, [api, definition, selectedQueryId, values])
 
   useEffect(() => {
-    if (!autoShipyardSearch.current || !origin.trim() || !hull.trim()) return
-    autoShipyardSearch.current = false
-    setPending('shipyards')
-    setError(undefined)
-    void api.findGalaxyShipyards({ hullName: hull.trim(), systemName: origin.trim() })
-      .then(setShipyards)
-      .catch(cause => setError(errorMessage(cause)))
-      .finally(() => setPending(undefined))
-  }, [api, hull, origin])
+    if (!initialRequest.current.execute || !valid) return
+    initialRequest.current.execute = false
+    execute()
+  }, [execute, valid])
 
-  const findNearest = (event: FormEvent): void => {
-    event.preventDefault()
-    setPending('nearest')
+  const chooseQuery = (id: GalaxyQueryId): void => {
+    const nextDefinition = galaxyQueryDefinition(id)
+    setSelectedQueryId(id)
+    setValues({ ...nextDefinition.defaults, origin: values.origin || currentSystem || '' })
+    setResult(undefined)
     setError(undefined)
-    void api.findGalaxyNearestStations({ minimumPadSize: pad, service, systemName: origin.trim() })
-      .then(setNearest)
-      .catch(cause => setError(errorMessage(cause)))
-      .finally(() => setPending(undefined))
+    setMode('configure')
   }
 
-  const findMarkets = (event: FormEvent): void => {
+  const submit = (event: FormEvent): void => {
     event.preventDefault()
-    setPending('markets')
-    setError(undefined)
-    void api.findGalaxyCommodityMarkets({
-      commodity: commodity.trim(),
-      intent,
-      maxDaysAgo: 30,
-      maxDistance: 100,
-      minVolume: 1,
-      systemName: origin.trim()
-    }).then(setMarkets)
-      .catch(cause => setError(errorMessage(cause)))
-      .finally(() => setPending(undefined))
-  }
-
-  const findNearbySystems = (event: FormEvent): void => {
-    event.preventDefault()
-    setPending('systems')
-    setError(undefined)
-    void api.findGalaxyNearbySystems({ maxDistance: radius, systemName: origin.trim() })
-      .then(setNearbySystems)
-      .catch(cause => setError(errorMessage(cause)))
-      .finally(() => setPending(undefined))
-  }
-
-  const findShipyards = (event: FormEvent): void => {
-    event.preventDefault()
-    setPending('shipyards')
-    setError(undefined)
-    void api.findGalaxyShipyards({ hullName: hull.trim(), systemName: origin.trim() })
-      .then(setShipyards)
-      .catch(cause => setError(errorMessage(cause)))
-      .finally(() => setPending(undefined))
+    execute()
   }
 
   return (
-    <div className="galaxy-database">
-      <section className="galaxy-database__origin">
-        <label htmlFor="galaxy-origin">Reference system</label>
-        <input id="galaxy-origin" value={origin} onChange={event => setOrigin(event.target.value)} />
-        <a href={systemHref(origin)}>Open system map</a>
-      </section>
-
+    <div className={`galaxy-query-console galaxy-query-console--${mode}`}>
+      <header className="galaxy-query-console__header">
+        <div><span>Galaxy intelligence</span><h1>Query Console</h1></div>
+        {mode === 'configure' && <button disabled={pending} type="button" onClick={() => setMode('select')}>Change query</button>}
+      </header>
       {error && <p className="galaxy-database__error">{error}</p>}
-
-      <div className="galaxy-database__tools">
-        <section className="galaxy-tool">
-          <header><span>Systems</span><h2>Find nearby systems</h2></header>
-          <form onSubmit={findNearbySystems}>
-            <label>Radius<input min="1" max="500" type="number" value={radius} onChange={event => setRadius(Number(event.target.value))} /></label>
-            <span />
-            <button disabled={!origin.trim() || radius < 1 || radius > 500 || pending !== undefined} type="submit">{pending === 'systems' ? 'Searching…' : 'Search'}</button>
-          </form>
-        </section>
-
-        <section className="galaxy-tool">
-          <header><span>Shipyards</span><h2>Find a ship hull</h2></header>
-          <form onSubmit={findShipyards}>
-            <label>Hull<input placeholder="Type-11 Prospector" value={hull} onChange={event => setHull(event.target.value)} /></label>
-            <span />
-            <button disabled={!origin.trim() || !hull.trim() || pending !== undefined} type="submit">{pending === 'shipyards' ? 'Searching…' : 'Search'}</button>
-          </form>
-        </section>
-
-        <section className="galaxy-tool">
-          <header><span>Services</span><h2>Find nearest facility</h2></header>
-          <form onSubmit={findNearest}>
-            <label>Service<select value={service} onChange={event => setService(event.target.value)}>{SERVICES.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
-            <label>Minimum pad<select value={pad} onChange={event => setPad(event.target.value as typeof pad)}><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></label>
-            <button disabled={!origin.trim() || pending !== undefined} type="submit">{pending === 'nearest' ? 'Searching…' : 'Search'}</button>
-          </form>
-        </section>
-
-        <section className="galaxy-tool">
-          <header><span>Markets</span><h2>Find commodity prices</h2></header>
-          <form onSubmit={findMarkets}>
-            <label>Commodity<input value={commodity} onChange={event => setCommodity(event.target.value)} /></label>
-            <label>Commander intent<select value={intent} onChange={event => setIntent(event.target.value as typeof intent)}><option value="buy">Buy cargo</option><option value="sell">Sell cargo</option></select></label>
-            <button disabled={!origin.trim() || !commodity.trim() || pending !== undefined} type="submit">{pending === 'markets' ? 'Searching…' : 'Search'}</button>
-          </form>
-        </section>
-      </div>
-
-      {nearbySystems && <NearbySystemResults result={nearbySystems} />}
-      {shipyards && <ShipyardResults result={shipyards} />}
-      {nearest && <NearestResults result={nearest} />}
-      {markets && <MarketResults result={markets} />}
-      {!nearbySystems && !nearest && !markets && !shipyards && (
-        <section className="galaxy-database__welcome">
-          <strong>PHOENIX galaxy services online</strong>
-          <p>Searches use community-reported EDDN data through Ardent. Results are cached locally and include their last reported age where available.</p>
-        </section>
+      {mode === 'select' && <QuerySelector selected={selectedQueryId} onSelect={chooseQuery} />}
+      {mode === 'configure' && definition && (
+        <QueryConfigurator
+          definition={definition}
+          pending={pending}
+          valid={valid}
+          values={values}
+          onChange={(id, value) => setValues(current => ({ ...current, [id]: value }))}
+          onSubmit={submit}
+        />
+      )}
+      {mode === 'results' && result && (
+        <QueryResults
+          result={result}
+          summary={querySummary(result.id, values)}
+          onModify={() => setMode('configure')}
+        />
       )}
     </div>
+  )
+}
+
+function QuerySelector ({ selected, onSelect }: { selected?: GalaxyQueryId, onSelect: (id: GalaxyQueryId) => void }) {
+  return (
+    <section className="galaxy-query-selector">
+      {GALAXY_QUERY_CATALOGUE.map(definition => (
+        <button
+          className={definition.id === selected ? 'is-selected' : undefined}
+          key={definition.id}
+          type="button"
+          onClick={() => onSelect(definition.id)}
+        >
+          <span>{definition.domain} · P{definition.priority}</span>
+          <strong>{definition.title}</strong>
+          <p>{definition.purpose}</p>
+          <small>{definition.status}</small>
+        </button>
+      ))}
+    </section>
+  )
+}
+
+function QueryConfigurator ({ definition, pending, valid, values, onChange, onSubmit }: {
+  definition: GalaxyQueryDefinition
+  pending: boolean
+  valid: boolean
+  values: Record<string, string>
+  onChange: (id: string, value: string) => void
+  onSubmit: (event: FormEvent) => void
+}) {
+  return (
+    <section className="galaxy-query-configurator">
+      <header><span>{definition.domain} · P{definition.priority}</span><h2>{definition.title}</h2><p>{definition.purpose}</p></header>
+      <form onSubmit={onSubmit}>
+        <div className="galaxy-query-configurator__fields">
+          {definition.fields.map(field => <QueryField field={field} key={field.id} value={values[field.id] ?? ''} onChange={value => onChange(field.id, value)} />)}
+        </div>
+        <footer>
+          <p>{definition.status === 'planned' ? 'Query contract defined. Backend adapter not connected.' : 'Community reports may be incomplete or stale. Result timestamps remain visible.'}</p>
+          <button disabled={definition.status !== 'available' || pending || !valid} type="submit">{pending ? 'Executing…' : 'Execute query'}</button>
+        </footer>
+      </form>
+    </section>
+  )
+}
+
+function QueryField ({ field, value, onChange }: { field: GalaxyQueryField, value: string, onChange: (value: string) => void }) {
+  return (
+    <label>
+      <span>{field.label}</span>
+      {field.type === 'select'
+        ? <select required={field.required} value={value} onChange={event => onChange(event.target.value)}>{field.options?.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+        : <input max={field.max} min={field.min} placeholder={field.placeholder} required={field.required} type={field.type} value={value} onChange={event => onChange(event.target.value)} />}
+    </label>
+  )
+}
+
+function QueryResults ({ result, summary, onModify }: { result: GalaxyQueryResult, summary: string, onModify: () => void }) {
+  return (
+    <section className="galaxy-query-result-view">
+      <header><span>{summary}</span><button type="button" onClick={onModify}>Modify query</button></header>
+      {result.id === 'nearby-systems' && <NearbySystemResults result={result.value} />}
+      {result.id === 'shipyards' && <ShipyardResults result={result.value} />}
+      {result.id === 'facilities' && <NearestResults result={result.value} />}
+      {result.id === 'commodity-markets' && <MarketResults result={result.value} />}
+    </section>
   )
 }
 
@@ -213,12 +221,79 @@ function systemHref (systemName: string): string {
   return systemName.trim() ? `#/galaxy/system?name=${encodeURIComponent(systemName.trim())}` : '#/galaxy/system'
 }
 
-function initialHullName (): string {
-  return hashQuery().get('hull') ?? ''
+interface InitialQueryRequest {
+  execute: boolean
+  queryId?: GalaxyQueryId
+  values: Record<string, string>
 }
 
-function initialShipyardSearchRequested (): boolean { return hashQuery().get('search') === 'shipyards' }
+function readInitialRequest (): InitialQueryRequest {
+  const query = hashQuery()
+  const requestedId = query.get('query') ?? (query.get('search') === 'shipyards' ? 'shipyards' : null)
+  const queryId = GALAXY_QUERY_CATALOGUE.some(definition => definition.id === requestedId)
+    ? requestedId as GalaxyQueryId
+    : undefined
+  return {
+    execute: query.get('execute') === '1' || query.get('search') === 'shipyards',
+    queryId,
+    values: Object.fromEntries(query.entries())
+  }
+}
+
+function initialValues (request: InitialQueryRequest, currentSystem?: string | null): Record<string, string> {
+  if (!request.queryId) return { origin: currentSystem ?? '' }
+  return {
+    ...galaxyQueryDefinition(request.queryId).defaults,
+    ...request.values,
+    origin: request.values.origin ?? currentSystem ?? ''
+  }
+}
+
+function fieldsValid (definition: GalaxyQueryDefinition, values: Record<string, string>): boolean {
+  return definition.fields.every(field => {
+    const value = values[field.id]?.trim() ?? ''
+    if (field.required && !value) return false
+    if (field.type !== 'number' || !value) return true
+    const numeric = Number(value)
+    return Number.isFinite(numeric) && (field.min === undefined || numeric >= field.min) && (field.max === undefined || numeric <= field.max)
+  })
+}
+
+async function executeGalaxyQuery (api: PhoenixApi, id: GalaxyQueryId, values: Record<string, string>): Promise<GalaxyQueryResult> {
+  switch (id) {
+    case 'nearby-systems':
+      return { id, value: await api.findGalaxyNearbySystems({ maxDistance: numeric(values.radius), systemName: values.origin }) }
+    case 'shipyards':
+      return { id, value: await api.findGalaxyShipyards({ hullName: values.hull, systemName: values.origin }) }
+    case 'facilities':
+      return { id, value: await api.findGalaxyNearestStations({ minimumPadSize: values.pad as 'large' | 'medium' | 'small', service: values.service, systemName: values.origin }) }
+    case 'commodity-markets':
+      return {
+        id,
+        value: await api.findGalaxyCommodityMarkets({
+          commodity: values.commodity,
+          intent: values.intent as 'buy' | 'sell',
+          maxDaysAgo: numeric(values.maxDaysAgo),
+          maxDistance: numeric(values.maxDistance),
+          minVolume: numeric(values.minVolume),
+          systemName: values.origin
+        })
+      }
+    default:
+      throw new Error(`${galaxyQueryDefinition(id).title} is not connected to a backend adapter.`)
+  }
+}
+
+function querySummary (id: GalaxyQueryResult['id'], values: Record<string, string>): string {
+  const origin = values.origin?.trim() || 'unknown system'
+  if (id === 'shipyards') return `Shipyards · ${values.hull} · from ${origin}`
+  if (id === 'facilities') return `${labelService(values.service)} · minimum ${values.pad} pad · from ${origin}`
+  if (id === 'commodity-markets') return `${values.intent} ${values.commodity} · from ${origin}`
+  return `Systems within ${values.radius} ly · from ${origin}`
+}
+
 function hashQuery (): URLSearchParams { return new URLSearchParams(window.location.hash.split('?')[1] ?? '') }
+function numeric (value: string): number { return Number.parseInt(value, 10) }
 
 function distance (value: number | null, unit: string): string { return value === null ? '—' : `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value)} ${unit}` }
 function credits (value: number | null): string { return value === null ? '—' : `${new Intl.NumberFormat().format(value)} CR` }
