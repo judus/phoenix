@@ -26,6 +26,7 @@ import { PlottedRoutePage } from '../src/pages/plotted-route-page'
 import { QueryConsolePage } from '../src/pages/query-console-page'
 import { ShipCataloguePage } from '../src/pages/ship-catalogue-page'
 import { StoredModulesPage } from '../src/pages/stored-modules-page'
+import { TrafficPage } from '../src/pages/traffic-page'
 import '../src/styles/tablet-shell-stories.css'
 
 const utilityItems: NavigationItem[] = [
@@ -52,6 +53,15 @@ const contextItems: NavigationItem[] = [
   { id: 'alerts', label: 'Alerts', shortLabel: 'ALT', href: '#alerts', badge: '2' }
 ]
 
+const commsItems: NavigationItem[] = [
+  { id: 'overview', label: 'Overview', shortLabel: '◇', href: '#comms-overview' },
+  { id: 'inbox', label: 'Inbox', shortLabel: '▤', href: '#inbox' },
+  { id: 'traffic', label: 'Traffic', shortLabel: '⌁', href: '#traffic' },
+  { id: 'contacts', label: 'Contacts', shortLabel: '◎', href: '#contacts' },
+  { id: 'galnet', label: 'GalNet', shortLabel: 'N', href: '#galnet' },
+  { id: 'radio', label: 'Radio', shortLabel: 'RAD', href: '#radio' }
+]
+
 const workspaceItems: NavigationItem[] = [
   { id: 'controls', label: 'Controls', href: '#controls' },
   { id: 'info', label: 'Info', href: '#info' },
@@ -73,11 +83,15 @@ function Brand() {
 function BaselineShell({
   children,
   context = 'ship',
-  primary = 'fleet'
+  primary = 'fleet',
+  railItems = contextItems,
+  railLabel = 'Section views'
 }: {
   children?: React.ReactNode
   context?: string
   primary?: string
+  railItems?: NavigationItem[]
+  railLabel?: string
 }) {
   return (
     <ApplicationShell>
@@ -89,13 +103,13 @@ function BaselineShell({
         <Navigation label="Primary" current={primary} items={primaryItems} />
       </PrimaryBar>
       <Workspace>
-        <Rail label="Commander views">
+        <Rail label={railLabel}>
           <Navigation
             variant="compact"
             selection="subtle"
-            label="Commander views"
+            label={railLabel}
             current={context}
-            items={contextItems}
+            items={railItems}
           />
         </Rail>
         <Content>{children}</Content>
@@ -208,6 +222,21 @@ function FilteredSystemSearchShell() {
     <div className="tablet-shell-story">
       <BaselineShell context="overview" primary="galaxy">
         <FilteredSystemSearchPage />
+      </BaselineShell>
+    </div>
+  )
+}
+
+function TrafficShell() {
+  return (
+    <div className="tablet-shell-story">
+      <BaselineShell
+        context="traffic"
+        primary="comms"
+        railItems={commsItems}
+        railLabel="Comms views"
+      >
+        <TrafficPage />
       </BaselineShell>
     </div>
   )
@@ -385,3 +414,4 @@ export const PersonalStores: Story = { render: () => <PersonalStoresShell /> }
 export const PlottedRoute: Story = { render: () => <PlottedRouteShell /> }
 export const QueryConsole: Story = { render: () => <QueryConsoleShell /> }
 export const FilteredSystemSearch: Story = { render: () => <FilteredSystemSearchShell /> }
+export const Traffic: Story = { render: () => <TrafficShell /> }
