@@ -25,6 +25,7 @@ test('providers start global services and route allowed display commands through
   let allowed = true
   const application: PhoenixApplicationServices = {
     api: apiStub(),
+    clientIdentity: { forScope: scope => `${scope}-client` },
     displayCommands: {
       allowsRemoteCommands: () => allowed,
       setAllowsRemoteCommands(value) { allowed = value }
@@ -123,10 +124,31 @@ class MemoryStorage {
 
 function apiStub(): PhoenixApi {
   return {
+    async getCopilotProfiles() {
+      return {
+        activeProfileId: 'marin',
+        profiles: [{ description: '', id: 'marin', mark: 'M', name: 'Marin', voice: 'marin' }]
+      }
+    },
+    async getCopilotVoiceHost() { return { desiredConnected: false, host: null } },
+    async getMacros() { return { version: 1, macros: [] } },
+    async getModuleSettings() {
+      return {
+        macros: { enabled: false, copilotExecution: false, dangerousExecution: false },
+        numpadCommands: {
+          enabled: false,
+          inputAdapter: 'browser',
+          presentation: 'tiles',
+          alwaysConfirm: false,
+          cancelAfterMs: 5000,
+          shortcuts: []
+        }
+      }
+    },
     async claimPairing() { throw new Error('Not used.') },
     eventStreamUrl() { return '/api/events' },
     async getHealth() { throw new Error('Not used.') },
     async getPairingStatus() { throw new Error('Not used.') },
     async getRuntimeState() { throw new Error('Not used.') }
-  }
+  } as PhoenixApi
 }

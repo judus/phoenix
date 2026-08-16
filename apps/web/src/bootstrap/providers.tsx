@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect } from 'react'
 import type { ReactNode } from 'react'
+import { CopilotVoiceProvider } from '../features/copilot/copilot-voice-provider.js'
+import { MacroRuntimeProvider } from '../features/macros/macro-runtime-provider.js'
 import type { PhoenixApplicationServices } from './create-application.js'
 
 const PhoenixApplicationContext = createContext<PhoenixApplicationServices | undefined>(undefined)
@@ -33,7 +35,19 @@ export function PhoenixProviders({
 
   return (
     <PhoenixApplicationContext.Provider value={application}>
-      {children}
+      <CopilotVoiceProvider
+        api={application.api}
+        clientIdentity={application.clientIdentity}
+        events={application.events}
+      >
+        <MacroRuntimeProvider
+          api={application.api}
+          clientIdentity={application.clientIdentity}
+          router={application.router}
+        >
+          {children}
+        </MacroRuntimeProvider>
+      </CopilotVoiceProvider>
     </PhoenixApplicationContext.Provider>
   )
 }

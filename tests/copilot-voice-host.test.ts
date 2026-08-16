@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { CopilotVoiceHostCommandSchema } from '@phoenix/contracts'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
-import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
+import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
 
 test('a tablet can control an armed desktop voice host through PHOENIX', async () => {
   const application = new PhoenixApplication({
@@ -29,7 +29,9 @@ test('a tablet can control an armed desktop voice host through PHOENIX', async (
       host: { connected: true, hostId: 'desktop-browser', phase: 'listening' }
     })
 
-    const stream = await fetch(client.copilotVoiceHostCommandStreamUrl('desktop-browser'))
+    const stream = await fetch(
+      `http://${address.host}:${address.port}/api/copilot/voice-host/commands/stream?hostId=desktop-browser`
+    )
     const commandPromise = readCommand(stream)
     const accepted = await client.requestCopilotVoiceHostState(false)
 

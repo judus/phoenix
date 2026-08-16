@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
-import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
+import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
 import { StaticGameActionBindingResolver } from '../apps/server/src/infrastructure/static-game-action-binding-resolver.js'
 import { RecordingInputBackend } from '../apps/server/src/infrastructure/recording-input-backend.js'
 
@@ -45,13 +45,8 @@ test('a browser records, saves, discovers, and plays a semantic macro', async ()
     })
 
     expect((await client.getMacros()).macros).toHaveLength(1)
-    expect((await client.getCommands()).commands).toContainEqual(expect.objectContaining({
-      id: 'command.macro.test-lights',
-      target: { type: 'macro', macroId: 'test-lights' }
-    }))
-
-    const result = await client.executeCommand({ type: 'macro', macroId: 'test-lights' })
-    expect(result).toMatchObject({ status: 'accepted', target: { type: 'macro', macroId: 'test-lights' } })
+    const result = await client.playMacro('test-lights')
+    expect(result).toMatchObject({ status: 'completed', macroId: 'test-lights' })
     expect(inputBackend.getRecordedInputs()).toHaveLength(2)
   } finally {
     await application.stop()

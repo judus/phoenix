@@ -1,6 +1,7 @@
 import type { PhoenixApi } from '../application/api/phoenix-api.js'
 import type { DisplayCommandPreference } from '../application/display/display-command-preference.js'
 import type { PhoenixEventHub } from '../application/events/phoenix-event-hub.js'
+import type { ClientIdentity } from '../application/identity/client-identity.js'
 import type { PhoenixRouter } from '../application/navigation/phoenix-router.js'
 import { RuntimeStateStore } from '../application/runtime/runtime-state-store.js'
 import { PhoenixApiClient } from '../platform/api/phoenix-api-client.js'
@@ -10,9 +11,11 @@ import {
 } from '../platform/events/browser-phoenix-event-hub.js'
 import { BrowserPhoenixRouter } from '../platform/routing/browser-phoenix-router.js'
 import { BrowserDisplayCommandPreference } from '../platform/storage/browser-display-command-preference.js'
+import { BrowserClientIdentity } from '../platform/storage/browser-client-identity.js'
 
 export interface PhoenixApplicationServices {
   api: PhoenixApi
+  clientIdentity: ClientIdentity
   displayCommands: DisplayCommandPreference
   events: PhoenixEventHub
   router: PhoenixRouter
@@ -33,13 +36,20 @@ export function createPhoenixApplication(
   const createEventSource = options.createEventSource ?? (url => new EventSource(url))
   const events = new BrowserPhoenixEventHub(api, createEventSource)
   let localStorage: Storage
+  let sessionStorage: Storage
   try {
     localStorage = browserWindow.localStorage
   } catch {
     localStorage = unavailableStorage()
   }
+  try {
+    sessionStorage = browserWindow.sessionStorage
+  } catch {
+    sessionStorage = unavailableStorage()
+  }
   return {
     api,
+    clientIdentity: new BrowserClientIdentity(sessionStorage),
     displayCommands: new BrowserDisplayCommandPreference(localStorage),
     events,
     router: new BrowserPhoenixRouter(browserWindow),
