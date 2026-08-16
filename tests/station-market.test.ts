@@ -14,7 +14,8 @@ import type {
   ShipyardSearchSource,
   StationLookupSource,
   StationSearchSource,
-  StationStockSource
+  StationStockSource,
+  SystemSearchSource
 } from '../apps/server/src/domain/station-market.js'
 import { ArdentStationSearchSource } from '../apps/server/src/infrastructure/ardent-station-search-source.js'
 import { EdsmStationStockSource } from '../apps/server/src/infrastructure/edsm-station-stock-source.js'
@@ -23,6 +24,7 @@ import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-databas
 import { SpanshShipyardSearchSource } from '../apps/server/src/infrastructure/spansh-shipyard-search-source.js'
 import { SpanshOutfittingSearchSource } from '../apps/server/src/infrastructure/spansh-outfitting-search-source.js'
 import { SpanshStationLookupSource } from '../apps/server/src/infrastructure/spansh-station-lookup-source.js'
+import { SpanshSystemSearchSource } from '../apps/server/src/infrastructure/spansh-system-search-source.js'
 
 test('Ardent source maps current station and commodity response contracts', async () => {
   const fetcher = vi.fn(async (input: string | URL | Request) => {
@@ -188,6 +190,37 @@ test('Spansh source resolves partial station names and normalizes station metada
   })
 })
 
+test('Spansh source filters systems and reports the actual main-star subtype', async () => {
+  const fetcher = vi.fn(async () => response({
+    results: [{
+      allegiance: 'Federation', bodies: [{ is_main_star: true, subtype: 'G (White-Yellow) Star', type: 'Star' }],
+      controlling_minor_faction: 'Mother Gaia', distance: 4.37, government: 'Democracy', id64: '1178707802194',
+      name: 'Alpha Centauri', needs_permit: false, population: 230000, primary_economy: 'High Tech',
+      secondary_economy: 'Service', security: 'High', updated_at: '2026-08-15 17:20:23+00', x: 3.03125, y: -0.09375, z: 3.15625
+    }]
+  }))
+  const source = new SpanshSystemSearchSource({ fetch: fetcher as typeof fetch })
+
+  await expect(source.findSystems({
+    allegiance: 'Federation', economy: 'High Tech', government: 'Democracy', maxDistanceLy: 100,
+    maxPopulation: 500000, minPopulation: 100000, population: 'inhabited', referencePosition: [1, 2, 3], security: 'High'
+  })).resolves.toEqual([{
+    allegiance: 'Federation', controllingFaction: 'Mother Gaia', distanceLy: 4.37, economy: 'High Tech',
+    government: 'Democracy', inhabited: true, permitRequired: false, population: 230000,
+    position: [3.03125, -0.09375, 3.15625], primaryStarClass: 'G (White-Yellow) Star',
+    secondaryEconomy: 'Service', security: 'High', systemAddress: 1178707802194,
+    systemName: 'Alpha Centauri', updatedAt: '2026-08-15T17:20:23.000Z'
+  }])
+  expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toMatchObject({
+    filters: {
+      allegiance: { value: ['Federation'] }, distance: { max: '100', min: '0' },
+      government: { value: ['Democracy'] }, population: { max: '500000', min: '100000' },
+      primary_economy: { value: ['High Tech'] }, security: { value: ['High'] }
+    },
+    reference_coords: { x: 1, y: 2, z: 3 }
+  })
+})
+
 test('station and market query resolves current location, formats trade direction, and caches providers', async () => {
   const runtime = new InMemoryRuntimeStateStore()
   const state = createEmptyRuntimeState()
@@ -233,7 +266,8 @@ test('station and market query resolves current location, formats trade directio
       services: ['Dock', 'Repair']
     }])
   }
-  const service = new DefaultStationMarketQuery(search, stock, shipyards, outfittingMarkets, stations, cartography(), runtime, new MemoryProviderCache(), () => new Date('2026-08-11T12:00:00Z'))
+  const systems: SystemSearchSource = { findSystems: vi.fn(async () => [filteredSystem()]) }
+  const service = new DefaultStationMarketQuery(search, stock, shipyards, outfittingMarkets, stations, systems, cartography(), runtime, new MemoryProviderCache(), () => new Date('2026-08-11T12:00:00Z'))
 
   const firstTrade = await service.findBestTrade({ commodity: 'Gold', intent: 'buy' })
   await service.findBestTrade({ commodity: 'Gold', intent: 'buy' })
@@ -249,6 +283,8 @@ test('station and market query resolves current location, formats trade directio
   const toolOutfitting = await service.findOutfitting({ query: '6A Power Plant', systemName: 'Sol' })
   const galaxyStationLookup = await service.searchStations({ maxDistanceLy: 100, minimumPadSize: 2, name: 'Gal', stationType: 'orbital', systemName: 'Sol' }, 20, 'medium')
   const toolStationLookup = await service.lookup({ minimumPadSize: 'medium', name: 'Gal', stationType: 'orbital' })
+  const galaxyFilteredSystems = await service.searchFilteredSystems({ allegiance: 'Federation', maxDistanceLy: 100, population: 'inhabited', systemName: 'Sol' })
+  const toolFilteredSystems = await service.searchSystems({ allegiance: 'Federation', maxDistance: 100, population: 'inhabited' })
 
   expect(search.findCommodityMarkets).toHaveBeenCalledTimes(2)
   expect(search.findNearestStations).toHaveBeenCalledTimes(2)
@@ -267,6 +303,10 @@ test('station and market query resolves current location, formats trade directio
   expect(toolOutfitting.structuredContent).toMatchObject({ moduleClass: 6, moduleName: 'Power Plant', moduleRating: 'A', matches: [{ stationName: 'Test Exchange' }] })
   expect(galaxyStationLookup).toMatchObject({ cache: 'refreshed', name: 'Gal', stationType: 'orbital', matches: [{ stationName: 'Galileo', services: ['Dock', 'Repair'] }] })
   expect(toolStationLookup.structuredContent).toMatchObject({ minimumPadSize: 'medium', name: 'Gal', matches: [{ stationName: 'Galileo' }] })
+  expect(galaxyFilteredSystems).toMatchObject({ cache: 'refreshed', filters: { allegiance: 'Federation', population: 'inhabited' }, systems: [{ systemName: 'Alpha Centauri' }] })
+  expect(toolFilteredSystems.structuredContent).toMatchObject({ originSystem: 'Sol', systems: [{ primaryStarClass: 'G (White-Yellow) Star' }] })
+  await expect(service.searchFilteredSystems({ maxDistanceLy: 100, maxPopulation: null, minPopulation: 1, population: 'uninhabited', systemName: 'Sol', allegiance: null, economy: null, government: null, security: null }))
+    .rejects.toThrow('Uninhabited systems cannot have a positive minimum population.')
 })
 
 test('provider response cache persists arbitrary normalized documents in SQLite', () => {
@@ -335,6 +375,16 @@ function nearbySystem (): NearbySystem {
     systemAddress: 1178707802194,
     systemName: 'Alpha Centauri',
     updatedAt: '2026-08-11T02:38:22.982Z'
+  }
+}
+
+function filteredSystem () {
+  return {
+    allegiance: 'Federation', controllingFaction: 'Mother Gaia', distanceLy: 4.37, economy: 'High Tech',
+    government: 'Democracy', inhabited: true, permitRequired: false, population: 230000,
+    position: [3.03125, -0.09375, 3.15625] as [number, number, number], primaryStarClass: 'G (White-Yellow) Star',
+    secondaryEconomy: 'Service', security: 'High', systemAddress: 1178707802194,
+    systemName: 'Alpha Centauri', updatedAt: '2026-08-11T02:38:22.982Z'
   }
 }
 

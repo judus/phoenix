@@ -334,6 +334,22 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/systems/search') {
+      const population = optionalQueryChoice(url, 'population', ['any', 'inhabited', 'uninhabited'] as const) ?? 'any'
+      this.writeJson(response, 200, await this.options.galaxyData.searchFilteredSystems({
+        allegiance: optionalQuery(url, 'allegiance'),
+        economy: optionalQuery(url, 'economy'),
+        government: optionalQuery(url, 'government'),
+        maxDistanceLy: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
+        maxPopulation: optionalQueryInteger(url, 'maxPopulation', 0, Number.MAX_SAFE_INTEGER),
+        minPopulation: optionalQueryInteger(url, 'minPopulation', 0, Number.MAX_SAFE_INTEGER),
+        population,
+        security: optionalQuery(url, 'security'),
+        systemName: requiredQuery(url, 'system')
+      }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
+      return
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/galaxy/shipyards') {
       this.writeJson(response, 200, await this.options.galaxyData.searchShipyards(
         requiredQuery(url, 'hull'),
@@ -1411,6 +1427,28 @@ function requiredQuery (url: URL, name: string): string {
   const value = url.searchParams.get(name)?.trim()
   if (!value) throw new Error(`${name} is required.`)
   return value
+}
+
+function optionalQuery (url: URL, name: string): string | null {
+  const value = url.searchParams.get(name)?.trim()
+  return value && value !== 'any' ? value : null
+}
+
+function optionalQueryInteger (url: URL, name: string, minimum: number, maximum: number): number | null {
+  const raw = url.searchParams.get(name)
+  if (raw === null || raw === '') return null
+  const value = Number(raw)
+  if (!Number.isSafeInteger(value) || value < minimum || value > maximum) {
+    throw new Error(`${name} must be an integer between ${minimum} and ${maximum}.`)
+  }
+  return value
+}
+
+function optionalQueryChoice<const T extends readonly string[]> (url: URL, name: string, choices: T): T[number] | null {
+  const value = url.searchParams.get(name)
+  if (value === null || value === '') return null
+  if (choices.includes(value)) return value as T[number]
+  throw new Error(`${name} must be one of ${choices.join(', ')}.`)
 }
 
 function boundedQueryInteger (url: URL, name: string, fallback: number, minimum: number, maximum: number): number {

@@ -147,6 +147,42 @@ export interface StationLookupSource {
   findStations(request: StationLookupRequest): Promise<StationLookupResult[]>
 }
 
+export type SystemPopulationFilter = 'any' | 'inhabited' | 'uninhabited'
+
+export interface FilteredSystemRequest {
+  allegiance: string | null
+  economy: string | null
+  government: string | null
+  maxDistanceLy: number
+  maxPopulation: number | null
+  minPopulation: number | null
+  population: SystemPopulationFilter
+  referencePosition: [number, number, number]
+  security: string | null
+}
+
+export interface FilteredSystemResult {
+  allegiance: string | null
+  controllingFaction: string | null
+  distanceLy: number
+  economy: string | null
+  government: string | null
+  inhabited: boolean
+  permitRequired: boolean | null
+  population: number
+  position: [number, number, number]
+  primaryStarClass: string | null
+  secondaryEconomy: string | null
+  security: string | null
+  systemAddress: number | null
+  systemName: string
+  updatedAt: string | null
+}
+
+export interface SystemSearchSource {
+  findSystems(request: FilteredSystemRequest): Promise<FilteredSystemResult[]>
+}
+
 export interface ProviderCacheEntry {
   fetchedAt: string
   value: unknown

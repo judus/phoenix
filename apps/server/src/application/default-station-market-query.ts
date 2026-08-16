@@ -2,6 +2,7 @@ import type { JsonObject } from '@judus/llm-client'
 import type {
   CartographicStation,
   GalaxyCommodityMarketsResponse,
+  GalaxyFilteredSystemsResponse,
   GalaxyNearbySystemsResponse,
   GalaxyNearestStationsResponse,
   GalaxyOutfittingResponse,
@@ -13,6 +14,8 @@ import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type {
   CommodityMarket,
   CommodityMarketRequest,
+  FilteredSystemRequest,
+  FilteredSystemResult,
   NearbySystem,
   NearbySystemRequest,
   NearbyStation,
@@ -27,7 +30,9 @@ import type {
   ShipyardSearchResult,
   ShipyardSearchSource,
   StationStockSource,
-  StockItem
+  StockItem,
+  SystemPopulationFilter,
+  SystemSearchSource
 } from '../domain/station-market.js'
 import type { StationQuery, TradeMarketQuery } from './mcp-tools/tool-gateways.js'
 import {
@@ -47,6 +52,7 @@ const STOCK_CACHE_MS = 6 * 60 * 60 * 1000
 const SHIPYARD_SEARCH_CACHE_MS = 30 * 60 * 1000
 const OUTFITTING_SEARCH_CACHE_MS = 30 * 60 * 1000
 const STATION_LOOKUP_CACHE_MS = 30 * 60 * 1000
+const FILTERED_SYSTEM_CACHE_MS = 30 * 60 * 1000
 const PAD_SIZES: Record<string, number> = { small: 1, medium: 2, large: 3 }
 
 interface CachedResult<T> {
@@ -69,6 +75,7 @@ export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery
     private readonly shipyardSearchSource: ShipyardSearchSource,
     private readonly outfittingSearchSource: OutfittingSearchSource,
     private readonly stationLookupSource: StationLookupSource,
+    private readonly systemSearchSource: SystemSearchSource,
     private readonly cartography: SystemCartography,
     private readonly runtimeState: RuntimeStateReader,
     private readonly cache: ProviderResponseCache,
@@ -194,6 +201,27 @@ export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery
     )
   }
 
+  public async searchSystems (arguments_: JsonObject) {
+    const systemName = this.originSystem(optionalStringArgument(arguments_, 'systemName'))
+    const result = await this.searchFilteredSystems({
+      allegiance: optionalFilter(arguments_, 'allegiance'),
+      economy: optionalFilter(arguments_, 'economy'),
+      government: optionalFilter(arguments_, 'government'),
+      maxDistanceLy: bounded(optionalIntegerArgument(arguments_, 'maxDistance'), 100, 1, 500),
+      maxPopulation: optionalNonnegativeInteger(arguments_, 'maxPopulation'),
+      minPopulation: optionalNonnegativeInteger(arguments_, 'minPopulation'),
+      population: populationFilter(optionalStringArgument(arguments_, 'population')),
+      security: optionalFilter(arguments_, 'security'),
+      systemName
+    }, boundedLimit(optionalIntegerArgument(arguments_, 'limit'), 10, 20))
+    return output(
+      result.systems.length > 0
+        ? [`Systems matching the requested characteristics near ${result.originSystem}:`, ...result.systems.map(formatFilteredSystem)].join('\n')
+        : `No reported systems matched the requested characteristics within ${result.filters.maxDistanceLy} ly of ${result.originSystem}.`,
+      json(result)
+    )
+  }
+
   public async searchCommodityMarkets (
     request: CommodityMarketRequest,
     limit = 20
@@ -251,6 +279,38 @@ export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery
       maxDistanceLy: request.maxDistance,
       originSystem: request.systemName,
       systems: cached.value.slice(0, boundedLimit(limit, 100, 1000))
+    }
+  }
+
+  public async searchFilteredSystems (
+    input: Omit<FilteredSystemRequest, 'referencePosition'> & { systemName: string },
+    limit = 20
+  ): Promise<GalaxyFilteredSystemsResponse> {
+    if (input.minPopulation !== null && input.maxPopulation !== null && input.minPopulation > input.maxPopulation) {
+      throw new Error('minPopulation must not exceed maxPopulation.')
+    }
+    if (input.population === 'uninhabited' && input.minPopulation !== null && input.minPopulation > 0) {
+      throw new Error('Uninhabited systems cannot have a positive minimum population.')
+    }
+    if (input.population === 'inhabited' && input.maxPopulation === 0) {
+      throw new Error('Inhabited systems cannot have a maximum population of zero.')
+    }
+    const origin = await this.cartography.getSystem(input.systemName)
+    if (!origin.system.position) throw new Error(`Coordinates for ${input.systemName} are unavailable.`)
+    const { systemName: _systemName, ...filters } = input
+    const request: FilteredSystemRequest = { ...filters, referencePosition: origin.system.position }
+    const cached = await this.cached(
+      'spansh-filtered-systems',
+      stableKey({ ...request, systemName: origin.system.name }),
+      FILTERED_SYSTEM_CACHE_MS,
+      () => this.systemSearchSource.findSystems(request),
+      isFilteredSystemResults
+    )
+    return {
+      cache: cached.cache,
+      filters,
+      originSystem: origin.system.name,
+      systems: cached.value.slice(0, boundedLimit(limit, 20, 100))
     }
   }
 
@@ -559,6 +619,17 @@ function formatStationLookup (station: StationLookupResult): string {
   return `- ${station.stationName} (${station.systemName}) - ${formatDistance(station.distanceLy, 'ly')}, ${formatDistance(station.distanceToArrivalLs, 'ls')}${details ? `; ${details}` : ''}`
 }
 
+function formatFilteredSystem (system: FilteredSystemResult): string {
+  const details = [
+    system.inhabited ? `population ${formatNumber(system.population)}` : 'uninhabited',
+    system.economy,
+    system.allegiance,
+    system.security ? `${system.security} security` : null,
+    system.primaryStarClass ? `primary star: ${system.primaryStarClass}` : null
+  ].filter(Boolean).join('; ')
+  return `- ${system.systemName} - ${formatDistance(system.distanceLy, 'ly')}${details ? `; ${details}` : ''}`
+}
+
 function formatMarket (market: CommodityMarket, intent: 'buy' | 'sell'): string {
   const price = intent === 'sell' ? market.sellPrice : market.buyPrice
   const volume = intent === 'sell' ? market.demand : market.stock
@@ -646,6 +717,34 @@ function isStationLookupResults (candidate: unknown): candidate is StationLookup
     typeof item.distanceLy === 'number' &&
     Array.isArray(item.services)
   ))
+}
+
+function isFilteredSystemResults (candidate: unknown): candidate is FilteredSystemResult[] {
+  return Array.isArray(candidate) && candidate.every(item => (
+    isRecord(item) &&
+    typeof item.systemName === 'string' &&
+    typeof item.distanceLy === 'number' &&
+    typeof item.population === 'number' &&
+    Array.isArray(item.position) && item.position.length === 3
+  ))
+}
+
+function populationFilter (candidate?: string): SystemPopulationFilter {
+  if (candidate === undefined || candidate === 'any') return 'any'
+  if (candidate === 'inhabited' || candidate === 'uninhabited') return candidate
+  throw new Error('population must be any, inhabited, or uninhabited.')
+}
+
+function optionalFilter (arguments_: JsonObject, name: string): string | null {
+  const value = optionalStringArgument(arguments_, name)
+  return !value || value === 'any' ? null : value
+}
+
+function optionalNonnegativeInteger (arguments_: JsonObject, name: string): number | null {
+  const value = optionalIntegerArgument(arguments_, name)
+  if (value === undefined) return null
+  if (value < 0) throw new Error(`${name} must be zero or greater.`)
+  return value
 }
 
 function stationLocationType (candidate?: string): StationLocationType {

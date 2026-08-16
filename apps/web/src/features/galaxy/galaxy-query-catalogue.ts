@@ -139,21 +139,23 @@ export const GALAXY_QUERY_CATALOGUE: GalaxyQueryDefinition[] = [
     title: 'Station lookup'
   },
   {
-    defaults: { allegiance: 'any', economy: 'any', inhabited: 'either', origin: '', radius: '100', security: 'any', starClass: 'any' },
+    defaults: { allegiance: 'any', economy: 'any', government: 'any', maxPopulation: '', minPopulation: '', origin: '', population: 'any', radius: '100', security: 'any' },
     domain: 'Cartography',
     fields: [
       ORIGIN,
       RADIUS,
-      { id: 'inhabited', label: 'Population', options: [{ label: 'Any', value: 'either' }, { label: 'Inhabited', value: 'yes' }, { label: 'Uninhabited', value: 'no' }], type: 'select' },
-      { id: 'economy', label: 'Economy', options: commonAnyOptions(['Agriculture', 'Extraction', 'High Tech', 'Industrial', 'Refinery', 'Tourism']), type: 'select' },
-      { id: 'allegiance', label: 'Allegiance', options: commonAnyOptions(['Alliance', 'Empire', 'Federation', 'Independent']), type: 'select' },
+      { id: 'population', label: 'Population', options: [{ label: 'Any', value: 'any' }, { label: 'Inhabited', value: 'inhabited' }, { label: 'Uninhabited', value: 'uninhabited' }], type: 'select' },
+      { id: 'minPopulation', label: 'Minimum population', min: 0, type: 'number' },
+      { id: 'maxPopulation', label: 'Maximum population', min: 0, type: 'number' },
+      { id: 'economy', label: 'Primary economy', options: commonAnyOptions(['Agriculture', 'Colony', 'Extraction', 'High Tech', 'Industrial', 'Military', 'None', 'Refinery', 'Service', 'Terraforming', 'Tourism']), type: 'select' },
+      { id: 'allegiance', label: 'Allegiance', options: commonAnyOptions(['Alliance', 'Empire', 'Federation', 'Guardian', 'Independent', 'Pilots Federation', 'Thargoid']), type: 'select' },
+      { id: 'government', label: 'Government', options: commonAnyOptions(['Anarchy', 'Communism', 'Confederacy', 'Cooperative', 'Corporate', 'Democracy', 'Dictatorship', 'Feudal', 'None', 'Patronage', 'Prison', 'Prison Colony', 'Theocracy']), type: 'select' },
       { id: 'security', label: 'Security', options: commonAnyOptions(['Anarchy', 'Low', 'Medium', 'High']), type: 'select' },
-      { id: 'starClass', label: 'Primary star class', options: commonAnyOptions(['O', 'B', 'A', 'F', 'G', 'K', 'M', 'Neutron', 'Black hole']), type: 'select' }
     ],
     id: 'filtered-systems',
     priority: 1,
-    purpose: 'Find systems matching operational and stellar characteristics.',
-    status: 'planned',
+    purpose: 'Find systems matching demographic, economic, and political characteristics.',
+    status: 'available',
     title: 'Filtered system search'
   },
   {
@@ -199,5 +201,5 @@ export function galaxyQueryDefinition (id: GalaxyQueryId): GalaxyQueryDefinition
 }
 
 function commonAnyOptions (values: string[]): GalaxyQueryFieldOption[] {
-  return [{ label: 'Any', value: 'any' }, ...values.map(value => ({ label: value, value: value.toLowerCase() }))]
+  return [{ label: 'Any', value: 'any' }, ...values.map(value => ({ label: value, value }))]
 }

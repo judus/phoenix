@@ -20,6 +20,7 @@ import { ShipsCompareTool } from './mcp-tools/ships-compare-tool.js'
 import { ShipsGetDefinitionTool } from './mcp-tools/ships-get-definition-tool.js'
 import { ShipsFindShipyardsTool } from './mcp-tools/ships-find-shipyards-tool.js'
 import { SystemsGetDetailsTool } from './mcp-tools/systems-get-details-tool.js'
+import { SystemsSearchTool } from './mcp-tools/systems-search-tool.js'
 import { MarketsFindBestTradeTool } from './mcp-tools/markets-find-best-trade-tool.js'
 import { StationsFindNearestTool } from './mcp-tools/stations-find-nearest-tool.js'
 import { StationsGetDetailsTool } from './mcp-tools/stations-get-details-tool.js'
@@ -32,7 +33,7 @@ import { OutfittingFindModuleTool } from './mcp-tools/outfitting-find-module-too
 import { CommsListMessagesTool } from './mcp-tools/comms-list-messages-tool.js'
 import { FleetListShipsTool } from './mcp-tools/fleet-list-ships-tool.js'
 import { FleetListStoredModulesTool } from './mcp-tools/fleet-list-stored-modules-tool.js'
-import type { CommanderEngineersQuery, DisplayCommands, ExplorationBodyQuery, NavigationQuery, StationQuery, SystemDetailsQuery, TradeMarketQuery } from './mcp-tools/tool-gateways.js'
+import type { CommanderEngineersQuery, DisplayCommands, ExplorationBodyQuery, NavigationQuery, StationQuery, SystemDetailsQuery, SystemSearchQuery, TradeMarketQuery } from './mcp-tools/tool-gateways.js'
 import type { StatefulGameActionService } from './stateful-game-action-service.js'
 import type { MissionDataReader } from '../domain/missions.js'
 import type { CommunicationDataReader } from '../domain/communications.js'
@@ -53,6 +54,7 @@ export interface PhoenixMcpToolDependencies {
   statefulActions: StatefulGameActionService
   stations: StationQuery
   systems: SystemDetailsQuery
+  systemSearch: SystemSearchQuery
 }
 
 /**
@@ -91,6 +93,7 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new StationsListShipyardStockTool(dependencies.stations),
     new StationsLookupTool(dependencies.stations),
     new StationsSearchOutfittingTool(dependencies.stations),
-    new SystemsGetDetailsTool(dependencies.systems)
+    new SystemsGetDetailsTool(dependencies.systems),
+    new SystemsSearchTool(dependencies.systemSearch)
   ]
 }

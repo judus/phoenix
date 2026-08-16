@@ -84,7 +84,8 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
       'phoenix__stations_list_shipyard_stock',
       'phoenix__stations_lookup',
       'phoenix__stations_search_outfitting',
-      'phoenix__systems_get_details'
+      'phoenix__systems_get_details',
+      'phoenix__systems_search'
     ])
     expect(provider.requests[1]?.messages.at(-1)).toMatchObject({
       role: 'tool',

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import type {
   GalaxyCommodityMarketsResponse,
+  GalaxyFilteredSystemsResponse,
   GalaxyNearbySystemsResponse,
   GalaxyNearestStationsResponse,
   GalaxyOutfittingResponse,
@@ -19,6 +20,7 @@ import {
 type GalaxyQueryResult =
   | { id: 'commodity-markets', value: GalaxyCommodityMarketsResponse }
   | { id: 'facilities', value: GalaxyNearestStationsResponse }
+  | { id: 'filtered-systems', value: GalaxyFilteredSystemsResponse }
   | { id: 'nearby-systems', value: GalaxyNearbySystemsResponse }
   | { id: 'outfitting-stock', value: GalaxyOutfittingResponse }
   | { id: 'shipyards', value: GalaxyShipyardsResponse }
@@ -164,11 +166,24 @@ function QueryResults ({ result, summary, onModify }: { result: GalaxyQueryResul
     <section className="galaxy-query-result-view">
       <header><span>{summary}</span><button type="button" onClick={onModify}>Modify query</button></header>
       {result.id === 'nearby-systems' && <NearbySystemResults result={result.value} />}
+      {result.id === 'filtered-systems' && <FilteredSystemResults result={result.value} />}
       {result.id === 'shipyards' && <ShipyardResults result={result.value} />}
       {result.id === 'facilities' && <NearestResults result={result.value} />}
       {result.id === 'outfitting-stock' && <OutfittingResults result={result.value} />}
       {result.id === 'commodity-markets' && <MarketResults result={result.value} />}
       {result.id === 'station-lookup' && <StationLookupResults result={result.value} />}
+    </section>
+  )
+}
+
+function FilteredSystemResults ({ result }: { result: GalaxyFilteredSystemsResponse }) {
+  return (
+    <section className="galaxy-results">
+      <header><div><span>Filtered systems</span><h2>{result.originSystem}</h2></div><small>{result.cache} cache · {result.systems.length} matches</small></header>
+      <table><thead><tr><th>System</th><th>Distance</th><th>Population</th><th>Economy</th><th>Allegiance</th><th>Government</th><th>Security</th><th>Primary star</th><th>Permit</th><th>Reported</th></tr></thead>
+        <tbody>{result.systems.map(system => <tr key={`${system.systemAddress ?? ''}:${system.systemName}`}><td><a href={systemHref(system.systemName)}>{system.systemName}</a>{system.controllingFaction && <small>{system.controllingFaction}</small>}</td><td>{distance(system.distanceLy, 'ly')}</td><td>{number(system.population)}</td><td>{[system.economy, system.secondaryEconomy].filter(Boolean).join(' / ') || '—'}</td><td>{system.allegiance ?? '—'}</td><td>{system.government ?? '—'}</td><td>{system.security ?? '—'}</td><td>{system.primaryStarClass ?? 'Unknown'}</td><td>{system.permitRequired === null ? 'Unknown' : system.permitRequired ? 'Required' : 'Open'}</td><td>{reportedAge(system.updatedAt)}</td></tr>)}</tbody>
+      </table>
+      {result.systems.length === 0 && <p>No reported systems matched this filter set.</p>}
     </section>
   )
 }
@@ -331,6 +346,21 @@ async function executeGalaxyQuery (api: PhoenixApi, id: GalaxyQueryId, values: R
           systemName: values.origin
         })
       }
+    case 'filtered-systems':
+      return {
+        id,
+        value: await api.findGalaxyFilteredSystems({
+          allegiance: optionalSelection(values.allegiance),
+          economy: optionalSelection(values.economy),
+          government: optionalSelection(values.government),
+          maxDistance: numeric(values.radius),
+          maxPopulation: optionalNumeric(values.maxPopulation),
+          minPopulation: optionalNumeric(values.minPopulation),
+          population: values.population as 'any' | 'inhabited' | 'uninhabited',
+          security: optionalSelection(values.security),
+          systemName: values.origin
+        })
+      }
     default:
       throw new Error(`${galaxyQueryDefinition(id).title} is not connected to a backend adapter.`)
   }
@@ -343,11 +373,14 @@ function querySummary (id: GalaxyQueryResult['id'], values: Record<string, strin
   if (id === 'commodity-markets') return `${values.intent} ${values.commodity} · from ${origin}`
   if (id === 'outfitting-stock') return `${values.module} · minimum ${values.pad} pad · from ${origin}`
   if (id === 'station-lookup') return `Stations matching ${values.name} · ${values.stationType} · from ${origin}`
+  if (id === 'filtered-systems') return `Filtered systems within ${values.radius} ly · from ${origin}`
   return `Systems within ${values.radius} ly · from ${origin}`
 }
 
 function hashQuery (): URLSearchParams { return new URLSearchParams(window.location.hash.split('?')[1] ?? '') }
 function numeric (value: string): number { return Number.parseInt(value, 10) }
+function optionalNumeric (value: string): number | undefined { return value.trim() ? numeric(value) : undefined }
+function optionalSelection (value: string): string | undefined { return value && value !== 'any' ? value : undefined }
 
 function distance (value: number | null, unit: string): string { return value === null ? '—' : `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value)} ${unit}` }
 function credits (value: number | null): string { return value === null ? '—' : `${new Intl.NumberFormat().format(value)} CR` }

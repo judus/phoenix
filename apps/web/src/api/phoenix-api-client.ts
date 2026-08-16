@@ -31,6 +31,7 @@ import {
   ExplorationManualCompletionResponseSchema,
   FleetResponseSchema,
   GalaxyCommodityMarketsResponseSchema,
+  GalaxyFilteredSystemsResponseSchema,
   GalaxyNearbySystemsResponseSchema,
   GalaxyNearestStationsResponseSchema,
   GalaxyOutfittingResponseSchema,
@@ -87,6 +88,7 @@ import {
   type ExplorationManualCompletionRequest,
   type ExplorationManualCompletionResponse,
   type GalaxyCommodityMarketsResponse,
+  type GalaxyFilteredSystemsResponse,
   type GalaxyNearbySystemsResponse,
   type GalaxyNearestStationsResponse,
   type GalaxyOutfittingResponse,
@@ -151,6 +153,7 @@ export interface PhoenixApi {
   getEngineeringMaterials(category: EngineeringMaterial['category']): Promise<EngineeringMaterialsResponse>
   getExplorationLedger(): Promise<ExplorationLedgerResponse>
   findGalaxyCommodityMarkets(input: GalaxyCommodityMarketSearch): Promise<GalaxyCommodityMarketsResponse>
+  findGalaxyFilteredSystems(input: GalaxyFilteredSystemSearch): Promise<GalaxyFilteredSystemsResponse>
   findGalaxyNearbySystems(input: GalaxyNearbySystemSearch): Promise<GalaxyNearbySystemsResponse>
   findGalaxyNearestStations(input: GalaxyNearestStationSearch): Promise<GalaxyNearestStationsResponse>
   findGalaxyOutfitting(input: GalaxyOutfittingSearch): Promise<GalaxyOutfittingResponse>
@@ -215,6 +218,19 @@ export interface GalaxyNearestStationSearch {
 export interface GalaxyNearbySystemSearch {
   limit?: number
   maxDistance?: number
+  systemName: string
+}
+
+export interface GalaxyFilteredSystemSearch {
+  allegiance?: string
+  economy?: string
+  government?: string
+  limit?: number
+  maxDistance?: number
+  maxPopulation?: number
+  minPopulation?: number
+  population?: 'any' | 'inhabited' | 'uninhabited'
+  security?: string
   systemName: string
 }
 
@@ -871,6 +887,24 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return GalaxyNearbySystemsResponseSchema.parse(await response.json())
+  }
+
+  public async findGalaxyFilteredSystems (input: GalaxyFilteredSystemSearch): Promise<GalaxyFilteredSystemsResponse> {
+    const query = new URLSearchParams({ system: input.systemName })
+    if (input.allegiance) query.set('allegiance', input.allegiance)
+    if (input.economy) query.set('economy', input.economy)
+    if (input.government) query.set('government', input.government)
+    if (input.limit !== undefined) query.set('limit', String(input.limit))
+    if (input.maxDistance !== undefined) query.set('maxDistance', String(input.maxDistance))
+    if (input.maxPopulation !== undefined) query.set('maxPopulation', String(input.maxPopulation))
+    if (input.minPopulation !== undefined) query.set('minPopulation', String(input.minPopulation))
+    if (input.population) query.set('population', input.population)
+    if (input.security) query.set('security', input.security)
+    const response = await this.request(`${this.baseUrl}/api/galaxy/systems/search?${query.toString()}`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return GalaxyFilteredSystemsResponseSchema.parse(await response.json())
   }
 
   public async findGalaxyShipyards (input: GalaxyShipyardSearch): Promise<GalaxyShipyardsResponse> {

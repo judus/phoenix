@@ -2,7 +2,7 @@ import { expect, test } from 'vitest'
 import { PHOENIX_API_VERSION, type CartographicSystem } from '@phoenix/contracts'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
-import type { OutfittingSearchSource, ShipyardSearchSource, StationLookupSource, StationSearchSource } from '../apps/server/src/domain/station-market.js'
+import type { OutfittingSearchSource, ShipyardSearchSource, StationLookupSource, StationSearchSource, SystemSearchSource } from '../apps/server/src/domain/station-market.js'
 
 test('the frontend API client communicates with the PHOENIX backend', async () => {
   const stationSearchSource: StationSearchSource = {
@@ -51,6 +51,15 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       systemName: 'Nearby', updatedAt: '2026-08-15T08:00:00.000Z'
     }]
   }
+  const systemSearchSource: SystemSearchSource = {
+    findSystems: async () => [{
+      allegiance: 'Federation', controllingFaction: 'Mother Gaia', distanceLy: 4.37, economy: 'High Tech',
+      government: 'Democracy', inhabited: true, permitRequired: false, population: 230000,
+      position: [3.03125, -0.09375, 3.15625], primaryStarClass: 'G (White-Yellow) Star',
+      secondaryEconomy: 'Service', security: 'High', systemAddress: 1178707802194,
+      systemName: 'Alpha Centauri', updatedAt: '2026-08-15T08:00:00.000Z'
+    }]
+  }
   const application = new PhoenixApplication({
     databasePath: ':memory:',
     eliteDirectory: null,
@@ -60,6 +69,7 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
     shipyardSearchSource,
     outfittingSearchSource,
     stationLookupSource,
+    systemSearchSource,
     cartographySource: { fetchSystem: async () => fixtureSystem() }
   })
   const address = await application.start()
@@ -83,6 +93,8 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       .resolves.toMatchObject({ moduleClass: 6, moduleName: 'Power Plant', moduleRating: 'A', matches: [{ stationName: 'Test Exchange' }] })
     await expect(client.findGalaxyStations({ maxDistance: 100, minimumPadSize: 'large', name: 'Test', stationType: 'orbital', systemName: 'Sol' }))
       .resolves.toMatchObject({ name: 'Test', stationType: 'orbital', matches: [{ stationName: 'Test Exchange', services: ['Dock', 'Repair'] }] })
+    await expect(client.findGalaxyFilteredSystems({ allegiance: 'Federation', maxDistance: 100, population: 'inhabited', systemName: 'Sol' }))
+      .resolves.toMatchObject({ filters: { allegiance: 'Federation', population: 'inhabited' }, systems: [{ systemName: 'Alpha Centauri' }] })
   } finally {
     await application.stop()
   }

@@ -38,3 +38,7 @@ export interface StationQuery {
 export interface SystemDetailsQuery {
   getDetails(arguments_: JsonObject): DeferredToolResult
 }
+
+export interface SystemSearchQuery {
+  searchSystems(arguments_: JsonObject): DeferredToolResult
+}

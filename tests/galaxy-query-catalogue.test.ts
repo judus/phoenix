@@ -23,7 +23,8 @@ describe('Galaxy query catalogue', () => {
       'facilities',
       'commodity-markets',
       'outfitting-stock',
-      'station-lookup'
+      'station-lookup',
+      'filtered-systems'
     ])
   })
 })
