@@ -56,6 +56,34 @@ describe('pairing transport', () => {
   })
 })
 
+test('filtered Galaxy search serializes typed parameters and validates the response', async () => {
+  const request = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({
+    cache: 'fresh',
+    filters: {
+      allegiance: null,
+      economy: 'High Tech',
+      government: null,
+      maxDistanceLy: 75,
+      maxPopulation: null,
+      minPopulation: 1,
+      population: 'inhabited',
+      security: null
+    },
+    originSystem: 'Sol',
+    systems: []
+  }))
+
+  await expect(new PhoenixApiClient('', request).getFilteredSystems({
+    economy: 'High Tech',
+    maxDistance: 75,
+    minPopulation: 1,
+    population: 'inhabited',
+    system: 'Sol'
+  })).resolves.toMatchObject({ originSystem: 'Sol', systems: [] })
+
+  expect(request.mock.calls[0]?.[0]).toBe('/api/galaxy/systems/search?maxDistance=75&population=inhabited&system=Sol&economy=High+Tech&minPopulation=1')
+})
+
 function jsonResponse(payload: unknown): Response {
   return new Response(JSON.stringify(payload), {
     headers: { 'content-type': 'application/json' },

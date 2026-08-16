@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createEmptyRuntimeState, type NavigationRoute } from '@phoenix/contracts'
 import { expect, test } from 'vitest'
-import { buildRouteLegs, PlottedRoute } from '../apps/web/src/features/navigation/plotted-route.js'
+import { buildRouteLegs, PlottedRoute } from '../apps/web/src/features/galaxy/plotted-route.js'
 
 const route: NavigationRoute = {
   timestamp: '2026-08-15T16:29:09.000Z',
@@ -33,8 +33,10 @@ test('plotted route renders route progress, next jump, and cartography links', (
   expect(markup).toContain('Sirius')
   expect(markup).toContain('12.0 ly')
   expect(markup).toContain('17.0 ly')
-  expect(markup).toContain('class="is-current"')
-  expect(markup).toContain('#/galaxy/system?name=Alpha%20Centauri')
+  expect(markup).toContain('class="active"')
+  expect(markup).toContain('Bodies')
+  expect(markup).toContain('#TODO')
+  expect(markup).toContain('#/galaxy/system?name=Alpha+Centauri')
 })
 
 test('plotted route states honestly when runtime progress is unknown', () => {

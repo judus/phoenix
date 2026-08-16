@@ -15,6 +15,20 @@
       min-block-size: 0;
     }
 
+    > .query-results {
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      align-content: start;
+      min-block-size: 0;
+      overflow: hidden;
+
+      > .table-region {
+        min-block-size: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
+      }
+    }
+
     .form {
       display: grid;
       grid-template-rows: minmax(0, 1fr);
@@ -107,19 +121,29 @@
     .query-parameters {
       display: flex;
       flex-direction: column;
-      gap: var(--spacing-xl);
+      gap: var(--spacing-sm);
       min-inline-size: 0;
+      min-block-size: 0;
       padding: var(--spacing-lg);
-      overflow: auto;
-      overscroll-behavior: contain;
+      overflow: hidden;
+
+      .query-fields {
+        flex: 1 1 auto;
+        display: grid;
+        align-content: start;
+        gap: var(--spacing-xl);
+        min-inline-size: 0;
+        min-block-size: 0;
+        padding-inline-end: var(--spacing-xs);
+        overflow: auto;
+        overscroll-behavior: contain;
+      }
 
       .form-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
-      .query-actions {
-        margin-block-start: auto;
-      }
+      .query-actions { flex: 0 0 auto; }
     }
   }
 
@@ -143,6 +167,12 @@
       }
 
       .query-parameters {
+        overflow: visible;
+      }
+
+      .query-parameters .query-fields {
+        flex: none;
+        padding-inline-end: 0;
         overflow: visible;
       }
 

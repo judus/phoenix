@@ -1,8 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test, vi } from 'vitest'
 import type { CartographicBody, CartographicSystem } from '@phoenix/contracts'
-import { buildSystemHierarchy } from '../apps/web/src/features/navigation/system-hierarchy.js'
-import { SystemSchematic } from '../apps/web/src/features/navigation/system-schematic.js'
+import { buildSystemHierarchy } from '../apps/web/src/features/galaxy/system-hierarchy.js'
+import { SystemSchematic } from '../apps/web/src/features/galaxy/system-schematic.js'
 
 test('schematic cartography orders bodies by body id and preserves the complete parent hierarchy', () => {
   const system = fixtureSystem()
@@ -36,10 +36,7 @@ test('schematic cartography prefers reported installation parents and otherwise 
 test('schematic cartography renders symbolic bodies, stations, and scan markers', () => {
   const markup = renderToStaticMarkup(
     <SystemSchematic
-      onQueryChange={vi.fn()}
-      onSearch={vi.fn()}
       onSelect={vi.fn()}
-      query="Sol"
       selected={fixtureSystem().bodies[1]}
       system={fixtureSystem()}
     />
@@ -52,18 +49,14 @@ test('schematic cartography renders symbolic bodies, stations, and scan markers'
   expect(markup).toContain('Biological signals')
   expect(markup).toContain('Galileo')
   expect(markup).toContain('Installation')
-  expect(markup).toContain('System summary')
+  expect(markup).not.toContain('System summary')
   expect(markup).toContain('has-selection')
-  expect(markup).toContain('aria-label="System name"')
 })
 
 test('schematic cartography uses the full map workspace until an object is selected', () => {
   const markup = renderToStaticMarkup(
     <SystemSchematic
-      onQueryChange={vi.fn()}
-      onSearch={vi.fn()}
       onSelect={vi.fn()}
-      query="Sol"
       system={fixtureSystem()}
     />
   )

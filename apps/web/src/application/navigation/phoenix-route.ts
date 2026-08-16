@@ -21,6 +21,21 @@ export type InformationPrimarySection =
   | 'engineering'
   | 'comms'
 
+export const GALAXY_QUERY_IDS = [
+  'commodity-markets',
+  'facilities',
+  'exploration-targets',
+  'faction-presence',
+  'filtered-systems',
+  'nearby-systems',
+  'outfitting-stock',
+  'shipyards',
+  'station-lookup',
+  'trade-opportunities'
+] as const
+
+export type GalaxyQueryId = typeof GALAXY_QUERY_IDS[number]
+
 /**
  * Transitional query preservation for routes whose feature-specific model has not migrated yet.
  * Promote meaningful values to fields on the relevant route variant before feature code consumes
@@ -33,8 +48,9 @@ export type InformationRoute =
   | { kind: 'information', section: 'commander', view: 'overview' | 'inventory' | 'progress' }
   | { kind: 'information', section: 'fleet', view: 'overview' | 'current-overview' | 'current-loadout' | 'current-cargo' | 'carriers' | 'stored-modules' }
   | { kind: 'information', section: 'fleet', view: 'catalogue', selectedShipId?: string }
-  | { kind: 'information', section: 'galaxy', view: 'system', systemName?: string, selectedName?: string, query?: PhoenixRouteQuery }
-  | { kind: 'information', section: 'galaxy', view: 'route' | 'database', query?: PhoenixRouteQuery }
+  | { kind: 'information', section: 'galaxy', view: 'system', systemName?: string, selectedName?: string }
+  | { kind: 'information', section: 'galaxy', view: 'route' }
+  | { kind: 'information', section: 'galaxy', view: 'database', selectedQueryId?: GalaxyQueryId }
   | { kind: 'information', section: 'operations', view: 'overview' | 'missions' | 'objectives' | 'community-goals' | 'powerplay' | 'colonisation', query?: PhoenixRouteQuery }
   | { kind: 'information', section: 'engineering', view: 'blueprints' | 'engineers' | 'materials-raw' | 'materials-manufactured' | 'materials-encoded' | 'materials-xeno', query?: PhoenixRouteQuery }
   | { kind: 'information', section: 'comms', view: 'overview' | 'inbox' | 'traffic' | 'contacts' | 'galnet' | 'radio', query?: PhoenixRouteQuery }

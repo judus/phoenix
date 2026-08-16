@@ -11,20 +11,18 @@
 
     .query-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      grid-template-rows: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+      grid-auto-rows: minmax(0, 1fr);
       gap: var(--spacing-xs);
       min-inline-size: 0;
       min-block-size: 0;
+      overflow: hidden;
     }
   }
 
   @container query-console (aspect-ratio < 1 / 1) {
     .query-console .query-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      grid-template-rows: repeat(5, minmax(9rem, 1fr));
-      padding-inline-end: var(--spacing-xs);
-      overflow: auto;
-      overscroll-behavior: contain;
+      grid-template-rows: repeat(5, minmax(0, 1fr));
     }
   }

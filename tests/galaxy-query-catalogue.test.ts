@@ -16,18 +16,18 @@ describe('Galaxy query catalogue', () => {
     }
   })
 
-  it('advertises only queries backed by current HTTP handlers as available', () => {
-    expect(GALAXY_QUERY_CATALOGUE.filter(query => query.status === 'available').map(query => query.id)).toEqual([
-      'exploration-targets',
+  it('groups queries by operational domain in a useful default order', () => {
+    expect(GALAXY_QUERY_CATALOGUE.map(query => query.id)).toEqual([
       'nearby-systems',
-      'shipyards',
-      'facilities',
-      'commodity-markets',
-      'outfitting-stock',
-      'station-lookup',
       'filtered-systems',
-      'faction-presence',
-      'trade-opportunities'
+      'exploration-targets',
+      'facilities',
+      'station-lookup',
+      'shipyards',
+      'outfitting-stock',
+      'commodity-markets',
+      'trade-opportunities',
+      'faction-presence'
     ])
   })
 })

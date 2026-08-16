@@ -84,7 +84,11 @@ function FleetOverview({ fleet }: { fleet: NonNullable<FleetControllerSnapshot['
   return (
     <PageFrame layout="fit">
       <div className="fleet-overview">
-        <PageHeader variant="cockpit" title="Fleet" />
+        <PageHeader
+          variant="cockpit"
+          context={<Breadcrumbs items={[{ label: 'Fleet' }]} />}
+          title="Fleet"
+        />
         <dl className="fleet-summary">
           {model.summary.map(item => <div key={item.label}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}
         </dl>

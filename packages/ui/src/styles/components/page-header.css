@@ -18,6 +18,7 @@
         font-size: var(--page-title-size);
         font-weight: var(--font-weight-normal);
         line-height: var(--line-height-tight);
+        text-transform: uppercase;
       }
 
       > p,
@@ -117,8 +118,6 @@
     }
   }
 
-
-  .presentation-elite .page-header h1 { text-transform: uppercase; }
 
   @container page-frame (width < 42rem) {
     .page-header {

@@ -1,7 +1,22 @@
 import { describe, expect, test } from 'vitest'
 import { BrowserPhoenixRouter } from '../apps/web/src/platform/routing/browser-phoenix-router.js'
+import { parsePhoenixRoute, phoenixRouteHash } from '../apps/web/src/application/navigation/phoenix-router.js'
 
 describe('BrowserPhoenixRouter', () => {
+  test('Galaxy routes preserve only typed feature state', () => {
+    expect(parsePhoenixRoute('#/galaxy/system?name=Sol&selected=Earth&arbitrary=leak')).toEqual({
+      kind: 'information', section: 'galaxy', view: 'system', systemName: 'Sol', selectedName: 'Earth'
+    })
+    expect(parsePhoenixRoute('#/galaxy/database?query=filtered-systems&field=value')).toEqual({
+      kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'filtered-systems'
+    })
+    expect(parsePhoenixRoute('#/galaxy/database?query=unknown')).toEqual({
+      kind: 'information', section: 'galaxy', view: 'database'
+    })
+    expect(phoenixRouteHash({ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'filtered-systems' }))
+      .toBe('#/galaxy/database?query=filtered-systems')
+  })
+
   test('push and replace update history and notify subscribers once', () => {
     const browser = new FakeBrowserWindow('#/')
     const router = new BrowserPhoenixRouter(browser as unknown as Window)

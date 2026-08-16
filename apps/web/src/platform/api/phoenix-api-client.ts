@@ -1,5 +1,6 @@
 import {
   ActivityLogResponseSchema,
+  CartographyLookupResponseSchema,
   CopilotAudioProcessingSchema,
   CopilotConversationEventSchema,
   CopilotProfileSelectionRequestSchema,
@@ -14,6 +15,16 @@ import {
   GameActionCatalogResponseSchema,
   GameActionResultSchema,
   FleetResponseSchema,
+  GalaxyFilteredSystemsResponseSchema,
+  GalaxyCommodityMarketsResponseSchema,
+  GalaxyExplorationTargetsResponseSchema,
+  GalaxyFactionPresencesResponseSchema,
+  GalaxyNearbySystemsResponseSchema,
+  GalaxyNearestStationsResponseSchema,
+  GalaxyOutfittingResponseSchema,
+  GalaxyShipyardsResponseSchema,
+  GalaxyStationLookupResponseSchema,
+  GalaxyTradeOpportunitiesResponseSchema,
   MacroDefinitionSchema,
   MacroLibrarySchema,
   MacroPlaybackSchema,
@@ -26,6 +37,7 @@ import {
 } from '@phoenix/contracts'
 import type {
   ActivityLogResponse,
+  CartographyLookupResponse,
   CopilotAudioProcessing,
   CopilotConversationEvent,
   CopilotProfilesResponse,
@@ -40,6 +52,16 @@ import type {
   GameActionOperation,
   GameActionResult,
   FleetResponse,
+  GalaxyFilteredSystemsResponse,
+  GalaxyCommodityMarketsResponse,
+  GalaxyExplorationTargetsResponse,
+  GalaxyFactionPresencesResponse,
+  GalaxyNearbySystemsResponse,
+  GalaxyNearestStationsResponse,
+  GalaxyOutfittingResponse,
+  GalaxyShipyardsResponse,
+  GalaxyStationLookupResponse,
+  GalaxyTradeOpportunitiesResponse,
   HealthResponse,
   MacroDefinition,
   MacroLibrary,
@@ -51,7 +73,19 @@ import type {
   RuntimeState,
   ShipCatalogueResponse
 } from '@phoenix/contracts'
-import type { PhoenixApi } from '../../application/api/phoenix-api.js'
+import type {
+  FilteredSystemsQuery,
+  GalaxyCommodityMarketSearch,
+  GalaxyExplorationTargetSearch,
+  GalaxyFactionPresenceSearch,
+  GalaxyNearbySystemSearch,
+  GalaxyNearestStationSearch,
+  GalaxyOutfittingSearch,
+  GalaxyShipyardSearch,
+  GalaxyStationLookupSearch,
+  GalaxyTradeOpportunitySearch,
+  PhoenixApi
+} from '../../application/api/phoenix-api.js'
 
 export class PhoenixApiClient implements PhoenixApi {
   readonly #baseUrl: string
@@ -130,6 +164,69 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getNavigationRoute(signal?: AbortSignal): Promise<NavigationRoute> {
     return this.#get('/api/navigation/route', NavigationRouteSchema, signal)
+  }
+
+  async getSystemCartography(systemName?: string, signal?: AbortSignal): Promise<CartographyLookupResponse> {
+    const query = systemName?.trim() ? `?name=${encodeURIComponent(systemName.trim())}` : ''
+    return this.#get(`/api/navigation/system${query}`, CartographyLookupResponseSchema, signal)
+  }
+
+  async getFilteredSystems(input: FilteredSystemsQuery, signal?: AbortSignal): Promise<GalaxyFilteredSystemsResponse> {
+    const query = new URLSearchParams({
+      maxDistance: String(input.maxDistance),
+      population: input.population,
+      system: input.system
+    })
+    for (const key of ['allegiance', 'economy', 'government', 'security'] as const) {
+      if (input[key]) query.set(key, input[key])
+    }
+    if (input.minPopulation !== undefined) query.set('minPopulation', String(input.minPopulation))
+    if (input.maxPopulation !== undefined) query.set('maxPopulation', String(input.maxPopulation))
+    return this.#get(`/api/galaxy/systems/search?${query}`, GalaxyFilteredSystemsResponseSchema, signal)
+  }
+
+  async findGalaxyNearestStations(input: GalaxyNearestStationSearch, signal?: AbortSignal): Promise<GalaxyNearestStationsResponse> {
+    const query = parameters({ pad: input.minimumPadSize, service: input.service, system: input.systemName })
+    return this.#get(`/api/galaxy/nearest?${query}`, GalaxyNearestStationsResponseSchema, signal)
+  }
+
+  async findGalaxyNearbySystems(input: GalaxyNearbySystemSearch, signal?: AbortSignal): Promise<GalaxyNearbySystemsResponse> {
+    const query = parameters({ limit: input.limit, maxDistance: input.maxDistance, system: input.systemName })
+    return this.#get(`/api/galaxy/systems?${query}`, GalaxyNearbySystemsResponseSchema, signal)
+  }
+
+  async findGalaxyExplorationTargets(input: GalaxyExplorationTargetSearch, signal?: AbortSignal): Promise<GalaxyExplorationTargetsResponse> {
+    const { systemName, ...filters } = input
+    return this.#get(`/api/galaxy/exploration-targets?${parameters({ ...filters, system: systemName })}`, GalaxyExplorationTargetsResponseSchema, signal)
+  }
+
+  async findGalaxyFactionPresences(input: GalaxyFactionPresenceSearch, signal?: AbortSignal): Promise<GalaxyFactionPresencesResponse> {
+    const query = parameters({ allegiance: input.allegiance, controlling: input.controlling, faction: input.factionName, government: input.government, limit: input.limit, maxDistance: input.maxDistance, minInfluence: input.minInfluence, state: input.state, system: input.systemName })
+    return this.#get(`/api/galaxy/factions/search?${query}`, GalaxyFactionPresencesResponseSchema, signal)
+  }
+
+  async findGalaxyShipyards(input: GalaxyShipyardSearch, signal?: AbortSignal): Promise<GalaxyShipyardsResponse> {
+    return this.#get(`/api/galaxy/shipyards?${parameters({ hull: input.hullName, limit: input.limit, system: input.systemName })}`, GalaxyShipyardsResponseSchema, signal)
+  }
+
+  async findGalaxyOutfitting(input: GalaxyOutfittingSearch, signal?: AbortSignal): Promise<GalaxyOutfittingResponse> {
+    const query = parameters({ limit: input.limit, maxDaysAgo: input.maxDaysAgo, maxDistance: input.maxDistance, module: input.module, pad: input.minimumPadSize, system: input.systemName })
+    return this.#get(`/api/galaxy/outfitting?${query}`, GalaxyOutfittingResponseSchema, signal)
+  }
+
+  async findGalaxyStations(input: GalaxyStationLookupSearch, signal?: AbortSignal): Promise<GalaxyStationLookupResponse> {
+    const query = parameters({ limit: input.limit, maxDistance: input.maxDistance, name: input.name, pad: input.minimumPadSize, system: input.systemName, type: input.stationType })
+    return this.#get(`/api/galaxy/stations?${query}`, GalaxyStationLookupResponseSchema, signal)
+  }
+
+  async findGalaxyCommodityMarkets(input: GalaxyCommodityMarketSearch, signal?: AbortSignal): Promise<GalaxyCommodityMarketsResponse> {
+    const query = parameters({ commodity: input.commodity, fleetCarriers: input.fleetCarriers, intent: input.intent, maxDaysAgo: input.maxDaysAgo, maxDistance: input.maxDistance, minVolume: input.minVolume, system: input.systemName })
+    return this.#get(`/api/galaxy/markets?${query}`, GalaxyCommodityMarketsResponseSchema, signal)
+  }
+
+  async findGalaxyTradeOpportunities(input: GalaxyTradeOpportunitySearch, signal?: AbortSignal): Promise<GalaxyTradeOpportunitiesResponse> {
+    const query = parameters({ availableCredits: input.availableCredits, cargoCapacity: input.cargoCapacity, fleetCarriers: input.fleetCarriers, limit: input.limit, maxDaysAgo: input.maxDaysAgo, maxDistance: input.maxDistance, minVolume: input.minVolume, system: input.systemName })
+    return this.#get(`/api/galaxy/trade-opportunities?${query}`, GalaxyTradeOpportunitiesResponseSchema, signal)
   }
 
   async getCopilotProfiles(signal?: AbortSignal): Promise<CopilotProfilesResponse> {
@@ -342,6 +439,14 @@ export class PhoenixApiClient implements PhoenixApi {
   #macroRecording(path: string, body: unknown, signal?: AbortSignal): Promise<MacroRecording> {
     return this.#json(path, 'POST', body, MacroRecordingSchema, signal)
   }
+}
+
+function parameters(values: Record<string, boolean | number | string | undefined>): URLSearchParams {
+  const query = new URLSearchParams()
+  for (const [key, value] of Object.entries(values)) {
+    if (value !== undefined && value !== '') query.set(key, String(value))
+  }
+  return query
 }
 
 async function apiError(response: Response): Promise<Error> {

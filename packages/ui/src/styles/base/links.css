@@ -1,1 +1,3 @@
-/* Link appearance is owned by the navigation or content pattern using it. */
+  a {
+    text-decoration: none;
+  }

@@ -1,5 +1,6 @@
 import {
   CONTROL_CATEGORIES,
+  GALAXY_QUERY_IDS,
   HOME_ROUTE,
   type InformationRoute,
   type PhoenixRoute,
@@ -105,6 +106,9 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
     if (route.systemName) parameters.set('name', route.systemName)
     if (route.selectedName) parameters.set('selected', route.selectedName)
   }
+  if (route.kind === 'information' && route.section === 'galaxy' && route.view === 'database' && route.selectedQueryId) {
+    parameters.set('query', route.selectedQueryId)
+  }
   if (route.kind === 'information' && route.section === 'fleet' && route.view === 'catalogue' && route.selectedShipId) {
     parameters.set('ship', route.selectedShipId)
   }
@@ -153,16 +157,25 @@ function parseFleetRoute(rest: string[], query: PhoenixRouteQuery): InformationR
 function parseGalaxyRoute(rest: string[], query: PhoenixRouteQuery): InformationRoute {
   const view = oneOf(rest[0], ['system', 'route', 'database'] as const) ?? 'system'
   if (view === 'system') {
-    const { name, selected, ...remainingQuery } = query
-    return withQuery({
+    const { name, selected } = query
+    return {
       kind: 'information',
       section: 'galaxy',
       view,
       ...(name?.trim() ? { systemName: name.trim() } : {}),
       ...(selected?.trim() ? { selectedName: selected.trim() } : {})
-    }, remainingQuery)
+    }
   }
-  return withQuery({ kind: 'information', section: 'galaxy', view }, query)
+  if (view === 'database') {
+    const selectedQueryId = GALAXY_QUERY_IDS.find(candidate => candidate === query.query?.trim())
+    return {
+      kind: 'information',
+      section: 'galaxy',
+      view,
+      ...(selectedQueryId ? { selectedQueryId } : {})
+    }
+  }
+  return { kind: 'information', section: 'galaxy', view }
 }
 
 function parseEngineeringRoute(rest: string[], query: PhoenixRouteQuery): InformationRoute {

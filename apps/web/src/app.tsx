@@ -19,6 +19,9 @@ import { commanderContextForRoute, commanderNavigationItems } from './features/c
 import { FleetPage } from './features/fleet/fleet-page.js'
 import { fleetContextForRoute, fleetNavigationItems } from './features/fleet/fleet-navigation.js'
 import { useFleetController } from './features/fleet/use-fleet-controller.js'
+import { GalaxyPage } from './features/galaxy/galaxy-page.js'
+import { galaxyContextForRoute, galaxyNavigationItems } from './features/galaxy/galaxy-navigation.js'
+import { useGalaxyController } from './features/galaxy/use-galaxy-controller.js'
 
 export function App({ application }: { application: PhoenixApplicationServices }) {
   return (
@@ -36,6 +39,7 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
   const informationRoute = isInformationRoute(route) ? route : router.getRememberedInformationRoute()
   const commanderRoute = isInformationRoute(route) && route.section === 'commander' ? route : undefined
   const fleetRoute = isInformationRoute(route) && route.section === 'fleet' ? route : undefined
+  const galaxyRoute = isInformationRoute(route) && route.section === 'galaxy' ? route : undefined
   const informationContext = commanderRoute
     ? {
         informationContextItems: commanderNavigationItems,
@@ -48,6 +52,12 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
           informationContextLabel: 'Fleet views',
           informationCurrentContext: fleetContextForRoute(fleetRoute)
         }
+      : galaxyRoute
+        ? {
+            informationContextItems: galaxyNavigationItems,
+            informationContextLabel: 'Galaxy views',
+            informationCurrentContext: galaxyContextForRoute(galaxyRoute)
+          }
       : undefined
 
   return (
@@ -66,6 +76,8 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
           ? <CommanderFeature application={application} view={commanderRoute.view} />
           : fleetRoute
             ? <FleetFeature application={application} route={fleetRoute} />
+            : galaxyRoute
+              ? <GalaxyFeature application={application} route={galaxyRoute} />
             : null}
       journal={<PlaceholderPage context="Journal" title="Event log" description="Recent game and application events" />}
       macros={<PlaceholderPage context="Macros" title="Command macros" description="Stored command sequences" />}
@@ -73,6 +85,18 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       telemetry={<PlaceholderPage context="Telemetry" title="Numpad" description="Telemetry and direct-entry controls" />}
     />
   )
+}
+
+function GalaxyFeature({ application, route }: {
+  application: PhoenixApplicationServices
+  route: Extract<ReturnType<PhoenixRouter['getSnapshot']>, { kind: 'information', section: 'galaxy' }>
+}) {
+  const runtime = useRuntimeState(application.runtime)
+  const systemName = route.view === 'system'
+    ? route.systemName ?? (runtime.status === 'ready' ? runtime.state.system.name ?? undefined : undefined)
+    : undefined
+  const controller = useGalaxyController(application.api, application.events, route.view, systemName)
+  return <GalaxyPage api={application.api} controller={controller} onNavigate={application.router.push} route={route} runtime={runtime} />
 }
 
 function FleetFeature({ application, route }: {
