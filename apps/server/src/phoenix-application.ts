@@ -53,7 +53,7 @@ import type { CopilotText } from './application/copilot-text-service.js'
 import type { CopilotRealtime } from './application/copilot-realtime-service.js'
 import type { GameActionBindingResolver, InputBackend } from './domain/game-actions.js'
 import type { CartographySource } from './domain/cartography.js'
-import type { OutfittingSearchSource, ShipyardSearchSource, StationLookupSource, StationSearchSource, StationStockSource, SystemSearchSource } from './domain/station-market.js'
+import type { FactionPresenceSearchSource, OutfittingSearchSource, ShipyardSearchSource, StationLookupSource, StationSearchSource, StationStockSource, SystemSearchSource } from './domain/station-market.js'
 import type { GalnetSource } from './domain/galnet.js'
 import type { ControlGridLayoutRepository, SystemSettingsRepository } from './domain/system-configuration.js'
 import type { MacroRepository } from './domain/macros.js'
@@ -84,6 +84,7 @@ import { SpanshShipyardSearchSource } from './infrastructure/spansh-shipyard-sea
 import { SpanshOutfittingSearchSource } from './infrastructure/spansh-outfitting-search-source.js'
 import { SpanshStationLookupSource } from './infrastructure/spansh-station-lookup-source.js'
 import { SpanshSystemSearchSource } from './infrastructure/spansh-system-search-source.js'
+import { SpanshFactionPresenceSource } from './infrastructure/spansh-faction-presence-source.js'
 import { CatalogueSnapshotLoader } from './infrastructure/catalogue-snapshot-loader.js'
 import { ApplicationPaths } from './infrastructure/application-paths.js'
 import { FrontierGalnetSource } from './infrastructure/frontier-galnet-source.js'
@@ -115,6 +116,7 @@ export interface PhoenixApplicationOptions {
   outfittingSearchSource?: OutfittingSearchSource
   stationLookupSource?: StationLookupSource
   systemSearchSource?: SystemSearchSource
+  factionPresenceSource?: FactionPresenceSearchSource
   stationStockSource?: StationStockSource
   systemSettingsRepository?: SystemSettingsRepository
   webRoot?: string
@@ -316,6 +318,7 @@ export class PhoenixApplication {
       options.outfittingSearchSource ?? new SpanshOutfittingSearchSource(),
       options.stationLookupSource ?? new SpanshStationLookupSource(),
       options.systemSearchSource ?? new SpanshSystemSearchSource(),
+      options.factionPresenceSource ?? new SpanshFactionPresenceSource(),
       cartography,
       this.stateStore,
       this.database
@@ -331,6 +334,7 @@ export class PhoenixApplication {
       display,
       engineers: new DefaultCommanderEngineersQuery(engineering),
       exploration,
+      factions: stationMarkets,
       fleet,
       gameCatalogue,
       navigation,

@@ -21,6 +21,7 @@ import { ShipsGetDefinitionTool } from './mcp-tools/ships-get-definition-tool.js
 import { ShipsFindShipyardsTool } from './mcp-tools/ships-find-shipyards-tool.js'
 import { SystemsGetDetailsTool } from './mcp-tools/systems-get-details-tool.js'
 import { SystemsSearchTool } from './mcp-tools/systems-search-tool.js'
+import { FactionsSearchTool } from './mcp-tools/factions-search-tool.js'
 import { MarketsFindBestTradeTool } from './mcp-tools/markets-find-best-trade-tool.js'
 import { StationsFindNearestTool } from './mcp-tools/stations-find-nearest-tool.js'
 import { StationsGetDetailsTool } from './mcp-tools/stations-get-details-tool.js'
@@ -33,7 +34,7 @@ import { OutfittingFindModuleTool } from './mcp-tools/outfitting-find-module-too
 import { CommsListMessagesTool } from './mcp-tools/comms-list-messages-tool.js'
 import { FleetListShipsTool } from './mcp-tools/fleet-list-ships-tool.js'
 import { FleetListStoredModulesTool } from './mcp-tools/fleet-list-stored-modules-tool.js'
-import type { CommanderEngineersQuery, DisplayCommands, ExplorationBodyQuery, NavigationQuery, StationQuery, SystemDetailsQuery, SystemSearchQuery, TradeMarketQuery } from './mcp-tools/tool-gateways.js'
+import type { CommanderEngineersQuery, DisplayCommands, ExplorationBodyQuery, FactionPresenceQuery, NavigationQuery, StationQuery, SystemDetailsQuery, SystemSearchQuery, TradeMarketQuery } from './mcp-tools/tool-gateways.js'
 import type { StatefulGameActionService } from './stateful-game-action-service.js'
 import type { MissionDataReader } from '../domain/missions.js'
 import type { CommunicationDataReader } from '../domain/communications.js'
@@ -47,6 +48,7 @@ export interface PhoenixMcpToolDependencies {
   display: DisplayCommands
   exploration: ExplorationBodyQuery
   fleet: FleetDataReader
+  factions: FactionPresenceQuery
   navigation: NavigationQuery
   markets: TradeMarketQuery
   missions: MissionDataReader
@@ -75,6 +77,7 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new DisplayShowBodyTool(dependencies.display),
     new DisplayShowSystemTool(dependencies.display),
     new ExplorationGetCurrentBodyTool(dependencies.exploration),
+    new FactionsSearchTool(dependencies.factions),
     new FleetListShipsTool(dependencies.fleet),
     new FleetListStoredModulesTool(dependencies.fleet),
     new NavigationCanJumpToTool(dependencies.navigation),

@@ -183,6 +183,40 @@ export interface SystemSearchSource {
   findSystems(request: FilteredSystemRequest): Promise<FilteredSystemResult[]>
 }
 
+export type FactionControllingFilter = 'any' | 'yes' | 'no'
+
+export interface FactionPresenceRequest {
+  allegiance: string | null
+  controlling: FactionControllingFilter
+  factionName: string
+  government: string | null
+  maxDistanceLy: number
+  minInfluencePercent: number
+  referencePosition: [number, number, number]
+  state: string | null
+}
+
+export interface FactionPresenceResult {
+  activeStates: string[]
+  allegiance: string | null
+  controlling: boolean
+  distanceLy: number
+  factionName: string
+  government: string | null
+  influencePercent: number
+  pendingStates: string[]
+  position: [number, number, number]
+  recoveringStates: string[]
+  state: string | null
+  systemAddress: number | null
+  systemName: string
+  updatedAt: string | null
+}
+
+export interface FactionPresenceSearchSource {
+  findFactionPresences(request: FactionPresenceRequest): Promise<FactionPresenceResult[]>
+}
+
 export interface ProviderCacheEntry {
   fetchedAt: string
   value: unknown

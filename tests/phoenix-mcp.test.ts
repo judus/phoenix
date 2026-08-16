@@ -66,6 +66,7 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
       'phoenix__display_show_body',
       'phoenix__display_show_system',
       'phoenix__exploration_get_current_body',
+      'phoenix__factions_search',
       'phoenix__fleet_list_ships',
       'phoenix__fleet_list_stored_modules',
       'phoenix__navigation_can_jump_to',

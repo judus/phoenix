@@ -5,6 +5,7 @@ import type { SystemCartography } from '../apps/server/src/domain/cartography.js
 import type {
   CommodityMarket,
   CommodityMarketRequest,
+  FactionPresenceSearchSource,
   NearbySystem,
   NearbyStation,
   NearestStationRequest,
@@ -25,6 +26,7 @@ import { SpanshShipyardSearchSource } from '../apps/server/src/infrastructure/sp
 import { SpanshOutfittingSearchSource } from '../apps/server/src/infrastructure/spansh-outfitting-search-source.js'
 import { SpanshStationLookupSource } from '../apps/server/src/infrastructure/spansh-station-lookup-source.js'
 import { SpanshSystemSearchSource } from '../apps/server/src/infrastructure/spansh-system-search-source.js'
+import { SpanshFactionPresenceSource } from '../apps/server/src/infrastructure/spansh-faction-presence-source.js'
 
 test('Ardent source maps current station and commodity response contracts', async () => {
   const fetcher = vi.fn(async (input: string | URL | Request) => {
@@ -221,6 +223,54 @@ test('Spansh source filters systems and reports the actual main-star subtype', a
   })
 })
 
+test('Spansh source searches one faction presence and preserves BGS provenance', async () => {
+  const fetcher = vi.fn(async () => response({
+    results: [{
+      controlling_minor_faction: 'Mother Gaia',
+      distance: 4.37,
+      id64: '1178707802194',
+      minor_faction_presences: [{
+        active_states: ['Boom'],
+        allegiance: 'Federation',
+        government: 'Democracy',
+        influence: 0.4215,
+        name: 'Mother Gaia',
+        pending_states: ['Expansion'],
+        recovering_states: ['Civil Unrest'],
+        state: 'Boom'
+      }, { influence: 0.1, name: 'Other Faction' }],
+      name: 'Alpha Centauri',
+      updated_at: '2026-08-15 17:20:23+00',
+      x: 3.03125,
+      y: -0.09375,
+      z: 3.15625
+    }]
+  }))
+  const source = new SpanshFactionPresenceSource({ fetch: fetcher as typeof fetch })
+
+  await expect(source.findFactionPresences({
+    allegiance: 'Federation', controlling: 'yes', factionName: 'Mother Gaia', government: 'Democracy',
+    maxDistanceLy: 100, minInfluencePercent: 25, referencePosition: [1, 2, 3], state: 'Boom'
+  })).resolves.toEqual([{
+    activeStates: ['Boom'], allegiance: 'Federation', controlling: true, distanceLy: 4.37,
+    factionName: 'Mother Gaia', government: 'Democracy', influencePercent: 42.15,
+    pendingStates: ['Expansion'], position: [3.03125, -0.09375, 3.15625],
+    recoveringStates: ['Civil Unrest'], state: 'Boom', systemAddress: 1178707802194,
+    systemName: 'Alpha Centauri', updatedAt: '2026-08-15T17:20:23.000Z'
+  }])
+  expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toMatchObject({
+    filters: {
+      distance: { max: '100', min: '0' },
+      minor_faction_presences: [{
+        allegiance: { value: ['Federation'] }, government: { value: ['Democracy'] },
+        influence: { comparison: '<=>', value: [0.25, 1] }, name: { value: ['Mother Gaia'] },
+        state: { value: ['Boom'] }
+      }]
+    },
+    reference_coords: { x: 1, y: 2, z: 3 }
+  })
+})
+
 test('station and market query resolves current location, formats trade direction, and caches providers', async () => {
   const runtime = new InMemoryRuntimeStateStore()
   const state = createEmptyRuntimeState()
@@ -267,7 +317,8 @@ test('station and market query resolves current location, formats trade directio
     }])
   }
   const systems: SystemSearchSource = { findSystems: vi.fn(async () => [filteredSystem()]) }
-  const service = new DefaultStationMarketQuery(search, stock, shipyards, outfittingMarkets, stations, systems, cartography(), runtime, new MemoryProviderCache(), () => new Date('2026-08-11T12:00:00Z'))
+  const factions: FactionPresenceSearchSource = { findFactionPresences: vi.fn(async () => [factionPresence()]) }
+  const service = new DefaultStationMarketQuery(search, stock, shipyards, outfittingMarkets, stations, systems, factions, cartography(), runtime, new MemoryProviderCache(), () => new Date('2026-08-11T12:00:00Z'))
 
   const firstTrade = await service.findBestTrade({ commodity: 'Gold', intent: 'buy' })
   await service.findBestTrade({ commodity: 'Gold', intent: 'buy' })
@@ -285,6 +336,8 @@ test('station and market query resolves current location, formats trade directio
   const toolStationLookup = await service.lookup({ minimumPadSize: 'medium', name: 'Gal', stationType: 'orbital' })
   const galaxyFilteredSystems = await service.searchFilteredSystems({ allegiance: 'Federation', maxDistanceLy: 100, population: 'inhabited', systemName: 'Sol' })
   const toolFilteredSystems = await service.searchSystems({ allegiance: 'Federation', maxDistance: 100, population: 'inhabited' })
+  const galaxyFactions = await service.findFactionPresences({ allegiance: 'Federation', controlling: 'yes', factionName: 'Mother Gaia', government: 'Democracy', maxDistanceLy: 100, minInfluencePercent: 25, state: 'Boom', systemName: 'Sol' })
+  const toolFactions = await service.searchFactionPresences({ controlling: 'yes', factionName: 'Mother Gaia', minInfluencePercent: 25 })
 
   expect(search.findCommodityMarkets).toHaveBeenCalledTimes(2)
   expect(search.findNearestStations).toHaveBeenCalledTimes(2)
@@ -305,6 +358,9 @@ test('station and market query resolves current location, formats trade directio
   expect(toolStationLookup.structuredContent).toMatchObject({ minimumPadSize: 'medium', name: 'Gal', matches: [{ stationName: 'Galileo' }] })
   expect(galaxyFilteredSystems).toMatchObject({ cache: 'refreshed', filters: { allegiance: 'Federation', population: 'inhabited' }, systems: [{ systemName: 'Alpha Centauri' }] })
   expect(toolFilteredSystems.structuredContent).toMatchObject({ originSystem: 'Sol', systems: [{ primaryStarClass: 'G (White-Yellow) Star' }] })
+  expect(galaxyFactions).toMatchObject({ cache: 'refreshed', filters: { controlling: 'yes', factionName: 'Mother Gaia', minInfluencePercent: 25 }, presences: [{ controlling: true, influencePercent: 42.15 }], provenance: 'Spansh community-reported system data' })
+  expect(toolFactions.structuredContent).toMatchObject({ originSystem: 'Sol', presences: [{ factionName: 'Mother Gaia', systemName: 'Alpha Centauri' }] })
+  expect(factions.findFactionPresences).toHaveBeenCalledTimes(2)
   await expect(service.searchFilteredSystems({ maxDistanceLy: 100, maxPopulation: null, minPopulation: 1, population: 'uninhabited', systemName: 'Sol', allegiance: null, economy: null, government: null, security: null }))
     .rejects.toThrow('Uninhabited systems cannot have a positive minimum population.')
 })
@@ -384,6 +440,16 @@ function filteredSystem () {
     government: 'Democracy', inhabited: true, permitRequired: false, population: 230000,
     position: [3.03125, -0.09375, 3.15625] as [number, number, number], primaryStarClass: 'G (White-Yellow) Star',
     secondaryEconomy: 'Service', security: 'High', systemAddress: 1178707802194,
+    systemName: 'Alpha Centauri', updatedAt: '2026-08-11T02:38:22.982Z'
+  }
+}
+
+function factionPresence () {
+  return {
+    activeStates: ['Boom'], allegiance: 'Federation', controlling: true, distanceLy: 4.37,
+    factionName: 'Mother Gaia', government: 'Democracy', influencePercent: 42.15,
+    pendingStates: ['Expansion'], position: [3.03125, -0.09375, 3.15625] as [number, number, number],
+    recoveringStates: [], state: 'Boom', systemAddress: 1178707802194,
     systemName: 'Alpha Centauri', updatedAt: '2026-08-11T02:38:22.982Z'
   }
 }

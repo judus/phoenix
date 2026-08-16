@@ -2,6 +2,7 @@ import type { JsonObject } from '@judus/llm-client'
 import type {
   CartographicStation,
   GalaxyCommodityMarketsResponse,
+  GalaxyFactionPresencesResponse,
   GalaxyFilteredSystemsResponse,
   GalaxyNearbySystemsResponse,
   GalaxyNearestStationsResponse,
@@ -14,6 +15,10 @@ import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type {
   CommodityMarket,
   CommodityMarketRequest,
+  FactionControllingFilter,
+  FactionPresenceRequest,
+  FactionPresenceResult,
+  FactionPresenceSearchSource,
   FilteredSystemRequest,
   FilteredSystemResult,
   NearbySystem,
@@ -34,7 +39,7 @@ import type {
   SystemPopulationFilter,
   SystemSearchSource
 } from '../domain/station-market.js'
-import type { StationQuery, TradeMarketQuery } from './mcp-tools/tool-gateways.js'
+import type { FactionPresenceQuery, StationQuery, TradeMarketQuery } from './mcp-tools/tool-gateways.js'
 import {
   boundedLimit,
   json,
@@ -53,6 +58,7 @@ const SHIPYARD_SEARCH_CACHE_MS = 30 * 60 * 1000
 const OUTFITTING_SEARCH_CACHE_MS = 30 * 60 * 1000
 const STATION_LOOKUP_CACHE_MS = 30 * 60 * 1000
 const FILTERED_SYSTEM_CACHE_MS = 30 * 60 * 1000
+const FACTION_PRESENCE_CACHE_MS = 30 * 60 * 1000
 const PAD_SIZES: Record<string, number> = { small: 1, medium: 2, large: 3 }
 
 interface CachedResult<T> {
@@ -66,7 +72,7 @@ interface ResolvedStation {
   cache: 'fresh' | 'refreshed' | 'stale'
 }
 
-export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery {
+export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQuery, TradeMarketQuery {
   private readonly inFlight = new Map<string, Promise<unknown>>()
 
   public constructor (
@@ -76,6 +82,7 @@ export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery
     private readonly outfittingSearchSource: OutfittingSearchSource,
     private readonly stationLookupSource: StationLookupSource,
     private readonly systemSearchSource: SystemSearchSource,
+    private readonly factionPresenceSource: FactionPresenceSearchSource,
     private readonly cartography: SystemCartography,
     private readonly runtimeState: RuntimeStateReader,
     private readonly cache: ProviderResponseCache,
@@ -222,6 +229,27 @@ export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery
     )
   }
 
+  public async searchFactionPresences (arguments_: JsonObject) {
+    const systemName = this.originSystem(optionalStringArgument(arguments_, 'systemName'))
+    const factionName = stringArgument(arguments_, 'factionName')
+    const result = await this.findFactionPresences({
+      allegiance: optionalFilter(arguments_, 'allegiance'),
+      controlling: controllingFilter(optionalStringArgument(arguments_, 'controlling')),
+      factionName,
+      government: optionalFilter(arguments_, 'government'),
+      maxDistanceLy: bounded(optionalIntegerArgument(arguments_, 'maxDistance'), 100, 1, 500),
+      minInfluencePercent: bounded(optionalIntegerArgument(arguments_, 'minInfluencePercent'), 0, 0, 100),
+      state: optionalFilter(arguments_, 'state'),
+      systemName
+    }, boundedLimit(optionalIntegerArgument(arguments_, 'limit'), 10, 20))
+    return output(
+      result.presences.length > 0
+        ? [`Community-reported presence for ${factionName} near ${result.originSystem}:`, ...result.presences.map(formatFactionPresence)].join('\n')
+        : `No community-reported presence for ${factionName} matched within ${result.filters.maxDistanceLy} ly of ${result.originSystem}.`,
+      json(result)
+    )
+  }
+
   public async searchCommodityMarkets (
     request: CommodityMarketRequest,
     limit = 20
@@ -311,6 +339,30 @@ export class DefaultStationMarketQuery implements StationQuery, TradeMarketQuery
       filters,
       originSystem: origin.system.name,
       systems: cached.value.slice(0, boundedLimit(limit, 20, 100))
+    }
+  }
+
+  public async findFactionPresences (
+    input: Omit<FactionPresenceRequest, 'referencePosition'> & { systemName: string },
+    limit = 20
+  ): Promise<GalaxyFactionPresencesResponse> {
+    const origin = await this.cartography.getSystem(input.systemName)
+    if (!origin.system.position) throw new Error(`Coordinates for ${input.systemName} are unavailable.`)
+    const { systemName: _systemName, ...filters } = input
+    const request: FactionPresenceRequest = { ...filters, referencePosition: origin.system.position }
+    const cached = await this.cached(
+      'spansh-faction-presence',
+      stableKey({ ...request, systemName: origin.system.name }),
+      FACTION_PRESENCE_CACHE_MS,
+      () => this.factionPresenceSource.findFactionPresences(request),
+      isFactionPresenceResults
+    )
+    return {
+      cache: cached.cache,
+      filters,
+      originSystem: origin.system.name,
+      presences: cached.value.slice(0, boundedLimit(limit, 20, 100)),
+      provenance: 'Spansh community-reported system data'
     }
   }
 
@@ -630,6 +682,19 @@ function formatFilteredSystem (system: FilteredSystemResult): string {
   return `- ${system.systemName} - ${formatDistance(system.distanceLy, 'ly')}${details ? `; ${details}` : ''}`
 }
 
+function formatFactionPresence (presence: FactionPresenceResult): string {
+  const details = [
+    `${formatNumber(presence.influencePercent)}% influence`,
+    presence.controlling ? 'controlling faction' : null,
+    presence.state && presence.state !== 'None' ? `state: ${presence.state}` : null,
+    presence.activeStates.length > 0 ? `active: ${presence.activeStates.join(', ')}` : null,
+    presence.pendingStates.length > 0 ? `pending: ${presence.pendingStates.join(', ')}` : null,
+    presence.recoveringStates.length > 0 ? `recovering: ${presence.recoveringStates.join(', ')}` : null,
+    presence.updatedAt ? `system report ${presence.updatedAt}` : 'report time unknown'
+  ].filter(Boolean).join('; ')
+  return `- ${presence.systemName} - ${formatDistance(presence.distanceLy, 'ly')}; ${details}`
+}
+
 function formatMarket (market: CommodityMarket, intent: 'buy' | 'sell'): string {
   const price = intent === 'sell' ? market.sellPrice : market.buyPrice
   const volume = intent === 'sell' ? market.demand : market.stock
@@ -729,10 +794,28 @@ function isFilteredSystemResults (candidate: unknown): candidate is FilteredSyst
   ))
 }
 
+function isFactionPresenceResults (candidate: unknown): candidate is FactionPresenceResult[] {
+  return Array.isArray(candidate) && candidate.every(item => (
+    isRecord(item) &&
+    typeof item.factionName === 'string' &&
+    typeof item.systemName === 'string' &&
+    typeof item.distanceLy === 'number' &&
+    typeof item.influencePercent === 'number' &&
+    typeof item.controlling === 'boolean' &&
+    Array.isArray(item.position) && item.position.length === 3
+  ))
+}
+
 function populationFilter (candidate?: string): SystemPopulationFilter {
   if (candidate === undefined || candidate === 'any') return 'any'
   if (candidate === 'inhabited' || candidate === 'uninhabited') return candidate
   throw new Error('population must be any, inhabited, or uninhabited.')
+}
+
+function controllingFilter (candidate?: string): FactionControllingFilter {
+  if (candidate === undefined || candidate === 'any') return 'any'
+  if (candidate === 'yes' || candidate === 'no') return candidate
+  throw new Error('controlling must be any, yes, or no.')
 }
 
 function optionalFilter (arguments_: JsonObject, name: string): string | null {

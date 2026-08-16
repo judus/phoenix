@@ -350,6 +350,21 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/factions/search') {
+      const controlling = optionalQueryChoice(url, 'controlling', ['any', 'yes', 'no'] as const) ?? 'any'
+      this.writeJson(response, 200, await this.options.galaxyData.findFactionPresences({
+        allegiance: optionalQuery(url, 'allegiance'),
+        controlling,
+        factionName: requiredQuery(url, 'faction'),
+        government: optionalQuery(url, 'government'),
+        maxDistanceLy: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
+        minInfluencePercent: boundedQueryInteger(url, 'minInfluence', 0, 0, 100),
+        state: optionalQuery(url, 'state'),
+        systemName: requiredQuery(url, 'system')
+      }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
+      return
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/galaxy/shipyards') {
       this.writeJson(response, 200, await this.options.galaxyData.searchShipyards(
         requiredQuery(url, 'hull'),

@@ -42,3 +42,7 @@ export interface SystemDetailsQuery {
 export interface SystemSearchQuery {
   searchSystems(arguments_: JsonObject): DeferredToolResult
 }
+
+export interface FactionPresenceQuery {
+  searchFactionPresences(arguments_: JsonObject): DeferredToolResult
+}

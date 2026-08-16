@@ -159,20 +159,22 @@ export const GALAXY_QUERY_CATALOGUE: GalaxyQueryDefinition[] = [
     title: 'Filtered system search'
   },
   {
-    defaults: { allegiance: 'any', faction: '', maxDistance: '100', minInfluence: '0', origin: '', state: 'any' },
+    defaults: { allegiance: 'any', controlling: 'any', faction: '', government: 'any', maxDistance: '100', minInfluence: '0', origin: '', state: 'any' },
     domain: 'Politics',
     fields: [
       { id: 'faction', label: 'Faction', required: true, type: 'text' },
       ORIGIN,
       { ...RADIUS, id: 'maxDistance' },
-      { id: 'state', label: 'State', options: commonAnyOptions(['Boom', 'Bust', 'Civil unrest', 'Expansion', 'Famine', 'War']), type: 'select' },
+      { id: 'state', label: 'State', options: commonAnyOptions(['Boom', 'Bust', 'Civil Unrest', 'Expansion', 'Famine', 'War']), type: 'select' },
       { id: 'allegiance', label: 'Allegiance', options: commonAnyOptions(['Alliance', 'Empire', 'Federation', 'Independent']), type: 'select' },
+      { id: 'government', label: 'Government', options: commonAnyOptions(['Anarchy', 'Communism', 'Confederacy', 'Cooperative', 'Corporate', 'Democracy', 'Dictatorship', 'Feudal', 'Patronage', 'Prison Colony', 'Theocracy']), type: 'select' },
+      { id: 'controlling', label: 'Controls system', options: [{ label: 'Any', value: 'any' }, { label: 'Yes', value: 'yes' }, { label: 'No', value: 'no' }], type: 'select' },
       { id: 'minInfluence', label: 'Minimum influence (%)', min: 0, max: 100, type: 'number' }
     ],
     id: 'faction-presence',
     priority: 2,
     purpose: 'Locate faction presence and matching BGS conditions.',
-    status: 'planned',
+    status: 'available',
     title: 'Faction and BGS presence'
   },
   {

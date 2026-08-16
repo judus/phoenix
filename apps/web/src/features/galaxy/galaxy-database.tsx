@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import type {
   GalaxyCommodityMarketsResponse,
   GalaxyFilteredSystemsResponse,
+  GalaxyFactionPresencesResponse,
   GalaxyNearbySystemsResponse,
   GalaxyNearestStationsResponse,
   GalaxyOutfittingResponse,
@@ -21,6 +22,7 @@ type GalaxyQueryResult =
   | { id: 'commodity-markets', value: GalaxyCommodityMarketsResponse }
   | { id: 'facilities', value: GalaxyNearestStationsResponse }
   | { id: 'filtered-systems', value: GalaxyFilteredSystemsResponse }
+  | { id: 'faction-presence', value: GalaxyFactionPresencesResponse }
   | { id: 'nearby-systems', value: GalaxyNearbySystemsResponse }
   | { id: 'outfitting-stock', value: GalaxyOutfittingResponse }
   | { id: 'shipyards', value: GalaxyShipyardsResponse }
@@ -167,6 +169,7 @@ function QueryResults ({ result, summary, onModify }: { result: GalaxyQueryResul
       <header><span>{summary}</span><button type="button" onClick={onModify}>Modify query</button></header>
       {result.id === 'nearby-systems' && <NearbySystemResults result={result.value} />}
       {result.id === 'filtered-systems' && <FilteredSystemResults result={result.value} />}
+      {result.id === 'faction-presence' && <FactionPresenceResults result={result.value} />}
       {result.id === 'shipyards' && <ShipyardResults result={result.value} />}
       {result.id === 'facilities' && <NearestResults result={result.value} />}
       {result.id === 'outfitting-stock' && <OutfittingResults result={result.value} />}
@@ -184,6 +187,18 @@ function FilteredSystemResults ({ result }: { result: GalaxyFilteredSystemsRespo
         <tbody>{result.systems.map(system => <tr key={`${system.systemAddress ?? ''}:${system.systemName}`}><td><a href={systemHref(system.systemName)}>{system.systemName}</a>{system.controllingFaction && <small>{system.controllingFaction}</small>}</td><td>{distance(system.distanceLy, 'ly')}</td><td>{number(system.population)}</td><td>{[system.economy, system.secondaryEconomy].filter(Boolean).join(' / ') || '—'}</td><td>{system.allegiance ?? '—'}</td><td>{system.government ?? '—'}</td><td>{system.security ?? '—'}</td><td>{system.primaryStarClass ?? 'Unknown'}</td><td>{system.permitRequired === null ? 'Unknown' : system.permitRequired ? 'Required' : 'Open'}</td><td>{reportedAge(system.updatedAt)}</td></tr>)}</tbody>
       </table>
       {result.systems.length === 0 && <p>No reported systems matched this filter set.</p>}
+    </section>
+  )
+}
+
+function FactionPresenceResults ({ result }: { result: GalaxyFactionPresencesResponse }) {
+  return (
+    <section className="galaxy-results">
+      <header><div><span>Faction presence</span><h2>{result.filters.factionName}</h2></div><small>{result.cache} cache · {result.presences.length} matches · community reports</small></header>
+      <table><thead><tr><th>System</th><th>Distance</th><th>Influence</th><th>Control</th><th>State</th><th>Allegiance</th><th>Government</th><th>State changes</th><th>System reported</th></tr></thead>
+        <tbody>{result.presences.map(presence => <tr key={`${presence.systemAddress ?? ''}:${presence.systemName}:${presence.factionName}`}><td><a href={systemHref(presence.systemName)}>{presence.systemName}</a></td><td>{distance(presence.distanceLy, 'ly')}</td><td>{percentage(presence.influencePercent)}</td><td>{presence.controlling ? 'Controlling' : 'Present'}</td><td>{presence.state ?? 'Unknown'}</td><td>{presence.allegiance ?? '—'}</td><td>{presence.government ?? '—'}</td><td>{factionStates(presence)}</td><td>{reportedAge(presence.updatedAt)}</td></tr>)}</tbody>
+      </table>
+      {result.presences.length === 0 && <p>No community-reported faction presence matched this filter set.</p>}
     </section>
   )
 }
@@ -361,6 +376,20 @@ async function executeGalaxyQuery (api: PhoenixApi, id: GalaxyQueryId, values: R
           systemName: values.origin
         })
       }
+    case 'faction-presence':
+      return {
+        id,
+        value: await api.findGalaxyFactionPresences({
+          allegiance: optionalSelection(values.allegiance),
+          controlling: values.controlling as 'any' | 'yes' | 'no',
+          factionName: values.faction,
+          government: optionalSelection(values.government),
+          maxDistance: numeric(values.maxDistance),
+          minInfluence: numeric(values.minInfluence),
+          state: optionalSelection(values.state),
+          systemName: values.origin
+        })
+      }
     default:
       throw new Error(`${galaxyQueryDefinition(id).title} is not connected to a backend adapter.`)
   }
@@ -374,6 +403,7 @@ function querySummary (id: GalaxyQueryResult['id'], values: Record<string, strin
   if (id === 'outfitting-stock') return `${values.module} · minimum ${values.pad} pad · from ${origin}`
   if (id === 'station-lookup') return `Stations matching ${values.name} · ${values.stationType} · from ${origin}`
   if (id === 'filtered-systems') return `Filtered systems within ${values.radius} ly · from ${origin}`
+  if (id === 'faction-presence') return `${values.faction} presence within ${values.maxDistance} ly · from ${origin}`
   return `Systems within ${values.radius} ly · from ${origin}`
 }
 
@@ -385,6 +415,14 @@ function optionalSelection (value: string): string | undefined { return value &&
 function distance (value: number | null, unit: string): string { return value === null ? '—' : `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value)} ${unit}` }
 function credits (value: number | null): string { return value === null ? '—' : `${new Intl.NumberFormat().format(value)} CR` }
 function number (value: number | null): string { return value === null ? '—' : new Intl.NumberFormat().format(value) }
+function percentage (value: number): string { return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value)}%` }
+function factionStates (presence: GalaxyFactionPresencesResponse['presences'][number]): string {
+  return [
+    presence.activeStates.length > 0 ? `Active: ${presence.activeStates.join(', ')}` : null,
+    presence.pendingStates.length > 0 ? `Pending: ${presence.pendingStates.join(', ')}` : null,
+    presence.recoveringStates.length > 0 ? `Recovering: ${presence.recoveringStates.join(', ')}` : null
+  ].filter(Boolean).join(' · ') || '—'
+}
 function coordinates (value: [number, number, number]): string { return value.map(axis => new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(axis)).join(' · ') }
 function padLabel (value: number | null): string { return value === 3 ? 'Large' : value === 2 ? 'Medium' : value === 1 ? 'Small' : '—' }
 function labelService (value: string): string { return value.replaceAll('-', ' ') }

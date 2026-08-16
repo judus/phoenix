@@ -32,6 +32,7 @@ import {
   FleetResponseSchema,
   GalaxyCommodityMarketsResponseSchema,
   GalaxyFilteredSystemsResponseSchema,
+  GalaxyFactionPresencesResponseSchema,
   GalaxyNearbySystemsResponseSchema,
   GalaxyNearestStationsResponseSchema,
   GalaxyOutfittingResponseSchema,
@@ -89,6 +90,7 @@ import {
   type ExplorationManualCompletionResponse,
   type GalaxyCommodityMarketsResponse,
   type GalaxyFilteredSystemsResponse,
+  type GalaxyFactionPresencesResponse,
   type GalaxyNearbySystemsResponse,
   type GalaxyNearestStationsResponse,
   type GalaxyOutfittingResponse,
@@ -154,6 +156,7 @@ export interface PhoenixApi {
   getExplorationLedger(): Promise<ExplorationLedgerResponse>
   findGalaxyCommodityMarkets(input: GalaxyCommodityMarketSearch): Promise<GalaxyCommodityMarketsResponse>
   findGalaxyFilteredSystems(input: GalaxyFilteredSystemSearch): Promise<GalaxyFilteredSystemsResponse>
+  findGalaxyFactionPresences(input: GalaxyFactionPresenceSearch): Promise<GalaxyFactionPresencesResponse>
   findGalaxyNearbySystems(input: GalaxyNearbySystemSearch): Promise<GalaxyNearbySystemsResponse>
   findGalaxyNearestStations(input: GalaxyNearestStationSearch): Promise<GalaxyNearestStationsResponse>
   findGalaxyOutfitting(input: GalaxyOutfittingSearch): Promise<GalaxyOutfittingResponse>
@@ -231,6 +234,18 @@ export interface GalaxyFilteredSystemSearch {
   minPopulation?: number
   population?: 'any' | 'inhabited' | 'uninhabited'
   security?: string
+  systemName: string
+}
+
+export interface GalaxyFactionPresenceSearch {
+  allegiance?: string
+  controlling?: 'any' | 'yes' | 'no'
+  factionName: string
+  government?: string
+  limit?: number
+  maxDistance?: number
+  minInfluence?: number
+  state?: string
   systemName: string
 }
 
@@ -905,6 +920,22 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return GalaxyFilteredSystemsResponseSchema.parse(await response.json())
+  }
+
+  public async findGalaxyFactionPresences (input: GalaxyFactionPresenceSearch): Promise<GalaxyFactionPresencesResponse> {
+    const query = new URLSearchParams({ faction: input.factionName, system: input.systemName })
+    if (input.allegiance) query.set('allegiance', input.allegiance)
+    if (input.controlling) query.set('controlling', input.controlling)
+    if (input.government) query.set('government', input.government)
+    if (input.limit !== undefined) query.set('limit', String(input.limit))
+    if (input.maxDistance !== undefined) query.set('maxDistance', String(input.maxDistance))
+    if (input.minInfluence !== undefined) query.set('minInfluence', String(input.minInfluence))
+    if (input.state) query.set('state', input.state)
+    const response = await this.request(`${this.baseUrl}/api/galaxy/factions/search?${query.toString()}`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return GalaxyFactionPresencesResponseSchema.parse(await response.json())
   }
 
   public async findGalaxyShipyards (input: GalaxyShipyardSearch): Promise<GalaxyShipyardsResponse> {

@@ -2,7 +2,7 @@ import { expect, test } from 'vitest'
 import { PHOENIX_API_VERSION, type CartographicSystem } from '@phoenix/contracts'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
-import type { OutfittingSearchSource, ShipyardSearchSource, StationLookupSource, StationSearchSource, SystemSearchSource } from '../apps/server/src/domain/station-market.js'
+import type { FactionPresenceSearchSource, OutfittingSearchSource, ShipyardSearchSource, StationLookupSource, StationSearchSource, SystemSearchSource } from '../apps/server/src/domain/station-market.js'
 
 test('the frontend API client communicates with the PHOENIX backend', async () => {
   const stationSearchSource: StationSearchSource = {
@@ -60,6 +60,15 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       systemName: 'Alpha Centauri', updatedAt: '2026-08-15T08:00:00.000Z'
     }]
   }
+  const factionPresenceSource: FactionPresenceSearchSource = {
+    findFactionPresences: async request => [{
+      activeStates: ['Boom'], allegiance: 'Federation', controlling: true, distanceLy: 4.37,
+      factionName: request.factionName, government: 'Democracy', influencePercent: 42.15,
+      pendingStates: ['Expansion'], position: [3.03125, -0.09375, 3.15625], recoveringStates: [],
+      state: 'Boom', systemAddress: 1178707802194, systemName: 'Alpha Centauri',
+      updatedAt: '2026-08-15T08:00:00.000Z'
+    }]
+  }
   const application = new PhoenixApplication({
     databasePath: ':memory:',
     eliteDirectory: null,
@@ -70,6 +79,7 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
     outfittingSearchSource,
     stationLookupSource,
     systemSearchSource,
+    factionPresenceSource,
     cartographySource: { fetchSystem: async () => fixtureSystem() }
   })
   const address = await application.start()
@@ -95,6 +105,8 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       .resolves.toMatchObject({ name: 'Test', stationType: 'orbital', matches: [{ stationName: 'Test Exchange', services: ['Dock', 'Repair'] }] })
     await expect(client.findGalaxyFilteredSystems({ allegiance: 'Federation', maxDistance: 100, population: 'inhabited', systemName: 'Sol' }))
       .resolves.toMatchObject({ filters: { allegiance: 'Federation', population: 'inhabited' }, systems: [{ systemName: 'Alpha Centauri' }] })
+    await expect(client.findGalaxyFactionPresences({ controlling: 'yes', factionName: 'Mother Gaia', maxDistance: 100, minInfluence: 25, systemName: 'Sol' }))
+      .resolves.toMatchObject({ filters: { controlling: 'yes', factionName: 'Mother Gaia', minInfluencePercent: 25 }, presences: [{ controlling: true, influencePercent: 42.15, systemName: 'Alpha Centauri' }], provenance: 'Spansh community-reported system data' })
   } finally {
     await application.stop()
   }
