@@ -60,7 +60,7 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
   if (section === 'ship') {
     if (rest[0] === 'inventory') return { kind: 'information', section: 'commander', view: 'inventory' }
     const view = rest[0] === 'modules' ? 'current-loadout' : rest[0] === 'cargo' ? 'current-cargo' : 'current-overview'
-    return withQuery({ kind: 'information', section: 'fleet', view }, query)
+    return { kind: 'information', section: 'fleet', view }
   }
 
   if (section === 'navigation') return parseGalaxyRoute(rest, query)
@@ -105,6 +105,9 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
     if (route.systemName) parameters.set('name', route.systemName)
     if (route.selectedName) parameters.set('selected', route.selectedName)
   }
+  if (route.kind === 'information' && route.section === 'fleet' && route.view === 'catalogue' && route.selectedShipId) {
+    parameters.set('ship', route.selectedShipId)
+  }
   const query = parameters.toString()
   return `#${path}${query ? `?${query}` : ''}`
 }
@@ -129,14 +132,22 @@ function informationPath(route: InformationRoute): string {
 function parseFleetRoute(rest: string[], query: PhoenixRouteQuery): InformationRoute {
   if (rest[0] === 'ships' && rest[1] === 'current') {
     const view = rest[2] === 'loadout' ? 'current-loadout' : rest[2] === 'cargo' ? 'current-cargo' : 'current-overview'
-    return withQuery({ kind: 'information', section: 'fleet', view }, query)
+    return { kind: 'information', section: 'fleet', view }
   }
   if (rest[0] === 'current' || rest[0] === 'loadout' || rest[0] === 'cargo') {
     const view = rest[0] === 'loadout' ? 'current-loadout' : rest[0] === 'cargo' ? 'current-cargo' : 'current-overview'
-    return withQuery({ kind: 'information', section: 'fleet', view }, query)
+    return { kind: 'information', section: 'fleet', view }
   }
   const view = oneOf(rest[0], ['overview', 'carriers', 'stored-modules', 'catalogue'] as const) ?? 'overview'
-  return withQuery({ kind: 'information', section: 'fleet', view }, query)
+  if (view === 'catalogue') {
+    return {
+      kind: 'information',
+      section: 'fleet',
+      view,
+      ...(query.ship?.trim() ? { selectedShipId: query.ship.trim() } : {})
+    }
+  }
+  return { kind: 'information', section: 'fleet', view }
 }
 
 function parseGalaxyRoute(rest: string[], query: PhoenixRouteQuery): InformationRoute {

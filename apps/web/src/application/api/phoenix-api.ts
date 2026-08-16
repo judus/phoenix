@@ -13,6 +13,7 @@ import type {
   GameActionCatalogResponse,
   GameActionOperation,
   GameActionResult,
+  FleetResponse,
   HealthResponse,
   MacroDefinition,
   MacroLibrary,
@@ -21,7 +22,8 @@ import type {
   NavigationRoute,
   PairingStatus,
   PhoenixModules,
-  RuntimeState
+  RuntimeState,
+  ShipCatalogueResponse
 } from '@phoenix/contracts'
 
 export interface PhoenixApi {
@@ -38,12 +40,14 @@ export interface PhoenixApi {
   getCopilotProfiles(signal?: AbortSignal): Promise<CopilotProfilesResponse>
   getCopilotRealtimeContext(signal?: AbortSignal): Promise<{ fingerprint: string, text: string, updatedAt: string | null }>
   getCopilotVoiceHost(signal?: AbortSignal): Promise<CopilotVoiceHostSnapshot>
+  getFleet(signal?: AbortSignal): Promise<FleetResponse>
   getHealth(signal?: AbortSignal): Promise<HealthResponse>
   getMacros(signal?: AbortSignal): Promise<MacroLibrary>
   getModuleSettings(signal?: AbortSignal): Promise<PhoenixModules>
   getNavigationRoute(signal?: AbortSignal): Promise<NavigationRoute>
   getPairingStatus(signal?: AbortSignal): Promise<PairingStatus>
   getRuntimeState(signal?: AbortSignal): Promise<RuntimeState>
+  getShipCatalogue(signal?: AbortSignal): Promise<ShipCatalogueResponse>
   persistCopilotRealtimeTurn(input: CopilotRealtimeTurnRequest, signal?: AbortSignal): Promise<void>
   playMacro(id: string, signal?: AbortSignal): Promise<MacroPlayback>
   publishCopilotConversationEvent(event: CopilotConversationEvent, signal?: AbortSignal): Promise<void>

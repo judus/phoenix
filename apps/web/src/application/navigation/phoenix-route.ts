@@ -31,7 +31,8 @@ export type PhoenixRouteQuery = Readonly<Record<string, string>>
 export type InformationRoute =
   | { kind: 'information', section: 'home', view: 'overview', query?: PhoenixRouteQuery }
   | { kind: 'information', section: 'commander', view: 'overview' | 'inventory' | 'progress' }
-  | { kind: 'information', section: 'fleet', view: 'overview' | 'current-overview' | 'current-loadout' | 'current-cargo' | 'carriers' | 'stored-modules' | 'catalogue', query?: PhoenixRouteQuery }
+  | { kind: 'information', section: 'fleet', view: 'overview' | 'current-overview' | 'current-loadout' | 'current-cargo' | 'carriers' | 'stored-modules' }
+  | { kind: 'information', section: 'fleet', view: 'catalogue', selectedShipId?: string }
   | { kind: 'information', section: 'galaxy', view: 'system', systemName?: string, selectedName?: string, query?: PhoenixRouteQuery }
   | { kind: 'information', section: 'galaxy', view: 'route' | 'database', query?: PhoenixRouteQuery }
   | { kind: 'information', section: 'operations', view: 'overview' | 'missions' | 'objectives' | 'community-goals' | 'powerplay' | 'colonisation', query?: PhoenixRouteQuery }

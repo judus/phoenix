@@ -16,6 +16,9 @@ import { useDashboardController } from './features/dashboard/use-dashboard-contr
 import { CommanderPage } from './features/commander/commander-page.js'
 import { createCommanderViewModel } from './features/commander/commander-view-model.js'
 import { commanderContextForRoute, commanderNavigationItems } from './features/commander/commander-navigation.js'
+import { FleetPage } from './features/fleet/fleet-page.js'
+import { fleetContextForRoute, fleetNavigationItems } from './features/fleet/fleet-navigation.js'
+import { useFleetController } from './features/fleet/use-fleet-controller.js'
 
 export function App({ application }: { application: PhoenixApplicationServices }) {
   return (
@@ -32,16 +35,26 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
   const route = usePhoenixRoute(router)
   const informationRoute = isInformationRoute(route) ? route : router.getRememberedInformationRoute()
   const commanderRoute = isInformationRoute(route) && route.section === 'commander' ? route : undefined
+  const fleetRoute = isInformationRoute(route) && route.section === 'fleet' ? route : undefined
+  const informationContext = commanderRoute
+    ? {
+        informationContextItems: commanderNavigationItems,
+        informationContextLabel: 'Commander views',
+        informationCurrentContext: commanderContextForRoute(commanderRoute)
+      }
+    : fleetRoute
+      ? {
+          informationContextItems: fleetNavigationItems,
+          informationContextLabel: 'Fleet views',
+          informationCurrentContext: fleetContextForRoute(fleetRoute)
+        }
+      : undefined
 
   return (
     <PhoenixApplicationShell
       activeDesktop={workspaceForRoute(route)}
       informationRoute={informationRoute}
-      {...(commanderRoute ? {
-        informationContextItems: commanderNavigationItems,
-        informationContextLabel: 'Commander views',
-        informationCurrentContext: commanderContextForRoute(commanderRoute)
-      } : {})}
+      {...informationContext}
       onNavigateRoute={router.push}
       onNavigateWorkspace={(workspace) => router.push(router.routeForWorkspace(workspace))}
       controls={<PlaceholderPage context="Controls" title="Flight controls" description="Ship and game command surfaces" />}
@@ -51,13 +64,24 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
         ? <DashboardFeature application={application} />
         : commanderRoute
           ? <CommanderFeature application={application} view={commanderRoute.view} />
-          : null}
+          : fleetRoute
+            ? <FleetFeature application={application} route={fleetRoute} />
+            : null}
       journal={<PlaceholderPage context="Journal" title="Event log" description="Recent game and application events" />}
       macros={<PlaceholderPage context="Macros" title="Command macros" description="Stored command sequences" />}
       settings={<PlaceholderPage context="Settings" title="Application settings" description="Display, connection and control preferences" />}
       telemetry={<PlaceholderPage context="Telemetry" title="Numpad" description="Telemetry and direct-entry controls" />}
     />
   )
+}
+
+function FleetFeature({ application, route }: {
+  application: PhoenixApplicationServices
+  route: Extract<ReturnType<PhoenixRouter['getSnapshot']>, { kind: 'information', section: 'fleet' }>
+}) {
+  const runtime = useRuntimeState(application.runtime)
+  const controller = useFleetController(application.api, application.events, route.view)
+  return <FleetPage controller={controller} onNavigate={application.router.push} route={route} runtime={runtime} />
 }
 
 function CommanderFeature({ application, view }: {

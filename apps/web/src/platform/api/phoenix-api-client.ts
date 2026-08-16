@@ -13,6 +13,7 @@ import {
   CopilotVoiceHostSnapshotSchema,
   GameActionCatalogResponseSchema,
   GameActionResultSchema,
+  FleetResponseSchema,
   MacroDefinitionSchema,
   MacroLibrarySchema,
   MacroPlaybackSchema,
@@ -20,7 +21,8 @@ import {
   NavigationRouteSchema,
   PairingStatusSchema,
   PhoenixModulesSchema,
-  RuntimeStateSchema
+  RuntimeStateSchema,
+  ShipCatalogueResponseSchema
 } from '@phoenix/contracts'
 import type {
   ActivityLogResponse,
@@ -37,6 +39,7 @@ import type {
   GameActionCatalogResponse,
   GameActionOperation,
   GameActionResult,
+  FleetResponse,
   HealthResponse,
   MacroDefinition,
   MacroLibrary,
@@ -45,7 +48,8 @@ import type {
   NavigationRoute,
   PairingStatus,
   PhoenixModules,
-  RuntimeState
+  RuntimeState,
+  ShipCatalogueResponse
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 
@@ -98,6 +102,14 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return RuntimeStateSchema.parse(await response.json())
+  }
+
+  async getFleet(signal?: AbortSignal): Promise<FleetResponse> {
+    return this.#get('/api/fleet', FleetResponseSchema, signal)
+  }
+
+  async getShipCatalogue(signal?: AbortSignal): Promise<ShipCatalogueResponse> {
+    return this.#get('/api/catalogue/ships', ShipCatalogueResponseSchema, signal)
   }
 
   async getActions(signal?: AbortSignal): Promise<GameActionCatalogResponse> {

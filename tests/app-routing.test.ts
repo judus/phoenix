@@ -57,6 +57,15 @@ describe('PHOENIX route parsing and generation', () => {
     expect(phoenixRouteHash(route)).toBe('#/commander/progress')
   })
 
+  test('Fleet promotes catalogue selection and drops arbitrary query fields', () => {
+    const catalogue = parsePhoenixRoute('#/fleet/catalogue?ship=python&layout=cards')
+    const overview = parsePhoenixRoute('#/fleet/overview?selected=42')
+
+    expect(catalogue).toEqual({ kind: 'information', section: 'fleet', view: 'catalogue', selectedShipId: 'python' })
+    expect(phoenixRouteHash(catalogue)).toBe('#/fleet/catalogue?ship=python')
+    expect(overview).toEqual({ kind: 'information', section: 'fleet', view: 'overview' })
+  })
+
   test.each([
     ['#/log', '#/records/journal'],
     ['#/navigation/route', '#/galaxy/route'],
