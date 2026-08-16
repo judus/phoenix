@@ -23,6 +23,7 @@ type ItemListItemProps = LiHTMLAttributes<HTMLLIElement> & {
   actions?: ReactNode
   description?: ReactNode
   disabled?: boolean
+  eyebrow?: ReactNode
   href?: string
   leading?: ReactNode
   meta?: ReactNode
@@ -36,6 +37,7 @@ export function ItemListItem({
   className,
   description,
   disabled = false,
+  eyebrow,
   href,
   leading,
   meta,
@@ -48,6 +50,7 @@ export function ItemListItem({
     <>
       {leading && <figure>{leading}</figure>}
       <article>
+        {eyebrow && <small>{eyebrow}</small>}
         <header>
           <strong>{title}</strong>
           {trailing && <span>{trailing}</span>}

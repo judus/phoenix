@@ -20,6 +20,7 @@ import { CurrentShipConsolidatedPage } from '../src/pages/current-ship-consolida
 import { CurrentShipLoadoutPage } from '../src/pages/current-ship-loadout-page'
 import { FleetPage } from '../src/pages/fleet-page'
 import { FilteredSystemSearchPage } from '../src/pages/filtered-system-search-page'
+import { GalnetPage } from '../src/pages/galnet-page'
 import { HomeDashboardPage } from '../src/pages/home-dashboard-page'
 import { PersonalStoresPage } from '../src/pages/personal-stores-page'
 import { PlottedRoutePage } from '../src/pages/plotted-route-page'
@@ -242,6 +243,21 @@ function TrafficShell() {
   )
 }
 
+function GalnetShell() {
+  return (
+    <div className="tablet-shell-story">
+      <BaselineShell
+        context="galnet"
+        primary="comms"
+        railItems={commsItems}
+        railLabel="Comms views"
+      >
+        <GalnetPage />
+      </BaselineShell>
+    </div>
+  )
+}
+
 function DeskplanePage({ children }: { children?: React.ReactNode }) {
   return (
     <div className="tablet-deskplane-page">
@@ -415,3 +431,4 @@ export const PlottedRoute: Story = { render: () => <PlottedRouteShell /> }
 export const QueryConsole: Story = { render: () => <QueryConsoleShell /> }
 export const FilteredSystemSearch: Story = { render: () => <FilteredSystemSearchShell /> }
 export const Traffic: Story = { render: () => <TrafficShell /> }
+export const Galnet: Story = { render: () => <GalnetShell /> }
