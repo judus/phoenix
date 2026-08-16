@@ -60,6 +60,17 @@
       gap: var(--spacing-xs);
     }
 
+    > .page-status {
+      align-self: start;
+      max-inline-size: 52ch;
+      color: var(--color-text-muted);
+      font-size: var(--font-size-xxs);
+      letter-spacing: 0.04em;
+      line-height: var(--line-height-normal);
+      text-align: end;
+      text-transform: uppercase;
+    }
+
     > .navigation {
       align-self: stretch;
       min-inline-size: 0;
@@ -255,6 +266,7 @@
       align-items: start;
 
       > .actions { justify-content: flex-start; }
+      > .page-status { text-align: start; }
     }
   }
 

@@ -3,16 +3,19 @@ import type { ButtonHTMLAttributes } from 'react'
 import './controls.css'
 import './control-surface.css'
 
-export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'danger'
+export type ButtonVariant = 'primary' | 'secondary' | 'accent' | 'outline' | 'action' | 'quiet' | 'danger'
 export type ButtonSize = 'inherit' | 'sm' | 'md' | 'lg'
+export type ButtonAlignment = 'center' | 'start'
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  alignment?: ButtonAlignment
   variant?: ButtonVariant
   size?: ButtonSize
   busy?: boolean
 }
 
 export function Button({
+  alignment = 'center',
   variant = 'secondary',
   size = 'inherit',
   busy = false,
@@ -26,6 +29,7 @@ export function Button({
       className={[
         'btn',
         `btn-${variant}`,
+        alignment === 'start' && 'btn-start',
         size !== 'inherit' && `btn-${size}`,
         className
       ].filter(Boolean).join(' ')}

@@ -43,6 +43,11 @@
       padding-inline: var(--spacing-md);
     }
 
+    &.btn-start {
+      justify-content: flex-start;
+      text-align: start;
+    }
+
     &.btn-primary {
       border-color: var(--button-primary-border);
       color: var(--button-primary-text);
@@ -53,6 +58,24 @@
       border-color: var(--button-secondary-border);
       color: var(--button-secondary-text);
       background: var(--button-secondary-background);
+    }
+
+    &.btn-accent {
+      border-color: var(--button-accent-border);
+      color: var(--button-accent-text);
+      background: var(--button-accent-background);
+    }
+
+    &.btn-outline {
+      border-color: var(--button-outline-border);
+      color: var(--button-outline-text);
+      background: var(--button-outline-background);
+    }
+
+    &.btn-action {
+      border-color: var(--button-action-border);
+      color: var(--button-action-text);
+      background: var(--button-action-background);
     }
 
     &.btn-quiet {
@@ -187,6 +210,12 @@
 
   .form-control::placeholder {
     color: var(--field-placeholder);
+  }
+
+  .form-textarea {
+    min-block-size: 6rem;
+    padding-block: var(--spacing-xs);
+    resize: vertical;
   }
 
   .field > p {

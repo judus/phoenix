@@ -19,9 +19,11 @@ import type { NavigationItem } from '../src/components/app-shell'
 import { CurrentShipConsolidatedPage } from '../src/pages/current-ship-consolidated-page'
 import { CurrentShipLoadoutPage } from '../src/pages/current-ship-loadout-page'
 import { FleetPage } from '../src/pages/fleet-page'
+import { FilteredSystemSearchPage } from '../src/pages/filtered-system-search-page'
 import { HomeDashboardPage } from '../src/pages/home-dashboard-page'
 import { PersonalStoresPage } from '../src/pages/personal-stores-page'
 import { PlottedRoutePage } from '../src/pages/plotted-route-page'
+import { QueryConsolePage } from '../src/pages/query-console-page'
 import { ShipCataloguePage } from '../src/pages/ship-catalogue-page'
 import { StoredModulesPage } from '../src/pages/stored-modules-page'
 import '../src/styles/tablet-shell-stories.css'
@@ -186,6 +188,26 @@ function PlottedRouteShell() {
     <div className="tablet-shell-story">
       <BaselineShell context="overview" primary="galaxy">
         <PlottedRoutePage />
+      </BaselineShell>
+    </div>
+  )
+}
+
+function QueryConsoleShell() {
+  return (
+    <div className="tablet-shell-story">
+      <BaselineShell context="overview" primary="galaxy">
+        <QueryConsolePage />
+      </BaselineShell>
+    </div>
+  )
+}
+
+function FilteredSystemSearchShell() {
+  return (
+    <div className="tablet-shell-story">
+      <BaselineShell context="overview" primary="galaxy">
+        <FilteredSystemSearchPage />
       </BaselineShell>
     </div>
   )
@@ -361,3 +383,5 @@ export const ShipCatalogue: Story = { render: () => <ShipCatalogueShell /> }
 export const StoredModules: Story = { render: () => <StoredModulesShell /> }
 export const PersonalStores: Story = { render: () => <PersonalStoresShell /> }
 export const PlottedRoute: Story = { render: () => <PlottedRouteShell /> }
+export const QueryConsole: Story = { render: () => <QueryConsoleShell /> }
+export const FilteredSystemSearch: Story = { render: () => <FilteredSystemSearchShell /> }

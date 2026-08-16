@@ -1,5 +1,11 @@
 import { cloneElement } from 'react'
-import type { InputHTMLAttributes, ReactElement, ReactNode, SelectHTMLAttributes } from 'react'
+import type {
+  InputHTMLAttributes,
+  ReactElement,
+  ReactNode,
+  SelectHTMLAttributes,
+  TextareaHTMLAttributes
+} from 'react'
 
 import './controls.css'
 
@@ -47,10 +53,18 @@ export function TextInput({ className, ...props }: InputHTMLAttributes<HTMLInput
   return <input className={['form-control', className].filter(Boolean).join(' ')} {...props} />
 }
 
+export function NumberInput({ className, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
+  return <input className={['form-control', className].filter(Boolean).join(' ')} type="number" {...props} />
+}
+
 export function Select({ className, children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select className={['form-select', className].filter(Boolean).join(' ')} {...props}>
       {children}
     </select>
   )
+}
+
+export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <textarea className={['form-control', 'form-textarea', className].filter(Boolean).join(' ')} {...props} />
 }

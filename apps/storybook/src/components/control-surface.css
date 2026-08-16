@@ -1,6 +1,7 @@
 @layer components {
   .btn,
-  .command-tile {
+  .command-tile,
+  .action-tile {
     position: relative;
 
     &::after {

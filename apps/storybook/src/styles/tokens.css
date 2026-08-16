@@ -131,6 +131,15 @@
     --button-secondary-background: var(--color-surface);
     --button-secondary-border: var(--color-border-subtle);
     --button-secondary-text: var(--color-text);
+    --button-accent-background: var(--color-action);
+    --button-accent-border: transparent;
+    --button-accent-text: var(--color-canvas);
+    --button-outline-background: transparent;
+    --button-outline-border: var(--color-action);
+    --button-outline-text: var(--color-action);
+    --button-action-background: transparent;
+    --button-action-border: transparent;
+    --button-action-text: var(--color-action);
     --button-quiet-background: transparent;
     --button-quiet-border: transparent;
     --button-quiet-text: var(--color-text-muted);

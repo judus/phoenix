@@ -22,6 +22,7 @@ type PageHeaderProps = HTMLAttributes<HTMLElement> & {
   description?: ReactNode
   metadata?: ReactNode
   navigation?: ReactNode
+  status?: ReactNode
   title: string
   variant?: 'standard' | 'entity' | 'compact' | 'cockpit'
 }
@@ -33,6 +34,7 @@ export function PageHeader({
   description,
   metadata,
   navigation,
+  status,
   title,
   variant = 'standard',
   ...props
@@ -48,6 +50,7 @@ export function PageHeader({
         {description && <p>{description}</p>}
         {metadata && <small>{metadata}</small>}
       </div>
+      {status && <small className="page-status">{status}</small>}
       {actions && (
         <ControlContext className="actions" context="toolbar" density="compact">
           {actions}
