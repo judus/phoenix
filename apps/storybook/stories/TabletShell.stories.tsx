@@ -4,7 +4,7 @@ import type { Deskplane } from 'deskplane'
 import { DeskplaneViewport } from 'deskplane/react'
 import 'deskplane/style.css'
 
-import { PageFrame, PageHeader } from '../src/components/page'
+import { PageFrame, PageHeader } from '@phoenix/ui'
 import {
   ApplicationShell,
   BottomBar,
@@ -14,8 +14,8 @@ import {
   Rail,
   TopBar,
   Workspace
-} from '../src/components/application-shell'
-import type { NavigationItem } from '../src/components/app-shell'
+} from '@phoenix/ui'
+import type { NavigationItem } from '@phoenix/ui'
 import { CurrentShipConsolidatedPage } from '../src/pages/current-ship-consolidated-page'
 import { CurrentShipLoadoutPage } from '../src/pages/current-ship-loadout-page'
 import { FleetPage } from '../src/pages/fleet-page'

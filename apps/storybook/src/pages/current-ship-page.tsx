@@ -1,10 +1,10 @@
-import { ControlContext } from '../components/control-context'
-import { DescriptionItem, DescriptionList } from '../components/description-list'
-import { Meter } from '../components/meter'
-import { Metric } from '../components/metric'
-import { PageFrame, PageHeader, Panel } from '../components/page'
-import { Tabs, type TabItem } from '../components/tabs'
-import { ToggleButton } from '../components/toggle-button'
+import { ControlContext } from '@phoenix/ui'
+import { DescriptionItem, DescriptionList } from '@phoenix/ui'
+import { Meter } from '@phoenix/ui'
+import { Metric } from '@phoenix/ui'
+import { PageFrame, PageHeader, Panel } from '@phoenix/ui'
+import { Tabs, type TabItem } from '@phoenix/ui'
+import { ToggleButton } from '@phoenix/ui'
 import './current-ship-page.css'
 
 const shipTabs: TabItem[] = [

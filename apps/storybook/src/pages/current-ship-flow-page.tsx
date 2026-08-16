@@ -1,11 +1,11 @@
-import { Button } from '../components/button'
-import { DescriptionItem, DescriptionList } from '../components/description-list'
-import { AutoGrid, Stack } from '../components/layout'
-import { Meter } from '../components/meter'
-import { Metric } from '../components/metric'
-import { PageFrame, PageHeader, Panel, Section } from '../components/page'
-import { Status } from '../components/status'
-import { Tabs, type TabItem } from '../components/tabs'
+import { Button } from '@phoenix/ui'
+import { DescriptionItem, DescriptionList } from '@phoenix/ui'
+import { AutoGrid, Stack } from '@phoenix/ui'
+import { Meter } from '@phoenix/ui'
+import { Metric } from '@phoenix/ui'
+import { PageFrame, PageHeader, Panel, Section } from '@phoenix/ui'
+import { Status } from '@phoenix/ui'
+import { Tabs, type TabItem } from '@phoenix/ui'
 
 const shipTabs: TabItem[] = [
   { id: 'overview', label: 'Overview', href: '#overview' },

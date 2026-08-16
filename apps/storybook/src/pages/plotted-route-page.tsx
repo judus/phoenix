@@ -1,8 +1,8 @@
-import { DataTable, DataTableGroup } from '../components/data-table'
-import { DescriptionItem, DescriptionList } from '../components/description-list'
-import { Inline, Stack } from '../components/layout'
-import { Metric } from '../components/metric'
-import { Breadcrumbs, PageFrame, PageHeader } from '../components/page'
+import { DataTable, DataTableGroup } from '@phoenix/ui'
+import { DescriptionItem, DescriptionList } from '@phoenix/ui'
+import { Inline, Stack } from '@phoenix/ui'
+import { Metric } from '@phoenix/ui'
+import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
 import './plotted-route-page.css'
 
 type RouteStep = {

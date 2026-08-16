@@ -1,5 +1,5 @@
-import { DataTable, DataTableGroup } from '../components/data-table'
-import { Breadcrumbs, PageFrame, PageHeader } from '../components/page'
+import { DataTable, DataTableGroup } from '@phoenix/ui'
+import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
 import './stored-modules-page.css'
 
 type StoredModule = [string, string, string, string, string, string]

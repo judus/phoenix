@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
-import { DataTable, DataTableGroup } from '../components/data-table'
-import { Breadcrumbs, PageFrame, PageHeader } from '../components/page'
-import { ViewSwitcher } from '../components/view-switcher'
+import { DataTable, DataTableGroup } from '@phoenix/ui'
+import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
+import { ViewSwitcher } from '@phoenix/ui'
 import './current-ship-loadout-page.css'
 
 type LoadoutView = 'list' | 'grid'

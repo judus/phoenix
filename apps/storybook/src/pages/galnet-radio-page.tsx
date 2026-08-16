@@ -1,6 +1,6 @@
-import { IconButton } from '../components/button'
-import { PageFrame } from '../components/page'
-import { Widget } from '../components/widget'
+import { IconButton } from '@phoenix/ui'
+import { PageFrame } from '@phoenix/ui'
+import { Widget } from '@phoenix/ui'
 import './galnet-radio-page.css'
 
 function PreviousIcon() {

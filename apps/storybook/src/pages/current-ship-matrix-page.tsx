@@ -1,9 +1,9 @@
-import { DescriptionItem, DescriptionList } from '../components/description-list'
-import { Meter } from '../components/meter'
-import { Metric } from '../components/metric'
-import { PageFrame, PageHeader, Panel } from '../components/page'
-import { Status } from '../components/status'
-import { Tabs, type TabItem } from '../components/tabs'
+import { DescriptionItem, DescriptionList } from '@phoenix/ui'
+import { Meter } from '@phoenix/ui'
+import { Metric } from '@phoenix/ui'
+import { PageFrame, PageHeader, Panel } from '@phoenix/ui'
+import { Status } from '@phoenix/ui'
+import { Tabs, type TabItem } from '@phoenix/ui'
 import './current-ship-page.css'
 
 const shipTabs: TabItem[] = [

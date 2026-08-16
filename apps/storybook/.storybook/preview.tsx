@@ -1,6 +1,6 @@
 import type { Preview } from '@storybook/react-vite'
 
-import '../src/styles/base.css'
+import '@phoenix/ui/styles.css'
 
 const preview: Preview = {
   globalTypes: {

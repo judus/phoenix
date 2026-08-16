@@ -1,6 +1,6 @@
-import { DataTable, DataTableGroup } from '../components/data-table'
-import { DescriptionItem, DescriptionList } from '../components/description-list'
-import { Breadcrumbs, PageFrame, PageHeader } from '../components/page'
+import { DataTable, DataTableGroup } from '@phoenix/ui'
+import { DescriptionItem, DescriptionList } from '@phoenix/ui'
+import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
 import './traffic-page.css'
 
 const trafficSummary = [

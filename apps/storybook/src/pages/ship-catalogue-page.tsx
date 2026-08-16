@@ -1,10 +1,10 @@
 import { useState } from 'react'
 
 import catalogue from '../../../../data/catalogue/ships.json'
-import { CommandTile } from '../components/command-tile'
-import { DataTable } from '../components/data-table'
-import { Breadcrumbs, PageFrame, PageHeader } from '../components/page'
-import { ViewSwitcher } from '../components/view-switcher'
+import { CommandTile } from '@phoenix/ui'
+import { DataTable } from '@phoenix/ui'
+import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
+import { ViewSwitcher } from '@phoenix/ui'
 import './ship-catalogue-page.css'
 
 type Ship = (typeof catalogue.ships)[number]

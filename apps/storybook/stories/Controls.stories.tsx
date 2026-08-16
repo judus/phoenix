@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
-import { Button } from '../src/components/button'
-import { CommandTile } from '../src/components/command-tile'
-import { ControlContext } from '../src/components/control-context'
-import { Field, Select, TextInput } from '../src/components/field'
-import { AutoGrid, Inline, Stack } from '../src/components/layout'
+import { Button } from '@phoenix/ui'
+import { CommandTile } from '@phoenix/ui'
+import { ControlContext } from '@phoenix/ui'
+import { Field, Select, TextInput } from '@phoenix/ui'
+import { AutoGrid, Inline, Stack } from '@phoenix/ui'
 import '../src/styles/control-stories.css'
 
 const commands = [

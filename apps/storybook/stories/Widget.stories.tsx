@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
-import { DescriptionItem, DescriptionList } from '../src/components/description-list'
-import { AutoGrid, Stack } from '../src/components/layout'
-import { Meter } from '../src/components/meter'
-import { PageFrame } from '../src/components/page'
-import { Widget } from '../src/components/widget'
+import { DescriptionItem, DescriptionList } from '@phoenix/ui'
+import { AutoGrid, Stack } from '@phoenix/ui'
+import { Meter } from '@phoenix/ui'
+import { PageFrame } from '@phoenix/ui'
+import { Widget } from '@phoenix/ui'
 import { HomeDashboardContent } from '../src/pages/home-dashboard-page'
 
 function WidgetAnatomy() {

@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
-import { Button } from '../src/components/button'
-import { DataTable, DataTableGroup } from '../src/components/data-table'
-import { ItemList, ItemListItem } from '../src/components/item-list'
-import { Stack } from '../src/components/layout'
-import { PageFrame, PageHeader, Section } from '../src/components/page'
-import { Status } from '../src/components/status'
+import { Button } from '@phoenix/ui'
+import { DataTable, DataTableGroup } from '@phoenix/ui'
+import { ItemList, ItemListItem } from '@phoenix/ui'
+import { Stack } from '@phoenix/ui'
+import { PageFrame, PageHeader, Section } from '@phoenix/ui'
+import { Status } from '@phoenix/ui'
 import '../src/styles/data-display-stories.css'
 
 function MissionList() {

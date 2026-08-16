@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
-import { AppNavigation, AppShell, type NavigationItem } from '../src/components/app-shell'
-import { Button } from '../src/components/button'
-import { AutoGrid, Stack } from '../src/components/layout'
-import { Metric } from '../src/components/metric'
-import { PageFrame, PageHeader, Panel, Section } from '../src/components/page'
-import { Status } from '../src/components/status'
+import { AppNavigation, AppShell, type NavigationItem } from '@phoenix/ui'
+import { Button } from '@phoenix/ui'
+import { AutoGrid, Stack } from '@phoenix/ui'
+import { Metric } from '@phoenix/ui'
+import { PageFrame, PageHeader, Panel, Section } from '@phoenix/ui'
+import { Status } from '@phoenix/ui'
 import '../src/styles/shell-stories.css'
 
 const primaryItems: NavigationItem[] = [

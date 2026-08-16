@@ -1,13 +1,13 @@
-import { Avatar } from '../components/avatar'
-import { IconButton } from '../components/button'
-import { DescriptionItem, DescriptionList } from '../components/description-list'
-import { Identity } from '../components/identity'
-import { ItemList, ItemListItem } from '../components/item-list'
-import { DashboardGrid, EqualGrid, Inline, Stack } from '../components/layout'
-import { Metric } from '../components/metric'
-import { PageFrame } from '../components/page'
-import { Status } from '../components/status'
-import { Widget } from '../components/widget'
+import { Avatar } from '@phoenix/ui'
+import { IconButton } from '@phoenix/ui'
+import { DescriptionItem, DescriptionList } from '@phoenix/ui'
+import { Identity } from '@phoenix/ui'
+import { ItemList, ItemListItem } from '@phoenix/ui'
+import { DashboardGrid, EqualGrid, Inline, Stack } from '@phoenix/ui'
+import { Metric } from '@phoenix/ui'
+import { PageFrame } from '@phoenix/ui'
+import { Status } from '@phoenix/ui'
+import { Widget } from '@phoenix/ui'
 
 function MicrophoneIcon() {
   return (

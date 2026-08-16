@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
-import { Button } from '../src/components/button'
-import { ControlContext } from '../src/components/control-context'
-import { Field, Select, TextInput } from '../src/components/field'
-import { AutoGrid, Inline, Stack } from '../src/components/layout'
-import { DescriptionItem, DescriptionList } from '../src/components/description-list'
-import { Metric } from '../src/components/metric'
-import { PageFrame, PageHeader, Panel, Section } from '../src/components/page'
+import { Button } from '@phoenix/ui'
+import { ControlContext } from '@phoenix/ui'
+import { Field, Select, TextInput } from '@phoenix/ui'
+import { AutoGrid, Inline, Stack } from '@phoenix/ui'
+import { DescriptionItem, DescriptionList } from '@phoenix/ui'
+import { Metric } from '@phoenix/ui'
+import { PageFrame, PageHeader, Panel, Section } from '@phoenix/ui'
 import '../src/styles/page-stories.css'
 
 function RouteForm() {

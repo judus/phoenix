@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
-import { Button } from '../src/components/button'
-import { ControlContext } from '../src/components/control-context'
-import { Field, NumberInput, Select, Textarea, TextInput } from '../src/components/field'
-import { Form, FormActionGroup, FormActions, FormGrid, FormSection } from '../src/components/form'
-import { Stack } from '../src/components/layout'
+import { Button } from '@phoenix/ui'
+import { ControlContext } from '@phoenix/ui'
+import { Field, NumberInput, Select, Textarea, TextInput } from '@phoenix/ui'
+import { Form, FormActionGroup, FormActions, FormGrid, FormSection } from '@phoenix/ui'
+import { Stack } from '@phoenix/ui'
 import '../src/styles/control-stories.css'
 
 function FormSystem() {

@@ -1,5 +1,5 @@
-import { DataTable, DataTableGroup } from '../components/data-table'
-import { PageFrame, PageHeader } from '../components/page'
+import { DataTable, DataTableGroup } from '@phoenix/ui'
+import { PageFrame, PageHeader } from '@phoenix/ui'
 import './fleet-page.css'
 
 type Vessel = {

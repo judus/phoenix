@@ -1,8 +1,8 @@
-import { Button } from '../components/button'
-import { ControlContext } from '../components/control-context'
-import { Field, NumberInput, Select, TextInput } from '../components/field'
-import { Form, FormActionGroup, FormActions, FormGrid, FormSection } from '../components/form'
-import { Breadcrumbs, PageFrame, PageHeader } from '../components/page'
+import { Button } from '@phoenix/ui'
+import { ControlContext } from '@phoenix/ui'
+import { Field, NumberInput, Select, TextInput } from '@phoenix/ui'
+import { Form, FormActionGroup, FormActions, FormGrid, FormSection } from '@phoenix/ui'
+import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
 import './filtered-system-search-page.css'
 
 export function FilteredSystemSearchPage() {

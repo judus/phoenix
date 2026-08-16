@@ -1,6 +1,6 @@
-import { DataTable, DataTableGroup } from '../components/data-table'
-import { AutoGrid, Stack } from '../components/layout'
-import { Breadcrumbs, PageFrame, PageHeader } from '../components/page'
+import { DataTable, DataTableGroup } from '@phoenix/ui'
+import { AutoGrid, Stack } from '@phoenix/ui'
+import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
 import './personal-stores-page.css'
 
 type StoreItem = {

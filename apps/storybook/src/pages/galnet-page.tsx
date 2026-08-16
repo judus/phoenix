@@ -1,6 +1,6 @@
-import { DataTableGroup } from '../components/data-table'
-import { ItemList, ItemListItem } from '../components/item-list'
-import { Breadcrumbs, PageFrame, PageHeader } from '../components/page'
+import { DataTableGroup } from '@phoenix/ui'
+import { ItemList, ItemListItem } from '@phoenix/ui'
+import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
 import './galnet-page.css'
 
 const articles = [

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@phoenix/ui": "0.1.0",
     "deskplane": "0.1.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"

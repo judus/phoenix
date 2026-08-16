@@ -1,5 +1,5 @@
-import { ActionTile } from '../components/action-tile'
-import { Breadcrumbs, PageFrame, PageHeader } from '../components/page'
+import { ActionTile } from '@phoenix/ui'
+import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
 import './query-console-page.css'
 
 const queries = [
