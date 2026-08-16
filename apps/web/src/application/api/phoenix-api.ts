@@ -9,12 +9,16 @@ import type {
   CopilotVoiceHostCommandAccepted,
   CopilotVoiceHostHeartbeat,
   CopilotVoiceHostSnapshot,
+  ActivityLogResponse,
+  GameActionCatalogResponse,
   GameActionOperation,
+  GameActionResult,
   HealthResponse,
   MacroDefinition,
   MacroLibrary,
   MacroPlayback,
   MacroRecording,
+  NavigationRoute,
   PairingStatus,
   PhoenixModules,
   RuntimeState
@@ -27,6 +31,9 @@ export interface PhoenixApi {
   createCopilotRealtimeToken(input: CopilotRealtimeTokenRequest, signal?: AbortSignal): Promise<CopilotRealtimeTokenResponse>
   deleteMacro(id: string, signal?: AbortSignal): Promise<void>
   executeCopilotRealtimeTool(input: CopilotRealtimeToolRequest, signal?: AbortSignal): Promise<unknown>
+  executeAction(actionId: string, operation?: GameActionOperation, signal?: AbortSignal): Promise<GameActionResult>
+  getActions(signal?: AbortSignal): Promise<GameActionCatalogResponse>
+  getActivityLog(limit?: number, signal?: AbortSignal): Promise<ActivityLogResponse>
   getCopilotAudioProcessing(profileId?: string, signal?: AbortSignal): Promise<CopilotAudioProcessing>
   getCopilotProfiles(signal?: AbortSignal): Promise<CopilotProfilesResponse>
   getCopilotRealtimeContext(signal?: AbortSignal): Promise<{ fingerprint: string, text: string, updatedAt: string | null }>
@@ -34,6 +41,7 @@ export interface PhoenixApi {
   getHealth(signal?: AbortSignal): Promise<HealthResponse>
   getMacros(signal?: AbortSignal): Promise<MacroLibrary>
   getModuleSettings(signal?: AbortSignal): Promise<PhoenixModules>
+  getNavigationRoute(signal?: AbortSignal): Promise<NavigationRoute>
   getPairingStatus(signal?: AbortSignal): Promise<PairingStatus>
   getRuntimeState(signal?: AbortSignal): Promise<RuntimeState>
   persistCopilotRealtimeTurn(input: CopilotRealtimeTurnRequest, signal?: AbortSignal): Promise<void>

@@ -1,4 +1,5 @@
 import {
+  ActivityLogResponseSchema,
   CopilotAudioProcessingSchema,
   CopilotConversationEventSchema,
   CopilotProfileSelectionRequestSchema,
@@ -10,15 +11,19 @@ import {
   CopilotVoiceHostCommandAcceptedSchema,
   CopilotVoiceHostHeartbeatSchema,
   CopilotVoiceHostSnapshotSchema,
+  GameActionCatalogResponseSchema,
+  GameActionResultSchema,
   MacroDefinitionSchema,
   MacroLibrarySchema,
   MacroPlaybackSchema,
   MacroRecordingSchema,
+  NavigationRouteSchema,
   PairingStatusSchema,
   PhoenixModulesSchema,
   RuntimeStateSchema
 } from '@phoenix/contracts'
 import type {
+  ActivityLogResponse,
   CopilotAudioProcessing,
   CopilotConversationEvent,
   CopilotProfilesResponse,
@@ -29,12 +34,15 @@ import type {
   CopilotVoiceHostCommandAccepted,
   CopilotVoiceHostHeartbeat,
   CopilotVoiceHostSnapshot,
+  GameActionCatalogResponse,
   GameActionOperation,
+  GameActionResult,
   HealthResponse,
   MacroDefinition,
   MacroLibrary,
   MacroPlayback,
   MacroRecording,
+  NavigationRoute,
   PairingStatus,
   PhoenixModules,
   RuntimeState
@@ -90,6 +98,26 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return RuntimeStateSchema.parse(await response.json())
+  }
+
+  async getActions(signal?: AbortSignal): Promise<GameActionCatalogResponse> {
+    return this.#get('/api/actions', GameActionCatalogResponseSchema, signal)
+  }
+
+  async executeAction(
+    actionId: string,
+    operation: GameActionOperation = 'tap',
+    signal?: AbortSignal
+  ): Promise<GameActionResult> {
+    return this.#json('/api/actions/execute', 'POST', { actionId, operation }, GameActionResultSchema, signal)
+  }
+
+  async getActivityLog(limit = 250, signal?: AbortSignal): Promise<ActivityLogResponse> {
+    return this.#get(`/api/log?limit=${encodeURIComponent(String(limit))}`, ActivityLogResponseSchema, signal)
+  }
+
+  async getNavigationRoute(signal?: AbortSignal): Promise<NavigationRoute> {
+    return this.#get('/api/navigation/route', NavigationRouteSchema, signal)
   }
 
   async getCopilotProfiles(signal?: AbortSignal): Promise<CopilotProfilesResponse> {
