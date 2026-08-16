@@ -19,7 +19,7 @@ function MicrophoneIcon() {
 }
 
 function PreviousIcon() {
-  return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m18 6-8 6 8 6V6ZM10 6l-8 6 8 6V6Z" /></svg>
+  return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 5v14M19 5 8 12l11 7V5Z" /></svg>
 }
 
 function PlayIcon() {
@@ -27,7 +27,7 @@ function PlayIcon() {
 }
 
 function NextIcon() {
-  return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 8 6-8 6V6Zm8 0 8 6-8 6V6Z" /></svg>
+  return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M18 5v14M5 5l11 7-11 7V5Z" /></svg>
 }
 
 function StopIcon() {

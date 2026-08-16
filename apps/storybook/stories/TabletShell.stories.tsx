@@ -21,6 +21,7 @@ import { CurrentShipLoadoutPage } from '../src/pages/current-ship-loadout-page'
 import { FleetPage } from '../src/pages/fleet-page'
 import { FilteredSystemSearchPage } from '../src/pages/filtered-system-search-page'
 import { GalnetPage } from '../src/pages/galnet-page'
+import { GalnetRadioPage } from '../src/pages/galnet-radio-page'
 import { HomeDashboardPage } from '../src/pages/home-dashboard-page'
 import { PersonalStoresPage } from '../src/pages/personal-stores-page'
 import { PlottedRoutePage } from '../src/pages/plotted-route-page'
@@ -258,6 +259,21 @@ function GalnetShell() {
   )
 }
 
+function GalnetRadioShell() {
+  return (
+    <div className="tablet-shell-story">
+      <BaselineShell
+        context="radio"
+        primary="comms"
+        railItems={commsItems}
+        railLabel="Comms views"
+      >
+        <GalnetRadioPage />
+      </BaselineShell>
+    </div>
+  )
+}
+
 function DeskplanePage({ children }: { children?: React.ReactNode }) {
   return (
     <div className="tablet-deskplane-page">
@@ -432,3 +448,4 @@ export const QueryConsole: Story = { render: () => <QueryConsoleShell /> }
 export const FilteredSystemSearch: Story = { render: () => <FilteredSystemSearchShell /> }
 export const Traffic: Story = { render: () => <TrafficShell /> }
 export const Galnet: Story = { render: () => <GalnetShell /> }
+export const GalnetRadio: Story = { render: () => <GalnetRadioShell /> }
