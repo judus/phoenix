@@ -2,15 +2,19 @@ import { useEffect, useMemo, useState } from 'react'
 import type {
   CargoItem,
   CurrentShip,
+  FleetResponse,
+  FleetShip,
   HealthResponse,
   MicroResourceInventory,
   MicroResource,
   RuntimeState,
   ShipDefinition,
   ShipModule,
-  ShipModuleSlotGroup
+  ShipModuleSlotGroup,
+  StoredModule
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../api/phoenix-api-client.js'
+import { subscribePhoenixEvent } from '../api/phoenix-event-stream.js'
 import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
@@ -53,6 +57,8 @@ export interface ShipPageProps {
 export function ShipPage ({ api, error, health, runtimeState, view }: ShipPageProps) {
   const [catalogue, setCatalogue] = useState<ShipDefinition[]>()
   const [catalogueError, setCatalogueError] = useState<string>()
+  const [fleet, setFleet] = useState<FleetResponse>()
+  const [fleetError, setFleetError] = useState<string>()
   const ship = runtimeState?.ship
   const currentShip = view === 'status' || view === 'modules' || view === 'cargo'
   const identity = currentShip ? shipIdentity(ship) : fleetIdentity(view)
@@ -71,6 +77,29 @@ export function ShipPage ({ api, error, health, runtimeState, view }: ShipPagePr
     return () => { active = false }
   }, [api, catalogue, view])
 
+  useEffect(() => {
+    if (view !== 'overview' && view !== 'carriers' && view !== 'stored-modules') return
+    let active = true
+    const load = () => {
+      void api.getFleet()
+        .then(response => {
+          if (active) {
+            setFleet(response)
+            setFleetError(undefined)
+          }
+        })
+        .catch(cause => {
+          if (active) setFleetError(cause instanceof Error ? cause.message : 'Fleet records unavailable.')
+        })
+    }
+    load()
+    const unsubscribe = subscribePhoenixEvent(api, 'activity-entry', load)
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [api, view])
+
   return (
     <PhoenixShell
       activePrimaryItemId="fleet"
@@ -87,19 +116,19 @@ export function ShipPage ({ api, error, health, runtimeState, view }: ShipPagePr
           actions={currentShip ? <CurrentShipNavigation view={view} /> : undefined}
         />
         <PageContent>
-          {!runtimeState
-            ? <p className="ship-empty">Waiting for ship telemetry…</p>
-            : view === 'overview'
-              ? <FleetOverview state={runtimeState} />
+          {view === 'overview'
+              ? <FleetOverview fleet={fleet} error={fleetError} />
               : view === 'status'
-              ? <ShipStatus state={runtimeState} />
+              ? runtimeState ? <ShipStatus state={runtimeState} /> : <p className="ship-empty">Waiting for ship telemetry…</p>
               : view === 'modules'
-                ? <ShipModules ship={runtimeState.ship} />
+                ? runtimeState ? <ShipModules ship={runtimeState.ship} /> : <p className="ship-empty">Waiting for ship telemetry…</p>
                 : view === 'cargo'
-                  ? <ShipCargo state={runtimeState} />
+                  ? runtimeState ? <ShipCargo state={runtimeState} /> : <p className="ship-empty">Waiting for ship telemetry…</p>
                   : view === 'catalogue'
                     ? <ShipCatalogue ships={catalogue} error={catalogueError} />
-                    : <FleetPlaceholder view={view} />}
+                    : view === 'stored-modules'
+                      ? <StoredModules fleet={fleet} error={fleetError} />
+                      : <FleetCarriers fleet={fleet} error={fleetError} />}
         </PageContent>
       </Page>
     </PhoenixShell>
@@ -120,43 +149,115 @@ function CurrentShipNavigation ({ view }: { view: CurrentShipView }) {
   )
 }
 
-function FleetOverview ({ state }: { state: RuntimeState }) {
-  const ship = state.ship
+function FleetOverview ({ error, fleet }: { error?: string, fleet?: FleetResponse }) {
+  if (error) return <p className="ship-warning">{error}</p>
+  if (!fleet) return <p className="ship-empty">Loading retained Fleet records…</p>
   return (
-    <div className="ship-status-grid">
-      <ShipPanel title="Active vessel">
-        <div className="ship-identity">
-          <strong>{ship.definition?.displayName ?? humanize(ship.typeId) ?? 'Unknown hull'}</strong>
-          <span>{ship.name ?? 'Unnamed vessel'}{ship.identifier ? ` · ${ship.identifier}` : ''}</span>
-        </div>
-        <a className="ship-inline-action" href="#/fleet/ships/current/overview">Open current ship</a>
-      </ShipPanel>
-      <ShipPanel title="Owned ships">
-        <p className="ship-muted">Stored-ship reconstruction has not been implemented yet. The active vessel is known; the rest of the fleet remains explicitly unknown.</p>
-      </ShipPanel>
-      <ShipPanel title="Fleet carriers">
-        <p className="ship-muted">Carrier data will appear after PHOENIX retains CarrierStats and related journal events.</p>
-      </ShipPanel>
-      <ShipPanel title="Catalogue">
-        <p className="ship-muted">The local hull catalogue is available. Its browsing and nearest-stock presentation is the next Fleet data surface.</p>
-        <a className="ship-inline-action" href="#/fleet/catalogue">Open ship catalogue</a>
-      </ShipPanel>
+    <div className="fleet-records">
+      <section className="fleet-summary" aria-label="Fleet summary">
+        {Object.entries(fleet.summary).map(([label, value]) => (
+          <p key={label}><span>{capitalize(label)}</span><strong>{value}</strong></p>
+        ))}
+      </section>
+      <section className="content-section">
+        <h2 className="section-heading">Owned vessels</h2>
+        <table className="data-table fleet-ships-table">
+          <thead><tr><th>Vessel</th><th>State</th><th>Location</th><th>Value</th><th>Transfer</th><th>Observed</th></tr></thead>
+          <tbody>{fleet.ships.map(ship => <FleetShipRow key={ship.id} ship={ship} />)}</tbody>
+        </table>
+      </section>
+      <section className="fleet-authorities">
+        <p><span>Stored equipment</span><strong>{fleet.storedModules.items.length}</strong><small>{storedModuleAuthority(fleet)}</small></p>
+        <p><span>Fleet carriers</span><strong>{fleet.carriers.items.length}</strong><small>{fleet.carriers.observed ? 'Observed locally' : 'No authoritative record observed'}</small></p>
+      </section>
     </div>
   )
 }
 
-function FleetPlaceholder ({ view }: { view: Exclude<FleetView, 'overview' | CurrentShipView | 'catalogue'> }) {
-  const definitions = {
-    carriers: ['Fleet carriers', 'CarrierStats and carrier movement events will become the retained local authority for this surface.'],
-    'stored-modules': ['Stored modules', 'Stored module snapshots have not been reconstructed yet.']
-  } as const
-  const definition = definitions[view]
+function FleetShipRow ({ ship }: { ship: FleetShip }) {
+  const location = [ship.station, ship.system].filter(Boolean).join(' · ') || '—'
+  const transfer = ship.state === 'transfer'
+    ? `${formatDuration(ship.transferSeconds)} · ${formatCredits(ship.transferPrice)}`
+    : '—'
   return (
-    <section className="content-section fleet-placeholder">
-      <h2 className="section-heading">{definition[0]}</h2>
-      <p>{definition[1]}</p>
+    <tr className={ship.state === 'active' ? 'is-highlighted' : undefined}>
+      <td><strong>{ship.name ?? ship.displayName ?? humanize(ship.typeId) ?? `Ship ${ship.id}`}</strong><small>{[ship.displayName, ship.identifier].filter(Boolean).join(' · ') || `Ship ID ${ship.id}`}</small></td>
+      <td>{capitalize(ship.state.replace(/-/gu, ' '))}{ship.hot ? ' · Hot' : ''}</td>
+      <td>{location}</td>
+      <td>{formatCredits(ship.value)}</td>
+      <td>{transfer}</td>
+      <td>{formatDateTime(ship.updatedAt)}</td>
+    </tr>
+  )
+}
+
+function StoredModules ({ error, fleet }: { error?: string, fleet?: FleetResponse }) {
+  if (error) return <p className="ship-warning">{error}</p>
+  if (!fleet) return <p className="ship-empty">Loading retained module records…</p>
+  const groups = groupStoredModules(fleet.storedModules.items)
+  return (
+    <div className="fleet-records">
+      <section className="fleet-authority-note">
+        <strong>{capitalize(fleet.storedModules.details)} snapshot</strong>
+        <span>{storedModuleAuthority(fleet)}</span>
+      </section>
+      {[...groups.entries()].map(([system, modules]) => (
+        <section className="content-section" key={system}>
+          <h2 className="section-heading">{system}<span>{modules.length} modules</span></h2>
+          <table className="data-table fleet-modules-table">
+            <thead><tr><th>Module</th><th>Engineering</th><th>Storage slot</th><th>Transfer</th><th>Purchase value</th><th>Observed</th></tr></thead>
+            <tbody>{modules.map(module => <StoredModuleRow key={`${module.marketId}:${module.storageSlot}`} module={module} />)}</tbody>
+          </table>
+        </section>
+      ))}
+      {fleet.storedModules.items.length === 0 && <p className="ship-empty">No stored modules were present in the latest snapshot.</p>}
+    </div>
+  )
+}
+
+function StoredModuleRow ({ module }: { module: StoredModule }) {
+  const engineering = module.engineering
+    ? `${humanize(module.engineering.blueprint) ?? module.engineering.blueprint}${module.engineering.level === null ? '' : ` G${module.engineering.level}`}`
+    : '—'
+  return (
+    <tr>
+      <td><strong>{module.displayName ?? humanize(module.rawName) ?? module.rawName}</strong><small>{module.rawName}{module.hot ? ' · Hot' : ''}</small></td>
+      <td>{engineering}</td>
+      <td>{module.storageSlot}</td>
+      <td>{formatDuration(module.transferSeconds)} · {formatCredits(module.transferCost)}</td>
+      <td>{formatCredits(module.buyPrice)}</td>
+      <td>{formatDateTime(module.updatedAt)}</td>
+    </tr>
+  )
+}
+
+function FleetCarriers ({ error, fleet }: { error?: string, fleet?: FleetResponse }) {
+  if (error) return <p className="ship-warning">{error}</p>
+  if (!fleet) return <p className="ship-empty">Loading retained carrier records…</p>
+  return (
+    <section className="content-section">
+      <h2 className="section-heading">Carrier authority</h2>
+      <p className="fleet-unobserved">
+        <strong>{fleet.carriers.observed ? 'Carrier records observed' : 'No carrier record observed'}</strong>
+        <span>PHOENIX has not seen authoritative carrier journal data for this commander. Zero here means unknown or none observed—not a claim that the commander owns no carrier.</span>
+      </p>
     </section>
   )
+}
+
+function storedModuleAuthority (fleet: FleetResponse): string {
+  const snapshot = fleet.storedModules.snapshotAt ? `Snapshot ${formatDateTime(fleet.storedModules.snapshotAt)}` : 'No snapshot observed'
+  if (!fleet.storedModules.latestMutationAt) return snapshot
+  return `${snapshot} · Latest storage change ${formatDateTime(fleet.storedModules.latestMutationAt)}`
+}
+
+function groupStoredModules (modules: StoredModule[]): Map<string, StoredModule[]> {
+  const groups = new Map<string, StoredModule[]>()
+  for (const module of modules) {
+    const system = module.system || 'Unknown system'
+    groups.set(system, [...(groups.get(system) ?? []), module])
+  }
+  return groups
 }
 
 function ShipCatalogue ({ error, ships }: { error?: string, ships?: ShipDefinition[] }) {
@@ -227,9 +328,9 @@ function ShipDefinitionDetail ({ ship }: { ship: ShipDefinition }) {
         <CatalogueSlotSummary label="Optional internals" slots={ship.slots.optional.map(slot => slot.size)} />
         <CatalogueSlotSummary label="Utility mounts" slots={ship.slots.utilities.map(slot => slot.size)} />
       </div>
-      <button type="button" className="ship-catalogue__nearest" disabled title="Nearest shipyard stock query is not implemented yet.">
-        Nearest shipyard selling it · Planned
-      </button>
+      <a className="ship-catalogue__nearest" href={`#/galaxy/database?query=shipyards&hull=${encodeURIComponent(ship.displayName)}&execute=1`}>
+        Nearest shipyard selling it
+      </a>
       <small className="ship-catalogue__source">Source: {ship.source.name}{ship.source.revision ? ` · ${ship.source.revision}` : ''}</small>
     </>
   )
@@ -542,6 +643,13 @@ function formatUnit (value: number | null | undefined, unit: string, digits = 0)
 
 function formatCredits (value?: number | null): string {
   return value === null || value === undefined ? '—' : `${new Intl.NumberFormat().format(Math.round(value))} CR`
+}
+
+function formatDuration (seconds?: number | null): string {
+  if (seconds === null || seconds === undefined) return '—'
+  if (seconds < 60) return `${seconds}s`
+  if (seconds < 3600) return `${Math.ceil(seconds / 60)}m`
+  return `${Math.ceil(seconds / 3600)}h`
 }
 
 function formatPips (value?: number): string {

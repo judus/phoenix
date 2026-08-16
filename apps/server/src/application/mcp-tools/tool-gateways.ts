@@ -16,8 +16,13 @@ export interface ExplorationBodyQuery {
   getCurrentBody(arguments_: JsonObject): DeferredToolResult
 }
 
+export interface ExplorationTargetQuery {
+  searchTargets(arguments_: JsonObject): DeferredToolResult
+}
+
 export interface TradeMarketQuery {
   findBestTrade(arguments_: JsonObject): DeferredToolResult
+  findTradeOpportunities(arguments_: JsonObject): DeferredToolResult
 }
 
 export interface NavigationQuery {
@@ -27,11 +32,22 @@ export interface NavigationQuery {
 
 export interface StationQuery {
   findNearest(arguments_: JsonObject): DeferredToolResult
+  findOutfitting(arguments_: JsonObject): DeferredToolResult
+  findShipyards(arguments_: JsonObject): DeferredToolResult
   getDetails(arguments_: JsonObject): DeferredToolResult
   listShipyardStock(arguments_: JsonObject): DeferredToolResult
+  lookup(arguments_: JsonObject): DeferredToolResult
   searchOutfitting(arguments_: JsonObject): DeferredToolResult
 }
 
 export interface SystemDetailsQuery {
   getDetails(arguments_: JsonObject): DeferredToolResult
+}
+
+export interface SystemSearchQuery {
+  searchSystems(arguments_: JsonObject): DeferredToolResult
+}
+
+export interface FactionPresenceQuery {
+  searchFactionPresences(arguments_: JsonObject): DeferredToolResult
 }

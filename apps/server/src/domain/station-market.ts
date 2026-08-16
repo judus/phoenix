@@ -31,6 +31,79 @@ export interface CommodityMarket {
   updatedAt: string | null
 }
 
+export interface CommodityReport {
+  commodityName: string
+  maxSellPrice: number | null
+}
+
+export interface TradeOpportunityRequest {
+  availableCredits: number
+  cargoCapacity: number
+  includeFleetCarriers: boolean
+  maxDaysAgo: number
+  maxDistance: number
+  minVolume: number
+  systemName: string
+}
+
+export interface NearbySystem {
+  distanceLy: number
+  position: [number, number, number]
+  systemAddress: number | null
+  systemName: string
+  updatedAt: string | null
+}
+
+export interface NearbySystemRequest {
+  maxDistance: number
+  systemName: string
+}
+
+export interface ShipyardSearchResult {
+  distanceLy: number
+  distanceToArrivalLs: number | null
+  marketId: number | null
+  maxLandingPadSize: number | null
+  price: number | null
+  shipSymbol: string | null
+  stationName: string
+  stationType: string | null
+  systemName: string
+  updatedAt: string | null
+}
+
+export interface ShipyardSearchRequest {
+  hullName: string
+  referencePosition: [number, number, number]
+}
+
+export interface OutfittingModuleSpec {
+  moduleClass: number | null
+  moduleName: string
+  moduleRating: string | null
+}
+
+export interface OutfittingSearchResult extends OutfittingModuleSpec {
+  category: string | null
+  distanceLy: number
+  distanceToArrivalLs: number | null
+  marketId: number | null
+  maxLandingPadSize: number | null
+  moduleSymbol: string | null
+  price: number | null
+  ship: string | null
+  stationName: string
+  stationType: string | null
+  systemName: string
+  updatedAt: string | null
+}
+
+export interface OutfittingSearchRequest extends OutfittingModuleSpec {
+  maxDistanceLy: number
+  minimumPadSize: number | null
+  referencePosition: [number, number, number]
+}
+
 export interface NearestStationRequest {
   minimumPadSize: number | null
   service: string
@@ -49,7 +122,10 @@ export interface CommodityMarketRequest {
 
 export interface StationSearchSource {
   findCommodityMarkets(request: CommodityMarketRequest): Promise<CommodityMarket[]>
+  findSystemExports(request: Omit<TradeOpportunityRequest, 'availableCredits' | 'cargoCapacity' | 'maxDistance'>): Promise<CommodityMarket[]>
+  getCommodityReports(): Promise<CommodityReport[]>
   findNearestStations(request: NearestStationRequest): Promise<NearbyStation[]>
+  findNearbySystems(request: NearbySystemRequest): Promise<NearbySystem[]>
 }
 
 export interface StockItem {
@@ -60,6 +136,102 @@ export interface StockItem {
 export interface StationStockSource {
   getOutfitting(marketId: number): Promise<StockItem[]>
   getShipyard(marketId: number): Promise<StockItem[]>
+}
+
+export interface ShipyardSearchSource {
+  findShipyards(request: ShipyardSearchRequest): Promise<ShipyardSearchResult[]>
+}
+
+export interface OutfittingSearchSource {
+  findOutfitting(request: OutfittingSearchRequest): Promise<OutfittingSearchResult[]>
+}
+
+export type StationLocationType = 'any' | 'carrier' | 'orbital' | 'surface'
+
+export interface StationLookupRequest {
+  maxDistanceLy: number
+  minimumPadSize: number | null
+  name: string
+  referencePosition: [number, number, number]
+  stationType: StationLocationType
+}
+
+export interface StationLookupResult extends NearbyStation {
+  services: string[]
+}
+
+export interface StationLookupSource {
+  findStations(request: StationLookupRequest): Promise<StationLookupResult[]>
+}
+
+export type SystemPopulationFilter = 'any' | 'inhabited' | 'uninhabited'
+
+export interface FilteredSystemRequest {
+  allegiance: string | null
+  economy: string | null
+  government: string | null
+  maxDistanceLy: number
+  maxPopulation: number | null
+  minPopulation: number | null
+  population: SystemPopulationFilter
+  referencePosition: [number, number, number]
+  security: string | null
+}
+
+export interface FilteredSystemResult {
+  allegiance: string | null
+  controllingFaction: string | null
+  distanceLy: number
+  economy: string | null
+  government: string | null
+  inhabited: boolean
+  permitRequired: boolean | null
+  population: number
+  position: [number, number, number]
+  primaryStarClass: string | null
+  secondaryEconomy: string | null
+  security: string | null
+  systemAddress: number | null
+  systemName: string
+  updatedAt: string | null
+}
+
+export interface SystemSearchSource {
+  findSystems(request: FilteredSystemRequest): Promise<FilteredSystemResult[]>
+}
+
+export type FactionControllingFilter = 'any' | 'yes' | 'no'
+
+export interface FactionPresenceRequest {
+  allegiance: string | null
+  controlling: FactionControllingFilter
+  factionName: string
+  government: string | null
+  maxDistanceLy: number
+  minInfluencePercent: number
+  referencePosition: [number, number, number]
+  state: string | null
+}
+
+export interface FactionPresenceResult {
+  activeStates: string[]
+  allegiance: string | null
+  controlling: boolean
+  distanceLy: number
+  factionName: string
+  government: string | null
+  influencePercent: number
+  pendingStates: string[]
+  position: [number, number, number]
+  recoveringStates: string[]
+  state: string | null
+  systemAddress: number | null
+  systemName: string
+  updatedAt: string | null
+}
+
+export interface FactionPresenceSearchSource {
+  findFactionPresences(request: FactionPresenceRequest): Promise<FactionPresenceResult[]>
 }
 
 export interface ProviderCacheEntry {

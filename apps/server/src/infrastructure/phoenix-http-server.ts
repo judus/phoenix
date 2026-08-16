@@ -26,6 +26,7 @@ import {
   StartMacroRecordingRequestSchema,
   type CopilotConversationEvent,
   type DisplayCommand,
+  type NavigationRoute,
   type RuntimeState
 } from '@phoenix/contracts'
 import { AiError, serializeAiError, type AiStreamEvent } from '@judus/llm-client'
@@ -43,6 +44,7 @@ import type { Commands } from '../domain/commands.js'
 import type { HealthCheck } from '../application/health-service.js'
 import type { EngineeringDataReader } from '../application/engineering-data-service.js'
 import type { ExplorationDataReader } from '../application/exploration-data-service.js'
+import type { ExplorationTargetReader } from '../application/default-exploration-target-query.js'
 import type { GalaxyDataReader } from '../application/galaxy-data-service.js'
 import type { GalnetNewsReader } from '../domain/galnet.js'
 import type { NavigationDataReader } from '../application/navigation-data-service.js'
@@ -57,6 +59,7 @@ import type { NumpadCommands } from '../domain/numpad.js'
 import type { Macros } from '../domain/macros.js'
 import type { MissionDataReader } from '../domain/missions.js'
 import type { CommunicationDataReader, CommunicationQueryView } from '../domain/communications.js'
+import type { FleetDataReader } from '../domain/fleet.js'
 import type { PhoenixMcpServer } from './phoenix-mcp-server.js'
 import { PairingAttemptLimitError, type PairingAccessController } from './pairing-access-controller.js'
 
@@ -91,6 +94,8 @@ export interface PhoenixHttpServerOptions {
   eliteStatusDiagnostics: EliteStatusDiagnosticsReader
   engineering: EngineeringDataReader
   explorationData: ExplorationDataReader
+  explorationTargets: ExplorationTargetReader
+  fleet: FleetDataReader
   galaxyData: GalaxyDataReader
   galnet: GalnetNewsReader
   healthCheck: HealthCheck
@@ -102,6 +107,7 @@ export interface PhoenixHttpServerOptions {
   missions: MissionDataReader
   communications: CommunicationDataReader
   navigationData: NavigationDataReader
+  navigationRouteUpdates: Subscribable<NavigationRoute>
   numpad: NumpadCommands
   port: number
   runtimeState: RuntimeStateReader
@@ -265,6 +271,11 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/fleet') {
+      this.writeJson(response, 200, this.options.fleet.getFleet())
+      return
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/comms/messages') {
       const requestedLimit = Number.parseInt(url.searchParams.get('limit') ?? '250', 10)
       const requestedView = url.searchParams.get('view')
@@ -317,6 +328,84 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/systems') {
+      this.writeJson(response, 200, await this.options.galaxyData.searchNearbySystems({
+        maxDistance: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
+        systemName: requiredQuery(url, 'system')
+      }, boundedQueryInteger(url, 'limit', 100, 1, 1000)))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/systems/search') {
+      const population = optionalQueryChoice(url, 'population', ['any', 'inhabited', 'uninhabited'] as const) ?? 'any'
+      this.writeJson(response, 200, await this.options.galaxyData.searchFilteredSystems({
+        allegiance: optionalQuery(url, 'allegiance'),
+        economy: optionalQuery(url, 'economy'),
+        government: optionalQuery(url, 'government'),
+        maxDistanceLy: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
+        maxPopulation: optionalQueryInteger(url, 'maxPopulation', 0, Number.MAX_SAFE_INTEGER),
+        minPopulation: optionalQueryInteger(url, 'minPopulation', 0, Number.MAX_SAFE_INTEGER),
+        population,
+        security: optionalQuery(url, 'security'),
+        systemName: requiredQuery(url, 'system')
+      }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/factions/search') {
+      const controlling = optionalQueryChoice(url, 'controlling', ['any', 'yes', 'no'] as const) ?? 'any'
+      this.writeJson(response, 200, await this.options.galaxyData.findFactionPresences({
+        allegiance: optionalQuery(url, 'allegiance'),
+        controlling,
+        factionName: requiredQuery(url, 'faction'),
+        government: optionalQuery(url, 'government'),
+        maxDistanceLy: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
+        minInfluencePercent: boundedQueryInteger(url, 'minInfluence', 0, 0, 100),
+        state: optionalQuery(url, 'state'),
+        systemName: requiredQuery(url, 'system')
+      }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/shipyards') {
+      this.writeJson(response, 200, await this.options.galaxyData.searchShipyards(
+        requiredQuery(url, 'hull'),
+        requiredQuery(url, 'system'),
+        boundedQueryInteger(url, 'limit', 20, 1, 100)
+      ))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/outfitting') {
+      const minimumPadSize = optionalPadSize(url.searchParams.get('pad'))
+      const padSizes = { small: 1, medium: 2, large: 3 } as const
+      this.writeJson(response, 200, await this.options.galaxyData.searchOutfittingMarkets({
+        maxDaysAgo: boundedQueryInteger(url, 'maxDaysAgo', 30, 1, 365),
+        maxDistanceLy: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
+        minimumPadSize: minimumPadSize ? padSizes[minimumPadSize] : null,
+        query: requiredQuery(url, 'module'),
+        systemName: requiredQuery(url, 'system')
+      }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/stations') {
+      const minimumPadSize = optionalPadSize(url.searchParams.get('pad'))
+      const padSizes = { small: 1, medium: 2, large: 3 } as const
+      const stationType = url.searchParams.get('type') ?? 'any'
+      if (stationType !== 'any' && stationType !== 'orbital' && stationType !== 'surface' && stationType !== 'carrier') {
+        throw new Error('type must be any, orbital, surface, or carrier.')
+      }
+      this.writeJson(response, 200, await this.options.galaxyData.searchStations({
+        maxDistanceLy: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
+        minimumPadSize: minimumPadSize ? padSizes[minimumPadSize] : null,
+        name: requiredQuery(url, 'name'),
+        stationType,
+        systemName: requiredQuery(url, 'system')
+      }, boundedQueryInteger(url, 'limit', 20, 1, 100), minimumPadSize))
+      return
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/galaxy/markets') {
       const intent = url.searchParams.get('intent')
       if (intent !== 'buy' && intent !== 'sell') throw new Error('intent must be buy or sell.')
@@ -328,6 +417,38 @@ export class PhoenixHttpServer {
         maxDistance: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
         minVolume: boundedQueryInteger(url, 'minVolume', 1, 1, Number.MAX_SAFE_INTEGER),
         systemName: requiredQuery(url, 'system')
+      }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/trade-opportunities') {
+      this.writeJson(response, 200, await this.options.galaxyData.searchTradeOpportunities({
+        availableCredits: boundedQueryInteger(url, 'availableCredits', 10_000_000, 1, Number.MAX_SAFE_INTEGER),
+        cargoCapacity: boundedQueryInteger(url, 'cargoCapacity', 100, 1, 10_000),
+        includeFleetCarriers: url.searchParams.get('fleetCarriers') === 'true',
+        maxDaysAgo: boundedQueryInteger(url, 'maxDaysAgo', 3, 1, 365),
+        maxDistance: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
+        minVolume: boundedQueryInteger(url, 'minVolume', 100, 1, Number.MAX_SAFE_INTEGER),
+        systemName: requiredQuery(url, 'system')
+      }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/exploration-targets') {
+      const landable = optionalQueryChoice(url, 'landable', ['any', 'yes', 'no'] as const) ?? 'any'
+      this.writeJson(response, 200, await this.options.explorationTargets.searchExplorationTargets({
+        atmosphere: optionalQuery(url, 'atmosphere'),
+        bodyType: optionalQuery(url, 'bodyType'),
+        landable,
+        maxDistanceLy: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
+        maxGravityG: optionalQueryNumber(url, 'maxGravityG', 0),
+        maxTemperatureK: optionalQueryNumber(url, 'maxTemperatureK', 0),
+        minBiologicalSignals: boundedQueryInteger(url, 'minBiologicalSignals', 0, 0, 100),
+        minGeologicalSignals: boundedQueryInteger(url, 'minGeologicalSignals', 0, 0, 100),
+        minGravityG: optionalQueryNumber(url, 'minGravityG', 0),
+        minTemperatureK: optionalQueryNumber(url, 'minTemperatureK', 0),
+        systemName: requiredQuery(url, 'system'),
+        volcanism: optionalQuery(url, 'volcanism')
       }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
       return
     }
@@ -887,6 +1008,7 @@ export class PhoenixHttpServer {
       this.options.runtimeStateUpdates.subscribe(state => send('runtime-state', state)),
       this.options.activityLog.subscribe(entry => send('activity-entry', entry)),
       this.options.displayCommands.subscribe(command => send('display-command', command)),
+      this.options.navigationRouteUpdates.subscribe(route => send('navigation-route', route)),
       this.options.commandCatalogue.subscribe(snapshot => send('command-catalogue', {
         revision: snapshot.revision,
         generatedAt: snapshot.generatedAt
@@ -901,6 +1023,7 @@ export class PhoenixHttpServer {
       })
     ]
     send('runtime-state', this.options.runtimeState.getCurrent())
+    send('navigation-route', this.options.navigationData.getRoute())
     const commandCatalogue = this.options.commandCatalogue.getSnapshot()
     send('command-catalogue', {
       revision: commandCatalogue.revision,
@@ -1353,6 +1476,36 @@ function requiredQuery (url: URL, name: string): string {
   const value = url.searchParams.get(name)?.trim()
   if (!value) throw new Error(`${name} is required.`)
   return value
+}
+
+function optionalQuery (url: URL, name: string): string | null {
+  const value = url.searchParams.get(name)?.trim()
+  return value && value !== 'any' ? value : null
+}
+
+function optionalQueryInteger (url: URL, name: string, minimum: number, maximum: number): number | null {
+  const raw = url.searchParams.get(name)
+  if (raw === null || raw === '') return null
+  const value = Number(raw)
+  if (!Number.isSafeInteger(value) || value < minimum || value > maximum) {
+    throw new Error(`${name} must be an integer between ${minimum} and ${maximum}.`)
+  }
+  return value
+}
+
+function optionalQueryNumber (url: URL, name: string, minimum: number): number | null {
+  const raw = url.searchParams.get(name)
+  if (raw === null || raw === '') return null
+  const value = Number(raw)
+  if (!Number.isFinite(value) || value < minimum) throw new Error(`${name} must be a number of at least ${minimum}.`)
+  return value
+}
+
+function optionalQueryChoice<const T extends readonly string[]> (url: URL, name: string, choices: T): T[number] | null {
+  const value = url.searchParams.get(name)
+  if (value === null || value === '') return null
+  if (choices.includes(value)) return value as T[number]
+  throw new Error(`${name} must be one of ${choices.join(', ')}.`)
 }
 
 function boundedQueryInteger (url: URL, name: string, fallback: number, minimum: number, maximum: number): number {

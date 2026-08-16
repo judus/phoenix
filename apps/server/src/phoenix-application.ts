@@ -1,6 +1,6 @@
 import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { DisplayCommand, GameEventEnvelope, RuntimeState } from '@phoenix/contracts'
+import type { DisplayCommand, GameEventEnvelope, NavigationRoute, RuntimeState } from '@phoenix/contracts'
 import { ToolRegistry } from '@judus/llm-client'
 import {
   EliteDataDirectoryLocator,
@@ -47,12 +47,15 @@ import { DefaultStationMarketQuery } from './application/default-station-market-
 import { GalnetNewsService } from './application/galnet-news-service.js'
 import { MissionDataService } from './application/mission-data-service.js'
 import { CommunicationDataService } from './application/communication-data-service.js'
+import { FleetDataService } from './application/fleet-data-service.js'
 import { DefaultExplorationBodyQuery } from './application/default-exploration-body-query.js'
+import { DefaultExplorationTargetQuery } from './application/default-exploration-target-query.js'
 import type { CopilotText } from './application/copilot-text-service.js'
 import type { CopilotRealtime } from './application/copilot-realtime-service.js'
 import type { GameActionBindingResolver, InputBackend } from './domain/game-actions.js'
 import type { CartographySource } from './domain/cartography.js'
-import type { StationSearchSource, StationStockSource } from './domain/station-market.js'
+import type { ExplorationTargetSearchSource } from './domain/exploration-target.js'
+import type { FactionPresenceSearchSource, OutfittingSearchSource, ShipyardSearchSource, StationLookupSource, StationSearchSource, StationStockSource, SystemSearchSource } from './domain/station-market.js'
 import type { GalnetSource } from './domain/galnet.js'
 import type { ControlGridLayoutRepository, SystemSettingsRepository } from './domain/system-configuration.js'
 import type { MacroRepository } from './domain/macros.js'
@@ -79,6 +82,12 @@ import { createConfiguredCopilot } from './infrastructure/configured-copilot.js'
 import { PhoenixMcpServer } from './infrastructure/phoenix-mcp-server.js'
 import { ArdentStationSearchSource } from './infrastructure/ardent-station-search-source.js'
 import { EdsmStationStockSource } from './infrastructure/edsm-station-stock-source.js'
+import { SpanshShipyardSearchSource } from './infrastructure/spansh-shipyard-search-source.js'
+import { SpanshOutfittingSearchSource } from './infrastructure/spansh-outfitting-search-source.js'
+import { SpanshStationLookupSource } from './infrastructure/spansh-station-lookup-source.js'
+import { SpanshSystemSearchSource } from './infrastructure/spansh-system-search-source.js'
+import { SpanshFactionPresenceSource } from './infrastructure/spansh-faction-presence-source.js'
+import { SpanshExplorationTargetSource } from './infrastructure/spansh-exploration-target-source.js'
 import { CatalogueSnapshotLoader } from './infrastructure/catalogue-snapshot-loader.js'
 import { ApplicationPaths } from './infrastructure/application-paths.js'
 import { FrontierGalnetSource } from './infrastructure/frontier-galnet-source.js'
@@ -106,6 +115,12 @@ export interface PhoenixApplicationOptions {
   port?: number
   shipCataloguePath?: string
   stationSearchSource?: StationSearchSource
+  shipyardSearchSource?: ShipyardSearchSource
+  outfittingSearchSource?: OutfittingSearchSource
+  stationLookupSource?: StationLookupSource
+  systemSearchSource?: SystemSearchSource
+  factionPresenceSource?: FactionPresenceSearchSource
+  explorationTargetSource?: ExplorationTargetSearchSource
   stationStockSource?: StationStockSource
   systemSettingsRepository?: SystemSettingsRepository
   webRoot?: string
@@ -168,6 +183,10 @@ export class PhoenixApplication {
     )
     const gameCatalogue = catalogues.game
     const engineeringCatalogue = catalogues.engineering
+    const fleet = new FleetDataService(
+      this.database,
+      identifier => gameCatalogue.resolveShip(identifier)?.displayName ?? null
+    )
     const projector = new DefaultRuntimeStateProjector(
       this.stateStore,
       runtimeStateUpdates,
@@ -211,6 +230,7 @@ export class PhoenixApplication {
         cartographyObservationIngestion.ingest(event)
         missions.ingest(event, 'live-journal')
         communications.ingest(event)
+        fleet.ingest(event)
         activityLog.ingestJournal(event)
       }
     )
@@ -221,6 +241,7 @@ export class PhoenixApplication {
         historicalCartographyIngestion.ingest(event)
         missions.ingest(event, 'historical-journal')
         communications.ingest(event)
+        fleet.ingest(event)
         activityLog.ingestJournal(event, 'historical')
       },
       this.database
@@ -236,9 +257,13 @@ export class PhoenixApplication {
       snapshot => { inventoryIngestion.ingest(snapshot) }
     )
     const navigationRoutes = new InMemoryNavigationRouteStore()
+    const navigationRouteUpdates = new InProcessPublisher<NavigationRoute>()
     this.navigationRouteSource = new EliteNavigationRouteFileSource(
       configuredEliteDirectory,
-      route => navigationRoutes.replace(route)
+      route => {
+        navigationRoutes.replace(route)
+        navigationRouteUpdates.publish(route)
+      }
     )
     const actionBindingResolver = options.actionBindingResolver ?? new EliteKeyboardBindingResolver(
       locateBindingsDirectory(options, configuredEliteDirectory)
@@ -293,6 +318,11 @@ export class PhoenixApplication {
     const stationMarkets = new DefaultStationMarketQuery(
       options.stationSearchSource ?? new ArdentStationSearchSource(),
       options.stationStockSource ?? new EdsmStationStockSource(),
+      options.shipyardSearchSource ?? new SpanshShipyardSearchSource(),
+      options.outfittingSearchSource ?? new SpanshOutfittingSearchSource(),
+      options.stationLookupSource ?? new SpanshStationLookupSource(),
+      options.systemSearchSource ?? new SpanshSystemSearchSource(),
+      options.factionPresenceSource ?? new SpanshFactionPresenceSource(),
       cartography,
       this.stateStore,
       this.database
@@ -303,11 +333,21 @@ export class PhoenixApplication {
     const engineering = new EngineeringDataService(engineeringCatalogue, this.stateStore)
     const exploration = new DefaultExplorationBodyQuery(this.database, cartography, this.stateStore)
     const explorationData = new ExplorationDataService(this.database, this.database)
+    const explorationTargets = new DefaultExplorationTargetQuery(
+      options.explorationTargetSource ?? new SpanshExplorationTargetSource(),
+      cartography,
+      this.stateStore,
+      explorationData,
+      this.database
+    )
     const toolRegistry = new ToolRegistry(createPhoenixMcpTools({
       commands,
       display,
       engineers: new DefaultCommanderEngineersQuery(engineering),
       exploration,
+      explorationTargets,
+      factions: stationMarkets,
+      fleet,
       gameCatalogue,
       navigation,
       markets: stationMarkets,
@@ -316,7 +356,8 @@ export class PhoenixApplication {
       runtimeState: this.stateStore,
       statefulActions,
       stations: stationMarkets,
-      systems
+      systems,
+      systemSearch: stationMarkets
     }))
     const mcpServer = new PhoenixMcpServer(toolRegistry)
     const configuredCopilot = options.copilot === undefined && options.copilotRealtime === undefined
@@ -369,9 +410,12 @@ export class PhoenixApplication {
       displayCommands: display,
       engineering,
       explorationData,
+      explorationTargets,
+      fleet,
       galaxyData: stationMarkets,
       galnet,
       navigationData,
+      navigationRouteUpdates,
       numpad,
       webRoot: resolveProjectPath(projectRoot, options.webRoot ?? paths.resources.web)
     })

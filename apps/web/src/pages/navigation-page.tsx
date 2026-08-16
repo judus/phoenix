@@ -1,18 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
-import type {
-  CartographicBody,
-  CartographicStation,
-  CartographyLookupResponse,
-  HealthResponse,
-  NavigationRoute,
-  RuntimeState
+import {
+  NavigationRouteSchema,
+  type CartographicBody,
+  type CartographicStation,
+  type CartographyLookupResponse,
+  type HealthResponse,
+  type NavigationRoute,
+  type RuntimeState
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../api/phoenix-api-client.js'
 import { Page, PageContent, PageHeader } from '../components/layout/page.js'
 import { PhoenixShell } from '../components/layout/phoenix-shell.js'
 import type { NavigationItem } from '../components/navigation/navigation.js'
 import { SystemSchematic } from '../features/navigation/system-schematic.js'
+import { PlottedRoute } from '../features/navigation/plotted-route.js'
 import { GalaxyDatabase } from '../features/galaxy/galaxy-database.js'
+import { subscribePhoenixEvent } from '../api/phoenix-event-stream.js'
 
 export type NavigationView = 'database' | 'system' | 'route'
 
@@ -71,6 +74,14 @@ export function NavigationPage ({
     return () => { active = false }
   }, [api, systemName, view])
 
+  useEffect(() => {
+    if (view !== 'route') return
+    return subscribePhoenixEvent(api, 'navigation-route', event => {
+      const parsed = NavigationRouteSchema.safeParse(JSON.parse(event.data))
+      if (parsed.success) setRoute(parsed.data)
+    })
+  }, [api, view])
+
   const selected = useMemo(() => selectedName && lookup
     ? findSelectedObject(lookup, selectedName)
     : null, [lookup, selectedName])
@@ -97,11 +108,6 @@ export function NavigationPage ({
       {view === 'database'
         ? (
             <Page className="navigation-data-page galaxy-database-page">
-              <PageHeader
-                title="Galaxy Database"
-                eyebrow="Navigation intelligence"
-                description="Cockpit-native searches over community-reported galactic services and markets."
-              />
               <PageContent>
                 <GalaxyDatabase api={api} currentSystem={runtimeState?.system.name} />
               </PageContent>
@@ -129,11 +135,11 @@ export function NavigationPage ({
             </Page>
           )
         : (
-            <Page className="navigation-data-page">
+            <Page className="navigation-data-page plotted-route-page">
               <PageHeader
                 title="Plotted Route"
-                eyebrow="Navigation data"
-                description="Live NavRoute data received from Elite Dangerous."
+                eyebrow="Galaxy · Route"
+                description="Current jump sequence and route progress."
               />
               <PageContent>
                 {loading
@@ -141,10 +147,7 @@ export function NavigationPage ({
                   : navigationError
                     ? <p className="navigation-data-empty">{navigationError}</p>
                     : (
-                        <section className="navigation-data-inspector" aria-label="Raw navigation data">
-                          <header><div><span>Route telemetry</span><h2>NavRoute.json</h2></div>{route && <span>{route.route.length} hops</span>}</header>
-                          <pre>{JSON.stringify(route ?? null, null, 2)}</pre>
-                        </section>
+                        route && <PlottedRoute route={route} runtimeState={runtimeState} />
                       )}
               </PageContent>
             </Page>

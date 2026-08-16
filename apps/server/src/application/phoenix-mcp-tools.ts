@@ -18,19 +18,29 @@ import { ShipGetStatusTool } from './mcp-tools/ship-get-status-tool.js'
 import { ShipListModulesTool } from './mcp-tools/ship-list-modules-tool.js'
 import { ShipsCompareTool } from './mcp-tools/ships-compare-tool.js'
 import { ShipsGetDefinitionTool } from './mcp-tools/ships-get-definition-tool.js'
+import { ShipsFindShipyardsTool } from './mcp-tools/ships-find-shipyards-tool.js'
 import { SystemsGetDetailsTool } from './mcp-tools/systems-get-details-tool.js'
+import { SystemsSearchTool } from './mcp-tools/systems-search-tool.js'
+import { FactionsSearchTool } from './mcp-tools/factions-search-tool.js'
 import { MarketsFindBestTradeTool } from './mcp-tools/markets-find-best-trade-tool.js'
+import { MarketsFindTradeOpportunitiesTool } from './mcp-tools/markets-find-trade-opportunities-tool.js'
 import { StationsFindNearestTool } from './mcp-tools/stations-find-nearest-tool.js'
 import { StationsGetDetailsTool } from './mcp-tools/stations-get-details-tool.js'
 import { StationsListShipyardStockTool } from './mcp-tools/stations-list-shipyard-stock-tool.js'
 import { StationsSearchOutfittingTool } from './mcp-tools/stations-search-outfitting-tool.js'
+import { StationsLookupTool } from './mcp-tools/stations-lookup-tool.js'
 import { ExplorationGetCurrentBodyTool } from './mcp-tools/exploration-get-current-body-tool.js'
+import { ExplorationSearchTargetsTool } from './mcp-tools/exploration-search-targets-tool.js'
 import { OperationsListMissionsTool } from './mcp-tools/operations-list-missions-tool.js'
+import { OutfittingFindModuleTool } from './mcp-tools/outfitting-find-module-tool.js'
 import { CommsListMessagesTool } from './mcp-tools/comms-list-messages-tool.js'
-import type { CommanderEngineersQuery, DisplayCommands, ExplorationBodyQuery, NavigationQuery, StationQuery, SystemDetailsQuery, TradeMarketQuery } from './mcp-tools/tool-gateways.js'
+import { FleetListShipsTool } from './mcp-tools/fleet-list-ships-tool.js'
+import { FleetListStoredModulesTool } from './mcp-tools/fleet-list-stored-modules-tool.js'
+import type { CommanderEngineersQuery, DisplayCommands, ExplorationBodyQuery, ExplorationTargetQuery, FactionPresenceQuery, NavigationQuery, StationQuery, SystemDetailsQuery, SystemSearchQuery, TradeMarketQuery } from './mcp-tools/tool-gateways.js'
 import type { StatefulGameActionService } from './stateful-game-action-service.js'
 import type { MissionDataReader } from '../domain/missions.js'
 import type { CommunicationDataReader } from '../domain/communications.js'
+import type { FleetDataReader } from '../domain/fleet.js'
 
 export interface PhoenixMcpToolDependencies {
   commands: Commands
@@ -39,6 +49,9 @@ export interface PhoenixMcpToolDependencies {
   engineers: CommanderEngineersQuery
   display: DisplayCommands
   exploration: ExplorationBodyQuery
+  explorationTargets: ExplorationTargetQuery
+  fleet: FleetDataReader
+  factions: FactionPresenceQuery
   navigation: NavigationQuery
   markets: TradeMarketQuery
   missions: MissionDataReader
@@ -46,6 +59,7 @@ export interface PhoenixMcpToolDependencies {
   statefulActions: StatefulGameActionService
   stations: StationQuery
   systems: SystemDetailsQuery
+  systemSearch: SystemSearchQuery
 }
 
 /**
@@ -66,19 +80,28 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new DisplayShowBodyTool(dependencies.display),
     new DisplayShowSystemTool(dependencies.display),
     new ExplorationGetCurrentBodyTool(dependencies.exploration),
+    new ExplorationSearchTargetsTool(dependencies.explorationTargets),
+    new FactionsSearchTool(dependencies.factions),
+    new FleetListShipsTool(dependencies.fleet),
+    new FleetListStoredModulesTool(dependencies.fleet),
     new NavigationCanJumpToTool(dependencies.navigation),
     new NavigationGetRouteTool(dependencies.navigation),
     new OperationsListMissionsTool(dependencies.missions),
+    new OutfittingFindModuleTool(dependencies.stations),
     new MarketsFindBestTradeTool(dependencies.markets),
+    new MarketsFindTradeOpportunitiesTool(dependencies.markets),
     new ShipGetCargoTool(dependencies.runtimeState),
     new ShipGetStatusTool(dependencies.runtimeState),
     new ShipListModulesTool(dependencies.runtimeState),
     new ShipsCompareTool(dependencies.gameCatalogue),
+    new ShipsFindShipyardsTool(dependencies.stations),
     new ShipsGetDefinitionTool(dependencies.gameCatalogue),
     new StationsFindNearestTool(dependencies.stations),
     new StationsGetDetailsTool(dependencies.stations),
     new StationsListShipyardStockTool(dependencies.stations),
+    new StationsLookupTool(dependencies.stations),
     new StationsSearchOutfittingTool(dependencies.stations),
-    new SystemsGetDetailsTool(dependencies.systems)
+    new SystemsGetDetailsTool(dependencies.systems),
+    new SystemsSearchTool(dependencies.systemSearch)
   ]
 }

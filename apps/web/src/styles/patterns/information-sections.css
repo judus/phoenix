@@ -636,12 +636,15 @@
   }
 
   .ship-catalogue__nearest {
+    display: flex;
     inline-size: 100%;
     min-block-size: 3rem;
+    align-items: center;
+    justify-content: center;
     margin-block-start: var(--space-4);
-    border: 1px solid var(--color-muted);
+    border: 1px solid var(--color-primary);
     background: transparent;
-    color: var(--color-muted);
+    color: var(--color-primary);
     text-transform: uppercase;
   }
 

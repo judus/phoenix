@@ -1,9 +1,13 @@
 import type {
   CommodityMarket,
   CommodityMarketRequest,
+  CommodityReport,
+  NearbySystem,
+  NearbySystemRequest,
   NearbyStation,
   NearestStationRequest,
-  StationSearchSource
+  StationSearchSource,
+  TradeOpportunityRequest
 } from '../domain/station-market.js'
 
 const DEFAULT_BASE_URL = 'https://api.ardent-insight.com/v2/'
@@ -48,6 +52,33 @@ export class ArdentStationSearchSource implements StationSearchSource {
     return payload.map(mapCommodityMarket).filter(isPresent)
   }
 
+  public async findSystemExports (
+    request: Omit<TradeOpportunityRequest, 'availableCredits' | 'cargoCapacity' | 'maxDistance'>
+  ): Promise<CommodityMarket[]> {
+    const payload = await this.get(
+      `system/name/${encodeURIComponent(request.systemName)}/commodities/exports`,
+      {
+        fleetCarriers: request.includeFleetCarriers,
+        maxDaysAgo: request.maxDaysAgo,
+        minVolume: request.minVolume
+      }
+    )
+    return payload.map(mapCommodityMarket).filter(isPresent)
+  }
+
+  public async getCommodityReports (): Promise<CommodityReport[]> {
+    const payload = await this.get('commodities', {})
+    return payload.map(mapCommodityReport).filter(isPresent)
+  }
+
+  public async findNearbySystems (request: NearbySystemRequest): Promise<NearbySystem[]> {
+    const payload = await this.get(
+      `system/name/${encodeURIComponent(request.systemName)}/nearby`,
+      { maxDistance: request.maxDistance }
+    )
+    return payload.map(mapNearbySystem).filter(isPresent)
+  }
+
   private async get (path: string, query: Record<string, boolean | number | null>): Promise<unknown[]> {
     const url = new URL(path, this.baseUrl)
     for (const [key, value] of Object.entries(query)) {
@@ -86,6 +117,23 @@ function mapNearbyStation (candidate: unknown): NearbyStation | null {
   }
 }
 
+function mapNearbySystem (candidate: unknown): NearbySystem | null {
+  const raw = record(candidate)
+  const systemName = stringValue(raw?.systemName)
+  const x = finiteNumber(raw?.systemX)
+  const y = finiteNumber(raw?.systemY)
+  const z = finiteNumber(raw?.systemZ)
+  const distanceLy = nonnegativeNumber(raw?.distance)
+  if (!raw || !systemName || x === null || y === null || z === null || distanceLy === null) return null
+  return {
+    distanceLy,
+    position: [x, y, z],
+    systemAddress: integerValue(raw.systemAddress),
+    systemName,
+    updatedAt: isoString(raw.updatedAt)
+  }
+}
+
 function mapCommodityMarket (candidate: unknown): CommodityMarket | null {
   const raw = record(candidate)
   const commodityName = stringValue(raw?.commodityName)
@@ -110,6 +158,16 @@ function mapCommodityMarket (candidate: unknown): CommodityMarket | null {
   }
 }
 
+function mapCommodityReport (candidate: unknown): CommodityReport | null {
+  const raw = record(candidate)
+  const commodityName = stringValue(raw?.commodityName)
+  if (!raw || !commodityName) return null
+  return {
+    commodityName,
+    maxSellPrice: nonnegativeNumber(raw.maxSellPrice)
+  }
+}
+
 function record (candidate: unknown): Record<string, unknown> | null {
   return candidate !== null && typeof candidate === 'object' && !Array.isArray(candidate)
     ? candidate as Record<string, unknown>
@@ -127,6 +185,10 @@ function isoString (candidate: unknown): string | null {
 
 function nonnegativeNumber (candidate: unknown): number | null {
   return typeof candidate === 'number' && Number.isFinite(candidate) && candidate >= 0 ? candidate : null
+}
+
+function finiteNumber (candidate: unknown): number | null {
+  return typeof candidate === 'number' && Number.isFinite(candidate) ? candidate : null
 }
 
 function integerValue (candidate: unknown): number | null {

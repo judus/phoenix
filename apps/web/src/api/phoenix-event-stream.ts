@@ -6,6 +6,7 @@ type PhoenixEventName =
   | 'command-catalogue'
   | 'copilot-profiles'
   | 'display-command'
+  | 'navigation-route'
   | 'runtime-state'
   | 'voice-host'
   | 'voice-host-command'
@@ -53,6 +54,7 @@ function createSharedStream (url: string): SharedStream {
     'command-catalogue',
     'copilot-profiles',
     'display-command',
+    'navigation-route',
     'runtime-state',
     'voice-host',
     'voice-host-command'
