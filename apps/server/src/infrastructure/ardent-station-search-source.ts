@@ -1,11 +1,13 @@
 import type {
   CommodityMarket,
   CommodityMarketRequest,
+  CommodityReport,
   NearbySystem,
   NearbySystemRequest,
   NearbyStation,
   NearestStationRequest,
-  StationSearchSource
+  StationSearchSource,
+  TradeOpportunityRequest
 } from '../domain/station-market.js'
 
 const DEFAULT_BASE_URL = 'https://api.ardent-insight.com/v2/'
@@ -48,6 +50,25 @@ export class ArdentStationSearchSource implements StationSearchSource {
       }
     )
     return payload.map(mapCommodityMarket).filter(isPresent)
+  }
+
+  public async findSystemExports (
+    request: Omit<TradeOpportunityRequest, 'availableCredits' | 'cargoCapacity' | 'maxDistance'>
+  ): Promise<CommodityMarket[]> {
+    const payload = await this.get(
+      `system/name/${encodeURIComponent(request.systemName)}/commodities/exports`,
+      {
+        fleetCarriers: request.includeFleetCarriers,
+        maxDaysAgo: request.maxDaysAgo,
+        minVolume: request.minVolume
+      }
+    )
+    return payload.map(mapCommodityMarket).filter(isPresent)
+  }
+
+  public async getCommodityReports (): Promise<CommodityReport[]> {
+    const payload = await this.get('commodities', {})
+    return payload.map(mapCommodityReport).filter(isPresent)
   }
 
   public async findNearbySystems (request: NearbySystemRequest): Promise<NearbySystem[]> {
@@ -134,6 +155,16 @@ function mapCommodityMarket (candidate: unknown): CommodityMarket | null {
     stock: nonnegativeNumber(raw.stock),
     systemName,
     updatedAt: isoString(raw.updatedAt)
+  }
+}
+
+function mapCommodityReport (candidate: unknown): CommodityReport | null {
+  const raw = record(candidate)
+  const commodityName = stringValue(raw?.commodityName)
+  if (!raw || !commodityName) return null
+  return {
+    commodityName,
+    maxSellPrice: nonnegativeNumber(raw.maxSellPrice)
   }
 }
 

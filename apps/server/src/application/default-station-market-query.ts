@@ -8,7 +8,9 @@ import type {
   GalaxyNearestStationsResponse,
   GalaxyOutfittingResponse,
   GalaxyStationLookupResponse,
-  GalaxyShipyardsResponse
+  GalaxyShipyardsResponse,
+  GalaxyTradeOpportunity,
+  GalaxyTradeOpportunitiesResponse
 } from '@phoenix/contracts'
 import type { SystemCartography } from '../domain/cartography.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
@@ -37,7 +39,8 @@ import type {
   StationStockSource,
   StockItem,
   SystemPopulationFilter,
-  SystemSearchSource
+  SystemSearchSource,
+  TradeOpportunityRequest
 } from '../domain/station-market.js'
 import type { FactionPresenceQuery, StationQuery, TradeMarketQuery } from './mcp-tools/tool-gateways.js'
 import {
@@ -51,6 +54,8 @@ import {
 } from './mcp-tools/tool-support.js'
 
 const MARKET_CACHE_MS = 5 * 60 * 1000
+const TRADE_OPPORTUNITY_CACHE_MS = 5 * 60 * 1000
+const TRADE_CANDIDATE_LIMIT = 12
 const NEARBY_SYSTEM_CACHE_MS = 30 * 60 * 1000
 const NEAREST_CACHE_MS = 30 * 60 * 1000
 const STOCK_CACHE_MS = 6 * 60 * 60 * 1000
@@ -70,6 +75,12 @@ interface ResolvedStation {
   station: CartographicStation
   systemName: string
   cache: 'fresh' | 'refreshed' | 'stale'
+}
+
+interface TradeOpportunitySearchResult {
+  candidateCommoditiesChecked: number
+  exportCommoditiesFound: number
+  opportunities: GalaxyTradeOpportunity[]
 }
 
 export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQuery, TradeMarketQuery {
@@ -116,6 +127,25 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     }
     return output(
       [`Best nearby markets to ${verb} ${commodity} from ${systemName}:`, ...markets.map(market => formatMarket(market, intent))].join('\n'),
+      json(result)
+    )
+  }
+
+  public async findTradeOpportunities (arguments_: JsonObject) {
+    const systemName = this.originSystem(optionalStringArgument(arguments_, 'systemName'))
+    const result = await this.searchTradeOpportunities({
+      availableCredits: bounded(optionalIntegerArgument(arguments_, 'availableCredits'), 10_000_000, 1, Number.MAX_SAFE_INTEGER),
+      cargoCapacity: bounded(optionalIntegerArgument(arguments_, 'cargoCapacity'), 100, 1, 10_000),
+      includeFleetCarriers: optionalBooleanArgument(arguments_, 'includeFleetCarriers') ?? false,
+      maxDaysAgo: bounded(optionalIntegerArgument(arguments_, 'maxDaysAgo'), 3, 1, 365),
+      maxDistance: bounded(optionalIntegerArgument(arguments_, 'maxDistance'), 100, 1, 500),
+      minVolume: bounded(optionalIntegerArgument(arguments_, 'minVolume'), 100, 1, Number.MAX_SAFE_INTEGER),
+      systemName
+    }, boundedLimit(optionalIntegerArgument(arguments_, 'limit'), 5, 20))
+    return output(
+      result.opportunities.length > 0
+        ? [`Reported trade opportunities buying in ${systemName}:`, ...result.opportunities.map(formatTradeOpportunity), result.caveat].join('\n')
+        : `No profitable reported trade opportunities were found buying in ${systemName}. ${result.caveat}`,
       json(result)
     )
   }
@@ -266,6 +296,57 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
       commodity: request.commodity,
       intent: request.intent,
       markets: cached.value.slice(0, boundedLimit(limit, 20, 100)),
+      originSystem: request.systemName
+    }
+  }
+
+  public async searchTradeOpportunities (
+    request: TradeOpportunityRequest,
+    limit = 20
+  ): Promise<GalaxyTradeOpportunitiesResponse> {
+    const cached = await this.cached(
+      'ardent-trade-opportunities',
+      stableKey(request),
+      TRADE_OPPORTUNITY_CACHE_MS,
+      async () => {
+        const [exports, reports] = await Promise.all([
+          this.searchSource.findSystemExports(request),
+          this.searchSource.getCommodityReports()
+        ])
+        const maxSellPrices = new Map(reports.map(report => [normalizeName(report.commodityName), report.maxSellPrice]))
+        const bestExports = bestExportByCommodity(exports, maxSellPrices, request)
+        const candidates = [...bestExports.values()]
+          .map(market => ({ market, upperBound: opportunityUpperBound(market, maxSellPrices.get(normalizeName(market.commodityName)) ?? null, request) }))
+          .filter(candidate => candidate.upperBound > 0)
+          .sort((left, right) => right.upperBound - left.upperBound)
+          .slice(0, TRADE_CANDIDATE_LIMIT)
+        const resolved = await Promise.all(candidates.map(async candidate => {
+          const destinations = await this.searchSource.findCommodityMarkets({
+            commodity: candidate.market.commodityName,
+            includeFleetCarriers: request.includeFleetCarriers,
+            intent: 'sell',
+            maxDaysAgo: request.maxDaysAgo,
+            maxDistance: request.maxDistance,
+            minVolume: request.minVolume,
+            systemName: request.systemName
+          })
+          return bestOpportunity(candidate.market, destinations, request)
+        }))
+        return {
+          candidateCommoditiesChecked: candidates.length,
+          exportCommoditiesFound: bestExports.size,
+          opportunities: resolved.filter((value): value is GalaxyTradeOpportunity => value !== null)
+            .sort((left, right) => right.projectedProfit - left.projectedProfit)
+        }
+      },
+      isTradeOpportunitySearchResult
+    )
+    return {
+      cache: cached.cache,
+      candidateCommoditiesChecked: cached.value.candidateCommoditiesChecked,
+      caveat: `Best-effort comparison of ${cached.value.candidateCommoditiesChecked} promising exports from ${request.systemName}; community market reports can be stale and other commodities may be more profitable.`,
+      exportCommoditiesFound: cached.value.exportCommoditiesFound,
+      opportunities: cached.value.opportunities.slice(0, boundedLimit(limit, 20, 100)),
       originSystem: request.systemName
     }
   }
@@ -702,6 +783,81 @@ function formatMarket (market: CommodityMarket, intent: 'buy' | 'sell'): string 
   return `- ${market.stationName} (${market.systemName}) - ${formatDistance(market.distanceLy, 'ly')}, ${formatDistance(market.distanceToArrivalLs, 'ls')}; ${intent === 'sell' ? 'station pays' : 'purchase price'}: ${formatNumber(price)} CR${average}; ${intent === 'sell' ? 'demand' : 'supply'}: ${formatNumber(volume)} t`
 }
 
+function formatTradeOpportunity (opportunity: GalaxyTradeOpportunity): string {
+  return `- ${opportunity.commodityName}: buy ${formatNumber(opportunity.units)} t at ${opportunity.buyMarket.stationName}, sell at ${opportunity.sellMarket.stationName} (${opportunity.sellMarket.systemName}); ${formatNumber(opportunity.unitMargin)} CR/t, projected ${formatNumber(opportunity.projectedProfit)} CR; ${formatDistance(opportunity.travelDistanceLy, 'ly')}`
+}
+
+function bestExportByCommodity (
+  exports: CommodityMarket[],
+  maxSellPrices: Map<string, number | null>,
+  request: TradeOpportunityRequest
+): Map<string, CommodityMarket> {
+  const best = new Map<string, CommodityMarket>()
+  for (const market of exports) {
+    if (!validExport(market, request)) continue
+    const key = normalizeName(market.commodityName)
+    const current = best.get(key)
+    const maxSellPrice = maxSellPrices.get(key) ?? null
+    if (!current || opportunityUpperBound(market, maxSellPrice, request) > opportunityUpperBound(current, maxSellPrice, request)) {
+      best.set(key, market)
+    }
+  }
+  return best
+}
+
+function opportunityUpperBound (market: CommodityMarket, maxSellPrice: number | null, request: TradeOpportunityRequest): number {
+  if (market.buyPrice === null || market.buyPrice <= 0 || maxSellPrice === null) return 0
+  const units = purchasableUnits(market.buyPrice, market.stock, null, request)
+  return Math.max(0, maxSellPrice - market.buyPrice) * units
+}
+
+function bestOpportunity (
+  buyMarket: CommodityMarket,
+  destinations: CommodityMarket[],
+  request: TradeOpportunityRequest
+): GalaxyTradeOpportunity | null {
+  if (buyMarket.buyPrice === null || buyMarket.buyPrice <= 0) return null
+  const buyPrice = buyMarket.buyPrice
+  const opportunities = destinations.flatMap(sellMarket => {
+    if (
+      sellMarket.sellPrice === null || sellMarket.sellPrice <= buyPrice ||
+      sellMarket.demand === null || sellMarket.demand < request.minVolume
+    ) return []
+    const units = purchasableUnits(buyPrice, buyMarket.stock, sellMarket.demand, request)
+    if (units <= 0) return []
+    const unitMargin = sellMarket.sellPrice - buyPrice
+    return [{
+      buyMarket,
+      commodityName: buyMarket.commodityName,
+      projectedProfit: unitMargin * units,
+      sellMarket,
+      travelDistanceLy: sellMarket.distanceLy,
+      unitMargin,
+      units
+    }]
+  })
+  return opportunities.sort((left, right) => right.projectedProfit - left.projectedProfit)[0] ?? null
+}
+
+function validExport (market: CommodityMarket, request: TradeOpportunityRequest): boolean {
+  return market.buyPrice !== null && market.buyPrice > 0 && market.stock !== null && market.stock >= request.minVolume
+}
+
+function purchasableUnits (
+  buyPrice: number,
+  stock: number | null,
+  demand: number | null,
+  request: TradeOpportunityRequest
+): number {
+  if (stock === null || stock < request.minVolume || (demand !== null && demand < request.minVolume)) return 0
+  return Math.max(0, Math.floor(Math.min(
+    request.cargoCapacity,
+    stock,
+    demand ?? Number.MAX_SAFE_INTEGER,
+    Math.floor(request.availableCredits / buyPrice)
+  )))
+}
+
 function averageComparison (price: number | null, mean: number | null): string {
   if (price === null || mean === null || mean <= 0) return ''
   const percentage = ((price - mean) / mean) * 100
@@ -729,6 +885,10 @@ function stableKey (value: object): string {
   return JSON.stringify(Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right))))
 }
 
+function normalizeName (value: string): string {
+  return value.trim().toLocaleLowerCase()
+}
+
 function sameName (left: string, right: string): boolean {
   return left.toLocaleLowerCase() === right.toLocaleLowerCase()
 }
@@ -749,6 +909,20 @@ function isNearbySystems (candidate: unknown): candidate is NearbySystem[] {
 
 function isCommodityMarkets (candidate: unknown): candidate is CommodityMarket[] {
   return Array.isArray(candidate) && candidate.every(item => isRecord(item) && typeof item.commodityName === 'string' && typeof item.stationName === 'string')
+}
+
+function isTradeOpportunitySearchResult (candidate: unknown): candidate is TradeOpportunitySearchResult {
+  return isRecord(candidate) &&
+    typeof candidate.candidateCommoditiesChecked === 'number' &&
+    typeof candidate.exportCommoditiesFound === 'number' &&
+    Array.isArray(candidate.opportunities) &&
+    candidate.opportunities.every(item => (
+      isRecord(item) &&
+      typeof item.commodityName === 'string' &&
+      typeof item.projectedProfit === 'number' &&
+      isRecord(item.buyMarket) &&
+      isRecord(item.sellMarket)
+    ))
 }
 
 function isStockItems (candidate: unknown): candidate is StockItem[] {

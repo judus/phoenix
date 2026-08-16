@@ -18,6 +18,7 @@ export interface ExplorationBodyQuery {
 
 export interface TradeMarketQuery {
   findBestTrade(arguments_: JsonObject): DeferredToolResult
+  findTradeOpportunities(arguments_: JsonObject): DeferredToolResult
 }
 
 export interface NavigationQuery {

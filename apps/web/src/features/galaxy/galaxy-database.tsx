@@ -7,7 +7,8 @@ import type {
   GalaxyNearestStationsResponse,
   GalaxyOutfittingResponse,
   GalaxyStationLookupResponse,
-  GalaxyShipyardsResponse
+  GalaxyShipyardsResponse,
+  GalaxyTradeOpportunitiesResponse
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../api/phoenix-api-client.js'
 import {
@@ -27,6 +28,7 @@ type GalaxyQueryResult =
   | { id: 'outfitting-stock', value: GalaxyOutfittingResponse }
   | { id: 'shipyards', value: GalaxyShipyardsResponse }
   | { id: 'station-lookup', value: GalaxyStationLookupResponse }
+  | { id: 'trade-opportunities', value: GalaxyTradeOpportunitiesResponse }
 
 type ConsoleMode = 'configure' | 'results' | 'select'
 
@@ -175,6 +177,7 @@ function QueryResults ({ result, summary, onModify }: { result: GalaxyQueryResul
       {result.id === 'outfitting-stock' && <OutfittingResults result={result.value} />}
       {result.id === 'commodity-markets' && <MarketResults result={result.value} />}
       {result.id === 'station-lookup' && <StationLookupResults result={result.value} />}
+      {result.id === 'trade-opportunities' && <TradeOpportunityResults result={result.value} />}
     </section>
   )
 }
@@ -249,6 +252,19 @@ function MarketResults ({ result }: { result: GalaxyCommodityMarketsResponse }) 
         <tbody>{result.markets.map(market => <tr key={`${market.systemName}:${market.stationName}:${market.marketId ?? ''}`}><td>{market.stationName}<small>{market.stationType ?? 'Market'}</small></td><td><a href={systemHref(market.systemName)}>{market.systemName}</a></td><td>{credits(price(market))}</td><td>{number(volume(market))}</td><td>{distance(market.distanceLy, 'ly')}</td><td>{reportedAge(market.updatedAt)}</td></tr>)}</tbody>
       </table>
       {result.markets.length === 0 && <p>No matching commodity markets were reported.</p>}
+    </section>
+  )
+}
+
+function TradeOpportunityResults ({ result }: { result: GalaxyTradeOpportunitiesResponse }) {
+  return (
+    <section className="galaxy-results">
+      <header><div><span>Trade opportunities</span><h2>Buy in {result.originSystem}</h2></div><small>{result.cache} cache · {result.opportunities.length} matches · {result.candidateCommoditiesChecked}/{result.exportCommoditiesFound} exports checked</small></header>
+      <table><thead><tr><th>Commodity</th><th>Buy market</th><th>Sell market</th><th>Distance</th><th>Units</th><th>Margin / t</th><th>Projected profit</th><th>Reports</th></tr></thead>
+        <tbody>{result.opportunities.map(opportunity => <tr key={`${opportunity.commodityName}:${opportunity.buyMarket.marketId ?? opportunity.buyMarket.stationName}:${opportunity.sellMarket.marketId ?? opportunity.sellMarket.stationName}`}><td>{opportunity.commodityName}</td><td>{opportunity.buyMarket.stationName}<small>{credits(opportunity.buyMarket.buyPrice)} · {number(opportunity.buyMarket.stock)} t</small></td><td>{opportunity.sellMarket.stationName}<small><a href={systemHref(opportunity.sellMarket.systemName)}>{opportunity.sellMarket.systemName}</a> · {credits(opportunity.sellMarket.sellPrice)}</small></td><td>{distance(opportunity.travelDistanceLy, 'ly')}</td><td>{number(opportunity.units)}</td><td>{credits(opportunity.unitMargin)}</td><td>{credits(opportunity.projectedProfit)}</td><td>{reportedAge(opportunity.buyMarket.updatedAt)} / {reportedAge(opportunity.sellMarket.updatedAt)}</td></tr>)}</tbody>
+      </table>
+      {result.opportunities.length === 0 && <p>No profitable reported opportunities matched these constraints.</p>}
+      <p>{result.caveat}</p>
     </section>
   )
 }
@@ -333,6 +349,18 @@ async function executeGalaxyQuery (api: PhoenixApi, id: GalaxyQueryId, values: R
         value: await api.findGalaxyCommodityMarkets({
           commodity: values.commodity,
           intent: values.intent as 'buy' | 'sell',
+          maxDaysAgo: numeric(values.maxDaysAgo),
+          maxDistance: numeric(values.maxDistance),
+          minVolume: numeric(values.minVolume),
+          systemName: values.origin
+        })
+      }
+    case 'trade-opportunities':
+      return {
+        id,
+        value: await api.findGalaxyTradeOpportunities({
+          availableCredits: numeric(values.availableCredits),
+          cargoCapacity: numeric(values.cargoCapacity),
           maxDaysAgo: numeric(values.maxDaysAgo),
           maxDistance: numeric(values.maxDistance),
           minVolume: numeric(values.minVolume),

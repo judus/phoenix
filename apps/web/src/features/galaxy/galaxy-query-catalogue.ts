@@ -191,7 +191,7 @@ export const GALAXY_QUERY_CATALOGUE: GalaxyQueryDefinition[] = [
     id: 'trade-opportunities',
     priority: 2,
     purpose: 'Compare reported buy and sell markets for profitable cargo movement.',
-    status: 'planned',
+    status: 'available',
     title: 'Trade opportunities'
   }
 ]

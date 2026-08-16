@@ -23,6 +23,7 @@ import { SystemsGetDetailsTool } from './mcp-tools/systems-get-details-tool.js'
 import { SystemsSearchTool } from './mcp-tools/systems-search-tool.js'
 import { FactionsSearchTool } from './mcp-tools/factions-search-tool.js'
 import { MarketsFindBestTradeTool } from './mcp-tools/markets-find-best-trade-tool.js'
+import { MarketsFindTradeOpportunitiesTool } from './mcp-tools/markets-find-trade-opportunities-tool.js'
 import { StationsFindNearestTool } from './mcp-tools/stations-find-nearest-tool.js'
 import { StationsGetDetailsTool } from './mcp-tools/stations-get-details-tool.js'
 import { StationsListShipyardStockTool } from './mcp-tools/stations-list-shipyard-stock-tool.js'
@@ -85,6 +86,7 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new OperationsListMissionsTool(dependencies.missions),
     new OutfittingFindModuleTool(dependencies.stations),
     new MarketsFindBestTradeTool(dependencies.markets),
+    new MarketsFindTradeOpportunitiesTool(dependencies.markets),
     new ShipGetCargoTool(dependencies.runtimeState),
     new ShipGetStatusTool(dependencies.runtimeState),
     new ShipListModulesTool(dependencies.runtimeState),

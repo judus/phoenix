@@ -5,6 +5,7 @@ import type { SystemCartography } from '../apps/server/src/domain/cartography.js
 import type {
   CommodityMarket,
   CommodityMarketRequest,
+  CommodityReport,
   FactionPresenceSearchSource,
   NearbySystem,
   NearbyStation,
@@ -16,7 +17,8 @@ import type {
   StationLookupSource,
   StationSearchSource,
   StationStockSource,
-  SystemSearchSource
+  SystemSearchSource,
+  TradeOpportunityRequest
 } from '../apps/server/src/domain/station-market.js'
 import { ArdentStationSearchSource } from '../apps/server/src/infrastructure/ardent-station-search-source.js'
 import { EdsmStationStockSource } from '../apps/server/src/infrastructure/edsm-station-stock-source.js'
@@ -31,6 +33,12 @@ import { SpanshFactionPresenceSource } from '../apps/server/src/infrastructure/s
 test('Ardent source maps current station and commodity response contracts', async () => {
   const fetcher = vi.fn(async (input: string | URL | Request) => {
     const url = new URL(input instanceof Request ? input.url : input.toString())
+    if (url.pathname.endsWith('/commodities/exports')) {
+      return response([{ commodityName: 'gold', stationName: 'Galileo', systemName: 'Sol', marketId: 128016640, buyPrice: 4000, stock: 25, distance: 0, distanceToArrival: 495.3, updatedAt: '2026-08-11T02:38:22.982Z' }])
+    }
+    if (url.pathname.endsWith('/commodities')) {
+      return response([{ commodityName: 'gold', maxSellPrice: 60000 }])
+    }
     if (url.pathname.includes('/commodity/')) {
       return response([{ commodityName: 'gold', stationName: 'Galileo', systemName: 'Sol', marketId: 128016640, buyPrice: 4000, sellPrice: 3900, meanPrice: 50000, stock: 25, demand: 3, distance: 0, distanceToArrival: 495.3, updatedAt: '2026-08-11T02:38:22.982Z' }])
     }
@@ -44,15 +52,77 @@ test('Ardent source maps current station and commodity response contracts', asyn
   const stations = await source.findNearestStations({ minimumPadSize: 2, service: 'repair', systemName: 'Sol' })
   const markets = await source.findCommodityMarkets({ commodity: 'Gold', includeFleetCarriers: false, intent: 'buy', maxDaysAgo: 30, maxDistance: 100, minVolume: 1, systemName: 'Sol' })
   const systems = await source.findNearbySystems({ maxDistance: 25, systemName: 'Sol' })
+  const exports = await source.findSystemExports({ includeFleetCarriers: false, maxDaysAgo: 3, minVolume: 1, systemName: 'Sol' })
+  const reports = await source.getCommodityReports()
 
   expect(stations[0]).toMatchObject({ stationName: 'Galileo', marketId: 128016640, maxLandingPadSize: 3 })
   expect(markets[0]).toMatchObject({ commodityName: 'gold', buyPrice: 4000, meanPrice: 50000, stock: 25 })
   expect(systems[0]).toMatchObject({ systemName: 'Sol', distanceLy: 0, position: [0, 0, 0] })
+  expect(exports[0]).toMatchObject({ commodityName: 'gold', buyPrice: 4000, stock: 25 })
+  expect(reports).toEqual([{ commodityName: 'gold', maxSellPrice: 60000 }])
   expect(fetcher.mock.calls.map(call => new URL(String(call[0])).pathname)).toEqual([
     '/v2/system/name/Sol/nearest/repair',
     '/v2/system/name/Sol/commodity/name/Gold/nearby/exports',
-    '/v2/system/name/Sol/nearby'
+    '/v2/system/name/Sol/nearby',
+    '/v2/system/name/Sol/commodities/exports',
+    '/v2/commodities'
   ])
+})
+
+test('trade opportunity search bounds provider fan-out and ranks feasible profit', async () => {
+  const exports = Array.from({ length: 13 }, (_, index) => tradeMarket({
+    buyPrice: 100,
+    commodityName: `Commodity ${index + 1}`,
+    stationName: `Origin ${index + 1}`,
+    stock: 20
+  }))
+  exports.push(tradeMarket({ buyPrice: 50, commodityName: 'Commodity 13', stationName: 'Cheap but empty', stock: 1 }))
+  const reports: CommodityReport[] = Array.from({ length: 13 }, (_, index) => ({
+    commodityName: `Commodity ${index + 1}`,
+    maxSellPrice: 1000 + ((index + 1) * 100)
+  }))
+  const search: StationSearchSource = {
+    findCommodityMarkets: vi.fn(async request => [tradeMarket({
+      commodityName: request.commodity,
+      demand: request.commodity === 'Commodity 12' ? null : 6,
+      distanceLy: 12,
+      sellPrice: reports.find(report => report.commodityName === request.commodity)?.maxSellPrice ?? null,
+      stationName: `Destination ${request.commodity}`,
+      stock: null,
+      systemName: 'Nearby'
+    })]),
+    findSystemExports: vi.fn(async (_request: Omit<TradeOpportunityRequest, 'availableCredits' | 'cargoCapacity' | 'maxDistance'>) => exports),
+    getCommodityReports: vi.fn(async () => reports),
+    findNearestStations: vi.fn(async () => []),
+    findNearbySystems: vi.fn(async () => [])
+  }
+  const service = stationMarketQuery(search)
+  const request: TradeOpportunityRequest = {
+    availableCredits: 10_000,
+    cargoCapacity: 20,
+    includeFleetCarriers: false,
+    maxDaysAgo: 3,
+    maxDistance: 100,
+    minVolume: 1,
+    systemName: 'Sol'
+  }
+
+  const result = await service.searchTradeOpportunities(request)
+  await service.searchTradeOpportunities(request)
+
+  expect(search.findCommodityMarkets).toHaveBeenCalledTimes(12)
+  expect(search.findSystemExports).toHaveBeenCalledTimes(1)
+  expect(search.getCommodityReports).toHaveBeenCalledTimes(1)
+  expect(result).toMatchObject({ cache: 'refreshed', candidateCommoditiesChecked: 12, exportCommoditiesFound: 13 })
+  expect(result.opportunities.map(opportunity => opportunity.commodityName)).not.toContain('Commodity 1')
+  expect(result.opportunities.map(opportunity => opportunity.commodityName)).not.toContain('Commodity 12')
+  expect(result.opportunities[0]).toMatchObject({
+    buyMarket: { stationName: 'Origin 13' },
+    commodityName: 'Commodity 13',
+    projectedProfit: 13_200,
+    unitMargin: 2_200,
+    units: 6
+  })
 })
 
 test('EDSM source normalizes shipyard and outfitting stock', async () => {
@@ -287,6 +357,8 @@ test('station and market query resolves current location, formats trade directio
   })
   const search: StationSearchSource = {
     findCommodityMarkets: vi.fn(async () => [market()]),
+    findSystemExports: vi.fn(async () => [market()]),
+    getCommodityReports: vi.fn(async () => [{ commodityName: 'Gold', maxSellPrice: 60_000 }]),
     findNearestStations: vi.fn(async () => [nearbyStation()]),
     findNearbySystems: vi.fn(async () => [nearbySystem()])
   }
@@ -387,6 +459,29 @@ class MemoryProviderCache implements ProviderResponseCache {
   }
 }
 
+function stationMarketQuery (search: StationSearchSource): DefaultStationMarketQuery {
+  const runtime = new InMemoryRuntimeStateStore()
+  const stock: StationStockSource = { getOutfitting: async () => [], getShipyard: async () => [] }
+  const shipyards: ShipyardSearchSource = { findShipyards: async () => [] }
+  const outfitting: OutfittingSearchSource = { findOutfitting: async () => [] }
+  const stations: StationLookupSource = { findStations: async () => [] }
+  const systems: SystemSearchSource = { findSystems: async () => [] }
+  const factions: FactionPresenceSearchSource = { findFactionPresences: async () => [] }
+  return new DefaultStationMarketQuery(
+    search,
+    stock,
+    shipyards,
+    outfitting,
+    stations,
+    systems,
+    factions,
+    cartography(),
+    runtime,
+    new MemoryProviderCache(),
+    () => new Date('2026-08-16T12:00:00Z')
+  )
+}
+
 function cartography (): SystemCartography {
   const system = fixtureSystem()
   return { getSystem: async () => ({ cache: 'fresh', system }) }
@@ -413,6 +508,26 @@ function market (): CommodityMarket {
     commodityName: 'gold', marketId: 128016640, stationName: 'Galileo', stationType: 'Ocellus', systemName: 'Sol',
     buyPrice: 4000, sellPrice: 3900, meanPrice: 47000, stock: 25, demand: 3, distanceLy: 0,
     distanceToArrivalLs: 495.3, maxLandingPadSize: 3, updatedAt: '2026-08-11T02:38:22.982Z'
+  }
+}
+
+function tradeMarket (overrides: Partial<CommodityMarket>): CommodityMarket {
+  return {
+    buyPrice: null,
+    commodityName: 'Commodity',
+    demand: null,
+    distanceLy: 0,
+    distanceToArrivalLs: 100,
+    marketId: 42,
+    maxLandingPadSize: 3,
+    meanPrice: null,
+    sellPrice: null,
+    stationName: 'Market',
+    stationType: 'Orbis',
+    stock: null,
+    systemName: 'Sol',
+    updatedAt: '2026-08-16T10:00:00.000Z',
+    ...overrides
   }
 }
 

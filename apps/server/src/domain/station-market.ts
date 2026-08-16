@@ -31,6 +31,21 @@ export interface CommodityMarket {
   updatedAt: string | null
 }
 
+export interface CommodityReport {
+  commodityName: string
+  maxSellPrice: number | null
+}
+
+export interface TradeOpportunityRequest {
+  availableCredits: number
+  cargoCapacity: number
+  includeFleetCarriers: boolean
+  maxDaysAgo: number
+  maxDistance: number
+  minVolume: number
+  systemName: string
+}
+
 export interface NearbySystem {
   distanceLy: number
   position: [number, number, number]
@@ -107,6 +122,8 @@ export interface CommodityMarketRequest {
 
 export interface StationSearchSource {
   findCommodityMarkets(request: CommodityMarketRequest): Promise<CommodityMarket[]>
+  findSystemExports(request: Omit<TradeOpportunityRequest, 'availableCredits' | 'cargoCapacity' | 'maxDistance'>): Promise<CommodityMarket[]>
+  getCommodityReports(): Promise<CommodityReport[]>
   findNearestStations(request: NearestStationRequest): Promise<NearbyStation[]>
   findNearbySystems(request: NearbySystemRequest): Promise<NearbySystem[]>
 }

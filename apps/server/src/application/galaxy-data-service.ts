@@ -6,12 +6,14 @@ import type {
   GalaxyNearestStationsResponse,
   GalaxyOutfittingResponse,
   GalaxyStationLookupResponse,
-  GalaxyShipyardsResponse
+  GalaxyShipyardsResponse,
+  GalaxyTradeOpportunitiesResponse
 } from '@phoenix/contracts'
-import type { CommodityMarketRequest, FactionPresenceRequest, FilteredSystemRequest, NearbySystemRequest, NearestStationRequest, StationLocationType } from '../domain/station-market.js'
+import type { CommodityMarketRequest, FactionPresenceRequest, FilteredSystemRequest, NearbySystemRequest, NearestStationRequest, StationLocationType, TradeOpportunityRequest } from '../domain/station-market.js'
 
 export interface GalaxyDataReader {
   searchCommodityMarkets(request: CommodityMarketRequest, limit?: number): Promise<GalaxyCommodityMarketsResponse>
+  searchTradeOpportunities(request: TradeOpportunityRequest, limit?: number): Promise<GalaxyTradeOpportunitiesResponse>
   searchFilteredSystems(request: Omit<FilteredSystemRequest, 'referencePosition'> & { systemName: string }, limit?: number): Promise<GalaxyFilteredSystemsResponse>
   findFactionPresences(request: Omit<FactionPresenceRequest, 'referencePosition'> & { systemName: string }, limit?: number): Promise<GalaxyFactionPresencesResponse>
   searchNearbySystems(request: NearbySystemRequest, limit?: number): Promise<GalaxyNearbySystemsResponse>

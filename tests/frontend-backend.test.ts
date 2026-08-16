@@ -12,6 +12,13 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       sellPrice: 1500, stationName: 'Test Exchange', stationType: 'Orbis', stock: 100,
       systemName: 'Nearby', updatedAt: '2026-08-13T08:00:00.000Z'
     }],
+    findSystemExports: async () => [{
+      buyPrice: 1000, commodityName: 'gold', demand: null, distanceLy: 0,
+      distanceToArrivalLs: 300, marketId: 41, maxLandingPadSize: 3, meanPrice: 1200,
+      sellPrice: null, stationName: 'Origin Exchange', stationType: 'Orbis', stock: 100,
+      systemName: 'Sol', updatedAt: '2026-08-13T08:00:00.000Z'
+    }],
+    getCommodityReports: async () => [{ commodityName: 'gold', maxSellPrice: 1500 }],
     findNearestStations: async request => [{
       allegiance: null, controllingFaction: null, distanceLy: 4.2, distanceToArrivalLs: 300,
       government: null, marketId: 42, maxLandingPadSize: 3, primaryEconomy: 'Industrial',
@@ -95,6 +102,12 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       .resolves.toMatchObject({ originSystem: 'Sol', stations: [{ stationName: 'Test Exchange' }] })
     await expect(client.findGalaxyCommodityMarkets({ commodity: 'gold', intent: 'sell', systemName: 'Sol' }))
       .resolves.toMatchObject({ commodity: 'gold', intent: 'sell', markets: [{ sellPrice: 1500 }] })
+    await expect(client.findGalaxyTradeOpportunities({ availableCredits: 100_000, cargoCapacity: 20, minVolume: 1, systemName: 'Sol' }))
+      .resolves.toMatchObject({
+        candidateCommoditiesChecked: 1,
+        opportunities: [{ commodityName: 'gold', projectedProfit: 10_000, units: 20 }],
+        originSystem: 'Sol'
+      })
     await expect(client.findGalaxyNearbySystems({ maxDistance: 25, systemName: 'Sol' }))
       .resolves.toMatchObject({ maxDistanceLy: 25, systems: [{ systemName: 'Alpha Centauri' }] })
     await expect(client.findGalaxyShipyards({ hullName: 'Type-11 Prospector', systemName: 'Sol' }))

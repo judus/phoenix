@@ -197,8 +197,29 @@ export const GalaxyCommodityMarketsResponseSchema = z.object({
   markets: z.array(GalaxyCommodityMarketSchema)
 })
 
+export const GalaxyTradeOpportunitySchema = z.object({
+  buyMarket: GalaxyCommodityMarketSchema,
+  commodityName: z.string().min(1),
+  projectedProfit: z.number().nonnegative(),
+  sellMarket: GalaxyCommodityMarketSchema,
+  travelDistanceLy: nullableNumber,
+  unitMargin: z.number().positive(),
+  units: z.number().int().positive()
+})
+
+export const GalaxyTradeOpportunitiesResponseSchema = z.object({
+  cache: GalaxyCacheStateSchema,
+  candidateCommoditiesChecked: z.number().int().nonnegative(),
+  caveat: z.string().min(1),
+  exportCommoditiesFound: z.number().int().nonnegative(),
+  opportunities: z.array(GalaxyTradeOpportunitySchema),
+  originSystem: z.string().min(1)
+})
+
 export type GalaxyCommodityMarket = z.infer<typeof GalaxyCommodityMarketSchema>
 export type GalaxyCommodityMarketsResponse = z.infer<typeof GalaxyCommodityMarketsResponseSchema>
+export type GalaxyTradeOpportunity = z.infer<typeof GalaxyTradeOpportunitySchema>
+export type GalaxyTradeOpportunitiesResponse = z.infer<typeof GalaxyTradeOpportunitiesResponseSchema>
 export type GalaxyFilteredSystem = z.infer<typeof GalaxyFilteredSystemSchema>
 export type GalaxyFilteredSystemsResponse = z.infer<typeof GalaxyFilteredSystemsResponseSchema>
 export type GalaxyFactionPresence = z.infer<typeof GalaxyFactionPresenceSchema>

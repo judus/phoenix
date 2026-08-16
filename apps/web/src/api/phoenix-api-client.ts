@@ -37,6 +37,7 @@ import {
   GalaxyNearestStationsResponseSchema,
   GalaxyOutfittingResponseSchema,
   GalaxyStationLookupResponseSchema,
+  GalaxyTradeOpportunitiesResponseSchema,
   GalaxyShipyardsResponseSchema,
   GalnetNewsResponseSchema,
   MacroDefinitionSchema,
@@ -95,6 +96,7 @@ import {
   type GalaxyNearestStationsResponse,
   type GalaxyOutfittingResponse,
   type GalaxyStationLookupResponse,
+  type GalaxyTradeOpportunitiesResponse,
   type GalaxyShipyardsResponse,
   type GalnetNewsResponse,
   type MacroDefinition,
@@ -155,6 +157,7 @@ export interface PhoenixApi {
   getEngineeringMaterials(category: EngineeringMaterial['category']): Promise<EngineeringMaterialsResponse>
   getExplorationLedger(): Promise<ExplorationLedgerResponse>
   findGalaxyCommodityMarkets(input: GalaxyCommodityMarketSearch): Promise<GalaxyCommodityMarketsResponse>
+  findGalaxyTradeOpportunities(input: GalaxyTradeOpportunitySearch): Promise<GalaxyTradeOpportunitiesResponse>
   findGalaxyFilteredSystems(input: GalaxyFilteredSystemSearch): Promise<GalaxyFilteredSystemsResponse>
   findGalaxyFactionPresences(input: GalaxyFactionPresenceSearch): Promise<GalaxyFactionPresencesResponse>
   findGalaxyNearbySystems(input: GalaxyNearbySystemSearch): Promise<GalaxyNearbySystemsResponse>
@@ -206,6 +209,17 @@ export interface GalaxyCommodityMarketSearch {
   commodity: string
   fleetCarriers?: boolean
   intent: 'buy' | 'sell'
+  maxDaysAgo?: number
+  maxDistance?: number
+  minVolume?: number
+  systemName: string
+}
+
+export interface GalaxyTradeOpportunitySearch {
+  availableCredits: number
+  cargoCapacity: number
+  fleetCarriers?: boolean
+  limit?: number
   maxDaysAgo?: number
   maxDistance?: number
   minVolume?: number
@@ -989,6 +1003,24 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return GalaxyCommodityMarketsResponseSchema.parse(await response.json())
+  }
+
+  public async findGalaxyTradeOpportunities (input: GalaxyTradeOpportunitySearch): Promise<GalaxyTradeOpportunitiesResponse> {
+    const query = new URLSearchParams({
+      availableCredits: String(input.availableCredits),
+      cargoCapacity: String(input.cargoCapacity),
+      system: input.systemName
+    })
+    if (input.fleetCarriers !== undefined) query.set('fleetCarriers', String(input.fleetCarriers))
+    if (input.limit !== undefined) query.set('limit', String(input.limit))
+    if (input.maxDaysAgo !== undefined) query.set('maxDaysAgo', String(input.maxDaysAgo))
+    if (input.maxDistance !== undefined) query.set('maxDistance', String(input.maxDistance))
+    if (input.minVolume !== undefined) query.set('minVolume', String(input.minVolume))
+    const response = await this.request(`${this.baseUrl}/api/galaxy/trade-opportunities?${query.toString()}`, {
+      headers: { accept: 'application/json' }
+    })
+    if (!response.ok) throw await apiError(response)
+    return GalaxyTradeOpportunitiesResponseSchema.parse(await response.json())
   }
 
   public runtimeStateStreamUrl (): string {

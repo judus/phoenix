@@ -419,6 +419,19 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/trade-opportunities') {
+      this.writeJson(response, 200, await this.options.galaxyData.searchTradeOpportunities({
+        availableCredits: boundedQueryInteger(url, 'availableCredits', 10_000_000, 1, Number.MAX_SAFE_INTEGER),
+        cargoCapacity: boundedQueryInteger(url, 'cargoCapacity', 100, 1, 10_000),
+        includeFleetCarriers: url.searchParams.get('fleetCarriers') === 'true',
+        maxDaysAgo: boundedQueryInteger(url, 'maxDaysAgo', 3, 1, 365),
+        maxDistance: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
+        minVolume: boundedQueryInteger(url, 'minVolume', 100, 1, Number.MAX_SAFE_INTEGER),
+        systemName: requiredQuery(url, 'system')
+      }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
+      return
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/exploration/ledger') {
       this.writeJson(response, 200, this.options.explorationData.getLedger())
       return

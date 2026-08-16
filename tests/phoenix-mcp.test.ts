@@ -74,6 +74,7 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
       'phoenix__operations_list_missions',
       'phoenix__outfitting_find_module',
       'phoenix__markets_find_best_trade',
+      'phoenix__markets_find_trade_opportunities',
       'phoenix__ship_get_cargo',
       'phoenix__ship_get_status',
       'phoenix__ship_list_modules',

@@ -25,7 +25,8 @@ describe('Galaxy query catalogue', () => {
       'outfitting-stock',
       'station-lookup',
       'filtered-systems',
-      'faction-presence'
+      'faction-presence',
+      'trade-opportunities'
     ])
   })
 })
