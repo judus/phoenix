@@ -7,8 +7,6 @@ import type {
   TextareaHTMLAttributes
 } from 'react'
 
-import './controls.css'
-
 type FieldProps = {
   children: ReactElement<{
     id?: string

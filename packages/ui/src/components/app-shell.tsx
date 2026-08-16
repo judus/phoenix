@@ -1,7 +1,5 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 
-import './app-shell.css'
-
 type NavigationItemBase = {
   badge?: ReactNode
   disabled?: boolean

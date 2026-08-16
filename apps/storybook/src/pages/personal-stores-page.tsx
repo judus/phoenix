@@ -1,7 +1,6 @@
 import { DataTable, DataTableGroup } from '@phoenix/ui'
 import { AutoGrid, Stack } from '@phoenix/ui'
 import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
-import './personal-stores-page.css'
 
 type StoreItem = {
   identifier: string

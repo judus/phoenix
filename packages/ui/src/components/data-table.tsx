@@ -1,7 +1,5 @@
 import type { HTMLAttributes, ReactNode, TableHTMLAttributes } from 'react'
 
-import './data-display.css'
-
 type DataTableProps = Omit<TableHTMLAttributes<HTMLTableElement>, 'aria-label'> & {
   density?: 'compact' | 'standard' | 'comfortable'
   label: string

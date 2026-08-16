@@ -1,8 +1,5 @@
 import type { ButtonHTMLAttributes } from 'react'
 
-import './controls.css'
-import './control-surface.css'
-
 export type ButtonVariant = 'primary' | 'secondary' | 'accent' | 'outline' | 'action' | 'quiet' | 'danger'
 export type ButtonSize = 'inherit' | 'sm' | 'md' | 'lg'
 export type ButtonAlignment = 'center' | 'start'

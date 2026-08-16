@@ -6,7 +6,6 @@ import { ItemList, ItemListItem } from '@phoenix/ui'
 import { Stack } from '@phoenix/ui'
 import { PageFrame, PageHeader, Section } from '@phoenix/ui'
 import { Status } from '@phoenix/ui'
-import '../src/styles/data-display-stories.css'
 
 function MissionList() {
   return (

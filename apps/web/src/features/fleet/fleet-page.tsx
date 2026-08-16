@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
-import type { MouseEvent as ReactMouseEvent } from 'react'
 import type { ShipDefinition } from '@phoenix/contracts'
 import {
   AutoGrid,
   Breadcrumbs,
   CommandTile,
+  ControlContext,
   DataTable,
   DataTableGroup,
   DescriptionItem,
@@ -14,12 +14,10 @@ import {
   PageHeader,
   Stack,
   Status,
-  Tabs,
   ViewSwitcher,
   Widget
 } from '@phoenix/ui'
 import type { InformationRoute, PhoenixRoute } from '../../application/navigation/phoenix-route.js'
-import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
 import type { FleetControllerSnapshot, FleetView } from './use-fleet-controller.js'
 import {
@@ -28,8 +26,6 @@ import {
   createStoredModulesModel,
   type CurrentShipModel
 } from './fleet-view-model.js'
-import './fleet-page.css'
-
 type FleetRoute = Extract<InformationRoute, { section: 'fleet' }>
 type LoadoutView = 'list' | 'grid'
 type CatalogueView = 'dossier' | 'table'
@@ -40,8 +36,9 @@ const currentRoutes = {
   'current-cargo': { kind: 'information', section: 'fleet', view: 'current-cargo' }
 } as const satisfies Record<string, FleetRoute>
 
-export function FleetPage({ controller, onNavigate, route, runtime }: {
+export function FleetPage({ controller, onExecuteAction, onNavigate, route, runtime }: {
   controller: FleetControllerSnapshot
+  onExecuteAction?(actionId: string): void
   onNavigate(route: PhoenixRoute): void
   route: FleetRoute
   runtime: RuntimeStateSnapshot
@@ -51,9 +48,14 @@ export function FleetPage({ controller, onNavigate, route, runtime }: {
       return <FleetState title="Current ship" status={runtime.status} error={runtime.status === 'error' ? runtime.error : undefined} />
     }
     const model = createCurrentShipModel(runtime.state)
-    if (route.view === 'current-loadout') return <CurrentLoadout model={model} onNavigate={onNavigate} view={route.view} />
-    if (route.view === 'current-cargo') return <CurrentCargo model={model} onNavigate={onNavigate} view={route.view} />
-    return <CurrentShipOverview model={model} onNavigate={onNavigate} view={route.view} />
+    if (route.view === 'current-loadout') return <CurrentLoadout model={model} />
+    if (route.view === 'current-cargo') return <CurrentCargo model={model} />
+    return <CurrentShipOverview
+      actions={controller.actions}
+      model={model}
+      onExecuteAction={onExecuteAction}
+      onNavigate={onNavigate}
+    />
   }
 
   if (controller.status === 'loading' || controller.status === 'idle') return <FleetState title={titleFor(route.view)} status="loading" />
@@ -113,27 +115,37 @@ function FleetOverview({ fleet }: { fleet: NonNullable<FleetControllerSnapshot['
   )
 }
 
-function CurrentShipOverview({ model, onNavigate, view }: { model: CurrentShipModel, onNavigate(route: PhoenixRoute): void, view: FleetView }) {
+function CurrentShipOverview({ actions, model, onExecuteAction, onNavigate }: {
+  actions: FleetControllerSnapshot['actions']
+  model: CurrentShipModel
+  onExecuteAction?(actionId: string): void
+  onNavigate(route: PhoenixRoute): void
+}) {
   return (
     <PageFrame layout="fit">
       <div className="current-ship consolidated">
-        <CurrentShipHeader model={model} onNavigate={onNavigate} view={view} />
+        <CurrentShipHeader model={model} />
         <div className="ship-grid">
           <div className="vessel-column">
             <FactsWidget title="Vessel" items={model.vessel} />
             <FactsWidget title="Operational status" items={model.operation} />
-            <div className="ship-control-grid" aria-label="Reported ship switches">
-              {model.controls.map(control => (
-                <CommandTile
-                  aria-label={`${control.label}: ${control.active ? 'active' : 'inactive'}`}
-                  disabled
-                  details={false}
-                  key={control.label}
-                  label={control.label}
-                  selected={control.active}
-                />
-              ))}
-            </div>
+            <ControlContext className="command-grid" context="command" aria-label="Ship controls">
+              {model.controls.map(control => {
+                const action = actions?.actions.find(candidate => candidate.definition.id === control.actionId)
+                const unavailable = action !== undefined && !action.available
+                return (
+                  <CommandTile
+                    aria-label={`${control.label}: ${control.active ? 'active' : 'inactive'}`}
+                    binding={action?.binding?.display}
+                    key={control.actionId}
+                    label={control.label}
+                    onClick={() => onExecuteAction?.(control.actionId)}
+                    selected={control.active}
+                    unavailable={unavailable}
+                  />
+                )
+              })}
+            </ControlContext>
           </div>
           <div className="instrument-column">
             <MeterWidget title="Integrity" meters={model.integrity} />
@@ -142,6 +154,7 @@ function CurrentShipOverview({ model, onNavigate, view }: { model: CurrentShipMo
               <Stack className="cargo-content" gap="sm">
                 <Meter
                   label="Capacity"
+                  layout="inline"
                   max={model.cargo.capacity ?? Math.max(1, model.cargo.count)}
                   tone="action"
                   value={model.cargo.count}
@@ -154,6 +167,10 @@ function CurrentShipOverview({ model, onNavigate, view }: { model: CurrentShipMo
                 </DescriptionList>
               </Stack>
             </Widget>
+            <div className="actions">
+              <CommandTile details={false} label="Loadout" onClick={() => onNavigate(currentRoutes['current-loadout'])} />
+              <CommandTile details={false} label="Engineering" onClick={() => onNavigate({ kind: 'information', section: 'engineering', view: 'blueprints' })} />
+            </div>
           </div>
         </div>
       </div>
@@ -161,16 +178,15 @@ function CurrentShipOverview({ model, onNavigate, view }: { model: CurrentShipMo
   )
 }
 
-function CurrentLoadout({ model, onNavigate, view }: { model: CurrentShipModel, onNavigate(route: PhoenixRoute): void, view: FleetView }) {
+function CurrentLoadout({ model }: { model: CurrentShipModel }) {
   const [layout, setLayout] = useState<LoadoutView>('list')
   return (
     <PageFrame layout="fit">
       <div className="current-ship-loadout">
         <CurrentShipHeader
           actions={<ViewSwitcher startLabel="List" startIcon={<ListIcon />} endLabel="Grid" endIcon={<GridIcon />} position={layout === 'list' ? 'start' : 'end'} onPositionChange={position => setLayout(position === 'start' ? 'list' : 'grid')} />}
+          current="Loadout"
           model={model}
-          onNavigate={onNavigate}
-          view={view}
         />
         <div className={`loadout-inventory ${layout}`} tabIndex={0}>
           {model.modules.length === 0
@@ -182,11 +198,11 @@ function CurrentLoadout({ model, onNavigate, view }: { model: CurrentShipModel, 
   )
 }
 
-function CurrentCargo({ model, onNavigate, view }: { model: CurrentShipModel, onNavigate(route: PhoenixRoute): void, view: FleetView }) {
+function CurrentCargo({ model }: { model: CurrentShipModel }) {
   return (
     <PageFrame layout="fit">
       <div className="fleet-scroll-page current-cargo">
-        <CurrentShipHeader model={model} onNavigate={onNavigate} view={view} />
+        <CurrentShipHeader current="Cargo" model={model} />
         <Stack className="fleet-scroll-content" gap="lg" tabIndex={0}>
           <Meter label="Cargo hold" max={model.cargo.capacity ?? Math.max(1, model.cargo.count)} tone="action" value={model.cargo.count} valueLabel={`${model.cargo.count} / ${model.cargo.capacity ?? '—'} t`} />
           <DataTableGroup title="Cargo manifest" meta={`${model.cargo.count} t`}>
@@ -205,31 +221,23 @@ function CurrentCargo({ model, onNavigate, view }: { model: CurrentShipModel, on
   )
 }
 
-function CurrentShipHeader({ actions, model, onNavigate, view }: {
+function CurrentShipHeader({ actions, current, model }: {
   actions?: React.ReactNode
+  current?: 'Loadout' | 'Cargo'
   model: CurrentShipModel
-  onNavigate(route: PhoenixRoute): void
-  view: FleetView
 }) {
-  const tabs = [
-    { id: 'current-overview', label: 'Overview', href: phoenixRouteHash(currentRoutes['current-overview']) },
-    { id: 'current-loadout', label: 'Loadout', href: phoenixRouteHash(currentRoutes['current-loadout']) },
-    { id: 'current-cargo', label: 'Cargo', href: phoenixRouteHash(currentRoutes['current-cargo']) }
+  const items = [
+    { label: 'Fleet', href: '#/fleet/overview' },
+    ...(current
+      ? [{ label: 'Current ship', href: '#/fleet/ships/current/overview' }, { label: current }]
+      : [{ label: 'Current ship' }])
   ]
   return (
     <PageHeader
       actions={actions}
       variant="cockpit"
-      context={<Breadcrumbs items={[{ label: 'Fleet', href: '#/fleet/overview' }, { label: 'Current ship' }]} />}
+      context={<Breadcrumbs items={items} />}
       title={model.title}
-      navigation={(
-        <Tabs
-          current={view}
-          items={tabs}
-          label="Current ship views"
-          onClick={event => handleTabs(event, onNavigate)}
-        />
-      )}
     />
   )
 }
@@ -239,12 +247,12 @@ function FactsWidget({ items, title }: { items: CurrentShipModel['vessel'], titl
 }
 
 function MeterWidget({ meters, title }: { meters: CurrentShipModel['integrity'], title: string }) {
-  return <Widget title={title}><Stack className="meter-stack" gap="lg">{meters.map(meter => <Meter key={meter.label} label={meter.label} tone="action" value={meter.value} valueLabel={meter.valueLabel} />)}</Stack></Widget>
+  return <Widget title={title}><Stack className="meter-stack" gap="lg">{meters.map(meter => <Meter key={meter.label} label={meter.label} layout="inline" tone="action" value={meter.value} valueLabel={meter.valueLabel} />)}</Stack></Widget>
 }
 
 function ModuleTable({ group }: { group: CurrentShipModel['modules'][number] }) {
   return (
-    <DataTableGroup meta={`${group.mounted} mounted`} title={group.label}>
+    <DataTableGroup meta={`${group.mounted} / ${group.capacity} mounted`} title={group.label}>
       <DataTable density="compact" label={`${group.label} slots`} minimum="wide" scheme="surface">
         <thead className="sr-only"><tr><th>Slot</th><th>Module</th><th>Engineering</th><th>Condition</th></tr></thead>
         <tbody>{group.items.map(item => <ModuleRow item={item} key={item.id} />)}</tbody>
@@ -255,7 +263,7 @@ function ModuleTable({ group }: { group: CurrentShipModel['modules'][number] }) 
 
 function ModuleRow({ item }: { item: CurrentShipModel['modules'][number]['items'][number] }) {
   return (
-    <tr className={[item.engineering !== 'Standard' && 'engineered', item.status].filter(Boolean).join(' ') || undefined}>
+    <tr className={moduleClassName(item)}>
       <th scope="row"><strong>{item.slot}</strong><small>{item.slotDetail}</small></th>
       <td><strong>{item.module}</strong><small>{item.moduleDetail}</small></td>
       <td className={item.engineering !== 'Standard' ? 'text-information' : undefined}><strong>{item.engineering}</strong><small>{item.engineeringDetail}</small></td>
@@ -266,24 +274,36 @@ function ModuleRow({ item }: { item: CurrentShipModel['modules'][number]['items'
 
 function ModuleGrid({ group }: { group: CurrentShipModel['modules'][number] }) {
   return (
-    <section><header><h2>{group.label}</h2><small>{group.mounted} mounted</small></header><ol>
-      {group.items.map(item => <li className={[item.engineering !== 'Standard' && 'engineered', item.status].filter(Boolean).join(' ') || undefined} data-slot-size={item.slotDetail.replace('Size ', 'S')} key={item.id}><header><strong>{item.slot}</strong><small>{item.slotDetail}</small></header><div><strong>{item.module}</strong><small>{item.moduleDetail}</small></div><div><span>{item.engineering}</span><small>{item.engineeringDetail}</small></div><footer><strong>{item.condition}</strong><small>{item.state}</small></footer></li>)}
+    <section><header><h2>{group.label}</h2><small>{group.mounted} / {group.capacity} mounted</small></header><ol>
+      {group.items.map(item => <li className={moduleClassName(item)} data-slot-size={item.slotDetail.replace('Size ', 'S')} key={item.id}><header><strong>{item.slot}</strong><small>{item.slotDetail}</small></header><div><strong>{item.module}</strong><small>{item.moduleDetail}</small></div><div><span>{item.engineering}</span><small>{item.engineeringDetail}</small></div><footer><strong>{item.condition}</strong><small>{item.state}</small></footer></li>)}
     </ol></section>
   )
+}
+
+function moduleClassName(item: CurrentShipModel['modules'][number]['items'][number]): string | undefined {
+  return [
+    item.empty && 'empty',
+    item.engineering !== 'Standard' && (item.engineering.endsWith('G5') ? 'engineered-max' : 'engineered'),
+    item.status
+  ].filter(Boolean).join(' ') || undefined
 }
 
 function StoredModules({ fleet }: { fleet: NonNullable<FleetControllerSnapshot['fleet']> }) {
   const model = createStoredModulesModel(fleet)
   return (
     <PageFrame layout="fit"><div className="stored-modules">
-      <PageHeader variant="cockpit" context={<Breadcrumbs items={[{ label: 'Fleet', href: '#/fleet/overview' }, { label: 'Stored modules' }]} />} title="Stored modules" />
+      <PageHeader
+        variant="cockpit"
+        context={<Breadcrumbs items={[{ label: 'Fleet', href: '#/fleet/overview' }, { label: 'Stored modules' }]} />}
+        status={`${model.details} · ${model.authority}`}
+        title="Stored modules"
+      />
       <div className="module-groups" tabIndex={0}>
         {model.groups.length === 0 ? <Status tone="muted">No stored modules were present in the latest snapshot.</Status> : model.groups.map(group => (
           <DataTableGroup className="module-storage" meta={`${group.items.length} modules`} title={group.system} key={group.system}>
             <DataTable density="compact" label={`Modules stored at ${group.system}`} narrow="priority" scheme="surface"><thead><tr><th>Module</th><th>Engineering</th><th className="numeric">Storage slot</th><th>Transfer</th><th className="numeric">Purchase value</th><th>Observed</th></tr></thead><tbody>{group.items.map(item => <tr key={item.key}><td><strong>{item.name}</strong><small>{item.identifier}</small></td><td className={item.engineering !== '—' ? 'text-information' : undefined}>{item.engineering}</td><td className="numeric">{item.slot}</td><td>{item.transfer}</td><td className="numeric">{item.value}</td><td>{item.observed}</td></tr>)}</tbody></DataTable>
           </DataTableGroup>
         ))}
-        <footer><strong>{model.details}</strong><small>{model.authority}</small></footer>
       </div>
     </div></PageFrame>
   )
@@ -302,7 +322,7 @@ function ShipCatalogue({ onNavigate, route, ships }: { onNavigate(route: Phoenix
   const select = (ship: ShipDefinition) => onNavigate({ kind: 'information', section: 'fleet', view: 'catalogue', selectedShipId: ship.id })
   return (
     <PageFrame layout="fit"><div className="ship-catalogue schematic">
-      <PageHeader actions={<ViewSwitcher startLabel="Dossier" startIcon={<DossierIcon />} endLabel="Table" endIcon={<GridIcon />} position={view === 'dossier' ? 'start' : 'end'} onPositionChange={position => setView(position === 'start' ? 'dossier' : 'table')} />} variant="cockpit" context={<Breadcrumbs items={[{ label: 'Fleet', href: '#/fleet/overview' }, { label: 'Ship catalogue' }]} />} title="Ship catalogue" />
+      <PageHeader actions={<ViewSwitcher startLabel="Dossier" startIcon={<DossierIcon />} endLabel="Table" endIcon={<GridIcon />} position={view === 'dossier' ? 'start' : 'end'} onPositionChange={position => setView(position === 'start' ? 'dossier' : 'table')} />} variant="cockpit" context={<Breadcrumbs items={[{ label: 'Fleet', href: '#/fleet/overview' }, { label: 'Ship catalogue' }]} />} status={selected ? `Source: ${selected.source.name}${selected.source.revision ? ` · ${selected.source.revision}` : ''}` : undefined} title="Ship catalogue" />
       {sorted.length === 0 ? <Status tone="muted">No ship catalogue records are available.</Status> : view === 'dossier' ? <div className="catalogue-deck"><HullRoster current={selected?.id} ships={sorted} onSelect={select} />{selected && <HullSchematic ship={selected} />}</div> : <CatalogueTable current={selected?.id} ships={sorted} onSelect={ship => { select(ship); setView('dossier') }} />}
     </div></PageFrame>
   )
@@ -314,20 +334,12 @@ function HullRoster({ current, onSelect, ships }: { current?: string, onSelect(s
 
 function HullSchematic({ ship }: { ship: ShipDefinition }) {
   const slotCount = Object.values(ship.slots).reduce((count, slots) => count + slots.length, 0)
-  return <article className="hull-schematic"><header><div><h2>{ship.displayName}</h2><p>{ship.manufacturer ?? 'Unknown manufacturer'}</p></div><span>{ship.landingPadSize ?? 'unknown'} pad</span></header><dl className="flight-profile"><Profile label="Armour" value={ship.performance.baseArmour} /><Profile label="Shield" value={ship.performance.baseShieldStrength} /><Profile label="Speed" value={ship.performance.speed} suffix=" m/s" /><Profile label="Boost" value={ship.performance.boost} suffix=" m/s" /><Profile label="Mass" value={ship.performance.hullMass} suffix=" t" /><Profile label="Frontier ID" value={ship.identifiers.frontierEdId} /></dl><section className="capacity-matrix"><header><h3>Frame capacity</h3><small>{slotCount} positions</small></header><div><CapacityRow label="Core" slots={ship.slots.core} /><CapacityRow label="Optional" slots={ship.slots.optional} /><CapacityRow label="Hardpoints" slots={ship.slots.hardpoints} /><CapacityRow label="Utility" slots={ship.slots.utilities} /></div></section><small className="catalogue-source">Source: {ship.source.name}{ship.source.revision ? ` · ${ship.source.revision}` : ''}</small></article>
+  return <article className="hull-schematic"><header><div><h2>{ship.displayName}</h2><p>{ship.manufacturer ?? 'Unknown manufacturer'}</p></div><span>{ship.landingPadSize ?? 'unknown'} pad</span></header><dl className="flight-profile"><Profile label="Armour" value={ship.performance.baseArmour} /><Profile label="Shield" value={ship.performance.baseShieldStrength} /><Profile label="Speed" value={ship.performance.speed} suffix=" m/s" /><Profile label="Boost" value={ship.performance.boost} suffix=" m/s" /><Profile label="Mass" value={ship.performance.hullMass} suffix=" t" /><Profile label="Frontier ID" value={ship.identifiers.frontierEdId} /></dl><section className="capacity-matrix"><header><h3>Frame capacity</h3><small>{slotCount} positions</small></header><div><CapacityRow label="Core" slots={ship.slots.core} /><CapacityRow label="Optional" slots={ship.slots.optional} /><CapacityRow label="Hardpoints" slots={ship.slots.hardpoints} /><CapacityRow label="Utility" slots={ship.slots.utilities} /></div></section></article>
 }
 
 function Profile({ label, suffix = '', value }: { label: string, suffix?: string, value: number | null }) { return <div><dt>{label}</dt><dd>{value === null ? '—' : `${value.toLocaleString()}${suffix}`}</dd></div> }
 function CapacityRow({ label, slots }: { label: string, slots: Array<{ size: number }> }) { return <section><header><h4>{label}</h4><small>{slots.length}</small></header><ol>{slots.map((slot, index) => <li key={`${label}-${index}`}>S{slot.size}</li>)}</ol></section> }
 function CatalogueTable({ current, onSelect, ships }: { current?: string, onSelect(ship: ShipDefinition): void, ships: readonly ShipDefinition[] }) { return <div className="catalogue-table-view"><DataTable density="compact" label="Known ship hulls" minimum="wide" scheme="information" stickyHeader><thead><tr><th>Hull</th><th>Manufacturer</th><th>Pad</th><th className="numeric">Armour</th><th className="numeric">Shield</th><th className="numeric">Speed</th><th className="numeric">Boost</th><th className="numeric">Mass</th></tr></thead><tbody>{ships.map(ship => <tr className={ship.id === current ? 'active' : undefined} aria-selected={ship.id === current} tabIndex={0} key={ship.id} onClick={() => onSelect(ship)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(ship) } }}><th scope="row">{ship.displayName}</th><td>{ship.manufacturer ?? '—'}</td><td>{ship.landingPadSize ?? '—'}</td><td className="numeric">{ship.performance.baseArmour ?? '—'}</td><td className="numeric">{ship.performance.baseShieldStrength ?? '—'}</td><td className="numeric">{ship.performance.speed ?? '—'}</td><td className="numeric">{ship.performance.boost ?? '—'}</td><td className="numeric">{ship.performance.hullMass ?? '—'}</td></tr>)}</tbody></DataTable></div> }
-
-function handleTabs(event: ReactMouseEvent<HTMLElement>, onNavigate: (route: PhoenixRoute) => void) {
-  const anchor = (event.target as HTMLElement).closest('a')
-  const entry = Object.values(currentRoutes).find(route => phoenixRouteHash(route) === anchor?.getAttribute('href'))
-  if (!entry) return
-  event.preventDefault()
-  onNavigate(entry)
-}
 
 function titleFor(view: FleetView): string {
   if (view === 'overview') return 'Fleet'

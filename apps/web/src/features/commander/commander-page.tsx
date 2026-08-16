@@ -14,8 +14,6 @@ import {
 } from '@phoenix/ui'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
 import type { CommanderViewModel } from './commander-view-model.js'
-import './commander-page.css'
-
 export type CommanderView = 'overview' | 'inventory' | 'progress'
 
 export function CommanderPage({ model, runtime, view }: {

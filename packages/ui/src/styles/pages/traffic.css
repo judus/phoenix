@@ -1,0 +1,168 @@
+  .traffic-page {
+    container: traffic-page / size;
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: var(--spacing-sm);
+    inline-size: 100%;
+    block-size: 100%;
+    min-inline-size: 0;
+    min-block-size: 0;
+    overflow: hidden;
+
+    dl { margin: 0; }
+
+    .traffic-summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      border-block: 1px solid var(--color-border-subtle);
+
+      > div {
+        display: grid;
+        align-content: center;
+        min-inline-size: 0;
+        padding: var(--spacing-sm);
+
+        &:not(:last-child) { border-inline-end: 1px solid var(--color-border-subtle); }
+      }
+
+      dt {
+        color: var(--color-action);
+        font-size: var(--font-size-sm);
+        text-transform: uppercase;
+      }
+
+      dd {
+        margin: 0;
+        color: var(--color-text);
+        font-size: var(--font-size-xl);
+        line-height: var(--line-height-tight);
+      }
+    }
+
+    .traffic-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.38fr);
+      gap: var(--spacing-lg);
+      min-inline-size: 0;
+      min-block-size: 0;
+      overflow: hidden;
+    }
+
+    .traffic-messages,
+    .traffic-inspector {
+      grid-template-rows: auto minmax(0, 1fr);
+      min-inline-size: 0;
+      min-block-size: 0;
+      overflow: hidden;
+    }
+
+    .traffic-list {
+      min-inline-size: 0;
+      min-block-size: 0;
+      padding-inline-end: var(--spacing-xs);
+      overflow: auto;
+      overscroll-behavior: contain;
+
+      &:focus-visible {
+        outline: 2px solid var(--color-focus);
+        outline-offset: -2px;
+      }
+    }
+
+    .traffic-table {
+      table-layout: fixed;
+
+      .correspondent-column { inline-size: 28%; }
+      .received-column { inline-size: 11rem; }
+
+      tbody td:nth-child(2) {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      time {
+        color: var(--color-text-muted);
+        font-size: var(--font-size-xs);
+      }
+    }
+
+    .traffic-detail {
+      display: grid;
+      align-content: start;
+      gap: var(--spacing-md);
+      min-inline-size: 0;
+      min-block-size: 0;
+      padding-block-start: var(--spacing-sm);
+      overflow: auto;
+
+      > header {
+        display: grid;
+        gap: var(--spacing-xxs);
+        padding-block-end: var(--spacing-sm);
+        border-block-end: 1px solid var(--color-border);
+
+        small {
+          color: var(--color-information);
+          font-size: var(--font-size-xs);
+          text-transform: uppercase;
+        }
+
+        h2 {
+          margin: 0;
+          color: var(--color-text);
+          font-size: var(--font-size-xl);
+          font-weight: var(--font-weight-normal);
+          line-height: var(--line-height-tight);
+        }
+
+        time {
+          color: var(--color-text-muted);
+          font-size: var(--font-size-xs);
+        }
+      }
+
+      > p {
+        margin: 0;
+        padding-block-end: var(--spacing-md);
+        border-block-end: 1px solid var(--color-border);
+        color: var(--color-text);
+        font-size: var(--font-size-md);
+        line-height: var(--line-height-normal);
+      }
+
+      details {
+        color: var(--color-text-muted);
+
+        summary {
+          color: var(--color-action);
+          cursor: pointer;
+        }
+
+        pre {
+          margin-block-end: 0;
+          padding: var(--spacing-sm);
+          color: var(--color-text);
+          background: var(--color-surface);
+          font-family: var(--font-family-mono);
+          font-size: var(--font-size-xs);
+          white-space: pre-wrap;
+        }
+      }
+    }
+  }
+
+  @container traffic-page (width < 52rem) {
+    .traffic-page .traffic-layout {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(16rem, 1.2fr) minmax(14rem, 0.8fr);
+      gap: var(--spacing-sm);
+    }
+  }
+
+  @container traffic-page (width < 34rem) {
+    .traffic-page .traffic-summary {
+      overflow-x: auto;
+
+      > div { min-inline-size: 8rem; }
+    }
+  }

@@ -1,7 +1,5 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 
-import './data-display.css'
-
 type IdentityProps = HTMLAttributes<HTMLDivElement> & {
   detail?: ReactNode
   leading?: ReactNode

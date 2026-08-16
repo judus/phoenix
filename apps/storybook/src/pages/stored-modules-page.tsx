@@ -1,6 +1,5 @@
 import { DataTable, DataTableGroup } from '@phoenix/ui'
 import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
-import './stored-modules-page.css'
 
 type StoredModule = [string, string, string, string, string, string]
 
@@ -76,15 +75,12 @@ export function StoredModulesPage() {
         <PageHeader
           variant="cockpit"
           context={<Breadcrumbs items={[{ label: 'Fleet', href: '#fleet' }, { label: 'Stored modules' }]} />}
+          status="Complete snapshot · Snapshot 9 Aug · 14:46 · Latest storage change 5 Aug · 01:12"
           title="Stored modules"
         />
 
         <div className="module-groups" tabIndex={0}>
           {storageGroups.map((group) => <StorageTable {...group} key={group.location} />)}
-          <footer>
-            <strong>Complete snapshot</strong>
-            <small>Snapshot 9 Aug · 14:46 · Latest storage change 5 Aug · 01:12</small>
-          </footer>
         </div>
       </div>
     </PageFrame>

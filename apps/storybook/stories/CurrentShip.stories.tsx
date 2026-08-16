@@ -4,7 +4,6 @@ import { CurrentShipPage } from '../src/pages/current-ship-page'
 import { CurrentShipConsolidatedPage } from '../src/pages/current-ship-consolidated-page'
 import { CurrentShipFlowPage } from '../src/pages/current-ship-flow-page'
 import { CurrentShipMatrixPage } from '../src/pages/current-ship-matrix-page'
-import '../src/styles/current-ship-stories.css'
 
 function CockpitControlsPreview() {
   return <div className="current-ship-story"><CurrentShipPage /></div>

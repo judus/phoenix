@@ -1,0 +1,144 @@
+  .page-header {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: var(--spacing-lg);
+    padding-block-end: var(--spacing-md);
+    border-block-end: var(--page-header-border-width) solid var(--color-border);
+
+    > div:first-child {
+      display: grid;
+      gap: var(--spacing-xxs);
+      min-inline-size: 0;
+
+      h1 {
+        margin: 0;
+        color: var(--page-header-title);
+        font-size: var(--page-title-size);
+        font-weight: var(--font-weight-normal);
+        line-height: var(--line-height-tight);
+      }
+
+      > p,
+      > small {
+        margin: 0;
+        color: var(--color-text-muted);
+      }
+
+      > p { max-inline-size: 68ch; }
+      > small { font-size: var(--font-size-xs); }
+
+      > div:first-child:not(:last-child) {
+        color: var(--color-information);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-medium);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+    }
+
+    > .actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: var(--spacing-xs);
+    }
+
+    > .page-status {
+      position: absolute;
+      inset-block-start: 0;
+      inset-inline-end: 0;
+      max-inline-size: 52ch;
+      color: var(--color-text-muted);
+      font-size: var(--font-size-xxs);
+      letter-spacing: 0.04em;
+      line-height: var(--line-height-normal);
+      text-align: end;
+      text-transform: uppercase;
+    }
+
+    > .navigation {
+      align-self: stretch;
+      min-inline-size: 0;
+
+      .tabs,
+      .tabs ul,
+      .tabs li,
+      .tabs a,
+      .tabs span {
+        block-size: 100%;
+      }
+
+      .tabs { border-block-end: 0; }
+    }
+
+    &.page-header-compact {
+      --page-title-size: var(--font-size-xl);
+
+      gap: var(--spacing-sm);
+      padding-block-end: var(--spacing-sm);
+    }
+
+    &.page-header-cockpit {
+      --page-title-size: var(--font-size-xl);
+
+      align-items: stretch;
+      gap: var(--spacing-sm);
+      min-block-size: var(--application-shell-chrome-size);
+      padding-block-end: var(--spacing-xs);
+
+      > div:first-child { align-content: center; }
+    }
+
+    &.page-header-entity h1 {
+      color: var(--color-text);
+    }
+  }
+
+  .breadcrumbs {
+    ol {
+      display: flex;
+      gap: var(--spacing-xxs);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    li:not(:last-child)::after {
+      margin-inline-start: var(--spacing-xxs);
+      content: '·';
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+  }
+
+
+  .presentation-elite .page-header h1 { text-transform: uppercase; }
+
+  @container page-frame (width < 42rem) {
+    .page-header {
+      grid-template-columns: minmax(0, 1fr);
+      align-items: start;
+
+      > .actions { justify-content: flex-start; }
+      > .page-status {
+        position: static;
+        text-align: start;
+      }
+    }
+  }
+
+  @container page-frame (width < 30rem) {
+    .page-header > .actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+      inline-size: 100%;
+
+      .btn { inline-size: 100%; }
+    }
+  }

@@ -1,4 +1,3 @@
-@layer stories {
   .current-ship-story {
     inline-size: 100%;
     block-size: 100vh;
@@ -10,4 +9,3 @@
   .current-ship-story.flow {
     overflow: auto;
   }
-}

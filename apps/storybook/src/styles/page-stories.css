@@ -1,4 +1,3 @@
-@layer stories {
   .route-form {
     display: grid;
     gap: var(--spacing-md);
@@ -43,4 +42,3 @@
 
     .route-summary > div { grid-template-columns: 1fr; }
   }
-}

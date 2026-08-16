@@ -1,4 +1,3 @@
-@layer stories {
   .control-story {
     container: control-story / inline-size;
     max-inline-size: var(--container-xl);
@@ -74,4 +73,3 @@
       --control-border-width: 1px;
     }
   }
-}

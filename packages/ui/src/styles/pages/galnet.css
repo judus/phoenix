@@ -1,0 +1,109 @@
+  .galnet-page {
+    container: galnet-page / size;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--spacing-sm);
+    inline-size: 100%;
+    block-size: 100%;
+    min-inline-size: 0;
+    min-block-size: 0;
+    overflow: hidden;
+
+    .galnet-layout {
+      display: grid;
+      grid-template-columns: minmax(18rem, 0.36fr) minmax(0, 1fr);
+      gap: var(--spacing-lg);
+      min-inline-size: 0;
+      min-block-size: 0;
+      overflow: hidden;
+    }
+
+    .galnet-index,
+    .galnet-reader-group {
+      grid-template-rows: auto minmax(0, 1fr);
+      min-inline-size: 0;
+      min-block-size: 0;
+      overflow: hidden;
+    }
+
+    .galnet-index-scroll {
+      min-inline-size: 0;
+      min-block-size: 0;
+      padding-inline-end: var(--spacing-xs);
+      overflow: auto;
+      overscroll-behavior: contain;
+
+      &:focus-visible {
+        outline: 2px solid var(--color-focus);
+        outline-offset: -2px;
+      }
+
+      .item-list article > small {
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+    }
+
+    .galnet-reader {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      min-inline-size: 0;
+      min-block-size: 0;
+      padding-block-start: var(--spacing-sm);
+      overflow: hidden;
+
+      > header {
+        display: grid;
+        gap: var(--spacing-xs);
+        padding: 0 var(--spacing-md) var(--spacing-md);
+        border-block-end: 1px solid var(--color-border);
+
+        small {
+          color: var(--color-action);
+          font-size: var(--font-size-xs);
+          text-transform: uppercase;
+        }
+
+        h2 {
+          max-inline-size: 40ch;
+          margin: 0;
+          color: var(--color-text);
+          font-size: var(--font-size-xl);
+          font-weight: var(--font-weight-normal);
+          line-height: var(--line-height-tight);
+        }
+      }
+
+      .article-body {
+        min-inline-size: 0;
+        min-block-size: 0;
+        padding: var(--spacing-md);
+        overflow: auto;
+        overscroll-behavior: contain;
+
+        &:focus-visible {
+          outline: 2px solid var(--color-focus);
+          outline-offset: -2px;
+        }
+
+        p {
+          max-inline-size: 76ch;
+          margin: 0;
+          color: var(--color-text);
+          font-size: var(--font-size-md);
+          line-height: var(--line-height-normal);
+
+          + p { margin-block-start: var(--spacing-md); }
+        }
+      }
+
+    }
+  }
+
+  @container galnet-page (width < 52rem) {
+    .galnet-page .galnet-layout {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(14rem, 0.7fr) minmax(18rem, 1.3fr);
+      gap: var(--spacing-sm);
+    }
+  }

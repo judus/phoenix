@@ -3,7 +3,6 @@ import { DescriptionItem, DescriptionList } from '@phoenix/ui'
 import { Inline, Stack } from '@phoenix/ui'
 import { Metric } from '@phoenix/ui'
 import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
-import './plotted-route-page.css'
 
 type RouteStep = {
   distance: string

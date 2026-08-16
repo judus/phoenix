@@ -38,13 +38,7 @@ export const primaryItems: RouteNavigationItem[] = [
   informationItem('comms', 'Comms')
 ]
 
-// Transitional shell fixture only. Each migrated feature family must supply its own contextual
-// navigation model; Overview / Current Ship / Alerts is not the permanent context-rail ontology.
-export const contextItems: RouteNavigationItem[] = [
-  routeItem('overview', 'Overview', '◇', HOME_ROUTE),
-  routeItem('ship', 'Current ship', 'SHP', { kind: 'information', section: 'fleet', view: 'current-overview' }),
-  { ...routeItem('alerts', 'Alerts', 'ALT', { kind: 'information', section: 'operations', view: 'overview' }), badge: '2' }
-]
+export const emptyContextItems: NavigationItem[] = []
 
 export function workspaceItems(informationRoute: InformationRoute): RouteNavigationItem[] {
   return [
@@ -52,12 +46,6 @@ export function workspaceItems(informationRoute: InformationRoute): RouteNavigat
     routeItem('info', 'Info', undefined, informationRoute),
     routeItem('copilot', 'Copilot', undefined, defaultRouteForWorkspace('copilot'))
   ]
-}
-
-export function contextForInformationRoute(route: InformationRoute): 'overview' | 'ship' | 'alerts' {
-  if (route.section === 'fleet' && route.view.startsWith('current-')) return 'ship'
-  if (route.section === 'operations') return 'alerts'
-  return 'overview'
 }
 
 export const homeItem: RouteNavigationItem = routeItem('home', 'Home', undefined, HOME_ROUTE)

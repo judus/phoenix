@@ -1,7 +1,6 @@
 import { DataTableGroup } from '@phoenix/ui'
 import { ItemList, ItemListItem } from '@phoenix/ui'
 import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
-import './galnet-page.css'
 
 const articles = [
   ['06 Aug 2026', 'Colonia Tenth Anniversary Celebrations Get Underway'],

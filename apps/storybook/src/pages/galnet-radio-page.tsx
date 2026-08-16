@@ -1,7 +1,6 @@
 import { IconButton } from '@phoenix/ui'
 import { PageFrame } from '@phoenix/ui'
 import { Widget } from '@phoenix/ui'
-import './galnet-radio-page.css'
 
 function PreviousIcon() {
   return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 5v14M19 5 8 12l11 7V5Z" /></svg>

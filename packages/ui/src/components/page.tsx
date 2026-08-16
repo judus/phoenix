@@ -1,8 +1,6 @@
 import { useId, type HTMLAttributes, type ReactNode } from 'react'
 
 import { ControlContext } from './control-context'
-import './page.css'
-
 type PageFrameProps = HTMLAttributes<HTMLElement> & {
   layout?: 'flow' | 'fit'
 }

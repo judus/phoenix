@@ -1,8 +1,6 @@
 import { useId } from 'react'
 import type { FieldsetHTMLAttributes, FormHTMLAttributes, HTMLAttributes, ReactNode } from 'react'
 
-import './form.css'
-
 export function Form({ className, ...props }: FormHTMLAttributes<HTMLFormElement>) {
   return <form className={['form', className].filter(Boolean).join(' ')} {...props} />
 }

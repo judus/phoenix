@@ -2,18 +2,21 @@ import type {
   FleetResponse,
   FleetShip,
   RuntimeState,
+  ShipDefinition,
   ShipModule,
-  ShipModuleSlotGroup,
+  ShipSlotDefinition,
   StoredModule
 } from '@phoenix/contracts'
 
-const moduleGroups: Array<{ id: ShipModuleSlotGroup, label: string }> = [
-  { id: 'core', label: 'Core internals' },
-  { id: 'optional', label: 'Optional internals' },
-  { id: 'hardpoint', label: 'Hardpoints' },
-  { id: 'utility', label: 'Utility mounts' },
-  { id: 'ship', label: 'Ship equipment' },
-  { id: 'other', label: 'Other equipment' }
+const moduleGroups: Array<{
+  definitionKey: keyof ShipDefinition['slots']
+  id: 'core' | 'optional' | 'hardpoint' | 'utility'
+  label: string
+}> = [
+  { definitionKey: 'core', id: 'core', label: 'Core internals' },
+  { definitionKey: 'optional', id: 'optional', label: 'Optional internals' },
+  { definitionKey: 'hardpoints', id: 'hardpoint', label: 'Hardpoints' },
+  { definitionKey: 'utilities', id: 'utility', label: 'Utility mounts' }
 ]
 
 export interface CurrentShipModel {
@@ -23,8 +26,9 @@ export interface CurrentShipModel {
   integrity: Array<{ label: string, value: number, valueLabel: string }>
   fuel: Array<{ label: string, value: number, valueLabel: string }>
   cargo: { count: number, capacity: number | null, items: Array<{ id: string, label: string, count: number, detail: string }> }
-  controls: Array<{ label: string, active: boolean }>
+  controls: Array<{ actionId: string, label: string, active: boolean }>
   modules: Array<{
+    capacity: number
     id: string
     label: string
     mounted: number
@@ -37,6 +41,7 @@ export interface CurrentShipModel {
       engineering: string
       engineeringDetail: string
       condition: string
+      empty?: boolean
       state: string
       status?: 'broken' | 'disabled'
     }>
@@ -123,17 +128,14 @@ export function createCurrentShipModel(state: RuntimeState, locale = 'en-CH'): C
       }))
     },
     controls: [
-      { label: 'Hardpoints', active: flags?.hardpointsDeployed ?? false },
-      { label: 'Landing gear', active: flags?.landingGearDown ?? false },
-      { label: 'Cargo scoop', active: flags?.cargoScoopDeployed ?? false },
-      { label: 'Lights', active: flags?.lightsOn ?? false },
-      { label: 'Night vision', active: flags?.nightVision ?? false },
-      { label: 'Flight assist', active: flags ? !flags.flightAssistOff : false }
+      { actionId: 'elite.DeployHardpointToggle', label: 'Hardpoints', active: flags?.hardpointsDeployed ?? false },
+      { actionId: 'elite.LandingGearToggle', label: 'Landing gear', active: flags?.landingGearDown ?? false },
+      { actionId: 'elite.ToggleCargoScoop', label: 'Cargo scoop', active: flags?.cargoScoopDeployed ?? false },
+      { actionId: 'elite.ShipSpotLightToggle', label: 'Lights', active: flags?.lightsOn ?? false },
+      { actionId: 'elite.NightVisionToggle', label: 'Night vision', active: flags?.nightVision ?? false },
+      { actionId: 'elite.ToggleFlightAssist', label: 'Flight assist', active: flags ? !flags.flightAssistOff : false }
     ],
-    modules: moduleGroups.map(group => {
-      const items = ship.modules.filter(module => module.slotGroup === group.id).map(moduleModel)
-      return { id: group.id, label: group.label, mounted: items.length, items }
-    }).filter(group => group.items.length > 0)
+    modules: moduleGroups.map(group => moduleGroupModel(ship, group)).filter(group => group.capacity > 0)
   }
 }
 
@@ -203,22 +205,101 @@ function fleetShipModel(ship: FleetShip, activeShipId: number | null, locale: st
   }
 }
 
-function moduleModel(module: ShipModule): CurrentShipModel['modules'][number]['items'][number] {
+function moduleGroupModel(
+  ship: RuntimeState['ship'],
+  group: typeof moduleGroups[number]
+): CurrentShipModel['modules'][number] {
+  const observed = ship.modules.filter(module => module.slotGroup === group.id)
+  const expected = ship.definition?.slots[group.definitionKey] ?? []
+  if (expected.length === 0) {
+    const items = observed.map(module => moduleModel(module))
+    return { id: group.id, label: group.label, mounted: items.length, capacity: items.length, items }
+  }
+
+  const used = new Set<ShipModule>()
+  const items = expected.map((slot, index) => {
+    const module = observed.find(candidate => !used.has(candidate) && sameSlot(candidate.expectedSlot, slot))
+    if (module) {
+      used.add(module)
+      return moduleModel(module, slotLabel(group.id, slot, index), slotType(group.id, slot))
+    }
+    return emptyModule(group.id, slot, index)
+  })
+  const unmatched = observed.filter(module => !used.has(module))
+  const leading = group.id === 'core' ? unmatched.filter(module => module.slotId === 'Armour') : []
+  const trailing = unmatched.filter(module => !leading.includes(module))
+  const complete = [...leading.map(module => moduleModel(module)), ...items, ...trailing.map(module => moduleModel(module))]
+  return { id: group.id, label: group.label, mounted: observed.length, capacity: complete.length, items: complete }
+}
+
+function moduleModel(
+  module: ShipModule,
+  slot = module.expectedSlot?.name ?? module.slotId,
+  type = slotType(module.slotGroup, module.expectedSlot ?? { size: module.slotSize ?? 0 })
+): CurrentShipModel['modules'][number]['items'][number] {
   const health = module.health === null ? null : Math.round(module.health * 100)
   const engineering = module.engineering
+  const displayName = module.definition?.displayName
+  const moduleClass = [module.moduleSize ?? module.definition?.size, module.definition?.rating]
+    .filter(value => value !== null && value !== undefined).join('')
   return {
     id: module.slotId,
-    slot: module.expectedSlot?.name ?? module.slotId,
+    slot,
     slotDetail: `Size ${module.slotSize ?? module.expectedSlot?.size ?? '—'}`,
-    module: module.definition?.displayName ?? module.moduleId,
-    moduleDetail: [module.moduleSize ?? module.definition?.size, module.definition?.rating]
-      .filter(value => value !== null && value !== undefined).join('') || module.moduleId,
+    module: displayName ? `${moduleClass ? `${moduleClass} ` : ''}${displayName}` : module.moduleId,
+    moduleDetail: type,
     engineering: engineering ? `${engineering.blueprintName ?? 'Engineered'}${engineering.level ? ` G${engineering.level}` : ''}` : 'Standard',
     engineeringDetail: engineering?.experimentalEffectLabel ?? engineering?.experimentalEffect ?? engineering?.engineer ?? 'Configuration',
     condition: health === null ? '—' : `${health}%`,
     state: module.enabled === false ? 'Disabled' : module.enabled === true ? `Enabled · P${module.priority ?? '—'}` : `Priority ${module.priority ?? '—'}`,
     ...(health !== null && health <= 0 ? { status: 'broken' as const } : module.enabled === false ? { status: 'disabled' as const } : {})
   }
+}
+
+function emptyModule(
+  group: typeof moduleGroups[number]['id'],
+  slot: ShipSlotDefinition,
+  index: number
+): CurrentShipModel['modules'][number]['items'][number] {
+  return {
+    id: `empty:${group}:${index}`,
+    slot: slotLabel(group, slot, index),
+    slotDetail: `Size ${slot.size}`,
+    module: 'Empty slot',
+    moduleDetail: slotType(group, slot),
+    engineering: 'Standard',
+    engineeringDetail: 'Configuration',
+    condition: '—',
+    empty: true,
+    state: 'Available'
+  }
+}
+
+function sameSlot(left: ShipSlotDefinition | null, right: ShipSlotDefinition): boolean {
+  return left !== null && left.size === right.size && (left.name ?? null) === (right.name ?? null)
+}
+
+function slotLabel(group: typeof moduleGroups[number]['id'], slot: ShipSlotDefinition, index: number): string {
+  if (group === 'core') return slot.name ?? `Core ${padSlot(index)}`
+  if (group === 'optional') return `Optional ${padSlot(index)}`
+  if (group === 'hardpoint') return `Hardpoint ${padSlot(index)}`
+  return `Utility ${padSlot(index)}`
+}
+
+function slotType(group: ShipModule['slotGroup'], slot: ShipSlotDefinition): string {
+  if (group === 'core') return 'Core internal'
+  if (group === 'optional') return slot.name ?? 'Optional internal'
+  if (group === 'hardpoint') return `${hardpointSize(slot.size)} hardpoint`
+  if (group === 'utility') return 'Utility mount'
+  return title(group)
+}
+
+function hardpointSize(size: number): string {
+  return ['Utility', 'Small', 'Medium', 'Large', 'Huge'][size] ?? `Size ${size}`
+}
+
+function padSlot(index: number): string {
+  return String(index + 1).padStart(2, '0')
 }
 
 function fact(label: string, value: string | null | undefined) {

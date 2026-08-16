@@ -1,6 +1,5 @@
 import { DataTable, DataTableGroup } from '@phoenix/ui'
 import { PageFrame, PageHeader } from '@phoenix/ui'
-import './fleet-page.css'
 
 type Vessel = {
   location: string

@@ -1,7 +1,6 @@
 import type { CSSProperties } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
-import '../src/styles/foundations.css'
 
 const colors = [
   ['Canvas', '--color-canvas'],

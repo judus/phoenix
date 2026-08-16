@@ -2,7 +2,6 @@ import { useRef, useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import type { Deskplane } from 'deskplane'
 import { DeskplaneViewport } from 'deskplane/react'
-import 'deskplane/style.css'
 
 import { PageFrame, PageHeader } from '@phoenix/ui'
 import {
@@ -29,7 +28,6 @@ import { QueryConsolePage } from '../src/pages/query-console-page'
 import { ShipCataloguePage } from '../src/pages/ship-catalogue-page'
 import { StoredModulesPage } from '../src/pages/stored-modules-page'
 import { TrafficPage } from '../src/pages/traffic-page'
-import '../src/styles/tablet-shell-stories.css'
 
 const utilityItems: NavigationItem[] = [
   { id: 'telemetry', label: 'Telemetry', shortLabel: '123', href: '#telemetry' },

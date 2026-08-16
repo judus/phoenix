@@ -1,0 +1,26 @@
+.fleet-state,
+.fleet-scroll-page {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--spacing-sm);
+  inline-size: 100%;
+  block-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 0;
+  overflow: hidden;
+}
+
+.fleet-state { align-content: start; }
+
+.fleet-scroll-content {
+  min-inline-size: 0;
+  min-block-size: 0;
+  padding-inline-end: var(--spacing-xs);
+  overflow: auto;
+  overscroll-behavior: contain;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+}

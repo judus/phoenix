@@ -1,7 +1,5 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 
-import './data-display.css'
-
 type DescriptionListProps = HTMLAttributes<HTMLDListElement> & {
   columns?: 'auto' | 'one' | 'two'
   density?: 'standard' | 'compact'

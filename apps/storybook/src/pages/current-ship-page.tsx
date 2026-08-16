@@ -5,7 +5,6 @@ import { Metric } from '@phoenix/ui'
 import { PageFrame, PageHeader, Panel } from '@phoenix/ui'
 import { Tabs, type TabItem } from '@phoenix/ui'
 import { ToggleButton } from '@phoenix/ui'
-import './current-ship-page.css'
 
 const shipTabs: TabItem[] = [
   { id: 'overview', label: 'Overview', href: '#overview' },

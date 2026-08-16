@@ -7,7 +7,6 @@ import { AutoGrid, Inline, Stack } from '@phoenix/ui'
 import { DescriptionItem, DescriptionList } from '@phoenix/ui'
 import { Metric } from '@phoenix/ui'
 import { PageFrame, PageHeader, Panel, Section } from '@phoenix/ui'
-import '../src/styles/page-stories.css'
 
 function RouteForm() {
   return (

@@ -5,7 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./styles.css": "./src/styles/base.css"
+    "./styles.css": "./src/styles/main.css"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",

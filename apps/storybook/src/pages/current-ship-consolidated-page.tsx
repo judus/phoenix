@@ -5,8 +5,6 @@ import { DescriptionItem, DescriptionList } from '@phoenix/ui'
 import { Meter } from '@phoenix/ui'
 import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
 import { Widget } from '@phoenix/ui'
-import './current-ship-page.css'
-import './current-ship-consolidated-page.css'
 
 type CurrentShipArrangement = 'controls-left' | 'systems-left'
 

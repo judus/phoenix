@@ -1,8 +1,6 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 
 import type { ApplicationNavigationItem } from './app-shell'
-import './application-shell.css'
-
 type NavigationProps = HTMLAttributes<HTMLElement> & {
   current?: string
   items: ApplicationNavigationItem[]

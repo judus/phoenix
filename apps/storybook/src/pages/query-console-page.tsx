@@ -1,6 +1,5 @@
 import { ActionTile } from '@phoenix/ui'
 import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
-import './query-console-page.css'
 
 const queries = [
   {

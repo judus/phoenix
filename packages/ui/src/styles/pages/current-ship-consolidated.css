@@ -1,0 +1,100 @@
+  .current-ship.consolidated {
+    .ship-grid {
+      grid-template-rows: minmax(0, 1fr);
+      grid-template-areas: none;
+    }
+
+    .vessel-column,
+    .instrument-column {
+      display: grid;
+      gap: var(--spacing-sm);
+      min-inline-size: 0;
+      min-block-size: 0;
+    }
+
+    .vessel-column {
+      grid-template-rows: auto auto minmax(0, 1fr);
+    }
+
+    .instrument-column {
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--spacing-sm);
+    }
+
+    .systems-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--spacing-sm);
+    }
+
+    &.systems-left {
+      .vessel-column {
+        grid-template-rows: auto auto auto auto;
+        align-content: start;
+      }
+
+      .instrument-column {
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+    }
+
+    .command-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(3, minmax(0, 1fr));
+      gap: var(--spacing-xs);
+      block-size: 100%;
+    }
+
+    .meter-stack {
+      display: grid;
+      align-content: start;
+      gap: var(--spacing-lg);
+      block-size: 100%;
+      min-block-size: 0;
+    }
+
+    .cargo-content {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: var(--spacing-sm);
+      block-size: 100%;
+      min-block-size: 0;
+
+      dl.dl-list {
+        min-block-size: 0;
+        overflow: auto;
+      }
+    }
+  }
+
+  @container current-ship (aspect-ratio > 1 / 1) {
+    .current-ship.consolidated .command-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @container current-ship (height < 50rem) {
+    .current-ship.consolidated {
+      .ship-grid,
+      .vessel-column,
+      .instrument-column,
+      .meter-stack { gap: var(--spacing-xs); }
+
+      .cargo-content { gap: var(--spacing-xs); }
+    }
+  }
+
+  @container current-ship (height >= 64rem) {
+    .current-ship.consolidated .adaptive-columns {
+      grid-template-columns: minmax(0, 1fr);
+
+      > div:nth-last-child(2)::after { display: block; }
+    }
+  }

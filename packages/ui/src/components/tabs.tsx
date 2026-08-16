@@ -1,7 +1,5 @@
 import type { HTMLAttributes } from 'react'
 
-import './tabs.css'
-
 export type TabItem = {
   disabled?: boolean
   href: string

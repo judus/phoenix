@@ -1,7 +1,5 @@
 import { useId, type HTMLAttributes, type ReactNode } from 'react'
 
-import './widget.css'
-
 type WidgetProps = HTMLAttributes<HTMLElement> & {
   link?: ReactNode
   meta?: ReactNode

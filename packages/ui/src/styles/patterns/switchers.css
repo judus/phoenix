@@ -1,0 +1,106 @@
+.tabs {
+  border-block-end: 1px solid var(--color-border-subtle);
+
+  ul {
+    display: flex;
+    align-items: stretch;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    min-inline-size: 0;
+  }
+
+  a,
+  span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-block-size: var(--application-shell-chrome-size);
+    padding-inline: var(--spacing-lg);
+    border-block-end: var(--selection-indicator-width) solid transparent;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  a {
+    &:hover {
+      color: var(--color-text);
+      background: var(--color-interactive-surface);
+    }
+
+    &:active {
+      color: var(--color-pressed-text);
+      background: var(--color-pressed-background);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-focus);
+      outline-offset: -2px;
+    }
+
+    &.active {
+      border-block-end-color: var(--color-action);
+      color: var(--color-action);
+      background: var(--color-selected-surface);
+    }
+  }
+
+  .disabled { opacity: 0.48; }
+}
+
+  .view-switcher {
+    display: grid;
+    grid-template-columns: 0.875rem 1.75rem 0.875rem;
+    gap: var(--spacing-xs);
+    min-block-size: 1.5rem;
+    padding: 0;
+    border: 0;
+    color: var(--color-text-muted);
+    background: transparent;
+
+    &::after { display: none; }
+
+    svg {
+      inline-size: 0.875rem;
+      block-size: 0.875rem;
+      overflow: visible;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.25;
+      shape-rendering: crispEdges;
+    }
+
+    .track {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      inline-size: 1.75rem;
+      block-size: 0.875rem;
+      border: 1px solid var(--color-action);
+
+      span {
+        grid-column: 1;
+        background: var(--color-action);
+        transition: transform 100ms ease-out;
+      }
+    }
+
+    &[data-position='start'] svg:first-child,
+    &[data-position='end'] svg:last-child {
+      color: var(--color-action);
+    }
+
+    &[data-position='end'] .track span {
+      transform: translateX(100%);
+    }
+
+    &:active:not(:disabled) {
+      border: 0;
+      color: var(--color-text-muted);
+      background: transparent;
+    }
+  }

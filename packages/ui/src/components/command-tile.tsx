@@ -1,8 +1,5 @@
 import type { ButtonHTMLAttributes } from 'react'
 
-import './control-surface.css'
-import './command-tile.css'
-
 type CommandTileProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> & {
   binding?: string
   details?: boolean

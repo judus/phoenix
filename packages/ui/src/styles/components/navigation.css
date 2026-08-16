@@ -1,0 +1,253 @@
+  nav.application-navigation {
+    --navigation-current-background: var(--color-action);
+    --navigation-current-text: var(--color-canvas);
+
+    block-size: 100%;
+
+    &.selection-subtle {
+      --navigation-current-background: var(--color-selected-surface);
+      --navigation-current-text: var(--color-action);
+    }
+
+    ul {
+      display: flex;
+      min-inline-size: max-content;
+      block-size: 100%;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    li { min-inline-size: 0; }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--spacing-xs);
+      min-inline-size: 0;
+      block-size: 100%;
+      padding-inline: var(--spacing-sm);
+      border-block-start: 0;
+      border-inline-start: 0;
+      border-inline-end: 1px solid var(--color-border-subtle);
+      border-block-end: var(--selection-indicator-width) solid transparent;
+      color: var(--color-action);
+      background: transparent;
+      font-size: var(--font-size-sm);
+      font-family: inherit;
+      line-height: var(--line-height-compact);
+      text-align: center;
+      text-decoration: none;
+      text-transform: uppercase;
+      touch-action: manipulation;
+
+      &.active {
+        border-block-end-color: var(--color-action);
+        color: var(--navigation-current-text);
+        background: var(--navigation-current-background);
+      }
+
+      abbr {
+        display: none;
+        text-decoration: none;
+      }
+
+      small {
+        color: var(--color-information);
+        font-size: var(--font-size-xxs);
+      }
+    }
+
+    &.navigation-primary {
+      ul {
+        inline-size: 100%;
+        min-inline-size: 0;
+      }
+
+      li { flex: 1 1 var(--application-shell-primary-item-min); }
+    }
+
+    &.navigation-compact {
+      ul { flex-direction: row; }
+
+      li {
+        flex: 0 0 var(--application-shell-chrome-size);
+        inline-size: var(--application-shell-chrome-size);
+        block-size: var(--application-shell-chrome-size);
+      }
+
+      .nav-item {
+        position: relative;
+        inline-size: 100%;
+        padding: 0;
+        border-block-end: 1px solid var(--color-border-subtle);
+        font-family: var(--font-family-mono);
+        font-size: var(--font-size-xs);
+
+        abbr { display: inline; }
+
+        > span {
+          position: absolute;
+          inline-size: 1px;
+          block-size: 1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+        }
+
+        small {
+          position: absolute;
+          inset-block-start: var(--spacing-xs);
+          inset-inline-end: var(--spacing-xs);
+          line-height: 1;
+          pointer-events: none;
+        }
+      }
+    }
+
+    &.navigation-workspace {
+      ul { inline-size: 100%; }
+      li { flex: 1 0 var(--application-shell-workspace-item-min); }
+
+      .nav-item {
+        border-block-end: 0;
+        font-size: var(--font-size-sm);
+        letter-spacing: 0.08em;
+      }
+    }
+  }
+
+  .application-shell > .topbar > .utilities .nav-item {
+    border-inline-start: 1px solid var(--color-border-subtle);
+    border-inline-end: 0;
+  }
+
+  .application-shell .primary-bar > .launcher > * {
+    display: grid;
+    place-items: center;
+    inline-size: 100%;
+    block-size: 100%;
+    border: 0;
+    color: var(--color-action);
+    background: transparent;
+    font-size: var(--font-size-lg);
+    text-decoration: none;
+    touch-action: manipulation;
+
+    &.active {
+      color: var(--color-canvas);
+      background: var(--color-action);
+    }
+  }
+
+  .context-rail nav.application-navigation.navigation-compact ul {
+    flex-direction: column;
+    min-inline-size: 0;
+    block-size: auto;
+  }
+
+  nav.app-navigation {
+    ul {
+      display: flex;
+      flex-direction: column;
+      gap: var(--shell-navigation-gap);
+      min-inline-size: max-content;
+      margin: 0;
+      padding: var(--shell-navigation-padding);
+      list-style: none;
+    }
+
+    .nav-item {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: var(--spacing-xs);
+      min-block-size: var(--shell-navigation-item-size);
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border-inline-start: var(--selection-indicator-width) solid transparent;
+      color: var(--color-text-muted);
+      background: transparent;
+      font-size: var(--font-size-xs);
+      line-height: var(--line-height-compact);
+      text-decoration: none;
+      text-transform: uppercase;
+      touch-action: manipulation;
+
+      &.active {
+        border-color: var(--color-action);
+        color: var(--shell-navigation-active-text);
+        background: var(--shell-navigation-active-background);
+      }
+
+      abbr {
+        display: grid;
+        place-items: center;
+        inline-size: var(--spacing-lg);
+        block-size: var(--spacing-lg);
+        color: var(--color-action);
+        font-family: var(--font-family-mono);
+        font-size: var(--font-size-xxs);
+        text-decoration: none;
+      }
+
+      small {
+        color: var(--color-information);
+        font-size: var(--font-size-xxs);
+      }
+    }
+
+    &.navigation-secondary ul,
+    .navigation-bands & ul {
+      flex-direction: row;
+      inline-size: 100%;
+      padding: var(--spacing-xxs);
+
+      li { flex: 1 0 auto; }
+
+      .nav-item {
+        justify-content: center;
+        border-inline-start: 0;
+        border-block-end: var(--selection-indicator-width) solid transparent;
+        text-align: center;
+      }
+    }
+  }
+
+  .presentation-elite nav.app-navigation .nav-item {
+    font-weight: var(--font-weight-medium);
+
+    &.active {
+      abbr,
+      small { color: inherit; }
+    }
+  }
+
+  @container application-shell (width < 42rem) {
+    nav.application-navigation .nav-item { padding-inline: var(--spacing-xs); }
+  }
+
+  @container app-shell (width < 42rem) {
+    .app-shell nav.app-navigation {
+      ul {
+        flex-direction: row;
+        inline-size: 100%;
+        padding: var(--spacing-xxs);
+      }
+
+      li { flex: 1 0 auto; }
+
+      .nav-item {
+        justify-content: center;
+        border-inline-start: 0;
+        border-block-end: var(--selection-indicator-width) solid transparent;
+        text-align: center;
+
+        abbr { display: none; }
+      }
+    }
+  }
+
+  @container app-shell (width < 30rem) {
+    nav.app-navigation .nav-item { padding-inline: var(--spacing-xs); }
+  }

@@ -20,13 +20,23 @@ test('Fleet overview and current ship render live records without shell chrome',
   const overview = renderToStaticMarkup(<FleetPage controller={{ fleet: fleetFixture(), status: 'ready' }} onNavigate={vi.fn()} route={{ kind: 'information', section: 'fleet', view: 'overview' }} runtime={{ status: 'loading' }} />)
   const state = { ...createEmptyRuntimeState(), ship: { ...createEmptyRuntimeState().ship, name: 'Prospector', identifier: 'EL-06L' } }
   const current = renderToStaticMarkup(<FleetPage controller={{ status: 'idle' }} onNavigate={vi.fn()} route={{ kind: 'information', section: 'fleet', view: 'current-overview' }} runtime={{ status: 'ready', state }} />)
+  const loadout = renderToStaticMarkup(<FleetPage controller={{ status: 'idle' }} onNavigate={vi.fn()} route={{ kind: 'information', section: 'fleet', view: 'current-loadout' }} runtime={{ status: 'ready', state }} />)
 
   expect(overview).toContain('Owned vessels')
   expect(overview).toContain('MURDOCK')
   expect(overview).toContain('No authoritative record observed')
   expect(current).toContain('Prospector')
-  expect(current).toContain('Current ship views')
+  expect(current).not.toContain('Current ship views')
+  expect(current).toContain('Loadout')
+  expect(current).toContain('Engineering')
+  expect(current).toContain('Unbound')
   expect(current).not.toContain('application-shell')
+  expect(loadout).toContain('href="#/fleet/overview">Fleet')
+  expect(loadout).toContain('href="#/fleet/ships/current/overview">Current ship')
+  expect(loadout).toContain('aria-current="page">Loadout')
+  expect(loadout).toContain('aria-label="List view"')
+  expect(loadout).toContain('title="Switch to grid view"')
+  expect(loadout).not.toContain('Current ship views')
 })
 
 test('catalogue selection comes from the typed route', () => {

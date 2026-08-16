@@ -1,0 +1,122 @@
+@import './variable.css';
+@import './base/typo.css';
+@import './base/links.css';
+@import './base/buttons.css';
+@import './base/forms.css';
+@import './base/lists.css';
+@import './base/tables.css';
+@import './layouts/layout.css';
+@import './patterns/panels.css';
+@import './patterns/action-tiles.css';
+@import './patterns/command-tiles.css';
+@import './patterns/switchers.css';
+@import './components/data-display.css';
+@import './components/page-header.css';
+@import './components/navigation.css';
+@import './app-shell.css';
+@import './pages/current-ship.css';
+@import './pages/current-ship-consolidated.css';
+@import './pages/current-ship-loadout.css';
+@import './pages/commander.css';
+@import './pages/filtered-system-search.css';
+@import './pages/fleet.css';
+@import './pages/fleet-runtime.css';
+@import './pages/galnet.css';
+@import './pages/galnet-radio.css';
+@import './pages/personal-stores.css';
+@import './pages/pairing.css';
+@import './pages/plotted-route.css';
+@import './pages/query-console.css';
+@import './pages/ship-catalogue.css';
+@import './pages/stored-modules.css';
+@import './pages/traffic.css';
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    inline-size: 100%;
+    block-size: 100%;
+    margin: 0;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  html,
+  body,
+  #storybook-root {
+    min-block-size: 100%;
+  }
+
+  #root {
+    inline-size: 100%;
+    block-size: 100%;
+    min-block-size: 0;
+    overflow: hidden;
+  }
+
+  body {
+    background: var(--color-canvas);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+
+  *::-webkit-scrollbar {
+    inline-size: var(--scrollbar-size);
+    block-size: var(--scrollbar-size);
+  }
+
+  *::-webkit-scrollbar-track,
+  *::-webkit-scrollbar-corner {
+    background: var(--scrollbar-track);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    border: 2px solid var(--scrollbar-track);
+    border-radius: 0;
+    background: var(--scrollbar-thumb);
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+  }
+
+  .storybook-root {
+    min-block-size: 100vh;
+    color: var(--color-text);
+    background: var(--color-canvas);
+  }
+
+  .controls-toolbar {
+    --control-block-size: 2.25rem;
+    --control-padding-inline: var(--spacing-xs);
+  }
+
+  .controls-command {
+    --control-block-size: 4rem;
+    --control-padding-inline: var(--spacing-md);
+  }
+
+  .density-compact {
+    --control-block-size: 2.25rem;
+    --control-padding-inline: var(--spacing-xs);
+    --control-gap: var(--spacing-xxs);
+  }
+
+  .density-comfortable {
+    --control-block-size: 3.25rem;
+    --control-padding-inline: var(--spacing-md);
+    --control-gap: var(--spacing-sm);
+  }

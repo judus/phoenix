@@ -17,8 +17,24 @@ test('current ship model keeps raw identifiers and derives live capacity evidenc
       identifier: 'EL-06L',
       hullHealth: 0.86,
       cargoCapacity: 32,
+      definition: {
+        id: 'prospector',
+        identifiers: { coriolis: 'prospector', frontierEdId: null },
+        displayName: 'Prospector',
+        manufacturer: 'Lakon',
+        landingPadSize: 'medium' as const,
+        performance: { baseArmour: null, baseShieldStrength: null, boost: null, hullMass: null, speed: null },
+        slots: {
+          core: [{ name: 'Frame Shift Drive', size: 5 }],
+          hardpoints: [],
+          optional: [{ size: 4 }, { size: 2 }],
+          utilities: []
+        },
+        source: { kind: 'catalogue' as const, name: 'Test catalogue', repository: null, revision: 'test' }
+      },
       modules: [{
-        slotId: 'Slot01', slotGroup: 'core' as const, slotSize: 5, expectedSlot: null,
+        slotId: 'FrameShiftDrive', slotGroup: 'core' as const, slotSize: 5,
+        expectedSlot: { name: 'Frame Shift Drive', size: 5 },
         moduleId: '$int_hyperdrive_size5_class5_name;', moduleSize: 5, moduleClass: 5,
         definition: null, enabled: true, priority: 2, health: 0.9, value: null, ammo: null, engineering: null
       }]
@@ -38,6 +54,11 @@ test('current ship model keeps raw identifiers and derives live capacity evidenc
   expect(model.cargo).toMatchObject({ count: 4, capacity: 32 })
   expect(model.cargo.items[0]).toMatchObject({ label: 'gold', detail: '1 stolen' })
   expect(model.modules[0]?.items[0]).toMatchObject({ module: '$int_hyperdrive_size5_class5_name;', condition: '90%' })
+  expect(model.modules[0]).toMatchObject({ mounted: 1, capacity: 1 })
+  expect(model.modules[1]).toMatchObject({ mounted: 0, capacity: 2 })
+  expect(model.modules[1]?.items).toEqual(expect.arrayContaining([
+    expect.objectContaining({ empty: true, module: 'Empty slot', state: 'Available' })
+  ]))
 })
 
 test('fleet models preserve authority distinctions and stored-module provenance', () => {

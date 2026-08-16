@@ -1,0 +1,46 @@
+  .galnet-radio-page {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: var(--spacing-sm);
+
+    .galnet-radio-display {
+      grid-template-rows: minmax(0, 1fr);
+      gap: 0;
+      padding: 0;
+
+      > header {
+        align-items: center;
+        justify-content: center;
+
+        h3 {
+          color: var(--color-text);
+          font-size: clamp(var(--font-size-xxl), 5cqi, 4rem);
+          letter-spacing: 0.12em;
+          text-align: center;
+        }
+      }
+
+      > div { display: none; }
+    }
+
+    .galnet-radio-controls {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--spacing-sm);
+      min-inline-size: 0;
+
+      .btn {
+        inline-size: 100%;
+        aspect-ratio: 3 / 2;
+        border-color: var(--command-border);
+        color: var(--command-text);
+        background: var(--command-background);
+
+        svg {
+          inline-size: clamp(2rem, 5cqi, 4rem);
+          block-size: clamp(2rem, 5cqi, 4rem);
+          stroke-width: 1.25;
+        }
+      }
+    }
+  }

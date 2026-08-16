@@ -5,7 +5,6 @@ import { CommandTile } from '@phoenix/ui'
 import { ControlContext } from '@phoenix/ui'
 import { Field, Select, TextInput } from '@phoenix/ui'
 import { AutoGrid, Inline, Stack } from '@phoenix/ui'
-import '../src/styles/control-stories.css'
 
 const commands = [
   { label: 'Toggle galaxy map', binding: 'G' },

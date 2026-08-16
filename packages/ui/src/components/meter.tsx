@@ -1,7 +1,5 @@
 import type { HTMLAttributes } from 'react'
 
-import './data-display.css'
-
 type MeterProps = HTMLAttributes<HTMLDivElement> & {
   label: string
   layout?: 'stacked' | 'inline'

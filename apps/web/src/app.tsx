@@ -81,7 +81,13 @@ function FleetFeature({ application, route }: {
 }) {
   const runtime = useRuntimeState(application.runtime)
   const controller = useFleetController(application.api, application.events, route.view)
-  return <FleetPage controller={controller} onNavigate={application.router.push} route={route} runtime={runtime} />
+  return <FleetPage
+    controller={controller}
+    onExecuteAction={actionId => application.api.executeAction(actionId, 'tap')}
+    onNavigate={application.router.push}
+    route={route}
+    runtime={runtime}
+  />
 }
 
 function CommanderFeature({ application, view }: {

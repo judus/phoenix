@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { Button, Field, Form, FormActions, PageFrame, PageHeader, TextInput } from '@phoenix/ui'
 import type { PhoenixApi } from '../application/api/phoenix-api.js'
-import './pairing-gate.css'
-
 type PairingGateState =
   | { status: 'checking' }
   | { status: 'pairing', error?: string }

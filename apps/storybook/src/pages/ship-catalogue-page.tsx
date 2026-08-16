@@ -5,7 +5,6 @@ import { CommandTile } from '@phoenix/ui'
 import { DataTable } from '@phoenix/ui'
 import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
 import { ViewSwitcher } from '@phoenix/ui'
-import './ship-catalogue-page.css'
 
 type Ship = (typeof catalogue.ships)[number]
 type SortKey = 'displayName' | 'manufacturer' | 'landingPadSize' | 'baseArmour' | 'baseShieldStrength' | 'speed' | 'boost' | 'hullMass'
@@ -117,6 +116,7 @@ export function ShipCataloguePage() {
         <PageHeader
           variant="cockpit"
           context={<Breadcrumbs items={[{ label: 'Fleet', href: '#fleet' }, { label: 'Ship catalogue' }]} />}
+          status="Source: EDCD Coriolis Data · 0db9234b5b9ce8c939ea84133d7ce336eea88e27"
           title="Ship catalogue"
           actions={
             <ViewSwitcher

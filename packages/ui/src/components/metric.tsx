@@ -1,7 +1,5 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 
-import './data-display.css'
-
 type MetricProps = HTMLAttributes<HTMLDivElement> & {
   density?: 'standard' | 'compact'
   detail?: ReactNode

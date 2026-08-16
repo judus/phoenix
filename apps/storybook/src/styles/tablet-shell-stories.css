@@ -1,4 +1,3 @@
-@layer stories {
   html:has(.tablet-shell-story),
   body:has(.tablet-shell-story),
   #storybook-root:has(.tablet-shell-story),
@@ -81,5 +80,3 @@
       small { display: none; }
     }
   }
-
-}

@@ -5,7 +5,6 @@ import { ControlContext } from '@phoenix/ui'
 import { Field, NumberInput, Select, Textarea, TextInput } from '@phoenix/ui'
 import { Form, FormActionGroup, FormActions, FormGrid, FormSection } from '@phoenix/ui'
 import { Stack } from '@phoenix/ui'
-import '../src/styles/control-stories.css'
 
 function FormSystem() {
   return (

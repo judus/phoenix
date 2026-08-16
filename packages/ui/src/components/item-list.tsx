@@ -1,7 +1,5 @@
 import type { HTMLAttributes, LiHTMLAttributes, ReactNode } from 'react'
 
-import './data-display.css'
-
 type ItemListProps = HTMLAttributes<HTMLUListElement> & {
   density?: 'compact' | 'standard' | 'comfortable'
 }

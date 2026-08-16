@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import type { NavigationItem } from '@phoenix/ui'
 import type { Deskplane, DeskplaneSnapshot } from 'deskplane'
 import { DeskplaneViewport } from 'deskplane/react'
-import { contextForInformationRoute, contextItems, primaryItems } from './navigation-model.js'
+import { emptyContextItems, primaryItems } from './navigation-model.js'
 import { InformationWorkspace } from './information-workspace.js'
 import { UtilityWorkspacePage, WorkspacePage } from './workspace-page.js'
 import { DeskplaneRouteSynchronizer } from './deskplane-route-synchronizer.js'
@@ -33,9 +33,9 @@ export function DesktopWorkspace({
   copilot,
   developer,
   information,
-  informationContextItems = contextItems,
-  informationContextLabel = 'Commander views',
-  informationCurrentContext,
+  informationContextItems = emptyContextItems,
+  informationContextLabel = 'Contextual navigation',
+  informationCurrentContext = '',
   informationRoute,
   journal,
   macros,
@@ -96,10 +96,9 @@ export function DesktopWorkspace({
               ariaLabel: 'Controls workspace',
               children: (
                 <WorkspacePage
-                  contextItems={contextItems}
-                  contextLabel="Commander views"
-                  currentContext="ship"
-                  onNavigate={onNavigateRoute}
+                  contextItems={emptyContextItems}
+                  contextLabel="Controls views"
+                  currentContext=""
                 >
                   {controls}
                 </WorkspacePage>
@@ -112,7 +111,7 @@ export function DesktopWorkspace({
                 <InformationWorkspace
                   contextItems={informationContextItems}
                   contextLabel={informationContextLabel}
-                  currentContext={informationCurrentContext ?? contextForInformationRoute(informationRoute)}
+                  currentContext={informationCurrentContext}
                   currentPrimary={informationRoute.section}
                   onNavigate={onNavigateRoute}
                   primaryItems={primaryItems}
@@ -126,10 +125,9 @@ export function DesktopWorkspace({
               ariaLabel: 'Copilot workspace',
               children: (
                 <WorkspacePage
-                  contextItems={contextItems}
-                  contextLabel="Commander views"
-                  currentContext="ship"
-                  onNavigate={onNavigateRoute}
+                  contextItems={emptyContextItems}
+                  contextLabel="Copilot views"
+                  currentContext=""
                 >
                   {copilot}
                 </WorkspacePage>

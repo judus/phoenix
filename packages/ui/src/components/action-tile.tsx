@@ -1,8 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
-import './control-surface.css'
-import './action-tile.css'
-
 type ActionTileProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> & {
   description?: ReactNode
   eyebrow?: ReactNode

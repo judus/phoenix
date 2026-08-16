@@ -1,7 +1,5 @@
 import type { ButtonHTMLAttributes } from 'react'
 
-import './controls.css'
-
 type ToggleButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'aria-pressed'> & {
   pressed: boolean
   tone?: 'information' | 'warning'

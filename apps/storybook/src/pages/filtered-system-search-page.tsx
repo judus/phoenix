@@ -3,7 +3,6 @@ import { ControlContext } from '@phoenix/ui'
 import { Field, NumberInput, Select, TextInput } from '@phoenix/ui'
 import { Form, FormActionGroup, FormActions, FormGrid, FormSection } from '@phoenix/ui'
 import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
-import './filtered-system-search-page.css'
 
 export function FilteredSystemSearchPage() {
   return (

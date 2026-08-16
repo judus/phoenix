@@ -11,6 +11,7 @@ beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) 
 test('Fleet queries only the active family data and refreshes retained records on activity', async () => {
   const events = new FakeEventHub()
   const api = {
+    getActions: vi.fn().mockResolvedValue({ actions: [], backend: {}, bindingSource: {} }),
     getFleet: vi.fn().mockResolvedValue(fleetFixture()),
     getShipCatalogue: vi.fn().mockResolvedValue({ ships: [] })
   } as unknown as PhoenixApi
@@ -31,6 +32,7 @@ test('Fleet queries only the active family data and refreshes retained records o
   await act(async () => renderer.update(<Probe />))
   expect(api.getFleet).toHaveBeenCalledTimes(2)
   expect(api.getShipCatalogue).not.toHaveBeenCalled()
+  expect(api.getActions).toHaveBeenCalledTimes(1)
   await act(async () => renderer.unmount())
 })
 

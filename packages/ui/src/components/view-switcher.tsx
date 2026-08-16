@@ -1,8 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 import { Button } from './button'
-import './view-switcher.css'
-
 type ViewPosition = 'start' | 'end'
 
 type ViewSwitcherProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & {

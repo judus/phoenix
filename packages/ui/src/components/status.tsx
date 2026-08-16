@@ -1,7 +1,5 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 
-import './data-display.css'
-
 export type StatusTone = 'neutral' | 'information' | 'positive' | 'warning' | 'danger' | 'muted'
 
 type StatusProps = HTMLAttributes<HTMLSpanElement> & {

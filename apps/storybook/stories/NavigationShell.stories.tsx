@@ -6,7 +6,6 @@ import { AutoGrid, Stack } from '@phoenix/ui'
 import { Metric } from '@phoenix/ui'
 import { PageFrame, PageHeader, Panel, Section } from '@phoenix/ui'
 import { Status } from '@phoenix/ui'
-import '../src/styles/shell-stories.css'
 
 const primaryItems: NavigationItem[] = [
   { id: 'overview', label: 'Overview', shortLabel: 'OV', href: '#overview' },
