@@ -49,10 +49,12 @@ import { MissionDataService } from './application/mission-data-service.js'
 import { CommunicationDataService } from './application/communication-data-service.js'
 import { FleetDataService } from './application/fleet-data-service.js'
 import { DefaultExplorationBodyQuery } from './application/default-exploration-body-query.js'
+import { DefaultExplorationTargetQuery } from './application/default-exploration-target-query.js'
 import type { CopilotText } from './application/copilot-text-service.js'
 import type { CopilotRealtime } from './application/copilot-realtime-service.js'
 import type { GameActionBindingResolver, InputBackend } from './domain/game-actions.js'
 import type { CartographySource } from './domain/cartography.js'
+import type { ExplorationTargetSearchSource } from './domain/exploration-target.js'
 import type { FactionPresenceSearchSource, OutfittingSearchSource, ShipyardSearchSource, StationLookupSource, StationSearchSource, StationStockSource, SystemSearchSource } from './domain/station-market.js'
 import type { GalnetSource } from './domain/galnet.js'
 import type { ControlGridLayoutRepository, SystemSettingsRepository } from './domain/system-configuration.js'
@@ -85,6 +87,7 @@ import { SpanshOutfittingSearchSource } from './infrastructure/spansh-outfitting
 import { SpanshStationLookupSource } from './infrastructure/spansh-station-lookup-source.js'
 import { SpanshSystemSearchSource } from './infrastructure/spansh-system-search-source.js'
 import { SpanshFactionPresenceSource } from './infrastructure/spansh-faction-presence-source.js'
+import { SpanshExplorationTargetSource } from './infrastructure/spansh-exploration-target-source.js'
 import { CatalogueSnapshotLoader } from './infrastructure/catalogue-snapshot-loader.js'
 import { ApplicationPaths } from './infrastructure/application-paths.js'
 import { FrontierGalnetSource } from './infrastructure/frontier-galnet-source.js'
@@ -117,6 +120,7 @@ export interface PhoenixApplicationOptions {
   stationLookupSource?: StationLookupSource
   systemSearchSource?: SystemSearchSource
   factionPresenceSource?: FactionPresenceSearchSource
+  explorationTargetSource?: ExplorationTargetSearchSource
   stationStockSource?: StationStockSource
   systemSettingsRepository?: SystemSettingsRepository
   webRoot?: string
@@ -329,11 +333,19 @@ export class PhoenixApplication {
     const engineering = new EngineeringDataService(engineeringCatalogue, this.stateStore)
     const exploration = new DefaultExplorationBodyQuery(this.database, cartography, this.stateStore)
     const explorationData = new ExplorationDataService(this.database, this.database)
+    const explorationTargets = new DefaultExplorationTargetQuery(
+      options.explorationTargetSource ?? new SpanshExplorationTargetSource(),
+      cartography,
+      this.stateStore,
+      explorationData,
+      this.database
+    )
     const toolRegistry = new ToolRegistry(createPhoenixMcpTools({
       commands,
       display,
       engineers: new DefaultCommanderEngineersQuery(engineering),
       exploration,
+      explorationTargets,
       factions: stationMarkets,
       fleet,
       gameCatalogue,
@@ -398,6 +410,7 @@ export class PhoenixApplication {
       displayCommands: display,
       engineering,
       explorationData,
+      explorationTargets,
       fleet,
       galaxyData: stationMarkets,
       galnet,

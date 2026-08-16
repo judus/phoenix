@@ -1,6 +1,7 @@
 export type GalaxyQueryId =
   | 'commodity-markets'
   | 'facilities'
+  | 'exploration-targets'
   | 'faction-presence'
   | 'filtered-systems'
   | 'nearby-systems'
@@ -65,6 +66,29 @@ const SERVICES: GalaxyQueryFieldOption[] = [
 ].map(([value, label]) => ({ label, value }))
 
 export const GALAXY_QUERY_CATALOGUE: GalaxyQueryDefinition[] = [
+  {
+    defaults: { atmosphere: '', bodyType: '', landable: 'yes', maxDistance: '100', maxGravityG: '', maxTemperatureK: '', minBiologicalSignals: '1', minGeologicalSignals: '0', minGravityG: '', minTemperatureK: '', origin: '', volcanism: '' },
+    domain: 'Cartography',
+    fields: [
+      ORIGIN,
+      { ...RADIUS, id: 'maxDistance' },
+      { id: 'bodyType', label: 'Body subtype', placeholder: 'Rocky body', type: 'text' },
+      { id: 'atmosphere', label: 'Atmosphere', placeholder: 'Thin Carbon dioxide', type: 'text' },
+      { id: 'landable', label: 'Landable', options: [{ label: 'Any', value: 'any' }, { label: 'Yes', value: 'yes' }, { label: 'No', value: 'no' }], type: 'select' },
+      { id: 'minGravityG', label: 'Minimum gravity (g)', min: 0, type: 'number' },
+      { id: 'maxGravityG', label: 'Maximum gravity (g)', min: 0, type: 'number' },
+      { id: 'minTemperatureK', label: 'Minimum temperature (K)', min: 0, type: 'number' },
+      { id: 'maxTemperatureK', label: 'Maximum temperature (K)', min: 0, type: 'number' },
+      { id: 'volcanism', label: 'Volcanism', type: 'text' },
+      { id: 'minBiologicalSignals', label: 'Minimum biological signals', min: 0, type: 'number' },
+      { id: 'minGeologicalSignals', label: 'Minimum geological signals', min: 0, type: 'number' }
+    ],
+    id: 'exploration-targets',
+    priority: 1,
+    purpose: 'Locate reported bodies by physical characteristics and surface signals without claiming unfinished exploration.',
+    status: 'available',
+    title: 'Exploration targets'
+  },
   {
     defaults: { origin: '', radius: '50' },
     domain: 'Cartography',

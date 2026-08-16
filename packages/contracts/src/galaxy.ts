@@ -216,10 +216,64 @@ export const GalaxyTradeOpportunitiesResponseSchema = z.object({
   originSystem: z.string().min(1)
 })
 
+export const GalaxyExplorationTargetSchema = z.object({
+  atmosphere: nullableString,
+  biologicalSignals: z.number().int().nonnegative(),
+  bodyId: z.number().int().nonnegative().nullable(),
+  bodyName: z.string().min(1),
+  bodyType: nullableString,
+  distanceLy: z.number().finite().nonnegative(),
+  distanceToArrivalLs: nullableNumber,
+  geologicalSignals: z.number().int().nonnegative(),
+  gravityG: nullableNumber,
+  landable: z.boolean().nullable(),
+  localEvidence: z.object({
+    biologicalSamplesCompleted: z.number().int().nonnegative(),
+    biologicalSignalsRecorded: z.number().int().nonnegative(),
+    discovered: z.boolean().nullable(),
+    geologicalSignalsRecorded: z.number().int().nonnegative(),
+    mapped: z.boolean().nullable(),
+    observed: z.boolean(),
+    observedAt: z.string().datetime().nullable(),
+    surfaceScanCompleted: z.boolean().nullable()
+  }),
+  providerUpdatedAt: z.string().datetime().nullable(),
+  signalsUpdatedAt: z.string().datetime().nullable(),
+  subtype: nullableString,
+  surfaceTemperatureK: nullableNumber,
+  systemAddress: z.number().int().nonnegative().nullable(),
+  systemName: z.string().min(1),
+  volcanism: nullableString
+})
+
+export const GalaxyExplorationTargetsResponseSchema = z.object({
+  cache: GalaxyCacheStateSchema,
+  candidatesExamined: z.number().int().nonnegative(),
+  caveat: z.string().min(1),
+  filters: z.object({
+    atmosphere: nullableString,
+    bodyType: nullableString,
+    landable: z.enum(['any', 'yes', 'no']),
+    maxDistanceLy: z.number().int().min(1).max(500),
+    maxGravityG: nullableNumber,
+    maxTemperatureK: nullableNumber,
+    minBiologicalSignals: z.number().int().nonnegative(),
+    minGeologicalSignals: z.number().int().nonnegative(),
+    minGravityG: nullableNumber,
+    minTemperatureK: nullableNumber,
+    volcanism: nullableString
+  }),
+  originSystem: z.string().min(1),
+  provenance: z.literal('Spansh community-reported body data'),
+  targets: z.array(GalaxyExplorationTargetSchema)
+})
+
 export type GalaxyCommodityMarket = z.infer<typeof GalaxyCommodityMarketSchema>
 export type GalaxyCommodityMarketsResponse = z.infer<typeof GalaxyCommodityMarketsResponseSchema>
 export type GalaxyTradeOpportunity = z.infer<typeof GalaxyTradeOpportunitySchema>
 export type GalaxyTradeOpportunitiesResponse = z.infer<typeof GalaxyTradeOpportunitiesResponseSchema>
+export type GalaxyExplorationTarget = z.infer<typeof GalaxyExplorationTargetSchema>
+export type GalaxyExplorationTargetsResponse = z.infer<typeof GalaxyExplorationTargetsResponseSchema>
 export type GalaxyFilteredSystem = z.infer<typeof GalaxyFilteredSystemSchema>
 export type GalaxyFilteredSystemsResponse = z.infer<typeof GalaxyFilteredSystemsResponseSchema>
 export type GalaxyFactionPresence = z.infer<typeof GalaxyFactionPresenceSchema>

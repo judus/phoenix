@@ -44,6 +44,7 @@ import type { Commands } from '../domain/commands.js'
 import type { HealthCheck } from '../application/health-service.js'
 import type { EngineeringDataReader } from '../application/engineering-data-service.js'
 import type { ExplorationDataReader } from '../application/exploration-data-service.js'
+import type { ExplorationTargetReader } from '../application/default-exploration-target-query.js'
 import type { GalaxyDataReader } from '../application/galaxy-data-service.js'
 import type { GalnetNewsReader } from '../domain/galnet.js'
 import type { NavigationDataReader } from '../application/navigation-data-service.js'
@@ -93,6 +94,7 @@ export interface PhoenixHttpServerOptions {
   eliteStatusDiagnostics: EliteStatusDiagnosticsReader
   engineering: EngineeringDataReader
   explorationData: ExplorationDataReader
+  explorationTargets: ExplorationTargetReader
   fleet: FleetDataReader
   galaxyData: GalaxyDataReader
   galnet: GalnetNewsReader
@@ -428,6 +430,25 @@ export class PhoenixHttpServer {
         maxDistance: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
         minVolume: boundedQueryInteger(url, 'minVolume', 100, 1, Number.MAX_SAFE_INTEGER),
         systemName: requiredQuery(url, 'system')
+      }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/exploration-targets') {
+      const landable = optionalQueryChoice(url, 'landable', ['any', 'yes', 'no'] as const) ?? 'any'
+      this.writeJson(response, 200, await this.options.explorationTargets.searchExplorationTargets({
+        atmosphere: optionalQuery(url, 'atmosphere'),
+        bodyType: optionalQuery(url, 'bodyType'),
+        landable,
+        maxDistanceLy: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
+        maxGravityG: optionalQueryNumber(url, 'maxGravityG', 0),
+        maxTemperatureK: optionalQueryNumber(url, 'maxTemperatureK', 0),
+        minBiologicalSignals: boundedQueryInteger(url, 'minBiologicalSignals', 0, 0, 100),
+        minGeologicalSignals: boundedQueryInteger(url, 'minGeologicalSignals', 0, 0, 100),
+        minGravityG: optionalQueryNumber(url, 'minGravityG', 0),
+        minTemperatureK: optionalQueryNumber(url, 'minTemperatureK', 0),
+        systemName: requiredQuery(url, 'system'),
+        volcanism: optionalQuery(url, 'volcanism')
       }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
       return
     }
@@ -1469,6 +1490,14 @@ function optionalQueryInteger (url: URL, name: string, minimum: number, maximum:
   if (!Number.isSafeInteger(value) || value < minimum || value > maximum) {
     throw new Error(`${name} must be an integer between ${minimum} and ${maximum}.`)
   }
+  return value
+}
+
+function optionalQueryNumber (url: URL, name: string, minimum: number): number | null {
+  const raw = url.searchParams.get(name)
+  if (raw === null || raw === '') return null
+  const value = Number(raw)
+  if (!Number.isFinite(value) || value < minimum) throw new Error(`${name} must be a number of at least ${minimum}.`)
   return value
 }
 

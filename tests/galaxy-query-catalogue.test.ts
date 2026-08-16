@@ -18,6 +18,7 @@ describe('Galaxy query catalogue', () => {
 
   it('advertises only queries backed by current HTTP handlers as available', () => {
     expect(GALAXY_QUERY_CATALOGUE.filter(query => query.status === 'available').map(query => query.id)).toEqual([
+      'exploration-targets',
       'nearby-systems',
       'shipyards',
       'facilities',

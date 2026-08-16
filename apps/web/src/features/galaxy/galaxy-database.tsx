@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import type {
   GalaxyCommodityMarketsResponse,
   GalaxyFilteredSystemsResponse,
+  GalaxyExplorationTargetsResponse,
   GalaxyFactionPresencesResponse,
   GalaxyNearbySystemsResponse,
   GalaxyNearestStationsResponse,
@@ -22,6 +23,7 @@ import {
 type GalaxyQueryResult =
   | { id: 'commodity-markets', value: GalaxyCommodityMarketsResponse }
   | { id: 'facilities', value: GalaxyNearestStationsResponse }
+  | { id: 'exploration-targets', value: GalaxyExplorationTargetsResponse }
   | { id: 'filtered-systems', value: GalaxyFilteredSystemsResponse }
   | { id: 'faction-presence', value: GalaxyFactionPresencesResponse }
   | { id: 'nearby-systems', value: GalaxyNearbySystemsResponse }
@@ -171,6 +173,7 @@ function QueryResults ({ result, summary, onModify }: { result: GalaxyQueryResul
       <header><span>{summary}</span><button type="button" onClick={onModify}>Modify query</button></header>
       {result.id === 'nearby-systems' && <NearbySystemResults result={result.value} />}
       {result.id === 'filtered-systems' && <FilteredSystemResults result={result.value} />}
+      {result.id === 'exploration-targets' && <ExplorationTargetResults result={result.value} />}
       {result.id === 'faction-presence' && <FactionPresenceResults result={result.value} />}
       {result.id === 'shipyards' && <ShipyardResults result={result.value} />}
       {result.id === 'facilities' && <NearestResults result={result.value} />}
@@ -178,6 +181,19 @@ function QueryResults ({ result, summary, onModify }: { result: GalaxyQueryResul
       {result.id === 'commodity-markets' && <MarketResults result={result.value} />}
       {result.id === 'station-lookup' && <StationLookupResults result={result.value} />}
       {result.id === 'trade-opportunities' && <TradeOpportunityResults result={result.value} />}
+    </section>
+  )
+}
+
+function ExplorationTargetResults ({ result }: { result: GalaxyExplorationTargetsResponse }) {
+  return (
+    <section className="galaxy-results">
+      <header><div><span>Exploration candidates</span><h2>{result.originSystem}</h2></div><small>{result.cache} cache · {result.targets.length} matches from {result.candidatesExamined} candidates</small></header>
+      <table><thead><tr><th>Body</th><th>System</th><th>Distance</th><th>Type</th><th>Atmosphere</th><th>Gravity</th><th>Temperature</th><th>Signals</th><th>Local evidence</th><th>Reported</th></tr></thead>
+        <tbody>{result.targets.map(target => <tr key={`${target.systemAddress ?? target.systemName}:${target.bodyId ?? target.bodyName}`}><td>{target.bodyName}<small>{target.landable === null ? 'Landability unknown' : target.landable ? 'Landable' : 'Not landable'}</small></td><td><a href={systemHref(target.systemName)}>{target.systemName}</a></td><td>{distance(target.distanceLy, 'ly')}<small>{distance(target.distanceToArrivalLs, 'ls')} arrival</small></td><td>{target.subtype ?? target.bodyType ?? 'Unknown'}</td><td>{target.atmosphere ?? '—'}</td><td>{target.gravityG === null ? '—' : `${target.gravityG.toFixed(2)} g`}</td><td>{target.surfaceTemperatureK === null ? '—' : `${number(target.surfaceTemperatureK)} K`}</td><td>{target.biologicalSignals} bio · {target.geologicalSignals} geo</td><td>{target.localEvidence.observed ? `${target.localEvidence.surfaceScanCompleted ? 'Mapped' : 'Observed'} · ${target.localEvidence.biologicalSamplesCompleted} bio completed` : 'No exact local record'}</td><td>{reportedAge(target.signalsUpdatedAt ?? target.providerUpdatedAt)}</td></tr>)}</tbody>
+      </table>
+      {result.targets.length === 0 && <p>No reported bodies matched this bounded candidate set.</p>}
+      <p>{result.caveat}</p>
     </section>
   )
 }
@@ -418,6 +434,17 @@ async function executeGalaxyQuery (api: PhoenixApi, id: GalaxyQueryId, values: R
           systemName: values.origin
         })
       }
+    case 'exploration-targets':
+      return {
+        id,
+        value: await api.findGalaxyExplorationTargets({
+          atmosphere: optionalText(values.atmosphere), bodyType: optionalText(values.bodyType), landable: values.landable as 'any' | 'yes' | 'no',
+          maxDistance: numeric(values.maxDistance), maxGravityG: optionalDecimal(values.maxGravityG), maxTemperatureK: optionalDecimal(values.maxTemperatureK),
+          minBiologicalSignals: optionalNumeric(values.minBiologicalSignals), minGeologicalSignals: optionalNumeric(values.minGeologicalSignals),
+          minGravityG: optionalDecimal(values.minGravityG), minTemperatureK: optionalDecimal(values.minTemperatureK), systemName: values.origin,
+          volcanism: optionalText(values.volcanism)
+        })
+      }
     default:
       throw new Error(`${galaxyQueryDefinition(id).title} is not connected to a backend adapter.`)
   }
@@ -432,12 +459,15 @@ function querySummary (id: GalaxyQueryResult['id'], values: Record<string, strin
   if (id === 'station-lookup') return `Stations matching ${values.name} · ${values.stationType} · from ${origin}`
   if (id === 'filtered-systems') return `Filtered systems within ${values.radius} ly · from ${origin}`
   if (id === 'faction-presence') return `${values.faction} presence within ${values.maxDistance} ly · from ${origin}`
+  if (id === 'exploration-targets') return `Exploration targets within ${values.maxDistance} ly · from ${origin}`
   return `Systems within ${values.radius} ly · from ${origin}`
 }
 
 function hashQuery (): URLSearchParams { return new URLSearchParams(window.location.hash.split('?')[1] ?? '') }
 function numeric (value: string): number { return Number.parseInt(value, 10) }
 function optionalNumeric (value: string): number | undefined { return value.trim() ? numeric(value) : undefined }
+function optionalDecimal (value: string): number | undefined { return value.trim() ? Number(value) : undefined }
+function optionalText (value: string): string | undefined { return value.trim() || undefined }
 function optionalSelection (value: string): string | undefined { return value && value !== 'any' ? value : undefined }
 
 function distance (value: number | null, unit: string): string { return value === null ? '—' : `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value)} ${unit}` }

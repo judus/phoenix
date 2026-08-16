@@ -32,6 +32,7 @@ import {
   FleetResponseSchema,
   GalaxyCommodityMarketsResponseSchema,
   GalaxyFilteredSystemsResponseSchema,
+  GalaxyExplorationTargetsResponseSchema,
   GalaxyFactionPresencesResponseSchema,
   GalaxyNearbySystemsResponseSchema,
   GalaxyNearestStationsResponseSchema,
@@ -91,6 +92,7 @@ import {
   type ExplorationManualCompletionResponse,
   type GalaxyCommodityMarketsResponse,
   type GalaxyFilteredSystemsResponse,
+  type GalaxyExplorationTargetsResponse,
   type GalaxyFactionPresencesResponse,
   type GalaxyNearbySystemsResponse,
   type GalaxyNearestStationsResponse,
@@ -159,6 +161,7 @@ export interface PhoenixApi {
   findGalaxyCommodityMarkets(input: GalaxyCommodityMarketSearch): Promise<GalaxyCommodityMarketsResponse>
   findGalaxyTradeOpportunities(input: GalaxyTradeOpportunitySearch): Promise<GalaxyTradeOpportunitiesResponse>
   findGalaxyFilteredSystems(input: GalaxyFilteredSystemSearch): Promise<GalaxyFilteredSystemsResponse>
+  findGalaxyExplorationTargets(input: GalaxyExplorationTargetSearch): Promise<GalaxyExplorationTargetsResponse>
   findGalaxyFactionPresences(input: GalaxyFactionPresenceSearch): Promise<GalaxyFactionPresencesResponse>
   findGalaxyNearbySystems(input: GalaxyNearbySystemSearch): Promise<GalaxyNearbySystemsResponse>
   findGalaxyNearestStations(input: GalaxyNearestStationSearch): Promise<GalaxyNearestStationsResponse>
@@ -249,6 +252,22 @@ export interface GalaxyFilteredSystemSearch {
   population?: 'any' | 'inhabited' | 'uninhabited'
   security?: string
   systemName: string
+}
+
+export interface GalaxyExplorationTargetSearch {
+  atmosphere?: string
+  bodyType?: string
+  landable?: 'any' | 'yes' | 'no'
+  limit?: number
+  maxDistance?: number
+  maxGravityG?: number
+  maxTemperatureK?: number
+  minBiologicalSignals?: number
+  minGeologicalSignals?: number
+  minGravityG?: number
+  minTemperatureK?: number
+  systemName: string
+  volcanism?: string
 }
 
 export interface GalaxyFactionPresenceSearch {
@@ -934,6 +953,16 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return GalaxyFilteredSystemsResponseSchema.parse(await response.json())
+  }
+
+  public async findGalaxyExplorationTargets (input: GalaxyExplorationTargetSearch): Promise<GalaxyExplorationTargetsResponse> {
+    const query = new URLSearchParams({ system: input.systemName })
+    for (const [key, value] of Object.entries(input)) {
+      if (key !== 'systemName' && value !== undefined && value !== '') query.set(key, String(value))
+    }
+    const response = await this.request(`${this.baseUrl}/api/galaxy/exploration-targets?${query.toString()}`, { headers: { accept: 'application/json' } })
+    if (!response.ok) throw await apiError(response)
+    return GalaxyExplorationTargetsResponseSchema.parse(await response.json())
   }
 
   public async findGalaxyFactionPresences (input: GalaxyFactionPresenceSearch): Promise<GalaxyFactionPresencesResponse> {
