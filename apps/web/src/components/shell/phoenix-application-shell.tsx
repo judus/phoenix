@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { ApplicationShell, BottomBar, Navigation, TopBar } from '@phoenix/ui'
+import type { NavigationItem } from '@phoenix/ui'
 import { DesktopWorkspace } from './desktop-workspace.js'
 import { PhoenixBrand } from './phoenix-brand.js'
 import { isRouteNavigationItem, utilityItems, workspaceItems } from './navigation-model.js'
@@ -12,6 +13,9 @@ export interface PhoenixApplicationShellProps {
   copilot: ReactNode
   developer: ReactNode
   information: ReactNode
+  informationContextItems?: NavigationItem[]
+  informationContextLabel?: string
+  informationCurrentContext?: string
   journal: ReactNode
   macros: ReactNode
   informationRoute: InformationRoute
@@ -27,6 +31,9 @@ export function PhoenixApplicationShell({
   copilot,
   developer,
   information,
+  informationContextItems,
+  informationContextLabel,
+  informationCurrentContext,
   informationRoute,
   journal,
   macros,
@@ -63,6 +70,9 @@ export function PhoenixApplicationShell({
         copilot={copilot}
         developer={developer}
         information={information}
+        {...(informationContextItems ? { informationContextItems } : {})}
+        {...(informationContextLabel ? { informationContextLabel } : {})}
+        {...(informationCurrentContext ? { informationCurrentContext } : {})}
         informationRoute={informationRoute}
         journal={journal}
         macros={macros}

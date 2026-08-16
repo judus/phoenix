@@ -58,7 +58,7 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
   }
 
   if (section === 'ship') {
-    if (rest[0] === 'inventory') return withQuery({ kind: 'information', section: 'commander', view: 'inventory' }, query)
+    if (rest[0] === 'inventory') return { kind: 'information', section: 'commander', view: 'inventory' }
     const view = rest[0] === 'modules' ? 'current-loadout' : rest[0] === 'cargo' ? 'current-cargo' : 'current-overview'
     return withQuery({ kind: 'information', section: 'fleet', view }, query)
   }
@@ -67,7 +67,7 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
 
   if (section === 'commander') {
     const view = oneOf(rest[0], ['overview', 'inventory', 'progress'] as const) ?? 'overview'
-    return withQuery({ kind: 'information', section, view }, query)
+    return { kind: 'information', section, view }
   }
 
   if (section === 'fleet') return parseFleetRoute(rest, query)
@@ -100,7 +100,7 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
     case 'developer': path = `/developer/${route.view}`; break
     case 'settings': path = `/settings/${route.view}`; break
   }
-  const parameters = new URLSearchParams(route.query)
+  const parameters = new URLSearchParams('query' in route ? route.query : undefined)
   if (route.kind === 'information' && route.section === 'galaxy' && route.view === 'system') {
     if (route.systemName) parameters.set('name', route.systemName)
     if (route.selectedName) parameters.set('selected', route.selectedName)

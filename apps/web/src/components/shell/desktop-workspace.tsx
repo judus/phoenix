@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
+import type { NavigationItem } from '@phoenix/ui'
 import type { Deskplane, DeskplaneSnapshot } from 'deskplane'
 import { DeskplaneViewport } from 'deskplane/react'
 import { contextForInformationRoute, contextItems, primaryItems } from './navigation-model.js'
@@ -14,6 +15,9 @@ export interface DesktopWorkspaceProps {
   copilot: ReactNode
   developer: ReactNode
   information: ReactNode
+  informationContextItems?: NavigationItem[]
+  informationContextLabel?: string
+  informationCurrentContext?: string
   journal: ReactNode
   macros: ReactNode
   informationRoute: InformationRoute
@@ -29,6 +33,9 @@ export function DesktopWorkspace({
   copilot,
   developer,
   information,
+  informationContextItems = contextItems,
+  informationContextLabel = 'Commander views',
+  informationCurrentContext,
   informationRoute,
   journal,
   macros,
@@ -103,8 +110,9 @@ export function DesktopWorkspace({
               ariaLabel: 'Information workspace',
               children: (
                 <InformationWorkspace
-                  contextItems={contextItems}
-                  currentContext={contextForInformationRoute(informationRoute)}
+                  contextItems={informationContextItems}
+                  contextLabel={informationContextLabel}
+                  currentContext={informationCurrentContext ?? contextForInformationRoute(informationRoute)}
                   currentPrimary={informationRoute.section}
                   onNavigate={onNavigateRoute}
                   primaryItems={primaryItems}

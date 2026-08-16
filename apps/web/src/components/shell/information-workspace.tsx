@@ -7,6 +7,7 @@ import { WorkspacePage } from './workspace-page.js'
 
 export function InformationWorkspace({
   children,
+  contextLabel,
   contextItems,
   currentContext,
   currentPrimary,
@@ -14,6 +15,7 @@ export function InformationWorkspace({
   primaryItems
 }: {
   children?: ReactNode
+  contextLabel: string
   contextItems: NavigationItem[]
   currentContext: string
   currentPrimary: string
@@ -45,7 +47,7 @@ export function InformationWorkspace({
       </PrimaryBar>
       <WorkspacePage
         contextItems={contextItems}
-        contextLabel="Commander views"
+        contextLabel={contextLabel}
         currentContext={currentContext}
         onNavigate={onNavigate}
       >

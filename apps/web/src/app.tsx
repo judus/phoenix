@@ -13,6 +13,9 @@ import { useCopilotVoice } from './features/copilot/copilot-voice-provider.js'
 import { DashboardPage } from './features/dashboard/dashboard-page.js'
 import { createDashboardViewModel } from './features/dashboard/dashboard-view-model.js'
 import { useDashboardController } from './features/dashboard/use-dashboard-controller.js'
+import { CommanderPage } from './features/commander/commander-page.js'
+import { createCommanderViewModel } from './features/commander/commander-view-model.js'
+import { commanderContextForRoute, commanderNavigationItems } from './features/commander/commander-navigation.js'
 
 export function App({ application }: { application: PhoenixApplicationServices }) {
   return (
@@ -28,23 +31,45 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
   const { router } = application
   const route = usePhoenixRoute(router)
   const informationRoute = isInformationRoute(route) ? route : router.getRememberedInformationRoute()
+  const commanderRoute = isInformationRoute(route) && route.section === 'commander' ? route : undefined
 
   return (
     <PhoenixApplicationShell
       activeDesktop={workspaceForRoute(route)}
       informationRoute={informationRoute}
+      {...(commanderRoute ? {
+        informationContextItems: commanderNavigationItems,
+        informationContextLabel: 'Commander views',
+        informationCurrentContext: commanderContextForRoute(commanderRoute)
+      } : {})}
       onNavigateRoute={router.push}
       onNavigateWorkspace={(workspace) => router.push(router.routeForWorkspace(workspace))}
       controls={<PlaceholderPage context="Controls" title="Flight controls" description="Ship and game command surfaces" />}
       copilot={<PlaceholderPage context="Copilot" title="Flight assistant" description="Conversation and current task context" />}
       developer={<PlaceholderPage context="Developer" title="Developer tools" description="Runtime inspection and diagnostics" />}
-      information={isDashboardRoute(route) ? <DashboardFeature application={application} /> : null}
+      information={isDashboardRoute(route)
+        ? <DashboardFeature application={application} />
+        : commanderRoute
+          ? <CommanderFeature application={application} view={commanderRoute.view} />
+          : null}
       journal={<PlaceholderPage context="Journal" title="Event log" description="Recent game and application events" />}
       macros={<PlaceholderPage context="Macros" title="Command macros" description="Stored command sequences" />}
       settings={<PlaceholderPage context="Settings" title="Application settings" description="Display, connection and control preferences" />}
       telemetry={<PlaceholderPage context="Telemetry" title="Numpad" description="Telemetry and direct-entry controls" />}
     />
   )
+}
+
+function CommanderFeature({ application, view }: {
+  application: PhoenixApplicationServices
+  view: 'overview' | 'inventory' | 'progress'
+}) {
+  const runtime = useRuntimeState(application.runtime)
+  const model = useMemo(
+    () => runtime.status === 'ready' ? createCommanderViewModel(runtime.state) : undefined,
+    [runtime]
+  )
+  return <CommanderPage model={model} runtime={runtime} view={view} />
 }
 
 function DashboardFeature({ application }: { application: PhoenixApplicationServices }) {
