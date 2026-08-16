@@ -1,0 +1,231 @@
+@layer components {
+  .ship-catalogue {
+    container: ship-catalogue / size;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--spacing-sm);
+    inline-size: 100%;
+    block-size: 100%;
+    min-inline-size: 0;
+    min-block-size: 0;
+    overflow: hidden;
+
+    .catalogue-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--spacing-sm);
+
+      .command-tile { min-block-size: 3rem; }
+    }
+  }
+
+  .ship-catalogue.schematic {
+    .page-header > .actions { align-self: end; }
+
+    .catalogue-deck {
+      display: grid;
+      grid-template-columns: minmax(13rem, 0.45fr) minmax(0, 1.55fr);
+      gap: var(--spacing-xl);
+      min-inline-size: 0;
+      min-block-size: 0;
+      overflow: hidden;
+    }
+
+    .hull-roster {
+      display: grid;
+      grid-template-rows: minmax(0, 1fr);
+      min-inline-size: 0;
+      min-block-size: 0;
+      background: var(--color-surface-subtle);
+      overflow: hidden;
+
+      .table-region {
+        min-block-size: 0;
+        overflow: auto;
+      }
+
+    }
+
+    .hull-schematic {
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      align-content: start;
+      gap: var(--spacing-xl);
+      min-inline-size: 0;
+      min-block-size: 0;
+      overflow: hidden;
+
+      > header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: var(--spacing-lg);
+
+        > div {
+          display: grid;
+          gap: var(--spacing-xxs);
+        }
+
+        h2,
+        p { margin: 0; }
+
+        h2 {
+          color: var(--color-text);
+          font-size: var(--font-size-xxl);
+          font-weight: var(--font-weight-normal);
+          line-height: var(--line-height-tight);
+        }
+
+        p,
+        > span {
+          color: var(--color-action);
+          font-size: var(--font-size-sm);
+          text-transform: uppercase;
+        }
+      }
+    }
+
+    .flight-profile {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: var(--spacing-lg);
+      margin: 0;
+      padding: var(--spacing-sm) 0;
+      border-block: 1px solid var(--color-border-subtle);
+
+      div {
+        display: grid;
+        gap: var(--spacing-xxs);
+      }
+
+      dt {
+        color: var(--color-text-muted);
+        font-size: var(--font-size-xs);
+        text-transform: uppercase;
+      }
+
+      dd {
+        margin: 0;
+        color: var(--color-text);
+        font-size: var(--font-size-md);
+      }
+    }
+
+    .capacity-matrix {
+      align-content: start;
+      min-block-size: 0;
+      overflow: auto;
+
+      > header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--spacing-sm);
+        margin-block-end: var(--spacing-md);
+
+        h3 {
+          margin: 0;
+          color: var(--color-text-muted);
+          font-size: var(--font-size-sm);
+          font-weight: var(--font-weight-normal);
+          text-transform: uppercase;
+        }
+
+        small {
+          color: var(--color-text-muted);
+          font-size: var(--font-size-xs);
+          text-transform: uppercase;
+        }
+      }
+
+      > div {
+        display: grid;
+        gap: var(--spacing-md);
+      }
+
+      section {
+        display: grid;
+        grid-template-columns: 7rem minmax(0, 1fr);
+        align-items: center;
+        gap: var(--spacing-md);
+
+        header {
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: var(--spacing-xs);
+
+          h4 {
+            margin: 0;
+            color: var(--color-text-muted);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-normal);
+            text-transform: uppercase;
+          }
+
+          small {
+            color: var(--color-action);
+            font-size: var(--font-size-xs);
+          }
+        }
+
+        ol {
+          display: grid;
+          grid-auto-columns: minmax(0, 1fr);
+          grid-auto-flow: column;
+          gap: var(--spacing-xs);
+          margin: 0;
+          padding: 0;
+          list-style: none;
+        }
+
+        li {
+          display: grid;
+          place-items: center;
+          min-block-size: 2.75rem;
+          color: var(--color-information);
+          background: var(--color-surface);
+          font-size: var(--font-size-sm);
+        }
+      }
+    }
+  }
+
+  .ship-catalogue.schematic {
+    .catalogue-table-view {
+      display: grid;
+      grid-template-rows: minmax(0, 1fr);
+      min-inline-size: 0;
+      min-block-size: 0;
+      overflow: auto;
+
+      .table-region {
+        min-block-size: 0;
+        overflow: auto;
+      }
+
+    }
+  }
+
+  @container ship-catalogue (width < 48rem) {
+    .ship-catalogue.schematic {
+      .catalogue-deck {
+        grid-template-columns: minmax(11rem, 0.55fr) minmax(0, 1.45fr);
+        gap: var(--spacing-sm);
+      }
+
+      .hull-schematic { gap: var(--spacing-md); }
+      .flight-profile { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .capacity-matrix section { grid-template-columns: minmax(0, 1fr); }
+    }
+  }
+
+  @container ship-catalogue (height < 44rem) {
+    .ship-catalogue.schematic {
+      gap: var(--spacing-xs);
+      .hull-schematic { gap: var(--spacing-sm); }
+      .capacity-matrix > div { gap: var(--spacing-sm); }
+      .capacity-matrix section li { min-block-size: 2.25rem; }
+    }
+  }
+}

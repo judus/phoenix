@@ -1,0 +1,53 @@
+@layer components {
+  .view-switcher {
+    display: grid;
+    grid-template-columns: 0.875rem 1.75rem 0.875rem;
+    gap: var(--spacing-xs);
+    min-block-size: 1.5rem;
+    padding: 0;
+    border: 0;
+    color: var(--color-text-muted);
+    background: transparent;
+
+    &::after { display: none; }
+
+    svg {
+      inline-size: 0.875rem;
+      block-size: 0.875rem;
+      overflow: visible;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.25;
+      shape-rendering: crispEdges;
+    }
+
+    .track {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      inline-size: 1.75rem;
+      block-size: 0.875rem;
+      border: 1px solid var(--color-action);
+
+      span {
+        grid-column: 1;
+        background: var(--color-action);
+        transition: transform 100ms ease-out;
+      }
+    }
+
+    &[data-position='start'] svg:first-child,
+    &[data-position='end'] svg:last-child {
+      color: var(--color-action);
+    }
+
+    &[data-position='end'] .track span {
+      transform: translateX(100%);
+    }
+
+    &:active:not(:disabled) {
+      border: 0;
+      color: var(--color-text-muted);
+      background: transparent;
+    }
+  }
+}

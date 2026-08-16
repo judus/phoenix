@@ -1,0 +1,13 @@
+@layer stories {
+  .current-ship-story {
+    inline-size: 100%;
+    block-size: 100vh;
+    min-inline-size: 0;
+    min-block-size: 0;
+    overflow: hidden;
+  }
+
+  .current-ship-story.flow {
+    overflow: auto;
+  }
+}

@@ -1,0 +1,14 @@
+@layer stories {
+  .identifier {
+    display: grid;
+    place-items: center;
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    border: 1px solid var(--color-border-subtle);
+    color: var(--color-action);
+    background: var(--color-surface);
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+  }
+
+}

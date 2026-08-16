@@ -1,0 +1,46 @@
+@layer stories {
+  .route-form {
+    display: grid;
+    gap: var(--spacing-md);
+
+    > .inline { gap: var(--spacing-xs); }
+  }
+
+  .route-summary {
+    > div { grid-template-columns: minmax(8rem, 0.4fr) minmax(0, 1fr); }
+  }
+
+  .boundary-example {
+    min-block-size: 10rem;
+  }
+
+  .boundary-example.open {
+    display: grid;
+    align-content: start;
+    gap: var(--spacing-sm);
+    padding-block: var(--spacing-md);
+  }
+
+  .boundary-example h3,
+  .boundary-example p { margin: 0; }
+
+  .boundary-example h3 {
+    color: var(--color-action);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+  }
+
+  .boundary-example p { color: var(--color-text-muted); }
+
+  @container page-frame (width < 30rem) {
+    .route-form > .inline {
+      display: grid;
+      grid-template-columns: 1fr;
+
+      .btn { inline-size: 100%; }
+    }
+
+    .route-summary > div { grid-template-columns: 1fr; }
+  }
+}
