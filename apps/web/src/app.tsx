@@ -3,8 +3,21 @@ import { PhoenixApplicationShell } from './components/shell/phoenix-application-
 import { isInformationRoute, workspaceForRoute } from './application/navigation/phoenix-route.js'
 import type { PhoenixRouter } from './application/navigation/phoenix-router.js'
 import { usePhoenixRoute } from './application/navigation/use-phoenix-route.js'
+import type { PhoenixApplicationServices } from './bootstrap/create-application.js'
+import { PairingGate } from './bootstrap/pairing-gate.js'
+import { PhoenixProviders } from './bootstrap/providers.js'
 
-export function App({ router }: { router: PhoenixRouter }) {
+export function App({ application }: { application: PhoenixApplicationServices }) {
+  return (
+    <PairingGate api={application.api}>
+      <PhoenixProviders application={application}>
+        <PhoenixApplication router={application.router} />
+      </PhoenixProviders>
+    </PairingGate>
+  )
+}
+
+function PhoenixApplication({ router }: { router: PhoenixRouter }) {
   const route = usePhoenixRoute(router)
   const informationRoute = isInformationRoute(route) ? route : router.getRememberedInformationRoute()
 

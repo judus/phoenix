@@ -2,18 +2,13 @@ import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypt
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import type { IncomingMessage } from 'node:http'
 import { dirname } from 'node:path'
+import type { PairingStatus } from '@phoenix/contracts'
 
 interface PairingCredentials {
   installationId: string
   pairingCode: string
   secret: string
   version: 1
-}
-
-export interface PairingStatus {
-  authenticated: boolean
-  installationId: string
-  pairingRequired: true
 }
 
 export class PairingAttemptLimitError extends Error {}

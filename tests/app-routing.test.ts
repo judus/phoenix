@@ -44,7 +44,8 @@ describe('PHOENIX route parsing and generation', () => {
       kind: 'information',
       section: 'galaxy',
       view: 'system',
-      query: { name: 'Sol', selected: 'Earth' }
+      systemName: 'Sol',
+      selectedName: 'Earth'
     })
     expect(phoenixRouteHash(route)).toBe('#/galaxy/system?name=Sol&selected=Earth')
   })

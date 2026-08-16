@@ -15,6 +15,7 @@ export * from './galnet.js'
 export * from './macros.js'
 export * from './missions.js'
 export * from './numpad.js'
+export * from './pairing.js'
 export * from './runtime.js'
 export * from './settings.js'
 

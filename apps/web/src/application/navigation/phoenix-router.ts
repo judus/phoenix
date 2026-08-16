@@ -101,6 +101,10 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
     case 'settings': path = `/settings/${route.view}`; break
   }
   const parameters = new URLSearchParams(route.query)
+  if (route.kind === 'information' && route.section === 'galaxy' && route.view === 'system') {
+    if (route.systemName) parameters.set('name', route.systemName)
+    if (route.selectedName) parameters.set('selected', route.selectedName)
+  }
   const query = parameters.toString()
   return `#${path}${query ? `?${query}` : ''}`
 }
@@ -137,6 +141,16 @@ function parseFleetRoute(rest: string[], query: PhoenixRouteQuery): InformationR
 
 function parseGalaxyRoute(rest: string[], query: PhoenixRouteQuery): InformationRoute {
   const view = oneOf(rest[0], ['system', 'route', 'database'] as const) ?? 'system'
+  if (view === 'system') {
+    const { name, selected, ...remainingQuery } = query
+    return withQuery({
+      kind: 'information',
+      section: 'galaxy',
+      view,
+      ...(name?.trim() ? { systemName: name.trim() } : {}),
+      ...(selected?.trim() ? { selectedName: selected.trim() } : {})
+    }, remainingQuery)
+  }
   return withQuery({ kind: 'information', section: 'galaxy', view }, query)
 }
 
