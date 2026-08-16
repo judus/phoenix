@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Content, Navigation, Rail } from '@phoenix/ui'
 import type { NavigationItem } from '@phoenix/ui'
-import type { PhoenixRoute } from '../../platform/routing/phoenix-route.js'
+import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
 import { isRouteNavigationItem } from './navigation-model.js'
 
 export function WorkspacePage({

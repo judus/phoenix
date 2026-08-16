@@ -6,8 +6,8 @@ import {
   type InformationPrimarySection,
   type InformationRoute,
   type PhoenixRoute
-} from '../../platform/routing/phoenix-route.js'
-import { phoenixRouteHash } from '../../platform/routing/phoenix-router.js'
+} from '../../application/navigation/phoenix-route.js'
+import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js'
 
 export type RouteNavigationItem = NavigationItem & { route: PhoenixRoute }
 
@@ -38,6 +38,8 @@ export const primaryItems: RouteNavigationItem[] = [
   informationItem('comms', 'Comms')
 ]
 
+// Transitional shell fixture only. Each migrated feature family must supply its own contextual
+// navigation model; Overview / Current Ship / Alerts is not the permanent context-rail ontology.
 export const contextItems: RouteNavigationItem[] = [
   routeItem('overview', 'Overview', '◇', HOME_ROUTE),
   routeItem('ship', 'Current ship', 'SHP', { kind: 'information', section: 'fleet', view: 'current-overview' }),

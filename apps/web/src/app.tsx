@@ -1,8 +1,8 @@
 import { PlaceholderPage } from './components/shell/placeholder-page.js'
 import { PhoenixApplicationShell } from './components/shell/phoenix-application-shell.js'
-import { isInformationRoute, workspaceForRoute } from './platform/routing/phoenix-route.js'
-import type { PhoenixRouter } from './platform/routing/phoenix-router.js'
-import { usePhoenixRoute } from './platform/routing/use-phoenix-route.js'
+import { isInformationRoute, workspaceForRoute } from './application/navigation/phoenix-route.js'
+import type { PhoenixRouter } from './application/navigation/phoenix-router.js'
+import { usePhoenixRoute } from './application/navigation/use-phoenix-route.js'
 
 export function App({ router }: { router: PhoenixRouter }) {
   const route = usePhoenixRoute(router)

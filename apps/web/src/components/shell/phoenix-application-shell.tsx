@@ -4,7 +4,7 @@ import { DesktopWorkspace } from './desktop-workspace.js'
 import { PhoenixBrand } from './phoenix-brand.js'
 import { isRouteNavigationItem, utilityItems, workspaceItems } from './navigation-model.js'
 import { useFullscreen } from '../../platform/fullscreen/use-fullscreen.js'
-import type { InformationRoute, PhoenixRoute, PhoenixWorkspace } from '../../platform/routing/phoenix-route.js'
+import type { InformationRoute, PhoenixRoute, PhoenixWorkspace } from '../../application/navigation/phoenix-route.js'
 
 export interface PhoenixApplicationShellProps {
   activeDesktop: PhoenixWorkspace

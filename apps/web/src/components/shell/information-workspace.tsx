@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Navigation, PrimaryBar } from '@phoenix/ui'
 import type { ApplicationNavigationItem, NavigationItem } from '@phoenix/ui'
-import type { PhoenixRoute } from '../../platform/routing/phoenix-route.js'
+import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
 import { homeItem, isRouteNavigationItem, type RouteNavigationItem } from './navigation-model.js'
 import { WorkspacePage } from './workspace-page.js'
 

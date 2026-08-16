@@ -6,7 +6,7 @@ import { contextForInformationRoute, contextItems, primaryItems } from './naviga
 import { InformationWorkspace } from './information-workspace.js'
 import { UtilityWorkspacePage, WorkspacePage } from './workspace-page.js'
 import { DeskplaneRouteSynchronizer } from './deskplane-route-synchronizer.js'
-import type { InformationRoute, PhoenixRoute, PhoenixWorkspace } from '../../platform/routing/phoenix-route.js'
+import type { InformationRoute, PhoenixRoute, PhoenixWorkspace } from '../../application/navigation/phoenix-route.js'
 
 export interface DesktopWorkspaceProps {
   activeDesktop: PhoenixWorkspace

@@ -6,8 +6,12 @@ import {
   type InformationRoute,
   type PhoenixRoute,
   type PhoenixWorkspace
-} from './phoenix-route.js'
-import { parsePhoenixRoute, phoenixRouteHash, type PhoenixRouter } from './phoenix-router.js'
+} from '../../application/navigation/phoenix-route.js'
+import {
+  parsePhoenixRoute,
+  phoenixRouteHash,
+  type PhoenixRouter
+} from '../../application/navigation/phoenix-router.js'
 
 const INFORMATION_ROUTE_STORAGE_KEY = 'phoenix.desktop.information-route'
 

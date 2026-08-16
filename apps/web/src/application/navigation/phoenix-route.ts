@@ -21,6 +21,11 @@ export type InformationPrimarySection =
   | 'engineering'
   | 'comms'
 
+/**
+ * Transitional query preservation for routes whose feature-specific model has not migrated yet.
+ * Promote meaningful values to fields on the relevant route variant before feature code consumes
+ * them; feature code must not build behavior around arbitrary string-key access.
+ */
 export type PhoenixRouteQuery = Readonly<Record<string, string>>
 
 export type InformationRoute =

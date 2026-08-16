@@ -3,11 +3,11 @@ import {
   HOME_ROUTE,
   defaultRouteForWorkspace,
   workspaceForRoute
-} from '../apps/web/src/platform/routing/phoenix-route.js'
+} from '../apps/web/src/application/navigation/phoenix-route.js'
 import {
   parsePhoenixRoute,
   phoenixRouteHash
-} from '../apps/web/src/platform/routing/phoenix-router.js'
+} from '../apps/web/src/application/navigation/phoenix-router.js'
 
 describe('PHOENIX route parsing and generation', () => {
   test('empty and Home hashes resolve to the Information workspace', () => {

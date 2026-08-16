@@ -1,4 +1,4 @@
-import { isPhoenixWorkspace, type PhoenixWorkspace } from '../../platform/routing/phoenix-route.js'
+import { isPhoenixWorkspace, type PhoenixWorkspace } from '../../application/navigation/phoenix-route.js'
 
 export class DeskplaneRouteSynchronizer {
   #activeWorkspace: PhoenixWorkspace
