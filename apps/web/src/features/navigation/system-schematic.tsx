@@ -9,6 +9,7 @@ import {
   type AttachedInstallation,
   type BodyHierarchyNode
 } from './system-hierarchy.js'
+import './system-schematic.css'
 
 export type CartographicSelection = CartographicBody | CartographicStation
 

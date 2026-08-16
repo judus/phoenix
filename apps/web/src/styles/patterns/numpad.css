@@ -1,3 +1,4 @@
+/* Migration boundary: behavior-critical Numpad console. See ../README.md. */
 @layer patterns {
   .numpad-page {
     .page-header { padding-block: var(--space-2); }

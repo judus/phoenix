@@ -1,3 +1,4 @@
+/* Migration boundary: behavior-critical Deskplane adapter. See ../README.md. */
 @layer primitives {
   .desktop-workspace {
     inline-size: 100%;
