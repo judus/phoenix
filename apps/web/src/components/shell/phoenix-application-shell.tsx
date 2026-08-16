@@ -2,22 +2,21 @@ import type { ReactNode } from 'react'
 import { ApplicationShell, BottomBar, Navigation, TopBar } from '@phoenix/ui'
 import { DesktopWorkspace } from './desktop-workspace.js'
 import { PhoenixBrand } from './phoenix-brand.js'
-import { utilityItems, workspaceItems } from './navigation-model.js'
-import {
-  isWorkspaceDesktop,
-  type PrimaryDesktop,
-  type WorkspaceDesktop
-} from './workspace-desktop.js'
+import { isRouteNavigationItem, utilityItems, workspaceItems } from './navigation-model.js'
+import { useFullscreen } from '../../platform/fullscreen/use-fullscreen.js'
+import type { InformationRoute, PhoenixRoute, PhoenixWorkspace } from '../../platform/routing/phoenix-route.js'
 
 export interface PhoenixApplicationShellProps {
-  activeDesktop: WorkspaceDesktop
+  activeDesktop: PhoenixWorkspace
   controls: ReactNode
   copilot: ReactNode
   developer: ReactNode
   information: ReactNode
   journal: ReactNode
   macros: ReactNode
-  onNavigate: (desktop: WorkspaceDesktop) => void
+  informationRoute: InformationRoute
+  onNavigateRoute: (route: PhoenixRoute) => void
+  onNavigateWorkspace: (desktop: PhoenixWorkspace) => void
   settings: ReactNode
   telemetry: ReactNode
 }
@@ -28,12 +27,16 @@ export function PhoenixApplicationShell({
   copilot,
   developer,
   information,
+  informationRoute,
   journal,
   macros,
-  onNavigate,
+  onNavigateRoute,
+  onNavigateWorkspace,
   settings,
   telemetry
 }: PhoenixApplicationShellProps) {
+  const fullscreen = useFullscreen()
+
   return (
     <ApplicationShell>
       <TopBar
@@ -43,13 +46,13 @@ export function PhoenixApplicationShell({
             variant="compact"
             label="Utilities"
             current={activeDesktop}
-            items={utilityItems}
+            items={utilityItems(fullscreen)}
             onItemSelect={(item) => {
               if (item.id === 'fullscreen') {
-                void toggleFullscreen()
+                void fullscreen.toggle()
                 return
               }
-              if (isWorkspaceDesktop(item.id)) onNavigate(item.id)
+              if (isRouteNavigationItem(item)) onNavigateRoute(item.route)
             }}
           />
         }
@@ -60,9 +63,11 @@ export function PhoenixApplicationShell({
         copilot={copilot}
         developer={developer}
         information={information}
+        informationRoute={informationRoute}
         journal={journal}
         macros={macros}
-        onNavigate={onNavigate}
+        onNavigateRoute={onNavigateRoute}
+        onNavigateWorkspace={onNavigateWorkspace}
         settings={settings}
         telemetry={telemetry}
       />
@@ -72,25 +77,12 @@ export function PhoenixApplicationShell({
           selection="subtle"
           label="Workspaces"
           current={activeDesktop}
-          items={workspaceItems}
+          items={workspaceItems(informationRoute)}
           onItemSelect={(item) => {
-            if (isPrimaryDesktop(item.id)) onNavigate(item.id)
+            if (isRouteNavigationItem(item)) onNavigateRoute(item.route)
           }}
         />
       </BottomBar>
     </ApplicationShell>
   )
-}
-
-function isPrimaryDesktop(value: string): value is PrimaryDesktop {
-  return value === 'controls' || value === 'info' || value === 'copilot'
-}
-
-async function toggleFullscreen(): Promise<void> {
-  if (!document.fullscreenEnabled) return
-  if (document.fullscreenElement) {
-    await document.exitFullscreen()
-    return
-  }
-  await document.documentElement.requestFullscreen({ navigationUI: 'hide' })
 }

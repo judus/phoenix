@@ -1,31 +1,79 @@
-import type { NavigationItem } from '@phoenix/ui'
+import type { ApplicationNavigationItem, NavigationItem } from '@phoenix/ui'
+import {
+  HOME_ROUTE,
+  defaultRouteForInformationSection,
+  defaultRouteForWorkspace,
+  type InformationPrimarySection,
+  type InformationRoute,
+  type PhoenixRoute
+} from '../../platform/routing/phoenix-route.js'
+import { phoenixRouteHash } from '../../platform/routing/phoenix-router.js'
 
-export const utilityItems: NavigationItem[] = [
-  { id: 'telemetry', label: 'Telemetry', shortLabel: '123', href: '#telemetry' },
-  { id: 'macros', label: 'Macros', shortLabel: 'MAC', href: '#macros' },
-  { id: 'journal', label: 'Journal log', shortLabel: 'LOG', href: '#journal' },
-  { id: 'developer', label: 'Developer tools', shortLabel: 'DEV', href: '#developer' },
-  { id: 'settings', label: 'Settings', shortLabel: '⚙', href: '#settings' },
-  { id: 'fullscreen', label: 'Fullscreen', shortLabel: '⛶', href: '#fullscreen' }
+export type RouteNavigationItem = NavigationItem & { route: PhoenixRoute }
+
+export function utilityItems(fullscreen: { active: boolean, supported: boolean }): ApplicationNavigationItem[] {
+  return [
+    routeItem('telemetry', 'Numpad', '123', { kind: 'numpad', view: 'navigator' }),
+    routeItem('macros', 'Macros', 'MAC', { kind: 'macros' }),
+    routeItem('journal', 'Journal log', 'LOG', { kind: 'journal' }),
+    routeItem('developer', 'Developer tools', 'DEV', { kind: 'developer', view: 'overview' }),
+    routeItem('settings', 'Settings', '⚙', { kind: 'settings', view: 'system' }),
+    {
+      id: 'fullscreen',
+      kind: 'action',
+      label: fullscreen.active ? 'Exit fullscreen' : 'Enter fullscreen',
+      shortLabel: '⛶',
+      pressed: fullscreen.active,
+      disabled: !fullscreen.supported
+    }
+  ]
+}
+
+export const primaryItems: RouteNavigationItem[] = [
+  informationItem('commander', 'Commander'),
+  informationItem('fleet', 'Fleet'),
+  informationItem('galaxy', 'Galaxy'),
+  informationItem('operations', 'Operations'),
+  informationItem('engineering', 'Engineering'),
+  informationItem('comms', 'Comms')
 ]
 
-export const primaryItems: NavigationItem[] = [
-  { id: 'commander', label: 'Commander', href: '#commander' },
-  { id: 'fleet', label: 'Fleet', href: '#fleet' },
-  { id: 'galaxy', label: 'Galaxy', href: '#galaxy' },
-  { id: 'operations', label: 'Operations', href: '#operations' },
-  { id: 'engineering', label: 'Engineering', href: '#engineering' },
-  { id: 'comms', label: 'Comms', href: '#comms' }
+export const contextItems: RouteNavigationItem[] = [
+  routeItem('overview', 'Overview', '◇', HOME_ROUTE),
+  routeItem('ship', 'Current ship', 'SHP', { kind: 'information', section: 'fleet', view: 'current-overview' }),
+  { ...routeItem('alerts', 'Alerts', 'ALT', { kind: 'information', section: 'operations', view: 'overview' }), badge: '2' }
 ]
 
-export const contextItems: NavigationItem[] = [
-  { id: 'overview', label: 'Overview', shortLabel: '◇', href: '#overview' },
-  { id: 'ship', label: 'Current ship', shortLabel: 'SHP', href: '#ship' },
-  { id: 'alerts', label: 'Alerts', shortLabel: 'ALT', href: '#alerts', badge: '2' }
-]
+export function workspaceItems(informationRoute: InformationRoute): RouteNavigationItem[] {
+  return [
+    routeItem('controls', 'Controls', undefined, defaultRouteForWorkspace('controls')),
+    routeItem('info', 'Info', undefined, informationRoute),
+    routeItem('copilot', 'Copilot', undefined, defaultRouteForWorkspace('copilot'))
+  ]
+}
 
-export const workspaceItems: NavigationItem[] = [
-  { id: 'controls', label: 'Controls', href: '#controls' },
-  { id: 'info', label: 'Info', href: '#info' },
-  { id: 'copilot', label: 'Copilot', href: '#copilot' }
-]
+export function contextForInformationRoute(route: InformationRoute): 'overview' | 'ship' | 'alerts' {
+  if (route.section === 'fleet' && route.view.startsWith('current-')) return 'ship'
+  if (route.section === 'operations') return 'alerts'
+  return 'overview'
+}
+
+export const homeItem: RouteNavigationItem = routeItem('home', 'Home', undefined, HOME_ROUTE)
+
+export function isRouteNavigationItem(item: ApplicationNavigationItem): item is RouteNavigationItem {
+  return 'route' in item
+}
+
+function informationItem(section: Exclude<InformationPrimarySection, 'home'>, label: string): RouteNavigationItem {
+  return routeItem(section, label, undefined, defaultRouteForInformationSection(section))
+}
+
+function routeItem(id: string, label: string, shortLabel: string | undefined, route: PhoenixRoute): RouteNavigationItem {
+  return {
+    id,
+    label,
+    ...(shortLabel ? { shortLabel } : {}),
+    href: phoenixRouteHash(route),
+    route
+  }
+}

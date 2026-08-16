@@ -1,21 +1,68 @@
-import { expect, test } from 'vitest'
-import { readRoute } from '../apps/web/src/app.js'
+import { describe, expect, test } from 'vitest'
+import {
+  HOME_ROUTE,
+  defaultRouteForWorkspace,
+  workspaceForRoute
+} from '../apps/web/src/platform/routing/phoenix-route.js'
+import {
+  parsePhoenixRoute,
+  phoenixRouteHash
+} from '../apps/web/src/platform/routing/phoenix-router.js'
 
-test('current ship tabs resolve to distinct Fleet views', () => {
-  expect(readRoute('#/fleet/ships/current/overview')).toEqual({ section: 'fleet', view: 'status' })
-  expect(readRoute('#/fleet/ships/current/loadout')).toEqual({ section: 'fleet', view: 'modules' })
-  expect(readRoute('#/fleet/ships/current/cargo')).toEqual({ section: 'fleet', view: 'cargo' })
-})
+describe('PHOENIX route parsing and generation', () => {
+  test('empty and Home hashes resolve to the Information workspace', () => {
+    expect(parsePhoenixRoute('')).toEqual(HOME_ROUTE)
+    expect(parsePhoenixRoute('#')).toEqual(HOME_ROUTE)
+    expect(parsePhoenixRoute('#/')).toEqual(HOME_ROUTE)
+    expect(parsePhoenixRoute('#home')).toEqual(HOME_ROUTE)
+    expect(workspaceForRoute(parsePhoenixRoute('#/'))).toBe('info')
+  })
 
-test('galaxy database resolves as a first-class Galaxy view', () => {
-  expect(readRoute('#/galaxy/database')).toEqual({ section: 'galaxy', view: 'database' })
-})
+  test.each([
+    ['#/controls/navigation', { kind: 'controls', category: 'navigation' }, 'controls'],
+    ['#/commander/inventory', { kind: 'information', section: 'commander', view: 'inventory' }, 'info'],
+    ['#/fleet/ships/current/loadout', { kind: 'information', section: 'fleet', view: 'current-loadout' }, 'info'],
+    ['#/galaxy/database', { kind: 'information', section: 'galaxy', view: 'database' }, 'info'],
+    ['#/operations/missions', { kind: 'information', section: 'operations', view: 'missions' }, 'info'],
+    ['#/engineering/materials/encoded', { kind: 'information', section: 'engineering', view: 'materials-encoded' }, 'info'],
+    ['#/comms/radio', { kind: 'information', section: 'comms', view: 'radio' }, 'info'],
+    ['#/copilot/profiles', { kind: 'copilot', view: 'profiles' }, 'copilot'],
+    ['#/numpad/shortcuts', { kind: 'numpad', view: 'shortcuts' }, 'telemetry'],
+    ['#/macros', { kind: 'macros' }, 'macros'],
+    ['#/records/journal', { kind: 'journal' }, 'journal'],
+    ['#/developer/runtime', { kind: 'developer', view: 'runtime' }, 'developer'],
+    ['#/settings/audio', { kind: 'settings', view: 'audio' }, 'settings']
+  ] as const)('parses %s as a canonical destination', (hash, route, workspace) => {
+    expect(parsePhoenixRoute(hash)).toEqual(route)
+    expect(workspaceForRoute(parsePhoenixRoute(hash))).toBe(workspace)
+    expect(phoenixRouteHash(parsePhoenixRoute(hash))).toBe(hash)
+  })
 
-test('numpad resolves as a dedicated information surface', () => {
-  expect(readRoute('#/numpad')).toEqual({ section: 'numpad', view: 'navigator' })
-  expect(readRoute('#/numpad/shortcuts')).toEqual({ section: 'numpad', view: 'shortcuts' })
-})
+  test('query state survives parsing and canonical generation', () => {
+    const route = parsePhoenixRoute('#/galaxy/system?name=Sol&selected=Earth')
+    expect(route).toEqual({
+      kind: 'information',
+      section: 'galaxy',
+      view: 'system',
+      query: { name: 'Sol', selected: 'Earth' }
+    })
+    expect(phoenixRouteHash(route)).toBe('#/galaxy/system?name=Sol&selected=Earth')
+  })
 
-test('macros resolve as a docked information module', () => {
-  expect(readRoute('#/macros')).toEqual({ section: 'macros' })
+  test.each([
+    ['#/log', '#/records/journal'],
+    ['#/navigation/route', '#/galaxy/route'],
+    ['#/ship/modules', '#/fleet/ships/current/loadout'],
+    ['#/fleet/current', '#/fleet/ships/current/overview'],
+    ['#/ship/inventory', '#/commander/inventory'],
+    ['#/exploration/biology?system=Sol&body=Earth', '#/records/exploration/biology?system=Sol&body=Earth']
+  ])('normalizes documented compatibility route %s', (alias, canonical) => {
+    expect(phoenixRouteHash(parsePhoenixRoute(alias))).toBe(canonical)
+  })
+
+  test('workspace destinations use explicit defaults', () => {
+    expect(defaultRouteForWorkspace('controls')).toEqual({ kind: 'controls', category: 'ship' })
+    expect(defaultRouteForWorkspace('info')).toEqual(HOME_ROUTE)
+    expect(defaultRouteForWorkspace('telemetry')).toEqual({ kind: 'numpad', view: 'navigator' })
+  })
 })

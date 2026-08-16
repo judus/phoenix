@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { Navigation, PrimaryBar } from '@phoenix/ui'
-import type { NavigationItem } from '@phoenix/ui'
+import type { ApplicationNavigationItem, NavigationItem } from '@phoenix/ui'
+import type { PhoenixRoute } from '../../platform/routing/phoenix-route.js'
+import { homeItem, isRouteNavigationItem, type RouteNavigationItem } from './navigation-model.js'
 import { WorkspacePage } from './workspace-page.js'
 
 export function InformationWorkspace({
@@ -8,34 +10,44 @@ export function InformationWorkspace({
   contextItems,
   currentContext,
   currentPrimary,
-  onHome,
+  onNavigate,
   primaryItems
 }: {
   children?: ReactNode
   contextItems: NavigationItem[]
   currentContext: string
   currentPrimary: string
-  onHome?: () => void
-  primaryItems: NavigationItem[]
+  onNavigate: (route: PhoenixRoute) => void
+  primaryItems: RouteNavigationItem[]
 }) {
   return (
     <div className="deskplane-section">
       <PrimaryBar launcher={(
         <a
-          href="#home"
+          className={currentPrimary === 'home' ? 'active' : undefined}
+          href={homeItem.href}
           aria-label="Home"
-          onClick={onHome ? (event) => {
+          aria-current={currentPrimary === 'home' ? 'page' : undefined}
+          onClick={(event) => {
             event.preventDefault()
-            onHome()
-          } : undefined}
+            onNavigate(homeItem.route)
+          }}
         >⌂</a>
       )}>
-        <Navigation label="Primary" current={currentPrimary} items={primaryItems} />
+        <Navigation
+          label="Primary"
+          current={currentPrimary}
+          items={primaryItems}
+          onItemSelect={(item: ApplicationNavigationItem) => {
+            if (isRouteNavigationItem(item)) onNavigate(item.route)
+          }}
+        />
       </PrimaryBar>
       <WorkspacePage
         contextItems={contextItems}
         contextLabel="Commander views"
         currentContext={currentContext}
+        onNavigate={onNavigate}
       >
         {children}
       </WorkspacePage>

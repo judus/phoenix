@@ -2,20 +2,23 @@ import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import type { Deskplane, DeskplaneSnapshot } from 'deskplane'
 import { DeskplaneViewport } from 'deskplane/react'
-import { contextItems, primaryItems } from './navigation-model.js'
+import { contextForInformationRoute, contextItems, primaryItems } from './navigation-model.js'
 import { InformationWorkspace } from './information-workspace.js'
 import { UtilityWorkspacePage, WorkspacePage } from './workspace-page.js'
-import { isWorkspaceDesktop, type WorkspaceDesktop } from './workspace-desktop.js'
+import { DeskplaneRouteSynchronizer } from './deskplane-route-synchronizer.js'
+import type { InformationRoute, PhoenixRoute, PhoenixWorkspace } from '../../platform/routing/phoenix-route.js'
 
 export interface DesktopWorkspaceProps {
-  activeDesktop: WorkspaceDesktop
+  activeDesktop: PhoenixWorkspace
   controls: ReactNode
   copilot: ReactNode
   developer: ReactNode
   information: ReactNode
   journal: ReactNode
   macros: ReactNode
-  onNavigate: (desktop: WorkspaceDesktop) => void
+  informationRoute: InformationRoute
+  onNavigateRoute: (route: PhoenixRoute) => void
+  onNavigateWorkspace: (desktop: PhoenixWorkspace) => void
   settings: ReactNode
   telemetry: ReactNode
 }
@@ -26,40 +29,33 @@ export function DesktopWorkspace({
   copilot,
   developer,
   information,
+  informationRoute,
   journal,
   macros,
-  onNavigate,
+  onNavigateRoute,
+  onNavigateWorkspace,
   settings,
   telemetry
 }: DesktopWorkspaceProps) {
   const controller = useRef<Deskplane | null>(null)
   const initialDesktop = useRef(activeDesktop)
-  const activeDesktopRef = useRef(activeDesktop)
-  const programmaticTargetRef = useRef<WorkspaceDesktop | undefined>(undefined)
-  const onNavigateRef = useRef(onNavigate)
+  const synchronizer = useRef(new DeskplaneRouteSynchronizer(activeDesktop))
+  const onNavigateRef = useRef(onNavigateWorkspace)
 
-  activeDesktopRef.current = activeDesktop
-  onNavigateRef.current = onNavigate
+  onNavigateRef.current = onNavigateWorkspace
 
   useEffect(() => {
     const deskplane = controller.current
     if (!deskplane) return
-    programmaticTargetRef.current = activeDesktop
+    synchronizer.current.beginRouteSynchronization(activeDesktop)
     void deskplane.goTo(activeDesktop).finally(() => {
-      if (programmaticTargetRef.current === activeDesktop) programmaticTargetRef.current = undefined
+      synchronizer.current.finishRouteSynchronization(activeDesktop)
     })
   }, [activeDesktop])
 
   const handleSnapshotChange = (snapshot: DeskplaneSnapshot): void => {
-    const desktop = snapshot.activeDesktopId
-    const programmaticTarget = programmaticTargetRef.current
-    if (programmaticTarget) {
-      if (desktop === programmaticTarget) programmaticTargetRef.current = undefined
-      return
-    }
-    if (isWorkspaceDesktop(desktop) && desktop !== activeDesktopRef.current) {
-      onNavigateRef.current(desktop)
-    }
+    const destination = synchronizer.current.receiveDeskplaneSnapshot(snapshot.activeDesktopId)
+    if (destination) onNavigateRef.current(destination)
   }
 
   return (
@@ -96,6 +92,7 @@ export function DesktopWorkspace({
                   contextItems={contextItems}
                   contextLabel="Commander views"
                   currentContext="ship"
+                  onNavigate={onNavigateRoute}
                 >
                   {controls}
                 </WorkspacePage>
@@ -107,8 +104,9 @@ export function DesktopWorkspace({
               children: (
                 <InformationWorkspace
                   contextItems={contextItems}
-                  currentContext="ship"
-                  currentPrimary="fleet"
+                  currentContext={contextForInformationRoute(informationRoute)}
+                  currentPrimary={informationRoute.section}
+                  onNavigate={onNavigateRoute}
                   primaryItems={primaryItems}
                 >
                   {information}
@@ -123,6 +121,7 @@ export function DesktopWorkspace({
                   contextItems={contextItems}
                   contextLabel="Commander views"
                   currentContext="ship"
+                  onNavigate={onNavigateRoute}
                 >
                   {copilot}
                 </WorkspacePage>
@@ -143,7 +142,7 @@ export function DesktopWorkspace({
   )
 }
 
-function utilityDesktop(id: WorkspaceDesktop, ariaLabel: string, children: ReactNode) {
+function utilityDesktop(id: PhoenixWorkspace, ariaLabel: string, children: ReactNode) {
   return {
     id,
     ariaLabel,

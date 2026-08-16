@@ -1,0 +1,168 @@
+import {
+  CONTROL_CATEGORIES,
+  HOME_ROUTE,
+  type InformationRoute,
+  type PhoenixRoute,
+  type PhoenixRouteQuery,
+  type PhoenixWorkspace
+} from './phoenix-route.js'
+
+export interface PhoenixRouter {
+  getSnapshot(): PhoenixRoute
+  getRememberedInformationRoute(): InformationRoute
+  href(route: PhoenixRoute): string
+  push(route: PhoenixRoute): void
+  replace(route: PhoenixRoute): void
+  routeForWorkspace(workspace: PhoenixWorkspace): PhoenixRoute
+  subscribe(listener: () => void): () => void
+}
+
+export function parsePhoenixRoute(input: string): PhoenixRoute {
+  const { segments, query } = splitHash(input)
+  const [section, ...rest] = segments
+
+  if (!section || section === 'home' || section === 'info') return withQuery(HOME_ROUTE, query)
+
+  if (section === 'controls') {
+    const category = CONTROL_CATEGORIES.find(candidate => candidate === rest[0]) ?? 'ship'
+    return withQuery({ kind: 'controls', category }, query)
+  }
+
+  if (section === 'copilot') {
+    return withQuery({ kind: 'copilot', view: rest[0] === 'profiles' ? 'profiles' : 'chat' }, query)
+  }
+
+  if (section === 'numpad' || section === 'telemetry') {
+    return withQuery({ kind: 'numpad', view: rest[0] === 'shortcuts' ? 'shortcuts' : 'navigator' }, query)
+  }
+
+  if (section === 'macros') return withQuery({ kind: 'macros' }, query)
+  if (section === 'log' || (section === 'records' && rest[0] === 'journal') || section === 'journal') {
+    return withQuery({ kind: 'journal' }, query)
+  }
+
+  if (section === 'exploration' || (section === 'records' && rest[0] === 'exploration')) {
+    const viewSegment = section === 'exploration' ? rest[0] : rest[1]
+    const view = oneOf(viewSegment, ['ledger', 'body', 'biology', 'geology'] as const) ?? 'ledger'
+    return withQuery({ kind: 'information', section: 'records', view: `exploration-${view}` }, query)
+  }
+
+  if (section === 'developer') {
+    const view = oneOf(rest[0], ['overview', 'runtime', 'elite', 'health', 'tests', 'controls'] as const) ?? 'overview'
+    return withQuery({ kind: 'developer', view }, query)
+  }
+
+  if (section === 'settings') {
+    const view = oneOf(rest[0], ['system', 'audio', 'modules', 'pairing'] as const) ?? 'system'
+    return withQuery({ kind: 'settings', view }, query)
+  }
+
+  if (section === 'ship') {
+    if (rest[0] === 'inventory') return withQuery({ kind: 'information', section: 'commander', view: 'inventory' }, query)
+    const view = rest[0] === 'modules' ? 'current-loadout' : rest[0] === 'cargo' ? 'current-cargo' : 'current-overview'
+    return withQuery({ kind: 'information', section: 'fleet', view }, query)
+  }
+
+  if (section === 'navigation') return parseGalaxyRoute(rest, query)
+
+  if (section === 'commander') {
+    const view = oneOf(rest[0], ['overview', 'inventory', 'progress'] as const) ?? 'overview'
+    return withQuery({ kind: 'information', section, view }, query)
+  }
+
+  if (section === 'fleet') return parseFleetRoute(rest, query)
+  if (section === 'galaxy') return parseGalaxyRoute(rest, query)
+
+  if (section === 'operations') {
+    const view = oneOf(rest[0], ['overview', 'missions', 'objectives', 'community-goals', 'powerplay', 'colonisation'] as const) ?? 'overview'
+    return withQuery({ kind: 'information', section, view }, query)
+  }
+
+  if (section === 'engineering') return parseEngineeringRoute(rest, query)
+
+  if (section === 'comms') {
+    const view = oneOf(rest[0], ['overview', 'inbox', 'traffic', 'contacts', 'galnet', 'radio'] as const) ?? 'overview'
+    return withQuery({ kind: 'information', section, view }, query)
+  }
+
+  return withQuery(HOME_ROUTE, query)
+}
+
+export function phoenixRouteHash(route: PhoenixRoute): string {
+  let path: string
+  switch (route.kind) {
+    case 'information': path = informationPath(route); break
+    case 'controls': path = `/controls/${route.category}`; break
+    case 'copilot': path = `/copilot/${route.view}`; break
+    case 'numpad': path = route.view === 'navigator' ? '/numpad' : '/numpad/shortcuts'; break
+    case 'macros': path = '/macros'; break
+    case 'journal': path = '/records/journal'; break
+    case 'developer': path = `/developer/${route.view}`; break
+    case 'settings': path = `/settings/${route.view}`; break
+  }
+  const parameters = new URLSearchParams(route.query)
+  const query = parameters.toString()
+  return `#${path}${query ? `?${query}` : ''}`
+}
+
+function informationPath(route: InformationRoute): string {
+  if (route.section === 'home') return '/'
+  if (route.section === 'fleet') {
+    if (route.view === 'current-overview') return '/fleet/ships/current/overview'
+    if (route.view === 'current-loadout') return '/fleet/ships/current/loadout'
+    if (route.view === 'current-cargo') return '/fleet/ships/current/cargo'
+    return `/fleet/${route.view}`
+  }
+  if (route.section === 'engineering' && route.view.startsWith('materials-')) {
+    return `/engineering/materials/${route.view.slice('materials-'.length)}`
+  }
+  if (route.section === 'records') {
+    return `/records/exploration/${route.view.slice('exploration-'.length)}`
+  }
+  return `/${route.section}/${route.view}`
+}
+
+function parseFleetRoute(rest: string[], query: PhoenixRouteQuery): InformationRoute {
+  if (rest[0] === 'ships' && rest[1] === 'current') {
+    const view = rest[2] === 'loadout' ? 'current-loadout' : rest[2] === 'cargo' ? 'current-cargo' : 'current-overview'
+    return withQuery({ kind: 'information', section: 'fleet', view }, query)
+  }
+  if (rest[0] === 'current' || rest[0] === 'loadout' || rest[0] === 'cargo') {
+    const view = rest[0] === 'loadout' ? 'current-loadout' : rest[0] === 'cargo' ? 'current-cargo' : 'current-overview'
+    return withQuery({ kind: 'information', section: 'fleet', view }, query)
+  }
+  const view = oneOf(rest[0], ['overview', 'carriers', 'stored-modules', 'catalogue'] as const) ?? 'overview'
+  return withQuery({ kind: 'information', section: 'fleet', view }, query)
+}
+
+function parseGalaxyRoute(rest: string[], query: PhoenixRouteQuery): InformationRoute {
+  const view = oneOf(rest[0], ['system', 'route', 'database'] as const) ?? 'system'
+  return withQuery({ kind: 'information', section: 'galaxy', view }, query)
+}
+
+function parseEngineeringRoute(rest: string[], query: PhoenixRouteQuery): InformationRoute {
+  if (rest[0] === 'materials') {
+    const material = oneOf(rest[1], ['raw', 'manufactured', 'encoded', 'xeno'] as const) ?? 'raw'
+    return withQuery({ kind: 'information', section: 'engineering', view: `materials-${material}` }, query)
+  }
+  const view = oneOf(rest[0], ['blueprints', 'engineers'] as const) ?? 'blueprints'
+  return withQuery({ kind: 'information', section: 'engineering', view }, query)
+}
+
+function splitHash(input: string): { segments: string[], query: PhoenixRouteQuery } {
+  const raw = input.trim().replace(/^#/u, '')
+  const [path = '', search = ''] = raw.split('?', 2)
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  return {
+    segments: normalizedPath.split('/').filter(Boolean),
+    query: Object.fromEntries(new URLSearchParams(search))
+  }
+}
+
+function withQuery<T extends PhoenixRoute>(route: T, query: PhoenixRouteQuery): T {
+  return Object.keys(query).length === 0 ? route : { ...route, query }
+}
+
+function oneOf<const T extends readonly string[]>(value: string | undefined, values: T): T[number] | undefined {
+  return values.find(candidate => candidate === value)
+}

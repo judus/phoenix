@@ -2,14 +2,17 @@ import type { HTMLAttributes, ReactNode } from 'react'
 
 import './app-shell.css'
 
-export type NavigationItem = {
+type NavigationItemBase = {
   badge?: ReactNode
   disabled?: boolean
-  href: string
   id: string
   label: string
   shortLabel?: string
 }
+
+export type NavigationItem = NavigationItemBase & { href: string, kind?: 'link' }
+export type NavigationActionItem = NavigationItemBase & { kind: 'action', pressed?: boolean }
+export type ApplicationNavigationItem = NavigationItem | NavigationActionItem
 
 type AppNavigationProps = HTMLAttributes<HTMLElement> & {
   current: string

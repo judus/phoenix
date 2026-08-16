@@ -1,13 +1,13 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 
-import type { NavigationItem } from './app-shell'
+import type { ApplicationNavigationItem } from './app-shell'
 import './application-shell.css'
 
 type NavigationProps = HTMLAttributes<HTMLElement> & {
   current?: string
-  items: NavigationItem[]
+  items: ApplicationNavigationItem[]
   label: string
-  onItemSelect?: (item: NavigationItem) => void
+  onItemSelect?: (item: ApplicationNavigationItem) => void
   selection?: 'strong' | 'subtle'
   variant?: 'primary' | 'compact' | 'workspace'
 }
@@ -44,6 +44,21 @@ export function Navigation({
                 <span>{item.label}</span>
                 {item.badge && <small>{item.badge}</small>}
               </span>
+            ) : item.kind === 'action' ? (
+              <button
+                type="button"
+                className={['nav-item', item.pressed && 'active'].filter(Boolean).join(' ')}
+                aria-label={item.label}
+                aria-pressed={item.pressed}
+                onClick={() => onItemSelect?.(item)}
+                title={variant === 'compact' ? item.label : undefined}
+              >
+                <abbr title={item.label} aria-hidden="true">
+                  {item.shortLabel ?? item.label.slice(0, 3)}
+                </abbr>
+                <span>{item.label}</span>
+                {item.badge && <small>{item.badge}</small>}
+              </button>
             ) : (
               <a
                 className={['nav-item', current === item.id && 'active'].filter(Boolean).join(' ')}

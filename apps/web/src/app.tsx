@@ -1,15 +1,19 @@
-import { useState } from 'react'
 import { PlaceholderPage } from './components/shell/placeholder-page.js'
 import { PhoenixApplicationShell } from './components/shell/phoenix-application-shell.js'
-import type { WorkspaceDesktop } from './components/shell/workspace-desktop.js'
+import { isInformationRoute, workspaceForRoute } from './platform/routing/phoenix-route.js'
+import type { PhoenixRouter } from './platform/routing/phoenix-router.js'
+import { usePhoenixRoute } from './platform/routing/use-phoenix-route.js'
 
-export function App() {
-  const [activeDesktop, setActiveDesktop] = useState<WorkspaceDesktop>('info')
+export function App({ router }: { router: PhoenixRouter }) {
+  const route = usePhoenixRoute(router)
+  const informationRoute = isInformationRoute(route) ? route : router.getRememberedInformationRoute()
 
   return (
     <PhoenixApplicationShell
-      activeDesktop={activeDesktop}
-      onNavigate={setActiveDesktop}
+      activeDesktop={workspaceForRoute(route)}
+      informationRoute={informationRoute}
+      onNavigateRoute={router.push}
+      onNavigateWorkspace={(workspace) => router.push(router.routeForWorkspace(workspace))}
       controls={<PlaceholderPage context="Controls" title="Flight controls" description="Ship and game command surfaces" />}
       copilot={<PlaceholderPage context="Copilot" title="Flight assistant" description="Conversation and current task context" />}
       developer={<PlaceholderPage context="Developer" title="Developer tools" description="Runtime inspection and diagnostics" />}
