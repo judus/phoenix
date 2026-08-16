@@ -120,6 +120,7 @@
 
   .section {
     display: grid;
+    align-content: start;
     gap: var(--section-gap);
     min-inline-size: 0;
 

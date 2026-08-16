@@ -21,6 +21,7 @@ import { CurrentShipLoadoutPage } from '../src/pages/current-ship-loadout-page'
 import { FleetPage } from '../src/pages/fleet-page'
 import { HomeDashboardPage } from '../src/pages/home-dashboard-page'
 import { PersonalStoresPage } from '../src/pages/personal-stores-page'
+import { PlottedRoutePage } from '../src/pages/plotted-route-page'
 import { ShipCataloguePage } from '../src/pages/ship-catalogue-page'
 import { StoredModulesPage } from '../src/pages/stored-modules-page'
 import '../src/styles/tablet-shell-stories.css'
@@ -175,6 +176,16 @@ function PersonalStoresShell() {
     <div className="tablet-shell-story">
       <BaselineShell context="overview" primary="commander">
         <PersonalStoresPage />
+      </BaselineShell>
+    </div>
+  )
+}
+
+function PlottedRouteShell() {
+  return (
+    <div className="tablet-shell-story">
+      <BaselineShell context="overview" primary="galaxy">
+        <PlottedRoutePage />
       </BaselineShell>
     </div>
   )
@@ -349,3 +360,4 @@ export const Fleet: Story = { render: () => <FleetShell /> }
 export const ShipCatalogue: Story = { render: () => <ShipCatalogueShell /> }
 export const StoredModules: Story = { render: () => <StoredModulesShell /> }
 export const PersonalStores: Story = { render: () => <PersonalStoresShell /> }
+export const PlottedRoute: Story = { render: () => <PlottedRouteShell /> }
