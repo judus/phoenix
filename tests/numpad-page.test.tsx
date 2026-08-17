@@ -44,7 +44,8 @@ test('the reconstructed numpad renders the live command navigator', () => {
     }}
   />)
 
-  expect(markup).toContain('<h1>Numpad</h1>')
+  expect(markup).not.toContain('<h1>')
+  expect(markup).toContain('--numpad-columns:2')
   expect(markup).toContain('Press Numpad 0')
   expect(markup).toContain('Fleet')
   expect(markup).not.toContain('Numpad views')

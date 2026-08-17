@@ -4,6 +4,7 @@ import {
   activateNumpadSession,
   confirmNumpadSelection,
   enterNumpadDigit,
+  enterNumpadDigitOrCancel,
   finishNumpadSession,
   selectNumpadNode
 } from '../apps/web/src/features/numpad/numpad-session.js'
@@ -53,10 +54,22 @@ test('tile selection addresses the exact node without prefix ambiguity', () => {
 test('an empty menu still opens instead of being treated as an unavailable command', () => {
   const emptyMenuSnapshot: NumpadTreeSnapshot = {
     ...snapshot,
-    nodes: [node('shortcuts', null, '9', '9', null)]
+    nodes: [node('shortcuts', null, '0', '0', null)]
   }
-  const result = enterNumpadDigit(emptyMenuSnapshot, activateNumpadSession().state, '9', false)
+  const result = enterNumpadDigit(emptyMenuSnapshot, activateNumpadSession().state, '0', false)
   expect(result.state).toMatchObject({ pathIds: ['shortcuts'], status: 'browsing' })
+})
+
+test('zero cancels only when the current level has no matching zero option', () => {
+  const branch = enterNumpadDigit(snapshot, activateNumpadSession().state, '1', false).state
+  expect(enterNumpadDigitOrCancel(snapshot, branch, '0', false).state).toEqual({ active: false, pathIds: [], pendingDigits: '', status: 'idle' })
+
+  const shortcutsSnapshot: NumpadTreeSnapshot = {
+    ...snapshot,
+    nodes: [node('shortcuts', null, '0', '0', null)]
+  }
+  expect(enterNumpadDigitOrCancel(shortcutsSnapshot, activateNumpadSession().state, '0', false).state)
+    .toMatchObject({ active: true, pathIds: ['shortcuts'], status: 'browsing' })
 })
 
 test('a finished execution clears its address and ends the active session', () => {

@@ -19,7 +19,7 @@ test('the numpad API projects and executes the current authoritative command map
   try {
     const initial = await client.getNumpadSnapshot()
     expect(initial.nodes).toContainEqual(expect.objectContaining({ id: 'desktop.controls', address: '1' }))
-    expect(initial.nodes).toContainEqual(expect.objectContaining({ id: 'desktop.shortcuts', address: '9' }))
+    expect(initial.nodes).toContainEqual(expect.objectContaining({ id: 'desktop.shortcuts', address: '0' }))
     const destination = initial.nodes.find(node => node.target?.type === 'navigation')
     expect(destination).toBeDefined()
 
@@ -37,10 +37,10 @@ test('the numpad API projects and executes the current authoritative command map
       }
     })
     const current = await client.getNumpadSnapshot()
-    expect(current.nodes).toContainEqual(expect.objectContaining({ id: 'desktop.shortcuts', address: '9' }))
+    expect(current.nodes).toContainEqual(expect.objectContaining({ id: 'desktop.shortcuts', address: '0' }))
     expect(current.nodes).toContainEqual(expect.objectContaining({
       id: 'shortcut.panic-route',
-      address: '92',
+      address: '02',
       label: 'Panic route',
       target: shortcutTarget
     }))
@@ -68,7 +68,7 @@ test('the numpad API projects and executes the current authoritative command map
     })
     expect((await client.getNumpadSnapshot()).nodes).toContainEqual(expect.objectContaining({
       id: 'shortcut.missing-macro',
-      address: '97',
+      address: '07',
       available: false,
       target: { type: 'macro', macroId: 'deleted-macro' }
     }))

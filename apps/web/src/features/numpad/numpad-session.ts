@@ -18,6 +18,11 @@ export function enterNumpadDigit(snapshot: NumpadTreeSnapshot, state: NumpadSess
   return { state: { ...active, pendingDigits: digits, readyNodeId: resolution.exact?.id, status: resolution.status, message: statusMessage(resolution.status) } }
 }
 
+export function enterNumpadDigitOrCancel(snapshot: NumpadTreeSnapshot, state: NumpadSessionState, digit: string, alwaysConfirm: boolean): NumpadSessionTransition {
+  const transition = enterNumpadDigit(snapshot, state, digit, alwaysConfirm)
+  return digit === '0' && transition.state.status === 'invalid' ? cancelNumpadSession() : transition
+}
+
 export function confirmNumpadSelection(snapshot: NumpadTreeSnapshot, state: NumpadSessionState): NumpadSessionTransition {
   if (!state.active) return { state }
   const resolution = resolveNumpadLevel(snapshot, state.pathIds.at(-1) ?? null, state.pendingDigits)

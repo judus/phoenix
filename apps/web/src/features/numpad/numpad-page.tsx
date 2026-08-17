@@ -4,7 +4,7 @@ import { Button, PageFrame, Status } from '@phoenix/ui'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { setNumpadActivationEnabled } from './numpad-activation-state.js'
 import { acknowledgeNumpadRouteActivation, discardNumpadReturnRoute, leaveNumpadRoute, numpadRouteIsArmed } from './numpad-route-session.js'
-import { activateNumpadSession, cancelNumpadSession, confirmNumpadSelection, currentNumpadParent, displayedNumpadAddress, enterNumpadDigit, executingNumpadSession, finishNumpadSession, idleNumpadSession, selectNumpadNode, visibleNumpadNodes, type NumpadSessionState, type NumpadSessionTransition } from './numpad-session.js'
+import { activateNumpadSession, cancelNumpadSession, confirmNumpadSelection, currentNumpadParent, displayedNumpadAddress, enterNumpadDigitOrCancel, executingNumpadSession, finishNumpadSession, idleNumpadSession, selectNumpadNode, visibleNumpadNodes, type NumpadSessionState, type NumpadSessionTransition } from './numpad-session.js'
 import { NumpadShortcutEditor } from './numpad-shortcut-editor.js'
 import { NumpadTileGrid } from './numpad-tile-grid.js'
 import type { NumpadControllerSnapshot } from './use-numpad-controller.js'
@@ -47,7 +47,12 @@ export function NumpadPage({ api, controller, view }: { api: PhoenixApi, control
       const digit = event.code.match(/^Numpad([0-9])$/u)?.[1]
       if (!session.active && event.code === 'Numpad0') { event.preventDefault(); apply(activateNumpadSession()); return }
       if (!session.active) return
-      if (digit) { event.preventDefault(); apply(enterNumpadDigit(snapshot, session, digit, alwaysConfirm)) }
+      if (digit) {
+        event.preventDefault()
+        const transition = enterNumpadDigitOrCancel(snapshot, session, digit, alwaysConfirm)
+        if (!transition.state.active) cancel()
+        else apply(transition)
+      }
       else if (event.code === 'NumpadDecimal' || event.key === '.') { event.preventDefault(); cancel() }
       else if (event.code === 'NumpadEnter' || event.key === 'Enter') { event.preventDefault(); apply(confirmNumpadSelection(snapshot, session)) }
     }
@@ -58,6 +63,6 @@ export function NumpadPage({ api, controller, view }: { api: PhoenixApi, control
   const parent = snapshot ? currentNumpadParent(snapshot, session) : undefined
 
   return <PageFrame className="numpad-page" layout="fit">
-    {error || controller.error ? <Status tone="danger">{error ?? controller.error}</Status> : controller.status === 'loading' || !settings || !snapshot ? <Status tone="muted">Loading command map…</Status> : view === 'shortcuts' ? <NumpadShortcutEditor commands={controller.commands} shortcuts={settings.numpadCommands.shortcuts} onSave={shortcuts => saveSettings({ ...settings.numpadCommands, shortcuts })} /> : !enabled ? <div className="numpad-standby"><Status tone="muted">Numpad module disabled.</Status><Button variant="primary" onClick={() => void saveSettings({ ...settings.numpadCommands, enabled: true })}>Enable numpad</Button></div> : <div className="numpad-console"><header><div><small>Address</small><strong>{displayedNumpadAddress(snapshot, session)}</strong></div><div><small>Context</small><strong>{parent?.label ?? 'Command root'}</strong></div><div><small>Status</small><strong>{session.active ? session.message ?? session.status : 'Press Numpad 0'}</strong></div><Button variant="quiet" onClick={cancel}>Cancel ·</Button></header><NumpadTileGrid columns={parent?.columns ?? (parent ? undefined : 3)} rows={parent?.rows} nodes={visibleNumpadNodes(snapshot, session)} pendingDigits={session.pendingDigits} onSelect={nodeId => apply(selectNumpadNode(snapshot, session.active ? session : activateNumpadSession().state, nodeId, alwaysConfirm))} /></div>}
+    {error || controller.error ? <Status tone="danger">{error ?? controller.error}</Status> : controller.status === 'loading' || !settings || !snapshot ? <Status tone="muted">Loading command map…</Status> : view === 'shortcuts' ? <NumpadShortcutEditor commands={controller.commands} shortcuts={settings.numpadCommands.shortcuts} onSave={shortcuts => saveSettings({ ...settings.numpadCommands, shortcuts })} /> : !enabled ? <div className="numpad-standby"><Status tone="muted">Numpad module disabled.</Status><Button variant="primary" onClick={() => void saveSettings({ ...settings.numpadCommands, enabled: true })}>Enable numpad</Button></div> : <div className="numpad-console"><header><div><small>Address</small><strong>{displayedNumpadAddress(snapshot, session)}</strong></div><div><small>Context</small><strong>{parent?.label ?? 'Command root'}</strong></div><div><small>Status</small><strong>{session.active ? session.message ?? session.status : 'Press Numpad 0'}</strong></div><Button variant="quiet" onClick={cancel}>Cancel ·</Button></header><NumpadTileGrid columns={parent?.columns ?? (parent ? undefined : 2)} rows={parent?.rows} nodes={visibleNumpadNodes(snapshot, session)} pendingDigits={session.pendingDigits} onSelect={nodeId => apply(selectNumpadNode(snapshot, session.active ? session : activateNumpadSession().state, nodeId, alwaysConfirm))} /></div>}
   </PageFrame>
 }
