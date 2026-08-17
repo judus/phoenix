@@ -4,22 +4,48 @@
 
 PHOENIX is a local-first companion application and ship-computer interface for Elite Dangerous. It turns live telemetry, journal history, control bindings, public galaxy data, and an optional AI Copilot into one cockpit for desktop, tablet, and auxiliary displays.
 
-Its three workspaces—**Controls**, **Information**, and **Copilot**—currently provide:
+## Current status
 
-- commander, inventory, progression, current-ship, fleet, cargo, and loadout views;
-- system cartography, plotted routes, exploration data, and a galaxy query console;
-- missions, engineering, communications, contacts, GalNet, and journal history;
-- configurable ship-control decks, semantic macros, and a Numpad command navigator;
-- synchronized multi-device navigation and display commands;
-- a persistent AI Copilot with text, realtime voice, live context, and application tools.
+PHOENIX currently supports **manual installation on Linux only**. There is no installer or launcher
+yet, but on the supported Linux setup the application and its currently supported feature set are
+functional as intended.
 
-The Copilot can:
+The visuals have so far been optimized and reviewed only for **Chrome on an Android tablet**.
+Desktop layouts, other browsers, and other devices may work, but have not received the same visual
+verification.
 
-- converse through persistent text chat or low-latency realtime voice;
-- answer situational questions using current commander, ship, cargo, location, and navigation telemetry;
-- inspect ships, modules, inventory, materials, missions, routes, systems, stations, and markets;
-- find and execute configured ship controls, with telemetry-aware status checks;
-- open system and body information for the commander across connected PHOENIX screens.
+Telemetry ingestion, journal reconstruction, and external data integrations are operational, but
+their data quality and completeness still need broader verification against real commander history
+and gameplay. PHOENIX preserves unknowns rather than presenting unverified conclusions as facts.
+
+## Implemented features
+
+- **Customizable control deck:** remotely control the ship and Elite Dangerous interface using the
+  commander's real bindings. Arrange commands freely, record reusable macros, and keep dangerous
+  actions visibly distinct.
+- **Commander and ship information:** inspect live and reconstructed commander state, ships, fleet,
+  cargo, engineering, missions, communications, navigation, exploration, and journal history.
+- **Galaxy and cartography tools:** use symbolic system cartography, plotted-route views, and galaxy
+  queries for systems, stations, shipyards, outfitting, markets, factions, and community-sourced
+  intelligence.
+- **Customizable AI Copilot:** create distinct Copilot profiles and converse through persistent text
+  chat or realtime voice. The Copilot can query PHOENIX and configured external data sources, reason
+  over live commander context, navigate the application across connected displays, and—with
+  explicit permission—operate configured controls and macros. It can also just chat, which is
+  occasionally safer for everyone involved.
+- **Numpad command shortcuts:** assign commands and application destinations to memorable
+  Numpad sequences. Navigate PHOENIX or issue controls without hunting through menus, because muscle
+  memory is how you survive a pirate ambush.
+- **Coordinated multi-device cockpit:** pair browsers, synchronize display commands, choose which
+  screen follows Copilot navigation, and coordinate the active voice host without turning every
+  connected display into the same screen.
+
+## Next steps
+
+1. Add and verify Windows support, including Elite discovery and native game controls.
+2. Provide proper installers for Linux and Windows.
+3. Continue improving the tablet interface first.
+4. Adapt and visually verify the interface for desktop and other auxiliary displays.
 
 Development currently targets Node.js 24.14+:
 
@@ -28,8 +54,8 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3401` for development. To build and serve the production application on
-`http://localhost:3400`:
+Open `http://localhost:3401` to access the development application. To build and serve the
+production application on `http://localhost:3400`:
 
 ```sh
 npm run build
@@ -39,5 +65,5 @@ npm start
 Copilot is optional and uses `PHOENIX_OPENAI_API_KEY` or `OPENAI_API_KEY` when configured. See
 [`.env.example`](.env.example) for ports, paths, models, input backends, and other overrides.
 
-Expect incomplete features, breaking changes, and no installation support yet. PHOENIX reports
-unknown data as unknown and distinguishes “command sent” from “ship definitely did the thing.”
+Expect breaking changes and no installation support yet. PHOENIX reports unknown data as unknown
+and distinguishes “command sent” from “ship definitely did the thing.”
