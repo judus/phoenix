@@ -60,11 +60,6 @@
           transform: translate(-50%, -50%);
         }
 
-        > small {
-          justify-self: end;
-          text-align: end;
-        }
-
         &.matching { border-color: var(--color-information); }
       }
     }

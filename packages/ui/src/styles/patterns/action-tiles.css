@@ -1,7 +1,11 @@
   .action-tile {
     position: relative;
     display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template:
+      'label eyebrow' auto
+      'description description' minmax(0, 1fr)
+      'status status' auto
+      / minmax(0, 1fr) auto;
     align-content: start;
     gap: var(--spacing-sm);
     min-inline-size: 0;
@@ -29,7 +33,15 @@
       text-transform: uppercase;
     }
 
+    small {
+      grid-area: eyebrow;
+      justify-self: end;
+      text-align: end;
+    }
+
     strong {
+      grid-area: label;
+      min-inline-size: 0;
       color: var(--color-text);
       font-size: var(--font-size-lg);
       font-weight: var(--font-weight-normal);
@@ -38,12 +50,15 @@
     }
 
     p {
+      grid-area: description;
       max-inline-size: 42ch;
       margin: 0;
       color: var(--color-text-muted);
       font-size: var(--font-size-sm);
       line-height: var(--line-height-normal);
     }
+
+    span { grid-area: status; }
 
     &:hover:not(:disabled) { filter: brightness(1.12); }
 
