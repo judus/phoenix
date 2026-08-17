@@ -4,6 +4,21 @@
 
 PHOENIX is a local-first companion application and ship-computer interface for Elite Dangerous. It turns live telemetry, journal history, control bindings, public galaxy data, and an optional AI Copilot into one cockpit for desktop, tablet, and auxiliary displays.
 
+![screen-02.webp](docs/screens/screen-02.webp)
+
+![screen-06.webp](docs/screens/screen-06.webp)
+
+![screen-07.webp](docs/screens/screen-07.webp)
+
+![screen-16.webp](docs/screens/screen-16.webp)
+
+![screen-10.webp](docs/screens/screen-10.webp)
+
+![screen-01.webp](docs/screens/screen-01.webp)
+
+![screen-24.webp](docs/screens/screen-24.webp)
+
+
 ## Current status
 
 PHOENIX currently supports **manual installation on Linux only**. There is no installer or launcher
@@ -67,3 +82,15 @@ Copilot is optional and uses `PHOENIX_OPENAI_API_KEY` or `OPENAI_API_KEY` when c
 
 Expect breaking changes and no installation support yet. PHOENIX reports unknown data as unknown
 and distinguishes “command sent” from “ship definitely did the thing.”
+
+![screen-22.webp](docs/screens/screen-22.webp)
+![screen-11.webp](docs/screens/screen-11.webp)
+![screen-04.webp](docs/screens/screen-04.webp)
+![screen-03.webp](docs/screens/screen-03.webp)
+![screen-08.webp](docs/screens/screen-08.webp)
+![screen-09.webp](docs/screens/screen-09.webp)
+![screen-24.webp](docs/screens/screen-24.webp)
+![screen-20.webp](docs/screens/screen-20.webp)
+![screen-05.webp](docs/screens/screen-05.webp)
+![screen-21.webp](docs/screens/screen-21.webp)
+![screen-13.webp](docs/screens/screen-13.webp)
