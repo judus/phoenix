@@ -20,7 +20,7 @@ import { fleetContextForRoute, fleetNavigationItems } from './features/fleet/fle
 import { useFleetController } from './features/fleet/use-fleet-controller.js'
 import { galaxyContextForRoute, galaxyNavigationItems } from './features/galaxy/galaxy-navigation.js'
 import { useGalaxyController } from './features/galaxy/use-galaxy-controller.js'
-import { activitiesContextForRoute, activitiesNavigationItemsForRoute } from './features/activities/activities-navigation.js'
+import { activitiesContextForRoute, activitiesNavigationItems } from './features/activities/activities-navigation.js'
 import { useActivitiesController } from './features/activities/use-activities-controller.js'
 import { commsContextForRoute, commsNavigationItems } from './features/comms/comms-navigation.js'
 import { useCommsController } from './features/comms/use-comms-controller.js'
@@ -107,7 +107,7 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
           }
         : activitiesRoute
           ? {
-              informationContextItems: activitiesNavigationItemsForRoute(activitiesRoute),
+              informationContextItems: activitiesNavigationItems,
               informationContextLabel: 'Activity views',
               informationCurrentContext: activitiesContextForRoute(activitiesRoute)
             }
@@ -258,7 +258,7 @@ const ActivitiesFeature = memo(function ActivitiesFeature({ application, route }
   application: PhoenixApplicationServices
   route: Extract<ReturnType<PhoenixRouter['getSnapshot']>, { kind: 'information', section: 'activities' }>
 }) {
-  const controller = useActivitiesController(application.api, application.events, route.view, route.fixture)
+  const controller = useActivitiesController(application.api, application.events, route.view)
   return <ActivitiesPage controller={controller} view={route.view} />
 })
 

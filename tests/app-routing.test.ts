@@ -74,21 +74,17 @@ describe('PHOENIX route parsing and generation', () => {
     expect(phoenixRouteHash(route)).toBe('#/activities/missions')
   })
 
-  test('Activities promotes its temporary review fixture to typed route state', () => {
+  test('Activities discards retired review-fixture fields', () => {
     const route = parsePhoenixRoute('#/activities/missions?fixture=review&selected=42')
 
-    expect(route).toEqual({ kind: 'information', section: 'activities', view: 'missions', fixture: 'review' })
-    expect(phoenixRouteHash(route)).toBe('#/activities/missions?fixture=review')
+    expect(route).toEqual({ kind: 'information', section: 'activities', view: 'missions' })
+    expect(phoenixRouteHash(route)).toBe('#/activities/missions')
   })
 
   test('Activities lands on Missions and normalizes the retired overview route', () => {
     expect(defaultRouteForInformationSection('activities')).toEqual({ kind: 'information', section: 'activities', view: 'missions' })
     expect(phoenixRouteHash(parsePhoenixRoute('#/activities/overview'))).toBe('#/activities/missions')
     expect(phoenixRouteHash(parsePhoenixRoute('#/operations/overview'))).toBe('#/activities/missions')
-  })
-
-  test('legacy mission fixture URLs normalize to the shared review fixture', () => {
-    expect(phoenixRouteHash(parsePhoenixRoute('#/activities/objectives?fixture=missions'))).toBe('#/activities/objectives?fixture=review')
   })
 
   test('Fleet promotes catalogue selection and drops arbitrary query fields', () => {

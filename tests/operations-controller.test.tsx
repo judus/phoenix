@@ -34,34 +34,8 @@ test('Activities loads missions only where used and refreshes only for mission j
 
   view = 'objectives'
   await act(async () => renderer.update(<Probe />))
-  expect(snapshot).toEqual({ fixture: true, status: 'ready' })
+  expect(snapshot).toEqual({ status: 'ready' })
   expect(api.getMissions).toHaveBeenCalledTimes(2)
-  await act(async () => renderer.unmount())
-})
-
-test('Activities fixture mode is isolated from the API transport', async () => {
-  const events = new FakeEventHub()
-  const api = { getMissions: vi.fn() } as unknown as PhoenixApi
-  let snapshot: ActivitiesControllerSnapshot | undefined
-
-  function Probe() { snapshot = useActivitiesController(api, events, 'missions', 'review'); return null }
-  const renderer = await act(async () => create(<Probe />))
-
-  expect(api.getMissions).not.toHaveBeenCalled()
-  expect(snapshot).toMatchObject({ fixture: true, status: 'ready', missions: { summary: { total: 6 } } })
-  await act(async () => renderer.unmount())
-})
-
-test('Activities review fixtures do not call an uncontracted API', async () => {
-  const events = new FakeEventHub()
-  const api = { getMissions: vi.fn() } as unknown as PhoenixApi
-  let snapshot: ActivitiesControllerSnapshot | undefined
-
-  function Probe() { snapshot = useActivitiesController(api, events, 'colonisation', 'review'); return null }
-  const renderer = await act(async () => create(<Probe />))
-
-  expect(api.getMissions).not.toHaveBeenCalled()
-  expect(snapshot).toEqual({ fixture: true, status: 'ready' })
   await act(async () => renderer.unmount())
 })
 

@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test } from 'vitest'
 import type { Mission, MissionsResponse } from '@phoenix/contracts'
 import { ActivitiesPage } from '../apps/web/src/features/activities/activities-page.js'
-import { activitiesNavigationItems, activitiesNavigationItemsForRoute } from '../apps/web/src/features/activities/activities-navigation.js'
+import { activitiesNavigationItems } from '../apps/web/src/features/activities/activities-navigation.js'
 import { createMissionViewModel } from '../apps/web/src/features/activities/activities-view-model.js'
 import { MissionTitle, splitMissionTitle } from '../apps/web/src/features/activities/mission-title.js'
 
@@ -13,18 +13,6 @@ test('Activities exposes the retained information architecture through typed rou
     ['Community goals', '#/activities/community-goals'],
     ['Powerplay', '#/activities/powerplay'],
     ['Colonisation', '#/activities/colonisation']
-  ])
-})
-
-test('Activities review fixture persists while moving between activity pages', () => {
-  const items = activitiesNavigationItemsForRoute({ kind: 'information', section: 'activities', view: 'missions', fixture: 'review' })
-
-  expect(items.map(item => item.href)).toEqual([
-    '#/activities/missions?fixture=review',
-    '#/activities/objectives?fixture=review',
-    '#/activities/community-goals?fixture=review',
-    '#/activities/powerplay?fixture=review',
-    '#/activities/colonisation?fixture=review'
   ])
 })
 
@@ -81,27 +69,6 @@ test('uncontracted activity views do not fabricate records', () => {
   expect(markup).toContain('Colonisation ledger')
   expect(markup).toContain('No authoritative colonisation construction record')
   expect(markup).toContain('Select a retained record to inspect its details')
-})
-
-test('fixture-backed Activities pages visibly identify synthetic records', () => {
-  const markup = renderToStaticMarkup(<ActivitiesPage controller={{ fixture: true, missions: missionsResponse(), status: 'ready' }} view="missions" />)
-
-  expect(markup).toContain('Fixture data')
-})
-
-test.each([
-  ['objectives', 'Objective ledger', 'Prepare long-range exploration vessel'],
-  ['community-goals', 'Community Goal ledger', 'Supply emergency relief commodities'],
-  ['powerplay', 'Powerplay ledger', 'Reinforce strategic system'],
-  ['colonisation', 'Colonisation ledger', 'Complete primary starport']
-] as const)('review fixture gives %s the shared ledger and detail composition', (view, ledger, record) => {
-  const markup = renderToStaticMarkup(<ActivitiesPage controller={{ fixture: true, status: 'ready' }} view={view} />)
-
-  expect(markup).toContain('Fixture data')
-  expect(markup).toContain(ledger)
-  expect(markup).toContain(record)
-  expect(markup).toContain('Activity records')
-  expect(markup).toContain('details')
 })
 
 function missionsResponse(): MissionsResponse {

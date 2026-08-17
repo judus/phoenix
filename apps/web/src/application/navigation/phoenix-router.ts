@@ -76,12 +76,7 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
 
   if (section === 'activities' || section === 'operations') {
     const view = oneOf(rest[0], ['missions', 'objectives', 'community-goals', 'powerplay', 'colonisation'] as const) ?? 'missions'
-    return {
-      kind: 'information',
-      section: 'activities',
-      view,
-      ...(['review', 'missions'].includes(query.fixture ?? '') ? { fixture: 'review' as const } : {})
-    }
+    return { kind: 'information', section: 'activities', view }
   }
 
   if (section === 'engineering') return parseEngineeringRoute(rest, query)
@@ -119,9 +114,6 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
   }
   if (route.kind === 'information' && route.section === 'engineering' && route.view === 'blueprints' && route.selectedBlueprintSymbol) {
     parameters.set('symbol', route.selectedBlueprintSymbol)
-  }
-  if (route.kind === 'information' && route.section === 'activities' && route.fixture) {
-    parameters.set('fixture', route.fixture)
   }
   const query = parameters.toString()
   return `#${path}${query ? `?${query}` : ''}`

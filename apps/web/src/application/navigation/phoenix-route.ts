@@ -51,7 +51,7 @@ export type InformationRoute =
   | { kind: 'information', section: 'galaxy', view: 'system', systemName?: string, selectedName?: string }
   | { kind: 'information', section: 'galaxy', view: 'route' }
   | { kind: 'information', section: 'galaxy', view: 'database', selectedQueryId?: GalaxyQueryId }
-  | { kind: 'information', section: 'activities', view: 'missions' | 'objectives' | 'community-goals' | 'powerplay' | 'colonisation', fixture?: 'review' }
+  | { kind: 'information', section: 'activities', view: 'missions' | 'objectives' | 'community-goals' | 'powerplay' | 'colonisation' }
   | { kind: 'information', section: 'engineering', view: 'blueprints', selectedBlueprintSymbol?: string }
   | { kind: 'information', section: 'engineering', view: 'engineers' | 'materials-raw' | 'materials-manufactured' | 'materials-encoded' | 'materials-xeno' }
   | { kind: 'information', section: 'comms', view: 'overview' | 'inbox' | 'traffic' | 'contacts' | 'galnet' | 'radio', query?: PhoenixRouteQuery }

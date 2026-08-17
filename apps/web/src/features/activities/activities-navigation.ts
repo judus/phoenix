@@ -21,14 +21,6 @@ export const activitiesNavigationItems: ActivitiesNavigationItem[] = [
   item('colonisation', 'Colonisation', 'COL')
 ]
 
-export function activitiesNavigationItemsForRoute(route: ActivitiesRoute): ActivitiesNavigationItem[] {
-  if (!route.fixture) return activitiesNavigationItems
-  return activitiesNavigationItems.map(item => {
-    const fixtureRoute = { ...item.route, fixture: route.fixture }
-    return { ...item, route: fixtureRoute, href: phoenixRouteHash(fixtureRoute) }
-  })
-}
-
 export function activitiesContextForRoute(route: InformationRoute): string {
   return route.section === 'activities' ? route.view : 'missions'
 }
