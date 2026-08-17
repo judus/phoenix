@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest'
+import { CommandExecutionResultSchema, type CommandTarget } from '@phoenix/contracts'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
-import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
+import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
 import { StaticGameActionBindingResolver } from '../apps/server/src/infrastructure/static-game-action-binding-resolver.js'
 import { RecordingInputBackend } from '../apps/server/src/infrastructure/recording-input-backend.js'
 
@@ -15,19 +16,20 @@ test('the API exposes actions, executes them, and persists the shared control la
     port: 0
   })
   const address = await application.start()
+  const baseUrl = `http://${address.host}:${address.port}`
 
   try {
-    const client = new PhoenixApiClient(`http://${address.host}:${address.port}`)
-    const catalog = await client.getDeveloperActions()
+    const client = new PhoenixApiClient(baseUrl)
+    const catalog = await client.getActions()
     const lights = catalog.actions.find(action => action.definition.id === 'elite.ShipSpotLightToggle')
 
     expect(catalog.backend).toMatchObject({ available: true, id: 'recording', simulated: true })
     expect(lights).toMatchObject({ available: true, binding: { display: 'L' } })
 
-    const result = await client.executeDeveloperAction('elite.ShipSpotLightToggle')
+    const result = await client.executeAction('elite.ShipSpotLightToggle')
     expect(result).toMatchObject({
       actionId: 'elite.ShipSpotLightToggle',
-      origin: 'developer',
+      origin: 'ui',
       status: 'accepted'
     })
     expect(result.message).toContain('no operating-system input was sent')
@@ -53,7 +55,7 @@ test('the API exposes actions, executes them, and persists the shared control la
       target: { type: 'navigation', destinationId: 'galaxy.current-system' }
     }))
 
-    const commandResult = await client.executeCommand({
+    const commandResult = await executeCommand(baseUrl, {
       type: 'game-action',
       actionId: 'elite.ShipSpotLightToggle'
     })
@@ -63,7 +65,7 @@ test('the API exposes actions, executes them, and persists the shared control la
       target: { type: 'game-action', actionId: 'elite.ShipSpotLightToggle' }
     })
 
-    const navigationResult = await client.executeCommand({
+    const navigationResult = await executeCommand(baseUrl, {
       type: 'navigation',
       destinationId: 'galaxy.current-system'
     })
@@ -99,3 +101,13 @@ test('the API exposes actions, executes them, and persists the shared control la
     await application.stop()
   }
 })
+
+async function executeCommand (baseUrl: string, target: CommandTarget) {
+  const response = await fetch(`${baseUrl}/api/commands/execute`, {
+    body: JSON.stringify({ target, operation: 'tap' }),
+    headers: { accept: 'application/json', 'content-type': 'application/json' },
+    method: 'POST'
+  })
+  expect(response.ok).toBe(true)
+  return CommandExecutionResultSchema.parse(await response.json())
+}

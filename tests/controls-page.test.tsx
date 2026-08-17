@@ -1,57 +1,71 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test } from 'vitest'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
-import { ControlsPage } from '../apps/web/src/pages/controls-page.js'
-import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
-import { MacroRuntimeProvider } from '../apps/web/src/features/macros/macro-runtime-provider.js'
+import { ControlsPage } from '../apps/web/src/features/controls/controls-page.js'
+import type { MacroRuntime } from '../apps/web/src/features/macros/macro-runtime-provider.js'
 import { DEFAULT_CONTROL_GRID_LAYOUT } from '../apps/server/src/infrastructure/default-control-grid-layout.js'
 
 test('the controls page renders bound and unbound discovered commands', () => {
   const markup = renderToStaticMarkup(
-    <MacroRuntimeProvider api={new PhoenixApiClient()}>
-      <ControlsPage
-        api={new PhoenixApiClient()}
-        category="ship"
-        controlLayout={DEFAULT_CONTROL_GRID_LAYOUT}
-        runtimeState={createEmptyRuntimeState()}
-        onExecuteCommand={() => Promise.reject(new Error('not executed during server rendering'))}
-        onSaveLayout={layout => Promise.resolve(layout)}
-        actionCatalog={{
-        backend: {
-          id: 'linux-xdotool',
-          available: true,
-          simulated: false,
-          detail: 'xdotool ready'
-        },
-        bindingSource: {
-          directory: '/game/Bindings',
-          filePath: '/game/Bindings/Custom.4.2.binds',
-          presetNames: ['Custom'],
-          available: true,
-          bindingCount: 352,
-          keyboardBindingCount: 116,
-          loadedAt: '2026-08-10T14:00:00.000Z',
-          error: null
-        },
-        actions: [
-          action('elite.ShipSpotLightToggle', 'ShipSpotLightToggle', 'Ship Lights', 'L'),
-          action('elite.UseBoostJuice', 'UseBoostJuice', 'Boost', null)
-        ]
-        }}
-      />
-    </MacroRuntimeProvider>
+    <ControlsPage
+      category="ship"
+      controller={{
+        status: 'ready',
+        layout: DEFAULT_CONTROL_GRID_LAYOUT,
+        actions: {
+          backend: {
+            id: 'linux-xdotool',
+            available: true,
+            simulated: false,
+            detail: 'xdotool ready'
+          },
+          bindingSource: {
+            directory: '/game/Bindings',
+            filePath: '/game/Bindings/Custom.4.2.binds',
+            presetNames: ['Custom'],
+            available: true,
+            bindingCount: 352,
+            keyboardBindingCount: 116,
+            loadedAt: '2026-08-10T14:00:00.000Z',
+            error: null
+          },
+          actions: [
+            action('elite.ShipSpotLightToggle', 'ShipSpotLightToggle', 'Ship Lights', 'L'),
+            action('elite.UseBoostJuice', 'UseBoostJuice', 'Boost', null)
+          ]
+        }
+      }}
+      macros={emptyMacroRuntime()}
+      runtime={createEmptyRuntimeState()}
+      onExecuteAction={() => Promise.reject(new Error('not executed during server rendering'))}
+      onSaveLayout={layout => Promise.resolve(layout)}
+    />
   )
 
   expect(markup).toContain('Ship Lights')
   expect(markup).toContain('Unbound')
-  expect(markup).toContain('title="Edit layout"')
-  expect(markup).toContain('class="page controls-page"')
-  expect(markup).toContain('class="control-grid__empty"')
+  expect(markup).toContain('class="page-frame page-fit controls-page"')
+  expect(markup).toContain('class="control-deck-empty"')
   expect(markup).toContain('disabled=""')
-  expect(markup).not.toContain('class="page-header"')
+  expect(markup).toContain('class="page-header page-header-standard"')
   expect(markup).not.toContain('class="page-footer"')
   expect(markup).not.toContain('class="control-toolbar"')
 })
+
+function emptyMacroRuntime (): MacroRuntime {
+  return {
+    abort: async () => undefined,
+    cancelRecording: async () => undefined,
+    deleteMacro: async () => undefined,
+    library: { version: 1, macros: [] },
+    play: async () => undefined,
+    recordAction: async () => undefined,
+    save: async () => undefined,
+    setDraft: () => undefined,
+    startRecording: async () => undefined,
+    stopRecording: async () => undefined
+  }
+}
 
 function action (
   id: string,

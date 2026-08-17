@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
-import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
+import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
 
 test('the shared browser stream multiplexes runtime, route, command catalogue, and voice-host state', async () => {
   const application = new PhoenixApplication({

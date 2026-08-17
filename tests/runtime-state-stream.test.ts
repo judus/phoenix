@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import type { RuntimeState } from '@phoenix/contracts'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
-import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
+import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
 
 test('connected clients receive the initial and projected runtime snapshots', async () => {
   const application = new PhoenixApplication({

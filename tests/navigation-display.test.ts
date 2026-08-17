@@ -5,7 +5,7 @@ import type { CartographySource } from '../apps/server/src/domain/cartography.js
 import { InMemoryRuntimeStateStore } from '../apps/server/src/infrastructure/in-memory-runtime-state-store.js'
 import { InProcessPublisher } from '../apps/server/src/infrastructure/in-process-publisher.js'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
-import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
+import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
 
 test('navigation API exposes lossless system cartography and the current plotted route', async () => {
   const source: CartographySource = { fetchSystem: async systemName => fixtureSystem(systemName) }

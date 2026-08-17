@@ -9,7 +9,7 @@ import type {
   CopilotTextRequest
 } from '../apps/server/src/application/copilot-text-service.js'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
-import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
+import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
 
 test('active Copilot turns are broadcast to every conversation subscriber', async () => {
   const application = new PhoenixApplication({
@@ -20,10 +20,11 @@ test('active Copilot turns are broadcast to every conversation subscriber', asyn
     port: 0
   })
   const address = await application.start()
-  const client = new PhoenixApiClient(`http://${address.host}:${address.port}`)
+  const baseUrl = `http://${address.host}:${address.port}`
+  const client = new PhoenixApiClient(baseUrl)
 
   try {
-    const subscription = await fetch(client.copilotConversationStreamUrl('shared-chat'))
+    const subscription = await fetch(conversationStreamUrl(baseUrl, 'shared-chat'))
     expect(subscription.status).toBe(200)
     const received = readConversationEvents(subscription, 4)
 
@@ -69,7 +70,8 @@ test('Realtime browsers can relay active transcript events through PHOENIX', asy
     port: 0
   })
   const address = await application.start()
-  const client = new PhoenixApiClient(`http://${address.host}:${address.port}`)
+  const baseUrl = `http://${address.host}:${address.port}`
+  const client = new PhoenixApiClient(baseUrl)
 
   try {
     const event: CopilotConversationEvent = {
@@ -83,13 +85,17 @@ test('Realtime browsers can relay active transcript events through PHOENIX', asy
     }
 
     await client.publishCopilotConversationEvent(event)
-    const subscription = await fetch(client.copilotConversationStreamUrl('shared-chat'))
+    const subscription = await fetch(conversationStreamUrl(baseUrl, 'shared-chat'))
     const received = readConversationEvents(subscription, 1)
     await expect(received).resolves.toEqual([event])
   } finally {
     await application.stop()
   }
 })
+
+function conversationStreamUrl (baseUrl: string, conversationId: string): string {
+  return `${baseUrl}/api/copilot/conversations/${encodeURIComponent(conversationId)}/stream`
+}
 
 class StreamingCopilot implements CopilotText {
   public getHistory (): Promise<[]> { return Promise.resolve([]) }

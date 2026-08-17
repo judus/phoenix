@@ -3,8 +3,9 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, test } from 'vitest'
+import { CatalogueDiagnosticsSchema, EliteJournalSourceDiagnosticsSchema } from '@phoenix/contracts'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
-import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
+import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
 
 const fixturePath = fileURLToPath(
   new URL('./fixtures/elite/Journal.2026-08-10T120000.01.log', import.meta.url)
@@ -22,11 +23,12 @@ test('application startup projects the current commander, ranks, location and sh
 
   try {
     const address = await application.start()
-    const client = new PhoenixApiClient(`http://${address.host}:${address.port}`)
+    const baseUrl = `http://${address.host}:${address.port}`
+    const client = new PhoenixApiClient(baseUrl)
     const state = await client.getRuntimeState()
-    const catalogueDiagnostics = await client.getCatalogueDiagnostics()
+    const catalogueDiagnostics = await getCatalogueDiagnostics(baseUrl)
     const shipCatalogue = await client.getShipCatalogue()
-    const diagnostics = await client.getEliteJournalDiagnostics()
+    const diagnostics = await getEliteJournalDiagnostics(baseUrl)
     const journal = await client.getActivityLog()
 
     expect(state).toMatchObject({
@@ -213,13 +215,14 @@ test('historical journal backfill runs after startup without replacing live runt
 
   try {
     const address = await application.start()
-    const client = new PhoenixApiClient(`http://${address.host}:${address.port}`)
+    const baseUrl = `http://${address.host}:${address.port}`
+    const client = new PhoenixApiClient(baseUrl)
     expect((await client.getRuntimeState()).system.name).toBe('Sol')
 
     await waitFor(async () => (
-      (await client.getEliteJournalDiagnostics()).backfill?.status === 'complete'
+      (await getEliteJournalDiagnostics(baseUrl)).backfill?.status === 'complete'
     ))
-    expect(await client.getEliteJournalDiagnostics()).toMatchObject({
+    expect(await getEliteJournalDiagnostics(baseUrl)).toMatchObject({
       backfill: {
         status: 'complete',
         filesDiscovered: 1,
@@ -248,8 +251,9 @@ test('mission history and startup snapshot feed the durable Operations API', asy
 
   try {
     const address = await application.start()
-    const client = new PhoenixApiClient(`http://${address.host}:${address.port}`)
-    await waitFor(async () => (await client.getEliteJournalDiagnostics()).backfill?.status === 'complete')
+    const baseUrl = `http://${address.host}:${address.port}`
+    const client = new PhoenixApiClient(baseUrl)
+    await waitFor(async () => (await getEliteJournalDiagnostics(baseUrl)).backfill?.status === 'complete')
     const response = await client.getMissions()
     expect(response.summary).toMatchObject({ active: 2, partial: 1, total: 2 })
     expect(response.missions).toEqual(expect.arrayContaining([
@@ -261,6 +265,18 @@ test('mission history and startup snapshot feed the durable Operations API', asy
     rmSync(eliteDirectory, { recursive: true, force: true })
   }
 })
+
+async function getCatalogueDiagnostics (baseUrl: string) {
+  const response = await fetch(`${baseUrl}/api/developer/catalogue`)
+  expect(response.ok).toBe(true)
+  return CatalogueDiagnosticsSchema.parse(await response.json())
+}
+
+async function getEliteJournalDiagnostics (baseUrl: string) {
+  const response = await fetch(`${baseUrl}/api/developer/elite-journal`)
+  expect(response.ok).toBe(true)
+  return EliteJournalSourceDiagnosticsSchema.parse(await response.json())
+}
 
 async function waitFor (predicate: () => Promise<boolean>): Promise<void> {
   const deadline = Date.now() + 2_000

@@ -3,7 +3,7 @@ import { createEmptyRuntimeState, type GameEventEnvelope } from '@phoenix/contra
 import { EliteJournalIngestionService } from '../apps/server/src/application/elite-journal-ingestion-service.js'
 import type { GameEventIngestor } from '../apps/server/src/domain/runtime-state.js'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
-import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
+import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
 
 test('engineering APIs combine the imported catalogue with live commander state', async () => {
   const application = new PhoenixApplication({
