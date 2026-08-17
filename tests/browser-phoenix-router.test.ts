@@ -28,9 +28,9 @@ describe('BrowserPhoenixRouter', () => {
     expect(browser.historyCalls).toEqual([['push', '#/fleet/overview']])
     expect(notifications).toBe(1)
 
-    router.replace({ kind: 'settings', view: 'system' })
-    expect(browser.location.hash).toBe('#/settings/system')
-    expect(browser.historyCalls.at(-1)).toEqual(['replace', '#/settings/system'])
+    router.replace({ kind: 'settings', view: 'copilot' })
+    expect(browser.location.hash).toBe('#/settings/copilot')
+    expect(browser.historyCalls.at(-1)).toEqual(['replace', '#/settings/copilot'])
     expect(notifications).toBe(2)
 
     unsubscribe()
@@ -38,7 +38,7 @@ describe('BrowserPhoenixRouter', () => {
   })
 
   test('back and forward browser events update one stable snapshot', () => {
-    const browser = new FakeBrowserWindow('#/settings/system')
+    const browser = new FakeBrowserWindow('#/settings/copilot')
     const router = new BrowserPhoenixRouter(browser as unknown as Window)
     const snapshots: string[] = []
     router.subscribe(() => snapshots.push(router.href(router.getSnapshot())))

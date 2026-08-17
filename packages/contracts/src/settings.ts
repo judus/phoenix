@@ -5,14 +5,14 @@ import { NumpadShortcutCollectionSchema } from './numpad.js'
 
 export const InputBackendModeSchema = z.enum(['auto', 'recording', 'linux-xdotool'])
 
+export const CopilotExecutionPermissionsSchema = z.object({
+  gameActions: z.boolean().default(false),
+  macros: z.boolean().default(false),
+  dangerousActions: z.boolean().default(false)
+})
+
 export const PhoenixModulesSchema = z.object({
-  macros: z.object({
-    enabled: z.boolean(),
-    copilotExecution: z.boolean(),
-    dangerousExecution: z.boolean()
-  }),
   numpadCommands: z.object({
-    enabled: z.boolean().default(false),
     inputAdapter: z.enum(['browser', 'touch', 'both']).default('browser'),
     presentation: z.enum(['tiles', 'columns']).default('tiles'),
     alwaysConfirm: z.boolean().default(false),
@@ -87,17 +87,23 @@ export const ControlGridLayoutSchema = z.object({
 export const PhoenixSettingsSchema = z.object({
   version: z.literal(1),
   copilot: z.object({
-    activeProfileId: z.string().regex(/^[a-z][a-z0-9_-]*$/u).default('marin')
-  }).default({ activeProfileId: 'marin' }),
+    activeProfileId: z.string().regex(/^[a-z][a-z0-9_-]*$/u).default('marin'),
+    permissions: CopilotExecutionPermissionsSchema.default({
+      gameActions: false,
+      macros: false,
+      dangerousActions: false
+    })
+  }).default({
+    activeProfileId: 'marin',
+    permissions: { gameActions: false, macros: false, dangerousActions: false }
+  }),
   controls: z.object({
     enabled: z.boolean(),
     backend: InputBackendModeSchema,
     layout: ControlGridLayoutSchema.default({ version: 4, pages: [] })
   }),
   modules: PhoenixModulesSchema.default({
-    macros: { enabled: false, copilotExecution: false, dangerousExecution: false },
     numpadCommands: {
-      enabled: false,
       inputAdapter: 'browser',
       presentation: 'tiles',
       alwaysConfirm: false,
@@ -105,6 +111,28 @@ export const PhoenixSettingsSchema = z.object({
       shortcuts: []
     }
   })
+})
+
+export const OpenAiConfigurationStatusSchema = z.object({
+  configured: z.boolean(),
+  source: z.enum(['none', 'environment', 'stored']),
+  stored: z.boolean(),
+  restartRequired: z.boolean()
+})
+
+export const InstallationSettingsSchema = z.object({
+  controlsEnabled: z.boolean(),
+  copilotPermissions: CopilotExecutionPermissionsSchema,
+  openAi: OpenAiConfigurationStatusSchema
+})
+
+export const InstallationSettingsUpdateSchema = z.object({
+  controlsEnabled: z.boolean(),
+  copilotPermissions: CopilotExecutionPermissionsSchema
+})
+
+export const OpenAiApiKeyRequestSchema = z.object({
+  apiKey: z.string().trim().min(20).max(500)
 })
 
 export const RuntimeSystemSnapshotSchema = z.object({
@@ -124,7 +152,12 @@ export const RuntimeSystemSnapshotSchema = z.object({
 })
 
 export type InputBackendMode = z.infer<typeof InputBackendModeSchema>
+export type CopilotExecutionPermissions = z.infer<typeof CopilotExecutionPermissionsSchema>
 export type PhoenixModules = z.infer<typeof PhoenixModulesSchema>
 export type ControlGridLayout = z.infer<typeof ControlGridLayoutSchema>
 export type PhoenixSettings = z.infer<typeof PhoenixSettingsSchema>
+export type OpenAiConfigurationStatus = z.infer<typeof OpenAiConfigurationStatusSchema>
+export type InstallationSettings = z.infer<typeof InstallationSettingsSchema>
+export type InstallationSettingsUpdate = z.infer<typeof InstallationSettingsUpdateSchema>
+export type OpenAiApiKeyRequest = z.infer<typeof OpenAiApiKeyRequestSchema>
 export type RuntimeSystemSnapshot = z.infer<typeof RuntimeSystemSnapshotSchema>

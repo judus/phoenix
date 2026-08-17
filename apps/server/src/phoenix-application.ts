@@ -57,7 +57,7 @@ import type { CartographySource } from './domain/cartography.js'
 import type { ExplorationTargetSearchSource } from './domain/exploration-target.js'
 import type { FactionPresenceSearchSource, OutfittingSearchSource, ShipyardSearchSource, StationLookupSource, StationSearchSource, StationStockSource, SystemSearchSource } from './domain/station-market.js'
 import type { GalnetSource } from './domain/galnet.js'
-import type { ControlGridLayoutRepository, SystemSettingsRepository } from './domain/system-configuration.js'
+import type { ControlGridLayoutRepository, OpenAiSecretRepository, SystemSettingsRepository } from './domain/system-configuration.js'
 import type { MacroRepository } from './domain/macros.js'
 import type { CommandCatalogueChange } from './domain/commands.js'
 import { DefaultGameActionCatalog } from './infrastructure/default-game-action-catalog.js'
@@ -65,6 +65,7 @@ import { InMemoryRuntimeStateStore } from './infrastructure/in-memory-runtime-st
 import { InMemoryNavigationRouteStore } from './infrastructure/in-memory-navigation-route-store.js'
 import { InMemoryControlGridLayoutRepository } from './infrastructure/in-memory-control-grid-layout-repository.js'
 import { InMemorySystemSettingsRepository } from './infrastructure/json-system-configuration.js'
+import { InMemoryOpenAiSecretRepository } from './infrastructure/json-openai-secret-repository.js'
 import { InMemoryMacroRepository } from './infrastructure/macro-repositories.js'
 import {
   NotifyingControlGridLayoutRepository,
@@ -92,6 +93,7 @@ import { CatalogueSnapshotLoader } from './infrastructure/catalogue-snapshot-loa
 import { ApplicationPaths } from './infrastructure/application-paths.js'
 import { FrontierGalnetSource } from './infrastructure/frontier-galnet-source.js'
 import type { PairingAccessController } from './infrastructure/pairing-access-controller.js'
+import { OpenAiConfigurationService } from './application/openai-configuration-service.js'
 
 export interface PhoenixApplicationOptions {
   applicationPaths?: ApplicationPaths
@@ -111,6 +113,8 @@ export interface PhoenixApplicationOptions {
   inputBackend?: InputBackend
   inputBackendMode?: 'recording' | 'linux-xdotool'
   moduleCataloguePath?: string
+  openAiSecretRepository?: OpenAiSecretRepository
+  openAiEnvironmentKey?: string | null
   macroRepository?: MacroRepository
   port?: number
   shipCataloguePath?: string
@@ -278,6 +282,12 @@ export class PhoenixApplication {
       options.systemSettingsRepository ?? new InMemorySystemSettingsRepository(),
       commandCatalogueChanges
     )
+    const openAiConfiguration = new OpenAiConfigurationService(
+      options.openAiSecretRepository ?? new InMemoryOpenAiSecretRepository(),
+      options.openAiEnvironmentKey === undefined
+        ? process.env.PHOENIX_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY
+        : options.openAiEnvironmentKey ?? undefined
+    )
     const controlGridLayouts = new NotifyingControlGridLayoutRepository(
       options.controlGridLayoutRepository ?? new InMemoryControlGridLayoutRepository(),
       commandCatalogueChanges
@@ -290,8 +300,7 @@ export class PhoenixApplication {
     const commandRegistry = new DefaultCommandRegistry(
       gameActions,
       PHOENIX_NAVIGATION_DESTINATIONS,
-      macroRepository,
-      () => systemSettings.loadOrCreate().modules.macros.enabled
+      macroRepository
     )
     const commandCatalogue = new CommandCatalogueService(commandRegistry, commandCatalogueChanges)
     const commands = new DefaultCommandDispatcher(
@@ -299,14 +308,21 @@ export class PhoenixApplication {
       gameActions,
       PHOENIX_NAVIGATION_DESTINATIONS,
       undefined,
-      macros
+      macros,
+      () => systemSettings.loadOrCreate().copilot.permissions
     )
     const numpad = new DefaultNumpadCommands(
       new NumpadTreeProjector(commandCatalogue, controlGridLayouts, systemSettings),
       commands,
       systemSettings
     )
-    const statefulActions = new StatefulGameActionService(gameActions, this.stateStore)
+    const statefulActions = new StatefulGameActionService(
+      gameActions,
+      this.stateStore,
+      2_500,
+      50,
+      () => systemSettings.loadOrCreate().copilot.permissions
+    )
     const cartography = new CachedSystemCartographyService(
       options.cartographySource ?? new EdsmCartographySource(),
       this.database,
@@ -362,6 +378,7 @@ export class PhoenixApplication {
     const mcpServer = new PhoenixMcpServer(toolRegistry)
     const configuredCopilot = options.copilot === undefined && options.copilotRealtime === undefined
       ? createConfiguredCopilot(paths, {
+          ...(openAiConfiguration.activeApiKey() ? { apiKey: openAiConfiguration.activeApiKey() } : {}),
           ...(port > 0 ? { mcpUrl: `http://127.0.0.1:${port}/mcp` } : {}),
           ...(options.accessControl ? { mcpToken: options.accessControl.bearerToken } : {}),
           runtimeState: this.stateStore,
@@ -417,6 +434,7 @@ export class PhoenixApplication {
       navigationData,
       navigationRouteUpdates,
       numpad,
+      openAiConfiguration,
       webRoot: resolveProjectPath(projectRoot, options.webRoot ?? paths.resources.web)
     })
   }

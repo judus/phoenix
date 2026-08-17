@@ -65,7 +65,7 @@ export type PhoenixRoute =
   | { kind: 'macros', query?: PhoenixRouteQuery }
   | { kind: 'journal', view: 'journal' | 'credits', query?: PhoenixRouteQuery }
   | { kind: 'developer', view: 'overview' | 'runtime' | 'elite' | 'health' | 'tests' | 'controls', query?: PhoenixRouteQuery }
-  | { kind: 'settings', view: 'system' | 'audio' | 'modules' | 'pairing', query?: PhoenixRouteQuery }
+  | { kind: 'settings', view: 'copilot' | 'audio' | 'device' | 'controls' | 'pairing', query?: PhoenixRouteQuery }
 
 export type PhoenixWorkspace =
   | 'controls'
@@ -128,6 +128,6 @@ export function defaultRouteForWorkspace(
     case 'telemetry': return { kind: 'numpad', view: 'navigator' }
     case 'macros': return { kind: 'macros' }
     case 'journal': return { kind: 'journal', view: 'journal' }
-    case 'settings': return { kind: 'settings', view: 'system' }
+    case 'settings': return { kind: 'settings', view: 'copilot' }
   }
 }

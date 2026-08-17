@@ -12,6 +12,7 @@ import { PhoenixApplication } from './phoenix-application.js'
 import { ApplicationPaths } from './infrastructure/application-paths.js'
 import { PairingAccessController } from './infrastructure/pairing-access-controller.js'
 import { JsonMacroRepository } from './infrastructure/macro-repositories.js'
+import { JsonOpenAiSecretRepository } from './infrastructure/json-openai-secret-repository.js'
 
 let application: PhoenixApplication | null = null
 
@@ -36,6 +37,7 @@ try {
     applicationPaths: paths,
     controlGridLayoutRepository: settingsRepository,
     macroRepository: new JsonMacroRepository(resolve(paths.user.config, 'macros.json')),
+    openAiSecretRepository: new JsonOpenAiSecretRepository(resolve(paths.user.config, 'secrets.json')),
     systemSettingsRepository: settingsRepository,
     inputBackend: controls.backend
   })

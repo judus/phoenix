@@ -17,16 +17,17 @@ import { DEFAULT_CONTROL_GRID_LAYOUT } from './default-control-grid-layout.js'
 
 export const DEFAULT_PHOENIX_SETTINGS: PhoenixSettings = {
   version: 1,
-  copilot: { activeProfileId: 'marin' },
+  copilot: {
+    activeProfileId: 'marin',
+    permissions: { gameActions: false, macros: false, dangerousActions: false }
+  },
   controls: {
     enabled: true,
     backend: 'auto',
     layout: DEFAULT_CONTROL_GRID_LAYOUT
   },
   modules: {
-    macros: { enabled: false, copilotExecution: false, dangerousExecution: false },
     numpadCommands: {
-      enabled: false,
       inputAdapter: 'browser',
       presentation: 'tiles',
       alwaysConfirm: false,
@@ -85,9 +86,22 @@ export class InMemorySystemSettingsRepository implements SystemSettingsRepositor
 
 function migrateSettings (candidate: unknown): unknown {
   if (!isRecord(candidate)) return candidate
-  const normalized = isRecord(candidate.modules)
+  const withModules = isRecord(candidate.modules)
     ? candidate
     : { ...candidate, modules: DEFAULT_PHOENIX_SETTINGS.modules }
+  const normalized = isRecord(withModules.modules) && ('macros' in withModules.modules || (
+    isRecord(withModules.modules.numpadCommands) && 'enabled' in withModules.modules.numpadCommands
+  ))
+    ? {
+        ...withModules,
+        modules: {
+          numpadCommands: {
+            ...(isRecord(withModules.modules.numpadCommands) ? withModules.modules.numpadCommands : {}),
+            enabled: undefined
+          }
+        }
+      }
+    : withModules
   if (!isRecord(normalized.controls) || !isRecord(normalized.controls.layout)) {
     return normalized
   }

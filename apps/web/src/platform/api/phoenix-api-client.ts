@@ -37,6 +37,8 @@ import {
   GalaxyShipyardsResponseSchema,
   GalaxyStationLookupResponseSchema,
   GalaxyTradeOpportunitiesResponseSchema,
+  InstallationSettingsSchema,
+  InstallationSettingsUpdateSchema,
   MacroDefinitionSchema,
   MacroLibrarySchema,
   MacroPlaybackSchema,
@@ -46,6 +48,8 @@ import {
   NumpadExecutionResultSchema,
   NumpadTreeSnapshotSchema,
   PairingStatusSchema,
+  OpenAiApiKeyRequestSchema,
+  OpenAiConfigurationStatusSchema,
   PhoenixModulesSchema,
   RuntimeStateSchema,
   ShipCatalogueResponseSchema
@@ -91,6 +95,8 @@ import type {
   GalaxyStationLookupResponse,
   GalaxyTradeOpportunitiesResponse,
   HealthResponse,
+  InstallationSettings,
+  InstallationSettingsUpdate,
   MacroDefinition,
   MacroLibrary,
   MacroPlayback,
@@ -100,6 +106,7 @@ import type {
   NumpadExecutionResult,
   NumpadTreeSnapshot,
   PairingStatus,
+  OpenAiConfigurationStatus,
   PhoenixModules,
   RuntimeState,
   ShipCatalogueResponse
@@ -148,6 +155,29 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return PairingStatusSchema.parse(await response.json())
+  }
+
+  async releasePairing(signal?: AbortSignal): Promise<void> {
+    await this.#empty('/api/pairing/release', 'POST', undefined, signal)
+  }
+
+  async getInstallationSettings(signal?: AbortSignal): Promise<InstallationSettings> {
+    return this.#get('/api/settings', InstallationSettingsSchema, signal)
+  }
+
+  async saveInstallationSettings(
+    settings: InstallationSettingsUpdate,
+    signal?: AbortSignal
+  ): Promise<InstallationSettings> {
+    return this.#json('/api/settings', 'PUT', InstallationSettingsUpdateSchema.parse(settings), InstallationSettingsSchema, signal)
+  }
+
+  async saveOpenAiApiKey(apiKey: string, signal?: AbortSignal): Promise<OpenAiConfigurationStatus> {
+    return this.#json('/api/settings/openai-key', 'PUT', OpenAiApiKeyRequestSchema.parse({ apiKey }), OpenAiConfigurationStatusSchema, signal)
+  }
+
+  async removeOpenAiApiKey(signal?: AbortSignal): Promise<OpenAiConfigurationStatus> {
+    return this.#json('/api/settings/openai-key', 'DELETE', undefined, OpenAiConfigurationStatusSchema, signal)
   }
 
   async getHealth(signal?: AbortSignal): Promise<HealthResponse> {
@@ -531,7 +561,7 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async #json<T>(
     path: string,
-    method: 'POST' | 'PUT',
+    method: 'DELETE' | 'POST' | 'PUT',
     body: unknown,
     schema: { parse(value: unknown): T },
     signal?: AbortSignal

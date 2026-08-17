@@ -10,9 +10,7 @@ export function MacrosPage({ runtime }: { runtime: MacroRuntime }) {
 
   return <PageFrame className="macros-page" layout="fit">
     <PageHeader
-      actions={runtime.enabled
-        ? <Button variant="primary" onClick={() => void runtime.startRecording()}>Start recording</Button>
-        : <Button variant="primary" onClick={() => void runtime.enable()}>Enable macros</Button>}
+      actions={<Button variant="primary" onClick={() => void runtime.startRecording()}>Start recording</Button>}
       context="Utilities"
       description="Record semantic PHOENIX commands while watching Elite respond. Playback completion does not prove the game outcome."
       title="Macros"
@@ -42,7 +40,7 @@ export function MacrosPage({ runtime }: { runtime: MacroRuntime }) {
               <td>{macro.risk}</td>
               <td className="numeric">{macro.steps.length}</td>
               <td>{macro.description || '—'}</td>
-              <td><div className="macro-row-actions"><Button disabled={!runtime.enabled || runtime.playback?.status === 'running' || !macro.enabled} variant="outline" onClick={() => void runtime.play(macro)}>Run</Button><Button variant="danger" onClick={() => void runtime.deleteMacro(macro.id)}>Delete</Button></div></td>
+              <td><div className="macro-row-actions"><Button disabled={runtime.playback?.status === 'running' || !macro.enabled} variant="outline" onClick={() => void runtime.play(macro)}>Run</Button><Button variant="danger" onClick={() => void runtime.deleteMacro(macro.id)}>Delete</Button></div></td>
             </tr>)}</tbody>
           </DataTable>}
     </Section>

@@ -39,6 +39,8 @@ import type {
   GalaxyStationLookupResponse,
   GalaxyTradeOpportunitiesResponse,
   HealthResponse,
+  InstallationSettings,
+  InstallationSettingsUpdate,
   MacroDefinition,
   MacroLibrary,
   MacroPlayback,
@@ -48,6 +50,7 @@ import type {
   NumpadExecutionResult,
   NumpadTreeSnapshot,
   PairingStatus,
+  OpenAiConfigurationStatus,
   PhoenixModules,
   RuntimeState,
   ShipCatalogueResponse
@@ -122,6 +125,7 @@ export interface PhoenixApi {
   findGalaxyStations(input: GalaxyStationLookupSearch, signal?: AbortSignal): Promise<GalaxyStationLookupResponse>
   findGalaxyTradeOpportunities(input: GalaxyTradeOpportunitySearch, signal?: AbortSignal): Promise<GalaxyTradeOpportunitiesResponse>
   getHealth(signal?: AbortSignal): Promise<HealthResponse>
+  getInstallationSettings(signal?: AbortSignal): Promise<InstallationSettings>
   getMacros(signal?: AbortSignal): Promise<MacroLibrary>
   getMissions(signal?: AbortSignal): Promise<MissionsResponse>
   getModuleSettings(signal?: AbortSignal): Promise<PhoenixModules>
@@ -142,10 +146,14 @@ export interface PhoenixApi {
     signal?: AbortSignal
   ): Promise<MacroRecording>
   releaseCopilotVoiceHost(hostId: string, signal?: AbortSignal): Promise<void>
+  releasePairing(signal?: AbortSignal): Promise<void>
   requestCopilotVoiceHostState(connected: boolean, signal?: AbortSignal): Promise<CopilotVoiceHostCommandAccepted>
   saveMacro(macro: MacroDefinition, signal?: AbortSignal): Promise<MacroDefinition>
   saveControlLayout(layout: ControlGridLayout, signal?: AbortSignal): Promise<ControlGridLayout>
   saveModuleSettings(settings: PhoenixModules, signal?: AbortSignal): Promise<PhoenixModules>
+  saveInstallationSettings(settings: InstallationSettingsUpdate, signal?: AbortSignal): Promise<InstallationSettings>
+  saveOpenAiApiKey(apiKey: string, signal?: AbortSignal): Promise<OpenAiConfigurationStatus>
+  removeOpenAiApiKey(signal?: AbortSignal): Promise<OpenAiConfigurationStatus>
   selectCopilotProfile(profileId: string, signal?: AbortSignal): Promise<CopilotProfilesResponse>
   startMacroRecording(clientId: string, signal?: AbortSignal): Promise<MacroRecording>
   stopMacroRecording(recordingId: string, clientId: string, signal?: AbortSignal): Promise<MacroRecording>

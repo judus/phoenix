@@ -18,10 +18,6 @@ test('a browser records, saves, discovers, and plays a semantic macro', async ()
   const client = new PhoenixApiClient(`http://${address.host}:${address.port}`)
 
   try {
-    const initial = await client.getModuleSettings()
-    expect(initial.macros.enabled).toBe(false)
-    await client.saveModuleSettings({ ...initial, macros: { ...initial.macros, enabled: true } })
-
     const recording = await client.startMacroRecording('tablet-one')
     const updated = await client.recordMacroAction(
       recording.id,

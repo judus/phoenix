@@ -23,8 +23,8 @@ test('the numpad API projects and executes the current authoritative command map
     const destination = initial.nodes.find(node => node.target?.type === 'navigation')
     expect(destination).toBeDefined()
 
-    const disabled = await client.executeNumpadAddress(destination!.address, initial.revision)
-    expect(disabled).toMatchObject({ status: 'rejected', message: 'Numpad command module is disabled.' })
+    const firstExecution = await client.executeNumpadAddress(destination!.address, initial.revision)
+    expect(firstExecution.status).toBe('accepted')
 
     const settings = await client.getModuleSettings()
     const shortcutTarget = destination!.target!
@@ -32,7 +32,6 @@ test('the numpad API projects and executes the current authoritative command map
       ...settings,
       numpadCommands: {
         ...settings.numpadCommands,
-        enabled: true,
         shortcuts: [{ id: 'panic-route', selector: '2', label: 'Panic route', target: shortcutTarget }]
       }
     })

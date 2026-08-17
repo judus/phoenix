@@ -6,6 +6,17 @@ import type { PhoenixApplicationServices } from './create-application.js'
 import { NumpadActivation } from '../features/numpad/numpad-activation.js'
 
 const PhoenixApplicationContext = createContext<PhoenixApplicationServices | undefined>(undefined)
+const transientDeviceSnapshot = {
+  audioInputId: '',
+  audioOutputId: '',
+  captureNumpad: true,
+  followCopilotNavigation: true
+}
+const transientDevicePreferences = {
+  getSnapshot: () => transientDeviceSnapshot,
+  update: () => undefined,
+  subscribe: () => () => undefined
+}
 
 export function PhoenixProviders({
   application,
@@ -14,9 +25,13 @@ export function PhoenixProviders({
   application: PhoenixApplicationServices
   children: ReactNode
 }) {
+  const legacyDisplayCommands = (application as PhoenixApplicationServices & {
+    displayCommands?: { allowsRemoteCommands(): boolean }
+  }).displayCommands
+  const devicePreferences = application.devicePreferences ?? transientDevicePreferences
   useEffect(() => {
     const unsubscribeDisplay = application.events.subscribe('display-command', command => {
-      if (!application.displayCommands.allowsRemoteCommands()) return
+      if (!(legacyDisplayCommands?.allowsRemoteCommands() ?? devicePreferences.getSnapshot().followCopilotNavigation)) return
       application.router.push({
         kind: 'information',
         section: 'galaxy',
@@ -32,15 +47,16 @@ export function PhoenixProviders({
       application.runtime.stop()
       application.events.stop()
     }
-  }, [application])
+  }, [application, devicePreferences])
 
   return (
     <PhoenixApplicationContext.Provider value={application}>
-      <NumpadActivation api={application.api} router={application.router} />
+      <NumpadActivation devicePreferences={devicePreferences} router={application.router} />
       <CopilotVoiceProvider
         api={application.api}
         clientIdentity={application.clientIdentity}
         events={application.events}
+        devicePreferences={devicePreferences}
       >
         <MacroRuntimeProvider
           api={application.api}

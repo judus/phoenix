@@ -55,7 +55,8 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
   }
 
   if (section === 'settings') {
-    const view = oneOf(rest[0], ['system', 'audio', 'modules', 'pairing'] as const) ?? 'system'
+    const legacyView = rest[0] === 'system' ? 'copilot' : rest[0] === 'modules' ? 'device' : rest[0]
+    const view = oneOf(legacyView, ['copilot', 'audio', 'device', 'controls', 'pairing'] as const) ?? 'copilot'
     return withQuery({ kind: 'settings', view }, query)
   }
 

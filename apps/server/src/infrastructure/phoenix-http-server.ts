@@ -20,7 +20,10 @@ import {
   CopilotRealtimeToolRequestSchema,
   CopilotRealtimeTurnRequestSchema,
   ExplorationManualCompletionRequestSchema,
+  InstallationSettingsSchema,
+  InstallationSettingsUpdateSchema,
   MacroDefinitionSchema,
+  OpenAiApiKeyRequestSchema,
   PhoenixModulesSchema,
   RecordMacroActionRequestSchema,
   StartMacroRecordingRequestSchema,
@@ -34,6 +37,7 @@ import type { CopilotText, CopilotTextRequest } from '../application/copilot-tex
 import type { CopilotConversationEvents } from '../application/copilot-conversation-event-service.js'
 import type { CopilotVoiceHostControl } from '../application/copilot-voice-host-coordinator.js'
 import type { CopilotProfiles } from '../application/copilot-profile-service.js'
+import type { OpenAiConfiguration } from '../application/openai-configuration-service.js'
 import {
   serializeToolOutput,
   type CopilotRealtime
@@ -109,6 +113,7 @@ export interface PhoenixHttpServerOptions {
   navigationData: NavigationDataReader
   navigationRouteUpdates: Subscribable<NavigationRoute>
   numpad: NumpadCommands
+  openAiConfiguration: OpenAiConfiguration
   port: number
   runtimeState: RuntimeStateReader
   runtimeStateUpdates: Subscribable<RuntimeState>
@@ -751,6 +756,52 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/settings') {
+      const settings = this.options.systemSettings.loadOrCreate()
+      this.writeJson(response, 200, InstallationSettingsSchema.parse({
+        controlsEnabled: settings.controls.enabled,
+        copilotPermissions: settings.copilot.permissions,
+        openAi: this.options.openAiConfiguration.status()
+      }))
+      return
+    }
+
+    if (request.method === 'PUT' && url.pathname === '/api/settings') {
+      try {
+        const input = InstallationSettingsUpdateSchema.parse(await readJsonBody(request))
+        const settings = this.options.systemSettings.loadOrCreate()
+        this.options.systemSettings.save({
+          ...settings,
+          copilot: { ...settings.copilot, permissions: input.copilotPermissions },
+          controls: { ...settings.controls, enabled: input.controlsEnabled }
+        })
+        this.writeJson(response, 200, InstallationSettingsSchema.parse({
+          ...input,
+          openAi: this.options.openAiConfiguration.status()
+        }))
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : 'Invalid installation settings.'
+        this.writeJson(response, 400, { error: { code: 'invalid_settings', message } })
+      }
+      return
+    }
+
+    if (request.method === 'PUT' && url.pathname === '/api/settings/openai-key') {
+      try {
+        const { apiKey } = OpenAiApiKeyRequestSchema.parse(await readJsonBody(request))
+        this.writeJson(response, 200, this.options.openAiConfiguration.save(apiKey))
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : 'Invalid OpenAI API key.'
+        this.writeJson(response, 400, { error: { code: 'invalid_openai_key', message } })
+      }
+      return
+    }
+
+    if (request.method === 'DELETE' && url.pathname === '/api/settings/openai-key') {
+      this.writeJson(response, 200, this.options.openAiConfiguration.remove())
+      return
+    }
+
     if (request.method === 'PUT' && url.pathname === '/api/settings/modules') {
       try {
         const modules = PhoenixModulesSchema.parse(await readJsonBody(request))
@@ -788,7 +839,6 @@ export class PhoenixHttpServer {
 
     if (request.method === 'POST' && url.pathname === '/api/macros/recordings') {
       try {
-        this.requireMacroModule()
         const input = StartMacroRecordingRequestSchema.parse(await readJsonBody(request))
         this.writeJson(response, 200, this.options.macros.startRecording(input.clientId))
       } catch (cause) {
@@ -800,7 +850,6 @@ export class PhoenixHttpServer {
     const recordingMatch = url.pathname.match(/^\/api\/macros\/recordings\/([^/]+)\/(action|stop|cancel)$/u)
     if (request.method === 'POST' && recordingMatch) {
       try {
-        this.requireMacroModule()
         const recordingId = decodeURIComponent(recordingMatch[1]!)
         const operation = recordingMatch[2]
         const body = await readJsonBody(request)
@@ -827,7 +876,6 @@ export class PhoenixHttpServer {
     const playbackMatch = url.pathname.match(/^\/api\/macros\/([^/]+)\/playback$/u)
     if (request.method === 'POST' && playbackMatch) {
       try {
-        this.requireMacroModule()
         this.writeJson(response, 200, await this.options.macros.execute(decodeURIComponent(playbackMatch[1]!), 'ui'))
       } catch (cause) {
         this.writeMacroError(response, cause)
@@ -952,12 +1000,6 @@ export class PhoenixHttpServer {
     }
 
     this.serveWebAsset(url.pathname, response)
-  }
-
-  private requireMacroModule (): void {
-    if (!this.options.systemSettings.loadOrCreate().modules.macros.enabled) {
-      throw new Error('Macro module is disabled.')
-    }
   }
 
   private writeMacroError (response: ServerResponse, cause: unknown): void {

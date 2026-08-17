@@ -134,9 +134,7 @@ function apiStub(): PhoenixApi {
     async getMacros() { return { version: 1, macros: [] } },
     async getModuleSettings() {
       return {
-        macros: { enabled: false, copilotExecution: false, dangerousExecution: false },
         numpadCommands: {
-          enabled: false,
           inputAdapter: 'browser',
           presentation: 'tiles',
           alwaysConfirm: false,

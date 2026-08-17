@@ -56,8 +56,7 @@ export class DefaultCommandRegistry implements CommandRegistry {
   public constructor (
     private readonly gameActions: GameActions,
     private readonly destinations: readonly NavigationCommandDestination[] = PHOENIX_NAVIGATION_DESTINATIONS,
-    private readonly macros?: MacroRepository,
-    private readonly macrosEnabled: () => boolean = () => true
+    private readonly macros?: MacroRepository
   ) {}
 
   public find (target: CommandTarget): CommandDescriptor | undefined {
@@ -97,7 +96,6 @@ export class DefaultCommandRegistry implements CommandRegistry {
         target
       }))
     }
-    const macroModuleEnabled = this.macrosEnabled()
     for (const macro of this.macros?.getLibrary().macros ?? []) {
       const target = { type: 'macro' as const, macroId: macro.id }
       descriptors.set(commandTargetKey(target), CommandDescriptorSchema.parse({
@@ -106,10 +104,8 @@ export class DefaultCommandRegistry implements CommandRegistry {
         label: macro.name,
         ...(macro.description ? { description: macro.description } : {}),
         category: 'macros',
-        available: macro.enabled && macroModuleEnabled,
-        ...(macro.enabled && macroModuleEnabled
-          ? {}
-          : { unavailableReason: macroModuleEnabled ? 'Macro is disabled.' : 'Macro module is disabled.' }),
+        available: macro.enabled,
+        ...(!macro.enabled ? { unavailableReason: 'Macro is disabled.' } : {}),
         risk: macro.risk,
         target
       }))
