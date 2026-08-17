@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test, vi } from 'vitest'
 import { MacrosPage } from '../apps/web/src/features/macros/macros-page.js'
-import type { MacroRuntime } from '../apps/web/src/features/macros/macro-runtime-provider.js'
+import type { MacroRuntime } from '../apps/web/src/application/macros/macro-runtime.js'
 
 test('Macros renders retained commands and the complete operational action set', () => {
   const markup = renderToStaticMarkup(<MacrosPage runtime={{

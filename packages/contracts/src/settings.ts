@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { GameActionCategorySchema } from './actions.js'
-import { CommandTargetSchema, commandTargetKey } from './commands.js'
+import { CommandTargetSchema } from './commands.js'
 import { NumpadShortcutCollectionSchema } from './numpad.js'
 
 export const InputBackendModeSchema = z.enum(['auto', 'recording', 'linux-xdotool'])
@@ -37,7 +37,6 @@ const ControlGridPageSchema = z.object({
 }).superRefine((page, context) => {
   const capacity = page.columns * page.rows
   const occupied = new Set<number>()
-  const targets = new Set<string>()
 
   for (const cell of page.cells) {
     if (cell.position + cell.span - 1 > capacity) {
@@ -57,13 +56,6 @@ const ControlGridPageSchema = z.object({
         context.addIssue({ code: 'custom', message: `Grid position ${position} is occupied twice.` })
       }
       occupied.add(position)
-    }
-    if (cell.target) {
-      const key = commandTargetKey(cell.target)
-      if (targets.has(key)) {
-        context.addIssue({ code: 'custom', message: `${key} is assigned twice on this page.` })
-      }
-      targets.add(key)
     }
   }
 })

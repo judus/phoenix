@@ -19,13 +19,25 @@ import {
 import type { InstallationSettings, PairingStatus } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { DevicePreferences } from '../../application/settings/device-preferences.js'
-import { useCopilotVoice } from '../copilot/copilot-voice-provider.js'
+
+export interface AudioSettingsController {
+  devices: {
+    inputs: ReadonlyArray<{ id: string, label: string }>
+    outputs: ReadonlyArray<{ id: string, label: string }>
+  }
+  inputId: string
+  outputId: string
+  setInputId(id: string): void
+  setOutputId(id: string): void
+}
 
 export function SettingsPage ({
   api,
+  audio,
   devicePreferences
 }: {
   api: PhoenixApi
+  audio: AudioSettingsController
   devicePreferences: DevicePreferences
 }) {
   const [settings, setSettings] = useState<InstallationSettings>()
@@ -65,7 +77,7 @@ export function SettingsPage ({
           </EqualGrid>
         </>}
         secondary={<>
-          <AudioSettings />
+          <AudioSettings audio={audio} />
           <PairingSettings api={api} pairing={pairing} />
         </>}
       />
@@ -135,20 +147,19 @@ function CopilotSettings ({ api, settings, onChange }: {
   </div>
 }
 
-function AudioSettings () {
-  const voice = useCopilotVoice()
+function AudioSettings ({ audio }: { audio: AudioSettingsController }) {
   return <Widget title="Voice audio" meta="This device">
     <Stack gap="sm">
       <Field htmlFor="audio-input" label="Microphone">
-        <Select id="audio-input" value={voice.inputId} onChange={event => voice.setInputId(event.target.value)}>
+        <Select id="audio-input" value={audio.inputId} onChange={event => audio.setInputId(event.target.value)}>
           <option value="">System default</option>
-          {voice.devices.inputs.map(device => <option key={device.id} value={device.id}>{device.label || 'Microphone'}</option>)}
+          {audio.devices.inputs.map(device => <option key={device.id} value={device.id}>{device.label || 'Microphone'}</option>)}
         </Select>
       </Field>
       <Field htmlFor="audio-output" label="Output">
-        <Select id="audio-output" value={voice.outputId} onChange={event => voice.setOutputId(event.target.value)}>
+        <Select id="audio-output" value={audio.outputId} onChange={event => audio.setOutputId(event.target.value)}>
           <option value="">System default</option>
-          {voice.devices.outputs.map(device => <option key={device.id} value={device.id}>{device.label || 'Audio output'}</option>)}
+          {audio.devices.outputs.map(device => <option key={device.id} value={device.id}>{device.label || 'Audio output'}</option>)}
         </Select>
       </Field>
       <Status marker={false} tone="muted" wrap>Device names may remain hidden until microphone access is granted.</Status>

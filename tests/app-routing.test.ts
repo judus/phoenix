@@ -104,6 +104,20 @@ describe('PHOENIX route parsing and generation', () => {
     expect(materials).toEqual({ kind: 'information', section: 'engineering', view: 'materials-raw' })
   })
 
+  test('legacy Exploration selections normalize to the owned System Map route', () => {
+    const route = parsePhoenixRoute('#/records/exploration/biology?system=Sol&body=Earth&layout=cards')
+
+    expect(route).toEqual({
+      kind: 'information',
+      section: 'galaxy',
+      view: 'system',
+      systemName: 'Sol',
+      selectedName: 'Earth'
+    })
+    expect(phoenixRouteHash(route)).toBe('#/galaxy/system?name=Sol&selected=Earth')
+    expect(phoenixRouteHash(parsePhoenixRoute('#/exploration/ledger'))).toBe('#/galaxy/database?query=exploration-targets')
+  })
+
   test.each([
     ['#/log', '#/records/journal'],
     ['#/navigation/route', '#/galaxy/route'],
@@ -111,7 +125,7 @@ describe('PHOENIX route parsing and generation', () => {
     ['#/ship/modules', '#/fleet/ships/current/loadout'],
     ['#/fleet/current', '#/fleet/ships/current/overview'],
     ['#/ship/inventory', '#/commander/inventory'],
-    ['#/exploration/biology?system=Sol&body=Earth', '#/records/exploration/biology?system=Sol&body=Earth']
+    ['#/exploration/biology?system=Sol&body=Earth', '#/galaxy/system?name=Sol&selected=Earth']
   ])('normalizes documented compatibility route %s', (alias, canonical) => {
     expect(phoenixRouteHash(parsePhoenixRoute(alias))).toBe(canonical)
   })

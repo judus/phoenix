@@ -171,10 +171,7 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       journalCurrentContext={journalContext(route)}
       macros={mountedWorkspaces.current.has('macros') ? <FeatureBoundary><MacrosFeature /></FeatureBoundary> : null}
       settings={mountedWorkspaces.current.has('settings')
-        ? <FeatureBoundary><StableSettingsPage
-            api={application.api}
-            devicePreferences={application.devicePreferences}
-          /></FeatureBoundary>
+        ? <FeatureBoundary><SettingsFeature application={application} /></FeatureBoundary>
         : null}
       settingsContextItems={settingsNavigationItems}
       settingsCurrentContext={settingsContext()}
@@ -192,14 +189,27 @@ function FeatureBoundary({ children }: { children: ReactNode }) {
 }
 
 const StableCopilotFeature = memo(CopilotFeature)
-const StableSettingsPage = memo(SettingsPage)
+const SettingsFeature = memo(function SettingsFeature({ application }: { application: PhoenixApplicationServices }) {
+  const voice = useCopilotVoice()
+  return <SettingsPage
+    api={application.api}
+    audio={{
+      devices: voice.devices,
+      inputId: voice.inputId,
+      outputId: voice.outputId,
+      setInputId: voice.setInputId,
+      setOutputId: voice.setOutputId
+    }}
+    devicePreferences={application.devicePreferences}
+  />
+})
 
 const MacrosFeature = memo(function MacrosFeature() {
   return <MacrosPage runtime={useMacroRuntime()} />
 })
 
 const NumpadFeature = memo(function NumpadFeature({ application, view }: { application: PhoenixApplicationServices, view: 'navigator' | 'shortcuts' }) {
-  return <NumpadPage api={application.api} controller={useNumpadController(application.api, application.events)} view={view} />
+  return <NumpadPage api={application.api} controller={useNumpadController(application.api, application.events)} routeSession={application.numpadRouteSession} view={view} />
 })
 
 const JournalFeature = memo(function JournalFeature({ application }: { application: PhoenixApplicationServices }) {

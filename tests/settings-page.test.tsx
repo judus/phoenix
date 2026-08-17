@@ -3,7 +3,6 @@ import { beforeAll, expect, test } from 'vitest'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
 import { SettingsPage } from '../apps/web/src/features/settings/settings-page.js'
 import { BrowserDevicePreferences } from '../apps/web/src/platform/storage/browser-device-preferences.js'
-import { CopilotVoiceProvider } from '../apps/web/src/features/copilot/copilot-voice-provider.js'
 
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
 
@@ -11,14 +10,11 @@ test('device settings expose only browser-local command following and numpad cap
   const preferences = new BrowserDevicePreferences(new MemoryStorage())
   const api = settingsApi()
   const renderer = await act(async () => create(
-    <CopilotVoiceProvider
+    <SettingsPage
       api={api}
-      clientIdentity={{ forScope: () => 'settings-test' }}
+      audio={{ devices: { inputs: [], outputs: [] }, inputId: '', outputId: '', setInputId() {}, setOutputId() {} }}
       devicePreferences={preferences}
-      events={{ subscribe: () => () => undefined } as never}
-    >
-      <SettingsPage api={api} devicePreferences={preferences} />
-    </CopilotVoiceProvider>
+    />
   ))
   const markup = JSON.stringify(renderer.toJSON())
 

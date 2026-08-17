@@ -2,13 +2,14 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test } from 'vitest'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
 import { ControlsPage } from '../apps/web/src/features/controls/controls-page.js'
-import type { MacroRuntime } from '../apps/web/src/features/macros/macro-runtime-provider.js'
+import type { MacroRuntime } from '../apps/web/src/application/macros/macro-runtime.js'
 import { DEFAULT_CONTROL_GRID_LAYOUT } from '../apps/server/src/infrastructure/default-control-grid-layout.js'
 
 test('the controls page renders bound and unbound discovered commands', () => {
   const markup = renderToStaticMarkup(
     <ControlsPage
       category="ship"
+      editing={false}
       controller={{
         status: 'ready',
         layout: DEFAULT_CONTROL_GRID_LAYOUT,
@@ -38,6 +39,7 @@ test('the controls page renders bound and unbound discovered commands', () => {
       macros={emptyMacroRuntime()}
       runtime={createEmptyRuntimeState()}
       onExecuteAction={() => Promise.reject(new Error('not executed during server rendering'))}
+      onEditingChange={() => undefined}
       onSaveLayout={layout => Promise.resolve(layout)}
     />
   )

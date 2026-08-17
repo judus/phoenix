@@ -6,17 +6,6 @@ import type { PhoenixApplicationServices } from './create-application.js'
 import { NumpadActivation } from '../features/numpad/numpad-activation.js'
 
 const PhoenixApplicationContext = createContext<PhoenixApplicationServices | undefined>(undefined)
-const transientDeviceSnapshot = {
-  audioInputId: '',
-  audioOutputId: '',
-  captureNumpad: true,
-  followCopilotNavigation: true
-}
-const transientDevicePreferences = {
-  getSnapshot: () => transientDeviceSnapshot,
-  update: () => undefined,
-  subscribe: () => () => undefined
-}
 
 export function PhoenixProviders({
   application,
@@ -25,13 +14,10 @@ export function PhoenixProviders({
   application: PhoenixApplicationServices
   children: ReactNode
 }) {
-  const legacyDisplayCommands = (application as PhoenixApplicationServices & {
-    displayCommands?: { allowsRemoteCommands(): boolean }
-  }).displayCommands
-  const devicePreferences = application.devicePreferences ?? transientDevicePreferences
+  const { devicePreferences } = application
   useEffect(() => {
     const unsubscribeDisplay = application.events.subscribe('display-command', command => {
-      if (!(legacyDisplayCommands?.allowsRemoteCommands() ?? devicePreferences.getSnapshot().followCopilotNavigation)) return
+      if (!devicePreferences.getSnapshot().followCopilotNavigation) return
       application.router.push({
         kind: 'information',
         section: 'galaxy',
@@ -51,7 +37,7 @@ export function PhoenixProviders({
 
   return (
     <PhoenixApplicationContext.Provider value={application}>
-      <NumpadActivation devicePreferences={devicePreferences} router={application.router} />
+      <NumpadActivation devicePreferences={devicePreferences} routeSession={application.numpadRouteSession} router={application.router} />
       <CopilotVoiceProvider
         api={application.api}
         clientIdentity={application.clientIdentity}

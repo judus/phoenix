@@ -2,18 +2,18 @@ import { useEffect, useRef, useState } from 'react'
 import type { NumpadExecutionResult, NumpadTreeNode, PhoenixModules } from '@phoenix/contracts'
 import { Button, PageFrame, Status } from '@phoenix/ui'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
-import { acknowledgeNumpadRouteActivation, discardNumpadReturnRoute, leaveNumpadRoute, numpadRouteIsArmed } from './numpad-route-session.js'
+import type { NumpadRouteSession } from '../../application/navigation/numpad-route-session.js'
 import { activateNumpadSession, cancelNumpadSession, confirmNumpadSelection, currentNumpadParent, displayedNumpadAddress, enterNumpadDigitOrCancel, executingNumpadSession, finishNumpadSession, idleNumpadSession, selectNumpadNode, visibleNumpadNodes, type NumpadSessionState, type NumpadSessionTransition } from './numpad-session.js'
 import { NumpadShortcutEditor } from './numpad-shortcut-editor.js'
 import { NumpadTileGrid } from './numpad-tile-grid.js'
 import type { NumpadControllerSnapshot } from './use-numpad-controller.js'
 
-export function NumpadPage({ api, controller, view }: { api: PhoenixApi, controller: NumpadControllerSnapshot, view: 'navigator' | 'shortcuts' }) {
-  const [session, setSession] = useState<NumpadSessionState>(() => numpadRouteIsArmed() ? activateNumpadSession().state : idleNumpadSession())
+export function NumpadPage({ api, controller, routeSession, view }: { api: PhoenixApi, controller: NumpadControllerSnapshot, routeSession: NumpadRouteSession, view: 'navigator' | 'shortcuts' }) {
+  const [session, setSession] = useState<NumpadSessionState>(() => routeSession.isArmed() ? activateNumpadSession().state : idleNumpadSession())
   const [settings, setSettings] = useState<PhoenixModules | undefined>(() => controller.settings)
   const [error, setError] = useState<string>()
   const revision = useRef<number | undefined>(undefined)
-  useEffect(() => { acknowledgeNumpadRouteActivation() }, [])
+  useEffect(() => { routeSession.acknowledge() }, [routeSession])
   useEffect(() => {
     if (!controller.settings) return
     setSettings(controller.settings)
@@ -33,10 +33,10 @@ export function NumpadPage({ api, controller, view }: { api: PhoenixApi, control
   const apply = (transition: NumpadSessionTransition) => { setSession(transition.state); if (transition.execute) void execute(transition.execute) }
   const applyExecution = (result: NumpadExecutionResult) => {
     setSession(current => finishNumpadSession(current, result.status === 'accepted' ? 'completed' : result.status === 'stale' ? 'stale' : 'error', result.message))
-    if (result.command?.navigationHref) { discardNumpadReturnRoute(); window.location.hash = result.command.navigationHref; return }
-    if (result.status === 'accepted' && leaveNumpadRoute()) return
+    if (result.command?.navigationHref) { routeSession.navigate(result.command.navigationHref); return }
+    if (result.status === 'accepted' && routeSession.leave()) return
   }
-  const cancel = () => { setSession(cancelNumpadSession().state); leaveNumpadRoute() }
+  const cancel = () => { setSession(cancelNumpadSession().state); routeSession.leave() }
   useEffect(() => {
     if (!snapshot || view !== 'navigator') return
     const key = (event: KeyboardEvent) => {

@@ -1,6 +1,7 @@
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
+import type { DevicePreferences, PhoenixDevicePreferencesSnapshot } from '../apps/web/src/application/settings/device-preferences.js'
 import type {
   PhoenixEventHub,
   PhoenixEventMap,
@@ -46,6 +47,7 @@ test('voice lifecycle observes the shared event hub and controls a remote host t
     <CopilotVoiceProvider
       api={api}
       clientIdentity={{ forScope: () => 'tablet-client' }}
+      devicePreferences={new FakeDevicePreferences()}
       events={events}
     >
       <Probe />
@@ -90,7 +92,7 @@ test('live profile and host events cannot be overwritten by stale initial snapsh
 
   function Probe() { voice = useCopilotVoice(); return null }
   const renderer = await act(async () => create(
-    <CopilotVoiceProvider api={api} clientIdentity={{ forScope: () => 'tablet-client' }} events={events}>
+    <CopilotVoiceProvider api={api} clientIdentity={{ forScope: () => 'tablet-client' }} devicePreferences={new FakeDevicePreferences()} events={events}>
       <Probe />
     </CopilotVoiceProvider>
   ))
@@ -114,6 +116,35 @@ test('live profile and host events cannot be overwritten by stale initial snapsh
 
   expect(voice?.activeProfile.id).toBe('live')
   expect(voice?.hostLocation).toBe('remote')
+  await act(async () => renderer.unmount())
+})
+
+test('voice audio selection follows the device preference owner', async () => {
+  const events = new FakeEventHub()
+  const preferences = new FakeDevicePreferences()
+  const api = {
+    getCopilotProfiles: vi.fn().mockResolvedValue({
+      activeProfileId: 'marin',
+      profiles: [{ description: '', id: 'marin', mark: 'M', name: 'Marin', voice: 'marin' }]
+    }),
+    getCopilotVoiceHost: vi.fn().mockResolvedValue({ desiredConnected: false, host: null })
+  } as unknown as PhoenixApi
+  let voice: CopilotVoiceState | undefined
+
+  function Probe() { voice = useCopilotVoice(); return null }
+  const renderer = await act(async () => create(
+    <CopilotVoiceProvider api={api} clientIdentity={{ forScope: () => 'tablet-client' }} devicePreferences={preferences} events={events}>
+      <Probe />
+    </CopilotVoiceProvider>
+  ))
+
+  await act(async () => preferences.update({ audioInputId: 'mic-1', audioOutputId: 'speaker-1' }))
+  expect(voice?.inputId).toBe('mic-1')
+  expect(voice?.outputId).toBe('speaker-1')
+
+  await act(async () => voice?.setInputId('mic-2'))
+  expect(preferences.getSnapshot().audioInputId).toBe('mic-2')
+  expect(voice?.inputId).toBe('mic-2')
   await act(async () => renderer.unmount())
 })
 
@@ -144,5 +175,25 @@ class FakeEventHub implements PhoenixEventHub {
 
   emit<K extends PhoenixEventName>(eventName: K, payload: PhoenixEventMap[K]): void {
     for (const listener of this.#listeners.get(eventName) ?? []) listener(payload)
+  }
+}
+
+class FakeDevicePreferences implements DevicePreferences {
+  readonly #listeners = new Set<() => void>()
+  #snapshot: PhoenixDevicePreferencesSnapshot = {
+    audioInputId: '',
+    audioOutputId: '',
+    captureNumpad: true,
+    followCopilotNavigation: true
+  }
+
+  getSnapshot = (): PhoenixDevicePreferencesSnapshot => this.#snapshot
+  subscribe = (listener: () => void): (() => void) => {
+    this.#listeners.add(listener)
+    return () => this.#listeners.delete(listener)
+  }
+  update(patch: Partial<PhoenixDevicePreferencesSnapshot>): void {
+    this.#snapshot = { ...this.#snapshot, ...patch }
+    for (const listener of this.#listeners) listener()
   }
 }

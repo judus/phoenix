@@ -1,33 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CommandTarget, ControlGridLayout, GameActionAvailability, GameActionOperation, RuntimeState } from '@phoenix/contracts'
-import { commandTargetKey } from '@phoenix/contracts'
 import { Button, CommandTile, ControlContext, Field, PageFrame, PageHeader, Status, TextInput } from '@phoenix/ui'
+import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
 import type { ControlCategory } from '../../application/navigation/phoenix-route.js'
-import type { MacroRuntime } from '../macros/macro-runtime-provider.js'
 import { controlsCategoryLabel } from './controls-navigation.js'
 import type { ControlsControllerSnapshot } from './use-controls-controller.js'
 
-export function ControlsPage({ category, controller, editing: controlledEditing, macros, runtime, onEditingChange, onExecuteAction, onSaveLayout }: {
+export function ControlsPage({ category, controller, editing, macros, runtime, onEditingChange, onExecuteAction, onSaveLayout }: {
   category: ControlCategory
   controller: ControlsControllerSnapshot
-  editing?: boolean
+  editing: boolean
   macros: MacroRuntime
   runtime?: RuntimeState
-  onEditingChange?(editing: boolean): void
+  onEditingChange(editing: boolean): void
   onExecuteAction(actionId: string, operation: GameActionOperation): Promise<unknown>
   onSaveLayout(layout: ControlGridLayout): Promise<ControlGridLayout>
 }) {
   const [error, setError] = useState<string>()
-  const [localEditing, setLocalEditing] = useState(false)
-  const editing = controlledEditing ?? localEditing
-  const setEditing = onEditingChange ?? setLocalEditing
   const [draft, setDraft] = useState<ControlGridLayout>()
   const [editingPosition, setEditingPosition] = useState<number>()
   const [filter, setFilter] = useState('')
   const [saving, setSaving] = useState(false)
   const held = useRef(new Set<string>())
   useEffect(() => { if (!editing) setDraft(controller.layout) }, [controller.layout, editing])
-  useEffect(() => { setEditing(false); setEditingPosition(undefined); setFilter('') }, [category])
+  useEffect(() => { onEditingChange(false); setEditingPosition(undefined); setFilter('') }, [category])
   const activeLayout = draft ?? controller.layout
   const page = activeLayout?.pages.find(candidate => candidate.category === category)
   const actions = new Map(controller.actions?.actions.map(action => [action.definition.id, action]) ?? [])
@@ -51,10 +47,10 @@ export function ControlsPage({ category, controller, editing: controlledEditing,
         actions={macros.recording
           ? <><span className="recording-status">Recording · {macros.recording.entries.length} commands</span><Button variant="quiet" onClick={() => void macros.cancelRecording()}>Cancel</Button><Button variant="primary" onClick={() => void macros.stopRecording()}>Stop and review</Button></>
           : editing
-            ? <><Button variant="quiet" onClick={() => { setDraft(controller.layout); setEditing(false); setEditingPosition(undefined) }}>Cancel</Button><Button busy={saving} variant="primary" onClick={() => {
+            ? <><Button variant="quiet" onClick={() => { setDraft(controller.layout); onEditingChange(false); setEditingPosition(undefined) }}>Cancel</Button><Button busy={saving} variant="primary" onClick={() => {
               if (!draft) return
               setSaving(true)
-              void onSaveLayout(draft).then(saved => { setDraft(saved); setEditing(false); setError(undefined) }).catch(cause => setError(cause instanceof Error ? cause.message : 'Unable to save control layout.')).finally(() => setSaving(false))
+              void onSaveLayout(draft).then(saved => { setDraft(saved); onEditingChange(false); setError(undefined) }).catch(cause => setError(cause instanceof Error ? cause.message : 'Unable to save control layout.')).finally(() => setSaving(false))
             }}>Save layout</Button></>
             : null}
         context="Controls"
@@ -162,13 +158,11 @@ function assignTarget(layout: ControlGridLayout, category: ControlCategory, posi
     ...layout,
     pages: layout.pages.map(page => {
       if (page.category !== category) return page
-      const key = target ? commandTargetKey(target) : undefined
-      const cells = page.cells.map(cell => key && cell.target && commandTargetKey(cell.target) === key ? { ...cell, target: null } : cell)
       return {
         ...page,
-        cells: cells.some(cell => cell.position === position)
-          ? cells.map(cell => cell.position === position ? { ...cell, target } : cell)
-          : [...cells, { position, span: 1, target }].sort((left, right) => left.position - right.position)
+        cells: page.cells.some(cell => cell.position === position)
+          ? page.cells.map(cell => cell.position === position ? { ...cell, target } : cell)
+          : [...page.cells, { position, span: 1, target }].sort((left, right) => left.position - right.position)
       }
     })
   }

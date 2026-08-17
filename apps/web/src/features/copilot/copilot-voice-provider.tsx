@@ -4,6 +4,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode
 } from 'react'
 import {
@@ -23,11 +24,6 @@ import {
 } from './realtime-audio.js'
 
 const CONVERSATION_ID = 'phoenix-copilot'
-const transientDevicePreferences: DevicePreferences = {
-  getSnapshot: () => ({ audioInputId: '', audioOutputId: '', captureNumpad: true, followCopilotNavigation: true }),
-  update: () => undefined,
-  subscribe: () => () => undefined
-}
 
 export interface VoiceDevice {
   id: string
@@ -89,7 +85,7 @@ export function CopilotVoiceProvider ({
   api: PhoenixApi
   children: ReactNode
   clientIdentity: ClientIdentity
-  devicePreferences?: DevicePreferences
+  devicePreferences: DevicePreferences
   events: PhoenixEventHub
 }) {
   const clientIdRef = useRef(clientIdentity.forScope('copilot'))
@@ -106,9 +102,13 @@ export function CopilotVoiceProvider ({
   const [devices, setDevices] = useState<{ inputs: VoiceDevice[], outputs: VoiceDevice[] }>({
     inputs: [], outputs: []
   })
-  const resolvedDevicePreferences = devicePreferences ?? transientDevicePreferences
-  const [inputId, setInputIdState] = useState(() => resolvedDevicePreferences.getSnapshot().audioInputId)
-  const [outputId, setOutputIdState] = useState(() => resolvedDevicePreferences.getSnapshot().audioOutputId)
+  const devicePreferenceSnapshot = useSyncExternalStore(
+    devicePreferences.subscribe,
+    devicePreferences.getSnapshot,
+    devicePreferences.getSnapshot
+  )
+  const inputId = devicePreferenceSnapshot.audioInputId
+  const outputId = devicePreferenceSnapshot.audioOutputId
   const [activeTurn, setActiveTurn] = useState<ActiveVoiceTurn>()
   const [historyVersion, setHistoryVersion] = useState(0)
   const [profiles, setProfiles] = useState<readonly CopilotProfile[]>([
@@ -654,12 +654,10 @@ export function CopilotVoiceProvider ({
   }
   const activeProfile = profiles.find(profile => profile.id === activeProfileId) ?? profiles[0]!
   const setInputId = (id: string): void => {
-    setInputIdState(id)
-    resolvedDevicePreferences.update({ audioInputId: id })
+    devicePreferences.update({ audioInputId: id })
   }
   const setOutputId = (id: string): void => {
-    setOutputIdState(id)
-    resolvedDevicePreferences.update({ audioOutputId: id })
+    devicePreferences.update({ audioOutputId: id })
   }
 
   return (

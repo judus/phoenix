@@ -10,6 +10,7 @@ import type { RuntimeStateStore } from '../apps/web/src/application/runtime/runt
 import type { PhoenixApplicationServices } from '../apps/web/src/bootstrap/create-application.js'
 import { PhoenixProviders } from '../apps/web/src/bootstrap/providers.js'
 import { BrowserPhoenixRouter } from '../apps/web/src/platform/routing/browser-phoenix-router.js'
+import { BrowserDevicePreferences } from '../apps/web/src/platform/storage/browser-device-preferences.js'
 
 beforeAll(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
@@ -22,15 +23,20 @@ test('providers start global services and route allowed display commands through
     start: vi.fn(),
     stop: vi.fn()
   } as unknown as RuntimeStateStore
-  let allowed = true
+  const devicePreferences = new BrowserDevicePreferences(browser.localStorage)
   const application: PhoenixApplicationServices = {
     api: apiStub(),
     clientIdentity: { forScope: scope => `${scope}-client` },
-    displayCommands: {
-      allowsRemoteCommands: () => allowed,
-      setAllowsRemoteCommands(value) { allowed = value }
-    },
+    devicePreferences,
     events,
+    numpadRouteSession: {
+      acknowledge() {},
+      arm() {},
+      discard() {},
+      isArmed: () => false,
+      leave: () => false,
+      navigate() {}
+    },
     router: new BrowserPhoenixRouter(browser as unknown as Window),
     runtime
   }
@@ -56,7 +62,7 @@ test('providers start global services and route allowed display commands through
     selectedName: 'Earth'
   })
 
-  allowed = false
+  devicePreferences.update({ followCopilotNavigation: false })
   await act(async () => events.emit('display-command', {
     id: 'display-2',
     type: 'show_system',

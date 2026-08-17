@@ -3,11 +3,12 @@ import { createEmptyRuntimeState } from '@phoenix/contracts'
 import { expect, test } from 'vitest'
 import { DEFAULT_CONTROL_GRID_LAYOUT } from '../apps/server/src/infrastructure/default-control-grid-layout.js'
 import { ControlsPage } from '../apps/web/src/features/controls/controls-page.js'
-import type { MacroRuntime } from '../apps/web/src/features/macros/macro-runtime-provider.js'
+import type { MacroRuntime } from '../apps/web/src/application/macros/macro-runtime.js'
 
 test('reconstructed controls render the persisted grid with shared command tiles', () => {
   const markup = renderToStaticMarkup(<ControlsPage
     category="ship"
+    editing={false}
     controller={{
       actions: {
         backend: { id: 'test', available: true, simulated: false, detail: 'ready' },
@@ -32,6 +33,7 @@ test('reconstructed controls render the persisted grid with shared command tiles
     macros={{ library: { version: 1, macros: [] } } as unknown as MacroRuntime}
     runtime={createEmptyRuntimeState()}
     onExecuteAction={() => Promise.resolve()}
+    onEditingChange={() => undefined}
     onSaveLayout={layout => Promise.resolve(layout)}
   />)
 

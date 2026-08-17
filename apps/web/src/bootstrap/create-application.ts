@@ -3,6 +3,7 @@ import type { DevicePreferences } from '../application/settings/device-preferenc
 import type { PhoenixEventHub } from '../application/events/phoenix-event-hub.js'
 import type { ClientIdentity } from '../application/identity/client-identity.js'
 import type { PhoenixRouter } from '../application/navigation/phoenix-router.js'
+import { RouterNumpadRouteSession, type NumpadRouteSession } from '../application/navigation/numpad-route-session.js'
 import { RuntimeStateStore } from '../application/runtime/runtime-state-store.js'
 import { PhoenixApiClient } from '../platform/api/phoenix-api-client.js'
 import {
@@ -18,6 +19,7 @@ export interface PhoenixApplicationServices {
   clientIdentity: ClientIdentity
   devicePreferences: DevicePreferences
   events: PhoenixEventHub
+  numpadRouteSession: NumpadRouteSession
   router: PhoenixRouter
   runtime: RuntimeStateStore
 }
@@ -47,12 +49,14 @@ export function createPhoenixApplication(
   } catch {
     sessionStorage = unavailableStorage()
   }
+  const router = new BrowserPhoenixRouter(browserWindow)
   return {
     api,
     clientIdentity: new BrowserClientIdentity(sessionStorage),
     devicePreferences: new BrowserDevicePreferences(localStorage),
     events,
-    router: new BrowserPhoenixRouter(browserWindow),
+    numpadRouteSession: new RouterNumpadRouteSession(router, sessionStorage),
+    router,
     runtime: new RuntimeStateStore(api, events)
   }
 }

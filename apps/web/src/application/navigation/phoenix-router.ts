@@ -4,9 +4,10 @@ import {
   HOME_ROUTE,
   type InformationRoute,
   type PhoenixRoute,
-  type PhoenixRouteQuery,
   type PhoenixWorkspace
 } from './phoenix-route.js'
+
+type RawRouteQuery = Readonly<Record<string, string>>
 
 export interface PhoenixRouter {
   getSnapshot(): PhoenixRoute
@@ -22,40 +23,47 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
   const { segments, query } = splitHash(input)
   const [section, ...rest] = segments
 
-  if (!section || section === 'home' || section === 'info') return withQuery(HOME_ROUTE, query)
+  if (!section || section === 'home' || section === 'info') return HOME_ROUTE
 
   if (section === 'controls') {
     const category = CONTROL_CATEGORIES.find(candidate => candidate === rest[0]) ?? 'ship'
-    return withQuery({ kind: 'controls', category }, query)
+    return { kind: 'controls', category }
   }
 
   if (section === 'copilot') {
-    return withQuery({ kind: 'copilot', view: rest[0] === 'profiles' ? 'profiles' : 'chat' }, query)
+    return { kind: 'copilot', view: rest[0] === 'profiles' ? 'profiles' : 'chat' }
   }
 
   if (section === 'numpad' || section === 'telemetry') {
-    return withQuery({ kind: 'numpad', view: rest[0] === 'shortcuts' ? 'shortcuts' : 'navigator' }, query)
+    return { kind: 'numpad', view: rest[0] === 'shortcuts' ? 'shortcuts' : 'navigator' }
   }
 
-  if (section === 'macros') return withQuery({ kind: 'macros' }, query)
+  if (section === 'macros') return { kind: 'macros' }
   if (section === 'log' || section === 'journal' || (section === 'records' && ['journal', 'credits'].includes(rest[0] ?? ''))) {
     const view = section === 'records' && rest[0] === 'credits' ? 'credits' : 'journal'
-    return withQuery({ kind: 'journal', view }, query)
+    return { kind: 'journal', view }
   }
 
   if (section === 'exploration' || (section === 'records' && rest[0] === 'exploration')) {
-    const viewSegment = section === 'exploration' ? rest[0] : rest[1]
-    const view = oneOf(viewSegment, ['ledger', 'body', 'biology', 'geology'] as const) ?? 'ledger'
-    return withQuery({ kind: 'information', section: 'records', view: `exploration-${view}` }, query)
+    const systemName = query.system?.trim()
+    const selectedName = query.body?.trim()
+    if (systemName) return {
+      kind: 'information',
+      section: 'galaxy',
+      view: 'system',
+      systemName,
+      ...(selectedName ? { selectedName } : {})
+    }
+    return { kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'exploration-targets' }
   }
 
   if (section === 'developer') {
     const view = oneOf(rest[0], ['overview', 'runtime', 'elite', 'health', 'tests', 'controls'] as const) ?? 'overview'
-    return withQuery({ kind: 'developer', view }, query)
+    return { kind: 'developer', view }
   }
 
   if (section === 'settings') {
-    return withQuery({ kind: 'settings', view: 'dashboard' }, query)
+    return { kind: 'settings', view: 'dashboard' }
   }
 
   if (section === 'ship') {
@@ -83,10 +91,10 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
 
   if (section === 'comms') {
     const view = oneOf(rest[0], ['overview', 'inbox', 'traffic', 'contacts', 'galnet', 'radio'] as const) ?? 'overview'
-    return withQuery({ kind: 'information', section, view }, query)
+    return { kind: 'information', section, view }
   }
 
-  return withQuery(HOME_ROUTE, query)
+  return HOME_ROUTE
 }
 
 export function phoenixRouteHash(route: PhoenixRoute): string {
@@ -101,7 +109,7 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
     case 'developer': path = `/developer/${route.view}`; break
     case 'settings': path = '/settings'; break
   }
-  const parameters = new URLSearchParams('query' in route ? route.query : undefined)
+  const parameters = new URLSearchParams()
   if (route.kind === 'information' && route.section === 'galaxy' && route.view === 'system') {
     if (route.systemName) parameters.set('name', route.systemName)
     if (route.selectedName) parameters.set('selected', route.selectedName)
@@ -131,13 +139,10 @@ function informationPath(route: InformationRoute): string {
   if (route.section === 'engineering' && route.view.startsWith('materials-')) {
     return `/engineering/materials/${route.view.slice('materials-'.length)}`
   }
-  if (route.section === 'records') {
-    return `/records/exploration/${route.view.slice('exploration-'.length)}`
-  }
   return `/${route.section}/${route.view}`
 }
 
-function parseFleetRoute(rest: string[], query: PhoenixRouteQuery): InformationRoute {
+function parseFleetRoute(rest: string[], query: RawRouteQuery): InformationRoute {
   if (rest[0] === 'ships' && rest[1] === 'current') {
     const view = rest[2] === 'loadout' ? 'current-loadout' : rest[2] === 'cargo' ? 'current-cargo' : rest[2] === 'engineering' ? 'current-engineering' : 'current-overview'
     return { kind: 'information', section: 'fleet', view }
@@ -158,7 +163,7 @@ function parseFleetRoute(rest: string[], query: PhoenixRouteQuery): InformationR
   return { kind: 'information', section: 'fleet', view }
 }
 
-function parseGalaxyRoute(rest: string[], query: PhoenixRouteQuery): InformationRoute {
+function parseGalaxyRoute(rest: string[], query: RawRouteQuery): InformationRoute {
   const view = oneOf(rest[0], ['system', 'route', 'database'] as const) ?? 'system'
   if (view === 'system') {
     const { name, selected } = query
@@ -182,7 +187,7 @@ function parseGalaxyRoute(rest: string[], query: PhoenixRouteQuery): Information
   return { kind: 'information', section: 'galaxy', view }
 }
 
-function parseEngineeringRoute(rest: string[], query: PhoenixRouteQuery): InformationRoute {
+function parseEngineeringRoute(rest: string[], query: RawRouteQuery): InformationRoute {
   if (rest[0] === 'materials') {
     const material = oneOf(rest[1], ['raw', 'manufactured', 'encoded', 'xeno'] as const) ?? 'raw'
     return { kind: 'information', section: 'engineering', view: `materials-${material}` }
@@ -199,7 +204,7 @@ function parseEngineeringRoute(rest: string[], query: PhoenixRouteQuery): Inform
   return { kind: 'information', section: 'engineering', view }
 }
 
-function splitHash(input: string): { segments: string[], query: PhoenixRouteQuery } {
+function splitHash(input: string): { segments: string[], query: RawRouteQuery } {
   const raw = input.trim().replace(/^#/u, '')
   const [path = '', search = ''] = raw.split('?', 2)
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
@@ -207,10 +212,6 @@ function splitHash(input: string): { segments: string[], query: PhoenixRouteQuer
     segments: normalizedPath.split('/').filter(Boolean),
     query: Object.fromEntries(new URLSearchParams(search))
   }
-}
-
-function withQuery<T extends PhoenixRoute>(route: T, query: PhoenixRouteQuery): T {
-  return Object.keys(query).length === 0 ? route : { ...route, query }
 }
 
 function oneOf<const T extends readonly string[]>(value: string | undefined, values: T): T[number] | undefined {

@@ -5,9 +5,9 @@ import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
 import type { PhoenixRouter } from '../apps/web/src/application/navigation/phoenix-router.js'
 import {
   MacroRuntimeProvider,
-  useMacroRuntime,
-  type MacroRuntime
+  useMacroRuntime
 } from '../apps/web/src/features/macros/macro-runtime-provider.js'
+import type { MacroRuntime } from '../apps/web/src/application/macros/macro-runtime.js'
 
 beforeAll(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })

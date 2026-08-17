@@ -2,24 +2,8 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, type R
 import type { MacroDefinition, MacroLibrary, MacroPlayback, MacroRecording } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { createClientId, type ClientIdentity } from '../../application/identity/client-identity.js'
+import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
 import type { PhoenixRouter } from '../../application/navigation/phoenix-router.js'
-
-export interface MacroRuntime {
-  cancelRecording: () => Promise<void>
-  deleteMacro: (id: string) => Promise<void>
-  draft?: MacroRecording
-  error?: string
-  library: MacroLibrary
-  playback?: MacroPlayback
-  play: (macro: MacroDefinition) => Promise<void>
-  abort: () => Promise<void>
-  recordAction: (actionId: string, operation: MacroRecording['entries'][number]['operation']) => Promise<void>
-  recording?: MacroRecording
-  save: (name: string) => Promise<void>
-  setDraft: (draft: MacroRecording | undefined) => void
-  startRecording: () => Promise<void>
-  stopRecording: () => Promise<void>
-}
 
 const MacroRuntimeContext = createContext<MacroRuntime | undefined>(undefined)
 

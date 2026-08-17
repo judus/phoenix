@@ -1,7 +1,17 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test } from 'vitest'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
+import type { NumpadRouteSession } from '../apps/web/src/application/navigation/numpad-route-session.js'
 import { NumpadPage } from '../apps/web/src/features/numpad/numpad-page.js'
+
+const routeSession: NumpadRouteSession = {
+  acknowledge() {},
+  arm() {},
+  discard() {},
+  isArmed: () => false,
+  leave: () => false,
+  navigate() {}
+}
 
 const settings = {
   numpadCommands: {
@@ -16,6 +26,7 @@ const settings = {
 test('the reconstructed numpad renders the live command navigator', () => {
   const markup = renderToStaticMarkup(<NumpadPage
     api={{} as PhoenixApi}
+    routeSession={routeSession}
     view="navigator"
     controller={{
       commands: [],
@@ -52,6 +63,7 @@ test('the reconstructed numpad renders the live command navigator', () => {
 test('the numpad command workspace remains available independently of physical key capture', () => {
   const markup = renderToStaticMarkup(<NumpadPage
     api={{} as PhoenixApi}
+    routeSession={routeSession}
     view="navigator"
     controller={{ commands: [], settings, snapshot: { revision: 1, generatedAt: '2026-08-17T00:00:00.000Z', activationDigit: '0', diagnostics: [], nodes: [] }, status: 'ready' }}
   />)

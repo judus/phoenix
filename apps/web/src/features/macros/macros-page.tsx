@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { MacroRecording } from '@phoenix/contracts'
 import { Button, DataTable, Field, NumberInput, PageFrame, PageHeader, Section, Status, TextInput, Widget } from '@phoenix/ui'
-import type { MacroRuntime } from './macro-runtime-provider.js'
+import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
 
 export function MacrosPage({ runtime }: { runtime: MacroRuntime }) {
   const [name, setName] = useState('')

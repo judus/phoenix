@@ -242,7 +242,7 @@ test('control-grid layouts are persisted inside system settings', () => {
   ])
 })
 
-test('control-grid layouts reject overlapping cells and duplicate assignments', () => {
+test('control-grid layouts reject overlapping cells', () => {
   expect(() => ControlGridLayoutSchema.parse({
     version: 4,
     pages: [{
@@ -253,10 +253,27 @@ test('control-grid layouts reject overlapping cells and duplicate assignments', 
       rows: 5,
       cells: [
         { position: 1, span: 2, target: { type: 'game-action', actionId: 'elite.NightVisionToggle' } },
-        { position: 2, span: 1, target: { type: 'game-action', actionId: 'elite.NightVisionToggle' } }
+        { position: 2, span: 1, target: { type: 'game-action', actionId: 'elite.LandingGearToggle' } }
       ]
     }]
   })).toThrow()
+})
+
+test('control-grid layouts allow the same command in multiple cells', () => {
+  expect(ControlGridLayoutSchema.parse({
+    version: 4,
+    pages: [{
+      id: 'ship',
+      label: 'Ship',
+      category: 'ship',
+      columns: 8,
+      rows: 5,
+      cells: [
+        { position: 1, span: 1, target: { type: 'game-action', actionId: 'elite.NightVisionToggle' } },
+        { position: 2, span: 1, target: { type: 'game-action', actionId: 'elite.NightVisionToggle' } }
+      ]
+    }]
+  }).pages[0]?.cells).toHaveLength(2)
 })
 
 class StubInputBackend implements InputBackend {

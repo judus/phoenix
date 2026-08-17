@@ -24,7 +24,7 @@ import {
   ThirdsGrid,
   Widget
 } from '@phoenix/ui'
-import { GalnetRadioControls } from './galnet-radio-controls.js'
+import { GalnetRadioControls } from '../../components/galnet-radio-controls.js'
 import type { CommsControllerSnapshot, CommsView } from './use-comms-controller.js'
 
 export function CommsPage({ controller, onExecuteAction, view }: {

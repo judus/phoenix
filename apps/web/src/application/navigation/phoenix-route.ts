@@ -36,15 +36,8 @@ export const GALAXY_QUERY_IDS = [
 
 export type GalaxyQueryId = typeof GALAXY_QUERY_IDS[number]
 
-/**
- * Transitional query preservation for routes whose feature-specific model has not migrated yet.
- * Promote meaningful values to fields on the relevant route variant before feature code consumes
- * them; feature code must not build behavior around arbitrary string-key access.
- */
-export type PhoenixRouteQuery = Readonly<Record<string, string>>
-
 export type InformationRoute =
-  | { kind: 'information', section: 'home', view: 'overview', query?: PhoenixRouteQuery }
+  | { kind: 'information', section: 'home', view: 'overview' }
   | { kind: 'information', section: 'commander', view: 'overview' | 'inventory' | 'progress' }
   | { kind: 'information', section: 'fleet', view: 'overview' | 'current-overview' | 'current-loadout' | 'current-cargo' | 'current-engineering' | 'carriers' | 'stored-modules' }
   | { kind: 'information', section: 'fleet', view: 'catalogue', selectedShipId?: string }
@@ -54,18 +47,17 @@ export type InformationRoute =
   | { kind: 'information', section: 'activities', view: 'missions' | 'objectives' | 'community-goals' | 'powerplay' | 'colonisation' }
   | { kind: 'information', section: 'engineering', view: 'blueprints', selectedBlueprintSymbol?: string }
   | { kind: 'information', section: 'engineering', view: 'engineers' | 'materials-raw' | 'materials-manufactured' | 'materials-encoded' | 'materials-xeno' }
-  | { kind: 'information', section: 'comms', view: 'overview' | 'inbox' | 'traffic' | 'contacts' | 'galnet' | 'radio', query?: PhoenixRouteQuery }
-  | { kind: 'information', section: 'records', view: 'exploration-ledger' | 'exploration-body' | 'exploration-biology' | 'exploration-geology', query?: PhoenixRouteQuery }
+  | { kind: 'information', section: 'comms', view: 'overview' | 'inbox' | 'traffic' | 'contacts' | 'galnet' | 'radio' }
 
 export type PhoenixRoute =
   | InformationRoute
-  | { kind: 'controls', category: ControlCategory, query?: PhoenixRouteQuery }
-  | { kind: 'copilot', view: 'chat' | 'profiles', query?: PhoenixRouteQuery }
-  | { kind: 'numpad', view: 'navigator' | 'shortcuts', query?: PhoenixRouteQuery }
-  | { kind: 'macros', query?: PhoenixRouteQuery }
-  | { kind: 'journal', view: 'journal' | 'credits', query?: PhoenixRouteQuery }
-  | { kind: 'developer', view: 'overview' | 'runtime' | 'elite' | 'health' | 'tests' | 'controls', query?: PhoenixRouteQuery }
-  | { kind: 'settings', view: 'dashboard', query?: PhoenixRouteQuery }
+  | { kind: 'controls', category: ControlCategory }
+  | { kind: 'copilot', view: 'chat' | 'profiles' }
+  | { kind: 'numpad', view: 'navigator' | 'shortcuts' }
+  | { kind: 'macros' }
+  | { kind: 'journal', view: 'journal' | 'credits' }
+  | { kind: 'developer', view: 'overview' | 'runtime' | 'elite' | 'health' | 'tests' | 'controls' }
+  | { kind: 'settings', view: 'dashboard' }
 
 export type PhoenixWorkspace =
   | 'controls'
