@@ -11,8 +11,7 @@ PHOENIX is a local-first companion application and ship-computer interface for E
 
 ![screen-16.webp](docs/screens/screen-16.webp)
 
-![screen-01.webp](docs/screens/screen-01.webp)
-
+![screen-25.webp](docs/screens/screen-25.webp)
 
 ## Current status
 
@@ -104,7 +103,6 @@ and distinguishes “command sent” from “ship definitely did the thing.”
 ![screen-02.webp](docs/screens/screen-02.webp)
 ![screen-06.webp](docs/screens/screen-06.webp)
 ![screen-10.webp](docs/screens/screen-10.webp)
-![screen-24.webp](docs/screens/screen-24.webp)
 ![screen-22.webp](docs/screens/screen-22.webp)
 ![screen-11.webp](docs/screens/screen-11.webp)
 ![screen-04.webp](docs/screens/screen-04.webp)
