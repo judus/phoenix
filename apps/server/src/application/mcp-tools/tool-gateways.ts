@@ -1,4 +1,4 @@
-import type { JsonObject, ToolExecutionOutput } from '@judus/llm-client'
+import type { JsonObject, ToolExecutionOutput } from '@jdu/llm-client'
 
 export type DeferredToolResult = Promise<ToolExecutionOutput> | ToolExecutionOutput
 

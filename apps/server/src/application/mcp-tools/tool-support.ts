@@ -1,4 +1,4 @@
-import type { JsonObject, JsonValue, ToolExecutionOutput } from '@judus/llm-client'
+import type { JsonObject, JsonValue, ToolExecutionOutput } from '@jdu/llm-client'
 
 export function output (text: string, structuredContent: JsonValue): ToolExecutionOutput {
   return {

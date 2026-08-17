@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect, test } from 'vitest'
-import type { ConversationMessage } from '@judus/llm-client'
+import type { ConversationMessage } from '@jdu/llm-client'
 import {
   JsonConversationStore,
   conversationFileKey

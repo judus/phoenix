@@ -1,4 +1,4 @@
-import type { JsonObject, LocalTool } from '@judus/llm-client'
+import type { JsonObject, LocalTool } from '@jdu/llm-client'
 import type { MissionDataReader } from '../../domain/missions.js'
 import { boundedLimit, json, optionalIntegerArgument, optionalStringArgument, output } from './tool-support.js'
 

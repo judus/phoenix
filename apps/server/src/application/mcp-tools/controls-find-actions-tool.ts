@@ -1,4 +1,4 @@
-import type { JsonObject, LocalTool } from '@judus/llm-client'
+import type { JsonObject, LocalTool } from '@jdu/llm-client'
 import type { Commands } from '../../domain/commands.js'
 import { json, optionalIntegerArgument, optionalStringArgument, output, stringArgument } from './tool-support.js'
 

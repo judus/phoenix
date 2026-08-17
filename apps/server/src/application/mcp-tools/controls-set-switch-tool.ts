@@ -1,4 +1,4 @@
-import type { JsonObject, LocalTool } from '@judus/llm-client'
+import type { JsonObject, LocalTool } from '@jdu/llm-client'
 import type { StatefulGameActionService } from '../stateful-game-action-service.js'
 import { booleanArgument, json, output, stringArgument } from './tool-support.js'
 

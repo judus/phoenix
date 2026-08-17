@@ -1,5 +1,5 @@
-import type { JsonObject, LocalTool } from '@judus/llm-client'
-import type { JsonValue } from '@judus/llm-client'
+import type { JsonObject, LocalTool } from '@jdu/llm-client'
+import type { JsonValue } from '@jdu/llm-client'
 import type { RuntimeState } from '@phoenix/contracts'
 import type { RuntimeStateReader } from '../../domain/runtime-state.js'
 import { emptyObjectSchema, output } from './tool-support.js'

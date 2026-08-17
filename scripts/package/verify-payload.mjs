@@ -21,7 +21,7 @@ for (const required of [
   'agents/marin/agent.md',
   'data/catalogue/ships.json',
   'node_modules/@phoenix/contracts/dist/index.js',
-  'node_modules/@judus/llm-client/dist/index.js'
+  'node_modules/@jdu/llm-client/dist/index.js'
 ]) {
   readFileSync(resolve(payloadRoot, required))
 }

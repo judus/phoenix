@@ -4,8 +4,8 @@ import {
   type ConfiguredProvider,
   type ConversationMessage,
   type ModelResponse
-} from '@judus/llm-client'
-import { ScriptedProvider, textModelCapabilities } from '@judus/llm-client/testing'
+} from '@jdu/llm-client'
+import { ScriptedProvider, textModelCapabilities } from '@jdu/llm-client/testing'
 import { StaticGameActionBindingResolver } from '../apps/server/src/infrastructure/static-game-action-binding-resolver.js'
 import { InMemorySystemSettingsRepository } from '../apps/server/src/infrastructure/json-system-configuration.js'
 import { InMemoryMacroRepository } from '../apps/server/src/infrastructure/macro-repositories.js'

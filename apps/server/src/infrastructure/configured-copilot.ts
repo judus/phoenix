@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
-import { createAiClient, type AiClient, type ToolRegistry } from '@judus/llm-client'
-import { openAI } from '@judus/llm-client/providers/openai'
+import { createAiClient, type AiClient, type ToolRegistry } from '@jdu/llm-client'
+import { openAI } from '@jdu/llm-client/providers/openai'
 import {
   AgentPromptComposer,
   FileAgentProfileRepository,

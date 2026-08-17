@@ -1,4 +1,4 @@
-import type { JsonObject, LocalTool } from '@judus/llm-client'
+import type { JsonObject, LocalTool } from '@jdu/llm-client'
 import type { TradeMarketQuery } from './tool-gateways.js'
 
 export class MarketsFindBestTradeTool implements LocalTool {

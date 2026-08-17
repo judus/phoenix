@@ -6,7 +6,7 @@ import {
   type JsonValue,
   type ToolDefinition,
   type ToolExecutionOutput
-} from '@judus/llm-client'
+} from '@jdu/llm-client'
 
 const PROTOCOL_VERSION = '2025-11-25'
 

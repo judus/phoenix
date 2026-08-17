@@ -1,4 +1,4 @@
-import type { JsonObject } from '@judus/llm-client'
+import type { JsonObject } from '@jdu/llm-client'
 import type { CartographicSystem, NavigationRouteHop } from '@phoenix/contracts'
 import type { SystemCartography } from '../domain/cartography.js'
 import type { NavigationRouteReader } from '../domain/navigation.js'

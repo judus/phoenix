@@ -1,4 +1,4 @@
-import type { JsonObject } from '@judus/llm-client'
+import type { JsonObject } from '@jdu/llm-client'
 import type { SystemCartography } from '../domain/cartography.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type { SystemDetailsQuery } from './mcp-tools/tool-gateways.js'

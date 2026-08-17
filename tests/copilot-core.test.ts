@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
-import type { AiResult, AiStreamEvent } from '@judus/llm-client'
+import type { AiResult, AiStreamEvent } from '@jdu/llm-client'
 import {
   AgentPromptComposer,
   FileAgentProfileRepository,

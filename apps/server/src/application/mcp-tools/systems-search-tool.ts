@@ -1,4 +1,4 @@
-import type { JsonObject, LocalTool } from '@judus/llm-client'
+import type { JsonObject, LocalTool } from '@jdu/llm-client'
 import type { SystemSearchQuery } from './tool-gateways.js'
 
 export class SystemsSearchTool implements LocalTool {

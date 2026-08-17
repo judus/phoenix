@@ -1,4 +1,4 @@
-import type { JsonObject, LocalTool } from '@judus/llm-client'
+import type { JsonObject, LocalTool } from '@jdu/llm-client'
 import type { FactionPresenceQuery } from './tool-gateways.js'
 
 export class FactionsSearchTool implements LocalTool {

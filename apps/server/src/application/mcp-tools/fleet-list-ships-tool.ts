@@ -1,4 +1,4 @@
-import type { JsonObject, LocalTool } from '@judus/llm-client'
+import type { JsonObject, LocalTool } from '@jdu/llm-client'
 import type { FleetDataReader } from '../../domain/fleet.js'
 import { json, output } from './tool-support.js'
 

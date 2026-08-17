@@ -1,4 +1,4 @@
-import type { JsonObject, LocalTool } from '@judus/llm-client'
+import type { JsonObject, LocalTool } from '@jdu/llm-client'
 import { CommandTargetSchema } from '@phoenix/contracts'
 import type { Commands } from '../../domain/commands.js'
 import { json, optionalStringArgument, output } from './tool-support.js'

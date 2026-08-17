@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import type { AiResult, AiRunOptions, AiStreamEvent } from '@judus/llm-client'
+import type { AiResult, AiRunOptions, AiStreamEvent } from '@jdu/llm-client'
 import type {
   CopilotText,
   CopilotTextRequest

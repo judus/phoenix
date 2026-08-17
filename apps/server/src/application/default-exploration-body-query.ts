@@ -1,4 +1,4 @@
-import type { JsonObject } from '@judus/llm-client'
+import type { JsonObject } from '@jdu/llm-client'
 import type { CartographicBody } from '@phoenix/contracts'
 import type {
   CartographyObservationStore,

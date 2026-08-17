@@ -1,4 +1,4 @@
-import type { LocalTool } from '@judus/llm-client'
+import type { LocalTool } from '@jdu/llm-client'
 import type { GameCatalogue } from '@phoenix/elite'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type { Commands } from '../domain/commands.js'

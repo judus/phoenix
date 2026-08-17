@@ -6,7 +6,7 @@ import type {
   JsonValue,
   ToolExecutionOutput,
   ToolRegistry
-} from '@judus/llm-client'
+} from '@jdu/llm-client'
 import type {
   CopilotAudioProcessing,
   CopilotRealtimeTokenRequest,

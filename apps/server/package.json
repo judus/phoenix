@@ -5,7 +5,7 @@
   "type": "module",
   "exports": "./dist/main.js",
   "dependencies": {
-    "@judus/llm-client": "git+ssh://git@github.com/judus/llm-client-ts.git#v0.1.1",
+    "@jdu/llm-client": "0.1.2",
     "@phoenix/copilot": "*",
     "@phoenix/contracts": "*",
     "@phoenix/elite": "*"
