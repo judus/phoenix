@@ -161,7 +161,7 @@
     --command-unavailable-background: rgb(10 7 12 / 82%);
     --command-unavailable-text: var(--color-text-muted);
     --command-danger-background: rgb(68 20 20 / 94%);
-    --command-danger-border: var(--color-danger);
+    --command-danger-border: rgb(255 97 118 / 48%);
 
     /* Shared responsive scale. CSS queries repeat these values as literals because
        custom properties cannot be evaluated in media or container conditions. */

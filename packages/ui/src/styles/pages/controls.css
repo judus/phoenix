@@ -1,0 +1,84 @@
+  .controls-page {
+    position: relative;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    gap: var(--spacing-sm);
+
+    > .status { align-self: start; }
+
+    &:not(.editing) > .page-header { display: none; }
+
+    &.editing { grid-template-rows: auto minmax(0, 1fr); }
+
+    .recording-status {
+      color: var(--color-information);
+      font-size: var(--font-size-xs);
+      text-transform: uppercase;
+    }
+
+    .control-deck {
+      display: grid;
+      gap: var(--spacing-sm);
+      min-inline-size: 0;
+      min-block-size: 0;
+      overflow: hidden;
+
+      > .command-tile { block-size: 100%; }
+    }
+
+    .control-deck-empty { background: var(--color-canvas); }
+
+    button.control-deck-empty {
+      display: grid;
+      place-content: center;
+      min-inline-size: 0;
+      min-block-size: 0;
+      block-size: 100%;
+      color: var(--color-text-muted);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      opacity: 0.48;
+
+      &::after { display: none; }
+    }
+
+    .control-picker {
+      position: absolute;
+      z-index: 4;
+      inset: var(--spacing-xl);
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      gap: var(--spacing-md);
+      min-inline-size: 0;
+      min-block-size: 0;
+      padding: var(--spacing-lg);
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+
+      > header,
+      > footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--spacing-sm);
+      }
+
+      > header > div {
+        display: grid;
+        gap: var(--spacing-xxs);
+
+        strong { color: var(--color-action); text-transform: uppercase; }
+        small { color: var(--color-text-muted); }
+      }
+
+      .control-picker-list {
+        display: grid;
+        align-content: start;
+        gap: 1px;
+        min-block-size: 0;
+        overflow: auto;
+
+        > .btn { inline-size: 100%; }
+      }
+    }
+  }

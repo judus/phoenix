@@ -13,7 +13,7 @@ const routes = {
 export const galaxyNavigationItems: GalaxyNavigationItem[] = [
   item('system', 'Current system', 'SYS'),
   item('route', 'Plotted route', 'RTE'),
-  item('database', 'Galaxy database', 'DB')
+  item('database', 'Galaxy database', 'DBS')
 ]
 
 export function galaxyContextForRoute(route: InformationRoute): string {

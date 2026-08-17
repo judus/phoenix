@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { ApplicationShell, BottomBar, Navigation, TopBar } from '@phoenix/ui'
-import type { NavigationItem } from '@phoenix/ui'
+import type { ApplicationNavigationItem, NavigationItem } from '@phoenix/ui'
 import { DesktopWorkspace } from './desktop-workspace.js'
 import { PhoenixBrand } from './phoenix-brand.js'
 import { isRouteNavigationItem, utilityItems, workspaceItems } from './navigation-model.js'
@@ -10,37 +10,53 @@ import type { InformationRoute, PhoenixRoute, PhoenixWorkspace } from '../../app
 export interface PhoenixApplicationShellProps {
   activeDesktop: PhoenixWorkspace
   controls: ReactNode
+  controlsContextItems?: ApplicationNavigationItem[]
+  controlsCurrentContext?: string
   copilot: ReactNode
-  developer: ReactNode
+  copilotContextItems?: NavigationItem[]
+  copilotCurrentContext?: string
   information: ReactNode
   informationContextItems?: NavigationItem[]
   informationContextLabel?: string
   informationCurrentContext?: string
   journal: ReactNode
+  journalContextItems?: NavigationItem[]
+  journalCurrentContext?: string
   macros: ReactNode
   informationRoute: InformationRoute
   onNavigateRoute: (route: PhoenixRoute) => void
+  onControlsContextAction?: (item: ApplicationNavigationItem) => void
   onNavigateWorkspace: (desktop: PhoenixWorkspace) => void
   settings: ReactNode
   telemetry: ReactNode
+  telemetryContextItems?: NavigationItem[]
+  telemetryCurrentContext?: string
 }
 
 export function PhoenixApplicationShell({
   activeDesktop,
   controls,
+  controlsContextItems,
+  controlsCurrentContext,
   copilot,
-  developer,
+  copilotContextItems,
+  copilotCurrentContext,
   information,
   informationContextItems,
   informationContextLabel,
   informationCurrentContext,
   informationRoute,
   journal,
+  journalContextItems,
+  journalCurrentContext,
   macros,
+  onControlsContextAction,
   onNavigateRoute,
   onNavigateWorkspace,
   settings,
-  telemetry
+  telemetry,
+  telemetryContextItems,
+  telemetryCurrentContext
 }: PhoenixApplicationShellProps) {
   const fullscreen = useFullscreen()
 
@@ -67,23 +83,32 @@ export function PhoenixApplicationShell({
       <DesktopWorkspace
         activeDesktop={activeDesktop}
         controls={controls}
+        {...(controlsContextItems ? { controlsContextItems } : {})}
+        {...(controlsCurrentContext ? { controlsCurrentContext } : {})}
         copilot={copilot}
-        developer={developer}
+        {...(copilotContextItems ? { copilotContextItems } : {})}
+        {...(copilotCurrentContext ? { copilotCurrentContext } : {})}
         information={information}
         {...(informationContextItems ? { informationContextItems } : {})}
         {...(informationContextLabel ? { informationContextLabel } : {})}
         {...(informationCurrentContext ? { informationCurrentContext } : {})}
         informationRoute={informationRoute}
         journal={journal}
+        {...(journalContextItems ? { journalContextItems } : {})}
+        {...(journalCurrentContext ? { journalCurrentContext } : {})}
         macros={macros}
+        onControlsContextAction={onControlsContextAction}
         onNavigateRoute={onNavigateRoute}
         onNavigateWorkspace={onNavigateWorkspace}
         settings={settings}
         telemetry={telemetry}
+        {...(telemetryContextItems ? { telemetryContextItems } : {})}
+        {...(telemetryCurrentContext ? { telemetryCurrentContext } : {})}
       />
       <BottomBar>
         <Navigation
-          variant="workspace"
+          className="workspace-switcher"
+          variant="compact"
           selection="subtle"
           label="Workspaces"
           current={activeDesktop}

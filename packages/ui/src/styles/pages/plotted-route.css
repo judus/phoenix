@@ -54,10 +54,6 @@
       overflow: hidden;
     }
 
-    .route-next-content {
-      padding-block-start: var(--spacing-sm);
-    }
-
     .route-sequence {
       grid-template-rows: auto minmax(0, 1fr);
       min-block-size: 0;

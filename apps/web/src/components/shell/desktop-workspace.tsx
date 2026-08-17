@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
-import type { NavigationItem } from '@phoenix/ui'
+import type { ApplicationNavigationItem, NavigationItem } from '@phoenix/ui'
 import type { Deskplane, DeskplaneSnapshot } from 'deskplane'
 import { DeskplaneViewport } from 'deskplane/react'
 import { emptyContextItems, primaryItems } from './navigation-model.js'
@@ -12,37 +12,53 @@ import type { InformationRoute, PhoenixRoute, PhoenixWorkspace } from '../../app
 export interface DesktopWorkspaceProps {
   activeDesktop: PhoenixWorkspace
   controls: ReactNode
+  controlsContextItems?: ApplicationNavigationItem[]
+  controlsCurrentContext?: string
+  onControlsContextAction?: (item: ApplicationNavigationItem) => void
   copilot: ReactNode
-  developer: ReactNode
+  copilotContextItems?: NavigationItem[]
+  copilotCurrentContext?: string
   information: ReactNode
   informationContextItems?: NavigationItem[]
   informationContextLabel?: string
   informationCurrentContext?: string
   journal: ReactNode
+  journalContextItems?: NavigationItem[]
+  journalCurrentContext?: string
   macros: ReactNode
   informationRoute: InformationRoute
   onNavigateRoute: (route: PhoenixRoute) => void
   onNavigateWorkspace: (desktop: PhoenixWorkspace) => void
   settings: ReactNode
   telemetry: ReactNode
+  telemetryContextItems?: NavigationItem[]
+  telemetryCurrentContext?: string
 }
 
 export function DesktopWorkspace({
   activeDesktop,
   controls,
+  controlsContextItems = emptyContextItems,
+  controlsCurrentContext = '',
   copilot,
-  developer,
+  copilotContextItems = emptyContextItems,
+  copilotCurrentContext = '',
   information,
   informationContextItems = emptyContextItems,
   informationContextLabel = 'Contextual navigation',
   informationCurrentContext = '',
   informationRoute,
   journal,
+  journalContextItems = emptyContextItems,
+  journalCurrentContext = '',
   macros,
+  onControlsContextAction,
   onNavigateRoute,
   onNavigateWorkspace,
   settings,
-  telemetry
+  telemetry,
+  telemetryContextItems = emptyContextItems,
+  telemetryCurrentContext = ''
 }: DesktopWorkspaceProps) {
   const controller = useRef<Deskplane | null>(null)
   const initialDesktop = useRef(activeDesktop)
@@ -82,9 +98,35 @@ export function DesktopWorkspace({
           id: 'utilities',
           initialDesktopId: 'telemetry',
           desktops: [
-            utilityDesktop('telemetry', 'Telemetry workspace', telemetry),
+            {
+              id: 'telemetry',
+              ariaLabel: 'Numpad workspace',
+              children: (
+                <WorkspacePage
+                  contextItems={telemetryContextItems}
+                  contextLabel="Numpad views"
+                  currentContext={telemetryCurrentContext}
+                  onNavigate={onNavigateRoute}
+                >
+                  {telemetry}
+                </WorkspacePage>
+              )
+            },
             utilityDesktop('macros', 'Macros workspace', macros),
-            utilityDesktop('journal', 'Journal workspace', journal)
+            {
+              id: 'journal',
+              ariaLabel: 'Log workspace',
+              children: (
+                <WorkspacePage
+                  contextItems={journalContextItems}
+                  contextLabel="Log views"
+                  currentContext={journalCurrentContext}
+                  onNavigate={onNavigateRoute}
+                >
+                  {journal}
+                </WorkspacePage>
+              )
+            }
           ]
         },
         {
@@ -96,9 +138,11 @@ export function DesktopWorkspace({
               ariaLabel: 'Controls workspace',
               children: (
                 <WorkspacePage
-                  contextItems={emptyContextItems}
+                  contextItems={controlsContextItems}
                   contextLabel="Controls views"
-                  currentContext=""
+                  currentContext={controlsCurrentContext}
+                  onAction={onControlsContextAction}
+                  onNavigate={onNavigateRoute}
                 >
                   {controls}
                 </WorkspacePage>
@@ -125,9 +169,10 @@ export function DesktopWorkspace({
               ariaLabel: 'Copilot workspace',
               children: (
                 <WorkspacePage
-                  contextItems={emptyContextItems}
+                  contextItems={copilotContextItems}
                   contextLabel="Copilot views"
-                  currentContext=""
+                  currentContext={copilotCurrentContext}
+                  onNavigate={onNavigateRoute}
                 >
                   {copilot}
                 </WorkspacePage>
@@ -137,9 +182,8 @@ export function DesktopWorkspace({
         },
         {
           id: 'system',
-          initialDesktopId: 'developer',
+          initialDesktopId: 'settings',
           desktops: [
-            utilityDesktop('developer', 'Developer workspace', developer),
             utilityDesktop('settings', 'Settings workspace', settings)
           ]
         }

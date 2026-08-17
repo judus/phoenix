@@ -23,6 +23,12 @@ export function CommandTile({
   className,
   ...props
 }: CommandTileProps) {
+  const bindingLabel = kind === 'macro' ? 'Macro' : (binding ?? 'Unbound')
+  const displayedBinding = bindingLabel
+    .replaceAll('Numpad_', 'NP_')
+    .replaceAll('LeftShift', 'LS')
+    .replaceAll('RightShift', 'RS')
+
   return (
     <button
       className={[
@@ -31,9 +37,10 @@ export function CommandTile({
         kind === 'macro' && 'command-macro',
         selected && 'active',
         tone === 'danger' && 'command-danger',
-        unavailable && 'unavailable',
+        unavailable && 'disabled',
         className
       ].filter(Boolean).join(' ')}
+      aria-label={binding ? `${label}, ${binding}` : undefined}
       aria-pressed={selected || undefined}
       disabled={unavailable}
       {...props}
@@ -41,8 +48,8 @@ export function CommandTile({
       <strong>{label}</strong>
       {details && (
         <>
-          <span>{kind === 'macro' ? 'Macro' : (binding ?? 'Unbound')}</span>
-          <small>{kind === 'macro' ? meta : 'Tap'}</small>
+          <span title={bindingLabel}>{displayedBinding}</span>
+          <small>{meta}</small>
         </>
       )}
     </button>

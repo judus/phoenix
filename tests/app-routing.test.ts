@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import {
   HOME_ROUTE,
+  defaultRouteForInformationSection,
   defaultRouteForWorkspace,
   workspaceForRoute
 } from '../apps/web/src/application/navigation/phoenix-route.js'
@@ -22,15 +23,17 @@ describe('PHOENIX route parsing and generation', () => {
     ['#/controls/navigation', { kind: 'controls', category: 'navigation' }, 'controls'],
     ['#/commander/inventory', { kind: 'information', section: 'commander', view: 'inventory' }, 'info'],
     ['#/fleet/ships/current/loadout', { kind: 'information', section: 'fleet', view: 'current-loadout' }, 'info'],
+    ['#/fleet/ships/current/engineering', { kind: 'information', section: 'fleet', view: 'current-engineering' }, 'info'],
     ['#/galaxy/database', { kind: 'information', section: 'galaxy', view: 'database' }, 'info'],
-    ['#/operations/missions', { kind: 'information', section: 'operations', view: 'missions' }, 'info'],
+    ['#/activities/missions', { kind: 'information', section: 'activities', view: 'missions' }, 'info'],
     ['#/engineering/materials/encoded', { kind: 'information', section: 'engineering', view: 'materials-encoded' }, 'info'],
     ['#/comms/radio', { kind: 'information', section: 'comms', view: 'radio' }, 'info'],
     ['#/copilot/profiles', { kind: 'copilot', view: 'profiles' }, 'copilot'],
     ['#/numpad/shortcuts', { kind: 'numpad', view: 'shortcuts' }, 'telemetry'],
     ['#/macros', { kind: 'macros' }, 'macros'],
-    ['#/records/journal', { kind: 'journal' }, 'journal'],
-    ['#/developer/runtime', { kind: 'developer', view: 'runtime' }, 'developer'],
+    ['#/records/journal', { kind: 'journal', view: 'journal' }, 'journal'],
+    ['#/records/credits', { kind: 'journal', view: 'credits' }, 'journal'],
+    ['#/developer/runtime', { kind: 'developer', view: 'runtime' }, 'journal'],
     ['#/settings/audio', { kind: 'settings', view: 'audio' }, 'settings']
   ] as const)('parses %s as a canonical destination', (hash, route, workspace) => {
     expect(parsePhoenixRoute(hash)).toEqual(route)
@@ -57,6 +60,30 @@ describe('PHOENIX route parsing and generation', () => {
     expect(phoenixRouteHash(route)).toBe('#/commander/progress')
   })
 
+  test('Activities routes do not preserve arbitrary query fields', () => {
+    const route = parsePhoenixRoute('#/activities/missions?selected=42')
+
+    expect(route).toEqual({ kind: 'information', section: 'activities', view: 'missions' })
+    expect(phoenixRouteHash(route)).toBe('#/activities/missions')
+  })
+
+  test('Activities promotes its temporary review fixture to typed route state', () => {
+    const route = parsePhoenixRoute('#/activities/missions?fixture=review&selected=42')
+
+    expect(route).toEqual({ kind: 'information', section: 'activities', view: 'missions', fixture: 'review' })
+    expect(phoenixRouteHash(route)).toBe('#/activities/missions?fixture=review')
+  })
+
+  test('Activities lands on Missions and normalizes the retired overview route', () => {
+    expect(defaultRouteForInformationSection('activities')).toEqual({ kind: 'information', section: 'activities', view: 'missions' })
+    expect(phoenixRouteHash(parsePhoenixRoute('#/activities/overview'))).toBe('#/activities/missions')
+    expect(phoenixRouteHash(parsePhoenixRoute('#/operations/overview'))).toBe('#/activities/missions')
+  })
+
+  test('legacy mission fixture URLs normalize to the shared review fixture', () => {
+    expect(phoenixRouteHash(parsePhoenixRoute('#/activities/objectives?fixture=missions'))).toBe('#/activities/objectives?fixture=review')
+  })
+
   test('Fleet promotes catalogue selection and drops arbitrary query fields', () => {
     const catalogue = parsePhoenixRoute('#/fleet/catalogue?ship=python&layout=cards')
     const overview = parsePhoenixRoute('#/fleet/overview?selected=42')
@@ -66,9 +93,18 @@ describe('PHOENIX route parsing and generation', () => {
     expect(overview).toEqual({ kind: 'information', section: 'fleet', view: 'overview' })
   })
 
+  test('Engineering promotes blueprint selection and drops arbitrary query fields', () => {
+    const blueprint = parsePhoenixRoute('#/engineering/blueprints?symbol=dirty-drive&layout=cards')
+    const materials = parsePhoenixRoute('#/engineering/materials/raw?group=elements')
+    expect(blueprint).toEqual({ kind: 'information', section: 'engineering', view: 'blueprints', selectedBlueprintSymbol: 'dirty-drive' })
+    expect(phoenixRouteHash(blueprint)).toBe('#/engineering/blueprints?symbol=dirty-drive')
+    expect(materials).toEqual({ kind: 'information', section: 'engineering', view: 'materials-raw' })
+  })
+
   test.each([
     ['#/log', '#/records/journal'],
     ['#/navigation/route', '#/galaxy/route'],
+    ['#/operations/missions', '#/activities/missions'],
     ['#/ship/modules', '#/fleet/ships/current/loadout'],
     ['#/fleet/current', '#/fleet/ships/current/overview'],
     ['#/ship/inventory', '#/commander/inventory'],

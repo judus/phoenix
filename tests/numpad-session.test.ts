@@ -4,6 +4,7 @@ import {
   activateNumpadSession,
   confirmNumpadSelection,
   enterNumpadDigit,
+  finishNumpadSession,
   selectNumpadNode
 } from '../apps/web/src/features/numpad/numpad-session.js'
 
@@ -56,6 +57,21 @@ test('an empty menu still opens instead of being treated as an unavailable comma
   }
   const result = enterNumpadDigit(emptyMenuSnapshot, activateNumpadSession().state, '9', false)
   expect(result.state).toMatchObject({ pathIds: ['shortcuts'], status: 'browsing' })
+})
+
+test('a finished execution clears its address and ends the active session', () => {
+  const branch = enterNumpadDigit(snapshot, activateNumpadSession().state, '1', false).state
+  const executing = confirmNumpadSelection(snapshot, enterNumpadDigit(snapshot, branch, '1', false).state).state
+  const completed = finishNumpadSession(executing, 'completed', 'Command accepted.')
+
+  expect(completed).toMatchObject({ active: false, pathIds: [], pendingDigits: '', status: 'completed' })
+})
+
+test('keyboard input remains bounded when no selector matches', () => {
+  let state = activateNumpadSession().state
+  for (const digit of ['8', '8', '8', '8']) state = enterNumpadDigit(snapshot, state, digit, false).state
+
+  expect(state).toMatchObject({ pendingDigits: '888', status: 'invalid' })
 })
 
 function node (

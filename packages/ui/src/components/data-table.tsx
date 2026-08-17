@@ -50,15 +50,17 @@ export function DataTable({
 }
 
 type DataTableGroupProps = HTMLAttributes<HTMLElement> & {
+  contentGap?: 'none' | 'sm'
+  fill?: boolean
   meta?: ReactNode
   title: string
   tone?: 'default' | 'muted'
 }
 
-export function DataTableGroup({ children, className, meta, title, tone = 'default', ...props }: DataTableGroupProps) {
+export function DataTableGroup({ children, className, contentGap = 'none', fill = false, meta, title, tone = 'default', ...props }: DataTableGroupProps) {
   return (
     <section
-      className={['data-table-group', tone === 'muted' && 'muted', className].filter(Boolean).join(' ')}
+      className={['data-table-group', contentGap !== 'none' && `content-gap-${contentGap}`, fill && 'fill', tone === 'muted' && 'muted', className].filter(Boolean).join(' ')}
       {...props}
     >
       <header>

@@ -1,9 +1,14 @@
 import {
   ActivityLogResponseSchema,
   CartographyLookupResponseSchema,
+  CommunicationsResponseSchema,
   CopilotAudioProcessingSchema,
+  CopilotChatRequestSchema,
   CopilotConversationEventSchema,
+  CopilotHistoryResponseSchema,
+  CopilotProfileDocumentSchema,
   CopilotProfileSelectionRequestSchema,
+  CopilotProfileWriteRequestSchema,
   CopilotProfilesResponseSchema,
   CopilotRealtimeTokenRequestSchema,
   CopilotRealtimeTokenResponseSchema,
@@ -12,9 +17,16 @@ import {
   CopilotVoiceHostCommandAcceptedSchema,
   CopilotVoiceHostHeartbeatSchema,
   CopilotVoiceHostSnapshotSchema,
+  ControlGridLayoutSchema,
+  CommandCatalogResponseSchema,
   GameActionCatalogResponseSchema,
   GameActionResultSchema,
+  GalnetNewsResponseSchema,
   FleetResponseSchema,
+  EngineeringBlueprintDetailSchema,
+  EngineeringBlueprintsResponseSchema,
+  EngineeringEngineersResponseSchema,
+  EngineeringMaterialsResponseSchema,
   GalaxyFilteredSystemsResponseSchema,
   GalaxyCommodityMarketsResponseSchema,
   GalaxyExplorationTargetsResponseSchema,
@@ -29,7 +41,10 @@ import {
   MacroLibrarySchema,
   MacroPlaybackSchema,
   MacroRecordingSchema,
+  MissionsResponseSchema,
   NavigationRouteSchema,
+  NumpadExecutionResultSchema,
+  NumpadTreeSnapshotSchema,
   PairingStatusSchema,
   PhoenixModulesSchema,
   RuntimeStateSchema,
@@ -38,8 +53,13 @@ import {
 import type {
   ActivityLogResponse,
   CartographyLookupResponse,
+  CommunicationsResponse,
   CopilotAudioProcessing,
+  CopilotChatRequest,
   CopilotConversationEvent,
+  CopilotHistoryResponse,
+  CopilotProfileDocument,
+  CopilotProfileWriteRequest,
   CopilotProfilesResponse,
   CopilotRealtimeTokenRequest,
   CopilotRealtimeTokenResponse,
@@ -48,10 +68,18 @@ import type {
   CopilotVoiceHostCommandAccepted,
   CopilotVoiceHostHeartbeat,
   CopilotVoiceHostSnapshot,
+  ControlGridLayout,
+  CommandCatalogResponse,
   GameActionCatalogResponse,
   GameActionOperation,
   GameActionResult,
+  GalnetNewsResponse,
   FleetResponse,
+  EngineeringBlueprintDetail,
+  EngineeringBlueprintsResponse,
+  EngineeringEngineersResponse,
+  EngineeringMaterial,
+  EngineeringMaterialsResponse,
   GalaxyFilteredSystemsResponse,
   GalaxyCommodityMarketsResponse,
   GalaxyExplorationTargetsResponse,
@@ -67,7 +95,10 @@ import type {
   MacroLibrary,
   MacroPlayback,
   MacroRecording,
+  MissionsResponse,
   NavigationRoute,
+  NumpadExecutionResult,
+  NumpadTreeSnapshot,
   PairingStatus,
   PhoenixModules,
   RuntimeState,
@@ -84,7 +115,8 @@ import type {
   GalaxyShipyardSearch,
   GalaxyStationLookupSearch,
   GalaxyTradeOpportunitySearch,
-  PhoenixApi
+  PhoenixApi,
+  CopilotStreamEvent
 } from '../../application/api/phoenix-api.js'
 
 export class PhoenixApiClient implements PhoenixApi {
@@ -142,12 +174,64 @@ export class PhoenixApiClient implements PhoenixApi {
     return this.#get('/api/fleet', FleetResponseSchema, signal)
   }
 
+  async getMissions(signal?: AbortSignal): Promise<MissionsResponse> {
+    return this.#get('/api/operations/missions', MissionsResponseSchema, signal)
+  }
+
+  async getEngineeringEngineers(signal?: AbortSignal): Promise<EngineeringEngineersResponse> {
+    return this.#get('/api/engineering/engineers', EngineeringEngineersResponseSchema, signal)
+  }
+
+  async getEngineeringMaterials(category: EngineeringMaterial['category'], signal?: AbortSignal): Promise<EngineeringMaterialsResponse> {
+    return this.#get(`/api/engineering/materials?category=${encodeURIComponent(category)}`, EngineeringMaterialsResponseSchema, signal)
+  }
+
+  async getEngineeringBlueprints(signal?: AbortSignal): Promise<EngineeringBlueprintsResponse> {
+    return this.#get('/api/engineering/blueprints', EngineeringBlueprintsResponseSchema, signal)
+  }
+
+  async getEngineeringBlueprint(symbol: string, signal?: AbortSignal): Promise<EngineeringBlueprintDetail> {
+    return this.#get(`/api/engineering/blueprints/${encodeURIComponent(symbol)}`, EngineeringBlueprintDetailSchema, signal)
+  }
+
+  async getCommunications(
+    view: 'all' | 'inbox' | 'traffic' = 'all',
+    limit = 500,
+    signal?: AbortSignal
+  ): Promise<CommunicationsResponse> {
+    return this.#get(`/api/comms/messages?${new URLSearchParams({ limit: String(limit), view })}`, CommunicationsResponseSchema, signal)
+  }
+
+  async getGalnetNews(limit = 40, signal?: AbortSignal): Promise<GalnetNewsResponse> {
+    return this.#get(`/api/galnet?limit=${encodeURIComponent(String(limit))}`, GalnetNewsResponseSchema, signal)
+  }
+
   async getShipCatalogue(signal?: AbortSignal): Promise<ShipCatalogueResponse> {
     return this.#get('/api/catalogue/ships', ShipCatalogueResponseSchema, signal)
   }
 
   async getActions(signal?: AbortSignal): Promise<GameActionCatalogResponse> {
     return this.#get('/api/actions', GameActionCatalogResponseSchema, signal)
+  }
+
+  async getCommands(signal?: AbortSignal): Promise<CommandCatalogResponse> {
+    return this.#get('/api/commands', CommandCatalogResponseSchema, signal)
+  }
+
+  async getNumpadSnapshot(signal?: AbortSignal): Promise<NumpadTreeSnapshot> {
+    return this.#get('/api/numpad', NumpadTreeSnapshotSchema, signal)
+  }
+
+  async executeNumpadAddress(address: string, revision: number, signal?: AbortSignal): Promise<NumpadExecutionResult> {
+    return this.#json('/api/numpad/execute', 'POST', { address, revision }, NumpadExecutionResultSchema, signal)
+  }
+
+  async getControlLayout(signal?: AbortSignal): Promise<ControlGridLayout> {
+    return this.#get('/api/control-layout', ControlGridLayoutSchema, signal)
+  }
+
+  async saveControlLayout(layout: ControlGridLayout, signal?: AbortSignal): Promise<ControlGridLayout> {
+    return this.#json('/api/control-layout', 'PUT', layout, ControlGridLayoutSchema, signal)
   }
 
   async executeAction(
@@ -233,6 +317,22 @@ export class PhoenixApiClient implements PhoenixApi {
     return this.#get('/api/copilot/profiles', CopilotProfilesResponseSchema, signal)
   }
 
+  async getCopilotHistory(conversationId: string, signal?: AbortSignal): Promise<CopilotHistoryResponse> {
+    return this.#get(`/api/copilot/conversations/${encodeURIComponent(conversationId)}`, CopilotHistoryResponseSchema, signal)
+  }
+
+  async getCopilotProfile(profileId: string, signal?: AbortSignal): Promise<CopilotProfileDocument> {
+    return this.#get(`/api/copilot/profiles/${encodeURIComponent(profileId)}`, CopilotProfileDocumentSchema, signal)
+  }
+
+  async createCopilotProfile(input: CopilotProfileWriteRequest, signal?: AbortSignal): Promise<CopilotProfileDocument> {
+    return this.#json('/api/copilot/profiles', 'POST', CopilotProfileWriteRequestSchema.parse(input), CopilotProfileDocumentSchema, signal)
+  }
+
+  async updateCopilotProfile(profileId: string, input: CopilotProfileWriteRequest, signal?: AbortSignal): Promise<CopilotProfileDocument> {
+    return this.#json(`/api/copilot/profiles/${encodeURIComponent(profileId)}`, 'PUT', CopilotProfileWriteRequestSchema.parse(input), CopilotProfileDocumentSchema, signal)
+  }
+
   async selectCopilotProfile(profileId: string, signal?: AbortSignal): Promise<CopilotProfilesResponse> {
     return this.#json('/api/copilot/profiles/active', 'PUT',
       CopilotProfileSelectionRequestSchema.parse({ profileId }), CopilotProfilesResponseSchema, signal)
@@ -299,6 +399,33 @@ export class PhoenixApiClient implements PhoenixApi {
       validated,
       signal
     )
+  }
+
+  async streamCopilotMessage(input: CopilotChatRequest, onEvent: (event: CopilotStreamEvent) => void, signal?: AbortSignal): Promise<void> {
+    const response = await this.#request(`${this.#baseUrl}/api/copilot/chat`, {
+      body: JSON.stringify(CopilotChatRequestSchema.parse(input)),
+      credentials: 'same-origin',
+      headers: { accept: 'text/event-stream', 'content-type': 'application/json' },
+      method: 'POST',
+      signal
+    })
+    if (!response.ok) throw await apiError(response)
+    if (!response.body) throw new Error('PHOENIX Copilot stream has no response body.')
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffered = ''
+    while (true) {
+      const result = await reader.read()
+      buffered += decoder.decode(result.value, { stream: !result.done })
+      let boundary = buffered.indexOf('\n\n')
+      while (boundary >= 0) {
+        const event = parseCopilotStreamFrame(buffered.slice(0, boundary))
+        buffered = buffered.slice(boundary + 2)
+        if (event) onEvent(event)
+        boundary = buffered.indexOf('\n\n')
+      }
+      if (result.done) break
+    }
   }
 
   async getCopilotVoiceHost(signal?: AbortSignal): Promise<CopilotVoiceHostSnapshot> {
@@ -448,6 +575,30 @@ function parameters(values: Record<string, boolean | number | string | undefined
   }
   return query
 }
+
+function parseCopilotStreamFrame(frame: string): CopilotStreamEvent | undefined {
+  if (!frame || frame.startsWith(':')) return undefined
+  const lines = frame.split('\n')
+  const type = lines.find(line => line.startsWith('event: '))?.slice(7)
+  const serialized = lines.filter(line => line.startsWith('data: ')).map(line => line.slice(6)).join('\n')
+  if (!type || !serialized) return undefined
+  const payload = JSON.parse(serialized) as unknown
+  if (!isRecord(payload)) throw new Error(`Invalid PHOENIX Copilot ${type} event.`)
+  switch (type) {
+    case 'started': return { type, conversationId: stringField(payload, 'conversationId') }
+    case 'retrying': return { type, attempt: numberField(payload, 'attempt') }
+    case 'reset': return { type }
+    case 'delta': return { type, delta: stringField(payload, 'delta') }
+    case 'tool': return { type, callId: stringField(payload, 'callId'), ...(payload.name === undefined ? {} : { name: stringField(payload, 'name') }), status: stringField(payload, 'status') }
+    case 'completed': return { type, conversationId: stringField(payload, 'conversationId'), text: stringField(payload, 'text') }
+    case 'error': throw new Error(isRecord(payload.error) && typeof payload.error.message === 'string' ? payload.error.message : 'Copilot stream failed.')
+    default: return undefined
+  }
+}
+
+function isRecord(candidate: unknown): candidate is Record<string, unknown> { return typeof candidate === 'object' && candidate !== null && !Array.isArray(candidate) }
+function stringField(record: Record<string, unknown>, key: string): string { const value = record[key]; if (typeof value !== 'string') throw new Error(`Copilot event field ${key} must be a string.`); return value }
+function numberField(record: Record<string, unknown>, key: string): number { const value = record[key]; if (typeof value !== 'number') throw new Error(`Copilot event field ${key} must be a number.`); return value }
 
 async function apiError(response: Response): Promise<Error> {
   try {

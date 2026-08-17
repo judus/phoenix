@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, test } from 'vitest'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
-import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
+import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
 
 const fixturePath = fileURLToPath(new URL('./fixtures/elite/status-docked.json', import.meta.url))
 
@@ -20,9 +20,11 @@ test('application startup ingests Status.json into the live runtime snapshot', a
 
   try {
     const address = await application.start()
-    const client = new PhoenixApiClient(`http://${address.host}:${address.port}`)
+    const baseUrl = `http://${address.host}:${address.port}`
+    const client = new PhoenixApiClient(baseUrl)
     const state = await client.getRuntimeState()
-    const diagnostics = await client.getEliteStatusDiagnostics()
+    const diagnosticsResponse = await fetch(`${baseUrl}/api/developer/elite-status`)
+    const diagnostics = await diagnosticsResponse.json()
 
     expect(state).toMatchObject({
       revision: 1,

@@ -26,9 +26,12 @@
     }
 
     span {
+      min-inline-size: 0;
+      overflow: hidden;
       color: var(--command-meta);
       font-size: var(--font-size-sm);
-      overflow-wrap: anywhere;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     small {
@@ -57,7 +60,6 @@
 
     &.command-macro {
       --command-background: linear-gradient(135deg, rgb(0 178 210 / 10%), rgb(43 5 22 / 72%));
-      --command-border: var(--color-information);
       --command-text: var(--color-text);
       --command-meta: var(--color-information);
     }
@@ -80,11 +82,21 @@
       }
     }
 
-    &.unavailable {
-      border-color: var(--color-border-subtle);
+    &.disabled {
+      --command-meta: var(--color-text-muted);
+
+      border-color: var(--color-text-muted);
       color: var(--command-unavailable-text);
       background: var(--command-unavailable-background);
+      opacity: 0.48;
       cursor: not-allowed;
+
+      &::after {
+        background:
+          radial-gradient(circle, var(--color-text-muted) 0 0.08rem, transparent 0.1rem)
+          0 0 / 33.333% 33.333%;
+        opacity: 0.24;
+      }
     }
 
     &.label-only {
@@ -110,9 +122,6 @@
         --command-background: linear-gradient(135deg, rgb(0 178 210 / 20%), rgb(16 9 16 / 98%));
       }
 
-      &.unavailable {
-        border-color: var(--color-canvas);
-      }
     }
   }
 

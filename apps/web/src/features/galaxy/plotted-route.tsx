@@ -60,8 +60,8 @@ export function PlottedRoute({ route, runtimeState }: PlottedRouteProps) {
               </section>
 
               <div className="route-body">
-                <DataTableGroup title={progressKnown ? 'Next jump' : 'Route origin'}>
-                  <Stack className="route-next-content" gap="lg">
+                <DataTableGroup contentGap="sm" title={progressKnown ? 'Next jump' : 'Route origin'}>
+                  <Stack gap="lg">
                     {nextHop
                       ? <>
                           <Metric className="text-information" value={nextHop.system} />
@@ -92,7 +92,7 @@ export function PlottedRoute({ route, runtimeState }: PlottedRouteProps) {
                           return (
                             <tr className={progressKnown && leg.index === currentIndex ? 'active' : undefined} key={`${leg.hop.address ?? leg.hop.system}-${leg.index}`}>
                               <td>{leg.index === 0 ? 'Origin' : leg.index}</td>
-                              <td><a className="text-information" href={systemHref(leg.hop.system)}>{leg.hop.system}</a></td>
+                              <td><a href={systemHref(leg.hop.system)}>{leg.hop.system}</a></td>
                               <td>{leg.hop.starClass ?? '—'}</td>
                               <td className="numeric">{leg.index === 0 ? '—' : formatDistance(leg.distance)}</td>
                               <td className="numeric">{formatDistance(leg.cumulativeDistance)}</td>

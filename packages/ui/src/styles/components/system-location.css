@@ -1,0 +1,30 @@
+.system-location {
+  gap: 0;
+  padding-block: var(--spacing-xxs);
+  line-height: var(--line-height-tight);
+
+  .system-location-row {
+    min-block-size: 1.25rem;
+    line-height: inherit;
+
+    > span { color: var(--color-text-muted); }
+
+    > a {
+      line-height: inherit;
+      white-space: nowrap;
+    }
+  }
+
+  .btn-icon {
+    inline-size: 1.25rem;
+    min-block-size: 1.25rem;
+    border: 0;
+
+    &::after { display: none; }
+
+    svg {
+      inline-size: 0.75rem;
+      block-size: 0.75rem;
+    }
+  }
+}

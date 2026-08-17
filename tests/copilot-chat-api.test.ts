@@ -5,7 +5,7 @@ import type {
   CopilotTextRequest
 } from '../apps/server/src/application/copilot-text-service.js'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
-import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
+import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
 
 test('the Copilot API supports buffered and streamed text turns', async () => {
   const copilot = new RecordingCopilot()

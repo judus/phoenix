@@ -74,3 +74,27 @@ test('fleet models preserve authority distinctions and stored-module provenance'
     engineering: 'DirtyDrive G2'
   })
 })
+
+test('current ship engineering keeps engineer and experimental effect as separate facts', () => {
+  const empty = createEmptyRuntimeState()
+  const state = {
+    ...empty,
+    ship: {
+      ...empty.ship,
+      modules: [{
+        slotId: 'MainEngines', slotGroup: 'core' as const, slotSize: 5, expectedSlot: null,
+        moduleId: '$int_engine_size5_class5_name;', moduleSize: 5, moduleClass: 5,
+        definition: null, enabled: true, priority: 0, health: 1, value: null, ammo: null,
+        engineering: {
+          blueprintId: 1, blueprintName: 'Engine_Dirty', engineer: 'Elvira Martuuk', engineerId: 300160,
+          experimentalEffect: null, experimentalEffectLabel: null, level: 2, modifiers: [], quality: 0.5
+        }
+      }]
+    }
+  }
+  const item = createCurrentShipModel(state).modules[0]?.items[0]
+  expect(item).toMatchObject({
+    engineeringBlueprint: 'Engine_Dirty', engineeringGrade: 2,
+    engineeringEngineer: 'Elvira Martuuk', engineeringExperimentalEffect: null
+  })
+})

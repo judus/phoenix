@@ -77,7 +77,6 @@ function RoutedDesktopWorkspace({ router }: { router: BrowserPhoenixRouter }) {
       activeDesktop={workspaceForRoute(route)}
       controls={null}
       copilot={null}
-      developer={null}
       information={null}
       informationRoute={informationRoute}
       journal={null}

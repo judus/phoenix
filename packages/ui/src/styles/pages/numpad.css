@@ -1,0 +1,47 @@
+  .numpad-page {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    gap: var(--spacing-md);
+
+    > .status { align-self: start; }
+    .numpad-shortcuts { min-block-size: 0; overflow: auto; }
+    .numpad-shortcuts > .form { margin-block-end: var(--spacing-lg); }
+
+    .numpad-standby {
+      display: grid;
+      place-content: center;
+      justify-items: center;
+      gap: var(--spacing-md);
+    }
+
+    .numpad-console {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: var(--spacing-sm);
+      min-block-size: 0;
+
+      > header {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+        align-items: end;
+        gap: var(--spacing-sm);
+        padding-block-end: var(--spacing-sm);
+        border-block-end: 1px solid var(--color-border);
+
+        > div { display: grid; gap: var(--spacing-xxs); }
+        small { color: var(--color-action); text-transform: uppercase; }
+        strong { font-size: var(--font-size-lg); font-weight: var(--font-weight-normal); text-transform: uppercase; }
+      }
+    }
+
+    .numpad-grid {
+      display: grid;
+      grid-template-columns: repeat(var(--numpad-columns), minmax(0, 1fr));
+      grid-template-rows: repeat(var(--numpad-rows), minmax(0, 1fr));
+      gap: var(--spacing-sm);
+      min-block-size: 0;
+      overflow: hidden;
+
+      .action-tile.matching { border-color: var(--color-information); }
+    }
+  }

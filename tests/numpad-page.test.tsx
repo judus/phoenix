@@ -1,21 +1,62 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test } from 'vitest'
-import { PhoenixTopBar } from '../apps/web/src/components/layout/phoenix-shell.js'
-import { NumpadPage } from '../apps/web/src/pages/numpad-page.js'
-import type { PhoenixApi } from '../apps/web/src/api/phoenix-api-client.js'
+import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
+import { NumpadPage } from '../apps/web/src/features/numpad/numpad-page.js'
 
-test('the top bar exposes the dedicated numpad surface', () => {
-  const markup = renderToStaticMarkup(<PhoenixTopBar numpadSection />)
+const settings = {
+  macros: { enabled: false, copilotExecution: false, dangerousExecution: false },
+  numpadCommands: {
+    enabled: true,
+    inputAdapter: 'browser' as const,
+    presentation: 'tiles' as const,
+    alwaysConfirm: false,
+    cancelAfterMs: 5000,
+    shortcuts: []
+  }
+}
 
-  expect(markup).toContain('href="#/numpad"')
-  expect(markup).toContain('aria-label="Numpad command navigator"')
-  expect(markup).toContain('aria-current="page"')
+test('the reconstructed numpad renders the live command navigator', () => {
+  const markup = renderToStaticMarkup(<NumpadPage
+    api={{} as PhoenixApi}
+    view="navigator"
+    controller={{
+      commands: [],
+      settings,
+      snapshot: {
+        revision: 1,
+        generatedAt: '2026-08-17T00:00:00.000Z',
+        activationDigit: '0',
+        diagnostics: [],
+        nodes: [{
+          id: 'navigation-fleet',
+          parentId: null,
+          selector: '1',
+          address: '1',
+          label: 'Fleet',
+          description: 'Open the fleet workspace.',
+          kind: 'navigation',
+          available: true,
+          risk: 'routine',
+          target: { type: 'navigation', href: '#/fleet' }
+        }]
+      },
+      status: 'ready'
+    }}
+  />)
+
+  expect(markup).toContain('<h1>Numpad</h1>')
+  expect(markup).toContain('Press Numpad 0')
+  expect(markup).toContain('Fleet')
+  expect(markup).not.toContain('Numpad views')
 })
 
-test('the numpad page reserves a standalone command navigator surface', () => {
-  const markup = renderToStaticMarkup(<NumpadPage api={{} as PhoenixApi} />)
+test('the numpad presents an explicit enable action when disabled', () => {
+  const markup = renderToStaticMarkup(<NumpadPage
+    api={{} as PhoenixApi}
+    view="navigator"
+    controller={{ commands: [], settings: { ...settings, numpadCommands: { ...settings.numpadCommands, enabled: false } }, snapshot: { revision: 1, generatedAt: '2026-08-17T00:00:00.000Z', activationDigit: '0', diagnostics: [], nodes: [] }, status: 'ready' }}
+  />)
 
-  expect(markup).toContain('<main class="page numpad-page">')
-  expect(markup).toContain('Command navigator')
-  expect(markup).toContain('Loading command map')
+  expect(markup).toContain('Numpad module disabled.')
+  expect(markup).toContain('Enable numpad')
 })

@@ -86,12 +86,13 @@ export function EqualGrid({ columns = 2, gap = 'sm', className, ...props }: Equa
 
 type ThirdsGridProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode
+  fill?: boolean
   gap?: Space
 }
 
-export function ThirdsGrid({ gap = 'sm', className, ...props }: ThirdsGridProps) {
+export function ThirdsGrid({ fill = false, gap = 'sm', className, ...props }: ThirdsGridProps) {
   return (
-    <div className="thirds-layout">
+    <div className={['thirds-layout', fill && 'fill'].filter(Boolean).join(' ')}>
       <div className={['thirds-grid', `gap-${gap}`, className].filter(Boolean).join(' ')} {...props} />
     </div>
   )

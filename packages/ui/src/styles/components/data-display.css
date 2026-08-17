@@ -98,6 +98,47 @@
       }
     }
   }
+
+  .metric-strip {
+    display: grid;
+    min-inline-size: 0;
+    margin: 0;
+    overflow-x: auto;
+    border-block: 1px solid var(--color-border-subtle);
+
+    &.columns-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    &.columns-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    &.columns-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    &.columns-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    &.columns-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+
+    > div {
+      display: grid;
+      align-content: center;
+      min-inline-size: 7rem;
+      padding: var(--spacing-sm);
+
+      &:not(:last-child) { border-inline-end: 1px solid var(--color-border-subtle); }
+    }
+
+    dt {
+      color: var(--color-action);
+      font-size: var(--font-size-sm);
+      text-transform: uppercase;
+    }
+
+    dd {
+      margin: 0;
+      color: var(--color-text);
+      font-size: var(--font-size-xl);
+      line-height: var(--line-height-tight);
+    }
+
+    small {
+      color: var(--color-text-muted);
+      font-size: var(--font-size-xs);
+    }
+  }
   .meter {
     --meter-color: var(--color-information);
 
@@ -127,6 +168,21 @@
       }
 
       > output { grid-column: 3; }
+
+    }
+
+    &.meter-compact {
+      > span {
+        position: absolute;
+        inline-size: 1px;
+        block-size: 1px;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+      }
+
+      > output { grid-column: 1 / -1; }
     }
 
     > span,
@@ -159,4 +215,3 @@
       &::-moz-progress-bar { background: var(--meter-color); }
     }
   }
-

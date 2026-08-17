@@ -40,6 +40,10 @@ export interface CurrentShipModel {
       moduleDetail: string
       engineering: string
       engineeringDetail: string
+      engineeringBlueprint: string | null
+      engineeringGrade: number | null
+      engineeringEngineer: string | null
+      engineeringExperimentalEffect: string | null
       condition: string
       empty?: boolean
       state: string
@@ -250,6 +254,10 @@ function moduleModel(
     moduleDetail: type,
     engineering: engineering ? `${engineering.blueprintName ?? 'Engineered'}${engineering.level ? ` G${engineering.level}` : ''}` : 'Standard',
     engineeringDetail: engineering?.experimentalEffectLabel ?? engineering?.experimentalEffect ?? engineering?.engineer ?? 'Configuration',
+    engineeringBlueprint: engineering?.blueprintName ?? null,
+    engineeringGrade: engineering?.level ?? null,
+    engineeringEngineer: engineering?.engineer ?? null,
+    engineeringExperimentalEffect: engineering?.experimentalEffectLabel ?? engineering?.experimentalEffect ?? null,
     condition: health === null ? '—' : `${health}%`,
     state: module.enabled === false ? 'Disabled' : module.enabled === true ? `Enabled · P${module.priority ?? '—'}` : `Priority ${module.priority ?? '—'}`,
     ...(health !== null && health <= 0 ? { status: 'broken' as const } : module.enabled === false ? { status: 'disabled' as const } : {})
@@ -269,6 +277,10 @@ function emptyModule(
     moduleDetail: slotType(group, slot),
     engineering: 'Standard',
     engineeringDetail: 'Configuration',
+    engineeringBlueprint: null,
+    engineeringGrade: null,
+    engineeringEngineer: null,
+    engineeringExperimentalEffect: null,
     condition: '—',
     empty: true,
     state: 'Available'

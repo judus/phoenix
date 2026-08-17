@@ -3,7 +3,7 @@ import type { FleetResponse, GameActionCatalogResponse, ShipDefinition } from '@
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
 
-export type FleetView = 'overview' | 'current-overview' | 'current-loadout' | 'current-cargo' | 'carriers' | 'stored-modules' | 'catalogue'
+export type FleetView = 'overview' | 'current-overview' | 'current-loadout' | 'current-cargo' | 'current-engineering' | 'carriers' | 'stored-modules' | 'catalogue'
 
 export interface FleetControllerSnapshot {
   actions?: GameActionCatalogResponse

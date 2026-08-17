@@ -1,0 +1,24 @@
+  .mission-title {
+    display: grid;
+    gap: var(--spacing-xxs);
+    min-inline-size: 0;
+
+    > small {
+      color: var(--color-action);
+      font-size: var(--font-size-xs);
+      line-height: var(--line-height-compact);
+      text-transform: uppercase;
+    }
+
+    > strong {
+      color: var(--color-text);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-normal);
+      line-height: var(--line-height-compact);
+    }
+
+    &.detail > strong {
+      font-size: var(--font-size-xl);
+      line-height: var(--line-height-tight);
+    }
+  }

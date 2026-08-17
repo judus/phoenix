@@ -84,6 +84,47 @@ test('filtered Galaxy search serializes typed parameters and validates the respo
   expect(request.mock.calls[0]?.[0]).toBe('/api/galaxy/systems/search?maxDistance=75&population=inhabited&system=Sol&economy=High+Tech&minPopulation=1')
 })
 
+test('mission transport uses the durable Operations endpoint and validates its contract', async () => {
+  const request = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({
+    missions: [],
+    summary: { abandoned: 0, active: 0, completed: 0, failed: 0, partial: 0, total: 0, unknown: 0 }
+  }))
+
+  await expect(new PhoenixApiClient('', request).getMissions()).resolves.toMatchObject({ missions: [], summary: { total: 0 } })
+  expect(request.mock.calls[0]?.[0]).toBe('/api/operations/missions')
+})
+
+test('Comms transports validate retained messages and cached GalNet', async () => {
+  const request = vi.fn<typeof fetch>()
+    .mockResolvedValueOnce(jsonResponse({
+      contacts: [], messages: [],
+      summary: { inbound: 0, inbox: 0, outbound: 0, total: 0, traffic: 0 }, view: 'traffic'
+    }))
+    .mockResolvedValueOnce(jsonResponse({ articles: [], cache: 'fresh', fetchedAt: '2026-08-16T12:00:00.000Z' }))
+  const client = new PhoenixApiClient('', request)
+
+  await expect(client.getCommunications('traffic', 25)).resolves.toMatchObject({ messages: [], view: 'traffic' })
+  await expect(client.getGalnetNews(10)).resolves.toMatchObject({ articles: [], cache: 'fresh' })
+  expect(request.mock.calls[0]?.[0]).toBe('/api/comms/messages?limit=25&view=traffic')
+  expect(request.mock.calls[1]?.[0]).toBe('/api/galnet?limit=10')
+})
+
+test('Engineering transports preserve the existing read API', async () => {
+  const request = vi.fn<typeof fetch>()
+    .mockResolvedValueOnce(jsonResponse({ engineers: [] }))
+    .mockResolvedValueOnce(jsonResponse({ materials: [], updatedAt: null }))
+    .mockResolvedValueOnce(jsonResponse({ blueprints: [] }))
+  const client = new PhoenixApiClient('', request)
+  await client.getEngineeringEngineers()
+  await client.getEngineeringMaterials('manufactured')
+  await client.getEngineeringBlueprints()
+  expect(request.mock.calls.map(call => call[0])).toEqual([
+    '/api/engineering/engineers',
+    '/api/engineering/materials?category=manufactured',
+    '/api/engineering/blueprints'
+  ])
+})
+
 function jsonResponse(payload: unknown): Response {
   return new Response(JSON.stringify(payload), {
     headers: { 'content-type': 'application/json' },

@@ -13,16 +13,15 @@ export type RouteNavigationItem = NavigationItem & { route: PhoenixRoute }
 
 export function utilityItems(fullscreen: { active: boolean, supported: boolean }): ApplicationNavigationItem[] {
   return [
-    routeItem('telemetry', 'Numpad', '123', { kind: 'numpad', view: 'navigator' }),
-    routeItem('macros', 'Macros', 'MAC', { kind: 'macros' }),
-    routeItem('journal', 'Journal log', 'LOG', { kind: 'journal' }),
-    routeItem('developer', 'Developer tools', 'DEV', { kind: 'developer', view: 'overview' }),
-    routeItem('settings', 'Settings', '⚙', { kind: 'settings', view: 'system' }),
+    routeItem('telemetry', 'Numpad', '011', { kind: 'numpad', view: 'navigator' }),
+    routeItem('macros', 'Macros', 'MCR', { kind: 'macros' }),
+    routeItem('journal', 'Journal log', 'LOG', { kind: 'journal', view: 'journal' }),
+    routeItem('settings', 'Settings', 'STG', { kind: 'settings', view: 'system' }),
     {
       id: 'fullscreen',
       kind: 'action',
       label: fullscreen.active ? 'Exit fullscreen' : 'Enter fullscreen',
-      shortLabel: '⛶',
+      shortLabel: 'F11',
       pressed: fullscreen.active,
       disabled: !fullscreen.supported
     }
@@ -33,7 +32,7 @@ export const primaryItems: RouteNavigationItem[] = [
   informationItem('commander', 'Commander'),
   informationItem('fleet', 'Fleet'),
   informationItem('galaxy', 'Galaxy'),
-  informationItem('operations', 'Operations'),
+  informationItem('activities', 'Activities'),
   informationItem('engineering', 'Engineering'),
   informationItem('comms', 'Comms')
 ]
@@ -42,9 +41,9 @@ export const emptyContextItems: NavigationItem[] = []
 
 export function workspaceItems(informationRoute: InformationRoute): RouteNavigationItem[] {
   return [
-    routeItem('controls', 'Controls', undefined, defaultRouteForWorkspace('controls')),
-    routeItem('info', 'Info', undefined, informationRoute),
-    routeItem('copilot', 'Copilot', undefined, defaultRouteForWorkspace('copilot'))
+    routeItem('controls', 'Controls', 'CTR', defaultRouteForWorkspace('controls')),
+    routeItem('info', 'Info', 'INF', informationRoute),
+    routeItem('copilot', 'Copilot', 'CPT', defaultRouteForWorkspace('copilot'))
   ]
 }
 

@@ -3,12 +3,12 @@ import { useId, type HTMLAttributes, type ReactNode } from 'react'
 type WidgetProps = HTMLAttributes<HTMLElement> & {
   link?: ReactNode
   meta?: ReactNode
-  title: string
+  title?: string
 }
 
 export function Widget({ children, className, link, meta, title, ...props }: WidgetProps) {
   const generatedId = useId()
-  const headingId = props['aria-labelledby'] ?? generatedId
+  const headingId = title ? (props['aria-labelledby'] ?? generatedId) : undefined
 
   return (
     <article
@@ -16,10 +16,10 @@ export function Widget({ children, className, link, meta, title, ...props }: Wid
       aria-labelledby={headingId}
       {...props}
     >
-      <header>
-        <h3 id={headingId}>{title}</h3>
+      {(title || link || meta) && <header>
+        {title && <h3 id={headingId}>{title}</h3>}
         {link ?? (meta && <span>{meta}</span>)}
-      </header>
+      </header>}
       <div>{children}</div>
     </article>
   )

@@ -11,7 +11,6 @@
 
     dl { margin: 0; }
 
-    .fleet-summary,
     .asset-summary {
       display: grid;
       border-block: 1px solid var(--color-border-subtle);
@@ -37,10 +36,6 @@
         font-size: var(--font-size-xl);
         line-height: var(--line-height-tight);
       }
-    }
-
-    .fleet-summary {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
     }
 
     .vessels {
@@ -71,24 +66,16 @@
     .fleet-overview {
       gap: var(--spacing-xs);
 
-      .fleet-summary,
       .asset-summary {
         > div { padding-block: var(--spacing-xs); }
       }
 
-      .fleet-summary dd,
       .asset-summary dd { font-size: var(--font-size-lg); }
     }
   }
 
   @container fleet-overview (width < 44rem) {
     .fleet-overview {
-      .fleet-summary {
-        overflow-x: auto;
-
-        > div { min-inline-size: 7rem; }
-      }
-
       .asset-summary small { display: none; }
     }
   }

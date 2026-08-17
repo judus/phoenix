@@ -51,6 +51,23 @@
   .thirds-layout {
     container: thirds-layout / inline-size;
     min-inline-size: 0;
+
+    &.fill {
+      flex: 1 1 0;
+      min-block-size: 0;
+      block-size: 100%;
+      overflow: hidden;
+
+      > .thirds-grid {
+        min-block-size: 0;
+        block-size: 100%;
+
+        > * {
+          min-block-size: 0;
+          block-size: 100%;
+        }
+      }
+    }
   }
 
   .thirds-grid {

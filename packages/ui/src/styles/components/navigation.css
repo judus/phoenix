@@ -123,6 +123,15 @@
     border-inline-end: 0;
   }
 
+  .workspace-navigation .workspace-switcher ul {
+    justify-content: center;
+    min-inline-size: 0;
+  }
+
+  .workspace-navigation .workspace-switcher li:first-child .nav-item {
+    border-inline-start: 1px solid var(--color-border-subtle);
+  }
+
   .application-shell .primary-bar > .launcher > * {
     display: grid;
     place-items: center;

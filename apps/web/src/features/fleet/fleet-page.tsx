@@ -10,6 +10,8 @@ import {
   DescriptionItem,
   DescriptionList,
   Meter,
+  MetricStrip,
+  MetricStripItem,
   PageFrame,
   PageHeader,
   Stack,
@@ -33,7 +35,8 @@ type CatalogueView = 'dossier' | 'table'
 const currentRoutes = {
   'current-overview': { kind: 'information', section: 'fleet', view: 'current-overview' },
   'current-loadout': { kind: 'information', section: 'fleet', view: 'current-loadout' },
-  'current-cargo': { kind: 'information', section: 'fleet', view: 'current-cargo' }
+  'current-cargo': { kind: 'information', section: 'fleet', view: 'current-cargo' },
+  'current-engineering': { kind: 'information', section: 'fleet', view: 'current-engineering' }
 } as const satisfies Record<string, FleetRoute>
 
 export function FleetPage({ controller, onExecuteAction, onNavigate, route, runtime }: {
@@ -50,6 +53,7 @@ export function FleetPage({ controller, onExecuteAction, onNavigate, route, runt
     const model = createCurrentShipModel(runtime.state)
     if (route.view === 'current-loadout') return <CurrentLoadout model={model} />
     if (route.view === 'current-cargo') return <CurrentCargo model={model} />
+    if (route.view === 'current-engineering') return <CurrentEngineering model={model} />
     return <CurrentShipOverview
       actions={controller.actions}
       model={model}
@@ -89,9 +93,9 @@ function FleetOverview({ fleet }: { fleet: NonNullable<FleetControllerSnapshot['
           context={<Breadcrumbs items={[{ label: 'Fleet' }]} />}
           title="Fleet"
         />
-        <dl className="fleet-summary">
-          {model.summary.map(item => <div key={item.label}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}
-        </dl>
+        <MetricStrip columns={5}>
+          {model.summary.map(item => <MetricStripItem key={item.label} label={item.label} value={item.value} />)}
+        </MetricStrip>
         <DataTableGroup className="vessels" title="Owned vessels">
           <DataTable density="compact" label="Owned vessels" minimum="wide" narrow="priority" scheme="surface">
             <thead><tr><th>Vessel</th><th>State</th><th className="priority-secondary">Location</th><th className="numeric">Value</th><th className="priority-tertiary">Transfer</th><th className="priority-tertiary">Observed</th></tr></thead>
@@ -155,7 +159,7 @@ function CurrentShipOverview({ actions, model, onExecuteAction, onNavigate }: {
             <MeterWidget title="Integrity" meters={model.integrity} />
             <MeterWidget title="Fuel" meters={model.fuel} />
             <Widget title="Cargo">
-              <Stack className="cargo-content" gap="sm">
+              <div className="cargo-content">
                 <Meter
                   label="Capacity"
                   layout="inline"
@@ -169,11 +173,11 @@ function CurrentShipOverview({ actions, model, onExecuteAction, onNavigate }: {
                     ? <DescriptionItem label="Manifest" value="Cargo hold is empty" />
                     : model.cargo.items.map(item => <DescriptionItem key={item.id} label={item.label} value={`${item.count} t`} />)}
                 </DescriptionList>
-              </Stack>
+              </div>
             </Widget>
             <div className="actions">
               <CommandTile details={false} label="Loadout" onClick={() => onNavigate(currentRoutes['current-loadout'])} />
-              <CommandTile details={false} label="Engineering" onClick={() => onNavigate({ kind: 'information', section: 'engineering', view: 'blueprints' })} />
+              <CommandTile details={false} label="Engineering" onClick={() => onNavigate(currentRoutes['current-engineering'])} />
             </div>
           </div>
         </div>
@@ -225,9 +229,39 @@ function CurrentCargo({ model }: { model: CurrentShipModel }) {
   )
 }
 
+function CurrentEngineering({ model }: { model: CurrentShipModel }) {
+  const modules = model.modules.flatMap(group => group.items).filter(item => item.engineering !== 'Standard')
+  return (
+    <PageFrame layout="fit">
+      <div className="fleet-scroll-page current-engineering">
+        <CurrentShipHeader current="Engineering" model={model} />
+        <Stack className="fleet-scroll-content" gap="lg" tabIndex={0}>
+          <DataTableGroup meta={`${modules.length} engineered`} title="Applied blueprints">
+            <DataTable density="compact" label="Engineering applied to the current ship" minimum="wide" narrow="priority" scheme="surface">
+              <thead><tr><th>Module</th><th>Blueprint</th><th>Grade</th><th>Engineer</th><th>Experimental effect</th><th>Condition</th></tr></thead>
+              <tbody>{modules.length === 0
+                ? <tr><td className="text-muted" colSpan={6}>No engineered modules observed on the current ship.</td></tr>
+                : modules.map(item => (
+                    <tr className={moduleClassName(item)} key={item.id}>
+                      <td><strong>{item.module}</strong><small>{item.slot} · {item.slotDetail}</small></td>
+                      <td>{item.engineeringBlueprint ?? '—'}</td>
+                      <td>{item.engineeringGrade === null ? '—' : `G${item.engineeringGrade}`}</td>
+                      <td>{item.engineeringEngineer ?? '—'}</td>
+                      <td>{item.engineeringExperimentalEffect ?? '—'}</td>
+                      <td className="numeric"><strong>{item.condition}</strong><small>{item.state}</small></td>
+                    </tr>
+                  ))}</tbody>
+            </DataTable>
+          </DataTableGroup>
+        </Stack>
+      </div>
+    </PageFrame>
+  )
+}
+
 function CurrentShipHeader({ actions, current, model }: {
   actions?: React.ReactNode
-  current?: 'Loadout' | 'Cargo'
+  current?: 'Loadout' | 'Cargo' | 'Engineering'
   model: CurrentShipModel
 }) {
   const items = [
@@ -251,7 +285,7 @@ function FactsWidget({ items, title }: { items: CurrentShipModel['vessel'], titl
 }
 
 function MeterWidget({ meters, title }: { meters: CurrentShipModel['integrity'], title: string }) {
-  return <Widget title={title}><Stack className="meter-stack" gap="lg">{meters.map(meter => <Meter key={meter.label} label={meter.label} layout="inline" tone="action" value={meter.value} valueLabel={meter.valueLabel} />)}</Stack></Widget>
+  return <Widget title={title}><div className="meter-stack">{meters.map(meter => <Meter key={meter.label} label={meter.label} layout="inline" tone="action" value={meter.value} valueLabel={meter.valueLabel} />)}</div></Widget>
 }
 
 function ModuleTable({ group }: { group: CurrentShipModel['modules'][number] }) {

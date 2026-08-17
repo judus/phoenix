@@ -55,6 +55,10 @@
     }
   }
 
+  .widget:not(:has(> header)) {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
   .section {
     display: grid;
     align-content: start;
@@ -197,4 +201,3 @@
       .btn { inline-size: 100%; }
     }
   }
-

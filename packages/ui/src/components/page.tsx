@@ -73,7 +73,7 @@ export function Breadcrumbs({ className, items, ...props }: BreadcrumbsProps) {
     <nav aria-label="Breadcrumb" className={['breadcrumbs', className].filter(Boolean).join(' ')} {...props}>
       <ol>
         {items.map((item, index) => (
-          <li key={item.label}>
+          <li key={`${index}:${item.label}`}>
             {item.href
               ? <a href={item.href}>{item.label}</a>
               : <span aria-current={index === items.length - 1 ? 'page' : undefined}>{item.label}</span>}

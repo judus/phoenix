@@ -21,6 +21,7 @@ test('Fleet overview and current ship render live records without shell chrome',
   const state = { ...createEmptyRuntimeState(), ship: { ...createEmptyRuntimeState().ship, name: 'Prospector', identifier: 'EL-06L' } }
   const current = renderToStaticMarkup(<FleetPage controller={{ status: 'idle' }} onNavigate={vi.fn()} route={{ kind: 'information', section: 'fleet', view: 'current-overview' }} runtime={{ status: 'ready', state }} />)
   const loadout = renderToStaticMarkup(<FleetPage controller={{ status: 'idle' }} onNavigate={vi.fn()} route={{ kind: 'information', section: 'fleet', view: 'current-loadout' }} runtime={{ status: 'ready', state }} />)
+  const engineering = renderToStaticMarkup(<FleetPage controller={{ status: 'idle' }} onNavigate={vi.fn()} route={{ kind: 'information', section: 'fleet', view: 'current-engineering' }} runtime={{ status: 'ready', state }} />)
 
   expect(overview).toContain('Owned vessels')
   expect(overview).toContain('MURDOCK')
@@ -37,6 +38,9 @@ test('Fleet overview and current ship render live records without shell chrome',
   expect(loadout).toContain('aria-label="List view"')
   expect(loadout).toContain('title="Switch to grid view"')
   expect(loadout).not.toContain('Current ship views')
+  expect(engineering).toContain('Applied blueprints')
+  expect(engineering).toContain('No engineered modules observed on the current ship')
+  expect(engineering).toContain('aria-current="page">Engineering')
 })
 
 test('catalogue selection comes from the typed route', () => {

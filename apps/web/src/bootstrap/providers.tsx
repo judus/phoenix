@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { CopilotVoiceProvider } from '../features/copilot/copilot-voice-provider.js'
 import { MacroRuntimeProvider } from '../features/macros/macro-runtime-provider.js'
 import type { PhoenixApplicationServices } from './create-application.js'
+import { NumpadActivation } from '../features/numpad/numpad-activation.js'
 
 const PhoenixApplicationContext = createContext<PhoenixApplicationServices | undefined>(undefined)
 
@@ -35,6 +36,7 @@ export function PhoenixProviders({
 
   return (
     <PhoenixApplicationContext.Provider value={application}>
+      <NumpadActivation api={application.api} router={application.router} />
       <CopilotVoiceProvider
         api={application.api}
         clientIdentity={application.clientIdentity}

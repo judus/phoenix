@@ -2,7 +2,7 @@ import { expect, test } from 'vitest'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { StaticGameActionBindingResolver } from '../apps/server/src/infrastructure/static-game-action-binding-resolver.js'
 import { RecordingInputBackend } from '../apps/server/src/infrastructure/recording-input-backend.js'
-import { PhoenixApiClient } from '../apps/web/src/api/phoenix-api-client.js'
+import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
 
 test('the numpad API projects and executes the current authoritative command map', async () => {
   const application = new PhoenixApplication({

@@ -17,7 +17,7 @@ export type InformationPrimarySection =
   | 'commander'
   | 'fleet'
   | 'galaxy'
-  | 'operations'
+  | 'activities'
   | 'engineering'
   | 'comms'
 
@@ -46,13 +46,14 @@ export type PhoenixRouteQuery = Readonly<Record<string, string>>
 export type InformationRoute =
   | { kind: 'information', section: 'home', view: 'overview', query?: PhoenixRouteQuery }
   | { kind: 'information', section: 'commander', view: 'overview' | 'inventory' | 'progress' }
-  | { kind: 'information', section: 'fleet', view: 'overview' | 'current-overview' | 'current-loadout' | 'current-cargo' | 'carriers' | 'stored-modules' }
+  | { kind: 'information', section: 'fleet', view: 'overview' | 'current-overview' | 'current-loadout' | 'current-cargo' | 'current-engineering' | 'carriers' | 'stored-modules' }
   | { kind: 'information', section: 'fleet', view: 'catalogue', selectedShipId?: string }
   | { kind: 'information', section: 'galaxy', view: 'system', systemName?: string, selectedName?: string }
   | { kind: 'information', section: 'galaxy', view: 'route' }
   | { kind: 'information', section: 'galaxy', view: 'database', selectedQueryId?: GalaxyQueryId }
-  | { kind: 'information', section: 'operations', view: 'overview' | 'missions' | 'objectives' | 'community-goals' | 'powerplay' | 'colonisation', query?: PhoenixRouteQuery }
-  | { kind: 'information', section: 'engineering', view: 'blueprints' | 'engineers' | 'materials-raw' | 'materials-manufactured' | 'materials-encoded' | 'materials-xeno', query?: PhoenixRouteQuery }
+  | { kind: 'information', section: 'activities', view: 'missions' | 'objectives' | 'community-goals' | 'powerplay' | 'colonisation', fixture?: 'review' }
+  | { kind: 'information', section: 'engineering', view: 'blueprints', selectedBlueprintSymbol?: string }
+  | { kind: 'information', section: 'engineering', view: 'engineers' | 'materials-raw' | 'materials-manufactured' | 'materials-encoded' | 'materials-xeno' }
   | { kind: 'information', section: 'comms', view: 'overview' | 'inbox' | 'traffic' | 'contacts' | 'galnet' | 'radio', query?: PhoenixRouteQuery }
   | { kind: 'information', section: 'records', view: 'exploration-ledger' | 'exploration-body' | 'exploration-biology' | 'exploration-geology', query?: PhoenixRouteQuery }
 
@@ -62,7 +63,7 @@ export type PhoenixRoute =
   | { kind: 'copilot', view: 'chat' | 'profiles', query?: PhoenixRouteQuery }
   | { kind: 'numpad', view: 'navigator' | 'shortcuts', query?: PhoenixRouteQuery }
   | { kind: 'macros', query?: PhoenixRouteQuery }
-  | { kind: 'journal', query?: PhoenixRouteQuery }
+  | { kind: 'journal', view: 'journal' | 'credits', query?: PhoenixRouteQuery }
   | { kind: 'developer', view: 'overview' | 'runtime' | 'elite' | 'health' | 'tests' | 'controls', query?: PhoenixRouteQuery }
   | { kind: 'settings', view: 'system' | 'audio' | 'modules' | 'pairing', query?: PhoenixRouteQuery }
 
@@ -73,7 +74,6 @@ export type PhoenixWorkspace =
   | 'telemetry'
   | 'macros'
   | 'journal'
-  | 'developer'
   | 'settings'
 
 export const HOME_ROUTE: InformationRoute = {
@@ -94,7 +94,6 @@ export function isPhoenixWorkspace(value: string): value is PhoenixWorkspace {
     'telemetry',
     'macros',
     'journal',
-    'developer',
     'settings'
   ].includes(value)
 }
@@ -102,6 +101,7 @@ export function isPhoenixWorkspace(value: string): value is PhoenixWorkspace {
 export function workspaceForRoute(route: PhoenixRoute): PhoenixWorkspace {
   if (route.kind === 'information') return 'info'
   if (route.kind === 'numpad') return 'telemetry'
+  if (route.kind === 'developer') return 'journal'
   return route.kind
 }
 
@@ -111,7 +111,7 @@ export function defaultRouteForInformationSection(section: InformationPrimarySec
     case 'commander': return { kind: 'information', section, view: 'overview' }
     case 'fleet': return { kind: 'information', section, view: 'overview' }
     case 'galaxy': return { kind: 'information', section, view: 'system' }
-    case 'operations': return { kind: 'information', section, view: 'overview' }
+    case 'activities': return { kind: 'information', section, view: 'missions' }
     case 'engineering': return { kind: 'information', section, view: 'blueprints' }
     case 'comms': return { kind: 'information', section, view: 'overview' }
   }
@@ -127,8 +127,7 @@ export function defaultRouteForWorkspace(
     case 'copilot': return { kind: 'copilot', view: 'chat' }
     case 'telemetry': return { kind: 'numpad', view: 'navigator' }
     case 'macros': return { kind: 'macros' }
-    case 'journal': return { kind: 'journal' }
-    case 'developer': return { kind: 'developer', view: 'overview' }
+    case 'journal': return { kind: 'journal', view: 'journal' }
     case 'settings': return { kind: 'settings', view: 'system' }
   }
 }

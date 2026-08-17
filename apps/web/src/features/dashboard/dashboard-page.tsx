@@ -71,7 +71,7 @@ export function DashboardPage({
             <Widget
               className="span-two"
               title="Recent activity"
-              link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'journal' }}>Open journal</RouteLink>}
+              link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'journal', view: 'journal' }}>Open journal</RouteLink>}
             >
               {model.activity.length === 0
                 ? <Status tone="muted">{controller.status === 'loading' ? 'Loading retained activity…' : 'No recent activity retained.'}</Status>

@@ -14,7 +14,7 @@ const routes = {
 
 export const fleetNavigationItems: FleetNavigationItem[] = [
   item('overview', 'Overview', 'FLT'),
-  item('current', 'Current ship', 'SHIP'),
+  item('current', 'Current ship', 'SHP'),
   item('carriers', 'Carriers', 'CAR'),
   item('stored-modules', 'Stored modules', 'MOD'),
   item('catalogue', 'Ship catalogue', 'CAT')
