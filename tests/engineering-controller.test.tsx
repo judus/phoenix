@@ -35,3 +35,23 @@ test('Engineering selects one focused API query for each view', async () => {
   expect(api.getEngineeringEngineers).toHaveBeenCalledWith(expect.any(AbortSignal))
   await act(async () => renderer.unmount())
 })
+
+test('Engineering retains a successful page snapshot while a revisit refreshes', async () => {
+  const blueprints = { blueprints: [{ name: 'Dirty drive tuning', symbol: 'dirty-drive-tuning' }] }
+  const api = {
+    getEngineeringBlueprints: vi.fn().mockResolvedValue(blueprints)
+  } as unknown as PhoenixApi
+  let snapshot: EngineeringControllerSnapshot | undefined
+
+  function Probe() { snapshot = useEngineeringController(api, 'blueprints'); return null }
+  let renderer = await act(async () => create(<Probe />))
+  expect(snapshot).toMatchObject({ blueprints, status: 'ready' })
+  await act(async () => renderer.unmount())
+
+  vi.mocked(api.getEngineeringBlueprints).mockImplementationOnce(() => new Promise(() => undefined))
+  renderer = await act(async () => create(<Probe />))
+
+  expect(api.getEngineeringBlueprints).toHaveBeenCalledTimes(2)
+  expect(snapshot).toMatchObject({ blueprints, status: 'ready' })
+  await act(async () => renderer.unmount())
+})

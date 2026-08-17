@@ -6,6 +6,7 @@ import type {
   EngineeringMaterialsResponse
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
+import { readControllerSnapshot, storeControllerSnapshot } from '../../application/cache/controller-snapshot-cache.js'
 
 export type EngineeringView = 'blueprints' | 'engineers' | 'materials-raw' | 'materials-manufactured' | 'materials-encoded' | 'materials-xeno'
 
@@ -24,11 +25,15 @@ export function useEngineeringController(
   selectedBlueprintSymbol?: string,
   revision?: number
 ): EngineeringControllerSnapshot {
-  const [snapshot, setSnapshot] = useState<EngineeringControllerSnapshot>({ status: 'idle' })
+  const cacheKey = `engineering:${view}:${selectedBlueprintSymbol ?? ''}`
+  const [snapshot, setSnapshot] = useState<EngineeringControllerSnapshot>(() =>
+    readControllerSnapshot(api, cacheKey) ?? { status: 'idle' }
+  )
 
   useEffect(() => {
     const abort = new AbortController()
-    setSnapshot({ status: 'loading' })
+    const retained = readControllerSnapshot<EngineeringControllerSnapshot>(api, cacheKey)
+    setSnapshot(retained ?? { status: 'loading' })
     const request = view === 'engineers'
       ? api.getEngineeringEngineers(abort.signal).then(engineers => ({ engineers }))
       : view.startsWith('materials-')
@@ -37,12 +42,15 @@ export function useEngineeringController(
           ? api.getEngineeringBlueprint(selectedBlueprintSymbol, abort.signal).then(blueprint => ({ blueprint }))
           : api.getEngineeringBlueprints(abort.signal).then(blueprints => ({ blueprints }))
     void request.then(result => {
-      if (!abort.signal.aborted) setSnapshot({ ...result, status: 'ready' })
+      if (!abort.signal.aborted) setSnapshot(storeControllerSnapshot(api, cacheKey, { ...result, status: 'ready' }))
     }).catch(cause => {
-      if (!abort.signal.aborted) setSnapshot({ error: cause instanceof Error ? cause.message : 'Engineering data unavailable.', status: 'error' })
+      if (!abort.signal.aborted) {
+        const error = cause instanceof Error ? cause.message : 'Engineering data unavailable.'
+        setSnapshot(current => current.status === 'ready' ? { ...current, error } : { error, status: 'error' })
+      }
     })
     return () => abort.abort()
-  }, [api, revision, selectedBlueprintSymbol, view])
+  }, [api, cacheKey, revision, selectedBlueprintSymbol, view])
 
   return snapshot
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import type { ApplicationNavigationItem } from '@phoenix/ui'
 import { PlaceholderPage } from './components/shell/placeholder-page.js'
 import { PhoenixApplicationShell } from './components/shell/phoenix-application-shell.js'
@@ -63,12 +63,12 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
   const { router } = application
   const route = usePhoenixRoute(router)
   const informationRoute = isInformationRoute(route) ? route : router.getRememberedInformationRoute()
-  const commanderRoute = isInformationRoute(route) && route.section === 'commander' ? route : undefined
-  const fleetRoute = isInformationRoute(route) && route.section === 'fleet' ? route : undefined
-  const galaxyRoute = isInformationRoute(route) && route.section === 'galaxy' ? route : undefined
-  const activitiesRoute = isInformationRoute(route) && route.section === 'activities' ? route : undefined
-  const commsRoute = isInformationRoute(route) && route.section === 'comms' ? route : undefined
-  const engineeringRoute = isInformationRoute(route) && route.section === 'engineering' ? route : undefined
+  const commanderRoute = informationRoute.section === 'commander' ? informationRoute : undefined
+  const fleetRoute = informationRoute.section === 'fleet' ? informationRoute : undefined
+  const galaxyRoute = informationRoute.section === 'galaxy' ? informationRoute : undefined
+  const activitiesRoute = informationRoute.section === 'activities' ? informationRoute : undefined
+  const commsRoute = informationRoute.section === 'comms' ? informationRoute : undefined
+  const engineeringRoute = informationRoute.section === 'engineering' ? informationRoute : undefined
   const controlsRoute = route.kind === 'controls' ? route : undefined
   const numpadRoute = route.kind === 'numpad' ? route : undefined
   const logRoute = route.kind === 'journal' || route.kind === 'developer' ? route : undefined
@@ -132,23 +132,23 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       controlsContextItems={controlsRailItems}
       controlsCurrentContext={controlsContext(controlsRoute?.category ?? 'ship')}
       onControlsContextAction={(item) => { if (item.id === 'edit-layout') setControlsEditing(current => !current) }}
-      copilot={<CopilotFeature application={application} view={route.kind === 'copilot' ? route.view : 'chat'} />}
+      copilot={<StableCopilotFeature application={application} view={route.kind === 'copilot' ? route.view : 'chat'} />}
       copilotContextItems={copilotNavigationItems}
       copilotCurrentContext={copilotContext(route)}
-      information={isDashboardRoute(route)
+      information={isDashboardRoute(informationRoute)
         ? <DashboardFeature application={application} />
         : commanderRoute
           ? <CommanderFeature application={application} view={commanderRoute.view} />
           : fleetRoute
-            ? <FleetFeature application={application} route={fleetRoute} />
-            : galaxyRoute
-              ? <GalaxyFeature application={application} route={galaxyRoute} />
+          ? <FleetFeature key={router.href(fleetRoute)} application={application} route={fleetRoute} />
+          : galaxyRoute
+              ? <GalaxyFeature key={router.href(galaxyRoute)} application={application} route={galaxyRoute} />
               : activitiesRoute
-                ? <ActivitiesFeature application={application} route={activitiesRoute} />
+                ? <ActivitiesFeature key={router.href(activitiesRoute)} application={application} route={activitiesRoute} />
                 : commsRoute
-                  ? <CommsFeature application={application} route={commsRoute} />
+                  ? <CommsFeature key={router.href(commsRoute)} application={application} route={commsRoute} />
                   : engineeringRoute
-                    ? <EngineeringFeature application={application} route={engineeringRoute} />
+                    ? <EngineeringFeature key={router.href(engineeringRoute)} application={application} route={engineeringRoute} />
             : null}
       journal={logRoute?.kind === 'developer'
         ? <PlaceholderPage context="Log · Developer" title="Developer tools" description="Runtime inspection and diagnostics" />
@@ -158,7 +158,7 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       journalContextItems={journalNavigationItems}
       journalCurrentContext={journalContext(route)}
       macros={<MacrosFeature />}
-      settings={<SettingsPage
+      settings={<StableSettingsPage
         api={application.api}
         devicePreferences={application.devicePreferences}
       />}
@@ -171,19 +171,22 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
   )
 }
 
-function MacrosFeature() {
+const StableCopilotFeature = memo(CopilotFeature)
+const StableSettingsPage = memo(SettingsPage)
+
+const MacrosFeature = memo(function MacrosFeature() {
   return <MacrosPage runtime={useMacroRuntime()} />
-}
+})
 
-function NumpadFeature({ application, view }: { application: PhoenixApplicationServices, view: 'navigator' | 'shortcuts' }) {
+const NumpadFeature = memo(function NumpadFeature({ application, view }: { application: PhoenixApplicationServices, view: 'navigator' | 'shortcuts' }) {
   return <NumpadPage api={application.api} controller={useNumpadController(application.api, application.events)} view={view} />
-}
+})
 
-function JournalFeature({ application }: { application: PhoenixApplicationServices }) {
+const JournalFeature = memo(function JournalFeature({ application }: { application: PhoenixApplicationServices }) {
   return <JournalPage controller={useJournalController(application.api, application.events)} />
-}
+})
 
-function ControlsFeature({ application, category, editing, onEditingChange }: {
+const ControlsFeature = memo(function ControlsFeature({ application, category, editing, onEditingChange }: {
   application: PhoenixApplicationServices
   category: Extract<ReturnType<PhoenixRouter['getSnapshot']>, { kind: 'controls' }>['category']
   editing: boolean
@@ -202,9 +205,9 @@ function ControlsFeature({ application, category, editing, onEditingChange }: {
     onExecuteAction={(actionId, operation) => application.api.executeAction(actionId, operation)}
     onSaveLayout={layout => application.api.saveControlLayout(layout)}
   />
-}
+})
 
-function EngineeringFeature({ application, route }: {
+const EngineeringFeature = memo(function EngineeringFeature({ application, route }: {
   application: PhoenixApplicationServices
   route: Extract<ReturnType<PhoenixRouter['getSnapshot']>, { kind: 'information', section: 'engineering' }>
 }) {
@@ -217,9 +220,9 @@ function EngineeringFeature({ application, route }: {
     runtime.status === 'ready' ? runtime.state.revision : undefined
   )
   return <EngineeringPage controller={controller} selectedBlueprintSymbol={selectedBlueprintSymbol} view={route.view} />
-}
+})
 
-function CommsFeature({ application, route }: {
+const CommsFeature = memo(function CommsFeature({ application, route }: {
   application: PhoenixApplicationServices
   route: Extract<ReturnType<PhoenixRouter['getSnapshot']>, { kind: 'information', section: 'comms' }>
 }) {
@@ -229,17 +232,17 @@ function CommsFeature({ application, route }: {
     onExecuteAction={actionId => application.api.executeAction(actionId, 'tap')}
     view={route.view}
   />
-}
+})
 
-function ActivitiesFeature({ application, route }: {
+const ActivitiesFeature = memo(function ActivitiesFeature({ application, route }: {
   application: PhoenixApplicationServices
   route: Extract<ReturnType<PhoenixRouter['getSnapshot']>, { kind: 'information', section: 'activities' }>
 }) {
   const controller = useActivitiesController(application.api, application.events, route.view, route.fixture)
   return <ActivitiesPage controller={controller} view={route.view} />
-}
+})
 
-function GalaxyFeature({ application, route }: {
+const GalaxyFeature = memo(function GalaxyFeature({ application, route }: {
   application: PhoenixApplicationServices
   route: Extract<ReturnType<PhoenixRouter['getSnapshot']>, { kind: 'information', section: 'galaxy' }>
 }) {
@@ -249,9 +252,9 @@ function GalaxyFeature({ application, route }: {
     : undefined
   const controller = useGalaxyController(application.api, application.events, route.view, systemName)
   return <GalaxyPage api={application.api} controller={controller} onNavigate={application.router.push} route={route} runtime={runtime} />
-}
+})
 
-function FleetFeature({ application, route }: {
+const FleetFeature = memo(function FleetFeature({ application, route }: {
   application: PhoenixApplicationServices
   route: Extract<ReturnType<PhoenixRouter['getSnapshot']>, { kind: 'information', section: 'fleet' }>
 }) {
@@ -264,9 +267,9 @@ function FleetFeature({ application, route }: {
     route={route}
     runtime={runtime}
   />
-}
+})
 
-function CommanderFeature({ application, view }: {
+const CommanderFeature = memo(function CommanderFeature({ application, view }: {
   application: PhoenixApplicationServices
   view: 'overview' | 'inventory' | 'progress'
 }) {
@@ -276,9 +279,9 @@ function CommanderFeature({ application, view }: {
     [runtime]
   )
   return <CommanderPage model={model} runtime={runtime} view={view} />
-}
+})
 
-function DashboardFeature({ application }: { application: PhoenixApplicationServices }) {
+const DashboardFeature = memo(function DashboardFeature({ application }: { application: PhoenixApplicationServices }) {
   const controller = useDashboardController(application.api, application.events)
   const runtime = useRuntimeState(application.runtime)
   const eventConnection = usePhoenixEventConnection(application.events)
@@ -311,7 +314,7 @@ function DashboardFeature({ application }: { application: PhoenixApplicationServ
       }}
     />
   )
-}
+})
 
 function isDashboardRoute(route: ReturnType<PhoenixRouter['getSnapshot']>): boolean {
   return route.kind === 'information' && route.section === 'home' && route.view === 'overview'

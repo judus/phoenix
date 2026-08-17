@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { CartographyLookupResponse, NavigationRoute } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
+import { readControllerSnapshot, storeControllerSnapshot } from '../../application/cache/controller-snapshot-cache.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
 
 export interface GalaxyControllerSnapshot {
@@ -16,7 +17,10 @@ export function useGalaxyController(
   view: 'system' | 'route' | 'database',
   systemName?: string
 ): GalaxyControllerSnapshot {
-  const [snapshot, setSnapshot] = useState<GalaxyControllerSnapshot>({ status: 'idle' })
+  const cacheKey = `galaxy:${view}:${systemName ?? ''}`
+  const [snapshot, setSnapshot] = useState<GalaxyControllerSnapshot>(() =>
+    readControllerSnapshot(api, cacheKey) ?? { status: 'idle' }
+  )
 
   useEffect(() => {
     if (view === 'database') {
@@ -26,32 +30,32 @@ export function useGalaxyController(
 
     const abort = new AbortController()
     let revision = 0
-    const load = () => {
+    const retained = readControllerSnapshot<GalaxyControllerSnapshot>(api, cacheKey)
+    const publish = (next: GalaxyControllerSnapshot) => setSnapshot(storeControllerSnapshot(api, cacheKey, next))
+    const load = (showLoading = false) => {
       const requestRevision = ++revision
-      setSnapshot(current => ({ ...current, error: undefined, status: 'loading' }))
+      if (showLoading) setSnapshot(retained ?? { status: 'loading' })
       const request = view === 'system'
         ? api.getSystemCartography(systemName, abort.signal).then(lookup => ({ lookup }))
         : api.getNavigationRoute(abort.signal).then(route => ({ route }))
       void request.then(result => {
-        if (!abort.signal.aborted && requestRevision === revision) setSnapshot({ ...result, status: 'ready' })
+        if (!abort.signal.aborted && requestRevision === revision) publish({ ...result, status: 'ready' })
       }).catch(cause => {
         if (abort.signal.aborted || requestRevision !== revision) return
-        setSnapshot({
-          error: cause instanceof Error ? cause.message : 'Galaxy data unavailable.',
-          status: 'error'
-        })
+        const error = cause instanceof Error ? cause.message : 'Galaxy data unavailable.'
+        setSnapshot(current => current.status === 'ready' ? { ...current, error } : { error, status: 'error' })
       })
     }
 
-    load()
+    load(true)
     const unsubscribe = view === 'route'
-      ? events.subscribe('navigation-route', route => setSnapshot({ route, status: 'ready' }))
+      ? events.subscribe('navigation-route', route => publish({ route, status: 'ready' }))
       : undefined
     return () => {
       abort.abort()
       unsubscribe?.()
     }
-  }, [api, events, systemName, view])
+  }, [api, cacheKey, events, systemName, view])
 
   return snapshot
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { CommunicationsResponse, GalnetNewsResponse, GameActionCatalogResponse } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
+import { readControllerSnapshot, storeControllerSnapshot } from '../../application/cache/controller-snapshot-cache.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
 
 export type CommsView = 'overview' | 'inbox' | 'traffic' | 'contacts' | 'galnet' | 'radio'
@@ -14,14 +15,19 @@ export interface CommsControllerSnapshot {
 }
 
 export function useCommsController(api: PhoenixApi, events: PhoenixEventHub, view: CommsView): CommsControllerSnapshot {
-  const [snapshot, setSnapshot] = useState<CommsControllerSnapshot>({ status: 'idle' })
+  const cacheKey = `comms:${view}`
+  const [snapshot, setSnapshot] = useState<CommsControllerSnapshot>(() =>
+    readControllerSnapshot(api, cacheKey) ?? { status: 'idle' }
+  )
 
   useEffect(() => {
     const abort = new AbortController()
     let revision = 0
-    const load = () => {
+    const retained = readControllerSnapshot<CommsControllerSnapshot>(api, cacheKey)
+    const publish = (next: CommsControllerSnapshot) => setSnapshot(storeControllerSnapshot(api, cacheKey, next))
+    const load = (showLoading = false) => {
       const requestRevision = ++revision
-      setSnapshot(current => ({ ...current, error: undefined, status: 'loading' }))
+      if (showLoading) setSnapshot(retained ?? { status: 'loading' })
       const request = view === 'galnet'
         ? api.getGalnetNews(40, abort.signal).then(galnet => ({ galnet }))
         : view === 'radio'
@@ -29,14 +35,15 @@ export function useCommsController(api: PhoenixApi, events: PhoenixEventHub, vie
           : api.getCommunications(view === 'inbox' || view === 'traffic' ? view : 'all', 500, abort.signal)
             .then(communications => ({ communications }))
       void request.then(result => {
-        if (!abort.signal.aborted && requestRevision === revision) setSnapshot({ ...result, status: 'ready' })
+        if (!abort.signal.aborted && requestRevision === revision) publish({ ...result, status: 'ready' })
       }).catch(cause => {
         if (abort.signal.aborted || requestRevision !== revision) return
-        setSnapshot({ error: cause instanceof Error ? cause.message : 'Communications unavailable.', status: 'error' })
+        const error = cause instanceof Error ? cause.message : 'Communications unavailable.'
+        setSnapshot(current => current.status === 'ready' ? { ...current, error } : { error, status: 'error' })
       })
     }
 
-    load()
+    load(true)
     const unsubscribe = view === 'overview' || view === 'inbox' || view === 'traffic' || view === 'contacts'
       ? events.subscribe('activity-entry', entry => {
           if (entry.source === 'journal' && (entry.event === 'ReceiveText' || entry.event === 'SendText')) load()
@@ -46,7 +53,7 @@ export function useCommsController(api: PhoenixApi, events: PhoenixEventHub, vie
       abort.abort()
       unsubscribe()
     }
-  }, [api, events, view])
+  }, [api, cacheKey, events, view])
 
   return snapshot
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { MissionsResponse } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
+import { readControllerSnapshot, storeControllerSnapshot } from '../../application/cache/controller-snapshot-cache.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
 import { activitiesFixture } from './activities-fixture.js'
 
@@ -29,7 +30,10 @@ export function useActivitiesController(
   view: ActivitiesView,
   fixture?: 'review'
 ): ActivitiesControllerSnapshot {
-  const [snapshot, setSnapshot] = useState<ActivitiesControllerSnapshot>({ status: 'idle' })
+  const cacheKey = `activities:${view}:${fixture ?? ''}`
+  const [snapshot, setSnapshot] = useState<ActivitiesControllerSnapshot>(() =>
+    readControllerSnapshot(api, cacheKey) ?? { status: 'idle' }
+  )
 
   useEffect(() => {
     if (fixture === 'review' && import.meta.env.DEV) {
@@ -43,21 +47,21 @@ export function useActivitiesController(
 
     const abort = new AbortController()
     let revision = 0
-    const load = () => {
+    const retained = readControllerSnapshot<ActivitiesControllerSnapshot>(api, cacheKey)
+    const publish = (next: ActivitiesControllerSnapshot) => setSnapshot(storeControllerSnapshot(api, cacheKey, next))
+    const load = (showLoading = false) => {
       const requestRevision = ++revision
-      setSnapshot(current => ({ ...current, error: undefined, status: 'loading' }))
+      if (showLoading) setSnapshot(retained ?? { status: 'loading' })
       void api.getMissions(abort.signal).then(missions => {
-        if (!abort.signal.aborted && requestRevision === revision) setSnapshot({ missions, status: 'ready' })
+        if (!abort.signal.aborted && requestRevision === revision) publish({ missions, status: 'ready' })
       }).catch(cause => {
         if (abort.signal.aborted || requestRevision !== revision) return
-        setSnapshot({
-          error: cause instanceof Error ? cause.message : 'Mission records unavailable.',
-          status: 'error'
-        })
+        const error = cause instanceof Error ? cause.message : 'Mission records unavailable.'
+        setSnapshot(current => current.status === 'ready' ? { ...current, error } : { error, status: 'error' })
       })
     }
 
-    load()
+    load(true)
     const unsubscribe = events.subscribe('activity-entry', entry => {
       if (entry.source === 'journal' && missionEvents.has(entry.event)) load()
     })
@@ -65,7 +69,7 @@ export function useActivitiesController(
       abort.abort()
       unsubscribe()
     }
-  }, [api, events, fixture, view])
+  }, [api, cacheKey, events, fixture, view])
 
   return snapshot
 }
