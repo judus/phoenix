@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from 'react'
+import { lazy, memo, Suspense, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { ApplicationNavigationItem } from '@phoenix/ui'
 import { PlaceholderPage } from './components/shell/placeholder-page.js'
 import { PhoenixApplicationShell } from './components/shell/phoenix-application-shell.js'
@@ -11,43 +11,44 @@ import type { PhoenixApplicationServices } from './bootstrap/create-application.
 import { PairingGate } from './bootstrap/pairing-gate.js'
 import { PhoenixProviders } from './bootstrap/providers.js'
 import { useCopilotVoice } from './features/copilot/copilot-voice-provider.js'
-import { CopilotFeature } from './features/copilot/copilot-feature.js'
 import { copilotContext, copilotNavigationItems } from './features/copilot/copilot-navigation.js'
-import { DashboardPage } from './features/dashboard/dashboard-page.js'
 import { createDashboardViewModel } from './features/dashboard/dashboard-view-model.js'
 import { useDashboardController } from './features/dashboard/use-dashboard-controller.js'
-import { CommanderPage } from './features/commander/commander-page.js'
 import { createCommanderViewModel } from './features/commander/commander-view-model.js'
 import { commanderContextForRoute, commanderNavigationItems } from './features/commander/commander-navigation.js'
-import { FleetPage } from './features/fleet/fleet-page.js'
 import { fleetContextForRoute, fleetNavigationItems } from './features/fleet/fleet-navigation.js'
 import { useFleetController } from './features/fleet/use-fleet-controller.js'
-import { GalaxyPage } from './features/galaxy/galaxy-page.js'
 import { galaxyContextForRoute, galaxyNavigationItems } from './features/galaxy/galaxy-navigation.js'
 import { useGalaxyController } from './features/galaxy/use-galaxy-controller.js'
-import { ActivitiesPage } from './features/activities/activities-page.js'
 import { activitiesContextForRoute, activitiesNavigationItemsForRoute } from './features/activities/activities-navigation.js'
 import { useActivitiesController } from './features/activities/use-activities-controller.js'
-import { CommsPage } from './features/comms/comms-page.js'
 import { commsContextForRoute, commsNavigationItems } from './features/comms/comms-navigation.js'
 import { useCommsController } from './features/comms/use-comms-controller.js'
-import { EngineeringPage } from './features/engineering/engineering-page.js'
 import { engineeringContextForRoute, engineeringNavigationItems } from './features/engineering/engineering-navigation.js'
 import { useEngineeringController } from './features/engineering/use-engineering-controller.js'
-import { ControlsPage } from './features/controls/controls-page.js'
 import { controlsContext, controlsNavigationItems } from './features/controls/controls-navigation.js'
 import { useControlsController } from './features/controls/use-controls-controller.js'
 import { useMacroRuntime } from './features/macros/macro-runtime-provider.js'
-import { MacrosPage } from './features/macros/macros-page.js'
-import { NumpadPage } from './features/numpad/numpad-page.js'
 import { numpadContext, numpadNavigationItems } from './features/numpad/numpad-navigation.js'
 import { useNumpadController } from './features/numpad/use-numpad-controller.js'
-import { JournalPage } from './features/journal/journal-page.js'
 import { useJournalController } from './features/journal/use-journal-controller.js'
-import { CreditsPage } from './features/journal/credits-page.js'
 import { journalContext, journalNavigationItems } from './features/journal/journal-navigation.js'
-import { SettingsPage } from './features/settings/settings-page.js'
 import { settingsContext, settingsNavigationItems } from './features/settings/settings-navigation.js'
+
+const ActivitiesPage = lazy(() => import('./features/activities/activities-page.js').then(module => ({ default: module.ActivitiesPage })))
+const CommanderPage = lazy(() => import('./features/commander/commander-page.js').then(module => ({ default: module.CommanderPage })))
+const CommsPage = lazy(() => import('./features/comms/comms-page.js').then(module => ({ default: module.CommsPage })))
+const ControlsPage = lazy(() => import('./features/controls/controls-page.js').then(module => ({ default: module.ControlsPage })))
+const CopilotFeature = lazy(() => import('./features/copilot/copilot-feature.js').then(module => ({ default: module.CopilotFeature })))
+const CreditsPage = lazy(() => import('./features/journal/credits-page.js').then(module => ({ default: module.CreditsPage })))
+const DashboardPage = lazy(() => import('./features/dashboard/dashboard-page.js').then(module => ({ default: module.DashboardPage })))
+const EngineeringPage = lazy(() => import('./features/engineering/engineering-page.js').then(module => ({ default: module.EngineeringPage })))
+const FleetPage = lazy(() => import('./features/fleet/fleet-page.js').then(module => ({ default: module.FleetPage })))
+const GalaxyPage = lazy(() => import('./features/galaxy/galaxy-page.js').then(module => ({ default: module.GalaxyPage })))
+const JournalPage = lazy(() => import('./features/journal/journal-page.js').then(module => ({ default: module.JournalPage })))
+const MacrosPage = lazy(() => import('./features/macros/macros-page.js').then(module => ({ default: module.MacrosPage })))
+const NumpadPage = lazy(() => import('./features/numpad/numpad-page.js').then(module => ({ default: module.NumpadPage })))
+const SettingsPage = lazy(() => import('./features/settings/settings-page.js').then(module => ({ default: module.SettingsPage })))
 
 export function App({ application }: { application: PhoenixApplicationServices }) {
   return (
@@ -62,6 +63,9 @@ export function App({ application }: { application: PhoenixApplicationServices }
 function PhoenixApplication({ application }: { application: PhoenixApplicationServices }) {
   const { router } = application
   const route = usePhoenixRoute(router)
+  const activeDesktop = workspaceForRoute(route)
+  const mountedWorkspaces = useRef(new Set([activeDesktop]))
+  mountedWorkspaces.current.add(activeDesktop)
   const informationRoute = isInformationRoute(route) ? route : router.getRememberedInformationRoute()
   const commanderRoute = informationRoute.section === 'commander' ? informationRoute : undefined
   const fleetRoute = informationRoute.section === 'fleet' ? informationRoute : undefined
@@ -123,52 +127,68 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
 
   return (
     <PhoenixApplicationShell
-      activeDesktop={workspaceForRoute(route)}
+      activeDesktop={activeDesktop}
       informationRoute={informationRoute}
       {...informationContext}
       onNavigateRoute={router.push}
       onNavigateWorkspace={(workspace) => router.push(router.routeForWorkspace(workspace))}
-      controls={<ControlsFeature application={application} category={controlsRoute?.category ?? 'ship'} editing={controlsEditing} onEditingChange={setControlsEditing} />}
+      controls={mountedWorkspaces.current.has('controls')
+        ? <FeatureBoundary><ControlsFeature application={application} category={controlsRoute?.category ?? 'ship'} editing={controlsEditing} onEditingChange={setControlsEditing} /></FeatureBoundary>
+        : null}
       controlsContextItems={controlsRailItems}
       controlsCurrentContext={controlsContext(controlsRoute?.category ?? 'ship')}
       onControlsContextAction={(item) => { if (item.id === 'edit-layout') setControlsEditing(current => !current) }}
-      copilot={<StableCopilotFeature application={application} view={route.kind === 'copilot' ? route.view : 'chat'} />}
+      copilot={mountedWorkspaces.current.has('copilot')
+        ? <FeatureBoundary><StableCopilotFeature application={application} view={route.kind === 'copilot' ? route.view : 'chat'} /></FeatureBoundary>
+        : null}
       copilotContextItems={copilotNavigationItems}
       copilotCurrentContext={copilotContext(route)}
-      information={isDashboardRoute(informationRoute)
-        ? <DashboardFeature application={application} />
-        : commanderRoute
-          ? <CommanderFeature application={application} view={commanderRoute.view} />
-          : fleetRoute
-          ? <FleetFeature key={router.href(fleetRoute)} application={application} route={fleetRoute} />
-          : galaxyRoute
-              ? <GalaxyFeature key={router.href(galaxyRoute)} application={application} route={galaxyRoute} />
-              : activitiesRoute
-                ? <ActivitiesFeature key={router.href(activitiesRoute)} application={application} route={activitiesRoute} />
-                : commsRoute
-                  ? <CommsFeature key={router.href(commsRoute)} application={application} route={commsRoute} />
-                  : engineeringRoute
-                    ? <EngineeringFeature key={router.href(engineeringRoute)} application={application} route={engineeringRoute} />
-            : null}
-      journal={logRoute?.kind === 'developer'
-        ? <PlaceholderPage context="Log · Developer" title="Developer tools" description="Runtime inspection and diagnostics" />
-        : logRoute?.view === 'credits'
-          ? <CreditsPage />
-          : <JournalFeature application={application} />}
+      information={mountedWorkspaces.current.has('info')
+        ? <FeatureBoundary>{isDashboardRoute(informationRoute)
+            ? <DashboardFeature application={application} />
+            : commanderRoute
+              ? <CommanderFeature application={application} view={commanderRoute.view} />
+              : fleetRoute
+                ? <FleetFeature key={router.href(fleetRoute)} application={application} route={fleetRoute} />
+                : galaxyRoute
+                  ? <GalaxyFeature key={router.href(galaxyRoute)} application={application} route={galaxyRoute} />
+                  : activitiesRoute
+                    ? <ActivitiesFeature key={router.href(activitiesRoute)} application={application} route={activitiesRoute} />
+                    : commsRoute
+                      ? <CommsFeature key={router.href(commsRoute)} application={application} route={commsRoute} />
+                      : engineeringRoute
+                        ? <EngineeringFeature key={router.href(engineeringRoute)} application={application} route={engineeringRoute} />
+                        : null}</FeatureBoundary>
+        : null}
+      journal={mountedWorkspaces.current.has('journal')
+        ? <FeatureBoundary>{logRoute?.kind === 'developer'
+            ? <PlaceholderPage context="Log · Developer" title="Developer tools" description="Runtime inspection and diagnostics" />
+            : logRoute?.view === 'credits'
+              ? <CreditsPage />
+              : <JournalFeature application={application} />}</FeatureBoundary>
+        : null}
       journalContextItems={journalNavigationItems}
       journalCurrentContext={journalContext(route)}
-      macros={<MacrosFeature />}
-      settings={<StableSettingsPage
-        api={application.api}
-        devicePreferences={application.devicePreferences}
-      />}
+      macros={mountedWorkspaces.current.has('macros') ? <FeatureBoundary><MacrosFeature /></FeatureBoundary> : null}
+      settings={mountedWorkspaces.current.has('settings')
+        ? <FeatureBoundary><StableSettingsPage
+            api={application.api}
+            devicePreferences={application.devicePreferences}
+          /></FeatureBoundary>
+        : null}
       settingsContextItems={settingsNavigationItems}
       settingsCurrentContext={settingsContext()}
-      telemetry={<NumpadFeature application={application} view={numpadRoute?.view ?? 'navigator'} />}
+      telemetry={mountedWorkspaces.current.has('telemetry')
+        ? <FeatureBoundary><NumpadFeature application={application} view={numpadRoute?.view ?? 'navigator'} /></FeatureBoundary>
+        : null}
       telemetryContextItems={numpadNavigationItems}
       telemetryCurrentContext={numpadContext(route)}
     />
   )
+}
+
+function FeatureBoundary({ children }: { children: ReactNode }) {
+  return <Suspense fallback={null}>{children}</Suspense>
 }
 
 const StableCopilotFeature = memo(CopilotFeature)
