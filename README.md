@@ -4,19 +4,14 @@
 
 PHOENIX is a local-first companion application and ship-computer interface for Elite Dangerous. It turns live telemetry, journal history, control bindings, public galaxy data, and an optional AI Copilot into one cockpit for desktop, tablet, and auxiliary displays.
 
-![screen-02.webp](docs/screens/screen-02.webp)
 
-![screen-06.webp](docs/screens/screen-06.webp)
+![screen-20.webp](docs/screens/screen-20.webp)
 
 ![screen-07.webp](docs/screens/screen-07.webp)
 
 ![screen-16.webp](docs/screens/screen-16.webp)
 
-![screen-10.webp](docs/screens/screen-10.webp)
-
 ![screen-01.webp](docs/screens/screen-01.webp)
-
-![screen-24.webp](docs/screens/screen-24.webp)
 
 
 ## Current status
@@ -25,7 +20,7 @@ PHOENIX currently supports **manual installation on Linux only**. There is no in
 yet, but on the supported Linux setup the application and its currently supported feature set are
 functional as intended.
 
-The visuals have so far been optimized and reviewed only for **Chrome on an Android tablet**.
+PHOENIX has so far been visually optimized and reviewed only for **Chrome on an Android tablet**.
 Desktop layouts, other browsers, and other devices may work, but have not received the same visual
 verification.
 
@@ -62,6 +57,29 @@ and gameplay. PHOENIX preserves unknowns rather than presenting unverified concl
 3. Continue improving the tablet interface first.
 4. Adapt and visually verify the interface for desktop and other auxiliary displays.
 
+## Feedback and contributions
+
+PHOENIX is not accepting code contributions or pull requests before its first release. Keeping the
+implementation under one maintainer for now helps the code and architecture remain coherent while
+the foundations settle. It also leaves room to prioritize the features that matter during actual
+gameplay—even if considerably more time is currently spent building the cockpit than flying the
+ship.
+
+Bug reports, constructive criticism, and feature requests are very welcome. Feel free to open an
+issue—real-world use cases and detailed reports are especially useful. See
+[CONTRIB.md](CONTRIB.md) for the current contribution and licensing policy.
+
+## License
+
+PHOENIX is source-available under the [PolyForm Strict License 1.0.0](LICENSE). Personal and other
+noncommercial use is permitted while redistribution and modified versions are restricted; the
+license text itself is authoritative. This deliberately conservative prerelease license may be
+relaxed for future versions once the project's long-term distribution model is settled.
+
+The development source remains available for manual installation without charge. Official packaged
+releases may later be offered separately through platforms such as Steam, primarily to provide
+convenient installation and automatic updates.
+
 Development currently targets Node.js 24.14+:
 
 ```sh
@@ -83,6 +101,10 @@ Copilot is optional and uses `PHOENIX_OPENAI_API_KEY` or `OPENAI_API_KEY` when c
 Expect breaking changes and no installation support yet. PHOENIX reports unknown data as unknown
 and distinguishes “command sent” from “ship definitely did the thing.”
 
+![screen-02.webp](docs/screens/screen-02.webp)
+![screen-06.webp](docs/screens/screen-06.webp)
+![screen-10.webp](docs/screens/screen-10.webp)
+![screen-24.webp](docs/screens/screen-24.webp)
 ![screen-22.webp](docs/screens/screen-22.webp)
 ![screen-11.webp](docs/screens/screen-11.webp)
 ![screen-04.webp](docs/screens/screen-04.webp)
@@ -90,7 +112,3 @@ and distinguishes “command sent” from “ship definitely did the thing.”
 ![screen-08.webp](docs/screens/screen-08.webp)
 ![screen-09.webp](docs/screens/screen-09.webp)
 ![screen-24.webp](docs/screens/screen-24.webp)
-![screen-20.webp](docs/screens/screen-20.webp)
-![screen-05.webp](docs/screens/screen-05.webp)
-![screen-21.webp](docs/screens/screen-21.webp)
-![screen-13.webp](docs/screens/screen-13.webp)

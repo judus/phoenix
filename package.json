@@ -2,6 +2,7 @@
   "name": "phoenix",
   "version": "0.1.0",
   "private": true,
+  "license": "PolyForm-Strict-1.0.0",
   "type": "module",
   "engines": {
     "node": ">=24.14.0"
