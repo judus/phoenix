@@ -39,6 +39,41 @@ export function SystemLocationLink({ locationName, systemName }: {
   )
 }
 
+export function SystemSchematicLink({ label, selectedName, systemName }: {
+  label?: string | null
+  selectedName?: string | null
+  systemName?: string | null
+}) {
+  const [copied, setCopied] = useState(false)
+  if (!label || !systemName) return <>—</>
+
+  const copy = async (): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(label)
+      setCopied(true)
+    } catch {
+      setCopied(false)
+    }
+  }
+
+  return (
+    <Stack className="system-location" gap="xxs">
+      <LocationRow
+        copied={copied}
+        href={phoenixRouteHash({
+          kind: 'information',
+          section: 'galaxy',
+          view: 'system',
+          systemName,
+          ...(selectedName ? { selectedName } : {})
+        })}
+        label={label}
+        onCopy={copy}
+      />
+    </Stack>
+  )
+}
+
 function LocationRow({ child = false, copied, href, label, onCopy }: {
   child?: boolean
   copied: boolean

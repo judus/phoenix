@@ -42,6 +42,30 @@
       min-block-size: 0;
       overflow: hidden;
 
-      .action-tile.matching { border-color: var(--color-information); }
+      .action-tile {
+        isolation: isolate;
+        overflow: hidden;
+
+        &::before {
+          position: absolute;
+          inset-block-start: 50%;
+          inset-inline-start: 50%;
+          color: var(--color-action);
+          font-size: clamp(5rem, 14cqi, 9rem);
+          font-weight: var(--font-weight-semibold);
+          line-height: 1;
+          opacity: 0.09;
+          content: attr(data-selector);
+          pointer-events: none;
+          transform: translate(-50%, -50%);
+        }
+
+        > small {
+          justify-self: end;
+          text-align: end;
+        }
+
+        &.matching { border-color: var(--color-information); }
+      }
     }
   }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ActivityLogEntry } from '@phoenix/contracts'
-import { Button, Field, PageFrame, PageHeader, Select, Status, TextInput } from '@phoenix/ui'
+import { Breadcrumbs, Button, DataTable, DataTableGroup, Field, PageFrame, PageHeader, Select, Status, TextInput } from '@phoenix/ui'
 import type { JournalControllerSnapshot } from './use-journal-controller.js'
 
 const sources: Array<{ label: string, value: ActivityLogEntry['source'] }> = [
@@ -39,7 +39,12 @@ export function JournalPage({ controller }: { controller: JournalControllerSnaps
   const selected = visibleEntries.find(entry => entry.id === selectedId) ?? visibleEntries[0]
 
   return <PageFrame className="journal-page" layout="fit">
-    <PageHeader context="Flight recorder" title="Journal" description="Live Elite Dangerous and PHOENIX activity with safe raw-data inspection." status={`${controller.retained} retained`} />
+    <PageHeader
+      variant="cockpit"
+      context={<Breadcrumbs items={[{ label: 'Log' }, { label: 'Journal' }]} />}
+      title="Journal"
+      status={`${controller.retained} retained`}
+    />
     {controller.status === 'error'
       ? <Status tone="danger">{controller.error}</Status>
       : controller.status === 'loading'
@@ -54,20 +59,40 @@ export function JournalPage({ controller }: { controller: JournalControllerSnaps
               <Button aria-pressed={following} variant={following ? 'primary' : 'outline'} onClick={() => setFollowing(current => { followingRef.current = !current; return !current })}>{following ? 'Following live' : 'Resume follow'}</Button>
             </div>
             <div className="journal-workspace">
-              <section className="journal-list" aria-label="Journal events">
-                {visibleEntries.length === 0 && <Status tone="muted">No matching journal events.</Status>}
-                {visibleEntries.map(entry => <button className="journal-entry" data-importance={entry.importance} key={entry.id} type="button" aria-pressed={entry.id === selected?.id} onClick={() => { setSelectedId(entry.id); followingRef.current = false; setFollowing(false) }}>
-                  <strong>{humanize(entry.event)}</strong>
-                  <span>{summarize(entry)}</span>
-                  <small>{entry.source}{entry.actionable ? ' · actionable' : ''}</small>
-                  <time dateTime={entry.timestamp}>{formatTime(entry.timestamp)}</time>
-                </button>)}
-              </section>
-              <section className="journal-inspector" aria-label="Selected journal event">
-                {selected
-                  ? <><header><div><small>Selected event</small><h2>{humanize(selected.event)}</h2></div><time dateTime={selected.timestamp}>{new Date(selected.timestamp).toLocaleString()}</time></header><pre>{JSON.stringify(selected.data, null, 2)}</pre></>
-                  : <Status tone="muted">Select an event to inspect its payload.</Status>}
-              </section>
+              <DataTableGroup className="journal-panel" fill meta={`${visibleEntries.length} retained`} title="Event ledger">
+                {visibleEntries.length === 0
+                  ? <Status tone="muted">No matching journal events.</Status>
+                  : <DataTable className="journal-table" density="compact" label="Journal events" minimum="wide" narrow="priority" scheme="surface" stickyHeader>
+                      <thead><tr><th>Event</th><th className="source-column">Source</th><th className="time-column">Observed</th></tr></thead>
+                      <tbody>{visibleEntries.map(entry => <tr
+                        aria-selected={entry.id === selected?.id || undefined}
+                        className={entry.id === selected?.id ? 'active' : undefined}
+                        data-importance={entry.importance}
+                        key={entry.id}
+                        onClick={() => { setSelectedId(entry.id); followingRef.current = false; setFollowing(false) }}
+                        onKeyDown={event => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            setSelectedId(entry.id)
+                            followingRef.current = false
+                            setFollowing(false)
+                          }
+                        }}
+                        tabIndex={0}
+                      >
+                        <td><strong>{humanize(entry.event)}</strong><small>{summarize(entry)}</small></td>
+                        <td>{entry.source}{entry.actionable ? <small>Actionable</small> : null}</td>
+                        <td><time dateTime={entry.timestamp}>{formatTime(entry.timestamp)}</time></td>
+                      </tr>)}</tbody>
+                    </DataTable>}
+              </DataTableGroup>
+              <DataTableGroup className="journal-panel" contentGap="sm" fill title="Event payload">
+                <section className="journal-inspector" aria-label="Selected journal event">
+                  {selected
+                    ? <><header><div><small>{selected.source} · {selected.importance}</small><h2>{humanize(selected.event)}</h2></div><time dateTime={selected.timestamp}>{new Date(selected.timestamp).toLocaleString()}</time></header><pre>{JSON.stringify(selected.data, null, 2)}</pre></>
+                    : <Status tone="muted">Select an event to inspect its payload.</Status>}
+                </section>
+              </DataTableGroup>
             </div>
           </>}
   </PageFrame>

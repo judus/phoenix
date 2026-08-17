@@ -9,6 +9,7 @@ export function NumpadTileGrid({ columns, nodes, onSelect, pendingDigits, rows }
     {nodes.length === 0 && <p className="text-muted">No commands configured for this branch.</p>}
     {nodes.map(node => <ActionTile
       className={pendingDigits && node.selector.startsWith(pendingDigits) ? 'matching' : undefined}
+      data-selector={node.selector}
       description={node.description}
       disabled={!node.available}
       eyebrow={node.selector}

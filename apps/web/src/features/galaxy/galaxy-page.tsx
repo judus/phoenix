@@ -34,6 +34,7 @@ import type {
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { InformationRoute, PhoenixRoute } from '../../application/navigation/phoenix-route.js'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
+import { SystemSchematicLink } from '../../components/system-location-link.js'
 import { GALAXY_QUERY_CATALOGUE } from './galaxy-query-catalogue.js'
 import type { GalaxyQueryDefinition, GalaxyQueryField } from './galaxy-query-catalogue.js'
 import { PlottedRoute } from './plotted-route.js'
@@ -258,28 +259,28 @@ function GalaxyQueryResults({ onEdit, result }: { onEdit(): void, result: Galaxy
   const rows = resultRows(result)
   return (
     <DataTableGroup className="query-results" title="Query results" meta={`${rows.length} results`}>
-      <Button variant="outline" type="button" onClick={onEdit}>Change query</Button>
       <DataTable density="compact" label="Galaxy query results" minimum="wide" scheme="surface" stickyHeader>
         <thead><tr><th>Result</th><th>System</th><th className="numeric">Distance</th><th>Details</th><th>Reported</th></tr></thead>
-        <tbody>{rows.length === 0 ? <tr><td colSpan={5}>No matching community reports.</td></tr> : rows.map((row, index) => <tr key={`${row.system}:${row.name}:${index}`}><td>{row.name}</td><td>{row.system}</td><td className="numeric">{row.distance}</td><td>{row.details}</td><td>{row.reported}</td></tr>)}</tbody>
+        <tbody>{rows.length === 0 ? <tr><td colSpan={5}>No matching community reports.</td></tr> : rows.map((row, index) => <tr key={`${row.system}:${row.name}:${index}`}><td>{row.selectedName ? <SystemSchematicLink label={row.name} selectedName={row.selectedName} systemName={row.system} /> : row.name}</td><td><SystemSchematicLink label={row.system} systemName={row.system} /></td><td className="numeric">{row.distance}</td><td>{row.details}</td><td>{row.reported}</td></tr>)}</tbody>
       </DataTable>
+      <Button variant="outline" type="button" onClick={onEdit}>Change query</Button>
     </DataTableGroup>
   )
 }
 
-type ResultRow = { name: string, system: string, distance: string, details: string, reported: string }
+type ResultRow = { name: string, system: string, selectedName?: string, distance: string, details: string, reported: string }
 function resultRows(result: GalaxyQueryResult): ResultRow[] {
-  const row = (name: string, system: string, distanceValue: number | null, details: string, updatedAt: string | null): ResultRow => ({ name, system, distance: distanceValue === null ? '—' : `${distanceValue.toFixed(1)} ly`, details, reported: updatedAt ? formatTimestamp(updatedAt) : 'Unknown' })
+  const row = (name: string, system: string, distanceValue: number | null, details: string, updatedAt: string | null, selectedName?: string): ResultRow => ({ name, system, ...(selectedName ? { selectedName } : {}), distance: distanceValue === null ? '—' : `${distanceValue.toFixed(1)} ly`, details, reported: updatedAt ? formatTimestamp(updatedAt) : 'Unknown' })
   switch (result.id) {
     case 'nearby-systems': return result.value.systems.map(item => row(item.systemName, item.systemName, item.distanceLy, coordinates(item.position), item.updatedAt))
-    case 'shipyards': return result.value.shipyards.map(item => row(item.stationName, item.systemName, item.distanceLy, `${item.stationType ?? 'Shipyard'} · ${credits(item.price)}`, item.updatedAt))
-    case 'facilities': return result.value.stations.map(item => row(item.stationName, item.systemName, item.distanceLy, `${item.stationType ?? 'Station'} · ${padLabel(item.maxLandingPadSize)} pad`, item.updatedAt))
-    case 'commodity-markets': return result.value.markets.map(item => row(item.stationName, item.systemName, item.distanceLy, `${result.value.intent === 'buy' ? credits(item.buyPrice) : credits(item.sellPrice)} · ${item.commodityName}`, item.updatedAt))
-    case 'outfitting-stock': return result.value.matches.map(item => row(item.stationName, item.systemName, item.distanceLy, `${item.moduleClass ?? ''}${item.moduleRating ?? ''} ${item.moduleName}`.trim(), item.updatedAt))
-    case 'station-lookup': return result.value.matches.map(item => row(item.stationName, item.systemName, item.distanceLy, item.services.join(', ') || item.stationType || 'Station', item.updatedAt))
+    case 'shipyards': return result.value.shipyards.map(item => row(item.stationName, item.systemName, item.distanceLy, `${item.stationType ?? 'Shipyard'} · ${credits(item.price)}`, item.updatedAt, item.stationName))
+    case 'facilities': return result.value.stations.map(item => row(item.stationName, item.systemName, item.distanceLy, `${item.stationType ?? 'Station'} · ${padLabel(item.maxLandingPadSize)} pad`, item.updatedAt, item.stationName))
+    case 'commodity-markets': return result.value.markets.map(item => row(item.stationName, item.systemName, item.distanceLy, `${result.value.intent === 'buy' ? credits(item.buyPrice) : credits(item.sellPrice)} · ${item.commodityName}`, item.updatedAt, item.stationName))
+    case 'outfitting-stock': return result.value.matches.map(item => row(item.stationName, item.systemName, item.distanceLy, `${item.moduleClass ?? ''}${item.moduleRating ?? ''} ${item.moduleName}`.trim(), item.updatedAt, item.stationName))
+    case 'station-lookup': return result.value.matches.map(item => row(item.stationName, item.systemName, item.distanceLy, item.services.join(', ') || item.stationType || 'Station', item.updatedAt, item.stationName))
     case 'faction-presence': return result.value.presences.map(item => row(item.factionName, item.systemName, item.distanceLy, `${item.influencePercent.toFixed(1)}% · ${item.state ?? 'Unknown state'}`, item.updatedAt))
     case 'trade-opportunities': return result.value.opportunities.map(item => row(item.commodityName, item.sellMarket.systemName, item.travelDistanceLy, `${credits(item.projectedProfit)} projected · ${item.units} t`, item.sellMarket.updatedAt))
-    case 'exploration-targets': return result.value.targets.map(item => row(item.bodyName, item.systemName, item.distanceLy, `${item.subtype ?? item.bodyType ?? 'Body'} · ${item.biologicalSignals} bio / ${item.geologicalSignals} geo`, item.signalsUpdatedAt ?? item.providerUpdatedAt))
+    case 'exploration-targets': return result.value.targets.map(item => row(item.bodyName, item.systemName, item.distanceLy, `${item.subtype ?? item.bodyType ?? 'Body'} · ${item.biologicalSignals} bio / ${item.geologicalSignals} geo`, item.signalsUpdatedAt ?? item.providerUpdatedAt, item.bodyName))
   }
 }
 
@@ -409,13 +410,13 @@ function ProfileSelect({ id, label, onChange, value, values }: { id: string, lab
 function FilteredSystemResults({ onEdit, result }: { onEdit(): void, result: GalaxyFilteredSystemsResponse }) {
   return (
     <DataTableGroup className="query-results" title="Matching systems" meta={`${result.systems.length} results`}>
-      <Button variant="outline" type="button" onClick={onEdit}>Change query</Button>
       <DataTable density="compact" label="Filtered system search results" minimum="wide" scheme="surface" stickyHeader>
         <thead><tr><th>System</th><th className="numeric">Distance</th><th>Economy</th><th>Government</th><th>Security</th><th className="numeric">Population</th></tr></thead>
         <tbody>{result.systems.length === 0
           ? <tr><td colSpan={6}>No matching systems reported.</td></tr>
-          : result.systems.map(system => <tr key={system.systemAddress ?? system.systemName}><td>{system.systemName}</td><td className="numeric">{system.distanceLy.toFixed(1)} ly</td><td>{system.economy ?? '—'}</td><td>{system.government ?? '—'}</td><td>{system.security ?? '—'}</td><td className="numeric">{system.population.toLocaleString()}</td></tr>)}</tbody>
+          : result.systems.map(system => <tr key={system.systemAddress ?? system.systemName}><td><SystemSchematicLink label={system.systemName} systemName={system.systemName} /></td><td className="numeric">{system.distanceLy.toFixed(1)} ly</td><td>{system.economy ?? '—'}</td><td>{system.government ?? '—'}</td><td>{system.security ?? '—'}</td><td className="numeric">{system.population.toLocaleString()}</td></tr>)}</tbody>
       </DataTable>
+      <Button variant="outline" type="button" onClick={onEdit}>Change query</Button>
     </DataTableGroup>
   )
 }
