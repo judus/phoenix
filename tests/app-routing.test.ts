@@ -34,11 +34,18 @@ describe('PHOENIX route parsing and generation', () => {
     ['#/records/journal', { kind: 'journal', view: 'journal' }, 'journal'],
     ['#/records/credits', { kind: 'journal', view: 'credits' }, 'journal'],
     ['#/developer/runtime', { kind: 'developer', view: 'runtime' }, 'journal'],
-    ['#/settings/audio', { kind: 'settings', view: 'audio' }, 'settings']
+    ['#/settings', { kind: 'settings', view: 'dashboard' }, 'settings']
   ] as const)('parses %s as a canonical destination', (hash, route, workspace) => {
     expect(parsePhoenixRoute(hash)).toEqual(route)
     expect(workspaceForRoute(parsePhoenixRoute(hash))).toBe(workspace)
     expect(phoenixRouteHash(parsePhoenixRoute(hash))).toBe(hash)
+  })
+
+  test('legacy Settings pages resolve to the dashboard', () => {
+    const route = parsePhoenixRoute('#/settings/audio')
+
+    expect(route).toEqual({ kind: 'settings', view: 'dashboard' })
+    expect(phoenixRouteHash(route)).toBe('#/settings')
   })
 
   test('query state survives parsing and canonical generation', () => {

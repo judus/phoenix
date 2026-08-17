@@ -59,6 +59,40 @@
     grid-template-rows: minmax(0, 1fr);
   }
 
+  .widget-command-row {
+    display: grid;
+    grid-template-columns: minmax(0, 4fr) minmax(8rem, 1fr);
+    align-self: start;
+    gap: var(--spacing-sm);
+    min-inline-size: 0;
+    min-block-size: 0;
+
+    > .widget,
+    > .command-tile {
+      min-block-size: 0;
+      block-size: 100%;
+    }
+
+    &:has(> .command-tile + .command-tile) {
+      grid-template-columns: minmax(0, 4fr) repeat(2, minmax(8rem, 1fr));
+    }
+  }
+
+  .widget-command-stack {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: var(--spacing-sm);
+    min-inline-size: 0;
+    min-block-size: 0;
+    block-size: 100%;
+
+    > .widget,
+    > .command-tile {
+      min-block-size: 0;
+      block-size: 100%;
+    }
+  }
+
   .section {
     display: grid;
     align-content: start;
@@ -184,6 +218,14 @@
   }
 
   @container page-frame (width < 42rem) {
+    .widget-command-row {
+      grid-template-columns: minmax(0, 3fr) minmax(7rem, 1fr);
+
+      &:has(> .command-tile + .command-tile) {
+        grid-template-columns: minmax(0, 3fr) repeat(2, minmax(7rem, 1fr));
+      }
+    }
+
     .section > header {
       grid-template-columns: minmax(0, 1fr);
       align-items: start;
@@ -193,6 +235,8 @@
   }
 
   @container page-frame (width < 30rem) {
+    .widget-command-row { grid-template-columns: minmax(0, 1fr); }
+
     .section > header > .actions {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));

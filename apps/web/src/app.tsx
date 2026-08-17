@@ -161,10 +161,9 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       settings={<SettingsPage
         api={application.api}
         devicePreferences={application.devicePreferences}
-        view={route.kind === 'settings' ? route.view : 'copilot'}
       />}
       settingsContextItems={settingsNavigationItems}
-      settingsCurrentContext={settingsContext(route)}
+      settingsCurrentContext={settingsContext()}
       telemetry={<NumpadFeature application={application} view={numpadRoute?.view ?? 'navigator'} />}
       telemetryContextItems={numpadNavigationItems}
       telemetryCurrentContext={numpadContext(route)}

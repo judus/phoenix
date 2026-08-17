@@ -4,16 +4,18 @@ export type StatusTone = 'neutral' | 'information' | 'positive' | 'warning' | 'd
 
 type StatusProps = HTMLAttributes<HTMLSpanElement> & {
   children: ReactNode
+  marker?: boolean
   tone?: StatusTone
+  wrap?: boolean
 }
 
-export function Status({ children, className, tone = 'neutral', ...props }: StatusProps) {
+export function Status({ children, className, marker = true, tone = 'neutral', wrap = false, ...props }: StatusProps) {
   return (
     <span
-      className={['status', `status-${tone}`, className].filter(Boolean).join(' ')}
+      className={['status', `status-${tone}`, wrap && 'status-wrap', className].filter(Boolean).join(' ')}
       {...props}
     >
-      <i aria-hidden="true" />
+      {marker && <i aria-hidden="true" />}
       <span>{children}</span>
     </span>
   )

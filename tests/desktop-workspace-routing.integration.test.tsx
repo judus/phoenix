@@ -47,13 +47,13 @@ describe('DesktopWorkspace routing integration', () => {
     goTo.mockClear()
 
     await act(async () => {
-      router.push({ kind: 'settings', view: 'copilot' })
+      router.push({ kind: 'settings', view: 'dashboard' })
     })
 
     expect(goTo).toHaveBeenCalledTimes(1)
     expect(goTo).toHaveBeenCalledWith('settings')
-    expect(router.getSnapshot()).toEqual({ kind: 'settings', view: 'copilot' })
-    expect(browser.historyCalls).toEqual([['push', '#/settings/copilot']])
+    expect(router.getSnapshot()).toEqual({ kind: 'settings', view: 'dashboard' })
+    expect(browser.historyCalls).toEqual([['push', '#/settings']])
 
     await act(async () => {
       deskplaneHarness.props?.onSnapshotChange?.(snapshot('info'))
@@ -61,7 +61,7 @@ describe('DesktopWorkspace routing integration', () => {
 
     expect(router.getSnapshot()).toEqual({ kind: 'information', section: 'home', view: 'overview' })
     expect(browser.historyCalls).toEqual([
-      ['push', '#/settings/copilot'],
+      ['push', '#/settings'],
       ['push', '#/']
     ])
 

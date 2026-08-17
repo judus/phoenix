@@ -3,17 +3,31 @@ import { beforeAll, expect, test } from 'vitest'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
 import { SettingsPage } from '../apps/web/src/features/settings/settings-page.js'
 import { BrowserDevicePreferences } from '../apps/web/src/platform/storage/browser-device-preferences.js'
+import { CopilotVoiceProvider } from '../apps/web/src/features/copilot/copilot-voice-provider.js'
 
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
 
 test('device settings expose only browser-local command following and numpad capture', async () => {
   const preferences = new BrowserDevicePreferences(new MemoryStorage())
   const api = settingsApi()
-  const renderer = await act(async () => create(<SettingsPage api={api} devicePreferences={preferences} view="device" />))
+  const renderer = await act(async () => create(
+    <CopilotVoiceProvider
+      api={api}
+      clientIdentity={{ forScope: () => 'settings-test' }}
+      devicePreferences={preferences}
+      events={{ subscribe: () => () => undefined } as never}
+    >
+      <SettingsPage api={api} devicePreferences={preferences} />
+    </CopilotVoiceProvider>
+  ))
   const markup = JSON.stringify(renderer.toJSON())
 
-  expect(markup).toContain('Follow Copilot navigation')
-  expect(markup).toContain('Capture physical numpad')
+  expect(markup).toContain('Follow Copilot')
+  expect(markup).toContain('Capture numpad')
+  expect(markup).toContain('Copilot · OpenAI')
+  expect(markup).toContain('Voice audio')
+  expect(markup).toContain('Control permissions')
+  expect(markup).toContain('Device pairing')
   expect(markup).not.toContain('Enable macros')
   await act(async () => renderer.unmount())
 })
