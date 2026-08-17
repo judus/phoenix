@@ -529,15 +529,23 @@ export function CopilotVoiceProvider ({
   }
 
   useEffect(() => {
-    void api.getCopilotProfiles().then(result => {
-      setProfiles(result.profiles)
-      setActiveProfileId(result.activeProfileId)
-    }).catch(cause => setError(errorMessage(cause)))
+    const abort = new AbortController()
+    let eventRevision = 0
     const unsubscribe = events.subscribe('copilot-profiles', result => {
+      eventRevision += 1
       setProfiles(result.profiles)
       setActiveProfileId(result.activeProfileId)
     })
-    return unsubscribe
+    const requestRevision = eventRevision
+    void api.getCopilotProfiles(abort.signal).then(result => {
+      if (abort.signal.aborted || requestRevision !== eventRevision) return
+      setProfiles(result.profiles)
+      setActiveProfileId(result.activeProfileId)
+    }).catch(cause => { if (!abort.signal.aborted) setError(errorMessage(cause)) })
+    return () => {
+      abort.abort()
+      unsubscribe()
+    }
   }, [api, events])
 
   useEffect(() => {
@@ -545,13 +553,20 @@ export function CopilotVoiceProvider ({
   }, [])
 
   useEffect(() => {
-    let active = true
-    void api.getCopilotVoiceHost()
-      .then(snapshot => { if (active) setVoiceHost(snapshot) })
+    const abort = new AbortController()
+    let eventRevision = 0
+    const unsubscribe = events.subscribe('voice-host', snapshot => {
+      eventRevision += 1
+      setVoiceHost(snapshot)
+    })
+    const requestRevision = eventRevision
+    void api.getCopilotVoiceHost(abort.signal)
+      .then(snapshot => {
+        if (!abort.signal.aborted && requestRevision === eventRevision) setVoiceHost(snapshot)
+      })
       .catch(() => {})
-    const unsubscribe = events.subscribe('voice-host', setVoiceHost)
     return () => {
-      active = false
+      abort.abort()
       unsubscribe()
     }
   }, [api, events])

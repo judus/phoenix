@@ -3,6 +3,7 @@ import type { CartographyLookupResponse, NavigationRoute } from '@phoenix/contra
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { readControllerSnapshot, storeControllerSnapshot } from '../../application/cache/controller-snapshot-cache.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
+import { LatestRequest } from '../../application/requests/latest-request.js'
 
 export interface GalaxyControllerSnapshot {
   error?: string
@@ -28,20 +29,19 @@ export function useGalaxyController(
       return
     }
 
-    const abort = new AbortController()
-    let revision = 0
+    const latest = new LatestRequest()
     const retained = readControllerSnapshot<GalaxyControllerSnapshot>(api, cacheKey)
     const publish = (next: GalaxyControllerSnapshot) => setSnapshot(storeControllerSnapshot(api, cacheKey, next))
     const load = (showLoading = false) => {
-      const requestRevision = ++revision
+      const signal = latest.start()
       if (showLoading) setSnapshot(retained ?? { status: 'loading' })
       const request = view === 'system'
-        ? api.getSystemCartography(systemName, abort.signal).then(lookup => ({ lookup }))
-        : api.getNavigationRoute(abort.signal).then(route => ({ route }))
+        ? api.getSystemCartography(systemName, signal).then(lookup => ({ lookup }))
+        : api.getNavigationRoute(signal).then(route => ({ route }))
       void request.then(result => {
-        if (!abort.signal.aborted && requestRevision === revision) publish({ ...result, status: 'ready' })
+        if (latest.isCurrent(signal)) publish({ ...result, status: 'ready' })
       }).catch(cause => {
-        if (abort.signal.aborted || requestRevision !== revision) return
+        if (!latest.isCurrent(signal)) return
         const error = cause instanceof Error ? cause.message : 'Galaxy data unavailable.'
         setSnapshot(current => current.status === 'ready' ? { ...current, error } : { error, status: 'error' })
       })
@@ -49,10 +49,13 @@ export function useGalaxyController(
 
     load(true)
     const unsubscribe = view === 'route'
-      ? events.subscribe('navigation-route', route => publish({ route, status: 'ready' }))
+      ? events.subscribe('navigation-route', route => {
+          latest.cancel()
+          publish({ route, status: 'ready' })
+        })
       : undefined
     return () => {
-      abort.abort()
+      latest.cancel()
       unsubscribe?.()
     }
   }, [api, cacheKey, events, systemName, view])

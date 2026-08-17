@@ -3,6 +3,7 @@ import type { CommunicationsResponse, GalnetNewsResponse, GameActionCatalogRespo
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { readControllerSnapshot, storeControllerSnapshot } from '../../application/cache/controller-snapshot-cache.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
+import { LatestRequest } from '../../application/requests/latest-request.js'
 
 export type CommsView = 'overview' | 'inbox' | 'traffic' | 'contacts' | 'galnet' | 'radio'
 
@@ -21,23 +22,22 @@ export function useCommsController(api: PhoenixApi, events: PhoenixEventHub, vie
   )
 
   useEffect(() => {
-    const abort = new AbortController()
-    let revision = 0
+    const latest = new LatestRequest()
     const retained = readControllerSnapshot<CommsControllerSnapshot>(api, cacheKey)
     const publish = (next: CommsControllerSnapshot) => setSnapshot(storeControllerSnapshot(api, cacheKey, next))
     const load = (showLoading = false) => {
-      const requestRevision = ++revision
+      const signal = latest.start()
       if (showLoading) setSnapshot(retained ?? { status: 'loading' })
       const request = view === 'galnet'
-        ? api.getGalnetNews(40, abort.signal).then(galnet => ({ galnet }))
+        ? api.getGalnetNews(40, signal).then(galnet => ({ galnet }))
         : view === 'radio'
-          ? api.getActions(abort.signal).then(actions => ({ actions }))
-          : api.getCommunications(view === 'inbox' || view === 'traffic' ? view : 'all', 500, abort.signal)
+          ? api.getActions(signal).then(actions => ({ actions }))
+          : api.getCommunications(view === 'inbox' || view === 'traffic' ? view : 'all', 500, signal)
             .then(communications => ({ communications }))
       void request.then(result => {
-        if (!abort.signal.aborted && requestRevision === revision) publish({ ...result, status: 'ready' })
+        if (latest.isCurrent(signal)) publish({ ...result, status: 'ready' })
       }).catch(cause => {
-        if (abort.signal.aborted || requestRevision !== revision) return
+        if (!latest.isCurrent(signal)) return
         const error = cause instanceof Error ? cause.message : 'Communications unavailable.'
         setSnapshot(current => current.status === 'ready' ? { ...current, error } : { error, status: 'error' })
       })
@@ -50,7 +50,7 @@ export function useCommsController(api: PhoenixApi, events: PhoenixEventHub, vie
         })
       : () => undefined
     return () => {
-      abort.abort()
+      latest.cancel()
       unsubscribe()
     }
   }, [api, cacheKey, events, view])

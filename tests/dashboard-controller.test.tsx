@@ -49,6 +49,34 @@ test('live dashboard evidence is not overwritten by stale initial queries', asyn
   await act(async () => renderer.unmount())
 })
 
+test('an obsolete catalogue failure cannot taint a newer successful refresh', async () => {
+  let rejectInitial: ((cause: Error) => void) | undefined
+  const events = new FakeEventHub()
+  const currentActions = { actions: [], backend: { id: 'current', available: true, simulated: false, detail: 'Ready' }, bindingSource: { directory: null, filePath: null, presetNames: [], available: false, bindingCount: 0, keyboardBindingCount: 0, loadedAt: null, error: null } }
+  const api = {
+    getActions: vi.fn()
+      .mockReturnValueOnce(new Promise((_resolve, reject) => { rejectInitial = reject }))
+      .mockResolvedValueOnce(currentActions),
+    getActivityLog: vi.fn().mockResolvedValue({ entries: [], retained: 0 }),
+    getNavigationRoute: vi.fn().mockResolvedValue(route('Sol'))
+  } as unknown as PhoenixApi
+  let snapshot: DashboardControllerSnapshot | undefined
+
+  function Probe() { snapshot = useDashboardController(api, events); return null }
+  const renderer = await act(async () => create(<Probe />))
+
+  await act(async () => {
+    events.emit('command-catalogue', { revision: 2 })
+    await Promise.resolve()
+    rejectInitial?.(new Error('Stale failure.'))
+    await Promise.resolve()
+  })
+
+  expect(snapshot).toMatchObject({ actions: currentActions, status: 'ready' })
+  expect(snapshot?.error).toBeUndefined()
+  await act(async () => renderer.unmount())
+})
+
 function activity(id: string): ActivityLogEntry {
   return {
     actionable: false,

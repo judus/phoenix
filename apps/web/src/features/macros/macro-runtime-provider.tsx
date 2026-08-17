@@ -42,9 +42,11 @@ export function MacroRuntimeProvider ({
   const clientId = useRef(clientIdentity.forScope('macros'))
 
   useEffect(() => {
-    void api.getMacros()
-      .then(setLibrary)
-      .catch(cause => setError(message(cause, 'Macro module unavailable.')))
+    const abort = new AbortController()
+    void api.getMacros(abort.signal)
+      .then(result => { if (!abort.signal.aborted) setLibrary(result) })
+      .catch(cause => { if (!abort.signal.aborted) setError(message(cause, 'Macro module unavailable.')) })
+    return () => abort.abort()
   }, [api])
 
   const runtime = useMemo<MacroRuntime>(() => ({

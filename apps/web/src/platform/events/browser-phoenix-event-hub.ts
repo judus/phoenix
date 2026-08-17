@@ -79,13 +79,17 @@ export class BrowserPhoenixEventHub implements PhoenixEventHub {
       return
     }
     this.#source = source
-    source.onopen = () => this.#setConnection({ state: 'open' })
-    source.onerror = () => this.#setConnection({
-      state: 'error',
-      error: 'PHOENIX event stream connection lost; reconnecting.'
-    })
+    source.onopen = () => {
+      if (this.#source === source) this.#setConnection({ state: 'open' })
+    }
+    source.onerror = () => {
+      if (this.#source === source) this.#setConnection({
+        state: 'error',
+        error: 'PHOENIX event stream connection lost; reconnecting.'
+      })
+    }
     for (const eventName of EVENT_NAMES) {
-      source.addEventListener(eventName, event => this.#receive(eventName, event))
+      source.addEventListener(eventName, event => this.#receive(source, eventName, event))
     }
   }
 
@@ -114,12 +118,14 @@ export class BrowserPhoenixEventHub implements PhoenixEventHub {
     return () => this.#connectionListeners.delete(listener)
   }
 
-  #receive(eventName: PhoenixEventName, event: Event): void {
+  #receive(source: PhoenixBrowserEventSource, eventName: PhoenixEventName, event: Event): void {
+    if (this.#source !== source) return
     try {
       if (!(event instanceof MessageEvent) || typeof event.data !== 'string') {
         throw new Error(`Invalid ${eventName} event envelope.`)
       }
       const payload = EVENT_SCHEMAS[eventName].parse(JSON.parse(event.data))
+      this.#setConnection({ state: 'open' })
       for (const listener of this.#listeners.get(eventName) ?? []) listener(payload)
     } catch (cause) {
       this.#setConnection({

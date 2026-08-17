@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ControlGridLayout, GameActionCatalogResponse } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
+import { LatestRequest } from '../../application/requests/latest-request.js'
 
 export interface ControlsControllerSnapshot {
   actions?: GameActionCatalogResponse
@@ -14,16 +15,15 @@ export function useControlsController(api: PhoenixApi, events: PhoenixEventHub):
   const [snapshot, setSnapshot] = useState<ControlsControllerSnapshot>({ status: 'loading' })
 
   useEffect(() => {
-    const abort = new AbortController()
-    let revision = 0
+    const latest = new LatestRequest()
     const load = () => {
-      const requestRevision = ++revision
-      void Promise.all([api.getActions(abort.signal), api.getControlLayout(abort.signal)])
+      const signal = latest.start()
+      void Promise.all([api.getActions(signal), api.getControlLayout(signal)])
         .then(([actions, layout]) => {
-          if (!abort.signal.aborted && requestRevision === revision) setSnapshot({ actions, layout, status: 'ready' })
+          if (latest.isCurrent(signal)) setSnapshot({ actions, layout, status: 'ready' })
         })
         .catch(cause => {
-          if (!abort.signal.aborted && requestRevision === revision) setSnapshot({
+          if (latest.isCurrent(signal)) setSnapshot({
             error: cause instanceof Error ? cause.message : 'Controls unavailable.',
             status: 'error'
           })
@@ -31,7 +31,7 @@ export function useControlsController(api: PhoenixApi, events: PhoenixEventHub):
     }
     load()
     const unsubscribe = events.subscribe('command-catalogue', load)
-    return () => { abort.abort(); unsubscribe() }
+    return () => { latest.cancel(); unsubscribe() }
   }, [api, events])
 
   return snapshot

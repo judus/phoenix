@@ -25,9 +25,29 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
   const [saving, setSaving] = useState(false)
   const [composer, setComposer] = useState('')
   const clientId = useRef(clientIdentity.forScope('copilot'))
-  const loadHistory = useCallback(async () => setMessages((await api.getCopilotHistory(CONVERSATION_ID)).messages), [api])
+  const historyRequest = useRef<AbortController | undefined>(undefined)
+  const streamRequest = useRef<AbortController | undefined>(undefined)
+  const loadHistory = useCallback(async () => {
+    historyRequest.current?.abort()
+    const abort = new AbortController()
+    historyRequest.current = abort
+    try {
+      const result = await api.getCopilotHistory(CONVERSATION_ID, abort.signal)
+      if (!abort.signal.aborted && historyRequest.current === abort) setMessages(result.messages)
+    } catch (cause) {
+      if (!abort.signal.aborted && historyRequest.current === abort) throw cause
+    } finally {
+      if (historyRequest.current === abort) historyRequest.current = undefined
+    }
+  }, [api])
 
-  useEffect(() => { const abort = new AbortController(); void api.getCopilotHistory(CONVERSATION_ID, abort.signal).then(result => setMessages(result.messages)).catch(cause => { if (!abort.signal.aborted) setError(message(cause, 'Conversation history unavailable.')) }); return () => abort.abort() }, [api, voice.historyVersion])
+  useEffect(() => {
+    void loadHistory().catch(cause => {
+      setError(message(cause, 'Conversation history unavailable.'))
+    })
+    return () => historyRequest.current?.abort()
+  }, [loadHistory, voice.historyVersion])
+  useEffect(() => () => streamRequest.current?.abort(), [])
   useEffect(() => events.subscribe('conversation-event', event => {
     if (event.clientId === clientId.current || event.conversationId !== CONVERSATION_ID) return
     if (event.type === 'turn.started') setRemoteTurns(turns => ({ ...turns, [event.turnId]: { assistantText: '', id: event.turnId, userText: event.userText } }))
@@ -47,11 +67,13 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
     const assistantId = `pending-assistant-${turnId}`
     setPending(true); setError(undefined); setToolStatus(undefined)
     setMessages(current => [...current, temporary(userId, 'user', text), temporary(assistantId, 'assistant', '')])
+    const abort = new AbortController()
+    streamRequest.current = abort
     try {
-      await api.streamCopilotMessage({ clientId: clientId.current, conversationId: CONVERSATION_ID, message: text, turnId }, event => applyStream(event, assistantId, setMessages, setToolStatus))
+      await api.streamCopilotMessage({ clientId: clientId.current, conversationId: CONVERSATION_ID, message: text, turnId }, event => applyStream(event, assistantId, setMessages, setToolStatus), abort.signal)
       await loadHistory()
-    } catch (cause) { setMessages(current => current.filter(item => item.id !== assistantId || item.text)); setError(message(cause, 'Copilot request failed.')) }
-    finally { setPending(false); setToolStatus(undefined) }
+    } catch (cause) { if (!abort.signal.aborted) { setMessages(current => current.filter(item => item.id !== assistantId || item.text)); setError(message(cause, 'Copilot request failed.')) } }
+    finally { if (streamRequest.current === abort) streamRequest.current = undefined; if (!abort.signal.aborted) { setPending(false); setToolStatus(undefined) } }
   }
   const edit = async (id: string) => { try { setDraft(toDraft(await api.getCopilotProfile(id))); setError(undefined) } catch (cause) { setError(message(cause, 'Unable to load Copilot profile.')) } }
   const create = async () => { try { const source = await api.getCopilotProfile(voice.activeProfile.id); setDraft({ ...toDraft(source), id: '', mark: '?', name: '', description: '', templateProfileId: source.profile.id }); setError(undefined) } catch (cause) { setError(message(cause, 'Unable to prepare a new profile.')) } }

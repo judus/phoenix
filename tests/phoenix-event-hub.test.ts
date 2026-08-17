@@ -42,6 +42,35 @@ describe('BrowserPhoenixEventHub', () => {
 
     expect(listener).not.toHaveBeenCalled()
     expect(hub.getConnectionSnapshot()).toMatchObject({ state: 'error' })
+
+    source.emit('runtime-state', { ...createEmptyRuntimeState(), revision: 5 })
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({ revision: 5 }))
+    expect(hub.getConnectionSnapshot()).toEqual({ state: 'open' })
+  })
+
+  test('ignores late callbacks from a stopped and replaced stream', () => {
+    const first = new FakeEventSource()
+    const second = new FakeEventSource()
+    const factory = vi.fn()
+      .mockReturnValueOnce(first)
+      .mockReturnValueOnce(second)
+    const hub = new BrowserPhoenixEventHub(apiStub(), factory)
+    const listener = vi.fn()
+    hub.subscribe('runtime-state', listener)
+
+    hub.start()
+    hub.stop()
+    hub.start()
+    first.open()
+    first.emit('runtime-state', { ...createEmptyRuntimeState(), revision: 1 })
+
+    expect(hub.getConnectionSnapshot()).toEqual({ state: 'connecting' })
+    expect(listener).not.toHaveBeenCalled()
+
+    second.open()
+    second.emit('runtime-state', { ...createEmptyRuntimeState(), revision: 2 })
+    expect(hub.getConnectionSnapshot()).toEqual({ state: 'open' })
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({ revision: 2 }))
   })
 
   test('captures connection construction failures as evidence', () => {

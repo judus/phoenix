@@ -22,12 +22,14 @@ test('Comms selects a focused transport and refreshes journal-backed views for t
   const renderer = await act(async () => create(<Probe />))
 
   expect(api.getCommunications).toHaveBeenCalledWith('traffic', 500, expect.any(AbortSignal))
+  const initialSignal = vi.mocked(api.getCommunications).mock.calls[0]?.[2]
   expect(snapshot).toEqual({ communications: response, status: 'ready' })
 
   await act(async () => { events.emit('activity-entry', activity('Location')); await Promise.resolve() })
   expect(api.getCommunications).toHaveBeenCalledTimes(1)
   await act(async () => { events.emit('activity-entry', activity('ReceiveText')); await Promise.resolve() })
   expect(api.getCommunications).toHaveBeenCalledTimes(2)
+  expect(initialSignal?.aborted).toBe(true)
 
   view = 'galnet'
   vi.mocked(api.getGalnetNews).mockResolvedValue({ articles: [], cache: 'fresh', fetchedAt: '2026-08-16T12:00:00.000Z' })

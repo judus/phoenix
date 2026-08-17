@@ -78,6 +78,51 @@ test('voice lifecycle observes the shared event hub and controls a remote host t
   await act(async () => renderer.unmount())
 })
 
+test('live profile and host events cannot be overwritten by stale initial snapshots', async () => {
+  const profilesRequest = deferred<Awaited<ReturnType<PhoenixApi['getCopilotProfiles']>>>()
+  const hostRequest = deferred<Awaited<ReturnType<PhoenixApi['getCopilotVoiceHost']>>>()
+  const events = new FakeEventHub()
+  const api = {
+    getCopilotProfiles: vi.fn().mockReturnValue(profilesRequest.promise),
+    getCopilotVoiceHost: vi.fn().mockReturnValue(hostRequest.promise)
+  } as unknown as PhoenixApi
+  let voice: CopilotVoiceState | undefined
+
+  function Probe() { voice = useCopilotVoice(); return null }
+  const renderer = await act(async () => create(
+    <CopilotVoiceProvider api={api} clientIdentity={{ forScope: () => 'tablet-client' }} events={events}>
+      <Probe />
+    </CopilotVoiceProvider>
+  ))
+
+  await act(async () => {
+    events.emit('copilot-profiles', {
+      activeProfileId: 'live',
+      profiles: [{ description: 'Live', id: 'live', mark: 'L', name: 'Live', voice: 'marin' }]
+    })
+    events.emit('voice-host', {
+      desiredConnected: false,
+      host: { armed: true, clientId: 'live-host', connected: false, hostId: 'live-host', lastSeenAt: '2026-08-17T12:00:00.000Z', phase: 'ready' }
+    })
+    profilesRequest.resolve({
+      activeProfileId: 'stale',
+      profiles: [{ description: 'Stale', id: 'stale', mark: 'S', name: 'Stale', voice: 'marin' }]
+    })
+    hostRequest.resolve({ desiredConnected: false, host: null })
+    await Promise.resolve()
+  })
+
+  expect(voice?.activeProfile.id).toBe('live')
+  expect(voice?.hostLocation).toBe('remote')
+  await act(async () => renderer.unmount())
+})
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>(accept => { resolve = accept })
+  return { promise, resolve }
+}
+
 class FakeEventHub implements PhoenixEventHub {
   readonly #listeners = new Map<PhoenixEventName, Set<(payload: unknown) => void>>()
 

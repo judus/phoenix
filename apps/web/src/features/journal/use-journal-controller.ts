@@ -16,9 +16,18 @@ export function useJournalController(api: PhoenixApi, events: PhoenixEventHub): 
   useEffect(() => {
     const abort = new AbortController()
     void api.getActivityLog(500, abort.signal)
-      .then(result => setSnapshot({ entries: result.entries, retained: result.retained, status: 'ready' }))
+      .then(result => {
+        if (abort.signal.aborted) return
+        setSnapshot(current => ({
+          entries: mergeEntries(current.entries, result.entries),
+          retained: Math.max(current.retained, result.retained),
+          status: 'ready'
+        }))
+      })
       .catch(cause => {
-        if (!abort.signal.aborted) setSnapshot({ entries: [], error: message(cause), retained: 0, status: 'error' })
+        if (!abort.signal.aborted) setSnapshot(current => current.status === 'ready'
+          ? { ...current, error: message(cause) }
+          : { entries: [], error: message(cause), retained: 0, status: 'error' })
       })
     const unsubscribe = events.subscribe('activity-entry', entry => {
       setSnapshot(current => ({
@@ -32,6 +41,13 @@ export function useJournalController(api: PhoenixApi, events: PhoenixEventHub): 
   }, [api, events])
 
   return snapshot
+}
+
+function mergeEntries(
+  live: readonly ActivityLogEntry[],
+  snapshot: readonly ActivityLogEntry[]
+): readonly ActivityLogEntry[] {
+  return [...live, ...snapshot.filter(entry => !live.some(candidate => candidate.id === entry.id))].slice(0, 500)
 }
 
 function message(cause: unknown): string {

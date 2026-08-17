@@ -3,6 +3,7 @@ import type { FleetResponse, GameActionCatalogResponse, ShipDefinition } from '@
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { readControllerSnapshot, storeControllerSnapshot } from '../../application/cache/controller-snapshot-cache.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
+import { LatestRequest } from '../../application/requests/latest-request.js'
 
 export type FleetView = 'overview' | 'current-overview' | 'current-loadout' | 'current-cargo' | 'current-engineering' | 'carriers' | 'stored-modules' | 'catalogue'
 
@@ -29,32 +30,31 @@ export function useFleetController(api: PhoenixApi, events: PhoenixEventHub, vie
       return
     }
 
-    const abort = new AbortController()
-    let revision = 0
+    const latest = new LatestRequest()
     const retained = readControllerSnapshot<FleetControllerSnapshot>(api, cacheKey)
     const publish = (next: FleetControllerSnapshot) => setSnapshot(storeControllerSnapshot(api, cacheKey, next))
     const load = (showLoading = false) => {
-      const requestRevision = ++revision
+      const signal = latest.start()
       if (showLoading) setSnapshot(retained ?? { status: 'loading' })
       const fail = (cause: unknown) => {
-        if (abort.signal.aborted || requestRevision !== revision) return
+        if (!latest.isCurrent(signal)) return
         const error = cause instanceof Error ? cause.message : 'Fleet data unavailable.'
         setSnapshot(current => current.status === 'ready' ? { ...current, error } : { error, status: 'error' })
       }
       if (needsFleet) {
-        void api.getFleet(abort.signal).then(fleet => {
-          if (!abort.signal.aborted && requestRevision === revision) publish({ fleet, status: 'ready' })
+        void api.getFleet(signal).then(fleet => {
+          if (latest.isCurrent(signal)) publish({ fleet, status: 'ready' })
         }).catch(fail)
         return
       }
       if (needsActions) {
-        void api.getActions(abort.signal).then(actions => {
-          if (!abort.signal.aborted && requestRevision === revision) publish({ actions, status: 'ready' })
+        void api.getActions(signal).then(actions => {
+          if (latest.isCurrent(signal)) publish({ actions, status: 'ready' })
         }).catch(fail)
         return
       }
-      void api.getShipCatalogue(abort.signal).then(catalogue => {
-        if (!abort.signal.aborted && requestRevision === revision) publish({ catalogue: catalogue.ships, status: 'ready' })
+      void api.getShipCatalogue(signal).then(catalogue => {
+        if (latest.isCurrent(signal)) publish({ catalogue: catalogue.ships, status: 'ready' })
       }).catch(fail)
     }
 
@@ -65,7 +65,7 @@ export function useFleetController(api: PhoenixApi, events: PhoenixEventHub, vie
         ? events.subscribe('command-catalogue', () => load())
         : undefined
     return () => {
-      abort.abort()
+      latest.cancel()
       unsubscribe?.()
     }
   }, [api, cacheKey, events, view])

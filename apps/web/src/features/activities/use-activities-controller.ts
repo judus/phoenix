@@ -3,6 +3,7 @@ import type { MissionsResponse } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { readControllerSnapshot, storeControllerSnapshot } from '../../application/cache/controller-snapshot-cache.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
+import { LatestRequest } from '../../application/requests/latest-request.js'
 import { activitiesFixture } from './activities-fixture.js'
 
 export type ActivitiesView = 'missions' | 'objectives' | 'community-goals' | 'powerplay' | 'colonisation'
@@ -45,17 +46,16 @@ export function useActivitiesController(
       return
     }
 
-    const abort = new AbortController()
-    let revision = 0
+    const request = new LatestRequest()
     const retained = readControllerSnapshot<ActivitiesControllerSnapshot>(api, cacheKey)
     const publish = (next: ActivitiesControllerSnapshot) => setSnapshot(storeControllerSnapshot(api, cacheKey, next))
     const load = (showLoading = false) => {
-      const requestRevision = ++revision
+      const signal = request.start()
       if (showLoading) setSnapshot(retained ?? { status: 'loading' })
-      void api.getMissions(abort.signal).then(missions => {
-        if (!abort.signal.aborted && requestRevision === revision) publish({ missions, status: 'ready' })
+      void api.getMissions(signal).then(missions => {
+        if (request.isCurrent(signal)) publish({ missions, status: 'ready' })
       }).catch(cause => {
-        if (abort.signal.aborted || requestRevision !== revision) return
+        if (!request.isCurrent(signal)) return
         const error = cause instanceof Error ? cause.message : 'Mission records unavailable.'
         setSnapshot(current => current.status === 'ready' ? { ...current, error } : { error, status: 'error' })
       })
@@ -66,7 +66,7 @@ export function useActivitiesController(
       if (entry.source === 'journal' && missionEvents.has(entry.event)) load()
     })
     return () => {
-      abort.abort()
+      request.cancel()
       unsubscribe()
     }
   }, [api, cacheKey, events, fixture, view])

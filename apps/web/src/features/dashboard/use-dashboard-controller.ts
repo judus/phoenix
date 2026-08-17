@@ -53,7 +53,7 @@ export function useDashboardController(
           setSnapshot(current => ({ ...current, actions, status: 'ready' }))
         })
         .catch(cause => {
-          if (!abort.signal.aborted) setError(setSnapshot, cause)
+          if (!abort.signal.aborted && revision === actionsRevision) setError(setSnapshot, cause)
         })
     })
 
@@ -74,10 +74,17 @@ export function useDashboardController(
       })
     ]).then(results => {
       if (abort.signal.aborted) return
-      const failures = results.filter(result => result.status === 'rejected')
+      const requestRevisions = [activityAtRequest, routeAtRequest, actionsAtRequest]
+      const currentRevisions = [activityRevision, routeRevision, actionsRevision]
+      const failures: unknown[] = []
+      results.forEach((result, index) => {
+        if (result.status === 'rejected' && requestRevisions[index] === currentRevisions[index]) {
+          failures.push(result.reason)
+        }
+      })
       setSnapshot(current => ({
         ...current,
-        ...(failures.length === 0 ? {} : { error: errorMessage(failures[0]?.reason) }),
+        ...(failures.length === 0 ? {} : { error: errorMessage(failures[0]) }),
         status: failures.length === results.length ? 'error' : 'ready'
       }))
     })
