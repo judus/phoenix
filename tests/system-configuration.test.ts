@@ -48,6 +48,25 @@ test('invalid JSON settings fail validation instead of being silently overwritte
   expect(() => new JsonSystemSettingsRepository(path).loadOrCreate()).toThrow()
 })
 
+test('obsolete module enable switches migrate out of retained settings', () => {
+  const directory = temporaryDirectory()
+  const path = join(directory, 'settings.json')
+  writeFileSync(path, JSON.stringify({
+    ...DEFAULT_PHOENIX_SETTINGS,
+    modules: {
+      macros: { enabled: false, copilotExecution: false, dangerousExecution: false },
+      numpadCommands: { ...DEFAULT_PHOENIX_SETTINGS.modules.numpadCommands, enabled: false }
+    }
+  }))
+
+  const settings = new JsonSystemSettingsRepository(path).loadOrCreate()
+  const persisted = JSON.parse(readFileSync(path, 'utf8')) as { modules: Record<string, unknown> }
+
+  expect(settings.modules).toEqual(DEFAULT_PHOENIX_SETTINGS.modules)
+  expect(persisted.modules).not.toHaveProperty('macros')
+  expect(persisted.modules.numpadCommands).not.toHaveProperty('enabled')
+})
+
 test('draft version-one control layouts migrate to the canonical version-four default', () => {
   const directory = temporaryDirectory()
   const path = join(directory, 'settings.json')

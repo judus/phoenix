@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { setTimeout as delay } from 'node:timers/promises'
 import {
   GameActionResultSchema,
+  type CopilotExecutionPermissions,
   type GameActionResult
 } from '@phoenix/contracts'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
@@ -17,7 +18,12 @@ export class StatefulGameActionService {
     private readonly actions: GameActions,
     private readonly runtimeState: RuntimeStateReader,
     private readonly confirmationTimeoutMs = 2_500,
-    private readonly pollIntervalMs = 50
+    private readonly pollIntervalMs = 50,
+    private readonly copilotPermissions: () => CopilotExecutionPermissions = () => ({
+      gameActions: true,
+      macros: true,
+      dangerousActions: true
+    })
   ) {}
 
   public async setSwitch (
@@ -28,6 +34,13 @@ export class StatefulGameActionService {
       action.definition.id === request.actionId
     ))
     if (!available) return this.result(request.actionId, 'rejected', `Unknown action: ${request.actionId}.`)
+    const permissions = this.copilotPermissions()
+    if (!permissions.gameActions) {
+      return this.result(request.actionId, 'rejected', 'Copilot game actions are disabled in Settings.')
+    }
+    if (available.definition.risk === 'dangerous' && !permissions.dangerousActions) {
+      return this.result(request.actionId, 'rejected', 'Dangerous Copilot actions are disabled in Settings.')
+    }
     const telemetryKey = available.definition.telemetryKey
     if (!telemetryKey) {
       return this.result(

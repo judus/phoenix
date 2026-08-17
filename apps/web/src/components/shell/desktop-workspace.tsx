@@ -30,6 +30,8 @@ export interface DesktopWorkspaceProps {
   onNavigateRoute: (route: PhoenixRoute) => void
   onNavigateWorkspace: (desktop: PhoenixWorkspace) => void
   settings: ReactNode
+  settingsContextItems?: NavigationItem[]
+  settingsCurrentContext?: string
   telemetry: ReactNode
   telemetryContextItems?: NavigationItem[]
   telemetryCurrentContext?: string
@@ -56,6 +58,8 @@ export function DesktopWorkspace({
   onNavigateRoute,
   onNavigateWorkspace,
   settings,
+  settingsContextItems = emptyContextItems,
+  settingsCurrentContext = '',
   telemetry,
   telemetryContextItems = emptyContextItems,
   telemetryCurrentContext = ''
@@ -184,7 +188,20 @@ export function DesktopWorkspace({
           id: 'system',
           initialDesktopId: 'settings',
           desktops: [
-            utilityDesktop('settings', 'Settings workspace', settings)
+            {
+              id: 'settings',
+              ariaLabel: 'Settings workspace',
+              children: (
+                <WorkspacePage
+                  contextItems={settingsContextItems}
+                  contextLabel="Settings views"
+                  currentContext={settingsCurrentContext}
+                  onNavigate={onNavigateRoute}
+                >
+                  {settings}
+                </WorkspacePage>
+              )
+            }
           ]
         }
       ]}

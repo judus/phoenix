@@ -50,6 +50,7 @@
     white-space: nowrap;
 
     i {
+      flex: none;
       inline-size: var(--status-marker-size);
       block-size: var(--status-marker-size);
       border: 1px solid currentColor;
@@ -64,6 +65,13 @@
     &.status-muted {
       --status-color: var(--color-text-muted);
       --status-marker-background: transparent;
+    }
+
+    &.status-wrap {
+      align-items: flex-start;
+      white-space: normal;
+
+      > span { min-inline-size: 0; }
     }
   }
 

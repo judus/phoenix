@@ -112,3 +112,18 @@ export function DashboardGrid({ children, className, gap = 'sm', lastRow, ...pro
     </div>
   )
 }
+
+type DashboardColumnsProps = HTMLAttributes<HTMLDivElement> & {
+  gap?: Space
+  primary: ReactNode
+  secondary: ReactNode
+}
+
+export function DashboardColumns({ className, gap = 'sm', primary, secondary, ...props }: DashboardColumnsProps) {
+  return (
+    <div className={['dashboard-columns', `gap-${gap}`, className].filter(Boolean).join(' ')} {...props}>
+      <div className={`dashboard-column gap-${gap}`}>{primary}</div>
+      <div className={`dashboard-column gap-${gap}`}>{secondary}</div>
+    </div>
+  )
+}

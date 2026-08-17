@@ -4,9 +4,7 @@ import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
 import { NumpadPage } from '../apps/web/src/features/numpad/numpad-page.js'
 
 const settings = {
-  macros: { enabled: false, copilotExecution: false, dangerousExecution: false },
   numpadCommands: {
-    enabled: true,
     inputAdapter: 'browser' as const,
     presentation: 'tiles' as const,
     alwaysConfirm: false,
@@ -51,13 +49,13 @@ test('the reconstructed numpad renders the live command navigator', () => {
   expect(markup).not.toContain('Numpad views')
 })
 
-test('the numpad presents an explicit enable action when disabled', () => {
+test('the numpad command workspace remains available independently of physical key capture', () => {
   const markup = renderToStaticMarkup(<NumpadPage
     api={{} as PhoenixApi}
     view="navigator"
-    controller={{ commands: [], settings: { ...settings, numpadCommands: { ...settings.numpadCommands, enabled: false } }, snapshot: { revision: 1, generatedAt: '2026-08-17T00:00:00.000Z', activationDigit: '0', diagnostics: [], nodes: [] }, status: 'ready' }}
+    controller={{ commands: [], settings, snapshot: { revision: 1, generatedAt: '2026-08-17T00:00:00.000Z', activationDigit: '0', diagnostics: [], nodes: [] }, status: 'ready' }}
   />)
 
-  expect(markup).toContain('Numpad module disabled.')
-  expect(markup).toContain('Enable numpad')
+  expect(markup).toContain('Press Numpad 0')
+  expect(markup).not.toContain('Enable numpad')
 })

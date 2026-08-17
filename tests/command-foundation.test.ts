@@ -5,6 +5,7 @@ import type {
   GameActionResult
 } from '@phoenix/contracts'
 import { DefaultCommandRegistry } from '../apps/server/src/application/default-command-registry.js'
+import { DefaultCommandDispatcher } from '../apps/server/src/application/command-dispatcher.js'
 import type { GameActions } from '../apps/server/src/application/game-action-service.js'
 
 test('command identities survive catalogue sorting and unavailable actions remain discoverable', () => {
@@ -23,13 +24,42 @@ test('command identities survive catalogue sorting and unavailable actions remai
   })
 })
 
+test('Copilot game execution follows explicit installation permissions', async () => {
+  const actions = new StubGameActions()
+  const registry = new DefaultCommandRegistry(actions, [])
+  let allowed = false
+  const dispatcher = new DefaultCommandDispatcher(
+    registry,
+    actions,
+    [],
+    undefined,
+    undefined,
+    () => ({ gameActions: allowed, macros: false, dangerousActions: false })
+  )
+
+  expect((await dispatcher.execute({ target: { type: 'game-action', actionId: 'elite.BoundAction' } }, 'copilot')).status).toBe('rejected')
+  allowed = true
+  expect((await dispatcher.execute({ target: { type: 'game-action', actionId: 'elite.BoundAction' } }, 'copilot')).status).toBe('accepted')
+  expect((await dispatcher.execute({ target: { type: 'game-action', actionId: 'elite.BoundAction' } }, 'ui')).status).toBe('accepted')
+})
+
 class StubGameActions implements GameActions {
   private reversed = false
 
   public reverse (): void { this.reversed = !this.reversed }
 
-  public async execute (_candidate: unknown, _origin: GameActionOrigin): Promise<GameActionResult> {
-    throw new Error('Not used by this registry test.')
+  public async execute (candidate: unknown, origin: GameActionOrigin): Promise<GameActionResult> {
+    const actionId = (candidate as { actionId: string }).actionId
+    return {
+      actionId,
+      correlationId: 'correlation-1',
+      message: 'Accepted.',
+      operation: 'tap',
+      origin,
+      requestId: 'request-1',
+      status: 'accepted',
+      timestamp: '2026-08-17T00:00:00.000Z'
+    }
   }
 
   public getCatalog (): GameActionCatalogResponse {

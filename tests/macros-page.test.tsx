@@ -5,7 +5,7 @@ import type { MacroRuntime } from '../apps/web/src/features/macros/macro-runtime
 
 test('Macros renders retained commands and the complete operational action set', () => {
   const markup = renderToStaticMarkup(<MacrosPage runtime={{
-    abort: vi.fn(), cancelRecording: vi.fn(), deleteMacro: vi.fn(), enable: vi.fn(), enabled: true,
+    abort: vi.fn(), cancelRecording: vi.fn(), deleteMacro: vi.fn(),
     library: { version: 1, macros: [{
       assumptions: [], description: 'Prepare ship lighting.', enabled: true, id: 'lights',
       name: 'Lights', risk: 'safe', steps: [{ type: 'game-action', actionId: 'elite.ShipSpotLightToggle', operation: 'tap' }], version: 1
@@ -22,7 +22,7 @@ test('Macros renders retained commands and the complete operational action set',
 
 test('Macros exposes draft timing and playback abort without claiming game outcome', () => {
   const markup = renderToStaticMarkup(<MacrosPage runtime={{
-    abort: vi.fn(), cancelRecording: vi.fn(), deleteMacro: vi.fn(), enable: vi.fn(), enabled: true,
+    abort: vi.fn(), cancelRecording: vi.fn(), deleteMacro: vi.fn(),
     draft: {
       id: '65f4df62-c90c-4f4a-904e-4728d5554a78', clientId: 'browser', startedAt: '2026-08-17T00:00:00.000Z', status: 'stopped',
       entries: [{ actionId: 'elite.ShipSpotLightToggle', delayBeforeMs: 250, message: 'Accepted.', operation: 'tap', status: 'accepted' }]

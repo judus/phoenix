@@ -14,6 +14,7 @@ import {
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
+import type { DevicePreferences } from '../../application/settings/device-preferences.js'
 import type { ClientIdentity } from '../../application/identity/client-identity.js'
 import {
   createRealtimeAudioSession,
@@ -22,6 +23,11 @@ import {
 } from './realtime-audio.js'
 
 const CONVERSATION_ID = 'phoenix-copilot'
+const transientDevicePreferences: DevicePreferences = {
+  getSnapshot: () => ({ audioInputId: '', audioOutputId: '', captureNumpad: true, followCopilotNavigation: true }),
+  update: () => undefined,
+  subscribe: () => () => undefined
+}
 
 export interface VoiceDevice {
   id: string
@@ -77,11 +83,13 @@ export function CopilotVoiceProvider ({
   api,
   children,
   clientIdentity,
+  devicePreferences,
   events
 }: {
   api: PhoenixApi
   children: ReactNode
   clientIdentity: ClientIdentity
+  devicePreferences?: DevicePreferences
   events: PhoenixEventHub
 }) {
   const clientIdRef = useRef(clientIdentity.forScope('copilot'))
@@ -98,8 +106,9 @@ export function CopilotVoiceProvider ({
   const [devices, setDevices] = useState<{ inputs: VoiceDevice[], outputs: VoiceDevice[] }>({
     inputs: [], outputs: []
   })
-  const [inputId, setInputId] = useState('')
-  const [outputId, setOutputId] = useState('')
+  const resolvedDevicePreferences = devicePreferences ?? transientDevicePreferences
+  const [inputId, setInputIdState] = useState(() => resolvedDevicePreferences.getSnapshot().audioInputId)
+  const [outputId, setOutputIdState] = useState(() => resolvedDevicePreferences.getSnapshot().audioOutputId)
   const [activeTurn, setActiveTurn] = useState<ActiveVoiceTurn>()
   const [historyVersion, setHistoryVersion] = useState(0)
   const [profiles, setProfiles] = useState<readonly CopilotProfile[]>([
@@ -629,6 +638,14 @@ export function CopilotVoiceProvider ({
     setActiveProfileId(result.activeProfileId)
   }
   const activeProfile = profiles.find(profile => profile.id === activeProfileId) ?? profiles[0]!
+  const setInputId = (id: string): void => {
+    setInputIdState(id)
+    resolvedDevicePreferences.update({ audioInputId: id })
+  }
+  const setOutputId = (id: string): void => {
+    setOutputIdState(id)
+    resolvedDevicePreferences.update({ audioOutputId: id })
+  }
 
   return (
     <CopilotVoiceContext.Provider value={{

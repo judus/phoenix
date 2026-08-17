@@ -146,7 +146,10 @@ test('the Copilot discovers and executes commander-created macros through the co
   const settings = systemSettingsRepository.loadOrCreate()
   systemSettingsRepository.save({
     ...settings,
-    modules: { ...settings.modules, macros: { ...settings.modules.macros, enabled: true } }
+    copilot: {
+      ...settings.copilot,
+      permissions: { ...settings.copilot.permissions, macros: true }
+    }
   })
   const inputBackend = new RecordingInputBackend()
   const application = new PhoenixApplication({

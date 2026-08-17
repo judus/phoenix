@@ -55,8 +55,7 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
   }
 
   if (section === 'settings') {
-    const view = oneOf(rest[0], ['system', 'audio', 'modules', 'pairing'] as const) ?? 'system'
-    return withQuery({ kind: 'settings', view }, query)
+    return withQuery({ kind: 'settings', view: 'dashboard' }, query)
   }
 
   if (section === 'ship') {
@@ -105,7 +104,7 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
     case 'macros': path = '/macros'; break
     case 'journal': path = route.view === 'credits' ? '/records/credits' : '/records/journal'; break
     case 'developer': path = `/developer/${route.view}`; break
-    case 'settings': path = `/settings/${route.view}`; break
+    case 'settings': path = '/settings'; break
   }
   const parameters = new URLSearchParams('query' in route ? route.query : undefined)
   if (route.kind === 'information' && route.section === 'galaxy' && route.view === 'system') {

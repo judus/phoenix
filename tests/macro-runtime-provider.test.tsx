@@ -72,9 +72,7 @@ test('macro recording uses the shared API, browser identity, and typed router', 
 
 function modules(): PhoenixModules {
   return {
-    macros: { enabled: true, copilotExecution: false, dangerousExecution: false },
     numpadCommands: {
-      enabled: false,
       inputAdapter: 'browser',
       presentation: 'tiles',
       alwaysConfirm: false,

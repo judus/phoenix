@@ -46,6 +46,8 @@ import { JournalPage } from './features/journal/journal-page.js'
 import { useJournalController } from './features/journal/use-journal-controller.js'
 import { CreditsPage } from './features/journal/credits-page.js'
 import { journalContext, journalNavigationItems } from './features/journal/journal-navigation.js'
+import { SettingsPage } from './features/settings/settings-page.js'
+import { settingsContext, settingsNavigationItems } from './features/settings/settings-navigation.js'
 
 export function App({ application }: { application: PhoenixApplicationServices }) {
   return (
@@ -156,7 +158,12 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       journalContextItems={journalNavigationItems}
       journalCurrentContext={journalContext(route)}
       macros={<MacrosFeature />}
-      settings={<PlaceholderPage context="Settings" title="Application settings" description="Display, connection and control preferences" />}
+      settings={<SettingsPage
+        api={application.api}
+        devicePreferences={application.devicePreferences}
+      />}
+      settingsContextItems={settingsNavigationItems}
+      settingsCurrentContext={settingsContext()}
       telemetry={<NumpadFeature application={application} view={numpadRoute?.view ?? 'navigator'} />}
       telemetryContextItems={numpadNavigationItems}
       telemetryCurrentContext={numpadContext(route)}

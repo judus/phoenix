@@ -1,5 +1,5 @@
 import type { PhoenixApi } from '../application/api/phoenix-api.js'
-import type { DisplayCommandPreference } from '../application/display/display-command-preference.js'
+import type { DevicePreferences } from '../application/settings/device-preferences.js'
 import type { PhoenixEventHub } from '../application/events/phoenix-event-hub.js'
 import type { ClientIdentity } from '../application/identity/client-identity.js'
 import type { PhoenixRouter } from '../application/navigation/phoenix-router.js'
@@ -10,13 +10,13 @@ import {
   type PhoenixEventSourceFactory
 } from '../platform/events/browser-phoenix-event-hub.js'
 import { BrowserPhoenixRouter } from '../platform/routing/browser-phoenix-router.js'
-import { BrowserDisplayCommandPreference } from '../platform/storage/browser-display-command-preference.js'
+import { BrowserDevicePreferences } from '../platform/storage/browser-device-preferences.js'
 import { BrowserClientIdentity } from '../platform/storage/browser-client-identity.js'
 
 export interface PhoenixApplicationServices {
   api: PhoenixApi
   clientIdentity: ClientIdentity
-  displayCommands: DisplayCommandPreference
+  devicePreferences: DevicePreferences
   events: PhoenixEventHub
   router: PhoenixRouter
   runtime: RuntimeStateStore
@@ -50,7 +50,7 @@ export function createPhoenixApplication(
   return {
     api,
     clientIdentity: new BrowserClientIdentity(sessionStorage),
-    displayCommands: new BrowserDisplayCommandPreference(localStorage),
+    devicePreferences: new BrowserDevicePreferences(localStorage),
     events,
     router: new BrowserPhoenixRouter(browserWindow),
     runtime: new RuntimeStateStore(api, events)

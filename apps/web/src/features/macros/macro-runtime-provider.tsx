@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { MacroDefinition, MacroLibrary, MacroPlayback, MacroRecording, PhoenixModules } from '@phoenix/contracts'
+import type { MacroDefinition, MacroLibrary, MacroPlayback, MacroRecording } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { createClientId, type ClientIdentity } from '../../application/identity/client-identity.js'
 import type { PhoenixRouter } from '../../application/navigation/phoenix-router.js'
@@ -8,8 +8,6 @@ export interface MacroRuntime {
   cancelRecording: () => Promise<void>
   deleteMacro: (id: string) => Promise<void>
   draft?: MacroRecording
-  enabled: boolean
-  enable: () => Promise<void>
   error?: string
   library: MacroLibrary
   playback?: MacroPlayback
@@ -37,7 +35,6 @@ export function MacroRuntimeProvider ({
   router: PhoenixRouter
 }) {
   const [library, setLibrary] = useState<MacroLibrary>({ version: 1, macros: [] })
-  const [settings, setSettings] = useState<PhoenixModules>()
   const [recording, setRecording] = useState<MacroRecording>()
   const [draft, setDraft] = useState<MacroRecording>()
   const [playback, setPlayback] = useState<MacroPlayback>()
@@ -45,11 +42,8 @@ export function MacroRuntimeProvider ({
   const clientId = useRef(clientIdentity.forScope('macros'))
 
   useEffect(() => {
-    void Promise.all([api.getMacros(), api.getModuleSettings()])
-      .then(([nextLibrary, nextSettings]) => {
-        setLibrary(nextLibrary)
-        setSettings(nextSettings)
-      })
+    void api.getMacros()
+      .then(setLibrary)
       .catch(cause => setError(message(cause, 'Macro module unavailable.')))
   }, [api])
 
@@ -73,15 +67,6 @@ export function MacroRuntimeProvider ({
       } catch (cause) { setError(message(cause, 'Unable to delete macro.')) }
     },
     draft,
-    enabled: settings?.macros.enabled === true,
-    enable: async () => {
-      if (!settings) return
-      try {
-        const saved = await api.saveModuleSettings({ ...settings, macros: { ...settings.macros, enabled: true } })
-        setSettings(saved)
-        setError(undefined)
-      } catch (cause) { setError(message(cause, 'Unable to enable macro module.')) }
-    },
     error,
     library,
     playback,
@@ -141,7 +126,7 @@ export function MacroRuntimeProvider ({
         router.push({ kind: 'macros' })
       } catch (cause) { setError(message(cause, 'Unable to stop recording.')) }
     }
-  }), [api, draft, error, library, playback, recording, router, settings])
+  }), [api, draft, error, library, playback, recording, router])
 
   return <MacroRuntimeContext.Provider value={runtime}>{children}</MacroRuntimeContext.Provider>
 }

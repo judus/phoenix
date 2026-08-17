@@ -28,6 +28,8 @@ export interface PhoenixApplicationShellProps {
   onControlsContextAction?: (item: ApplicationNavigationItem) => void
   onNavigateWorkspace: (desktop: PhoenixWorkspace) => void
   settings: ReactNode
+  settingsContextItems?: NavigationItem[]
+  settingsCurrentContext?: string
   telemetry: ReactNode
   telemetryContextItems?: NavigationItem[]
   telemetryCurrentContext?: string
@@ -54,6 +56,8 @@ export function PhoenixApplicationShell({
   onNavigateRoute,
   onNavigateWorkspace,
   settings,
+  settingsContextItems,
+  settingsCurrentContext,
   telemetry,
   telemetryContextItems,
   telemetryCurrentContext
@@ -101,6 +105,8 @@ export function PhoenixApplicationShell({
         onNavigateRoute={onNavigateRoute}
         onNavigateWorkspace={onNavigateWorkspace}
         settings={settings}
+        {...(settingsContextItems ? { settingsContextItems } : {})}
+        {...(settingsCurrentContext ? { settingsCurrentContext } : {})}
         telemetry={telemetry}
         {...(telemetryContextItems ? { telemetryContextItems } : {})}
         {...(telemetryCurrentContext ? { telemetryCurrentContext } : {})}

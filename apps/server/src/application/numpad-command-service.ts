@@ -200,15 +200,6 @@ export class DefaultNumpadCommands implements NumpadCommands {
         status: 'stale'
       })
     }
-    if (!this.settings.loadOrCreate().modules.numpadCommands.enabled) {
-      return NumpadExecutionResultSchema.parse({
-        address: request.address,
-        command: null,
-        message: 'Numpad command module is disabled.',
-        revision: snapshot.revision,
-        status: 'rejected'
-      })
-    }
     const node = snapshot.nodes.find(candidateNode => candidateNode.address === request.address)
     if (!node?.target || !node.available) {
       return NumpadExecutionResultSchema.parse({

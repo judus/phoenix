@@ -48,7 +48,7 @@ export class CopilotProfileService implements CopilotProfiles {
       throw new Error(`Unknown Copilot profile: ${selected}`)
     }
     const settings = this.settings.loadOrCreate()
-    this.settings.save({ ...settings, copilot: { activeProfileId: selected } })
+    this.settings.save({ ...settings, copilot: { ...settings.copilot, activeProfileId: selected } })
     const result = this.get()
     this.publish(result)
     return result
