@@ -178,8 +178,12 @@ Open `http://localhost:3400`. Developers who want the live development servers c
 npm run dev
 ```
 
-Copilot is optional and uses `PHOENIX_OPENAI_API_KEY` or `OPENAI_API_KEY` when configured. See
-[`.env.example`](.env.example) for ports, paths, models, input backends, and other overrides.
+Copilot is optional and remains disabled when no API key is available. Prefer
+`PHOENIX_OPENAI_API_KEY` for an app-specific key. If that variable is absent, PHOENIX falls back to
+an existing `OPENAI_API_KEY` inherited from the server process—typically the user's global developer
+environment. Users do not need to create or change a global `OPENAI_API_KEY` for PHOENIX, and the
+PHOENIX-specific variable takes precedence when both exist. See [`.env.example`](.env.example) for
+ports, paths, models, input backends, and other overrides.
 
 Expect breaking changes and no installation support yet. PHOENIX reports unknown data as unknown
 and distinguishes “command sent” from “ship definitely did the thing.”
