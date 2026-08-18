@@ -99,6 +99,24 @@ Manual installation currently requires Git and Node.js 24.14+.
 The first launch requires an internet connection to fetch the upstream game catalogues into local
 runtime storage; PHOENIX does not distribute those third-party catalogue snapshots.
 
+### Before the first PHOENIX start
+
+1. Start Elite Dangerous and enter the commander session at least once. For the clearest first-run
+   result, leave the game running while PHOENIX starts. This ensures Elite has created its local
+   data files and emitted the initial journal, status, and inventory events.
+2. In Elite's Controls settings, assign keyboard keys to every game command you want PHOENIX to
+   operate, then apply/save the bindings at least once. Controller-only bindings cannot be executed
+   by PHOENIX's keyboard input backends.
+3. Start PHOENIX after saving the bindings. PHOENIX reads the active `.binds` file at server startup;
+   restart PHOENIX after changing bindings in Elite.
+
+PHOENIX can start while Elite is closed, but it cannot display state that Elite has never written
+to local files. Journals are local to each computer and are event-driven; they are not a complete
+commander database synchronized between installations. Some screens therefore remain explicitly
+unsynchronized until Elite emits their snapshot—for example, entering a commander session publishes
+the mission manifest, opening Shipyard publishes stored ships, and opening Outfitting publishes
+stored modules.
+
 ### Windows (PowerShell)
 
 Install the required tools from the command line:
