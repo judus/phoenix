@@ -15,9 +15,20 @@ PHOENIX is a local-first companion application and ship-computer interface for E
 
 ## Current status
 
-PHOENIX currently supports **manual installation on Linux only**. There is no installer or launcher
-yet, but on the supported Linux setup the application and its currently supported feature set are
-functional as intended.
+PHOENIX officially supports manually started **Linux x64 and Windows x64 payloads**. Both platforms
+are built, checksum-verified, and smoke-tested in CI. There is no installer or launcher yet.
+
+Windows support has also been verified against a live Elite Dangerous installation: PHOENIX
+automatically discovers the standard journal, status, inventory, navigation-route, and bindings
+files; reconstructs local commander state; and operates configured controls with low latency.
+Some data—such as stored ships and stored modules—is published by Elite only after the relevant
+in-game screen is opened. PHOENIX distinguishes that unsynchronized state from an authoritative
+empty result and explains the required trigger in the interface.
+
+Windows controls use the standard `SendInput` API through a lifecycle-owned local helper. PHOENIX
+does not inject code into Elite, modify its process memory, or write to its game files. Input is sent
+to the active interactive Windows desktop, so the intended game window still needs focus. A
+backdoor, perhaps—but one with a manifest, diagnostics, and manners.
 
 PHOENIX has so far been visually optimized and reviewed only for **Chrome on an Android tablet**.
 Desktop layouts, other browsers, and other devices may work, but have not received the same visual
@@ -51,8 +62,8 @@ and gameplay. PHOENIX preserves unknowns rather than presenting unverified concl
 
 ## Next steps
 
-1. Add and verify Windows support, including Elite discovery and native game controls.
-2. Provide proper installers for Linux and Windows.
+1. Provide proper installers and launchers for Linux and Windows.
+2. Broaden Windows verification across more machines, Elite installations, and control bindings.
 3. Continue improving the tablet interface first.
 4. Adapt and visually verify the interface for desktop and other auxiliary displays.
 
@@ -78,6 +89,19 @@ relaxed for future versions once the project's long-term distribution model is s
 The development source remains available for manual installation without charge. Official packaged
 releases may later be offered separately through platforms such as Steam, primarily to provide
 convenient installation and automatic updates.
+
+CI currently produces self-contained Linux x64 and Windows x64 payloads with their own Node.js
+runtime. From an extracted payload, start PHOENIX with the platform command below:
+
+```sh
+# Linux
+./runtime/node ./apps/server/dist/main.js
+```
+
+```powershell
+# Windows PowerShell
+.\runtime\node.exe .\apps\server\dist\main.js
+```
 
 Development currently targets Node.js 24.14+:
 
