@@ -1,6 +1,7 @@
 # PHOENIX
 
-> **Work in progress:** PHOENIX is under active development and is not ready for public use—or unsupervised operation of suspiciously red buttons.
+> **Active development:** PHOENIX is functional today, but not finished. Expect rough edges,
+> breaking changes, and the occasional suspiciously red button.
 
 PHOENIX is a local-first companion application and ship-computer interface for Elite Dangerous. It turns live telemetry, journal history, control bindings, public galaxy data, and an optional AI Copilot into one cockpit for desktop, tablet, and auxiliary displays.
 
