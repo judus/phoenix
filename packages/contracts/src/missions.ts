@@ -62,6 +62,7 @@ export const MissionSummarySchema = z.object({
 
 export const MissionsResponseSchema = z.object({
   missions: z.array(MissionSchema),
+  snapshotAt: z.string().datetime({ offset: true }).nullable(),
   summary: MissionSummarySchema
 }).strict()
 

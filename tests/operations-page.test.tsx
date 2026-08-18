@@ -63,6 +63,17 @@ test('Missions composes existing list, status, counter, and detail elements', ()
   expect(markup).toContain('<dt>Status</dt><dd><span class="status status-information"')
 })
 
+test('Missions distinguishes an unobserved manifest from an authoritative empty manifest', () => {
+  const summary = { abandoned: 0, active: 0, completed: 0, failed: 0, partial: 0, total: 0, unknown: 0 }
+  const waiting = renderToStaticMarkup(<ActivitiesPage controller={{ missions: { missions: [], snapshotAt: null, summary }, status: 'ready' }} view="missions" />)
+  const empty = renderToStaticMarkup(<ActivitiesPage controller={{ missions: { missions: [], snapshotAt: '2026-08-16T12:00:00.000Z', summary }, status: 'ready' }} view="missions" />)
+
+  expect(waiting).toContain('Awaiting Elite mission manifest')
+  expect(waiting).toContain('href="#/settings/help"')
+  expect(empty).toContain('No missions were present in the latest Elite manifest')
+  expect(empty).not.toContain('Awaiting Elite mission manifest')
+})
+
 test('uncontracted activity views do not fabricate records', () => {
   const markup = renderToStaticMarkup(<ActivitiesPage controller={{ status: 'ready' }} view="colonisation" />)
 
@@ -74,6 +85,7 @@ test('uncontracted activity views do not fabricate records', () => {
 function missionsResponse(): MissionsResponse {
   return {
     missions: [mission()],
+    snapshotAt: '2026-08-16T12:00:00.000Z',
     summary: { abandoned: 0, active: 1, completed: 0, failed: 0, partial: 1, total: 1, unknown: 0 }
   }
 }

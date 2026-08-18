@@ -4,16 +4,26 @@ import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js
 
 type SettingsRoute = Extract<PhoenixRoute, { kind: 'settings' }>
 
-const route: SettingsRoute = { kind: 'settings', view: 'dashboard' }
+const settingsRoute: SettingsRoute = { kind: 'settings', view: 'dashboard' }
+const helpRoute: SettingsRoute = { kind: 'settings', view: 'help' }
 
-export const settingsNavigationItems: Array<NavigationItem & { route: SettingsRoute }> = [{
-  id: 'settings',
-  label: 'Settings',
-  shortLabel: 'STG',
-  route,
-  href: phoenixRouteHash(route)
-}]
+export const settingsNavigationItems: Array<NavigationItem & { route: SettingsRoute }> = [
+  {
+    id: 'settings',
+    label: 'Settings',
+    shortLabel: 'STG',
+    route: settingsRoute,
+    href: phoenixRouteHash(settingsRoute)
+  },
+  {
+    id: 'help',
+    label: 'Help & Q&A',
+    shortLabel: 'HLP',
+    route: helpRoute,
+    href: phoenixRouteHash(helpRoute)
+  }
+]
 
-export function settingsContext(): string {
-  return 'settings'
+export function settingsContext(route?: SettingsRoute): string {
+  return route?.view ?? 'dashboard'
 }

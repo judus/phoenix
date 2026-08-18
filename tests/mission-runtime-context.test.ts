@@ -15,6 +15,7 @@ test('mission runtime context stays compact and marks incomplete evidence', () =
       redirectedAt: null, reputation: null, reward: null, status: 'active', statusUpdatedAt: '2026-08-15T12:00:00Z',
       target: null, targetFaction: null, targetType: null, updatedAt: '2026-08-15T12:00:00Z', wing: null
     }],
+    snapshotAt: '2026-08-15T12:00:00Z',
     summary: { abandoned: 0, active: 1, completed: 0, failed: 0, partial: 1, total: 1, unknown: 0 }
   }
   const rendered = new MissionRuntimeContext({ getMissions: () => response }).render()

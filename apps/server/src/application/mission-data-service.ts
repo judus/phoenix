@@ -32,6 +32,7 @@ export class MissionDataService implements MissionDataReader {
     const count = (status: MissionStatus) => missions.filter(mission => mission.status === status).length
     return MissionsResponseSchema.parse({
       missions,
+      snapshotAt: this.repository.getMissionProjectionTimestamp('missions-snapshot'),
       summary: {
         abandoned: count('abandoned'),
         active: count('active'),
@@ -180,6 +181,7 @@ export class MissionDataService implements MissionDataReader {
           ? event.Active.flatMap(item => record(item) && integer(item.MissionID) !== null ? [integer(item.MissionID)!] : [])
           : []
       ), timestamp: event.timestamp }
+      this.repository.putMissionProjectionTimestamp('missions-snapshot', event.timestamp)
     }
     for (const current of this.repository.listMissions()) {
       if (current.status !== 'active' || observed.has(current.id) || event.timestamp < current.statusUpdatedAt) continue

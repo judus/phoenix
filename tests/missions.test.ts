@@ -59,6 +59,7 @@ test('startup mission snapshot creates honest partial records and does not let o
     statusUpdatedAt: '2026-08-15T08:00:00Z',
     provenance: { acceptanceObserved: false, details: 'partial', snapshotObserved: true }
   })
+  expect(missions.getMissions().snapshotAt).toBe('2026-08-15T08:00:00Z')
 })
 
 test('a newer startup snapshot reconciles active missions discovered later by historical backfill', () => {
@@ -79,8 +80,10 @@ test('SQLite persists normalized missions', () => {
   try {
     const service = new MissionDataService(database)
     service.ingest({ timestamp: '2026-08-15T08:00:00Z', event: 'MissionAccepted', MissionID: 99, LocalisedName: 'Test contract' }, 'live-journal')
+    service.ingest({ timestamp: '2026-08-15T08:01:00Z', event: 'Missions', Active: [{ MissionID: 99 }], Failed: [], Complete: [] }, 'live-journal')
     expect(database.getMission(99)).toMatchObject({ id: 99, localizedName: 'Test contract', status: 'active' })
     expect(database.listMissions()).toHaveLength(1)
+    expect(new MissionDataService(database).getMissions().snapshotAt).toBe('2026-08-15T08:01:00Z')
   } finally {
     database.close()
   }
@@ -88,7 +91,10 @@ test('SQLite persists normalized missions', () => {
 
 class MemoryMissionRepository implements MissionRepository {
   private readonly records = new Map<number, Mission>()
+  private readonly state = new Map<string, string>()
   public getMission (id: number): Mission | null { return this.records.get(id) ?? null }
+  public getMissionProjectionTimestamp (key: string): string | null { return this.state.get(key) ?? null }
   public listMissions (): Mission[] { return [...this.records.values()] }
   public putMission (mission: Mission): void { this.records.set(mission.id, structuredClone(mission)) }
+  public putMissionProjectionTimestamp (key: string, timestamp: string): void { this.state.set(key, timestamp) }
 }

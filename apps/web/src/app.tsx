@@ -45,6 +45,7 @@ const DashboardPage = lazy(() => import('./features/dashboard/dashboard-page.js'
 const EngineeringPage = lazy(() => import('./features/engineering/engineering-page.js').then(module => ({ default: module.EngineeringPage })))
 const FleetPage = lazy(() => import('./features/fleet/fleet-page.js').then(module => ({ default: module.FleetPage })))
 const GalaxyPage = lazy(() => import('./features/galaxy/galaxy-page.js').then(module => ({ default: module.GalaxyPage })))
+const HelpPage = lazy(() => import('./features/settings/help-page.js').then(module => ({ default: module.HelpPage })))
 const JournalPage = lazy(() => import('./features/journal/journal-page.js').then(module => ({ default: module.JournalPage })))
 const MacrosPage = lazy(() => import('./features/macros/macros-page.js').then(module => ({ default: module.MacrosPage })))
 const NumpadPage = lazy(() => import('./features/numpad/numpad-page.js').then(module => ({ default: module.NumpadPage })))
@@ -171,10 +172,10 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       journalCurrentContext={journalContext(route)}
       macros={mountedWorkspaces.current.has('macros') ? <FeatureBoundary><MacrosFeature /></FeatureBoundary> : null}
       settings={mountedWorkspaces.current.has('settings')
-        ? <FeatureBoundary><SettingsFeature application={application} /></FeatureBoundary>
+        ? <FeatureBoundary><SettingsFeature application={application} view={route.kind === 'settings' ? route.view : 'dashboard'} /></FeatureBoundary>
         : null}
       settingsContextItems={settingsNavigationItems}
-      settingsCurrentContext={settingsContext()}
+      settingsCurrentContext={settingsContext(route.kind === 'settings' ? route : undefined)}
       telemetry={mountedWorkspaces.current.has('telemetry')
         ? <FeatureBoundary><NumpadFeature application={application} view={numpadRoute?.view ?? 'navigator'} /></FeatureBoundary>
         : null}
@@ -189,8 +190,9 @@ function FeatureBoundary({ children }: { children: ReactNode }) {
 }
 
 const StableCopilotFeature = memo(CopilotFeature)
-const SettingsFeature = memo(function SettingsFeature({ application }: { application: PhoenixApplicationServices }) {
+const SettingsFeature = memo(function SettingsFeature({ application, view }: { application: PhoenixApplicationServices, view: 'dashboard' | 'help' }) {
   const voice = useCopilotVoice()
+  if (view === 'help') return <HelpPage />
   return <SettingsPage
     api={application.api}
     audio={{

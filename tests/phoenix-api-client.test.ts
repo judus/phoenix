@@ -87,6 +87,7 @@ test('filtered Galaxy search serializes typed parameters and validates the respo
 test('mission transport uses the durable Operations endpoint and validates its contract', async () => {
   const request = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({
     missions: [],
+    snapshotAt: null,
     summary: { abandoned: 0, active: 0, completed: 0, failed: 0, partial: 0, total: 0, unknown: 0 }
   }))
 

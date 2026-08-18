@@ -22,6 +22,7 @@ test('fleet projection combines the active loadout with authoritative stored shi
 
     expect(fleet.getFleet()).toMatchObject({
       activeShipId: 13,
+      shipsSnapshotAt: '2026-08-15T08:01:00Z',
       summary: { active: 1, owned: 2, stored: 1, transferring: 0, unknown: 0 },
       ships: [
         { id: 13, displayName: 'Type-11 Prospector', identifier: 'EL-06L', state: 'active', system: 'Test System', station: 'Locke Terminal', typeId: 'lakonminer', value: 100_000_000 },

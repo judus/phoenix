@@ -43,6 +43,22 @@ test('Fleet overview and current ship render live records without shell chrome',
   expect(engineering).toContain('aria-current="page">Engineering')
 })
 
+test('Fleet explains missing stored-ship and stored-module snapshots', () => {
+  const fleet = fleetFixture()
+  const waiting = {
+    ...fleet,
+    shipsSnapshotAt: null,
+    storedModules: { ...fleet.storedModules, details: 'unknown' as const, items: [], snapshotAt: null }
+  }
+  const overview = renderToStaticMarkup(<FleetPage controller={{ fleet: waiting, status: 'ready' }} onNavigate={vi.fn()} route={{ kind: 'information', section: 'fleet', view: 'overview' }} runtime={{ status: 'loading' }} />)
+  const modules = renderToStaticMarkup(<FleetPage controller={{ fleet: waiting, status: 'ready' }} onNavigate={vi.fn()} route={{ kind: 'information', section: 'fleet', view: 'stored-modules' }} runtime={{ status: 'loading' }} />)
+
+  expect(overview).toContain('Open Starport Services → Shipyard')
+  expect(modules).toContain('Open Starport Services → Outfitting')
+  expect(overview).toContain('href="#/settings/help"')
+  expect(modules).toContain('href="#/settings/help"')
+})
+
 test('catalogue selection comes from the typed route', () => {
   const ships = [ship('adder', 'Adder'), ship('python', 'Python')]
   const markup = renderToStaticMarkup(<FleetPage controller={{ catalogue: ships, status: 'ready' }} onNavigate={vi.fn()} route={{ kind: 'information', section: 'fleet', view: 'catalogue', selectedShipId: 'python' }} runtime={{ status: 'loading' }} />)

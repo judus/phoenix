@@ -40,7 +40,7 @@ test('Activities loads missions only where used and refreshes only for mission j
 })
 
 function missionsResponse(): MissionsResponse {
-  return { missions: [], summary: { abandoned: 0, active: 0, completed: 0, failed: 0, partial: 0, total: 0, unknown: 0 } }
+  return { missions: [], snapshotAt: null, summary: { abandoned: 0, active: 0, completed: 0, failed: 0, partial: 0, total: 0, unknown: 0 } }
 }
 
 function activity(event: string): ActivityLogEntry {

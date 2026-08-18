@@ -124,6 +124,11 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
       CREATE INDEX IF NOT EXISTS missions_status_updated_at
       ON missions (status, status_updated_at DESC);
 
+      CREATE TABLE IF NOT EXISTS mission_projection_state (
+        state_key TEXT PRIMARY KEY,
+        timestamp TEXT NOT NULL
+      ) STRICT;
+
       CREATE TABLE IF NOT EXISTS communications (
         message_id TEXT PRIMARY KEY,
         occurred_at TEXT NOT NULL,
@@ -193,6 +198,13 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
       VALUES (9, datetime('now'))
     `).run()
     if (fleetMigration.changes > 0) {
+      this.connection.exec('DELETE FROM elite_journal_checkpoints;')
+    }
+    const missionProvenanceMigration = this.connection.prepare(`
+      INSERT OR IGNORE INTO schema_migrations (version, applied_at)
+      VALUES (10, datetime('now'))
+    `).run()
+    if (missionProvenanceMigration.changes > 0) {
       this.connection.exec('DELETE FROM elite_journal_checkpoints;')
     }
   }
@@ -359,6 +371,13 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
     return row ? MissionSchema.parse(JSON.parse(row.document)) : null
   }
 
+  public getMissionProjectionTimestamp (key: string): string | null {
+    const row = this.connection.prepare(`
+      SELECT timestamp FROM mission_projection_state WHERE state_key = ?
+    `).get(key) as { timestamp: string } | undefined
+    return row?.timestamp ?? null
+  }
+
   public listMissions (): Mission[] {
     const rows = this.connection.prepare(`
       SELECT document
@@ -385,6 +404,15 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
       validated.updatedAt,
       JSON.stringify(validated)
     )
+  }
+
+  public putMissionProjectionTimestamp (key: string, timestamp: string): void {
+    this.connection.prepare(`
+      INSERT INTO mission_projection_state (state_key, timestamp)
+      VALUES (?, ?)
+      ON CONFLICT(state_key) DO UPDATE SET timestamp = excluded.timestamp
+      WHERE excluded.timestamp >= mission_projection_state.timestamp
+    `).run(key, timestamp)
   }
 
   public listCommunicationMessages (view: CommunicationQueryView, limit: number): CommunicationMessage[] {

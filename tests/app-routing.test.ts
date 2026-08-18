@@ -34,7 +34,8 @@ describe('PHOENIX route parsing and generation', () => {
     ['#/records/journal', { kind: 'journal', view: 'journal' }, 'journal'],
     ['#/records/credits', { kind: 'journal', view: 'credits' }, 'journal'],
     ['#/developer/runtime', { kind: 'developer', view: 'runtime' }, 'journal'],
-    ['#/settings', { kind: 'settings', view: 'dashboard' }, 'settings']
+    ['#/settings', { kind: 'settings', view: 'dashboard' }, 'settings'],
+    ['#/settings/help', { kind: 'settings', view: 'help' }, 'settings']
   ] as const)('parses %s as a canonical destination', (hash, route, workspace) => {
     expect(parsePhoenixRoute(hash)).toEqual(route)
     expect(workspaceForRoute(parsePhoenixRoute(hash))).toBe(workspace)

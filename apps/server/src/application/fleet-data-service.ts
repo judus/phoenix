@@ -52,6 +52,7 @@ export class FleetDataService implements FleetDataReader {
       activeShipId: ships.find(ship => ship.state === 'active')?.id ?? null,
       carriers: { observed: false, items: [] },
       ships,
+      shipsSnapshotAt: this.repository.getFleetProjectionTimestamp('stored-ships-snapshot'),
       storedModules: {
         details,
         items: this.repository.listStoredModules(),

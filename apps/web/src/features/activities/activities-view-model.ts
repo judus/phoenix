@@ -23,6 +23,7 @@ export interface MissionViewModel {
 export interface ActivitiesViewModel {
   active: MissionViewModel[]
   all: MissionViewModel[]
+  snapshotAt: string | null
   summary: MissionsResponse['summary']
 }
 
@@ -31,6 +32,7 @@ export function createActivitiesViewModel(response: MissionsResponse): Activitie
   return {
     active: all.filter(mission => mission.status === 'active'),
     all,
+    snapshotAt: response.snapshotAt,
     summary: response.summary
   }
 }

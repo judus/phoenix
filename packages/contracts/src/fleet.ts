@@ -46,6 +46,7 @@ export const FleetResponseSchema = z.object({
     items: z.array(z.never())
   }).strict(),
   ships: z.array(FleetShipSchema),
+  shipsSnapshotAt: z.string().datetime({ offset: true }).nullable(),
   storedModules: z.object({
     details: z.enum(['complete', 'partial', 'unknown']),
     items: z.array(StoredModuleSchema),

@@ -57,7 +57,7 @@ export type PhoenixRoute =
   | { kind: 'macros' }
   | { kind: 'journal', view: 'journal' | 'credits' }
   | { kind: 'developer', view: 'overview' | 'runtime' | 'elite' | 'health' | 'tests' | 'controls' }
-  | { kind: 'settings', view: 'dashboard' }
+  | { kind: 'settings', view: 'dashboard' | 'help' }
 
 export type PhoenixWorkspace =
   | 'controls'

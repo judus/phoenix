@@ -4,6 +4,7 @@ export function fleetFixture(): FleetResponse {
   return {
     activeShipId: 7,
     carriers: { observed: false, items: [] },
+    shipsSnapshotAt: '2026-08-16T12:00:00.000Z',
     ships: [{
       displayName: 'Viper Mk IV', hot: false, id: 7, identifier: 'VI-04', marketId: 1,
       name: 'MURDOCK', state: 'active', station: 'Atata Hub', system: 'Atata',

@@ -15,6 +15,7 @@ import type { ActivitiesControllerSnapshot, ActivitiesView } from './use-activit
 import { createActivitiesViewModel, type ActivitiesViewModel, type MissionViewModel } from './activities-view-model.js'
 import { MissionTitle } from './mission-title.js'
 import { SystemLocationLink } from '../../components/system-location-link.js'
+import { DataSyncNotice } from '../../components/data-sync-notice.js'
 
 type RetainedActivityView = Exclude<ActivitiesView, 'missions'>
 
@@ -75,7 +76,9 @@ function Missions({ model }: { model: ActivitiesViewModel }) {
       <Stack fill gap="sm">
         <ActivitiesHeader title="Missions" />
         {model.all.length === 0
-          ? <Status tone="muted">No missions retained.</Status>
+          ? model.snapshotAt === null
+              ? <DataSyncNotice>Awaiting Elite mission manifest. Re-enter the commander session to publish current missions.</DataSyncNotice>
+              : <Status tone="muted">No missions were present in the latest Elite manifest.</Status>
           : (
               <ThirdsGrid fill gap="lg">
                 <div className="span-two">

@@ -21,6 +21,7 @@ import {
 } from '@phoenix/ui'
 import type { InformationRoute, PhoenixRoute } from '../../application/navigation/phoenix-route.js'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
+import { DataSyncNotice } from '../../components/data-sync-notice.js'
 import type { FleetControllerSnapshot, FleetView } from './use-fleet-controller.js'
 import {
   createCurrentShipModel,
@@ -96,6 +97,9 @@ function FleetOverview({ fleet }: { fleet: NonNullable<FleetControllerSnapshot['
         <MetricStrip columns={5}>
           {model.summary.map(item => <MetricStripItem key={item.label} label={item.label} value={item.value} />)}
         </MetricStrip>
+        {fleet.shipsSnapshotAt === null
+          ? <DataSyncNotice>Stored fleet not synchronized. Open Starport Services → Shipyard in Elite to publish the vessel manifest.</DataSyncNotice>
+          : null}
         <DataTableGroup className="vessels" title="Owned vessels">
           <DataTable density="compact" label="Owned vessels" minimum="wide" narrow="priority" scheme="surface">
             <thead><tr><th>Vessel</th><th>State</th><th className="priority-secondary">Location</th><th className="numeric">Value</th><th className="priority-tertiary">Transfer</th><th className="priority-tertiary">Observed</th></tr></thead>
@@ -337,7 +341,9 @@ function StoredModules({ fleet }: { fleet: NonNullable<FleetControllerSnapshot['
         title="Stored modules"
       />
       <div className="module-groups" tabIndex={0}>
-        {model.groups.length === 0 ? <Status tone="muted">No stored modules were present in the latest snapshot.</Status> : model.groups.map(group => (
+        {fleet.storedModules.snapshotAt === null
+          ? <DataSyncNotice>Stored modules not synchronized. Open Starport Services → Outfitting in Elite to publish the module manifest.</DataSyncNotice>
+          : model.groups.length === 0 ? <Status tone="muted">No stored modules were present in the latest snapshot.</Status> : model.groups.map(group => (
           <DataTableGroup className="module-storage" meta={`${group.items.length} modules`} title={group.system} key={group.system}>
             <DataTable density="compact" label={`Modules stored at ${group.system}`} narrow="priority" scheme="surface"><thead><tr><th>Module</th><th>Engineering</th><th className="numeric">Storage slot</th><th>Transfer</th><th className="numeric">Purchase value</th><th>Observed</th></tr></thead><tbody>{group.items.map(item => <tr key={item.key}><td><strong>{item.name}</strong><small>{item.identifier}</small></td><td className={item.engineering !== '—' ? 'text-information' : undefined}>{item.engineering}</td><td className="numeric">{item.slot}</td><td>{item.transfer}</td><td className="numeric">{item.value}</td><td>{item.observed}</td></tr>)}</tbody></DataTable>
           </DataTableGroup>
