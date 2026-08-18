@@ -21,8 +21,8 @@ and multi-device cockpit are usable today, but the project remains under active 
 The interface has been optimized primarily for **Chrome on an Android tablet**. Desktop layouts,
 other browsers, and other devices still need broader testing.
 
-Some information becomes available only after Elite reports it. PHOENIX labels missing or unknown
-data instead of guessing and explains when an action in Elite is required.
+Some information becomes available only after Elite emits the required event. PHOENIX labels
+missing or unknown data instead of guessing and explains when an action in Elite is required.
 
 ## Implemented features
 
