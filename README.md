@@ -5,17 +5,17 @@
 PHOENIX is a local-first companion application and ship-computer interface for Elite Dangerous. It turns live telemetry, journal history, control bindings, public galaxy data, and an optional AI Copilot into one cockpit for desktop, tablet, and auxiliary displays.
 
 
-![screen-20.webp](docs/screens/screen-20.webp)
+![PHOENIX commander dashboard](docs/screens/screen-20.webp)
 
-![screen-07.webp](docs/screens/screen-07.webp)
+![PHOENIX plotted route](docs/screens/screen-07.webp)
 
-![screen-16.webp](docs/screens/screen-16.webp)
+![PHOENIX customizable control deck](docs/screens/screen-16.webp)
 
-![screen-25.webp](docs/screens/screen-25.webp)
+![PHOENIX Copilot conversation](docs/screens/screen-25.webp)
 
 ## Current status
 
-PHOENIX runs on **Linux x64 and Windows x64**. Its core game data, controls, galaxy tools, Copilot,
+PHOENIX runs on **Linux x64 and Windows x64**. Its telemetry, controls, galaxy tools, Copilot,
 and multi-device cockpit are usable today, but the project remains under active development.
 
 The interface has been optimized primarily for **Chrome on an Android tablet**. Desktop layouts,
@@ -29,7 +29,7 @@ data instead of guessing and explains when an action in Elite is required.
 - **Customizable control deck:** remotely control the ship and Elite Dangerous interface using the
   commander's real bindings. Arrange commands freely, record reusable macros, and keep dangerous
   actions visibly distinct.
-- **Commander and ship information:** inspect live and reconstructed commander state, ships, fleet,
+- **Commander and ship information:** inspect live and reconstructed commander data, ships, fleet,
   cargo, engineering, missions, communications, navigation, exploration, and journal history.
 - **Galaxy and cartography tools:** use symbolic system cartography, plotted-route views, and galaxy
   queries for systems, stations, shipyards, outfitting, markets, factions, and community-sourced
@@ -51,9 +51,6 @@ data instead of guessing and explains when an action in Elite is required.
 **PHOENIX is under active development. Expect breaking changes; help with manual installation is
 not available yet.**
 
-**PHOENIX does not guess. Unknown data remains unknown, and sending a command is not proof that
-Elite carried it out.**
-
 Manual installation currently requires Git and Node.js 24.14+.
 
 The first launch requires an internet connection to fetch the upstream game catalogues into local
@@ -72,10 +69,10 @@ runtime storage; PHOENIX does not distribute those third-party catalogue snapsho
 
 PHOENIX can start while Elite is closed, but it cannot display state that Elite has never written
 to local files. Journals are local to each computer and are event-driven; they are not a complete
-commander database synchronized between installations. Some screens therefore remain explicitly
-unsynchronized until Elite emits their snapshot—for example, entering a commander session publishes
-the mission manifest, opening Shipyard publishes stored ships, and opening Outfitting publishes
-stored modules.
+commander database synchronized between installations. Some screens therefore remain unsynchronized
+until Elite emits the relevant snapshot. For example, entering a commander session publishes the
+mission manifest, opening Shipyard publishes stored ships, and opening Outfitting publishes stored
+modules.
 
 ### Windows with PowerShell
 
@@ -143,33 +140,18 @@ npm run dev
 
 ### Copilot configuration
 
-Copilot is optional and remains disabled when no API key is available. Prefer
-`PHOENIX_OPENAI_API_KEY` for an app-specific key. If that variable is absent, PHOENIX falls back to
-an existing `OPENAI_API_KEY` inherited from the server process—typically the user's global developer
-environment. Users do not need to create or change a global `OPENAI_API_KEY` for PHOENIX, and the
-PHOENIX-specific variable takes precedence when both exist. See [`.env.example`](.env.example) for
-ports, paths, models, input backends, and other overrides.
+Copilot is optional and remains disabled when no API key is available. Use
+`PHOENIX_OPENAI_API_KEY` for an app-specific key; if unset, PHOENIX falls back to `OPENAI_API_KEY`
+from the server environment. The PHOENIX-specific variable takes precedence. See
+[`.env.example`](.env.example) for ports, paths, models, input backends, and other overrides.
 
 ## Next steps
 
-1. Add more AI and LLM providers. OpenAI is currently the only supported Copilot provider. PHOENIX
-   is not committing to provider exclusivity without a very persuasive sponsorship agreement. 😄
+1. Add more Copilot providers. OpenAI is currently the only supported provider. PHOENIX is not
+   committing to provider exclusivity without a very persuasive sponsorship agreement.
 2. Broaden Windows verification across more machines, Elite installations, and control bindings.
 3. Continue improving the tablet interface first.
 4. Adapt and visually verify the interface for desktop and other auxiliary displays.
-
-## More screenshots
-
-![screen-02.webp](docs/screens/screen-02.webp)
-![screen-06.webp](docs/screens/screen-06.webp)
-![screen-10.webp](docs/screens/screen-10.webp)
-![screen-22.webp](docs/screens/screen-22.webp)
-![screen-11.webp](docs/screens/screen-11.webp)
-![screen-04.webp](docs/screens/screen-04.webp)
-![screen-03.webp](docs/screens/screen-03.webp)
-![screen-08.webp](docs/screens/screen-08.webp)
-![screen-09.webp](docs/screens/screen-09.webp)
-![screen-24.webp](docs/screens/screen-24.webp)
 
 ## Feedback and contributions
 
@@ -190,8 +172,19 @@ noncommercial use is permitted while redistribution and modified versions are re
 license text itself is authoritative. This deliberately conservative prerelease license may be
 relaxed for future versions once the project's long-term distribution model is settled.
 
-The development source remains available for manual installation without charge: users provide
-Git and Node.js, manage the checkout and dependencies, and update it with `git pull`. Official
-packaged installers may be offered separately as a paid convenience product—potentially through
-platforms such as Steam—to provide installation, a bundled runtime, launching, and automatic
-updates.
+The development source remains available for manual installation without charge. Official packaged
+releases may later be offered separately as paid distributions through platforms such as Steam,
+with bundled installation, runtime, launching, and automatic updates.
+
+## Screenshots
+
+![PHOENIX current ship overview](docs/screens/screen-02.webp)
+![PHOENIX system cartography](docs/screens/screen-06.webp)
+![PHOENIX mission tracking](docs/screens/screen-10.webp)
+![PHOENIX engineering blueprint browser](docs/screens/screen-22.webp)
+![PHOENIX encoded materials inventory](docs/screens/screen-11.webp)
+![PHOENIX ship catalogue](docs/screens/screen-04.webp)
+![PHOENIX stored modules](docs/screens/screen-03.webp)
+![PHOENIX galaxy query console](docs/screens/screen-08.webp)
+![PHOENIX trade opportunities query](docs/screens/screen-09.webp)
+![PHOENIX exploration targets](docs/screens/screen-24.webp)
