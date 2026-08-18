@@ -28,13 +28,29 @@ test('device settings expose only browser-local command following and numpad cap
   await act(async () => renderer.unmount())
 })
 
-function settingsApi (): PhoenixApi {
+test('saved OpenAI configuration clearly reports that PHOENIX must restart', async () => {
+  const api = settingsApi({ configured: true, source: 'stored', stored: true, restartRequired: true })
+  const renderer = await act(async () => create(
+    <SettingsPage
+      api={api}
+      audio={{ devices: { inputs: [], outputs: [] }, inputId: '', outputId: '', setInputId() {}, setOutputId() {} }}
+      devicePreferences={new BrowserDevicePreferences(new MemoryStorage())}
+    />
+  ))
+  const markup = JSON.stringify(renderer.toJSON())
+
+  expect(markup).toContain('Restart required')
+  expect(markup).toContain('OpenAI configuration changed. Restart PHOENIX to apply it.')
+  await act(async () => renderer.unmount())
+})
+
+function settingsApi (openAi = { configured: false, source: 'none' as const, stored: false, restartRequired: false }): PhoenixApi {
   return {
     async getInstallationSettings() {
       return {
         controlsEnabled: true,
         copilotPermissions: { gameActions: false, macros: false, dangerousActions: false },
-        openAi: { configured: false, source: 'none', stored: false, restartRequired: false }
+        openAi
       }
     },
     async getPairingStatus() { return { authenticated: true, installationId: 'test', pairingRequired: false } },

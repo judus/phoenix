@@ -123,11 +123,12 @@ function CopilotSettings ({ api, settings, onChange }: {
   }
 
   return <div className="widget-command-row">
-    <Widget title="Copilot · OpenAI" meta={status.configured ? `Configured · ${status.source}` : 'Not configured'}>
+    <Widget title="Copilot · OpenAI" meta={status.restartRequired ? 'Restart required' : status.configured ? `Configured · ${status.source}` : 'Not configured'}>
       <Form id="openai-settings-form" onSubmit={event => { event.preventDefault(); void save() }}>
         <Field htmlFor="openai-key" label={status.stored ? 'Replace API key' : 'API key'}>
           <TextInput id="openai-key" type="password" autoComplete="off" value={apiKey} onChange={event => setApiKey(event.target.value)} />
         </Field>
+        {status.restartRequired && <Status marker={false} tone="warning" wrap>OpenAI configuration changed. Restart PHOENIX to apply it.</Status>}
         {error && <Status tone="danger">{error}</Status>}
       </Form>
     </Widget>
