@@ -228,6 +228,8 @@ using System.Runtime.InteropServices;
 
 public static class PhoenixSendInput {
     private const uint InputKeyboard = 1;
+    private const uint KeyEventScanCode = 0x0008;
+    private const uint MapVirtualKeyToScanCodeExtended = 4;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct Input {
@@ -271,13 +273,19 @@ public static class PhoenixSendInput {
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint SendInput(uint count, Input[] inputs, int size);
 
+    [DllImport("user32.dll")]
+    private static extern uint MapVirtualKey(uint code, uint mapType);
+
     public static void Send(ushort[] virtualKeys, uint[] flags) {
         if (virtualKeys.Length != flags.Length) throw new ArgumentException("Mismatched input arrays.");
         var inputs = new Input[virtualKeys.Length];
         for (var index = 0; index < virtualKeys.Length; index++) {
+            var scanCode = MapVirtualKey(virtualKeys[index], MapVirtualKeyToScanCodeExtended);
+            if (scanCode == 0) throw new Win32Exception("Windows could not map a virtual key to a hardware scan code.");
             inputs[index].type = InputKeyboard;
-            inputs[index].data.keyboard.virtualKey = virtualKeys[index];
-            inputs[index].data.keyboard.flags = flags[index];
+            inputs[index].data.keyboard.virtualKey = 0;
+            inputs[index].data.keyboard.scanCode = (ushort)(scanCode & 0xff);
+            inputs[index].data.keyboard.flags = flags[index] | KeyEventScanCode;
         }
         var sent = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(Input)));
         if (sent != inputs.Length) throw new Win32Exception(Marshal.GetLastWin32Error());
