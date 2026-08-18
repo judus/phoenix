@@ -185,8 +185,8 @@ environment. Users do not need to create or change a global `OPENAI_API_KEY` for
 PHOENIX-specific variable takes precedence when both exist. See [`.env.example`](.env.example) for
 ports, paths, models, input backends, and other overrides.
 
-Expect breaking changes and no installation support yet. PHOENIX reports unknown data as unknown
-and distinguishes “command sent” from “ship definitely did the thing.”
+**Expect breaking changes and no installation support yet. PHOENIX reports unknown data as unknown
+and distinguishes “command sent” from “ship definitely did the thing.”**
 
 ![screen-02.webp](docs/screens/screen-02.webp)
 ![screen-06.webp](docs/screens/screen-06.webp)
