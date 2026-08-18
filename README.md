@@ -142,6 +142,12 @@ Copilot is optional and remains disabled when no API key is available. Use
 from the server environment. The PHOENIX-specific variable takes precedence. See
 [`.env.example`](.env.example) for ports, paths, models, input backends, and other overrides.
 
+Realtime voice requires PHOENIX to remain open in a browser on the computer running the server.
+Open it through `http://localhost:3400`, connect voice once, allow microphone access, then return
+focus to Elite while keeping the browser open. Paired auxiliary displays can control that voice
+host over the network; for practical cockpit use, Realtime voice therefore requires at least one
+auxiliary display.
+
 ## Next steps
 
 1. Add more Copilot providers. OpenAI is currently the only supported provider. PHOENIX is not
