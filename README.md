@@ -145,7 +145,8 @@ Realtime voice requires PHOENIX to remain open in a browser on the computer runn
 Open it through `http://localhost:3400`, connect voice once, allow microphone access, then return
 focus to Elite while keeping the browser open. Paired auxiliary displays can control that voice
 host over the network; for practical cockpit use, Realtime voice therefore requires at least one
-auxiliary display.
+auxiliary display. Select the intended microphone and output under Voice audio, avoid Stereo Mix or
+other loopback inputs, and use headphones if speaker bleed would make Copilot respond to game audio.
 
 ## Next steps
 
