@@ -107,8 +107,7 @@ npm.cmd start
 
 Using `npm.cmd` avoids PowerShell execution-policy problems without changing the machine's policy.
 Windows controls send the commander's saved keyboard bindings to the active window, so keep Elite
-focused. PHOENIX does not modify Elite or its game files. A backdoor, perhaps—but one with a
-manifest, diagnostics, and manners.
+focused. PHOENIX does not modify Elite or its game files.
 
 ### Linux
 
