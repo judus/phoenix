@@ -15,30 +15,14 @@ PHOENIX is a local-first companion application and ship-computer interface for E
 
 ## Current status
 
-PHOENIX officially supports manual source installations on **Linux x64 and Windows x64**. Bring
-Git and Node.js, clone the repository, install the dependencies, and run it like a big boy. Both
-platforms are also built, checksum-verified, and smoke-tested in CI, but there is no public
-installer or launcher yet.
+PHOENIX runs on **Linux x64 and Windows x64**. Its core game data, controls, galaxy tools, Copilot,
+and multi-device cockpit are usable today, but the project remains under active development.
 
-Windows support has also been verified against a live Elite Dangerous installation: PHOENIX
-automatically discovers the standard journal, status, inventory, navigation-route, and bindings
-files; reconstructs local commander state; and operates configured controls with low latency.
-Some data—such as stored ships and stored modules—is published by Elite only after the relevant
-in-game screen is opened. PHOENIX distinguishes that unsynchronized state from an authoritative
-empty result and explains the required trigger in the interface.
+The interface has been optimized primarily for **Chrome on an Android tablet**. Desktop layouts,
+other browsers, and other devices still need broader testing.
 
-Windows controls use the standard `SendInput` API through a lifecycle-owned local helper. PHOENIX
-does not inject code into Elite, modify its process memory, or write to its game files. Input is sent
-to the active interactive Windows desktop, so the intended game window still needs focus. A
-backdoor, perhaps—but one with a manifest, diagnostics, and manners.
-
-PHOENIX has so far been visually optimized and reviewed only for **Chrome on an Android tablet**.
-Desktop layouts, other browsers, and other devices may work, but have not received the same visual
-verification.
-
-Telemetry ingestion, journal reconstruction, and external data integrations are operational, but
-their data quality and completeness still need broader verification against real commander history
-and gameplay. PHOENIX preserves unknowns rather than presenting unverified conclusions as facts.
+Some information becomes available only after Elite reports it. PHOENIX labels missing or unknown
+data instead of guessing and explains when an action in Elite is required.
 
 ## Implemented features
 
@@ -125,6 +109,9 @@ npm.cmd start
 ```
 
 Using `npm.cmd` avoids PowerShell execution-policy problems without changing the machine's policy.
+Windows controls send the commander's saved keyboard bindings to the active window, so keep Elite
+focused. PHOENIX does not modify Elite or its game files. A backdoor, perhaps—but one with a
+manifest, diagnostics, and manners.
 
 ### Linux
 
