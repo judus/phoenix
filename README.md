@@ -62,38 +62,10 @@ and gameplay. PHOENIX preserves unknowns rather than presenting unverified concl
   screen follows Copilot navigation, and coordinate the active voice host without turning every
   connected display into the same screen.
 
-## Next steps
+## Installation
 
-1. Add more AI and LLM providers. OpenAI is currently the only supported Copilot provider. PHOENIX
-   is not committing to provider exclusivity without a very persuasive sponsorship agreement. 😄
-2. Broaden Windows verification across more machines, Elite installations, and control bindings.
-3. Continue improving the tablet interface first.
-4. Adapt and visually verify the interface for desktop and other auxiliary displays.
-
-## Feedback and contributions
-
-PHOENIX is not accepting code contributions or pull requests before its first release. Keeping the
-implementation under one maintainer for now helps the code and architecture remain coherent while
-the foundations settle. It also leaves room to prioritize the features that matter during actual
-gameplay—even if considerably more time is currently spent building the cockpit than flying the
-ship.
-
-Bug reports, constructive criticism, and feature requests are very welcome. Feel free to open an
-issue—real-world use cases and detailed reports are especially useful. See
-[CONTRIB.md](CONTRIB.md) for the current contribution and licensing policy.
-
-## License
-
-PHOENIX is source-available under the [PolyForm Strict License 1.0.0](LICENSE). Personal and other
-noncommercial use is permitted while redistribution and modified versions are restricted; the
-license text itself is authoritative. This deliberately conservative prerelease license may be
-relaxed for future versions once the project's long-term distribution model is settled.
-
-The development source remains available for manual installation without charge: users provide
-Git and Node.js, manage the checkout and dependencies, and update it with `git pull`. Official
-packaged installers may be offered separately as a paid convenience product—potentially through
-platforms such as Steam—to provide installation, a bundled runtime, launching, and automatic
-updates.
+**Expect breaking changes and no installation support yet. PHOENIX reports unknown data as unknown
+and distinguishes “command sent” from “ship definitely did the thing.”**
 
 Manual installation currently requires Git and Node.js 24.14+.
 
@@ -118,7 +90,7 @@ unsynchronized until Elite emits their snapshot—for example, entering a comman
 the mission manifest, opening Shipyard publishes stored ships, and opening Outfitting publishes
 stored modules.
 
-### Windows (PowerShell)
+### Windows with PowerShell
 
 Install the required tools from the command line:
 
@@ -179,6 +151,8 @@ Open `http://localhost:3400`. Developers who want the live development servers c
 npm run dev
 ```
 
+### Copilot configuration
+
 Copilot is optional and remains disabled when no API key is available. Prefer
 `PHOENIX_OPENAI_API_KEY` for an app-specific key. If that variable is absent, PHOENIX falls back to
 an existing `OPENAI_API_KEY` inherited from the server process—typically the user's global developer
@@ -186,8 +160,15 @@ environment. Users do not need to create or change a global `OPENAI_API_KEY` for
 PHOENIX-specific variable takes precedence when both exist. See [`.env.example`](.env.example) for
 ports, paths, models, input backends, and other overrides.
 
-**Expect breaking changes and no installation support yet. PHOENIX reports unknown data as unknown
-and distinguishes “command sent” from “ship definitely did the thing.”**
+## Next steps
+
+1. Add more AI and LLM providers. OpenAI is currently the only supported Copilot provider. PHOENIX
+   is not committing to provider exclusivity without a very persuasive sponsorship agreement. 😄
+2. Broaden Windows verification across more machines, Elite installations, and control bindings.
+3. Continue improving the tablet interface first.
+4. Adapt and visually verify the interface for desktop and other auxiliary displays.
+
+## More screenshots
 
 ![screen-02.webp](docs/screens/screen-02.webp)
 ![screen-06.webp](docs/screens/screen-06.webp)
@@ -199,3 +180,28 @@ and distinguishes “command sent” from “ship definitely did the thing.”**
 ![screen-08.webp](docs/screens/screen-08.webp)
 ![screen-09.webp](docs/screens/screen-09.webp)
 ![screen-24.webp](docs/screens/screen-24.webp)
+
+## Feedback and contributions
+
+PHOENIX is not accepting code contributions or pull requests before its first release. Keeping the
+implementation under one maintainer for now helps the code and architecture remain coherent while
+the foundations settle. It also leaves room to prioritize the features that matter during actual
+gameplay—even if considerably more time is currently spent building the cockpit than flying the
+ship.
+
+Bug reports, constructive criticism, and feature requests are very welcome. Feel free to open an
+issue—real-world use cases and detailed reports are especially useful. See
+[CONTRIB.md](CONTRIB.md) for the current contribution and licensing policy.
+
+## License
+
+PHOENIX is source-available under the [PolyForm Strict License 1.0.0](LICENSE). Personal and other
+noncommercial use is permitted while redistribution and modified versions are restricted; the
+license text itself is authoritative. This deliberately conservative prerelease license may be
+relaxed for future versions once the project's long-term distribution model is settled.
+
+The development source remains available for manual installation without charge: users provide
+Git and Node.js, manage the checkout and dependencies, and update it with `git pull`. Official
+packaged installers may be offered separately as a paid convenience product—potentially through
+platforms such as Steam—to provide installation, a bundled runtime, launching, and automatic
+updates.
