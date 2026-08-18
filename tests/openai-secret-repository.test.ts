@@ -10,7 +10,7 @@ afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) rmSync(directory, { recursive: true, force: true })
 })
 
-test('OpenAI secrets are written atomically with owner-only permissions', () => {
+test('OpenAI secrets are written atomically with owner-only permissions where supported', () => {
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-secret-'))
   temporaryDirectories.push(directory)
   const path = join(directory, 'nested', 'secrets.json')
@@ -18,7 +18,7 @@ test('OpenAI secrets are written atomically with owner-only permissions', () => 
 
   repository.save('sk-test-abcdefghijklmnopqrstuvwxyz')
   expect(repository.get()).toBe('sk-test-abcdefghijklmnopqrstuvwxyz')
-  expect(statSync(path).mode & 0o777).toBe(0o600)
+  if (process.platform !== 'win32') expect(statSync(path).mode & 0o777).toBe(0o600)
   expect(readFileSync(path, 'utf8')).toContain('openAiApiKey')
 
   repository.remove()

@@ -1,16 +1,17 @@
+import { resolve } from 'node:path'
 import { expect, test } from 'vitest'
 import { ApplicationPaths } from '../apps/server/src/infrastructure/application-paths.js'
 
 test('uses repository-local writable roots explicitly in development', () => {
   const paths = ApplicationPaths.development('/workspace/phoenix', {})
 
-  expect(paths.resources.agents).toBe('/workspace/phoenix/agents')
-  expect(paths.user.config).toBe('/workspace/phoenix/data')
-  expect(paths.user.data).toBe('/workspace/phoenix/data')
-  expect(paths.user.logs).toBe('/workspace/phoenix/data/runtime/logs')
+  expect(paths.resources.agents).toBe(resolve('/workspace/phoenix', 'agents'))
+  expect(paths.user.config).toBe(resolve('/workspace/phoenix', 'data'))
+  expect(paths.user.data).toBe(resolve('/workspace/phoenix', 'data'))
+  expect(paths.user.logs).toBe(resolve('/workspace/phoenix', 'data', 'runtime', 'logs'))
 })
 
-test('uses XDG roots for a Linux installation', () => {
+test.skipIf(process.platform === 'win32')('uses XDG roots for a Linux installation', () => {
   const paths = new ApplicationPaths({
     environment: { XDG_DATA_HOME: '/data', XDG_STATE_HOME: '/state' },
     homeDirectory: '/home/cmdr',
