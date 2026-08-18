@@ -77,6 +77,7 @@ import { InProcessPublisher } from './infrastructure/in-process-publisher.js'
 import { PhoenixHttpServer } from './infrastructure/phoenix-http-server.js'
 import { RecordingInputBackend } from './infrastructure/recording-input-backend.js'
 import { LinuxXdotoolInputBackend } from './infrastructure/linux-xdotool-input-backend.js'
+import { WindowsSendInputBackend } from './infrastructure/windows-sendinput-input-backend.js'
 import { SqliteDatabase } from './infrastructure/sqlite-database.js'
 import { EdsmCartographySource } from './infrastructure/edsm-cartography-source.js'
 import { createConfiguredCopilot } from './infrastructure/configured-copilot.js'
@@ -111,7 +112,7 @@ export interface PhoenixApplicationOptions {
   host?: string
   galnetSource?: GalnetSource
   inputBackend?: InputBackend
-  inputBackendMode?: 'recording' | 'linux-xdotool'
+  inputBackendMode?: 'recording' | 'linux-xdotool' | 'windows-sendinput'
   moduleCataloguePath?: string
   openAiSecretRepository?: OpenAiSecretRepository
   openAiEnvironmentKey?: string | null
@@ -464,6 +465,7 @@ export class PhoenixApplication {
 function configuredInputBackend (mode: string | undefined): InputBackend {
   if (!mode || mode === 'recording') return new RecordingInputBackend()
   if (mode === 'linux-xdotool') return new LinuxXdotoolInputBackend()
+  if (mode === 'windows-sendinput') return new WindowsSendInputBackend()
   throw new Error(`Unsupported PHOENIX input backend: ${mode}.`)
 }
 

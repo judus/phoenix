@@ -185,6 +185,31 @@ test('automatic Linux startup selects xdotool and produces runtime diagnostics',
   })
 })
 
+test('automatic Windows startup selects SendInput and produces runtime diagnostics', () => {
+  const result = bootstrapControlBackend(DEFAULT_PHOENIX_SETTINGS, {
+    createSendInputBackend: () => new StubInputBackend({
+      id: 'windows-sendinput',
+      available: true,
+      simulated: false,
+      detail: 'SendInput ready'
+    }),
+    environment: { SESSIONNAME: 'Console' },
+    now: () => new Date('2026-08-18T14:00:00.000Z'),
+    platform: 'win32'
+  })
+
+  expect(result.backend.getStatus().id).toBe('windows-sendinput')
+  expect(result.snapshot.controls).toEqual({
+    enabled: true,
+    configuredBackend: 'auto',
+    overrideBackend: null,
+    effectiveBackend: 'windows-sendinput',
+    available: true,
+    simulated: false,
+    detail: 'SendInput ready'
+  })
+})
+
 test('developer overrides and disabled user settings remain distinct', () => {
   const overridden = bootstrapControlBackend(DEFAULT_PHOENIX_SETTINGS, {
     environment: { PHOENIX_INPUT_BACKEND: 'recording' },

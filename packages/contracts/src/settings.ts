@@ -3,7 +3,7 @@ import { GameActionCategorySchema } from './actions.js'
 import { CommandTargetSchema } from './commands.js'
 import { NumpadShortcutCollectionSchema } from './numpad.js'
 
-export const InputBackendModeSchema = z.enum(['auto', 'recording', 'linux-xdotool'])
+export const InputBackendModeSchema = z.enum(['auto', 'recording', 'linux-xdotool', 'windows-sendinput'])
 
 export const CopilotExecutionPermissionsSchema = z.object({
   gameActions: z.boolean().default(false),

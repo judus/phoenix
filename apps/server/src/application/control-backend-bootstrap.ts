@@ -9,8 +9,10 @@ import type { InputBackend } from '../domain/game-actions.js'
 import { LinuxXdotoolInputBackend } from '../infrastructure/linux-xdotool-input-backend.js'
 import { RecordingInputBackend } from '../infrastructure/recording-input-backend.js'
 import { UnavailableInputBackend } from '../infrastructure/unavailable-input-backend.js'
+import { WindowsSendInputBackend } from '../infrastructure/windows-sendinput-input-backend.js'
 
 export interface ControlBackendBootstrapOptions {
+  createSendInputBackend?: () => InputBackend
   createXdotoolBackend?: () => InputBackend
   environment?: NodeJS.ProcessEnv
   now?: () => Date
@@ -33,7 +35,7 @@ export function bootstrapControlBackend (
     : null
   const requestedBackend = overrideBackend ?? settings.controls.backend
   const backend = settings.controls.enabled
-    ? selectBackend(requestedBackend, platform, options.createXdotoolBackend)
+    ? selectBackend(requestedBackend, platform, options.createXdotoolBackend, options.createSendInputBackend)
     : new UnavailableInputBackend('disabled', 'Game controls are disabled in PHOENIX settings.')
   const status = backend.getStatus()
 
@@ -60,12 +62,15 @@ export function bootstrapControlBackend (
 function selectBackend (
   mode: InputBackendMode,
   platform: NodeJS.Platform,
-  createXdotoolBackend: (() => InputBackend) | undefined
+  createXdotoolBackend: (() => InputBackend) | undefined,
+  createSendInputBackend: (() => InputBackend) | undefined
 ): InputBackend {
   if (mode === 'recording') return new RecordingInputBackend()
   if (mode === 'linux-xdotool') return createXdotoolBackend?.() ?? new LinuxXdotoolInputBackend()
+  if (mode === 'windows-sendinput') return createSendInputBackend?.() ?? new WindowsSendInputBackend()
 
   if (platform === 'linux') return createXdotoolBackend?.() ?? new LinuxXdotoolInputBackend()
+  if (platform === 'win32') return createSendInputBackend?.() ?? new WindowsSendInputBackend()
   return new UnavailableInputBackend(
     `unsupported-${platform}`,
     `Automatic game input is not implemented for ${platform}.`
