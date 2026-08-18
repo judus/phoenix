@@ -64,9 +64,8 @@ and gameplay. PHOENIX preserves unknowns rather than presenting unverified concl
 
 ## Next steps
 
-1. Add more AI and LLM providers. OpenAI is currently the only supported Copilot provider, but
-   PHOENIX does not intend to remain provider-exclusive—unless OpenAI would like to sponsor that
-   particular design constraint.
+1. Add more AI and LLM providers. OpenAI is currently the only supported Copilot provider. PHOENIX
+   is not committing to provider exclusivity without a very persuasive sponsorship agreement. 😄
 2. Broaden Windows verification across more machines, Elite installations, and control bindings.
 3. Continue improving the tablet interface first.
 4. Adapt and visually verify the interface for desktop and other auxiliary displays.
