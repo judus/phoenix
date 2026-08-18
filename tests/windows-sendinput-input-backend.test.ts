@@ -25,7 +25,7 @@ test.each([
     { virtualKey: 0xa5, flags: 3 },
     { virtualKey: 0xa0, flags: 2 }
   ]]
-] as Array<[GameActionOperation, WindowsInputEvent[]]>)('SendInput %s emits one ordered native input batch', async (operation, expected) => {
+] as Array<[GameActionOperation, WindowsInputEvent[]]>)('SendInput %s emits ordered native input with a bounded tap hold', async (operation, expected) => {
   const runner = new RecordingSendInputRunner()
   const backend = configuredBackend(runner)
 
@@ -36,7 +36,10 @@ test.each([
     available: true,
     simulated: false
   })
-  expect(runner.batches).toEqual([expected])
+  expect(runner.requests).toEqual([{
+    events: expected,
+    holdMilliseconds: operation === 'tap' ? 50 : 0
+  }])
 })
 
 test('SendInput translates Elite numpad, special and function key names', async () => {
@@ -46,17 +49,23 @@ test('SendInput translates Elite numpad, special and function key names', async 
   await backend.send('tap', chord('Numpad_Divide', ['RightControl']))
   await backend.send('tap', chord('F11'))
 
-  expect(runner.batches).toEqual([
-    [
-      { virtualKey: 0xa3, flags: 1 },
-      { virtualKey: 0x6f, flags: 1 },
-      { virtualKey: 0x6f, flags: 3 },
-      { virtualKey: 0xa3, flags: 3 }
-    ],
-    [
-      { virtualKey: 0x7a, flags: 0 },
-      { virtualKey: 0x7a, flags: 2 }
-    ]
+  expect(runner.requests).toEqual([
+    {
+      events: [
+        { virtualKey: 0xa3, flags: 1 },
+        { virtualKey: 0x6f, flags: 1 },
+        { virtualKey: 0x6f, flags: 3 },
+        { virtualKey: 0xa3, flags: 3 }
+      ],
+      holdMilliseconds: 50
+    },
+    {
+      events: [
+        { virtualKey: 0x7a, flags: 0 },
+        { virtualKey: 0x7a, flags: 2 }
+      ],
+      holdMilliseconds: 50
+    }
   ])
 })
 
@@ -65,7 +74,7 @@ test('SendInput rejects unsupported Elite keys before invoking the helper', asyn
   const backend = configuredBackend(runner)
 
   await expect(backend.send('tap', chord('Mouse_1'))).rejects.toThrow('Unsupported Elite keyboard key')
-  expect(runner.batches).toEqual([])
+  expect(runner.requests).toEqual([])
 })
 
 test('SendInput propagates native helper failures', async () => {
@@ -96,13 +105,17 @@ test('SendInput reports non-Windows, missing helper and non-interactive sessions
 })
 
 class RecordingSendInputRunner implements WindowsSendInputRunner {
-  public readonly batches: WindowsInputEvent[][] = []
+  public readonly requests: Array<{
+    events: WindowsInputEvent[]
+    holdMilliseconds: number
+  }> = []
 
   public run (
     _executable: string,
-    events: readonly WindowsInputEvent[]
+    events: readonly WindowsInputEvent[],
+    holdMilliseconds: number
   ): Promise<void> {
-    this.batches.push([...events])
+    this.requests.push({ events: [...events], holdMilliseconds })
     return Promise.resolve()
   }
 }

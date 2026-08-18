@@ -17,6 +17,7 @@ export interface WindowsSendInputRunner {
   run(
     executable: string,
     events: readonly WindowsInputEvent[],
+    holdMilliseconds: number,
     environment: NodeJS.ProcessEnv,
     signal?: AbortSignal
   ): Promise<void>
@@ -68,6 +69,7 @@ export class WindowsSendInputBackend implements InputBackend {
     await this.runner.run(
       this.executablePath,
       windowsInputEvents(operation, binding),
+      operation === 'tap' ? WINDOWS_TAP_HOLD_MILLISECONDS : 0,
       this.environment,
       signal
     )
@@ -78,6 +80,7 @@ export class ExecFileWindowsSendInputRunner implements WindowsSendInputRunner {
   public async run (
     executable: string,
     events: readonly WindowsInputEvent[],
+    holdMilliseconds: number,
     environment: NodeJS.ProcessEnv,
     signal?: AbortSignal
   ): Promise<void> {
@@ -92,7 +95,11 @@ export class ExecFileWindowsSendInputRunner implements WindowsSendInputRunner {
         '-EncodedCommand',
         POWERSHELL_SENDINPUT_COMMAND
       ], {
-        env: { ...environment, PHOENIX_SENDINPUT_EVENTS: serializedEvents },
+        env: {
+          ...environment,
+          PHOENIX_SENDINPUT_EVENTS: serializedEvents,
+          PHOENIX_SENDINPUT_HOLD_MILLISECONDS: holdMilliseconds.toString()
+        },
         signal,
         timeout: 5_000,
         windowsHide: true
@@ -107,6 +114,8 @@ export class ExecFileWindowsSendInputRunner implements WindowsSendInputRunner {
     })
   }
 }
+
+const WINDOWS_TAP_HOLD_MILLISECONDS = 50
 
 function windowsInputEvents (operation: GameActionOperation, binding: LogicalInputChord): WindowsInputEvent[] {
   const keys = [
@@ -276,16 +285,28 @@ public static class PhoenixSendInput {
     [DllImport("user32.dll")]
     private static extern uint MapVirtualKey(uint code, uint mapType);
 
-    public static void Send(ushort[] virtualKeys, uint[] flags) {
+    public static void Send(ushort[] virtualKeys, uint[] flags, int holdMilliseconds) {
         if (virtualKeys.Length != flags.Length) throw new ArgumentException("Mismatched input arrays.");
-        var inputs = new Input[virtualKeys.Length];
-        for (var index = 0; index < virtualKeys.Length; index++) {
-            var scanCode = MapVirtualKey(virtualKeys[index], MapVirtualKeyToScanCodeExtended);
+        var firstRelease = Array.FindIndex(flags, flag => (flag & 0x0002) != 0);
+        if (holdMilliseconds > 0 && firstRelease > 0) {
+            SendRange(virtualKeys, flags, 0, firstRelease);
+            System.Threading.Thread.Sleep(holdMilliseconds);
+            SendRange(virtualKeys, flags, firstRelease, virtualKeys.Length - firstRelease);
+            return;
+        }
+        SendRange(virtualKeys, flags, 0, virtualKeys.Length);
+    }
+
+    private static void SendRange(ushort[] virtualKeys, uint[] flags, int offset, int count) {
+        var inputs = new Input[count];
+        for (var index = 0; index < count; index++) {
+            var sourceIndex = offset + index;
+            var scanCode = MapVirtualKey(virtualKeys[sourceIndex], MapVirtualKeyToScanCodeExtended);
             if (scanCode == 0) throw new Win32Exception("Windows could not map a virtual key to a hardware scan code.");
             inputs[index].type = InputKeyboard;
             inputs[index].data.keyboard.virtualKey = 0;
             inputs[index].data.keyboard.scanCode = (ushort)(scanCode & 0xff);
-            inputs[index].data.keyboard.flags = flags[index] | KeyEventScanCode;
+            inputs[index].data.keyboard.flags = flags[sourceIndex] | KeyEventScanCode;
         }
         var sent = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(Input)));
         if (sent != inputs.Length) throw new Win32Exception(Marshal.GetLastWin32Error());
@@ -302,7 +323,11 @@ foreach ($entry in $entries) {
     $virtualKeys.Add([UInt16]::Parse($parts[0]))
     $flags.Add([UInt32]::Parse($parts[1]))
 }
-[PhoenixSendInput]::Send($virtualKeys.ToArray(), $flags.ToArray())
+[PhoenixSendInput]::Send(
+    $virtualKeys.ToArray(),
+    $flags.ToArray(),
+    [Int32]::Parse($env:PHOENIX_SENDINPUT_HOLD_MILLISECONDS)
+)
 `
 
 const POWERSHELL_SENDINPUT_COMMAND = Buffer.from(POWERSHELL_SENDINPUT_SCRIPT, 'utf16le').toString('base64')
