@@ -183,15 +183,15 @@ ports, paths, models, input backends, and other overrides.
 
 ## Feedback and contributions
 
+Bug reports, constructive criticism, and feature requests are very welcome. Feel free to open an
+issue—real-world use cases and detailed reports are especially useful. See
+[CONTRIB.md](CONTRIB.md) for the current contribution and licensing policy.
+
 PHOENIX is not accepting code contributions or pull requests before its first release. Keeping the
 implementation under one maintainer for now helps the code and architecture remain coherent while
 the foundations settle. It also leaves room to prioritize the features that matter during actual
 gameplay—even if considerably more time is currently spent building the cockpit than flying the
 ship.
-
-Bug reports, constructive criticism, and feature requests are very welcome. Feel free to open an
-issue—real-world use cases and detailed reports are especially useful. See
-[CONTRIB.md](CONTRIB.md) for the current contribution and licensing policy.
 
 ## License
 
