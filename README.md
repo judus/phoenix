@@ -48,8 +48,11 @@ data instead of guessing and explains when an action in Elite is required.
 
 ## Installation
 
-**Expect breaking changes and no installation support yet. PHOENIX reports unknown data as unknown
-and distinguishes “command sent” from “ship definitely did the thing.”**
+**PHOENIX is under active development. Expect breaking changes; help with manual installation is
+not available yet.**
+
+**PHOENIX does not guess. Unknown data remains unknown, and sending a command is not proof that
+Elite carried it out.**
 
 Manual installation currently requires Git and Node.js 24.14+.
 
