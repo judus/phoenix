@@ -94,31 +94,70 @@ packaged installers may be offered separately as a paid convenience product—po
 platforms such as Steam—to provide installation, a bundled runtime, launching, and automatic
 updates.
 
-Manual installation currently requires Git and Node.js 24.14+:
+Manual installation currently requires Git and Node.js 24.14+.
 
 The first launch requires an internet connection to fetch the upstream game catalogues into local
 runtime storage; PHOENIX does not distribute those third-party catalogue snapshots.
+
+### Windows (PowerShell)
+
+Install the required tools from the command line:
+
+```powershell
+winget install --id OpenJS.NodeJS.LTS -e --source winget
+winget install --id Git.Git -e --source winget
+```
+
+Close and reopen PowerShell so the new commands are on `PATH`, then install and start PHOENIX:
+
+```powershell
+node --version
+npm.cmd --version
+git --version
+
+cd $HOME
+git clone https://github.com/judus/phoenix.git
+cd .\phoenix
+npm.cmd install
+npm.cmd run build
+npm.cmd start
+```
+
+Open `http://localhost:3400`. Stop PHOENIX with `Ctrl+C`. To update later:
+
+```powershell
+cd $HOME\phoenix
+git pull --ff-only
+npm.cmd install
+npm.cmd run build
+npm.cmd start
+```
+
+Using `npm.cmd` avoids PowerShell execution-policy problems without changing the machine's policy.
+
+### Linux
 
 ```sh
 git clone https://github.com/judus/phoenix.git
 cd phoenix
 npm install
-npm run dev
+npm run build
+npm start
 ```
 
 Update an existing checkout manually:
 
 ```sh
-git pull
+git pull --ff-only
 npm install
-```
-
-Open `http://localhost:3401` to access the development application. To build and serve the
-production application on `http://localhost:3400`:
-
-```sh
 npm run build
 npm start
+```
+
+Open `http://localhost:3400`. Developers who want the live development servers can instead run:
+
+```sh
+npm run dev
 ```
 
 Copilot is optional and uses `PHOENIX_OPENAI_API_KEY` or `OPENAI_API_KEY` when configured. See
