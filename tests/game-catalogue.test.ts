@@ -6,33 +6,26 @@ import { CatalogueShipLoadoutEnricher } from '../apps/server/src/application/cat
 
 const projectRoot = fileURLToPath(new URL('../', import.meta.url))
 const catalogue = new JsonGameCatalogue(
-  `${projectRoot}data/catalogue/ships.json`,
-  `${projectRoot}data/catalogue/modules.json`
+  `${projectRoot}tests/fixtures/catalogue/ships.json`,
+  `${projectRoot}tests/fixtures/catalogue/modules.json`
 )
 
-test('catalogue resolves Frontier journal aliases and the verified Type-11 hull', () => {
-  expect(catalogue.resolveShip('CobraMkIII')?.displayName).toBe('Cobra Mk III')
-
-  const type11 = catalogue.resolveShip('lakonminer')
-  expect(type11).toMatchObject({
-    id: 'type_11_prospector',
-    displayName: 'Type-11 Prospector',
-    manufacturer: 'Lakon',
+test('catalogue resolves journal aliases and ship definitions', () => {
+  const ship = catalogue.resolveShip('testhopper')
+  expect(ship).toMatchObject({
+    id: 'test_hopper',
+    displayName: 'Test Hopper',
+    manufacturer: 'Fixture Works',
     landingPadSize: 'medium',
-    performance: { baseArmour: 350, baseShieldStrength: 275 },
-    source: { kind: 'catalogue', name: 'EDCD Coriolis Data' }
+    performance: { baseArmour: 100, baseShieldStrength: 50 },
+    source: { kind: 'catalogue', name: 'PHOENIX synthetic test catalogue' }
   })
-  expect(type11?.slots).toMatchObject({
-    core: [{ size: 6 }, { size: 5 }, { size: 5 }, { size: 3 }, { size: 7 }, { size: 3 }, { size: 5 }],
-    utilities: [{ size: 0 }, { size: 0 }, { size: 0 }, { size: 0 }]
-  })
-  expect(type11?.slots.hardpoints).toHaveLength(8)
-  expect(type11?.slots.optional).toHaveLength(13)
+  expect(ship?.slots.hardpoints).toHaveLength(1)
 })
 
 test('catalogue lists canonical hulls alphabetically without exposing mutable storage', () => {
   const ships = catalogue.listShips()
-  expect(ships.length).toBeGreaterThan(40)
+  expect(ships).toHaveLength(3)
   expect(ships.map(ship => ship.displayName)).toEqual(
     [...ships].map(ship => ship.displayName).sort((left, right) => left.localeCompare(right))
   )
@@ -41,32 +34,31 @@ test('catalogue lists canonical hulls alphabetically without exposing mutable st
 })
 
 test('catalogue resolves known modules and labels unknown new modules as inferred', () => {
-  expect(catalogue.resolveModule('int_powerplant_size6_class5')).toMatchObject({
-    displayName: 'Power Plant',
-    size: 6,
+  expect(catalogue.resolveModule('int_testpowerplant_size4_class5')).toMatchObject({
+    displayName: 'Test Power Plant',
+    size: 4,
     rating: 'A',
-    source: { kind: 'catalogue', name: 'EDCD FDevIDs' }
+    source: { kind: 'catalogue', name: 'PHOENIX synthetic test catalogue' }
   })
-  expect(catalogue.resolveModule('hpt_miningtoolv2_fixed_large')).toMatchObject({
-    displayName: 'Mining Volley Repeater',
-    size: 3,
+  expect(catalogue.resolveModule('hpt_testlaser_fixed_medium')).toMatchObject({
+    displayName: 'Test Laser',
+    size: 2,
     mount: 'Fixed',
     source: { kind: 'catalogue' }
   })
 })
 
 test('loadout enrichment keeps observed fields separate from expected hull slots', () => {
-  const ship = emptyShip('lakonminer')
+  const ship = emptyShip('testhopper')
   ship.modules = [
-    emptyModule('PowerPlant', 'int_powerplant_size6_class5', 'core', 6),
-    emptyModule('LargeMiningHardpoint1', 'hpt_miningtoolv2_fixed_large', 'hardpoint', 3),
-    emptyModule('TinyHardpoint4', 'hpt_plasmapointdefence_turret_tiny', 'utility', null),
-    emptyModule('LimpetController01', 'int_multidronecontrol_miningv2_size5_class5', 'optional', 5),
-    emptyModule('Slot06_Size4', 'int_refinery_size4_class5', 'optional', 4)
+    emptyModule('PowerPlant', 'int_testpowerplant_size4_class5', 'core', 4),
+    emptyModule('MediumHardpoint1', 'hpt_testlaser_fixed_medium', 'hardpoint', 2),
+    emptyModule('TinyHardpoint1', 'hpt_testutility_turret_tiny', 'utility', null),
+    emptyModule('Slot01_Size3', 'int_testmodule_size3_class5', 'optional', 3)
   ]
 
   const enriched = new CatalogueShipLoadoutEnricher(catalogue).enrich(ship)
-  expect(enriched.definition?.displayName).toBe('Type-11 Prospector')
+  expect(enriched.definition?.displayName).toBe('Test Hopper')
   expect(enriched.modules.map(module => ({
     slotId: module.slotId,
     observedSize: module.slotSize,
@@ -74,11 +66,10 @@ test('loadout enrichment keeps observed fields separate from expected hull slots
     expectedName: module.expectedSlot?.name,
     source: module.definition?.source.kind
   }))).toEqual([
-    { slotId: 'PowerPlant', observedSize: 6, expectedSize: 6, expectedName: 'Power Plant', source: 'catalogue' },
-    { slotId: 'LargeMiningHardpoint1', observedSize: 3, expectedSize: 3, expectedName: 'Mining', source: 'catalogue' },
-    { slotId: 'TinyHardpoint4', observedSize: null, expectedSize: 0, expectedName: undefined, source: 'catalogue' },
-    { slotId: 'LimpetController01', observedSize: 5, expectedSize: 5, expectedName: 'Limpets', source: 'catalogue' },
-    { slotId: 'Slot06_Size4', observedSize: 4, expectedSize: 4, expectedName: undefined, source: 'catalogue' }
+    { slotId: 'PowerPlant', observedSize: 4, expectedSize: 4, expectedName: 'Power Plant', source: 'catalogue' },
+    { slotId: 'MediumHardpoint1', observedSize: 2, expectedSize: 2, expectedName: 'Test hardpoint', source: 'catalogue' },
+    { slotId: 'TinyHardpoint1', observedSize: null, expectedSize: 0, expectedName: undefined, source: 'inferred' },
+    { slotId: 'Slot01_Size3', observedSize: 3, expectedSize: undefined, expectedName: undefined, source: 'inferred' }
   ])
 })
 

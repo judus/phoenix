@@ -81,6 +81,9 @@ convenient installation and automatic updates.
 
 Development currently targets Node.js 24.14+:
 
+The first launch requires an internet connection to fetch the upstream game catalogues into local
+runtime storage; PHOENIX does not distribute those third-party catalogue snapshots.
+
 ```sh
 npm install
 npm run dev

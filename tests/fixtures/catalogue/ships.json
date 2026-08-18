@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "name": "PHOENIX synthetic test catalogue",
+    "repository": "https://example.invalid/phoenix-test-catalogue",
+    "revision": "synthetic-1"
+  },
+  "aliases": {
+    "testhopper": "test_hopper",
+    "cobramkiii": "cobra_mk_iii",
+    "lakonminer": "type_11_prospector"
+  },
+  "ships": [
+    {
+      "id": "test_hopper",
+      "identifiers": { "coriolis": "test_hopper", "frontierEdId": null },
+      "displayName": "Test Hopper",
+      "manufacturer": "Fixture Works",
+      "landingPadSize": "medium",
+      "performance": { "baseArmour": 100, "baseShieldStrength": 50, "boost": 250, "hullMass": 42, "speed": 180 },
+      "slots": {
+        "core": [
+          { "size": 4, "name": "Power Plant" },
+          { "size": 4, "name": "Thrusters" },
+          { "size": 3, "name": "Frame Shift Drive" }
+        ],
+        "hardpoints": [{ "size": 2, "name": "Test hardpoint" }],
+        "optional": [{ "size": 3, "name": "Test optional" }],
+        "utilities": [{ "size": 0 }]
+      }
+    },
+    {
+      "id": "cobra_mk_iii",
+      "identifiers": { "coriolis": "cobra_mk_iii", "frontierEdId": null },
+      "displayName": "Cobra Mk III",
+      "manufacturer": "Synthetic Shipworks",
+      "landingPadSize": "small",
+      "performance": { "baseArmour": 100, "baseShieldStrength": 50, "boost": 250, "hullMass": 42, "speed": 180 },
+      "slots": {
+        "core": [
+          { "size": 4, "name": "Power Plant" },
+          { "size": 4, "name": "Thrusters" },
+          { "size": 4, "name": "Frame Shift Drive" }
+        ],
+        "hardpoints": [{ "size": 2 }],
+        "optional": [{ "size": 4 }],
+        "utilities": [{ "size": 0 }]
+      }
+    },
+    {
+      "id": "type_11_prospector",
+      "identifiers": { "coriolis": "type_11_prospector", "frontierEdId": null },
+      "displayName": "Type-11 Prospector",
+      "manufacturer": "Synthetic Shipworks",
+      "landingPadSize": "medium",
+      "performance": { "baseArmour": null, "baseShieldStrength": null, "boost": null, "hullMass": null, "speed": null },
+      "slots": { "core": [], "hardpoints": [], "optional": [], "utilities": [] }
+    }
+  ]
+}

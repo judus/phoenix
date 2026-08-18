@@ -1,0 +1,11 @@
+[
+  {
+    "id": 900001,
+    "name": "Ada Fixture",
+    "description": "Synthetic engineer used only by PHOENIX tests.",
+    "systemName": "Test System",
+    "systemAddress": null,
+    "systemPosition": [1, 2, 3],
+    "marketId": null
+  }
+]

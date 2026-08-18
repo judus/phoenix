@@ -1,18 +1,63 @@
 import { useState } from 'react'
 
-import catalogue from '../../../../data/catalogue/ships.json'
 import { CommandTile } from '@phoenix/ui'
 import { DataTable } from '@phoenix/ui'
 import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
 import { ViewSwitcher } from '@phoenix/ui'
 
-type Ship = (typeof catalogue.ships)[number]
+interface Ship {
+  id: string
+  displayName: string
+  manufacturer: string | null
+  landingPadSize: 'small' | 'medium' | 'large' | null
+  performance: {
+    baseArmour: number | null
+    baseShieldStrength: number | null
+    speed: number | null
+    boost: number | null
+    hullMass: number | null
+  }
+  slots: Record<'core' | 'optional' | 'hardpoints' | 'utilities', Array<{ size: number }>>
+}
 type SortKey = 'displayName' | 'manufacturer' | 'landingPadSize' | 'baseArmour' | 'baseShieldStrength' | 'speed' | 'boost' | 'hullMass'
 type CatalogueView = 'dossier' | 'table'
 
-const ships = [...catalogue.ships].sort((left, right) =>
+const fixtureShips: Ship[] = [
+  syntheticShip('courier_fixture', 'Courier Fixture', 'Small Batch Works', 'small', 2),
+  syntheticShip('explorer_fixture', 'Explorer Fixture', 'Synthetic Aerospace', 'medium', 3),
+  syntheticShip('freighter_fixture', 'Freighter Fixture', 'Fixture Works', 'large', 4)
+]
+const ships = [...fixtureShips].sort((left, right) =>
   left.displayName.localeCompare(right.displayName)
 )
+
+function syntheticShip (
+  id: string,
+  displayName: string,
+  manufacturer: string,
+  landingPadSize: Ship['landingPadSize'],
+  scale: number
+): Ship {
+  return {
+    id,
+    displayName,
+    manufacturer,
+    landingPadSize,
+    performance: {
+      baseArmour: 50 * scale,
+      baseShieldStrength: 30 * scale,
+      speed: 260 - 10 * scale,
+      boost: 340 - 10 * scale,
+      hullMass: 20 * scale
+    },
+    slots: {
+      core: [{ size: scale }, { size: scale }, { size: Math.max(1, scale - 1) }],
+      optional: [{ size: scale }, { size: Math.max(1, scale - 1) }],
+      hardpoints: [{ size: Math.max(1, scale - 1) }],
+      utilities: [{ size: 0 }, { size: 0 }]
+    }
+  }
+}
 
 function valueOrDash(value: number | null, unit = '') {
   return value === null ? '—' : `${value.toLocaleString()}${unit}`
@@ -116,7 +161,7 @@ export function ShipCataloguePage() {
         <PageHeader
           variant="cockpit"
           context={<Breadcrumbs items={[{ label: 'Fleet', href: '#fleet' }, { label: 'Ship catalogue' }]} />}
-          status="Source: EDCD Coriolis Data · 0db9234b5b9ce8c939ea84133d7ce336eea88e27"
+          status="Synthetic Storybook fixture"
           title="Ship catalogue"
           actions={
             <ViewSwitcher

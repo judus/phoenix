@@ -22,6 +22,7 @@ let child
 
 try {
   cpSync(payloadRoot, installRoot, { recursive: true })
+  cpSync(resolve(projectRoot, 'tests/fixtures/catalogue'), resolve(dataRoot, 'runtime/catalogue'), { recursive: true })
   makeReadOnly(installRoot)
   const port = await availablePort()
   child = spawn(resolve(installRoot, 'runtime', runtimeName), [

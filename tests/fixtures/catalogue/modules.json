@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "name": "PHOENIX synthetic test catalogue",
+    "repository": "https://example.invalid/phoenix-test-catalogue",
+    "revision": "synthetic-1"
+  },
+  "modules": [
+    {
+      "journalId": "int_testpowerplant_size4_class5",
+      "displayName": "Test Power Plant",
+      "category": "standard",
+      "size": 4,
+      "rating": "A",
+      "mount": null,
+      "guidance": null,
+      "ship": null
+    },
+    {
+      "journalId": "hpt_testlaser_fixed_medium",
+      "displayName": "Test Laser",
+      "category": "hardpoint",
+      "size": 2,
+      "rating": null,
+      "mount": "Fixed",
+      "guidance": null,
+      "ship": null
+    },
+    {
+      "journalId": "int_powerplant_size4_class5",
+      "displayName": "Power Plant",
+      "category": "standard",
+      "size": 4,
+      "rating": "A",
+      "mount": null,
+      "guidance": null,
+      "ship": null
+    },
+    {
+      "journalId": "hpt_beamlaser_fixed_medium",
+      "displayName": "Beam Laser",
+      "category": "hardpoint",
+      "size": 2,
+      "rating": null,
+      "mount": "Fixed",
+      "guidance": null,
+      "ship": null
+    },
+    {
+      "journalId": "hpt_shieldbooster_size0_class5",
+      "displayName": "Shield Booster",
+      "category": "utility",
+      "size": 0,
+      "rating": "A",
+      "mount": null,
+      "guidance": null,
+      "ship": null
+    },
+    {
+      "journalId": "int_cargorack_size4_class1",
+      "displayName": "Cargo Rack",
+      "category": "internal",
+      "size": 4,
+      "rating": "E",
+      "mount": null,
+      "guidance": null,
+      "ship": null
+    }
+  ]
+}

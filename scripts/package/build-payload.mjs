@@ -16,7 +16,6 @@ copy('apps/server/dist')
 copy('apps/server/package.json')
 copy('apps/web/dist')
 copy('agents')
-copy('data/catalogue')
 copy('scripts/catalogue')
 copy('package.json')
 

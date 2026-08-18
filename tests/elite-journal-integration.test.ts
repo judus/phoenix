@@ -72,7 +72,7 @@ test('application startup projects the current commander, ranks, location and sh
         definition: {
           id: 'cobra_mk_iii',
           displayName: 'Cobra Mk III',
-          source: { kind: 'catalogue', name: 'EDCD Coriolis Data' }
+          source: { kind: 'catalogue', name: 'PHOENIX synthetic test catalogue' }
         },
         name: 'Wayward Sun',
         identifier: 'PHX-01',
@@ -93,7 +93,7 @@ test('application startup projects the current commander, ranks, location and sh
             definition: {
               displayName: 'Power Plant',
               rating: 'A',
-              source: { kind: 'catalogue', name: 'EDCD FDevIDs' }
+              source: { kind: 'catalogue', name: 'PHOENIX synthetic test catalogue' }
             }
           },
           {
@@ -177,9 +177,9 @@ test('application startup projects the current commander, ranks, location and sh
       data: expect.objectContaining({ event: 'MaterialTrade', timestamp: '2026-08-10T12:00:11Z' })
     }))
     expect(catalogueDiagnostics).toMatchObject({
-      shipCount: 47,
-      shipAliasCount: 90,
-      moduleCount: 1190,
+      shipCount: 3,
+      shipAliasCount: 3,
+      moduleCount: 6,
       currentShip: {
         typeId: 'cobramkiii',
         displayName: 'Cobra Mk III',

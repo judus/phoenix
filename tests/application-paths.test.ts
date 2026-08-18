@@ -18,7 +18,6 @@ test('uses XDG roots for a Linux installation', () => {
     platform: 'linux'
   })
 
-  expect(paths.resources.catalogue).toBe('/opt/phoenix/data/catalogue')
   expect(paths.user.config).toBe('/home/cmdr/.config/phoenix')
   expect(paths.user.data).toBe('/data/phoenix')
   expect(paths.user.logs).toBe('/state/phoenix/logs')

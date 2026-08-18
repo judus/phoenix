@@ -1,0 +1,6 @@
+[
+  {
+    "symbol": "TestWidgets",
+    "blueprints": [{ "symbol": "TestModule_Reinforced", "name": "Reinforced", "grades": [1] }]
+  }
+]

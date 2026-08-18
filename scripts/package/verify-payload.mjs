@@ -19,7 +19,7 @@ for (const required of [
   'apps/server/dist/main.js',
   'apps/web/dist/index.html',
   'agents/marin/agent.md',
-  'data/catalogue/ships.json',
+  'scripts/catalogue/refresh.mjs',
   'node_modules/@phoenix/contracts/dist/index.js',
   'node_modules/@jdu/llm-client/dist/index.js'
 ]) {

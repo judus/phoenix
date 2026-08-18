@@ -162,29 +162,16 @@ export class PhoenixApplication {
     const activityLog = new ActivityLogService(this.database)
     const missions = new MissionDataService(this.database)
     const communications = new CommunicationDataService(this.database)
-    const engineeringCatalogueDirectory = resolveProjectPath(
-      projectRoot,
-      options.engineeringCatalogueDirectory ?? process.env.PHOENIX_ENGINEERING_CATALOGUE_PATH ?? resolve(paths.resources.catalogue, 'engineering')
-    )
-    const customCatalogue = options.shipCataloguePath !== undefined || options.moduleCataloguePath !== undefined ||
-      options.engineeringCatalogueDirectory !== undefined || process.env.PHOENIX_SHIP_CATALOGUE_PATH !== undefined ||
-      process.env.PHOENIX_MODULE_CATALOGUE_PATH !== undefined || process.env.PHOENIX_ENGINEERING_CATALOGUE_PATH !== undefined
-    const bundledCatalogueDirectory = paths.resources.catalogue
-    const catalogues = new CatalogueSnapshotLoader().load(
-      customCatalogue ? null : cataloguePaths(resolve(paths.user.data, 'runtime/catalogue')),
-      {
-        directory: engineeringCatalogueDirectory,
-        engineeringDirectory: engineeringCatalogueDirectory,
-        ships: resolveProjectPath(
-          projectRoot,
-          options.shipCataloguePath ?? process.env.PHOENIX_SHIP_CATALOGUE_PATH ?? `${bundledCatalogueDirectory}/ships.json`
-        ),
-        modules: resolveProjectPath(
-          projectRoot,
-          options.moduleCataloguePath ?? process.env.PHOENIX_MODULE_CATALOGUE_PATH ?? `${bundledCatalogueDirectory}/modules.json`
-        )
-      }
-    )
+    const runtimeCatalogueDirectory = resolve(paths.user.data, 'runtime/catalogue')
+    const engineeringCatalogueDirectory = resolveProjectPath(projectRoot,
+      options.engineeringCatalogueDirectory ?? process.env.PHOENIX_ENGINEERING_CATALOGUE_PATH ?? resolve(runtimeCatalogueDirectory, 'engineering'))
+    const catalogues = new CatalogueSnapshotLoader().load({
+      engineeringDirectory: engineeringCatalogueDirectory,
+      ships: resolveProjectPath(projectRoot,
+        options.shipCataloguePath ?? process.env.PHOENIX_SHIP_CATALOGUE_PATH ?? resolve(runtimeCatalogueDirectory, 'ships.json')),
+      modules: resolveProjectPath(projectRoot,
+        options.moduleCataloguePath ?? process.env.PHOENIX_MODULE_CATALOGUE_PATH ?? resolve(runtimeCatalogueDirectory, 'modules.json'))
+    })
     const gameCatalogue = catalogues.game
     const engineeringCatalogue = catalogues.engineering
     const fleet = new FleetDataService(
@@ -495,13 +482,4 @@ function locateBindingsDirectory (
 function resolveProjectPath (projectRoot: string, path: string): string {
   if (path === ':memory:' || isAbsolute(path)) return path
   return resolve(projectRoot, path)
-}
-
-function cataloguePaths (directory: string) {
-  return {
-    directory,
-    engineeringDirectory: resolve(directory, 'engineering'),
-    ships: resolve(directory, 'ships.json'),
-    modules: resolve(directory, 'modules.json')
-  }
 }

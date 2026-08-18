@@ -17,8 +17,8 @@ test('engineering APIs combine the imported catalogue with live commander state'
 
   try {
     application.ingestGameEvent(envelope('commander.engineers_changed', [{
-      id: 300000,
-      name: 'Didi Vatermann',
+      id: 900001,
+      name: 'Ada Fixture',
       status: 'Unlocked',
       rank: 4,
       rankProgress: 73
@@ -31,38 +31,38 @@ test('engineering APIs combine the imported catalogue with live commander state'
     application.ingestGameEvent(envelope('inventory.materials_changed', {
       updatedAt: '2026-08-11T20:00:00.000Z',
       raw: [],
-      manufactured: [{ id: 'WornShieldEmitters', label: 'Worn Shield Emitters', count: 7 }],
+      manufactured: [{ id: 'TestWidgets', label: 'Test Widgets', count: 7 }],
       encoded: []
     }))
     application.ingestGameEvent(envelope('inventory.material_consumed', {
       updatedAt: '2026-08-11T20:01:00.000Z',
-      id: 'WornShieldEmitters',
-      label: 'Worn Shield Emitters',
+      id: 'TestWidgets',
+      label: 'Test Widgets',
       count: 2
     }))
     const api = new PhoenixApiClient(`http://${address.host}:${address.port}`)
     const engineers = await api.getEngineeringEngineers()
     const materials = await api.getEngineeringMaterials('manufactured')
     const blueprints = await api.getEngineeringBlueprints()
-    const blueprint = await api.getEngineeringBlueprint('AFM_Shielded')
+    const blueprint = await api.getEngineeringBlueprint('TestModule_Reinforced')
 
-    expect(engineers.engineers).toHaveLength(38)
-    expect(engineers.engineers.find(engineer => engineer.name === 'Didi Vatermann')).toMatchObject({
+    expect(engineers.engineers).toHaveLength(1)
+    expect(engineers.engineers.find(engineer => engineer.name === 'Ada Fixture')).toMatchObject({
       state: 'unlocked',
       progress: { rank: 4, rankProgress: 73, status: 'Unlocked' },
-      system: { name: 'Leesti' }
+      system: { name: 'Test System' }
     })
-    expect(materials.materials.find(material => material.id === 'WornShieldEmitters')).toMatchObject({
+    expect(materials.materials.find(material => material.id === 'TestWidgets')).toMatchObject({
       count: 5,
       maxCount: 300,
       grade: 1,
-      group: 'Shielding'
+      group: 'Fixture components'
     })
-    expect(blueprints.blueprints).toHaveLength(81)
-    expect(blueprint.symbol).toBe('AFM_Shielded')
+    expect(blueprints.blueprints).toHaveLength(1)
+    expect(blueprint.symbol).toBe('TestModule_Reinforced')
     expect(blueprint.grades[0]).toMatchObject({
       grade: 1,
-      components: [{ name: 'Worn Shield Emitters', count: 5, cost: 1 }]
+      components: [{ name: 'Test Widgets', count: 5, cost: 1 }]
     })
   } finally {
     await application.stop()

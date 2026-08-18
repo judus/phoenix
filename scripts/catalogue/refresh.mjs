@@ -76,7 +76,7 @@ await replaceSnapshot(outputDirectory, files)
 console.log(`Catalogue snapshot refreshed in ${outputDirectory}.`)
 
 function parseOptions (arguments_) {
-  const result = { output: 'data/catalogue', maxAgeHours: 24, force: false }
+  const result = { output: 'data/runtime/catalogue', maxAgeHours: 24, force: false }
   for (let index = 0; index < arguments_.length; index += 1) {
     const argument = arguments_[index]
     if (argument === '--force') result.force = true

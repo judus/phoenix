@@ -1,0 +1,16 @@
+[
+  {
+    "id": 800001,
+    "fdname": "TestModule_Reinforced",
+    "symbol": "TestModule_Reinforced",
+    "name": "Reinforced",
+    "modulename": ["Test module"],
+    "engineers": { "Ada Fixture": { "grades": [1] } },
+    "grades": {
+      "1": {
+        "components": { "Test Widgets": 1 },
+        "features": { "Integrity": { "value": [5], "improvement": true, "type": "percent" } }
+      }
+    }
+  }
+]

@@ -4,7 +4,6 @@ import { isAbsolute, resolve } from 'node:path'
 export interface ApplicationPathEnvironment {
   PHOENIX_AGENTS_PATH?: string
   PHOENIX_CACHE_PATH?: string
-  PHOENIX_CATALOGUE_PATH?: string
   PHOENIX_CONFIG_PATH?: string
   PHOENIX_DATA_PATH?: string
   PHOENIX_LOGS_PATH?: string
@@ -29,7 +28,6 @@ export class ApplicationPaths {
   public readonly installRoot: string
   public readonly resources: Readonly<{
     agents: string
-    catalogue: string
     web: string
   }>
   public readonly user: Readonly<{
@@ -51,7 +49,6 @@ export class ApplicationPaths {
 
     this.resources = Object.freeze({
       agents: resolvePath(this.installRoot, environment.PHOENIX_AGENTS_PATH ?? 'agents'),
-      catalogue: resolvePath(this.installRoot, environment.PHOENIX_CATALOGUE_PATH ?? 'data/catalogue'),
       web: resolvePath(this.installRoot, environment.PHOENIX_WEB_ROOT ?? 'apps/web/dist')
     })
     this.user = Object.freeze({
