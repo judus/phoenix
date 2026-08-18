@@ -15,8 +15,10 @@ PHOENIX is a local-first companion application and ship-computer interface for E
 
 ## Current status
 
-PHOENIX officially supports manually started **Linux x64 and Windows x64 payloads**. Both platforms
-are built, checksum-verified, and smoke-tested in CI. There is no installer or launcher yet.
+PHOENIX officially supports manual source installations on **Linux x64 and Windows x64**. Bring
+Git and Node.js, clone the repository, install the dependencies, and run it like a big boy. Both
+platforms are also built, checksum-verified, and smoke-tested in CI, but there is no public
+installer or launcher yet.
 
 Windows support has also been verified against a live Elite Dangerous installation: PHOENIX
 automatically discovers the standard journal, status, inventory, navigation-route, and bindings
@@ -86,31 +88,29 @@ noncommercial use is permitted while redistribution and modified versions are re
 license text itself is authoritative. This deliberately conservative prerelease license may be
 relaxed for future versions once the project's long-term distribution model is settled.
 
-The development source remains available for manual installation without charge. Official packaged
-releases may later be offered separately through platforms such as Steam, primarily to provide
-convenient installation and automatic updates.
+The development source remains available for manual installation without charge: users provide
+Git and Node.js, manage the checkout and dependencies, and update it with `git pull`. Official
+packaged installers may be offered separately as a paid convenience product—potentially through
+platforms such as Steam—to provide installation, a bundled runtime, launching, and automatic
+updates.
 
-CI currently produces self-contained Linux x64 and Windows x64 payloads with their own Node.js
-runtime. From an extracted payload, start PHOENIX with the platform command below:
-
-```sh
-# Linux
-./runtime/node ./apps/server/dist/main.js
-```
-
-```powershell
-# Windows PowerShell
-.\runtime\node.exe .\apps\server\dist\main.js
-```
-
-Development currently targets Node.js 24.14+:
+Manual installation currently requires Git and Node.js 24.14+:
 
 The first launch requires an internet connection to fetch the upstream game catalogues into local
 runtime storage; PHOENIX does not distribute those third-party catalogue snapshots.
 
 ```sh
+git clone https://github.com/judus/phoenix.git
+cd phoenix
 npm install
 npm run dev
+```
+
+Update an existing checkout manually:
+
+```sh
+git pull
+npm install
 ```
 
 Open `http://localhost:3401` to access the development application. To build and serve the
