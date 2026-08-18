@@ -48,8 +48,7 @@ data instead of guessing and explains when an action in Elite is required.
 
 ## Installation
 
-**PHOENIX is under active development. Expect breaking changes; help with manual installation is
-not available yet.**
+**PHOENIX is under active development. Expect breaking changes.**
 
 Manual installation currently requires Git and Node.js 24.14+.
 
