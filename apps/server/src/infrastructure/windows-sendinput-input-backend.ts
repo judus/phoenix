@@ -1,6 +1,7 @@
-import { execFile } from 'node:child_process'
+import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { delimiter, join } from 'node:path'
+import { createInterface, type Interface as ReadlineInterface } from 'node:readline'
 import type {
   GameActionOperation,
   InputBackendStatus,
@@ -21,6 +22,7 @@ export interface WindowsSendInputRunner {
     environment: NodeJS.ProcessEnv,
     signal?: AbortSignal
   ): Promise<void>
+  stop?(): Promise<void> | void
 }
 
 export interface WindowsSendInputBackendOptions {
@@ -43,7 +45,7 @@ export class WindowsSendInputBackend implements InputBackend {
     this.fileExists = options.fileExists ?? existsSync
     this.platform = options.platform ?? process.platform
     this.executablePath = options.executablePath ?? findPowerShell(this.environment, this.fileExists)
-    this.runner = options.runner ?? new ExecFileWindowsSendInputRunner()
+    this.runner = options.runner ?? new PersistentPowerShellWindowsSendInputRunner()
   }
 
   public getStatus (): InputBackendStatus {
@@ -74,10 +76,27 @@ export class WindowsSendInputBackend implements InputBackend {
       signal
     )
   }
+
+  public async stop (): Promise<void> {
+    await this.runner.stop?.()
+  }
 }
 
-export class ExecFileWindowsSendInputRunner implements WindowsSendInputRunner {
-  public async run (
+interface PendingSendInputRequest {
+  reject: (cause: Error) => void
+  resolve: () => void
+  timeout: NodeJS.Timeout
+}
+
+export class PersistentPowerShellWindowsSendInputRunner implements WindowsSendInputRunner {
+  private commandQueue: Promise<void> = Promise.resolve()
+  private lineReader: ReadlineInterface | null = null
+  private pendingRequest: PendingSendInputRequest | null = null
+  private process: ChildProcessWithoutNullStreams | null = null
+  private startPromise: Promise<void> | null = null
+  private stderr = ''
+
+  public run (
     executable: string,
     events: readonly WindowsInputEvent[],
     holdMilliseconds: number,
@@ -85,8 +104,34 @@ export class ExecFileWindowsSendInputRunner implements WindowsSendInputRunner {
     signal?: AbortSignal
   ): Promise<void> {
     const serializedEvents = events.map(event => `${event.virtualKey}:${event.flags}`).join(',')
-    await new Promise<void>((resolvePromise, reject) => {
-      execFile(executable, [
+    const task = this.commandQueue.then(async () => {
+      signal?.throwIfAborted()
+      const child = await this.ensureStarted(executable, environment)
+      signal?.throwIfAborted()
+      await this.sendRequest(child, `${holdMilliseconds};${serializedEvents}`, signal)
+    })
+    this.commandQueue = task.catch(() => {})
+    return task
+  }
+
+  public async stop (): Promise<void> {
+    await this.commandQueue.catch(() => {})
+    const child = this.process
+    if (!child) return
+    this.resetProcess(child, new Error('Windows SendInput helper stopped.'))
+    child.stdin.end()
+    child.kill()
+  }
+
+  private ensureStarted (
+    executable: string,
+    environment: NodeJS.ProcessEnv
+  ): Promise<ChildProcessWithoutNullStreams> {
+    if (this.process && this.startPromise) {
+      return this.startPromise.then(() => this.process as ChildProcessWithoutNullStreams)
+    }
+
+    const child = spawn(executable, [
         '-NoLogo',
         '-NoProfile',
         '-NonInteractive',
@@ -95,23 +140,123 @@ export class ExecFileWindowsSendInputRunner implements WindowsSendInputRunner {
         '-EncodedCommand',
         POWERSHELL_SENDINPUT_COMMAND
       ], {
-        env: {
-          ...environment,
-          PHOENIX_SENDINPUT_EVENTS: serializedEvents,
-          PHOENIX_SENDINPUT_HOLD_MILLISECONDS: holdMilliseconds.toString()
-        },
-        signal,
-        timeout: 5_000,
+        env: environment,
+        stdio: 'pipe',
         windowsHide: true
-      }, (error, _stdout, stderr) => {
-        if (!error) {
+      })
+    this.process = child
+    this.stderr = ''
+    child.stderr.setEncoding('utf8')
+    child.stderr.on('data', (chunk: string) => {
+      this.stderr = `${this.stderr}${chunk}`.slice(-4_096)
+    })
+    this.lineReader = createInterface({ input: child.stdout })
+
+    this.startPromise = new Promise<void>((resolvePromise, reject) => {
+      const timeout = setTimeout(() => {
+        const error = new Error('Windows SendInput helper timed out during startup.')
+        this.resetProcess(child, error)
+        child.kill()
+        reject(error)
+      }, 10_000)
+
+      const onLine = (line: string): void => {
+        if (line === 'READY') {
+          clearTimeout(timeout)
           resolvePromise()
           return
         }
-        const detail = stderr.trim() || error.message
-        reject(new Error(`Windows SendInput failed: ${detail}`))
+        this.handleResponse(line)
+      }
+      this.lineReader?.on('line', onLine)
+      child.once('error', cause => {
+        clearTimeout(timeout)
+        const error = new Error(`Windows SendInput helper failed: ${cause.message}`)
+        this.resetProcess(child, error)
+        reject(error)
+      })
+      child.once('exit', (code, processSignal) => {
+        clearTimeout(timeout)
+        const detail = this.stderr.trim()
+        const outcome = code === null ? `signal ${processSignal ?? 'unknown'}` : `code ${code}`
+        const error = new Error(`Windows SendInput helper exited with ${outcome}${detail ? `: ${detail}` : '.'}`)
+        this.resetProcess(child, error)
+        reject(error)
       })
     })
+
+    return this.startPromise.then(() => child)
+  }
+
+  private async sendRequest (
+    child: ChildProcessWithoutNullStreams,
+    request: string,
+    signal?: AbortSignal
+  ): Promise<void> {
+    await new Promise<void>((resolvePromise, reject) => {
+      const timeout = setTimeout(() => {
+        const error = new Error('Windows SendInput helper timed out while sending input.')
+        this.resetProcess(child, error)
+        child.kill()
+        reject(error)
+      }, 5_000)
+      const onAbort = (): void => {
+        const error = signal?.reason instanceof Error ? signal.reason : new Error('Windows SendInput was aborted.')
+        this.resetProcess(child, error)
+        child.kill()
+        reject(error)
+      }
+      signal?.addEventListener('abort', onAbort, { once: true })
+      this.pendingRequest = {
+        reject: cause => {
+          signal?.removeEventListener('abort', onAbort)
+          reject(cause)
+        },
+        resolve: () => {
+          signal?.removeEventListener('abort', onAbort)
+          resolvePromise()
+        },
+        timeout
+      }
+      child.stdin.write(`${request}\n`, error => {
+        if (!error) return
+        const failure = new Error(`Windows SendInput helper write failed: ${error.message}`)
+        this.resetProcess(child, failure)
+        child.kill()
+        reject(failure)
+      })
+    })
+  }
+
+  private handleResponse (line: string): void {
+    const pending = this.pendingRequest
+    if (!pending) return
+    this.pendingRequest = null
+    clearTimeout(pending.timeout)
+    if (line === 'OK') {
+      pending.resolve()
+      return
+    }
+    if (line.startsWith('ERROR:')) {
+      const detail = Buffer.from(line.slice('ERROR:'.length), 'base64').toString('utf8')
+      pending.reject(new Error(`Windows SendInput failed: ${detail}`))
+      return
+    }
+    pending.reject(new Error(`Windows SendInput helper returned an unexpected response: ${line}`))
+  }
+
+  private resetProcess (child: ChildProcessWithoutNullStreams, cause: Error): void {
+    if (this.process !== child) return
+    this.process = null
+    this.startPromise = null
+    this.lineReader?.close()
+    this.lineReader = null
+    const pending = this.pendingRequest
+    this.pendingRequest = null
+    if (pending) {
+      clearTimeout(pending.timeout)
+      pending.reject(cause)
+    }
   }
 }
 
@@ -315,19 +460,27 @@ public static class PhoenixSendInput {
 '@
 
 Add-Type -TypeDefinition $source -Language CSharp
-$entries = $env:PHOENIX_SENDINPUT_EVENTS.Split(',')
-$virtualKeys = New-Object 'System.Collections.Generic.List[UInt16]'
-$flags = New-Object 'System.Collections.Generic.List[UInt32]'
-foreach ($entry in $entries) {
-    $parts = $entry.Split(':')
-    $virtualKeys.Add([UInt16]::Parse($parts[0]))
-    $flags.Add([UInt32]::Parse($parts[1]))
+[Console]::Out.WriteLine('READY')
+while ($null -ne ($request = [Console]::In.ReadLine())) {
+    try {
+        $separator = $request.IndexOf(';')
+        if ($separator -lt 1) { throw 'Malformed SendInput request.' }
+        $holdMilliseconds = [Int32]::Parse($request.Substring(0, $separator))
+        $entries = $request.Substring($separator + 1).Split(',')
+        $virtualKeys = New-Object 'System.Collections.Generic.List[UInt16]'
+        $flags = New-Object 'System.Collections.Generic.List[UInt32]'
+        foreach ($entry in $entries) {
+            $parts = $entry.Split(':')
+            $virtualKeys.Add([UInt16]::Parse($parts[0]))
+            $flags.Add([UInt32]::Parse($parts[1]))
+        }
+        [PhoenixSendInput]::Send($virtualKeys.ToArray(), $flags.ToArray(), $holdMilliseconds)
+        [Console]::Out.WriteLine('OK')
+    } catch {
+        $detail = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($_.Exception.ToString()))
+        [Console]::Out.WriteLine("ERROR:$detail")
+    }
 }
-[PhoenixSendInput]::Send(
-    $virtualKeys.ToArray(),
-    $flags.ToArray(),
-    [Int32]::Parse($env:PHOENIX_SENDINPUT_HOLD_MILLISECONDS)
-)
 `
 
 const POWERSHELL_SENDINPUT_COMMAND = Buffer.from(POWERSHELL_SENDINPUT_SCRIPT, 'utf16le').toString('base64')

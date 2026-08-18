@@ -85,6 +85,15 @@ test('SendInput propagates native helper failures', async () => {
   await expect(backend.send('tap', chord('L'))).rejects.toThrow('SendInput returned zero')
 })
 
+test('SendInput stops its persistent native helper', async () => {
+  const runner = new RecordingSendInputRunner()
+  const backend = configuredBackend(runner)
+
+  await backend.stop()
+
+  expect(runner.stopped).toBe(true)
+})
+
 test('SendInput reports non-Windows, missing helper and non-interactive sessions', () => {
   const nonWindows = new WindowsSendInputBackend({ platform: 'linux' })
   const missing = new WindowsSendInputBackend({
@@ -109,6 +118,7 @@ class RecordingSendInputRunner implements WindowsSendInputRunner {
     events: WindowsInputEvent[]
     holdMilliseconds: number
   }> = []
+  public stopped = false
 
   public run (
     _executable: string,
@@ -117,6 +127,10 @@ class RecordingSendInputRunner implements WindowsSendInputRunner {
   ): Promise<void> {
     this.requests.push({ events: [...events], holdMilliseconds })
     return Promise.resolve()
+  }
+
+  public stop (): void {
+    this.stopped = true
   }
 }
 

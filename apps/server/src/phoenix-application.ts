@@ -134,6 +134,7 @@ export interface PhoenixApplicationOptions {
 export class PhoenixApplication {
   private readonly database: SqliteDatabase
   private readonly eventIngestion: GameEventIngestionService
+  private readonly inputBackend: InputBackend
   private readonly journalSource: EliteJournalFileSource
   private readonly journalBackfill: EliteJournalHistoryBackfill
   private readonly inventorySource: EliteInventoryFileSource
@@ -260,10 +261,11 @@ export class PhoenixApplication {
     const actionBindingResolver = options.actionBindingResolver ?? new EliteKeyboardBindingResolver(
       locateBindingsDirectory(options, configuredEliteDirectory)
     )
+    this.inputBackend = options.inputBackend ?? configuredInputBackend(options.inputBackendMode)
     const actionGateway = new DefaultGameActionGateway(
       new DefaultGameActionCatalog(actionBindingResolver),
       actionBindingResolver,
-      options.inputBackend ?? configuredInputBackend(options.inputBackendMode)
+      this.inputBackend
     )
     const gameActions = new LoggedGameActions(new GameActionService(actionGateway), activityLog)
     const systemSettings = new NotifyingSystemSettingsRepository(
@@ -442,6 +444,7 @@ export class PhoenixApplication {
       this.statusSource.stop()
       this.inventorySource.stop()
       this.navigationRouteSource.stop()
+      await this.inputBackend.stop?.()
       this.database.close()
       throw cause
     }
@@ -454,6 +457,7 @@ export class PhoenixApplication {
     this.navigationRouteSource.stop()
     await this.journalBackfill.stop()
     await this.server.stop()
+    await this.inputBackend.stop?.()
     this.database.close()
   }
 

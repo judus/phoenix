@@ -31,6 +31,7 @@ export interface GameActionGateway {
 export interface InputBackend {
   getStatus(): InputBackendStatus
   send(operation: GameActionOperation, binding: LogicalInputChord, signal?: AbortSignal): Promise<void>
+  stop?(): Promise<void> | void
 }
 
 export function getActionAvailability (
