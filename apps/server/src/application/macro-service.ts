@@ -4,12 +4,14 @@ import {
   MacroPlaybackSchema,
   MacroRecordingSchema,
   RecordMacroActionRequestSchema,
+  type CopilotExecutionPermissions,
   type GameActionOrigin,
   type MacroPlayback,
   type MacroRecording
 } from '@phoenix/contracts'
 import type { GameActions } from './game-action-service.js'
 import type { MacroRepository, Macros } from '../domain/macros.js'
+import { isDangerousMacroAction, withEffectiveMacroRisk } from './macro-risk.js'
 
 interface ActiveRecording extends MacroRecording { lastCompletedAt: number }
 
@@ -20,11 +22,19 @@ export class MacroService implements Macros {
   public constructor (
     private readonly repository: MacroRepository,
     private readonly gameActions: GameActions,
-    private readonly now: () => Date = () => new Date()
+    private readonly now: () => Date = () => new Date(),
+    private readonly copilotPermissions: () => CopilotExecutionPermissions = () => ({
+      gameActions: true,
+      macros: true,
+      dangerousActions: true
+    })
   ) {}
 
   public getLibrary () { return this.repository.getLibrary() }
-  public save (candidate: unknown) { return this.repository.save(MacroDefinitionSchema.parse(candidate)) }
+  public save (candidate: unknown) {
+    const definition = MacroDefinitionSchema.parse(candidate)
+    return this.repository.save(withEffectiveMacroRisk(definition, this.gameActions.getCatalog()))
+  }
   public delete (id: string): void { this.repository.delete(id) }
   public getPlayback (): MacroPlayback | null { return this.activeRun?.state ?? null }
 
@@ -100,6 +110,10 @@ export class MacroService implements Macros {
         if (step.type === 'wait') {
           await abortableWait(step.durationMs, signal)
         } else {
+          if (origin === 'copilot' && !this.copilotPermissions().dangerousActions &&
+              isDangerousMacroAction(step.actionId, this.gameActions.getCatalog())) {
+            throw new Error('Dangerous Copilot actions are disabled in Settings.')
+          }
           const result = await this.gameActions.execute({ actionId: step.actionId, operation: step.operation }, origin, signal)
           if (!['accepted', 'confirmed', 'unconfirmed', 'already_satisfied'].includes(result.status)) {
             throw new Error(result.message)

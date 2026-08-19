@@ -37,6 +37,51 @@ test('aborting playback releases every held action', async () => {
   ])
 })
 
+test('saving derives macro risk from its game actions', () => {
+  const actions = new StubGameActions()
+  const repository = new InMemoryMacroRepository()
+  const service = new MacroService(repository, actions)
+
+  expect(service.save({
+    assumptions: [],
+    description: '',
+    enabled: true,
+    id: 'dangerous-action',
+    name: 'Dangerous action',
+    risk: 'safe',
+    steps: [{ type: 'game-action', actionId: 'elite.EjectAllCargo', operation: 'tap' }],
+    version: 1
+  }).risk).toBe('dangerous')
+  expect(repository.get('dangerous-action')?.risk).toBe('dangerous')
+})
+
+test('macro playback rechecks dangerous Copilot actions', async () => {
+  const actions = new StubGameActions()
+  const repository = new InMemoryMacroRepository()
+  repository.save({
+    assumptions: [],
+    description: '',
+    enabled: true,
+    id: 'understated',
+    name: 'Understated',
+    risk: 'safe',
+    steps: [{ type: 'game-action', actionId: 'elite.EjectAllCargo', operation: 'tap' }],
+    version: 1
+  })
+  const service = new MacroService(
+    repository,
+    actions,
+    undefined,
+    () => ({ gameActions: false, macros: true, dangerousActions: false })
+  )
+
+  await expect(service.execute('understated', 'copilot')).resolves.toMatchObject({
+    status: 'failed',
+    message: 'Dangerous Copilot actions are disabled in Settings.'
+  })
+  expect(actions.calls).toEqual([])
+})
+
 class StubGameActions implements GameActions {
   public readonly calls: Array<{ actionId: string, operation: string }> = []
 
@@ -57,7 +102,21 @@ class StubGameActions implements GameActions {
 
   public getCatalog (): GameActionCatalogResponse {
     return {
-      actions: [],
+      actions: [{
+        available: true,
+        binding: { display: 'J', key: 'J', modifiers: [] },
+        definition: {
+          category: 'misc',
+          description: 'Eject all cargo.',
+          eliteBinding: 'EjectAllCargo',
+          id: 'elite.EjectAllCargo',
+          inputMode: 'tap',
+          label: 'Eject all cargo',
+          risk: 'dangerous',
+          telemetryKey: null
+        },
+        unavailableReason: null
+      }],
       backend: { available: true, detail: 'test', id: 'test', simulated: true },
       bindingSource: {
         available: true,
