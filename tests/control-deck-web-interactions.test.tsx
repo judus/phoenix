@@ -128,8 +128,10 @@ test('feedback is absent when idle and rendered as an out-of-flow notice', () =>
   expect(stylesheet).toMatch(/\.app-shell \{[^}]*grid-template-rows: auto minmax\(0, 1fr\)/u)
   expect(stylesheet).toMatch(/\.notice \{[^}]*position: absolute/u)
   expect(stylesheet).toMatch(/@media \(hover: hover\) and \(pointer: fine\)/u)
+  expect(stylesheet).toMatch(/button \{[^}]*-webkit-tap-highlight-color: transparent/u)
   expect(stylesheet).toMatch(/\.deck-button \{[^}]*background: var\(--button-background, var\(--accent-panel\)\)/u)
   expect(stylesheet).toMatch(/\.deck-button\.armed \{[^}]*color-mix/u)
+  expect(stylesheet).not.toMatch(/\.deck-button\.armed \{[^}]*box-shadow/u)
 })
 
 test('deck dimensions allow temporary empty drafts and save only valid values', () => {
