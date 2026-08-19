@@ -138,13 +138,23 @@ export function FullscreenButton ({ onError, documentSource = globalThis.documen
   }, [documentSource])
 
   return <button
+    aria-label={active ? 'Exit fullscreen' : 'Enter fullscreen'}
     aria-pressed={active}
+    className="fullscreen-toggle"
     disabled={!supported}
-    title={supported ? undefined : 'Fullscreen is unavailable in this browser.'}
+    title={supported ? (active ? 'Exit fullscreen' : 'Enter fullscreen') : 'Fullscreen is unavailable in this browser.'}
     onClick={() => {
       void toggleFullscreen(documentSource).catch(cause => onError(errorMessage(cause)))
     }}
-  >{active ? 'Exit fullscreen' : 'Fullscreen'}</button>
+  ><FullscreenIcon active={active} /></button>
+}
+
+function FullscreenIcon ({ active }: { active: boolean }) {
+  return <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+    <path d={active
+      ? 'M9 3v6H3m12-6v6h6m-6 12v-6h6M9 21v-6H3'
+      : 'M9 3H3v6m12-6h6v6m0 6v6h-6M3 15v6h6'} stroke="currentColor" strokeLinecap="square" strokeWidth="1.75" />
+  </svg>
 }
 
 export async function toggleFullscreen (documentSource: Document): Promise<void> {

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { act, create } from 'react-test-renderer'
 import { afterEach, beforeAll, expect, test, vi } from 'vitest'
 import { ControlDeckCommandElementSchema } from '@jdu/control-deck-core'
-import { ButtonEditor, DeckButton, DeckSettings, FeedbackSlot, toggleFullscreen } from '../apps/control-deck-web/src/control-deck-app.js'
+import { ButtonEditor, DeckButton, DeckSettings, FeedbackSlot, FullscreenButton, toggleFullscreen } from '../apps/control-deck-web/src/control-deck-app.js'
 
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
 afterEach(() => vi.useRealTimers())
@@ -133,6 +133,26 @@ test('fullscreen toggles the document root and exits through the browser API', a
   Object.defineProperty(documentSource, 'fullscreenElement', { configurable: true, value: documentSource.documentElement })
   await toggleFullscreen(documentSource)
   expect(exitFullscreen).toHaveBeenCalledOnce()
+})
+
+test('fullscreen is a compact accessible icon control', () => {
+  const documentSource = {
+    addEventListener: vi.fn(),
+    documentElement: { requestFullscreen: vi.fn(() => Promise.resolve()) },
+    exitFullscreen: vi.fn(() => Promise.resolve()),
+    fullscreenElement: null,
+    removeEventListener: vi.fn()
+  } as unknown as Document
+  let renderer!: ReturnType<typeof create>
+  act(() => { renderer = create(<FullscreenButton documentSource={documentSource} onError={() => undefined} />) })
+  const button = renderer.root.findByType('button')
+
+  expect(button.props).toMatchObject({
+    'aria-label': 'Enter fullscreen',
+    className: 'fullscreen-toggle',
+    title: 'Enter fullscreen'
+  })
+  expect(button.findByType('svg')).toBeDefined()
 })
 
 function createButton (
