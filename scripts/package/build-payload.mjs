@@ -19,7 +19,7 @@ copy('agents')
 copy('scripts/catalogue')
 copy('package.json')
 
-for (const workspace of ['contracts', 'copilot', 'elite']) {
+for (const workspace of ['control-deck', 'contracts', 'copilot', 'elite']) {
   copy(`packages/${workspace}/dist`, `node_modules/@phoenix/${workspace}/dist`)
   copy(`packages/${workspace}/package.json`, `node_modules/@phoenix/${workspace}/package.json`)
 }

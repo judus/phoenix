@@ -20,6 +20,8 @@ for (const required of [
   'apps/web/dist/index.html',
   'agents/marin/agent.md',
   'scripts/catalogue/refresh.mjs',
+  'node_modules/@phoenix/control-deck/dist/core/index.js',
+  'node_modules/@phoenix/control-deck/dist/host/index.js',
   'node_modules/@phoenix/contracts/dist/index.js',
   'node_modules/@jdu/llm-client/dist/index.js'
 ]) {
