@@ -91,6 +91,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
                   selected={active}
                   tone={action.definition.risk === 'dangerous' ? 'danger' : 'normal'}
                   unavailable={!action.available}
+                  disabled={!editing && !action.available}
                   onClick={event => {
                     if (editing) { setEditingPosition(position); setFilter(''); return }
                     if (action.definition.inputMode !== 'hold') void execute(action, 'tap')

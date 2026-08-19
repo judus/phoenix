@@ -20,6 +20,7 @@ export function CommandTile({
   selected = false,
   tone = 'normal',
   unavailable = false,
+  disabled = unavailable,
   className,
   ...props
 }: CommandTileProps) {
@@ -42,7 +43,7 @@ export function CommandTile({
       ].filter(Boolean).join(' ')}
       aria-label={binding ? `${label}, ${binding}` : undefined}
       aria-pressed={selected || undefined}
-      disabled={unavailable}
+      disabled={disabled}
       {...props}
     >
       <strong>{label}</strong>

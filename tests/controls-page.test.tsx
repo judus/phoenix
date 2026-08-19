@@ -61,6 +61,35 @@ test('the control picker disambiguates commands with the same label by context',
     .toBe('Primary Fire · On Foot · Unbound')
 })
 
+test('unavailable commands remain clickable while editing the control deck', () => {
+  const markup = renderToStaticMarkup(
+    <ControlsPage
+      category="ship"
+      editing
+      controller={{
+        status: 'ready',
+        layout: DEFAULT_CONTROL_GRID_LAYOUT,
+        actions: {
+          backend: { id: 'test', available: true, simulated: false, detail: 'ready' },
+          bindingSource: {
+            directory: '/bindings', filePath: '/bindings/custom.binds', presetNames: ['Custom'],
+            available: true, bindingCount: 1, keyboardBindingCount: 0,
+            loadedAt: '2026-08-19T00:00:00.000Z', error: null
+          },
+          actions: [action('elite.ShipSpotLightToggle', 'ShipSpotLightToggle', 'Ship Lights', null)]
+        }
+      }}
+      macros={emptyMacroRuntime()}
+      onExecuteAction={() => Promise.resolve()}
+      onEditingChange={() => undefined}
+      onSaveLayout={layout => Promise.resolve(layout)}
+    />
+  )
+
+  expect(markup).toMatch(/<button class="command-tile disabled"[^>]*><strong>Ship Lights<\/strong>/)
+  expect(markup).not.toMatch(/<button class="command-tile disabled"[^>]*disabled=""[^>]*><strong>Ship Lights<\/strong>/)
+})
+
 function emptyMacroRuntime (): MacroRuntime {
   return {
     abort: async () => undefined,

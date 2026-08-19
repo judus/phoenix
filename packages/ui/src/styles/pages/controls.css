@@ -10,6 +10,8 @@
 
     &.editing { grid-template-rows: auto minmax(0, 1fr); }
 
+    &.editing .command-tile.disabled { cursor: pointer; }
+
     .recording-status {
       color: var(--color-information);
       font-size: var(--font-size-xs);
