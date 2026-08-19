@@ -133,6 +133,12 @@ export class PhoenixHttpServer {
   public constructor (private readonly options: PhoenixHttpServerOptions) {
     this.server = createServer((request, response) => {
       void this.handle(request, response).catch(cause => {
+        if (cause instanceof HttpRequestValidationError) {
+          this.writeJson(response, 400, {
+            error: { code: 'invalid_request', message: cause.message }
+          })
+          return
+        }
         const message = cause instanceof Error ? cause.message : 'Unknown server error.'
         this.writeJson(response, 500, {
           error: { code: 'internal_error', message }
@@ -401,7 +407,7 @@ export class PhoenixHttpServer {
       const padSizes = { small: 1, medium: 2, large: 3 } as const
       const stationType = url.searchParams.get('type') ?? 'any'
       if (stationType !== 'any' && stationType !== 'orbital' && stationType !== 'surface' && stationType !== 'carrier') {
-        throw new Error('type must be any, orbital, surface, or carrier.')
+        throw new HttpRequestValidationError('type must be any, orbital, surface, or carrier.')
       }
       this.writeJson(response, 200, await this.options.galaxyData.searchStations({
         maxDistanceLy: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
@@ -415,7 +421,7 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/galaxy/markets') {
       const intent = url.searchParams.get('intent')
-      if (intent !== 'buy' && intent !== 'sell') throw new Error('intent must be buy or sell.')
+      if (intent !== 'buy' && intent !== 'sell') throw new HttpRequestValidationError('intent must be buy or sell.')
       this.writeJson(response, 200, await this.options.galaxyData.searchCommodityMarkets({
         commodity: requiredQuery(url, 'commodity'),
         includeFleetCarriers: url.searchParams.get('fleetCarriers') === 'true',
@@ -1518,7 +1524,7 @@ function isEngineeringMaterialCategory (
 
 function requiredQuery (url: URL, name: string): string {
   const value = url.searchParams.get(name)?.trim()
-  if (!value) throw new Error(`${name} is required.`)
+  if (!value) throw new HttpRequestValidationError(`${name} is required.`)
   return value
 }
 
@@ -1532,7 +1538,7 @@ function optionalQueryInteger (url: URL, name: string, minimum: number, maximum:
   if (raw === null || raw === '') return null
   const value = Number(raw)
   if (!Number.isSafeInteger(value) || value < minimum || value > maximum) {
-    throw new Error(`${name} must be an integer between ${minimum} and ${maximum}.`)
+    throw new HttpRequestValidationError(`${name} must be an integer between ${minimum} and ${maximum}.`)
   }
   return value
 }
@@ -1541,7 +1547,7 @@ function optionalQueryNumber (url: URL, name: string, minimum: number): number |
   const raw = url.searchParams.get(name)
   if (raw === null || raw === '') return null
   const value = Number(raw)
-  if (!Number.isFinite(value) || value < minimum) throw new Error(`${name} must be a number of at least ${minimum}.`)
+  if (!Number.isFinite(value) || value < minimum) throw new HttpRequestValidationError(`${name} must be a number of at least ${minimum}.`)
   return value
 }
 
@@ -1549,19 +1555,21 @@ function optionalQueryChoice<const T extends readonly string[]> (url: URL, name:
   const value = url.searchParams.get(name)
   if (value === null || value === '') return null
   if (choices.includes(value)) return value as T[number]
-  throw new Error(`${name} must be one of ${choices.join(', ')}.`)
+  throw new HttpRequestValidationError(`${name} must be one of ${choices.join(', ')}.`)
 }
 
 function boundedQueryInteger (url: URL, name: string, fallback: number, minimum: number, maximum: number): number {
   const raw = url.searchParams.get(name)
   if (raw === null) return fallback
-  const value = Number.parseInt(raw, 10)
-  if (!Number.isSafeInteger(value)) throw new Error(`${name} must be an integer.`)
+  const value = Number(raw)
+  if (raw.trim() === '' || !Number.isSafeInteger(value)) throw new HttpRequestValidationError(`${name} must be an integer.`)
   return Math.min(maximum, Math.max(minimum, value))
 }
 
 function optionalPadSize (value: string | null): 'small' | 'medium' | 'large' | null {
   if (value === null || value === '') return null
   if (value === 'small' || value === 'medium' || value === 'large') return value
-  throw new Error('pad must be small, medium, or large.')
+  throw new HttpRequestValidationError('pad must be small, medium, or large.')
 }
+
+class HttpRequestValidationError extends Error {}
