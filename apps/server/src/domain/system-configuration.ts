@@ -3,6 +3,7 @@ import type {
   PhoenixSettings,
   RuntimeSystemSnapshot
 } from '@phoenix/contracts'
+import type { ControlDeckConfigurationRepository } from '@jdu/control-deck-core'
 
 export interface SystemSettingsRepository {
   loadOrCreate(): PhoenixSettings
@@ -15,7 +16,7 @@ export interface OpenAiSecretRepository {
   remove(): void
 }
 
-export interface ControlGridLayoutRepository {
+export interface ControlGridLayoutRepository extends ControlDeckConfigurationRepository {
   getLayout(): ControlGridLayout
   saveLayout(layout: ControlGridLayout): ControlGridLayout
 }

@@ -35,7 +35,7 @@ import {
   type RuntimeState
 } from '@phoenix/contracts'
 import { AiError, serializeAiError, type AiStreamEvent } from '@jdu/llm-client'
-import type { CommandHttpController } from '@jdu/control-deck-host'
+import type { CommandHttpController, DeckConfigurationHttpController } from '@jdu/control-deck-host'
 import type { CopilotText, CopilotTextRequest } from '../application/copilot-text-service.js'
 import type { CopilotConversationEvents } from '../application/copilot-conversation-event-service.js'
 import type { CopilotVoiceHostControl } from '../application/copilot-voice-host-coordinator.js'
@@ -90,6 +90,7 @@ export interface PhoenixHttpServerOptions {
   catalogueDiagnostics: CatalogueDiagnosticsReader
   commandCatalogue: CommandCatalogueSnapshots
   controlDeckCommandHttp?: CommandHttpController
+  controlDeckConfigurationHttp?: DeckConfigurationHttpController
   controlGridLayouts: ControlGridLayoutRepository
   copilot?: CopilotText
   copilotProfiles?: CopilotProfiles
@@ -216,6 +217,9 @@ export class PhoenixHttpServer {
       this.writeJson(response, 401, { error: { code: 'pairing_required', message: 'Pair this device with PHOENIX.' } })
       return
     }
+
+    if (this.options.controlDeckConfigurationHttp &&
+        await this.options.controlDeckConfigurationHttp.handle(request, response)) return
 
     if (this.options.controlDeckCommandHttp &&
         await this.options.controlDeckCommandHttp.handle(request, response)) return

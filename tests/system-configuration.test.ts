@@ -21,6 +21,7 @@ import {
   JsonRuntimeSystemSnapshotWriter,
   JsonSystemSettingsRepository
 } from '../apps/server/src/infrastructure/json-system-configuration.js'
+import { DEFAULT_CONTROL_GRID_LAYOUT } from '../apps/server/src/infrastructure/default-control-grid-layout.js'
 
 const temporaryDirectories: string[] = []
 
@@ -79,10 +80,12 @@ test('draft version-one control layouts migrate to the canonical version-four de
     }
   }))
 
-  const settings = new JsonSystemSettingsRepository(path).loadOrCreate()
+  const repository = new JsonSystemSettingsRepository(path)
+  const settings = repository.loadOrCreate()
 
-  expect(settings.controls.layout).toEqual(DEFAULT_PHOENIX_SETTINGS.controls.layout)
-  expect(JSON.parse(readFileSync(path, 'utf8')).controls.layout.version).toBe(4)
+  expect(repository.getLayout()).toEqual(DEFAULT_CONTROL_GRID_LAYOUT)
+  expect(settings.controls.deckConfiguration.version).toBe(1)
+  expect(JSON.parse(readFileSync(path, 'utf8')).controls).not.toHaveProperty('layout')
 })
 
 test('version-two layouts preserve user choices while removing the invalid silent-running action', () => {
@@ -110,10 +113,13 @@ test('version-two layouts preserve user choices while removing the invalid silen
     }
   }))
 
-  const settings = new JsonSystemSettingsRepository(path).loadOrCreate()
-  const cells = settings.controls.layout.pages[0]?.cells
+  const repository = new JsonSystemSettingsRepository(path)
+  const settings = repository.loadOrCreate()
+  const layout = repository.getLayout()
+  const cells = layout.pages[0]?.cells
 
-  expect(settings.controls.layout.version).toBe(4)
+  expect(settings.controls.deckConfiguration.version).toBe(1)
+  expect(layout.version).toBe(4)
   expect(cells).toContainEqual({ position: 20, span: 1, target: null })
   expect(cells).toContainEqual({
     position: 16,
@@ -144,7 +150,9 @@ test('version-three action cells migrate to typed game-action targets', () => {
     }
   }))
 
-  const layout = new JsonSystemSettingsRepository(path).loadOrCreate().controls.layout
+  const repository = new JsonSystemSettingsRepository(path)
+  repository.loadOrCreate()
+  const layout = repository.getLayout()
 
   expect(layout.version).toBe(4)
   expect(layout.pages[0]?.cells).toEqual([{
@@ -252,10 +260,11 @@ test('control-grid layouts are persisted inside system settings', () => {
   const directory = temporaryDirectory()
   const path = join(directory, 'settings.json')
   const repository = new JsonSystemSettingsRepository(path)
-  const settings = repository.loadOrCreate()
+  repository.loadOrCreate()
+  const current = repository.getLayout()
   const layout = {
-    ...settings.controls.layout,
-    pages: settings.controls.layout.pages.map(page => page.id === 'ship'
+    ...current,
+    pages: current.pages.map(page => page.id === 'ship'
       ? { ...page, cells: [{ position: 1, target: { type: 'game-action' as const, actionId: 'elite.NightVisionToggle' } }] }
       : page)
   }
@@ -265,6 +274,7 @@ test('control-grid layouts are persisted inside system settings', () => {
   expect(repository.getLayout().pages.find(page => page.id === 'ship')?.cells).toEqual([
     { position: 1, span: 1, target: { type: 'game-action', actionId: 'elite.NightVisionToggle' } }
   ])
+  expect(JSON.parse(readFileSync(path, 'utf8')).controls).not.toHaveProperty('layout')
 })
 
 test('control-grid layouts reject overlapping cells', () => {

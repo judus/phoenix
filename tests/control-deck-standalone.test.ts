@@ -13,6 +13,7 @@ test('standalone Control Deck mounts the shared pairing host', async () => {
   try {
     expect((await fetch(`${baseUrl}/api/health`)).status).toBe(401)
     expect((await fetch(`${baseUrl}/api/commands`)).status).toBe(401)
+    expect((await fetch(`${baseUrl}/api/configuration`)).status).toBe(401)
     const claim = await fetch(`${baseUrl}/api/pairing/claim`, {
       body: JSON.stringify({ code: application.pairing.pairingCode }),
       headers: { 'content-type': 'application/json' },
@@ -22,6 +23,30 @@ test('standalone Control Deck mounts the shared pairing host', async () => {
     const cookie = claim.headers.get('set-cookie')?.split(';')[0]
     expect(cookie).toMatch(/^control_deck_session=/)
     expect((await fetch(`${baseUrl}/api/health`, { headers: { cookie: cookie! } })).status).toBe(200)
+
+    const configuration = await fetch(`${baseUrl}/api/configuration`, { headers: { cookie: cookie! } })
+    expect(await configuration.json()).toEqual({ version: 1, decks: [], displays: [] })
+    const savedConfiguration = await fetch(`${baseUrl}/api/configuration`, {
+      body: JSON.stringify({
+        version: 1,
+        decks: [{
+          id: 'desktop',
+          name: 'Desktop',
+          description: '',
+          context: null,
+          layout: { kind: 'grid', columns: 4, rows: 2 },
+          elements: []
+        }],
+        displays: [{ id: 'tablet', name: 'Tablet', deckId: 'desktop', order: 0 }]
+      }),
+      headers: { cookie: cookie!, 'content-type': 'application/json' },
+      method: 'PUT'
+    })
+    expect(savedConfiguration.status).toBe(200)
+    expect(await savedConfiguration.json()).toMatchObject({
+      decks: [{ id: 'desktop' }],
+      displays: [{ id: 'tablet', deckId: 'desktop' }]
+    })
 
     const catalogue = await fetch(`${baseUrl}/api/commands`, { headers: { cookie: cookie! } })
     expect(await catalogue.json()).toMatchObject({

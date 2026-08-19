@@ -5,6 +5,8 @@ import { KeyboardCommandAdapter, RecordingKeyboardOutput } from '@jdu/control-de
 import { ControlDeckCommandService, PairingService } from '@jdu/control-deck-core'
 import {
   CommandHttpController,
+  DeckConfigurationHttpController,
+  FileControlDeckConfigurationRepository,
   FilePairingCredentialsRepository,
   NodePairingSecurity,
   PairingHttpController
@@ -21,6 +23,7 @@ export class ControlDeckApplication {
   public readonly keyboardOutput: RecordingKeyboardOutput
   private readonly commands: ControlDeckCommandService
   private readonly commandHttp: CommandHttpController
+  private readonly configurationHttp: DeckConfigurationHttpController
   private readonly host: string
   private readonly port: number
   private readonly server: Server
@@ -43,6 +46,9 @@ export class ControlDeckApplication {
     this.commandHttp = new CommandHttpController(this.commands, {
       ownerKey: request => this.pairing.ownerKey(request)
     })
+    this.configurationHttp = new DeckConfigurationHttpController(
+      new FileControlDeckConfigurationRepository(resolve(options.dataDirectory, 'decks.json'))
+    )
     this.server = createServer((request, response) => {
       void this.handle(request, response).catch(cause => {
         writeJson(response, 500, {
@@ -95,6 +101,7 @@ export class ControlDeckApplication {
       })
       return
     }
+    if (await this.configurationHttp.handle(request, response)) return
     if (await this.commandHttp.handle(request, response)) return
     if (request.method === 'GET' && path === '/api/health') {
       writeJson(response, 200, { name: 'Control Deck', status: 'ok' })

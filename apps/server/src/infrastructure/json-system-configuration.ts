@@ -1,10 +1,15 @@
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
+import { ControlDeckConfigurationSchema } from '@jdu/control-deck-core'
 import {
   ControlGridLayoutSchema,
   PhoenixSettingsSchema,
   RuntimeSystemSnapshotSchema,
+  controlDeckConfigurationToControlGridLayout,
+  controlGridLayoutToControlDeckConfiguration,
+  mergeControlGridLayoutIntoControlDeckConfiguration,
   type ControlGridLayout,
+  type ControlDeckConfiguration,
   type PhoenixSettings,
   type RuntimeSystemSnapshot
 } from '@phoenix/contracts'
@@ -29,7 +34,7 @@ export const DEFAULT_PHOENIX_SETTINGS: PhoenixSettings = {
   controls: {
     enabled: true,
     backend: 'auto',
-    layout: DEFAULT_CONTROL_GRID_LAYOUT
+    deckConfiguration: controlGridLayoutToControlDeckConfiguration(DEFAULT_CONTROL_GRID_LAYOUT)
   },
   modules: {
     numpadCommands: {
@@ -59,11 +64,14 @@ export class JsonSystemSettingsRepository implements SystemSettingsRepository, C
     const migrated = migrateSettings(candidate)
     const parsed = PhoenixSettingsSchema.parse(migrated)
     if (migrated !== candidate) this.save(parsed)
-    if (parsed.controls.layout.pages.length > 0) return parsed
+    if (parsed.controls.deckConfiguration.decks.length > 0) return parsed
 
     const settings = {
       ...parsed,
-      controls: { ...parsed.controls, layout: DEFAULT_CONTROL_GRID_LAYOUT }
+      controls: {
+        ...parsed.controls,
+        deckConfiguration: controlGridLayoutToControlDeckConfiguration(DEFAULT_CONTROL_GRID_LAYOUT)
+      }
     }
     this.save(settings)
     return settings
@@ -74,13 +82,33 @@ export class JsonSystemSettingsRepository implements SystemSettingsRepository, C
   }
 
   public getLayout (): ControlGridLayout {
-    return this.loadOrCreate().controls.layout
+    return controlDeckConfigurationToControlGridLayout(this.loadOrCreate().controls.deckConfiguration)
+  }
+
+  public getConfiguration (): ControlDeckConfiguration {
+    return this.loadOrCreate().controls.deckConfiguration
+  }
+
+  public saveConfiguration (candidate: ControlDeckConfiguration): ControlDeckConfiguration {
+    const configuration = ControlDeckConfigurationSchema.parse(candidate)
+    const settings = this.loadOrCreate()
+    this.save({ ...settings, controls: { ...settings.controls, deckConfiguration: configuration } })
+    return this.getConfiguration()
   }
 
   public saveLayout (candidate: ControlGridLayout): ControlGridLayout {
     const layout = ControlGridLayoutSchema.parse(candidate)
     const settings = this.loadOrCreate()
-    this.save({ ...settings, controls: { ...settings.controls, layout } })
+    this.save({
+      ...settings,
+      controls: {
+        ...settings.controls,
+        deckConfiguration: mergeControlGridLayoutIntoControlDeckConfiguration(
+          settings.controls.deckConfiguration,
+          layout
+        )
+      }
+    })
     return layout
   }
 }
@@ -110,17 +138,22 @@ function migrateSettings (candidate: unknown): unknown {
         }
       }
     : withModules
-  if (!isRecord(normalized.controls) || !isRecord(normalized.controls.layout)) {
-    return normalized
-  }
-  if (normalized.controls.layout.version === 1) {
-    return {
-      ...normalized,
-      controls: { ...normalized.controls, layout: DEFAULT_CONTROL_GRID_LAYOUT }
+  if (!isRecord(normalized.controls) || isRecord(normalized.controls.deckConfiguration)) return normalized
+  if (!isRecord(normalized.controls.layout)) return normalized
+  const legacyLayout = migrateLegacyControlGridLayout(normalized.controls.layout)
+  const { layout: _legacyLayout, ...controls } = normalized.controls
+  return {
+    ...normalized,
+    controls: {
+      ...controls,
+      deckConfiguration: controlGridLayoutToControlDeckConfiguration(legacyLayout)
     }
   }
-  const layout = normalized.controls.layout
-  if (!Array.isArray(layout.pages)) return normalized
+}
+
+function migrateLegacyControlGridLayout (layout: Record<string, unknown>): ControlGridLayout {
+  if (layout.version === 1) return DEFAULT_CONTROL_GRID_LAYOUT
+  if (!Array.isArray(layout.pages)) return ControlGridLayoutSchema.parse(layout)
   const version3 = layout.version === 2
     ? {
         ...layout,
@@ -135,12 +168,8 @@ function migrateSettings (candidate: unknown): unknown {
             })
       }
     : layout
-  if (version3.version !== 3 || !Array.isArray(version3.pages)) return normalized
-  return {
-    ...normalized,
-    controls: {
-      ...normalized.controls,
-      layout: {
+  const version4 = version3.version === 3 && Array.isArray(version3.pages)
+    ? {
         ...version3,
         version: 4,
         pages: version3.pages.map(page => !isRecord(page) || !Array.isArray(page.cells)
@@ -158,8 +187,8 @@ function migrateSettings (candidate: unknown): unknown {
                   })
             })
       }
-    }
-  }
+    : version3
+  return ControlGridLayoutSchema.parse(version4)
 }
 
 function isRecord (value: unknown): value is Record<string, unknown> {

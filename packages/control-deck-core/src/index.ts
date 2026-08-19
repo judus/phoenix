@@ -1,3 +1,4 @@
 export * from './command-runtime.js'
 export * from './commands.js'
+export * from './decks.js'
 export * from './pairing.js'

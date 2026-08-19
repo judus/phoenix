@@ -1,4 +1,5 @@
 import type { ControlGridLayout, MacroDefinition, MacroLibrary, PhoenixSettings } from '@phoenix/contracts'
+import type { ControlDeckConfiguration } from '@jdu/control-deck-core'
 import type { CommandCatalogueChange, CommandCatalogueChangeSource } from '../domain/commands.js'
 import type { MacroRepository } from '../domain/macros.js'
 import type { Publisher } from '../domain/publisher.js'
@@ -24,9 +25,16 @@ export class NotifyingControlGridLayoutRepository extends NotifyingRepository im
   }
 
   public getLayout (): ControlGridLayout { return this.delegate.getLayout() }
+  public getConfiguration (): ControlDeckConfiguration { return this.delegate.getConfiguration() }
 
   public saveLayout (layout: ControlGridLayout): ControlGridLayout {
     const saved = this.delegate.saveLayout(layout)
+    this.changed()
+    return saved
+  }
+
+  public saveConfiguration (configuration: ControlDeckConfiguration): ControlDeckConfiguration {
+    const saved = this.delegate.saveConfiguration(configuration)
     this.changed()
     return saved
   }

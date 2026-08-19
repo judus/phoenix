@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import type { DisplayCommand, GameEventEnvelope, NavigationRoute, RuntimeState } from '@phoenix/contracts'
 import { ToolRegistry } from '@jdu/llm-client'
 import { ControlDeckCommandService } from '@jdu/control-deck-core'
-import { CommandHttpController } from '@jdu/control-deck-host'
+import { CommandHttpController, DeckConfigurationHttpController } from '@jdu/control-deck-host'
 import {
   EliteDataDirectoryLocator,
   EliteBindingsDirectoryLocator,
@@ -291,6 +291,9 @@ export class PhoenixApplication {
       options.controlGridLayoutRepository ?? new InMemoryControlGridLayoutRepository(),
       commandCatalogueChanges
     )
+    const controlDeckConfigurationHttp = new DeckConfigurationHttpController(controlGridLayouts, {
+      path: '/api/control-deck/configuration'
+    })
     const macroRepository = new NotifyingMacroRepository(
       options.macroRepository ?? new InMemoryMacroRepository(),
       commandCatalogueChanges
@@ -413,6 +416,7 @@ export class PhoenixApplication {
       catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
       commandCatalogue,
       controlDeckCommandHttp,
+      controlDeckConfigurationHttp,
       controlGridLayouts,
       copilot,
       copilotProfiles,

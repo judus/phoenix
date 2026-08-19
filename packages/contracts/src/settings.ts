@@ -1,6 +1,11 @@
 import { z } from 'zod'
+import {
+  ControlDeckConfigurationSchema,
+  type ControlDeckConfiguration,
+  type ControlDeckCommandTarget
+} from '@jdu/control-deck-core'
 import { GameActionCategorySchema } from './actions.js'
-import { CommandTargetSchema } from './commands.js'
+import { CommandTargetSchema, type CommandTarget } from './commands.js'
 import { NumpadShortcutCollectionSchema } from './numpad.js'
 
 export const InputBackendModeSchema = z.enum(['auto', 'recording', 'linux-xdotool', 'windows-sendinput'])
@@ -76,6 +81,117 @@ export const ControlGridLayoutSchema = z.object({
   }
 })
 
+export function controlGridLayoutToControlDeckConfiguration (
+  candidate: ControlGridLayout
+): ControlDeckConfiguration {
+  const layout = ControlGridLayoutSchema.parse(candidate)
+  return ControlDeckConfigurationSchema.parse({
+    version: 1,
+    decks: layout.pages.map(page => ({
+      id: page.id,
+      name: page.label,
+      description: '',
+      context: `phoenix:${page.category}`,
+      layout: { kind: 'grid', columns: page.columns, rows: page.rows },
+      elements: page.cells.map(cell => ({
+        id: `cell_${cell.position}`,
+        ...(cell.target
+          ? {
+              kind: 'command',
+              target: phoenixTargetToControlDeckTarget(cell.target),
+              appearance: {
+                label: null,
+                icon: null,
+                foregroundColor: null,
+                backgroundColor: null
+              },
+              interaction: { activation: 'command-default', confirmation: { kind: 'none' } }
+            }
+          : { kind: 'spacer' }),
+        placement: {
+          kind: 'grid',
+          column: (cell.position - 1) % page.columns + 1,
+          row: Math.floor((cell.position - 1) / page.columns) + 1,
+          columnSpan: cell.span,
+          rowSpan: 1
+        }
+      }))
+    })),
+    displays: []
+  })
+}
+
+export function controlDeckConfigurationToControlGridLayout (
+  candidate: ControlDeckConfiguration
+): ControlGridLayout {
+  const configuration = ControlDeckConfigurationSchema.parse(candidate)
+  return ControlGridLayoutSchema.parse({
+    version: 4,
+    pages: configuration.decks.flatMap(deck => {
+      if (!deck.context?.startsWith('phoenix:')) return []
+      const category = GameActionCategorySchema.parse(deck.context.slice('phoenix:'.length))
+      if (deck.layout.kind !== 'grid') throw new Error(`PHOENIX deck ${deck.id} does not use a grid layout.`)
+      return [{
+        id: deck.id,
+        label: deck.name,
+        category,
+        columns: deck.layout.columns,
+        rows: deck.layout.rows,
+        cells: deck.elements.map(element => {
+          if (element.placement.rowSpan !== 1) {
+            throw new Error(`PHOENIX legacy controls cannot represent row-spanning element ${element.id}.`)
+          }
+          const position = (element.placement.row - 1) * deck.layout.columns + element.placement.column
+          return {
+            position,
+            span: element.placement.columnSpan,
+            target: element.kind === 'spacer' ? null : controlDeckTargetToPhoenixTarget(element.target)
+          }
+        })
+      }]
+    })
+  })
+}
+
+export function mergeControlGridLayoutIntoControlDeckConfiguration (
+  configurationCandidate: ControlDeckConfiguration,
+  layoutCandidate: ControlGridLayout
+): ControlDeckConfiguration {
+  const configuration = ControlDeckConfigurationSchema.parse(configurationCandidate)
+  controlDeckConfigurationToControlGridLayout(configuration)
+  const replacement = controlGridLayoutToControlDeckConfiguration(layoutCandidate)
+  const retainedDecks = configuration.decks.filter(deck => !deck.context?.startsWith('phoenix:'))
+  return ControlDeckConfigurationSchema.parse({
+    ...configuration,
+    decks: [...replacement.decks, ...retainedDecks]
+  })
+}
+
+function phoenixTargetToControlDeckTarget (target: CommandTarget): ControlDeckCommandTarget {
+  const commandId = target.type === 'game-action'
+    ? `command.${target.actionId}`
+    : target.type === 'navigation'
+      ? `command.navigation.${target.destinationId}`
+      : `command.macro.${target.macroId}`
+  return { adapterId: 'phoenix.commands', commandId, configuration: {} }
+}
+
+function controlDeckTargetToPhoenixTarget (target: ControlDeckCommandTarget): CommandTarget {
+  if (target.adapterId !== 'phoenix.commands' || Object.keys(target.configuration).length > 0) {
+    throw new Error('PHOENIX legacy controls can represent only unconfigured PHOENIX command targets.')
+  }
+  if (target.commandId.startsWith('command.navigation.')) {
+    return { type: 'navigation', destinationId: target.commandId.slice('command.navigation.'.length) }
+  }
+  if (target.commandId.startsWith('command.macro.')) {
+    return { type: 'macro', macroId: target.commandId.slice('command.macro.'.length) }
+  }
+  if (target.commandId.startsWith('command.')) {
+    return { type: 'game-action', actionId: target.commandId.slice('command.'.length) }
+  }
+  throw new Error(`Unknown PHOENIX command target: ${target.commandId}.`)
+}
+
 export const PhoenixSettingsSchema = z.object({
   version: z.literal(1),
   copilot: z.object({
@@ -92,7 +208,7 @@ export const PhoenixSettingsSchema = z.object({
   controls: z.object({
     enabled: z.boolean(),
     backend: InputBackendModeSchema,
-    layout: ControlGridLayoutSchema.default({ version: 4, pages: [] })
+    deckConfiguration: ControlDeckConfigurationSchema.default({ version: 1, decks: [], displays: [] })
   }),
   modules: PhoenixModulesSchema.default({
     numpadCommands: {
@@ -147,6 +263,7 @@ export type InputBackendMode = z.infer<typeof InputBackendModeSchema>
 export type CopilotExecutionPermissions = z.infer<typeof CopilotExecutionPermissionsSchema>
 export type PhoenixModules = z.infer<typeof PhoenixModulesSchema>
 export type ControlGridLayout = z.infer<typeof ControlGridLayoutSchema>
+export type { ControlDeckConfiguration }
 export type PhoenixSettings = z.infer<typeof PhoenixSettingsSchema>
 export type OpenAiConfigurationStatus = z.infer<typeof OpenAiConfigurationStatusSchema>
 export type InstallationSettings = z.infer<typeof InstallationSettingsSchema>
