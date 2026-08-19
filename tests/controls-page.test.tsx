@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test } from 'vitest'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
-import { ControlsPage } from '../apps/web/src/features/controls/controls-page.js'
+import { controlPickerActionLabel, ControlsPage } from '../apps/web/src/features/controls/controls-page.js'
 import type { MacroRuntime } from '../apps/web/src/application/macros/macro-runtime.js'
 import { DEFAULT_CONTROL_GRID_LAYOUT } from '../apps/server/src/infrastructure/default-control-grid-layout.js'
 
@@ -54,6 +54,13 @@ test('the controls page renders bound and unbound discovered commands', () => {
   expect(markup).not.toContain('class="control-toolbar"')
 })
 
+test('the control picker disambiguates commands with the same label by context', () => {
+  expect(controlPickerActionLabel(action('elite.PrimaryFire', 'PrimaryFire', 'Primary Fire', 'Space', 'combat')))
+    .toBe('Primary Fire · Combat · Space')
+  expect(controlPickerActionLabel(action('elite.HumanoidPrimaryFireButton', 'HumanoidPrimaryFireButton', 'Primary Fire', null, 'on_foot')))
+    .toBe('Primary Fire · On Foot · Unbound')
+})
+
 function emptyMacroRuntime (): MacroRuntime {
   return {
     abort: async () => undefined,
@@ -73,7 +80,8 @@ function action (
   id: string,
   eliteBinding: string,
   label: string,
-  key: string | null
+  key: string | null,
+  category: 'ship' | 'combat' | 'on_foot' = 'ship'
 ) {
   return {
     available: key !== null,
@@ -82,7 +90,7 @@ function action (
       id,
       label,
       description: `${label} command.`,
-      category: 'ship' as const,
+      category,
       inputMode: 'tap' as const,
       risk: 'routine' as const,
       eliteBinding,

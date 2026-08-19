@@ -3,7 +3,7 @@ import type { CommandTarget, ControlGridLayout, GameActionAvailability, GameActi
 import { Button, CommandTile, ControlContext, Field, PageFrame, PageHeader, Status, TextInput } from '@phoenix/ui'
 import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
 import type { ControlCategory } from '../../application/navigation/phoenix-route.js'
-import { controlsCategoryLabel } from './controls-navigation.js'
+import { controlsCategoryLabel, gameActionCategoryLabel } from './controls-navigation.js'
 import type { ControlsControllerSnapshot } from './use-controls-controller.js'
 import { HoldGestureController } from './hold-gesture-controller.js'
 
@@ -147,16 +147,25 @@ function ControlPicker({ actions, filter, macros, onClear, onClose, onFilterChan
   position: number
 }) {
   const needle = filter.trim().toLowerCase()
-  const candidates = useMemo(() => actions.filter(action => !needle || [action.definition.label, action.definition.eliteBinding, action.binding?.display].some(value => value?.toLowerCase().includes(needle))), [actions, needle])
+  const candidates = useMemo(() => actions.filter(action => !needle || [
+    action.definition.label,
+    action.definition.eliteBinding,
+    gameActionCategoryLabel(action.definition.category),
+    action.binding?.display
+  ].some(value => value?.toLowerCase().includes(needle))), [actions, needle])
   return <section aria-modal="true" className="control-picker" role="dialog">
     <header><div><strong>Assign command</strong><small>Cell {position}</small></div><Button variant="quiet" onClick={onClose}>Close</Button></header>
     <Field htmlFor="control-filter" label="Filter commands"><TextInput autoFocus value={filter} onChange={event => onFilterChange(event.target.value)} /></Field>
     <div className="control-picker-list">
       {macros.library.macros.filter(macro => !needle || macro.name.toLowerCase().includes(needle)).map(macro => <Button alignment="start" key={macro.id} variant="quiet" onClick={() => onSelect({ type: 'macro', macroId: macro.id })}>{macro.name} · Macro</Button>)}
-      {candidates.map(action => <Button alignment="start" key={action.definition.id} variant="quiet" onClick={() => onSelect({ type: 'game-action', actionId: action.definition.id })}>{action.definition.label} · {action.binding?.display ?? 'Unbound'}</Button>)}
+      {candidates.map(action => <Button alignment="start" key={action.definition.id} variant="quiet" onClick={() => onSelect({ type: 'game-action', actionId: action.definition.id })}>{controlPickerActionLabel(action)}</Button>)}
     </div>
     <footer><Button variant="danger" onClick={onClear}>Clear cell</Button></footer>
   </section>
+}
+
+export function controlPickerActionLabel(action: GameActionAvailability): string {
+  return `${action.definition.label} · ${gameActionCategoryLabel(action.definition.category)} · ${action.binding?.display ?? 'Unbound'}`
 }
 
 function assignTarget(layout: ControlGridLayout, category: ControlCategory, position: number, target: CommandTarget | null): ControlGridLayout {

@@ -1,3 +1,4 @@
+import type { GameActionCategory } from '@phoenix/contracts'
 import type { NavigationItem } from '@phoenix/ui'
 import type { ControlCategory } from '../../application/navigation/phoenix-route.js'
 import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js'
@@ -25,4 +26,8 @@ export function controlsContext(category: ControlCategory): string { return cate
 
 export function controlsCategoryLabel(category: ControlCategory): string {
   return categories.find(candidate => candidate.id === category)?.label ?? category
+}
+
+export function gameActionCategoryLabel(category: GameActionCategory): string {
+  return category === 'system' ? 'System' : controlsCategoryLabel(category)
 }
