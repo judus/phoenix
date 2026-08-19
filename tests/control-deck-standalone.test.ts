@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, test } from 'vitest'
@@ -6,11 +6,29 @@ import { ControlDeckApplication } from '../apps/control-deck/src/control-deck-ap
 
 test('standalone Control Deck mounts the shared pairing host', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'control-deck-'))
-  const application = new ControlDeckApplication({ dataDirectory: directory, host: '127.0.0.1', port: 0 })
+  const webDirectory = join(directory, 'web')
+  mkdirSync(join(webDirectory, 'assets'), { recursive: true })
+  writeFileSync(join(webDirectory, 'index.html'), '<main>Control Deck client</main>')
+  writeFileSync(join(webDirectory, 'assets', 'client.js'), 'globalThis.controlDeck = true')
+  const application = new ControlDeckApplication({
+    dataDirectory: directory,
+    host: '127.0.0.1',
+    port: 0,
+    webDirectory
+  })
   const address = await application.start()
   const baseUrl = `http://${address.host}:${address.port}`
 
   try {
+    const root = await fetch(baseUrl)
+    expect(root.status).toBe(200)
+    expect(root.headers.get('content-type')).toBe('text/html; charset=utf-8')
+    expect(await root.text()).toContain('Control Deck client')
+    expect(await (await fetch(`${baseUrl}/decks/desktop`)).text()).toContain('Control Deck client')
+    const asset = await fetch(`${baseUrl}/assets/client.js`)
+    expect(asset.headers.get('cache-control')).toContain('immutable')
+    expect(await asset.text()).toContain('controlDeck')
+    expect((await fetch(`${baseUrl}/%2e%2e/pairing.json`)).status).toBe(404)
     expect((await fetch(`${baseUrl}/api/health`)).status).toBe(401)
     expect((await fetch(`${baseUrl}/api/commands`)).status).toBe(401)
     expect((await fetch(`${baseUrl}/api/configuration`)).status).toBe(401)

@@ -12,7 +12,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace @jdu/control-deck-core && npm run build --workspace @jdu/control-deck-ui && npm run build --workspace @jdu/control-deck-adapter-keyboard && npm run build --workspace @jdu/control-deck-host && npm run build --workspace @jdu/control-deck-app && npm run build --workspace @phoenix/contracts && npm run build --workspace @phoenix/elite && npm run build --workspace @phoenix/copilot && npm run build --workspace @phoenix/ui && npm run build --workspace @phoenix/server && npm run build --workspace @phoenix/web",
+    "build": "npm run build --workspace @jdu/control-deck-core && npm run build --workspace @jdu/control-deck-ui && npm run build --workspace @jdu/control-deck-adapter-keyboard && npm run build --workspace @jdu/control-deck-host && npm run build --workspace @jdu/control-deck-web && npm run build --workspace @jdu/control-deck-app && npm run build --workspace @phoenix/contracts && npm run build --workspace @phoenix/elite && npm run build --workspace @phoenix/copilot && npm run build --workspace @phoenix/ui && npm run build --workspace @phoenix/server && npm run build --workspace @phoenix/web",
     "catalogue:check": "node scripts/catalogue/refresh.mjs --output data/runtime/catalogue --max-age-hours 24",
     "catalogue:refresh": "node scripts/catalogue/refresh.mjs --output data/runtime/catalogue --force",
     "check": "npm run typecheck && npm test && npm run build",
@@ -27,7 +27,7 @@
     "payload:verify": "node scripts/package/verify-payload.mjs",
     "start": "npm run start --workspace @phoenix/server",
     "test": "vitest run",
-    "typecheck": "npm run build --workspace @jdu/control-deck-core && npm run build --workspace @jdu/control-deck-ui && npm run build --workspace @jdu/control-deck-adapter-keyboard && npm run build --workspace @jdu/control-deck-host && npm run typecheck --workspace @jdu/control-deck-app && npm run build --workspace @phoenix/contracts && npm run build --workspace @phoenix/elite && npm run build --workspace @phoenix/copilot && npm run typecheck --workspace @phoenix/ui && npm run typecheck --workspace @phoenix/server && npm run typecheck --workspace @phoenix/web"
+    "typecheck": "npm run build --workspace @jdu/control-deck-core && npm run build --workspace @jdu/control-deck-ui && npm run build --workspace @jdu/control-deck-adapter-keyboard && npm run build --workspace @jdu/control-deck-host && npm run typecheck --workspace @jdu/control-deck-web && npm run typecheck --workspace @jdu/control-deck-app && npm run build --workspace @phoenix/contracts && npm run build --workspace @phoenix/elite && npm run build --workspace @phoenix/copilot && npm run typecheck --workspace @phoenix/ui && npm run typecheck --workspace @phoenix/server && npm run typecheck --workspace @phoenix/web"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",

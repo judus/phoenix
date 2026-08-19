@@ -4,7 +4,8 @@ import { ControlDeckApplication } from './control-deck-application.js'
 const application = new ControlDeckApplication({
   dataDirectory: resolve(process.cwd(), 'data/control-deck'),
   host: process.env.CONTROL_DECK_HOST ?? '0.0.0.0',
-  port: Number(process.env.CONTROL_DECK_PORT ?? 3410)
+  port: Number(process.env.CONTROL_DECK_PORT ?? 3410),
+  webDirectory: process.env.CONTROL_DECK_WEB_DIRECTORY ?? resolve(import.meta.dirname, '../../control-deck-web/dist')
 })
 
 const address = await application.start()

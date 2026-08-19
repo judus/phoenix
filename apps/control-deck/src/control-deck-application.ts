@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
 import { createServer, type Server, type ServerResponse } from 'node:http'
-import { resolve } from 'node:path'
+import { extname, relative, resolve, sep } from 'node:path'
 import { KeyboardCommandAdapter, RecordingKeyboardOutput } from '@jdu/control-deck-adapter-keyboard'
 import { ControlDeckCommandService, PairingService } from '@jdu/control-deck-core'
 import {
@@ -16,6 +17,7 @@ export interface ControlDeckApplicationOptions {
   dataDirectory: string
   host?: string
   port?: number
+  webDirectory?: string
 }
 
 export class ControlDeckApplication {
@@ -27,10 +29,12 @@ export class ControlDeckApplication {
   private readonly host: string
   private readonly port: number
   private readonly server: Server
+  private readonly webDirectory?: string
 
   public constructor (options: ControlDeckApplicationOptions) {
     this.host = options.host ?? '127.0.0.1'
     this.port = options.port ?? 3410
+    this.webDirectory = options.webDirectory ? resolve(options.webDirectory) : undefined
     this.pairing = new PairingHttpController(
       new PairingService(
         new FilePairingCredentialsRepository(resolve(options.dataDirectory, 'pairing.json')),
@@ -107,7 +111,36 @@ export class ControlDeckApplication {
       writeJson(response, 200, { name: 'Control Deck', status: 'ok' })
       return
     }
+    if ((request.method === 'GET' || request.method === 'HEAD') && this.webDirectory) {
+      await this.serveWebAsset(path, request.method === 'HEAD', response)
+      return
+    }
     writeJson(response, 404, { error: { code: 'not_found', message: 'Route not found.' } })
+  }
+
+  private async serveWebAsset (path: string, headOnly: boolean, response: ServerResponse): Promise<void> {
+    const relativePath = path === '/' ? 'index.html' : decodeURIComponent(path.slice(1))
+    let filePath = resolve(this.webDirectory!, relativePath)
+    const resolvedRelative = relative(this.webDirectory!, filePath)
+    if (resolvedRelative === '..' || resolvedRelative.startsWith(`..${sep}`)) {
+      writeJson(response, 404, { error: { code: 'not_found', message: 'Route not found.' } })
+      return
+    }
+    let body: Buffer
+    try {
+      body = await readFile(filePath)
+    } catch {
+      if (extname(relativePath) !== '') {
+        writeJson(response, 404, { error: { code: 'not_found', message: 'Asset not found.' } })
+        return
+      }
+      filePath = resolve(this.webDirectory!, 'index.html')
+      body = await readFile(filePath)
+    }
+    response.statusCode = 200
+    response.setHeader('content-type', contentType(filePath))
+    response.setHeader('cache-control', filePath.endsWith('index.html') ? 'no-cache' : 'public, max-age=31536000, immutable')
+    response.end(headOnly ? undefined : body)
   }
 }
 
@@ -116,4 +149,15 @@ function writeJson (response: ServerResponse, status: number, body: unknown): vo
   response.statusCode = status
   response.setHeader('content-type', 'application/json; charset=utf-8')
   response.end(`${JSON.stringify(body)}\n`)
+}
+
+function contentType (path: string): string {
+  return ({
+    '.css': 'text/css; charset=utf-8',
+    '.html': 'text/html; charset=utf-8',
+    '.js': 'text/javascript; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.svg': 'image/svg+xml',
+    '.webp': 'image/webp'
+  } as Record<string, string>)[extname(path)] ?? 'application/octet-stream'
 }
