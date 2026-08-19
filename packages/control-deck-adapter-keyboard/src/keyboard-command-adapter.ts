@@ -2,6 +2,7 @@ import type {
   ControlDeckAdapterDescriptor,
   ControlDeckAdapterExecutionResult,
   ControlDeckCommandAdapter,
+  ControlDeckCommandInvocation,
   ControlDeckCommandOperation,
   ControlDeckCommandTarget
 } from '@jdu/control-deck-core'
@@ -42,10 +43,16 @@ export class KeyboardCommandAdapter implements ControlDeckCommandAdapter {
       simulated: status.simulated,
       detail: status.detail,
       platformRequirements: status.platformRequirements,
+      holdOwner: 'control-deck',
       commands: [{
         id: 'key',
         label: 'Keyboard key',
         description: 'Send a keyboard key or key chord to the configured target application.',
+        category: 'Keyboard',
+        available: status.available,
+        unavailableReason: status.available ? null : status.detail,
+        risk: 'safe',
+        simulated: status.simulated,
         operations: ['tap', 'press', 'release'],
         configurationSchema: {
           type: 'object',
@@ -81,10 +88,10 @@ export class KeyboardCommandAdapter implements ControlDeckCommandAdapter {
   }
 
   public async execute (
-    target: ControlDeckCommandTarget,
-    operation: ControlDeckCommandOperation,
+    invocation: ControlDeckCommandInvocation,
     signal: AbortSignal
   ): Promise<ControlDeckAdapterExecutionResult> {
+    const { operation, target } = invocation
     const configuration: KeyboardCommandConfiguration = {
       key: target.configuration.key as string,
       modifiers: target.configuration.modifiers as string[] | undefined ?? []

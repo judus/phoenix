@@ -6,7 +6,7 @@ import {
 } from './command-runtime.js'
 
 const AdapterIdSchema = z.string().regex(/^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$/u)
-const CommandIdSchema = z.string().regex(/^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$/u)
+const CommandIdSchema = z.string().regex(/^[A-Za-z][A-Za-z0-9_.:-]*$/u)
 const JsonObjectSchema = z.record(z.string(), z.json())
 
 export const ControlDeckCommandOperationSchema = z.enum(['tap', 'press', 'release'])
@@ -41,6 +41,11 @@ export const ControlDeckAdapterCommandSchema = z.object({
   id: CommandIdSchema,
   label: z.string().min(1),
   description: z.string().min(1),
+  category: z.string().min(1),
+  available: z.boolean(),
+  unavailableReason: z.string().min(1).nullable(),
+  risk: z.enum(['safe', 'caution', 'dangerous', 'destructive']),
+  simulated: z.boolean(),
   operations: z.array(ControlDeckCommandOperationSchema).min(1),
   configurationSchema: JsonObjectSchema
 })
@@ -53,6 +58,7 @@ export const ControlDeckAdapterDescriptorSchema = z.object({
   simulated: z.boolean(),
   detail: z.string().min(1),
   platformRequirements: z.array(z.string().min(1)),
+  holdOwner: z.enum(['control-deck', 'adapter']),
   commands: z.array(ControlDeckAdapterCommandSchema)
 })
 
@@ -69,7 +75,8 @@ export const ControlDeckCommandExecutionResultSchema = z.object({
   status: ControlDeckCommandResultStatusSchema,
   timestamp: z.iso.datetime(),
   message: z.string().min(1),
-  simulated: z.boolean()
+  simulated: z.boolean(),
+  data: z.json().optional()
 })
 
 export type ControlDeckCommandOperation = z.infer<typeof ControlDeckCommandOperationSchema>
@@ -81,15 +88,27 @@ export type ControlDeckCommandCatalogue = z.infer<typeof ControlDeckCommandCatal
 export type ControlDeckCommandExecutionResult = z.infer<typeof ControlDeckCommandExecutionResultSchema>
 
 export interface ControlDeckAdapterExecutionResult {
+  data?: z.infer<ReturnType<typeof z.json>>
   message: string
+  simulated?: boolean
   status: z.infer<typeof ControlDeckCommandResultStatusSchema>
+}
+
+export interface ControlDeckCommandInvocation {
+  correlationId: string
+  idempotencyKey?: string
+  leaseId?: string
+  operation: ControlDeckCommandOperation
+  ownerKey: string
+  requestId: string
+  target: ControlDeckCommandTarget
+  timeoutMs?: number
 }
 
 export interface ControlDeckCommandAdapter {
   describe(): ControlDeckAdapterDescriptor
   execute(
-    target: ControlDeckCommandTarget,
-    operation: ControlDeckCommandOperation,
+    invocation: ControlDeckCommandInvocation,
     signal: AbortSignal
   ): Promise<ControlDeckAdapterExecutionResult>
   start?(): Promise<void> | void
@@ -112,6 +131,7 @@ export class ControlDeckCommandService {
   private readonly adapters: Map<string, ControlDeckCommandAdapter>
   private readonly createId: () => string
   private readonly now: () => number
+  private readonly executionAdapter: RegisteredCommandExecutionAdapter
   private readonly runtime: CommandExecutionRuntime<ResolvedCommand, ControlDeckCommandExecutionResult>
   private readonly startedAdapters: ControlDeckCommandAdapter[] = []
 
@@ -123,10 +143,8 @@ export class ControlDeckCommandService {
     if (this.adapters.size !== adapters.length) throw new Error('Control Deck adapter IDs must be unique.')
     this.createId = options.createId
     this.now = options.now ?? Date.now
-    this.runtime = new CommandExecutionRuntime(
-      new RegisteredCommandExecutionAdapter(this.createId, this.now),
-      options.maximumHoldMs
-    )
+    this.executionAdapter = new RegisteredCommandExecutionAdapter(this.createId, this.now)
+    this.runtime = new CommandExecutionRuntime(this.executionAdapter, options.maximumHoldMs)
   }
 
   public getCatalogue (): ControlDeckCommandCatalogue {
@@ -209,6 +227,15 @@ export class ControlDeckCommandService {
       `Unknown ${descriptor.label} command: ${request.target.commandId}.`,
       descriptor.simulated
     ))
+    if (!command.available) return Promise.resolve(this.result(
+      request,
+      ownerKey,
+      requestId,
+      correlationId,
+      'rejected',
+      command.unavailableReason ?? `${command.label} is unavailable.`,
+      command.simulated
+    ))
     if (!command.operations.includes(request.operation)) return Promise.resolve(this.result(
       request,
       ownerKey,
@@ -216,7 +243,7 @@ export class ControlDeckCommandService {
       correlationId,
       'rejected',
       `${command.label} does not support ${request.operation}.`,
-      descriptor.simulated
+      command.simulated
     ))
     const validationError = adapter.validate(request.target)
     if (validationError) return Promise.resolve(this.result(
@@ -226,10 +253,19 @@ export class ControlDeckCommandService {
       correlationId,
       'rejected',
       validationError,
-      descriptor.simulated
+      command.simulated
+    ))
+    if (request.operation !== 'tap' && !request.leaseId) return Promise.resolve(this.result(
+      request,
+      ownerKey,
+      requestId,
+      correlationId,
+      'rejected',
+      'Hold actions require a lease ID.',
+      command.simulated
     ))
 
-    return this.runtime.execute({
+    const runtimeRequest: CommandRuntimeRequest<ResolvedCommand> = {
       correlationId,
       ...(request.idempotencyKey ? { idempotencyKey: request.idempotencyKey } : {}),
       ...(request.leaseId ? { leaseId: request.leaseId } : {}),
@@ -239,7 +275,13 @@ export class ControlDeckCommandService {
       requestId,
       targetKey: stableTargetKey(request.target),
       ...(request.timeoutMs ? { timeoutMs: request.timeoutMs } : {})
-    }, signal)
+    }
+    if (descriptor.holdOwner === 'adapter' && runtimeRequest.operation !== 'tap') {
+      const timeout = AbortSignal.timeout(runtimeRequest.timeoutMs ?? 5_000)
+      const executionSignal = signal === undefined ? timeout : AbortSignal.any([signal, timeout])
+      return this.executionAdapter.execute(runtimeRequest, executionSignal)
+    }
+    return this.runtime.execute(runtimeRequest, signal)
   }
 
   private result (
@@ -299,14 +341,16 @@ class RegisteredCommandExecutionAdapter implements CommandExecutionAdapter<Resol
     request: CommandRuntimeRequest<ResolvedCommand>,
     signal: AbortSignal
   ): Promise<ControlDeckCommandExecutionResult> {
-    const result = await request.payload.adapter.execute(request.payload.target, request.operation, signal)
-    return this.result(request, result.status, result.message)
+    const result = await request.payload.adapter.execute(invocationFrom(request), signal)
+    return this.result(request, result.status, result.message, result.simulated, result.data)
   }
 
   private result (
     request: CommandRuntimeRequest<ResolvedCommand>,
     status: ControlDeckCommandExecutionResult['status'],
-    message: string
+    message: string,
+    simulated = request.payload.adapter.describe().simulated,
+    data?: z.infer<ReturnType<typeof z.json>>
   ): ControlDeckCommandExecutionResult {
     return ControlDeckCommandExecutionResultSchema.parse({
       requestId: request.requestId,
@@ -317,8 +361,22 @@ class RegisteredCommandExecutionAdapter implements CommandExecutionAdapter<Resol
       status,
       timestamp: new Date(this.now()).toISOString(),
       message,
-      simulated: request.payload.adapter.describe().simulated
+      simulated,
+      ...(data === undefined ? {} : { data })
     })
+  }
+}
+
+function invocationFrom (request: CommandRuntimeRequest<ResolvedCommand>): ControlDeckCommandInvocation {
+  return {
+    correlationId: request.correlationId,
+    ...(request.idempotencyKey ? { idempotencyKey: request.idempotencyKey } : {}),
+    ...(request.leaseId ? { leaseId: request.leaseId } : {}),
+    operation: request.operation,
+    ownerKey: request.ownerKey,
+    requestId: request.requestId,
+    target: request.payload.target,
+    ...(request.timeoutMs ? { timeoutMs: request.timeoutMs } : {})
   }
 }
 
