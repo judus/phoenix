@@ -147,6 +147,7 @@ function eliteKeyToXdotoolKey (key: string): string {
 const XDOTOOL_KEYS: Readonly<Record<string, string>> = {
   BackSlash: 'backslash',
   BackSpace: 'BackSpace',
+  CapsLock: 'Caps_Lock',
   Comma: 'comma',
   Delete: 'Delete',
   DownArrow: 'Down',

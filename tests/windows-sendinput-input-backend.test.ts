@@ -48,6 +48,7 @@ test('SendInput translates Elite numpad, special and function key names', async 
 
   await backend.send('tap', chord('Numpad_Divide', ['RightControl']))
   await backend.send('tap', chord('F11'))
+  await backend.send('tap', chord('CapsLock'))
 
   expect(runner.requests).toEqual([
     {
@@ -63,6 +64,13 @@ test('SendInput translates Elite numpad, special and function key names', async 
       events: [
         { virtualKey: 0x7a, flags: 0 },
         { virtualKey: 0x7a, flags: 2 }
+      ],
+      holdMilliseconds: 50
+    },
+    {
+      events: [
+        { virtualKey: 0x14, flags: 0 },
+        { virtualKey: 0x14, flags: 2 }
       ],
       holdMilliseconds: 50
     }

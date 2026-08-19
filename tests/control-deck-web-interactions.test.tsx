@@ -54,7 +54,7 @@ test('a hold command maps pointer lifetime to press and release callbacks', () =
   expect(renderer.toJSON()).toMatchObject({ props: { className: 'deck-button' } })
 })
 
-test('the button editor supports the virtual keyboard and modifier toggles', () => {
+test('the button editor supports right-side modifiers and button colors', () => {
   const onSave = vi.fn()
   let renderer!: ReturnType<typeof create>
   act(() => {
@@ -71,13 +71,44 @@ test('the button editor supports the virtual keyboard and modifier toggles', () 
   expect(shortcut.props.inputMode).toBe('text')
   act(() => inputs[0]!.props.onChange({ target: { value: 'Boost' } }))
   act(() => shortcut.props.onChange({ target: { value: 'b' } }))
-  const control = renderer.root.findAllByType('button').find(button => button.children.includes('Ctrl'))!
+  const control = renderer.root.findAllByType('button').find(button => button.children.includes('RCtrl'))!
   act(() => control.props.onClick())
+  const color = renderer.root.findAllByType('select').find(select => select.props.value === 'default')!
+  act(() => color.props.onChange({ target: { value: 'red' } }))
   const save = renderer.root.findAllByType('button').find(button => button.children.includes('Save button'))!
   act(() => save.props.onClick())
 
   expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
-    target: expect.objectContaining({ configuration: { key: 'b', modifiers: ['LeftControl'] } })
+    target: expect.objectContaining({ configuration: { key: 'b', modifiers: ['RightControl'] } }),
+    appearance: expect.objectContaining({ foregroundColor: '#ff6258', backgroundColor: '#3a1717' })
+  }))
+})
+
+test('the button editor captures Caps Lock as a key rather than a modifier', () => {
+  const onSave = vi.fn()
+  let renderer!: ReturnType<typeof create>
+  act(() => { renderer = create(<ButtonEditor
+    deck={{ id: 'main', name: 'Main', description: '', context: null, layout: { kind: 'grid', columns: 1, rows: 1 }, elements: [] }}
+    position={{ column: 1, row: 1 }}
+    onClose={() => undefined}
+    onRemove={() => undefined}
+    onSave={onSave}
+  />) })
+  const inputs = renderer.root.findAllByType('input')
+  const shortcut = inputs.find(input => input.props.placeholder === 'Tap here, then press a key')!
+  act(() => inputs[0]!.props.onChange({ target: { value: 'Caps' } }))
+  act(() => shortcut.props.onKeyDown({
+    altKey: false,
+    ctrlKey: false,
+    key: 'CapsLock',
+    preventDefault: vi.fn(),
+    shiftKey: false
+  }))
+  const save = renderer.root.findAllByType('button').find(button => button.children.includes('Save button'))!
+  act(() => save.props.onClick())
+
+  expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+    target: expect.objectContaining({ configuration: { key: 'CapsLock', modifiers: [] } })
   }))
 })
 
@@ -115,6 +146,10 @@ test('deck dimensions allow temporary empty drafts and save only valid values', 
   act(() => columns.props.onChange({ target: { value: '6' } }))
   act(() => columns.props.onBlur())
   expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ layout: { kind: 'grid', columns: 6, rows: 3 } }))
+
+  const theme = renderer.root.findByType('select')
+  act(() => theme.props.onChange({ target: { value: 'violet' } }))
+  expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ appearance: { colorScheme: 'violet' } }))
 })
 
 test('fullscreen toggles the document root and exits through the browser API', async () => {

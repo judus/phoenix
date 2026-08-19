@@ -47,12 +47,15 @@ test.skipIf(process.platform !== 'linux')('xdotool translates Elite numpad and s
   const backend = configuredBackend(runner)
 
   await backend.send('tap', chord('Numpad_Add', ['LeftControl']))
+  await backend.send('tap', chord('CapsLock'))
 
   expect(runner.commands.map(command => command.arguments_)).toEqual([
     ['keydown', 'ctrl'],
     ['keydown', 'KP_Add'],
     ['keyup', 'KP_Add'],
-    ['keyup', 'ctrl']
+    ['keyup', 'ctrl'],
+    ['keydown', 'Caps_Lock'],
+    ['keyup', 'Caps_Lock']
   ])
 })
 

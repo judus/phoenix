@@ -297,6 +297,7 @@ function eliteKeyToVirtualKey (key: string): VirtualKey {
 const WINDOWS_VIRTUAL_KEYS: Readonly<Record<string, VirtualKey>> = {
   BackSlash: { code: 0xdc },
   BackSpace: { code: 0x08 },
+  CapsLock: { code: 0x14 },
   Comma: { code: 0xbc },
   Delete: { code: 0x2e, extended: true },
   DownArrow: { code: 0x28, extended: true },

@@ -10,7 +10,7 @@ test('Control Deck configuration supports multiple decks and logical displays', 
       { id: 'right_tablet', name: 'Right tablet', deckId: 'srv', order: 1 }
     ]
   })).toMatchObject({
-    decks: [{ id: 'ship' }, { id: 'srv' }],
+    decks: [{ id: 'ship', appearance: { colorScheme: 'violet' } }, { id: 'srv' }],
     displays: [{ deckId: 'ship' }, { deckId: 'srv' }]
   })
 })
@@ -52,6 +52,7 @@ function deck (id: string) {
     name: id.toUpperCase(),
     description: '',
     context: `phoenix:${id}`,
+    ...(id === 'ship' ? { appearance: { colorScheme: 'violet' as const } } : {}),
     layout: { kind: 'grid' as const, columns: 8, rows: 5 },
     elements: [{
       id: 'cell_1',

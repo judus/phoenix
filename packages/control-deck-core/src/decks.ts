@@ -11,6 +11,21 @@ export const ControlDeckElementAppearanceSchema = z.object({
   backgroundColor: HexColorSchema.nullable().default(null)
 })
 
+export const ControlDeckColorSchemeSchema = z.enum([
+  'blue',
+  'cyan',
+  'green',
+  'amber',
+  'orange',
+  'red',
+  'violet',
+  'magenta'
+])
+
+export const ControlDeckDeckAppearanceSchema = z.object({
+  colorScheme: ControlDeckColorSchemeSchema
+})
+
 export const ControlDeckInteractionSchema = z.object({
   activation: z.enum(['command-default', 'tap', 'hold']).default('command-default'),
   confirmation: z.discriminatedUnion('kind', [
@@ -69,6 +84,7 @@ export const ControlDeckDeckSchema = z.object({
   name: z.string().min(1).max(80),
   description: z.string().max(500).default(''),
   context: z.string().min(1).max(100).nullable().default(null),
+  appearance: ControlDeckDeckAppearanceSchema.optional(),
   layout: ControlDeckGridLayoutSchema,
   elements: z.array(ControlDeckElementSchema).max(512)
 }).superRefine((deck, context) => {
@@ -131,6 +147,8 @@ export const ControlDeckConfigurationSchema = z.object({
 })
 
 export type ControlDeckElementAppearance = z.infer<typeof ControlDeckElementAppearanceSchema>
+export type ControlDeckColorScheme = z.infer<typeof ControlDeckColorSchemeSchema>
+export type ControlDeckDeckAppearance = z.infer<typeof ControlDeckDeckAppearanceSchema>
 export type ControlDeckInteraction = z.infer<typeof ControlDeckInteractionSchema>
 export type ControlDeckGridPlacement = z.infer<typeof ControlDeckGridPlacementSchema>
 export type ControlDeckCommandElement = z.infer<typeof ControlDeckCommandElementSchema>

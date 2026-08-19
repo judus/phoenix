@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import {
   ControlDeckConfigurationSchema,
   createControlDeckClientId,
   type ControlDeckCommandExecutionResult,
   type ControlDeckCommandCatalogue,
   type ControlDeckCommandElement,
+  type ControlDeckColorScheme,
   type ControlDeckConfiguration,
   type ControlDeckDeck
 } from '@jdu/control-deck-core'
@@ -58,7 +59,7 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
     } catch (cause) { setError(errorMessage(cause)) }
   }
 
-  return <main className="app-shell">
+  return <main className={`app-shell theme-${deck?.appearance?.colorScheme ?? 'blue'}`}>
     <header>
       <div><strong>CONTROL DECK</strong><small>Standalone cockpit surface</small></div>
       <nav>
@@ -219,6 +220,10 @@ export function DeckSettings ({ deck, onChange, onDelete }: { deck: ControlDeckD
     <label>Name<input value={name} onBlur={commitName} onChange={event => setName(event.target.value)} onKeyDown={commitOnEnter} /></label>
     <label>Columns<input inputMode="numeric" max="24" min={minimumColumns} type="number" value={columns} onBlur={() => commitDimension('columns')} onChange={event => setColumns(event.target.value)} onKeyDown={commitOnEnter} /></label>
     <label>Rows<input inputMode="numeric" max="24" min={minimumRows} type="number" value={rows} onBlur={() => commitDimension('rows')} onChange={event => setRows(event.target.value)} onKeyDown={commitOnEnter} /></label>
+    <label>Theme<select value={deck.appearance?.colorScheme ?? 'blue'} onChange={event => onChange({
+      ...deck,
+      appearance: { colorScheme: event.target.value as ControlDeckColorScheme }
+    })}>{COLOR_SCHEMES.map(color => <option key={color.id} value={color.id}>{color.label}</option>)}</select></label>
     <button className="danger" onClick={onDelete}>Delete</button>
   </section>
 }
@@ -257,7 +262,11 @@ export function DeckButton ({ editing, element, label, onEdit, onTap, onHoldStar
       onHoldEnd()
     }
   }
-  return <button className={`deck-button${armed ? ' armed' : ''}${pressed ? ' pressed' : ''}`} onClick={activate} onContextMenu={event => event.preventDefault()} onPointerDown={event => {
+  const style = {
+    '--button-accent': element.appearance.foregroundColor ?? undefined,
+    '--button-background': element.appearance.backgroundColor ?? undefined
+  } as CSSProperties
+  return <button className={`deck-button${armed ? ' armed' : ''}${pressed ? ' pressed' : ''}`} style={style} onClick={activate} onContextMenu={event => event.preventDefault()} onPointerDown={event => {
     if (editing) return
     event.currentTarget.setPointerCapture?.(event.pointerId)
     if (element.interaction.confirmation.kind === 'arm-then-tap') {
@@ -279,6 +288,7 @@ export function ButtonEditor ({ element, position, onClose, onSave, onRemove }: 
   const [modifiers, setModifiers] = useState<string[]>(Array.isArray(element?.target.configuration.modifiers) ? element.target.configuration.modifiers as string[] : [])
   const [activation, setActivation] = useState(element?.interaction.activation ?? 'tap')
   const [confirmation, setConfirmation] = useState(element?.interaction.confirmation.kind ?? 'none')
+  const [color, setColor] = useState(buttonColorId(element))
   const captureShortcut = (event: KeyboardEvent<HTMLInputElement>) => {
     if (isModifierKey(event.key)) return
     const shortcutKey = browserKeyToControlDeckKey(event.key)
@@ -309,8 +319,8 @@ export function ButtonEditor ({ element, position, onClose, onSave, onRemove }: 
     appearance: {
       label: label.trim(),
       icon: null,
-      foregroundColor: null,
-      backgroundColor: null
+      foregroundColor: BUTTON_COLORS[color]?.foreground ?? null,
+      backgroundColor: BUTTON_COLORS[color]?.background ?? null
     },
     interaction: {
       activation,
@@ -336,7 +346,7 @@ export function ButtonEditor ({ element, position, onClose, onSave, onRemove }: 
       onKeyDown={captureShortcut}
     /></label>
     <div className="modifier-picker" aria-label="Shortcut modifiers">
-      {([['LeftControl', 'Ctrl'], ['LeftShift', 'Shift'], ['LeftAlt', 'Alt']] as const).map(([value, text]) =>
+      {([['LeftControl', 'Ctrl'], ['RightControl', 'RCtrl'], ['LeftShift', 'Shift'], ['RightShift', 'RShift'], ['LeftAlt', 'Alt'], ['RightAlt', 'RAlt']] as const).map(([value, text]) =>
         <button
           aria-pressed={modifiers.includes(value)}
           className={modifiers.includes(value) ? 'active' : ''}
@@ -347,6 +357,10 @@ export function ButtonEditor ({ element, position, onClose, onSave, onRemove }: 
         >{text}</button>)}
     </div>
     <output className="shortcut-preview">{[...modifiers.map(modifierLabel), key || 'Key'].join(' + ')}</output>
+    <label>Color<select value={color} onChange={event => setColor(event.target.value)}>
+      <option value="default">Deck default</option>
+      {COLOR_SCHEMES.map(color => <option key={color.id} value={color.id}>{color.label}</option>)}
+    </select></label>
     <label>Activation<select value={activation} onChange={event => {
       const next = event.target.value as 'tap' | 'hold'
       setActivation(next)
@@ -360,9 +374,38 @@ export function ButtonEditor ({ element, position, onClose, onSave, onRemove }: 
 function isModifierKey (key: string): boolean { return ['Alt', 'Control', 'Meta', 'Shift'].includes(key) }
 function browserKeyToControlDeckKey (key: string): string | null {
   if (key.length === 1) return key === ' ' ? 'Space' : key
-  return ({ ArrowDown: 'DownArrow', ArrowLeft: 'LeftArrow', ArrowRight: 'RightArrow', ArrowUp: 'UpArrow', Backspace: 'BackSpace', Delete: 'Delete', End: 'End', Enter: 'Enter', Esc: 'Escape', Escape: 'Escape', Home: 'Home', Insert: 'Insert', PageDown: 'PageDown', PageUp: 'PageUp', Tab: 'Tab' } as Record<string, string>)[key] ?? (/^F(?:[1-9]|1[0-9]|2[0-4])$/u.test(key) ? key : null)
+  return ({ ArrowDown: 'DownArrow', ArrowLeft: 'LeftArrow', ArrowRight: 'RightArrow', ArrowUp: 'UpArrow', Backspace: 'BackSpace', CapsLock: 'CapsLock', Delete: 'Delete', End: 'End', Enter: 'Enter', Esc: 'Escape', Escape: 'Escape', Home: 'Home', Insert: 'Insert', PageDown: 'PageDown', PageUp: 'PageUp', Tab: 'Tab' } as Record<string, string>)[key] ?? (/^F(?:[1-9]|1[0-9]|2[0-4])$/u.test(key) ? key : null)
 }
-function modifierLabel (modifier: string): string { return ({ LeftAlt: 'Alt', LeftControl: 'Ctrl', LeftShift: 'Shift' } as Record<string, string>)[modifier] ?? modifier }
+function modifierLabel (modifier: string): string { return ({ LeftAlt: 'Alt', LeftControl: 'Ctrl', LeftShift: 'Shift', RightAlt: 'RAlt', RightControl: 'RCtrl', RightShift: 'RShift' } as Record<string, string>)[modifier] ?? modifier }
+
+const COLOR_SCHEMES: ReadonlyArray<{ id: ControlDeckColorScheme, label: string }> = [
+  { id: 'blue', label: 'Blue' },
+  { id: 'cyan', label: 'Cyan' },
+  { id: 'green', label: 'Green' },
+  { id: 'amber', label: 'Amber' },
+  { id: 'orange', label: 'Orange' },
+  { id: 'red', label: 'Red' },
+  { id: 'violet', label: 'Violet' },
+  { id: 'magenta', label: 'Magenta' }
+]
+
+const BUTTON_COLORS: Readonly<Record<string, { foreground: string, background: string }>> = {
+  blue: { foreground: '#55c7ff', background: '#123247' },
+  cyan: { foreground: '#45e0dc', background: '#103638' },
+  green: { foreground: '#62d88d', background: '#143522' },
+  amber: { foreground: '#ffb84d', background: '#3b2b0d' },
+  orange: { foreground: '#ff8a4c', background: '#3b2113' },
+  red: { foreground: '#ff6258', background: '#3a1717' },
+  violet: { foreground: '#a98cff', background: '#271f3d' },
+  magenta: { foreground: '#f06bd8', background: '#3a1832' }
+}
+
+function buttonColorId (element?: ControlDeckCommandElement): string {
+  if (!element) return 'default'
+  return Object.entries(BUTTON_COLORS).find(([, value]) =>
+    value.foreground === element.appearance.foregroundColor && value.background === element.appearance.backgroundColor
+  )?.[0] ?? 'default'
+}
 
 export function commandFailureMessage (result: ControlDeckCommandExecutionResult): string | undefined {
   return ['cancelled', 'failed', 'rejected', 'timed_out'].includes(result.status) ? result.message : undefined
@@ -372,5 +415,5 @@ function commandLabel (element: ControlDeckCommandElement, catalogue: ControlDec
 function elementAt (deck: ControlDeckDeck, column: number, row: number) { return deck.elements.find(element => element.kind === 'command' && element.placement.column === column && element.placement.row === row) as ControlDeckCommandElement | undefined }
 function upsertElement (deck: ControlDeckDeck, next: ControlDeckCommandElement): ControlDeckDeck { return { ...deck, elements: deck.elements.some(element => element.id === next.id) ? deck.elements.map(element => element.id === next.id ? next : element) : [...deck.elements, next] } }
 function replaceDeck (configuration: ControlDeckConfiguration, deck: ControlDeckDeck): ControlDeckConfiguration { return { ...configuration, decks: configuration.decks.map(candidate => candidate.id === deck.id ? deck : candidate) } }
-function createDeck (configuration: ControlDeckConfiguration) { const deck: ControlDeckDeck = { id: `deck_${Date.now().toString(36)}`, name: `Deck ${configuration.decks.length + 1}`, description: '', context: null, layout: { kind: 'grid', columns: 4, rows: 3 }, elements: [] }; return { deck, configuration: { ...configuration, decks: [...configuration.decks, deck] } } }
+function createDeck (configuration: ControlDeckConfiguration) { const deck: ControlDeckDeck = { id: `deck_${Date.now().toString(36)}`, name: `Deck ${configuration.decks.length + 1}`, description: '', context: null, appearance: { colorScheme: 'blue' }, layout: { kind: 'grid', columns: 4, rows: 3 }, elements: [] }; return { deck, configuration: { ...configuration, decks: [...configuration.decks, deck] } } }
 function errorMessage (cause: unknown) { return cause instanceof Error ? cause.message : 'Control Deck operation failed.' }

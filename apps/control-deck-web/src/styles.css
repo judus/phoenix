@@ -3,25 +3,32 @@
 html, body, #root { width: 100%; height: 100%; margin: 0; }
 button, input, select { font: inherit; }
 button { border: 1px solid #34434e; color: inherit; background: #111920; cursor: pointer; }
-button:hover { border-color: #55c7ff; }
+button:hover { border-color: var(--accent, #55c7ff); }
 button:disabled { cursor: default; opacity: .45; }
 .center { display: grid; width: 100%; height: 100%; place-items: center; }
 .pairing form { display: grid; width: min(28rem, calc(100% - 2rem)); gap: 1rem; padding: 2rem; border: 1px solid #34434e; background: #0e1419; }
-.pairing form > strong, .app-shell header strong { letter-spacing: .16em; color: #55c7ff; }
+.pairing form > strong, .app-shell header strong { letter-spacing: .16em; color: var(--accent, #55c7ff); }
 .pairing input { padding: .9rem; border: 1px solid #536875; color: inherit; background: #080b0e; font-size: 1.4rem; text-transform: uppercase; }
 .pairing button { padding: .9rem; }
-.app-shell { position: relative; display: grid; height: 100%; grid-template-rows: auto minmax(0, 1fr); gap: .75rem; padding: .75rem; }
+.app-shell { --accent: #55c7ff; --accent-panel: #123247; position: relative; display: grid; height: 100%; grid-template-rows: auto minmax(0, 1fr); gap: .75rem; padding: .75rem; }
+.app-shell.theme-cyan { --accent: #45e0dc; --accent-panel: #103638; }
+.app-shell.theme-green { --accent: #62d88d; --accent-panel: #143522; }
+.app-shell.theme-amber { --accent: #ffb84d; --accent-panel: #3b2b0d; }
+.app-shell.theme-orange { --accent: #ff8a4c; --accent-panel: #3b2113; }
+.app-shell.theme-red { --accent: #ff6258; --accent-panel: #3a1717; }
+.app-shell.theme-violet { --accent: #a98cff; --accent-panel: #271f3d; }
+.app-shell.theme-magenta { --accent: #f06bd8; --accent-panel: #3a1832; }
 .app-shell > header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 1rem; }
 .app-shell > header > div { display: grid; gap: .2rem; }
 .app-shell > header small { color: #8799a5; }
 .app-shell nav { display: flex; gap: .35rem; min-width: 0; overflow-x: auto; }
 .app-shell nav button, .edit-toggle { padding: .65rem .85rem; white-space: nowrap; }
-.app-shell nav button.active { border-color: #55c7ff; color: #55c7ff; }
+.app-shell nav button.active { border-color: var(--accent); color: var(--accent); }
 .header-actions { display: grid; grid-auto-flow: column; grid-auto-columns: max-content; align-items: stretch; gap: .4rem; }
 .header-actions button { padding: .65rem .85rem; white-space: nowrap; }
 .header-actions .fullscreen-toggle { display: grid; inline-size: 2.75rem; padding: .65rem; place-items: center; }
 .fullscreen-toggle svg { inline-size: 100%; block-size: 100%; }
-.notice { position: absolute; z-index: 6; inset-inline: .75rem; inset-block-end: .75rem; margin: 0; padding: .65rem .85rem; border: 1px solid #34434e; border-left: .25rem solid #55c7ff; background: #101a20ee; box-shadow: 0 .5rem 2rem #000a; pointer-events: none; }
+.notice { position: absolute; z-index: 6; inset-inline: .75rem; inset-block-end: .75rem; margin: 0; padding: .65rem .85rem; border: 1px solid #34434e; border-left: .25rem solid var(--accent); background: #101a20ee; box-shadow: 0 .5rem 2rem #000a; pointer-events: none; }
 .error { color: #ff8e86; }
 .notice.error { border-color: #ff6258; }
 .empty { place-self: center; text-align: center; color: #8799a5; }
@@ -29,26 +36,27 @@ button:disabled { cursor: default; opacity: .45; }
 .deck-workspace.editing { grid-template-rows: auto minmax(0, 1fr); gap: .75rem; }
 .standalone-deck { gap: .5rem; overflow: hidden; }
 .deck-button, .empty-button { width: 100%; height: 100%; min-width: 0; padding: .6rem; touch-action: none; user-select: none; -webkit-touch-callout: none; }
-.deck-button { display: grid; place-content: center; gap: .4rem; background: #111a20; }
+.deck-button { position: relative; display: grid; place-content: center; gap: .4rem; border-color: var(--button-accent, #34434e); background: var(--button-background, #111a20); }
+.deck-button::after { position: absolute; inset-inline-end: .6rem; inset-block-end: .6rem; width: .9rem; aspect-ratio: 1; background: radial-gradient(circle, var(--button-accent, var(--accent)) 0 .08rem, transparent .1rem) 0 0 / 33.333% 33.333%; opacity: .12; content: ''; pointer-events: none; }
 .deck-button strong { color: #e9f7ff; text-transform: uppercase; }
-.deck-button small { color: #55c7ff; }
+.deck-button small { color: var(--button-accent, var(--accent)); }
 .deck-button.armed { border-color: #ffad2f; background: #3b2608; }
-.deck-button.pressed { border-color: #55c7ff; background: #123247; }
+.deck-button.pressed { border-color: var(--button-accent, var(--accent)); background: var(--button-background, var(--accent-panel)); }
 .empty-button { border-style: dashed; color: #536875; background: #0b1014; font-size: 1.5rem; }
 .deck-settings { display: flex; align-items: end; gap: .6rem; padding: .6rem; border: 1px solid #283741; background: #0e1419; }
 .deck-settings label, .button-editor label { display: grid; gap: .25rem; color: #9cabb4; font-size: .8rem; }
-.deck-settings input, .button-editor input, .button-editor select { min-width: 0; padding: .5rem; border: 1px solid #34434e; color: inherit; background: #080b0e; }
-.deck-settings input, .deck-settings > button { block-size: 2.5rem; }
+.deck-settings input, .deck-settings select, .button-editor input, .button-editor select { min-width: 0; padding: .5rem; border: 1px solid #34434e; color: inherit; background: #080b0e; }
+.deck-settings input, .deck-settings select, .deck-settings > button { block-size: 2.5rem; }
 .deck-settings > button { padding: .5rem .75rem; }
 .deck-settings label:first-child { flex: 1; }
 .deck-settings input[type='number'] { width: 5rem; }
 .danger { border-color: #7c332f; color: #ff8e86; }
-.button-editor { position: absolute; z-index: 5; inset: 10%; display: grid; align-content: start; gap: 1rem; padding: 1.25rem; border: 1px solid #55c7ff; background: #0e1419; box-shadow: 0 1rem 4rem #000c; }
+.button-editor { position: absolute; z-index: 5; inset: 10%; display: grid; align-content: start; gap: 1rem; padding: 1.25rem; border: 1px solid var(--accent); background: #0e1419; box-shadow: 0 1rem 4rem #000c; }
 .button-editor header, .button-editor footer { display: flex; justify-content: space-between; gap: .75rem; }
 .button-editor footer { margin-top: auto; }
 .button-editor footer button:last-child { margin-left: auto; }
-.modifier-picker { display: flex; gap: .5rem; }
+.modifier-picker { display: flex; flex-wrap: wrap; gap: .5rem; }
 .modifier-picker button { padding: .5rem .75rem; }
-.modifier-picker button.active { border-color: #55c7ff; color: #55c7ff; background: #123247; }
-.shortcut-preview { padding: .65rem; border-left: .2rem solid #55c7ff; color: #e9f7ff; background: #080b0e; }
+.modifier-picker button.active { border-color: var(--accent); color: var(--accent); background: var(--accent-panel); }
+.shortcut-preview { padding: .65rem; border-left: .2rem solid var(--accent); color: #e9f7ff; background: #080b0e; }
 @media (max-width: 700px) { .app-shell > header { grid-template-columns: 1fr auto; } .app-shell nav { grid-column: 1 / -1; grid-row: 2; } .deck-settings { flex-wrap: wrap; } .button-editor { inset: .75rem; } }
