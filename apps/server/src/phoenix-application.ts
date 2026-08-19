@@ -31,6 +31,7 @@ import { GameActionService } from './application/game-action-service.js'
 import { createPhoenixMcpTools } from './application/phoenix-mcp-tools.js'
 import { StatefulGameActionService } from './application/stateful-game-action-service.js'
 import { EliteJournalIngestionService } from './application/elite-journal-ingestion-service.js'
+import { EliteJournalProjectionPipeline } from './application/elite-journal-projection-pipeline.js'
 import { EliteJournalDiagnosticsService } from './application/elite-journal-diagnostics-service.js'
 import { EliteInventoryIngestionService } from './application/elite-inventory-ingestion-service.js'
 import { EliteStatusIngestionService } from './application/elite-status-ingestion-service.js'
@@ -216,16 +217,17 @@ export class PhoenixApplication {
       historicalState
     )
     const inventoryIngestion = new EliteInventoryIngestionService(this.eventIngestion)
+    const liveJournalProjections = new EliteJournalProjectionPipeline([
+      event => journalIngestion.ingest(event),
+      event => cartographyObservationIngestion.ingest(event),
+      event => missions.ingest(event, 'live-journal'),
+      event => communications.ingest(event),
+      event => fleet.ingest(event),
+      event => activityLog.ingestJournal(event)
+    ])
     this.journalSource = new EliteJournalFileSource(
       configuredEliteDirectory,
-      event => {
-        journalIngestion.ingest(event)
-        cartographyObservationIngestion.ingest(event)
-        missions.ingest(event, 'live-journal')
-        communications.ingest(event)
-        fleet.ingest(event)
-        activityLog.ingestJournal(event)
-      }
+      event => liveJournalProjections.project(event)
     )
     this.journalBackfill = new EliteJournalHistoryBackfill(
       configuredEliteDirectory,

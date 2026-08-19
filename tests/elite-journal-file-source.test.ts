@@ -96,6 +96,38 @@ test('the live journal source reads only the latest file during startup', async 
   }
 })
 
+test('the live journal source retries a line when its listener fails', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-journal-retry-'))
+  const journal = join(directory, 'Journal.2026-08-10T120000.01.log')
+  writeFileSync(journal, [
+    '{"timestamp":"2026-08-10T12:00:00Z","event":"Docked"}',
+    '{"timestamp":"2026-08-10T12:01:00Z","event":"Undocked"}',
+    ''
+  ].join('\n'))
+  const events: EliteJournalEvent[] = []
+  let attempts = 0
+  const source = new EliteJournalFileSource(directory, event => {
+    attempts++
+    if (attempts === 1) throw new Error('Projection temporarily unavailable.')
+    events.push(event)
+  })
+
+  try {
+    expect(await source.refresh()).toBe(false)
+    expect(source.getDiagnostics()).toMatchObject({
+      error: 'Projection temporarily unavailable.',
+      linesRead: 0
+    })
+
+    expect(await source.refresh()).toBe(true)
+    expect(events.map(event => event.event)).toEqual(['Docked', 'Undocked'])
+    expect(source.getDiagnostics()).toMatchObject({ error: null, linesRead: 2 })
+  } finally {
+    source.stop()
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
+
 test('historical journal backfill resumes from durable file checkpoints', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-journal-backfill-'))
   const oldJournal = join(directory, 'Journal.2026-08-09T120000.01.log')
