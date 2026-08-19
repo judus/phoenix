@@ -1,7 +1,7 @@
 import { act, create } from 'react-test-renderer'
 import { afterEach, beforeAll, expect, test, vi } from 'vitest'
 import { ControlDeckCommandElementSchema } from '@jdu/control-deck-core'
-import { ButtonEditor, DeckButton } from '../apps/control-deck-web/src/control-deck-app.js'
+import { ButtonEditor, DeckButton, FeedbackSlot } from '../apps/control-deck-web/src/control-deck-app.js'
 
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
 afterEach(() => vi.useRealTimers())
@@ -78,6 +78,18 @@ test('the button editor supports the virtual keyboard and modifier toggles', () 
   expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
     target: expect.objectContaining({ configuration: { key: 'b', modifiers: ['LeftControl'] } })
   }))
+})
+
+test('feedback has a stable layout slot before and after a command', () => {
+  let renderer!: ReturnType<typeof create>
+  act(() => { renderer = create(<FeedbackSlot />) })
+  expect(renderer.toJSON()).toMatchObject({ props: { className: 'feedback-slot' }, children: null })
+
+  act(() => renderer.update(<FeedbackSlot message="Keyboard input accepted." />))
+  expect(renderer.toJSON()).toMatchObject({
+    props: { className: 'feedback-slot' },
+    children: [{ props: { className: 'notice' }, children: ['Keyboard input accepted.'] }]
+  })
 })
 
 function createButton (

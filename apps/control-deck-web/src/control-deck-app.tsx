@@ -70,10 +70,10 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
       </nav>
       <button className="edit-toggle" onClick={() => { setEditing(value => !value); setEditingCell(undefined) }}>{editing ? 'Done' : 'Edit'}</button>
     </header>
-    {(error || message) && <p className={error ? 'notice error' : 'notice'}>{error ?? message}</p>}
+    <FeedbackSlot error={error} message={message} />
     {!deck
       ? <section className="empty"><h1>Build your first deck</h1><p>Add a deck, then assign keyboard commands to its buttons.</p></section>
-      : <>
+      : <section className={`deck-workspace${editing ? ' editing' : ''}`}>
           {editing && <DeckSettings deck={deck} onChange={updated => void save(replaceDeck(configuration, updated))} onDelete={() => {
             const next = { ...configuration, decks: configuration.decks.filter(candidate => candidate.id !== deck.id), displays: configuration.displays.map(display => display.deckId === deck.id ? { ...display, deckId: null } : display) }
             setActiveDeckId(next.decks[0]?.id)
@@ -117,8 +117,14 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
               setEditingCell(undefined)
             }}
           />}
-        </>}
+        </section>}
   </main>
+}
+
+export function FeedbackSlot ({ error, message }: { error?: string, message?: string }) {
+  return <div aria-live="polite" className="feedback-slot">
+    {(error || message) && <p className={error ? 'notice error' : 'notice'}>{error ?? message}</p>}
+  </div>
 }
 
 function Pairing ({ onClaim, error }: { onClaim(code: string): Promise<void>, error?: string }) {
