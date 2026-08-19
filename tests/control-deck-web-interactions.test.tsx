@@ -1,7 +1,7 @@
 import { act, create } from 'react-test-renderer'
 import { afterEach, beforeAll, expect, test, vi } from 'vitest'
 import { ControlDeckCommandElementSchema } from '@jdu/control-deck-core'
-import { DeckButton } from '../apps/control-deck-web/src/control-deck-app.js'
+import { ButtonEditor, DeckButton } from '../apps/control-deck-web/src/control-deck-app.js'
 
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
 afterEach(() => vi.useRealTimers())
@@ -32,8 +32,37 @@ test('a hold command maps pointer lifetime to press and release callbacks', () =
 
   act(() => button.props.onPointerDown(pointerEvent()))
   expect(onHoldStart).toHaveBeenCalledOnce()
+  expect(renderer.toJSON()).toMatchObject({ props: { className: 'deck-button pressed' } })
   act(() => button.props.onPointerUp())
   expect(onHoldEnd).toHaveBeenCalledOnce()
+  expect(renderer.toJSON()).toMatchObject({ props: { className: 'deck-button' } })
+})
+
+test('the button editor supports the virtual keyboard and modifier toggles', () => {
+  const onSave = vi.fn()
+  let renderer!: ReturnType<typeof create>
+  act(() => {
+    renderer = create(<ButtonEditor
+      deck={{ id: 'main', name: 'Main', description: '', context: null, layout: { kind: 'grid', columns: 2, rows: 2 }, elements: [] }}
+      position={{ column: 1, row: 1 }}
+      onClose={() => undefined}
+      onRemove={() => undefined}
+      onSave={onSave}
+    />)
+  })
+  const inputs = renderer.root.findAllByType('input')
+  const shortcut = inputs.find(input => input.props.placeholder === 'Tap here, then press a key')!
+  expect(shortcut.props.inputMode).toBe('text')
+  act(() => inputs[0]!.props.onChange({ target: { value: 'Boost' } }))
+  act(() => shortcut.props.onChange({ target: { value: 'b' } }))
+  const control = renderer.root.findAllByType('button').find(button => button.children.includes('Ctrl'))!
+  act(() => control.props.onClick())
+  const save = renderer.root.findAllByType('button').find(button => button.children.includes('Save button'))!
+  act(() => save.props.onClick())
+
+  expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+    target: expect.objectContaining({ configuration: { key: 'b', modifiers: ['LeftControl'] } })
+  }))
 })
 
 function createButton (
