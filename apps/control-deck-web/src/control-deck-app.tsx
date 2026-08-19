@@ -68,7 +68,10 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
           setEditing(true)
         }}>+ Deck</button>
       </nav>
-      <button className="edit-toggle" onClick={() => { setEditing(value => !value); setEditingCell(undefined) }}>{editing ? 'Done' : 'Edit'}</button>
+      <div className="header-actions">
+        <FullscreenButton onError={setError} />
+        <button className="edit-toggle" onClick={() => { setEditing(value => !value); setEditingCell(undefined) }}>{editing ? 'Done' : 'Edit'}</button>
+      </div>
     </header>
     <FeedbackSlot error={error} message={message} />
     {!deck
@@ -119,6 +122,41 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
           />}
         </section>}
   </main>
+}
+
+export function FullscreenButton ({ onError, documentSource = globalThis.document }: {
+  onError(message: string): void
+  documentSource?: Document
+}) {
+  const [active, setActive] = useState(documentSource.fullscreenElement !== null)
+  const supported = typeof documentSource.documentElement.requestFullscreen === 'function' &&
+    typeof documentSource.exitFullscreen === 'function'
+  useEffect(() => {
+    const synchronize = () => setActive(documentSource.fullscreenElement !== null)
+    documentSource.addEventListener('fullscreenchange', synchronize)
+    return () => documentSource.removeEventListener('fullscreenchange', synchronize)
+  }, [documentSource])
+
+  return <button
+    aria-pressed={active}
+    disabled={!supported}
+    title={supported ? undefined : 'Fullscreen is unavailable in this browser.'}
+    onClick={() => {
+      void toggleFullscreen(documentSource).catch(cause => onError(errorMessage(cause)))
+    }}
+  >{active ? 'Exit fullscreen' : 'Fullscreen'}</button>
+}
+
+export async function toggleFullscreen (documentSource: Document): Promise<void> {
+  if (documentSource.fullscreenElement) {
+    if (typeof documentSource.exitFullscreen !== 'function') throw new Error('This browser cannot exit fullscreen mode.')
+    await documentSource.exitFullscreen()
+    return
+  }
+  if (typeof documentSource.documentElement.requestFullscreen !== 'function') {
+    throw new Error('Fullscreen is unavailable in this browser.')
+  }
+  await documentSource.documentElement.requestFullscreen({ navigationUI: 'hide' })
 }
 
 export function FeedbackSlot ({ error, message }: { error?: string, message?: string }) {

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { act, create } from 'react-test-renderer'
 import { afterEach, beforeAll, expect, test, vi } from 'vitest'
 import { ControlDeckCommandElementSchema } from '@jdu/control-deck-core'
-import { ButtonEditor, DeckButton, DeckSettings, FeedbackSlot } from '../apps/control-deck-web/src/control-deck-app.js'
+import { ButtonEditor, DeckButton, DeckSettings, FeedbackSlot, toggleFullscreen } from '../apps/control-deck-web/src/control-deck-app.js'
 
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
 afterEach(() => vi.useRealTimers())
@@ -115,6 +115,24 @@ test('deck dimensions allow temporary empty drafts and save only valid values', 
   act(() => columns.props.onChange({ target: { value: '6' } }))
   act(() => columns.props.onBlur())
   expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ layout: { kind: 'grid', columns: 6, rows: 3 } }))
+})
+
+test('fullscreen toggles the document root and exits through the browser API', async () => {
+  const requestFullscreen = vi.fn(() => Promise.resolve())
+  const exitFullscreen = vi.fn(() => Promise.resolve())
+  const documentSource = {
+    documentElement: { requestFullscreen },
+    exitFullscreen,
+    fullscreenElement: null
+  } as unknown as Document
+
+  await toggleFullscreen(documentSource)
+  expect(requestFullscreen).toHaveBeenCalledWith({ navigationUI: 'hide' })
+  expect(exitFullscreen).not.toHaveBeenCalled()
+
+  Object.defineProperty(documentSource, 'fullscreenElement', { configurable: true, value: documentSource.documentElement })
+  await toggleFullscreen(documentSource)
+  expect(exitFullscreen).toHaveBeenCalledOnce()
 })
 
 function createButton (
