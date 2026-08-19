@@ -3,8 +3,10 @@
 html, body, #root { width: 100%; height: 100%; margin: 0; }
 button, input, select { font: inherit; }
 button { border: 1px solid #34434e; color: inherit; background: #111920; cursor: pointer; }
-button:hover { border-color: var(--accent, #55c7ff); }
+button:focus { outline: none; }
+button:focus-visible { outline: 2px solid var(--accent, #55c7ff); outline-offset: 2px; }
 button:disabled { cursor: default; opacity: .45; }
+@media (hover: hover) and (pointer: fine) { button:not(.deck-button):hover { border-color: var(--accent, #55c7ff); filter: brightness(1.12); } .deck-button:hover { filter: brightness(1.12); } }
 .center { display: grid; width: 100%; height: 100%; place-items: center; }
 .pairing form { display: grid; width: min(28rem, calc(100% - 2rem)); gap: 1rem; padding: 2rem; border: 1px solid #34434e; background: #0e1419; }
 .pairing form > strong, .app-shell header strong { letter-spacing: .16em; color: var(--accent, #55c7ff); }
@@ -18,6 +20,8 @@ button:disabled { cursor: default; opacity: .45; }
 .app-shell.theme-red { --accent: #ff6258; --accent-panel: #3a1717; }
 .app-shell.theme-violet { --accent: #a98cff; --accent-panel: #271f3d; }
 .app-shell.theme-magenta { --accent: #f06bd8; --accent-panel: #3a1832; }
+.app-shell button:not(.deck-button) { border-color: color-mix(in srgb, var(--accent) 45%, #34434e); background: var(--accent-panel); }
+.app-shell button:not(.deck-button):active { border-color: var(--accent); background: color-mix(in srgb, var(--accent-panel) 70%, var(--accent)); }
 .app-shell > header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 1rem; }
 .app-shell > header > div { display: grid; gap: .2rem; }
 .app-shell > header small { color: #8799a5; }
@@ -36,12 +40,13 @@ button:disabled { cursor: default; opacity: .45; }
 .deck-workspace.editing { grid-template-rows: auto minmax(0, 1fr); gap: .75rem; }
 .standalone-deck { gap: .5rem; overflow: hidden; }
 .deck-button, .empty-button { width: 100%; height: 100%; min-width: 0; padding: .6rem; touch-action: none; user-select: none; -webkit-touch-callout: none; }
-.deck-button { position: relative; display: grid; place-content: center; gap: .4rem; border-color: var(--button-accent, #34434e); background: var(--button-background, #111a20); }
+.deck-button { position: relative; display: grid; place-content: center; gap: .4rem; border-color: var(--button-accent, var(--accent)); background: var(--button-background, var(--accent-panel)); }
 .deck-button::after { position: absolute; inset-inline-end: .6rem; inset-block-end: .6rem; width: .9rem; aspect-ratio: 1; background: radial-gradient(circle, var(--button-accent, var(--accent)) 0 .08rem, transparent .1rem) 0 0 / 33.333% 33.333%; opacity: .12; content: ''; pointer-events: none; }
 .deck-button strong { color: #e9f7ff; text-transform: uppercase; }
 .deck-button small { color: var(--button-accent, var(--accent)); }
-.deck-button.armed { border-color: #ffad2f; background: #3b2608; }
-.deck-button.pressed { border-color: var(--button-accent, var(--accent)); background: var(--button-background, var(--accent-panel)); }
+.deck-button.armed { border-color: var(--button-accent, var(--accent)); color: var(--button-accent, var(--accent)); background: color-mix(in srgb, var(--button-background, var(--accent-panel)) 58%, var(--button-accent, var(--accent))); box-shadow: inset 0 0 0 1px var(--button-accent, var(--accent)); }
+.deck-button.armed strong { color: var(--button-accent, var(--accent)); }
+.deck-button.pressed { border-color: var(--button-accent, var(--accent)); background: color-mix(in srgb, var(--button-background, var(--accent-panel)) 68%, var(--button-accent, var(--accent))); transform: translateY(1px); }
 .empty-button { border-style: dashed; color: #536875; background: #0b1014; font-size: 1.5rem; }
 .deck-settings { display: flex; align-items: end; gap: .6rem; padding: .6rem; border: 1px solid #283741; background: #0e1419; }
 .deck-settings label, .button-editor label { display: grid; gap: .25rem; color: #9cabb4; font-size: .8rem; }

@@ -49,8 +49,10 @@ test('a hold command maps pointer lifetime to press and release callbacks', () =
   act(() => button.props.onPointerDown(pointerEvent()))
   expect(onHoldStart).toHaveBeenCalledOnce()
   expect(renderer.toJSON()).toMatchObject({ props: { className: 'deck-button pressed' } })
-  act(() => button.props.onPointerUp())
+  const blur = vi.fn()
+  act(() => button.props.onPointerUp({ currentTarget: { blur } }))
   expect(onHoldEnd).toHaveBeenCalledOnce()
+  expect(blur).toHaveBeenCalledOnce()
   expect(renderer.toJSON()).toMatchObject({ props: { className: 'deck-button' } })
 })
 
@@ -125,6 +127,9 @@ test('feedback is absent when idle and rendered as an out-of-flow notice', () =>
   const stylesheet = readFileSync(new URL('../apps/control-deck-web/src/styles.css', import.meta.url), 'utf8')
   expect(stylesheet).toMatch(/\.app-shell \{[^}]*grid-template-rows: auto minmax\(0, 1fr\)/u)
   expect(stylesheet).toMatch(/\.notice \{[^}]*position: absolute/u)
+  expect(stylesheet).toMatch(/@media \(hover: hover\) and \(pointer: fine\)/u)
+  expect(stylesheet).toMatch(/\.deck-button \{[^}]*background: var\(--button-background, var\(--accent-panel\)\)/u)
+  expect(stylesheet).toMatch(/\.deck-button\.armed \{[^}]*color-mix/u)
 })
 
 test('deck dimensions allow temporary empty drafts and save only valid values', () => {

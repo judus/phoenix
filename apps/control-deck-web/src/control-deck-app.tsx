@@ -251,7 +251,8 @@ export function DeckButton ({ editing, element, label, onEdit, onTap, onHoldStar
     }
     if (element.interaction.activation !== 'hold') onTap()
   }
-  const finishPointer = () => {
+  const finishPointer = (event?: { currentTarget?: { blur(): void } }) => {
+    event?.currentTarget?.blur()
     if (armingTimer.current) globalThis.clearTimeout(armingTimer.current)
     armingTimer.current = undefined
     if (suppressClick.current) {
