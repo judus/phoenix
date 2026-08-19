@@ -18,14 +18,16 @@ interface JsonRpcRequest {
 }
 
 export class PhoenixMcpServer {
-  private readonly sessions = new Set<string>()
+  private readonly sessions: McpSessionRegistry
 
-  public constructor (private readonly tools: ToolRegistry) {}
+  public constructor (private readonly tools: ToolRegistry) {
+    this.sessions = new McpSessionRegistry()
+  }
 
   public async handle (request: IncomingMessage, response: ServerResponse): Promise<void> {
     if (request.method === 'DELETE') {
       const sessionId = header(request, 'mcp-session-id')
-      if (sessionId) this.sessions.delete(sessionId)
+      if (sessionId) this.sessions.remove(sessionId)
       response.writeHead(200)
       response.end()
       return
@@ -49,7 +51,7 @@ export class PhoenixMcpServer {
     }
     if (message.method === 'initialize') {
       const sessionId = randomUUID()
-      this.sessions.add(sessionId)
+      this.sessions.create(sessionId)
       writeResult(response, message.id ?? null, {
         capabilities: { tools: {} },
         protocolVersion: PROTOCOL_VERSION,
@@ -81,7 +83,7 @@ export class PhoenixMcpServer {
 
   private hasSession (request: IncomingMessage): boolean {
     const sessionId = header(request, 'mcp-session-id')
-    return sessionId !== undefined && this.sessions.has(sessionId)
+    return sessionId !== undefined && this.sessions.touch(sessionId)
   }
 
   private async callTool (
@@ -121,6 +123,62 @@ export class PhoenixMcpServer {
     } finally {
       response.off('close', abort)
     }
+  }
+}
+
+export interface McpSessionRegistryOptions {
+  idleTimeoutMs?: number
+  maximumSessions?: number
+  now?: () => number
+}
+
+export class McpSessionRegistry {
+  private readonly idleTimeoutMs: number
+  private readonly maximumSessions: number
+  private readonly now: () => number
+  private readonly sessions = new Map<string, number>()
+
+  public constructor (options: McpSessionRegistryOptions = {}) {
+    this.idleTimeoutMs = options.idleTimeoutMs ?? 30 * 60_000
+    this.maximumSessions = options.maximumSessions ?? 128
+    this.now = options.now ?? Date.now
+    if (!Number.isFinite(this.idleTimeoutMs) || this.idleTimeoutMs < 1) throw new Error('MCP session idle timeout must be positive.')
+    if (!Number.isSafeInteger(this.maximumSessions) || this.maximumSessions < 1) throw new Error('MCP session capacity must be a positive integer.')
+  }
+
+  public create (sessionId: string): void {
+    const now = this.now()
+    this.prune(now)
+    while (this.sessions.size >= this.maximumSessions) {
+      this.sessions.delete(this.oldestSessionId()!)
+    }
+    this.sessions.set(sessionId, now)
+  }
+
+  public touch (sessionId: string): boolean {
+    const now = this.now()
+    this.prune(now)
+    if (!this.sessions.has(sessionId)) return false
+    this.sessions.set(sessionId, now)
+    return true
+  }
+
+  public remove (sessionId: string): void {
+    this.sessions.delete(sessionId)
+  }
+
+  private prune (now: number): void {
+    for (const [sessionId, lastSeen] of this.sessions) {
+      if (now - lastSeen >= this.idleTimeoutMs) this.sessions.delete(sessionId)
+    }
+  }
+
+  private oldestSessionId (): string | undefined {
+    let oldest: { id: string, lastSeen: number } | undefined
+    for (const [id, lastSeen] of this.sessions) {
+      if (!oldest || lastSeen < oldest.lastSeen) oldest = { id, lastSeen }
+    }
+    return oldest?.id
   }
 }
 
