@@ -12,6 +12,10 @@ export class LoggedGameActions implements GameActions {
     return this.actions.getCatalog()
   }
 
+  public async stop (): Promise<void> {
+    await this.actions.stop?.()
+  }
+
   public async execute (candidate: unknown, origin: GameActionOrigin, signal?: AbortSignal): Promise<GameActionResult> {
     const result = await this.actions.execute(candidate, origin, signal)
     this.activityLog.ingestAction(result)

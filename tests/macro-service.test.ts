@@ -32,9 +32,11 @@ test('aborting playback releases every held action', async () => {
 
   await expect(playback).resolves.toMatchObject({ status: 'aborted' })
   expect(actions.calls).toEqual([
-    { actionId: 'elite.PrimaryFire', operation: 'press' },
-    { actionId: 'elite.PrimaryFire', operation: 'release' }
+    expect.objectContaining({ actionId: 'elite.PrimaryFire', operation: 'press' }),
+    expect.objectContaining({ actionId: 'elite.PrimaryFire', operation: 'release' })
   ])
+  expect(actions.calls[0]?.leaseId).toBeTruthy()
+  expect(actions.calls[1]?.leaseId).toBe(actions.calls[0]?.leaseId)
 })
 
 test('saving derives macro risk from its game actions', () => {
@@ -53,6 +55,26 @@ test('saving derives macro risk from its game actions', () => {
     version: 1
   }).risk).toBe('dangerous')
   expect(repository.get('dangerous-action')?.risk).toBe('dangerous')
+})
+
+test('macro recording owns and releases hold leases', async () => {
+  const actions = new StubGameActions()
+  const service = new MacroService(new InMemoryMacroRepository(), actions)
+  const recording = service.startRecording('desktop-client')
+
+  await service.recordAction(recording.id, {
+    actionId: 'elite.PrimaryFire',
+    clientId: 'desktop-client',
+    operation: 'press'
+  })
+  await service.stopRecording(recording.id, 'desktop-client')
+
+  expect(actions.calls).toEqual([
+    expect.objectContaining({ actionId: 'elite.PrimaryFire', operation: 'press' }),
+    expect.objectContaining({ actionId: 'elite.PrimaryFire', operation: 'release' })
+  ])
+  expect(actions.calls[0]?.leaseId).toBeTruthy()
+  expect(actions.calls[1]?.leaseId).toBe(actions.calls[0]?.leaseId)
 })
 
 test('macro playback rechecks dangerous Copilot actions', async () => {
@@ -83,11 +105,11 @@ test('macro playback rechecks dangerous Copilot actions', async () => {
 })
 
 class StubGameActions implements GameActions {
-  public readonly calls: Array<{ actionId: string, operation: string }> = []
+  public readonly calls: Array<{ actionId: string, leaseId?: string, operation: string }> = []
 
   public async execute (candidate: unknown, origin: GameActionOrigin): Promise<GameActionResult> {
-    const request = candidate as { actionId: string, operation: 'tap' | 'press' | 'release' }
-    this.calls.push({ actionId: request.actionId, operation: request.operation })
+    const request = candidate as { actionId: string, leaseId?: string, operation: 'tap' | 'press' | 'release' }
+    this.calls.push({ actionId: request.actionId, leaseId: request.leaseId, operation: request.operation })
     return {
       actionId: request.actionId,
       correlationId: 'test',

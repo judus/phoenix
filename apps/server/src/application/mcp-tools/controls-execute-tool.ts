@@ -10,6 +10,7 @@ export class ControlsExecuteTool implements LocalTool {
     inputSchema: {
       additionalProperties: false,
       properties: {
+        leaseId: { description: 'Required gesture identifier for press/release pairs.', minLength: 1, type: 'string' },
         operation: { default: 'tap', enum: ['tap', 'press', 'release'], type: 'string' },
         target: {
           oneOf: [
@@ -28,6 +29,7 @@ export class ControlsExecuteTool implements LocalTool {
 
   public readonly execute = async (arguments_: JsonObject, context: Parameters<LocalTool['execute']>[1]) => {
     const result = await this.commands.execute({
+      ...(typeof arguments_.leaseId === 'string' ? { leaseId: arguments_.leaseId } : {}),
       operation: optionalStringArgument(arguments_, 'operation') ?? 'tap',
       target: CommandTargetSchema.parse(arguments_.target)
     }, 'copilot', context.signal)

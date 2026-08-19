@@ -27,7 +27,7 @@ import { DefaultCommandRegistry, PHOENIX_NAVIGATION_DESTINATIONS } from './appli
 import { CommandCatalogueService } from './application/command-catalogue-service.js'
 import { DefaultNumpadCommands, NumpadTreeProjector } from './application/numpad-command-service.js'
 import { DefaultRuntimeStateProjector } from './application/default-runtime-state-projector.js'
-import { GameActionService } from './application/game-action-service.js'
+import { GameActionService, type GameActions } from './application/game-action-service.js'
 import { createPhoenixMcpTools } from './application/phoenix-mcp-tools.js'
 import { StatefulGameActionService } from './application/stateful-game-action-service.js'
 import { EliteJournalIngestionService } from './application/elite-journal-ingestion-service.js'
@@ -140,6 +140,7 @@ export class PhoenixApplication {
   private readonly journalBackfill: EliteJournalHistoryBackfill
   private readonly inventorySource: EliteInventoryFileSource
   private readonly navigationRouteSource: EliteNavigationRouteFileSource
+  private readonly gameActions: GameActions
   private readonly server: PhoenixHttpServer
   private readonly stateStore: InMemoryRuntimeStateStore
   private readonly statusSource: EliteStatusFileSource
@@ -270,6 +271,7 @@ export class PhoenixApplication {
       this.inputBackend
     )
     const gameActions = new LoggedGameActions(new GameActionService(actionGateway), activityLog)
+    this.gameActions = gameActions
     const systemSettings = new NotifyingSystemSettingsRepository(
       options.systemSettingsRepository ?? new InMemorySystemSettingsRepository(),
       commandCatalogueChanges
@@ -466,6 +468,7 @@ export class PhoenixApplication {
     this.navigationRouteSource.stop()
     await this.journalBackfill.stop()
     await this.server.stop()
+    await this.gameActions.stop?.()
     await this.inputBackend.stop?.()
     this.database.close()
   }

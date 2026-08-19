@@ -64,6 +64,89 @@ test('applies a bounded execution timeout', async () => {
   expect(result.status).toBe('timed_out')
 })
 
+test('serializes a hold lease and rejects release before press', async () => {
+  const gateway = new StubGateway()
+  const service = new GameActionService(gateway)
+
+  const orphan = await service.execute({ actionId: 'elite.PrimaryFire', operation: 'release', leaseId: 'gesture-1' }, 'ui')
+  const press = service.execute({ actionId: 'elite.PrimaryFire', operation: 'press', leaseId: 'gesture-2' }, 'ui')
+  const release = service.execute({ actionId: 'elite.PrimaryFire', operation: 'release', leaseId: 'gesture-2' }, 'ui')
+
+  expect(orphan.status).toBe('rejected')
+  await expect(Promise.all([press, release])).resolves.toEqual([
+    expect.objectContaining({ operation: 'press', status: 'accepted' }),
+    expect.objectContaining({ operation: 'release', status: 'accepted' })
+  ])
+  expect(gateway.calls.map(call => call.operation)).toEqual(['press', 'release'])
+  await service.stop()
+})
+
+test('rejects hold transitions that do not identify their lease', async () => {
+  const gateway = new StubGateway()
+  const service = new GameActionService(gateway)
+
+  const result = await service.execute({ actionId: 'elite.PrimaryFire', operation: 'press' }, 'ui')
+
+  expect(result).toMatchObject({ status: 'rejected', message: 'Hold actions require a lease ID.' })
+  expect(gateway.calls).toHaveLength(0)
+})
+
+test('automatically releases an expired hold lease', async () => {
+  const gateway = new StubGateway()
+  const service = new GameActionService(gateway, 5)
+
+  await service.execute({ actionId: 'elite.PrimaryFire', operation: 'press', leaseId: 'gesture-2' }, 'ui')
+  await new Promise(resolve => setTimeout(resolve, 15))
+
+  expect(gateway.calls.map(call => call.operation)).toEqual(['press', 'release'])
+  await service.stop()
+})
+
+test('renews an active hold without sending another keydown', async () => {
+  const gateway = new StubGateway()
+  const service = new GameActionService(gateway, 20)
+
+  await service.execute({ actionId: 'elite.PrimaryFire', operation: 'press', leaseId: 'gesture-renewed' }, 'ui')
+  await new Promise(resolve => setTimeout(resolve, 10))
+  const renewal = await service.execute({ actionId: 'elite.PrimaryFire', operation: 'press', leaseId: 'gesture-renewed' }, 'ui')
+  await new Promise(resolve => setTimeout(resolve, 15))
+
+  expect(renewal).toMatchObject({ status: 'accepted', message: 'Hold lease renewed.' })
+  expect(gateway.calls.map(call => call.operation)).toEqual(['press'])
+
+  await new Promise(resolve => setTimeout(resolve, 15))
+  expect(gateway.calls.map(call => call.operation)).toEqual(['press', 'release'])
+  await service.stop()
+})
+
+test('a release arriving before its press permanently closes that gesture', async () => {
+  const gateway = new StubGateway()
+  const service = new GameActionService(gateway)
+
+  const release = await service.execute({ actionId: 'elite.PrimaryFire', operation: 'release', leaseId: 'late-gesture' }, 'ui')
+  const latePress = await service.execute({ actionId: 'elite.PrimaryFire', operation: 'press', leaseId: 'late-gesture' }, 'ui')
+
+  expect(release.status).toBe('rejected')
+  expect(latePress).toMatchObject({ status: 'rejected', message: 'This hold lease is already closed.' })
+  expect(gateway.calls).toHaveLength(0)
+})
+
+test('releases every active hold lease during shutdown', async () => {
+  const gateway = new StubGateway()
+  const service = new GameActionService(gateway)
+
+  await service.execute({ actionId: 'elite.PrimaryFire', operation: 'press', leaseId: 'gesture-3' }, 'ui')
+  await service.execute({ actionId: 'elite.LateralThrust', operation: 'press', leaseId: 'gesture-4' }, 'ui')
+  await service.stop()
+
+  expect(gateway.calls.map(call => [call.actionId, call.operation])).toEqual([
+    ['elite.PrimaryFire', 'press'],
+    ['elite.LateralThrust', 'press'],
+    ['elite.PrimaryFire', 'release'],
+    ['elite.LateralThrust', 'release']
+  ])
+})
+
 class StubGateway implements GameActionGateway {
   public readonly calls: GameActionCommand[] = []
   public readonly signals: Array<AbortSignal | undefined> = []

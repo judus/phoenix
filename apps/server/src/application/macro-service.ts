@@ -13,7 +13,15 @@ import type { GameActions } from './game-action-service.js'
 import type { MacroRepository, Macros } from '../domain/macros.js'
 import { isDangerousMacroAction, withEffectiveMacroRisk } from './macro-risk.js'
 
-interface ActiveRecording extends MacroRecording { lastCompletedAt: number }
+interface HeldAction {
+  leaseId: string
+  renewal: NodeJS.Timeout
+}
+
+interface ActiveRecording extends MacroRecording {
+  held: Map<string, HeldAction>
+  lastCompletedAt: number
+}
 
 export class MacroService implements Macros {
   private readonly recordings = new Map<string, ActiveRecording>()
@@ -27,7 +35,8 @@ export class MacroService implements Macros {
       gameActions: true,
       macros: true,
       dangerousActions: true
-    })
+    }),
+    private readonly holdLeaseRenewalMs = 5_000
   ) {}
 
   public getLibrary () { return this.repository.getLibrary() }
@@ -43,6 +52,7 @@ export class MacroService implements Macros {
     const recording: ActiveRecording = {
       clientId,
       entries: [],
+      held: new Map(),
       id: randomUUID(),
       lastCompletedAt: startedAt.getTime(),
       startedAt: startedAt.toISOString(),
@@ -59,10 +69,22 @@ export class MacroService implements Macros {
     const delayBeforeMs = recording.entries.length === 0
       ? 0
       : Math.max(0, emittedAt - recording.lastCompletedAt)
+    const held = recording.held.get(request.actionId)
+    const leaseId = request.operation === 'press'
+      ? held?.leaseId ?? randomUUID()
+      : request.operation === 'release' ? held?.leaseId : undefined
     const result = await this.gameActions.execute({
       actionId: request.actionId,
-      operation: request.operation
+      operation: request.operation,
+      ...(leaseId ? { leaseId } : {})
     }, 'ui')
+    if (result.status === 'accepted' && request.operation === 'press' && !held) {
+      recording.held.set(request.actionId, this.holdAction(request.actionId, leaseId!, 'ui'))
+    }
+    if (request.operation === 'release' && held) {
+      clearInterval(held.renewal)
+      recording.held.delete(request.actionId)
+    }
     recording.lastCompletedAt = this.now().getTime()
     recording.entries.push({
       actionId: request.actionId,
@@ -74,15 +96,17 @@ export class MacroService implements Macros {
     return MacroRecordingSchema.parse(recording)
   }
 
-  public stopRecording (recordingId: string, clientId: string): MacroRecording {
+  public async stopRecording (recordingId: string, clientId: string): Promise<MacroRecording> {
     const recording = this.ownedRecording(recordingId, clientId)
+    await this.releaseHeldActions(recording.held, 'ui')
     recording.status = 'stopped'
     this.recordings.delete(recordingId)
     return MacroRecordingSchema.parse(recording)
   }
 
-  public cancelRecording (recordingId: string, clientId: string): void {
-    this.ownedRecording(recordingId, clientId)
+  public async cancelRecording (recordingId: string, clientId: string): Promise<void> {
+    const recording = this.ownedRecording(recordingId, clientId)
+    await this.releaseHeldActions(recording.held, 'ui')
     this.recordings.delete(recordingId)
   }
 
@@ -103,7 +127,7 @@ export class MacroService implements Macros {
       totalSteps: macro.steps.length
     })
     this.activeRun = { controller, state }
-    const held = new Set<string>()
+    const held = new Map<string, HeldAction>()
     try {
       for (const step of macro.steps) {
         if (signal.aborted) throw signal.reason
@@ -114,12 +138,25 @@ export class MacroService implements Macros {
               isDangerousMacroAction(step.actionId, this.gameActions.getCatalog())) {
             throw new Error('Dangerous Copilot actions are disabled in Settings.')
           }
-          const result = await this.gameActions.execute({ actionId: step.actionId, operation: step.operation }, origin, signal)
+          const leaseId = step.operation === 'press'
+            ? held.get(step.actionId)?.leaseId ?? randomUUID()
+            : step.operation === 'release' ? held.get(step.actionId)?.leaseId : undefined
+          const result = await this.gameActions.execute({
+            actionId: step.actionId,
+            operation: step.operation,
+            ...(leaseId ? { leaseId } : {})
+          }, origin, signal)
           if (!['accepted', 'confirmed', 'unconfirmed', 'already_satisfied'].includes(result.status)) {
             throw new Error(result.message)
           }
-          if (step.operation === 'press') held.add(step.actionId)
-          if (step.operation === 'release') held.delete(step.actionId)
+          if (step.operation === 'press' && !held.has(step.actionId)) {
+            held.set(step.actionId, this.holdAction(step.actionId, leaseId!, origin))
+          }
+          if (step.operation === 'release') {
+            const released = held.get(step.actionId)
+            if (released) clearInterval(released.renewal)
+            held.delete(step.actionId)
+          }
         }
         state.completedSteps += 1
       }
@@ -132,7 +169,7 @@ export class MacroService implements Macros {
         ? 'Macro playback timed out.'
         : signal.aborted ? 'Macro playback aborted.' : cause instanceof Error ? cause.message : 'Macro playback failed.'
     } finally {
-      await Promise.all([...held].map(actionId => this.gameActions.execute({ actionId, operation: 'release' }, origin)))
+      await this.releaseHeldActions(held, origin)
       this.activeRun = undefined
     }
     return MacroPlaybackSchema.parse(state)
@@ -148,6 +185,27 @@ export class MacroService implements Macros {
     const recording = this.recordings.get(id)
     if (!recording || recording.clientId !== clientId) throw new Error('Macro recording session is unavailable.')
     return recording
+  }
+
+  private holdAction (actionId: string, leaseId: string, origin: GameActionOrigin): HeldAction {
+    const renewal = setInterval(() => {
+      void this.gameActions.execute({ actionId, leaseId, operation: 'press' }, origin)
+        .then(result => {
+          if (result.status !== 'accepted') clearInterval(renewal)
+        })
+        .catch(() => clearInterval(renewal))
+    }, this.holdLeaseRenewalMs)
+    renewal.unref()
+    return { leaseId, renewal }
+  }
+
+  private async releaseHeldActions (held: Map<string, HeldAction>, origin: GameActionOrigin): Promise<void> {
+    const releases = [...held].map(([actionId, action]) => {
+      clearInterval(action.renewal)
+      return this.gameActions.execute({ actionId, leaseId: action.leaseId, operation: 'release' }, origin)
+    })
+    held.clear()
+    await Promise.all(releases)
   }
 }
 

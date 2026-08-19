@@ -20,12 +20,12 @@ export interface MacroCommandExecutor {
 
 export interface Macros extends MacroCommandExecutor {
   abortPlayback(): MacroPlayback | null
-  cancelRecording(recordingId: string, clientId: string): void
+  cancelRecording(recordingId: string, clientId: string): Promise<void>
   delete(id: string): void
   getLibrary(): MacroLibrary
   getPlayback(): MacroPlayback | null
   recordAction(recordingId: string, request: RecordMacroActionRequest): Promise<MacroRecording>
   save(candidate: unknown): MacroDefinition
   startRecording(clientId: string): MacroRecording
-  stopRecording(recordingId: string, clientId: string): MacroRecording
+  stopRecording(recordingId: string, clientId: string): Promise<MacroRecording>
 }

@@ -873,9 +873,9 @@ export class PhoenixHttpServer {
         } else {
           const input = StartMacroRecordingRequestSchema.parse(body)
           if (operation === 'stop') {
-            this.writeJson(response, 200, this.options.macros.stopRecording(recordingId, input.clientId))
+            this.writeJson(response, 200, await this.options.macros.stopRecording(recordingId, input.clientId))
           } else {
-            this.options.macros.cancelRecording(recordingId, input.clientId)
+            await this.options.macros.cancelRecording(recordingId, input.clientId)
             this.writeJson(response, 200, { cancelled: true })
           }
         }

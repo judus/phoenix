@@ -82,6 +82,7 @@ export const GameActionCatalogResponseSchema = z.object({
 export const ExecuteGameActionRequestSchema = z.object({
   actionId: GameActionDefinitionSchema.shape.id,
   operation: GameActionOperationSchema.default('tap'),
+  leaseId: z.string().min(1).max(200).optional(),
   requestId: z.string().min(1).optional(),
   correlationId: z.string().min(1).optional(),
   idempotencyKey: z.string().min(1).max(200).optional(),
