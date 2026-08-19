@@ -64,16 +64,10 @@ export function PlottedRoute({ route, runtimeState }: PlottedRouteProps) {
                   <Stack gap="lg">
                     {nextHop
                       ? <>
-                          <Metric className="text-information" value={nextHop.system} />
+                          <Metric className="text-information" value={<a href={systemHref(nextHop.system)}>{nextHop.system}</a>} />
                           <DescriptionList columns="one" density="compact">
                             <DescriptionItem label="Star class" value={nextHop.starClass ?? '—'} />
                             <DescriptionItem label="Leg distance" value={formatDistance(legs[nextIndex]?.distance ?? null)} />
-                            <DescriptionItem label="Bodies" value="#TODO" />
-                            <DescriptionItem label="Installations" value="#TODO" />
-                            <DescriptionItem label="Economy" value="#TODO" />
-                            <DescriptionItem label="Population" value="#TODO" />
-                            <DescriptionItem label="Allegiance" value="#TODO" />
-                            <DescriptionItem label="Security" value="#TODO" />
                           </DescriptionList>
                         </>
                       : <Status tone="muted">Destination reached.</Status>}

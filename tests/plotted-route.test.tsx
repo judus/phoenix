@@ -34,8 +34,8 @@ test('plotted route renders route progress, next jump, and cartography links', (
   expect(markup).toContain('12.0 ly')
   expect(markup).toContain('17.0 ly')
   expect(markup).toContain('class="active"')
-  expect(markup).toContain('Bodies')
-  expect(markup).toContain('#TODO')
+  expect(markup).not.toContain('#TODO')
+  expect(markup).toContain('#/galaxy/system?name=Sirius')
   expect(markup).toContain('#/galaxy/system?name=Alpha+Centauri')
 })
 
