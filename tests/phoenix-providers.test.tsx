@@ -136,7 +136,7 @@ function apiStub(): PhoenixApi {
         profiles: [{ description: '', id: 'marin', mark: 'M', name: 'Marin', voice: 'marin' }]
       }
     },
-    async getCopilotVoiceHost() { return { desiredConnected: false, host: null } },
+    async getCopilotVoiceHost() { return { desiredConnected: false, desiredRevision: 0, host: null } },
     async getMacros() { return { version: 1, macros: [] } },
     async getModuleSettings() {
       return {

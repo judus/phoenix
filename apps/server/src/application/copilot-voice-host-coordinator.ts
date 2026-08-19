@@ -18,6 +18,7 @@ export interface CopilotVoiceHostControl {
 export class CopilotVoiceHostCoordinator implements CopilotVoiceHostControl {
   private host?: CopilotVoiceHostSnapshot['host']
   private desiredConnected = false
+  private desiredRevision = 0
   private awaitingDesiredState = false
   private readonly commandListeners = new Set<(command: CopilotVoiceHostCommand) => void>()
   private readonly statusListeners = new Set<(snapshot: CopilotVoiceHostSnapshot) => void>()
@@ -34,10 +35,11 @@ export class CopilotVoiceHostCoordinator implements CopilotVoiceHostControl {
     this.scheduleExpiry(input.hostId)
     if (previousHostId !== input.hostId) {
       this.desiredConnected = input.connected
+      this.desiredRevision = input.appliedRevision
       this.awaitingDesiredState = false
-    } else if (this.awaitingDesiredState && input.connected === this.desiredConnected) {
+    } else if (this.awaitingDesiredState && input.appliedRevision >= this.desiredRevision) {
       this.awaitingDesiredState = false
-    } else if (!this.awaitingDesiredState) {
+    } else if (!this.awaitingDesiredState && input.appliedRevision >= this.desiredRevision) {
       this.desiredConnected = input.connected
     }
     const snapshot = this.snapshot()
@@ -49,6 +51,7 @@ export class CopilotVoiceHostCoordinator implements CopilotVoiceHostControl {
     if (this.activeHost()?.hostId === hostId) {
       this.host = undefined
       this.desiredConnected = false
+      this.desiredRevision = 0
       this.awaitingDesiredState = false
       this.clearExpiry()
       this.publishStatus(this.snapshot())
@@ -60,12 +63,14 @@ export class CopilotVoiceHostCoordinator implements CopilotVoiceHostControl {
     const host = this.activeHost()
     if (!host) throw new Error('No armed desktop voice host is online.')
     this.desiredConnected = desiredConnected
+    this.desiredRevision++
     this.awaitingDesiredState = true
     const command: CopilotVoiceHostCommand = {
       desiredConnected,
       hostId: host.hostId,
       issuedAt: this.now().toISOString(),
-      requestId: randomUUID()
+      requestId: randomUUID(),
+      revision: this.desiredRevision
     }
     for (const listener of this.commandListeners) listener(command)
     this.publishStatus(this.snapshot())
@@ -73,7 +78,12 @@ export class CopilotVoiceHostCoordinator implements CopilotVoiceHostControl {
   }
 
   public snapshot (): CopilotVoiceHostSnapshot {
-    return { desiredConnected: this.desiredConnected, host: this.activeHost() ?? null }
+    const host = this.activeHost() ?? null
+    return {
+      desiredConnected: this.desiredConnected,
+      desiredRevision: this.desiredRevision,
+      host
+    }
   }
 
   public subscribeCommands (listener: (command: CopilotVoiceHostCommand) => void): Unsubscribe {
@@ -91,6 +101,7 @@ export class CopilotVoiceHostCoordinator implements CopilotVoiceHostControl {
     if (this.now().getTime() - Date.parse(this.host.lastSeenAt) <= this.leaseMilliseconds) return this.host
     this.host = undefined
     this.desiredConnected = false
+    this.desiredRevision = 0
     this.awaitingDesiredState = false
     return undefined
   }
@@ -105,6 +116,7 @@ export class CopilotVoiceHostCoordinator implements CopilotVoiceHostControl {
       if (this.host?.hostId !== hostId) return
       this.host = undefined
       this.desiredConnected = false
+      this.desiredRevision = 0
       this.awaitingDesiredState = false
       this.publishStatus(this.snapshot())
     }, this.leaseMilliseconds + 10)

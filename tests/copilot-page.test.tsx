@@ -9,7 +9,7 @@ import { CopilotVoiceProvider } from '../apps/web/src/features/copilot/copilot-v
 
 const api = {
   async getCopilotProfiles() { return { activeProfileId: 'marin', profiles: [{ description: 'Shipboard companion.', id: 'marin', mark: 'M', name: 'Marin', voice: 'marin' }] } },
-  async getCopilotVoiceHost() { return { desiredConnected: false, host: null } }
+  async getCopilotVoiceHost() { return { desiredConnected: false, desiredRevision: 0, host: null } }
 } as PhoenixApi
 const events = { subscribe: () => () => undefined } as unknown as PhoenixEventHub
 const identity = { forScope: () => 'copilot-test-client' } as ClientIdentity

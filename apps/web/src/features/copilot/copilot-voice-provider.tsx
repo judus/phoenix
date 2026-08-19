@@ -22,6 +22,7 @@ import {
   signalLevel,
   type AudioProcessingSession
 } from './realtime-audio.js'
+import { CopilotVoiceConnectionState } from './copilot-voice-connection-state.js'
 
 const CONVERSATION_ID = 'phoenix-copilot'
 
@@ -93,6 +94,7 @@ export function CopilotVoiceProvider ({
   const [armed, setArmed] = useState(false)
   const [voiceHost, setVoiceHost] = useState<CopilotVoiceHostSnapshot>({
     desiredConnected: false,
+    desiredRevision: 0,
     host: null
   })
   const [status, setStatus] = useState('Offline')
@@ -127,9 +129,10 @@ export function CopilotVoiceProvider ({
   const turnRef = useRef<MutableTurn | undefined>(undefined)
   const processedCallsRef = useRef(new Set<string>())
   const transcriptBroadcastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  const connectLocalRef = useRef<() => Promise<void>>(async () => {})
+  const connectLocalRef = useRef<() => Promise<boolean>>(async () => false)
   const disconnectLocalRef = useRef<(updateState?: boolean) => void>(() => {})
   const hostStateRef = useRef({ connected: false, error: undefined as string | undefined, status: 'Offline' })
+  const connectionStateRef = useRef(new CopilotVoiceConnectionState())
 
   const updateTurn = (turn: MutableTurn | undefined): void => {
     turnRef.current = turn
@@ -154,11 +157,12 @@ export function CopilotVoiceProvider ({
       .catch(() => {})
   }
 
-  const connectLocal = async (): Promise<void> => {
+  const connectLocal = async (): Promise<boolean> => {
+    disconnectLocal(false)
+    const connectionAttempt = connectionStateRef.current.beginConnection()
     setError(undefined)
     setToolStatus(undefined)
     setStatus('Connecting')
-    disconnectLocal(false)
     try {
       if (!navigator.mediaDevices?.getUserMedia || typeof WebSocket === 'undefined') {
         throw new Error(window.isSecureContext
@@ -171,20 +175,37 @@ export function CopilotVoiceProvider ({
         }),
         api.getCopilotAudioProcessing()
       ])
+      if (!connectionStateRef.current.isCurrentConnection(connectionAttempt)) return false
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: inputId ? { deviceId: { exact: inputId } } : true
       })
+      if (!connectionStateRef.current.isCurrentConnection(connectionAttempt)) {
+        stream.getTracks().forEach(track => track.stop())
+        return false
+      }
       streamRef.current = stream
       setArmed(true)
       await discoverDevices()
+      if (!connectionStateRef.current.isCurrentConnection(connectionAttempt)) {
+        stream.getTracks().forEach(track => track.stop())
+        return false
+      }
       const socket = new WebSocket(
         `wss://api.openai.com/v1/realtime?model=${encodeURIComponent(token.model)}`,
         ['realtime', `openai-insecure-api-key.${token.value}`]
       )
       socketRef.current = socket
       socket.onopen = () => {
+        if (!connectionStateRef.current.isCurrentConnection(connectionAttempt) || socketRef.current !== socket) {
+          socket.close()
+          return
+        }
         void createRealtimeAudioSession(stream, socket, audioProcessing, outputId)
           .then(audio => {
+            if (!connectionStateRef.current.isCurrentConnection(connectionAttempt) || socketRef.current !== socket) {
+              void audio.stop().catch(() => {})
+              return
+            }
             audioRef.current = audio
             setConnected(true)
             setStatus('Ready · listening')
@@ -192,28 +213,40 @@ export function CopilotVoiceProvider ({
             startRuntimeSync()
             return syncRuntimeContext(socket)
           })
-          .catch(cause => fail(cause))
+          .catch(cause => {
+            if (connectionStateRef.current.isCurrentConnection(connectionAttempt)) fail(cause)
+          })
       }
       socket.onmessage = event => {
+        if (!connectionStateRef.current.isCurrentConnection(connectionAttempt) || socketRef.current !== socket) return
         try {
           handleRealtimeEvent(JSON.parse(String(event.data)) as unknown, socket)
         } catch (cause) {
           setError(errorMessage(cause))
         }
       }
-      socket.onerror = () => setError('The OpenAI Realtime event channel failed.')
+      socket.onerror = () => {
+        if (connectionStateRef.current.isCurrentConnection(connectionAttempt)) {
+          setError('The OpenAI Realtime event channel failed.')
+        }
+      }
       socket.onclose = () => {
+        if (!connectionStateRef.current.isCurrentConnection(connectionAttempt) || socketRef.current !== socket) return
         setConnected(false)
         setStatus('Offline')
       }
+      return true
     } catch (cause) {
+      if (!connectionStateRef.current.isCurrentConnection(connectionAttempt)) return false
       disconnectLocal(false)
       setStatus('Offline')
       setError(errorMessage(cause))
+      return false
     }
   }
 
   const disconnectLocal = (updateState = true): void => {
+    connectionStateRef.current.cancelConnection()
     cancelActiveTurn()
     streamRef.current?.getTracks().forEach(track => track.stop())
     streamRef.current = undefined
@@ -517,13 +550,15 @@ export function CopilotVoiceProvider ({
     const current = hostStateRef.current
     if (desiredConnected && !current.connected && current.status !== 'Connecting') {
       void connectLocalRef.current()
-    } else if (!desiredConnected && current.connected) {
+    } else if (!desiredConnected && (current.connected || current.status === 'Connecting')) {
       disconnectLocalRef.current()
     }
   }
 
   const reconcileVoiceHost = (snapshot: CopilotVoiceHostSnapshot): void => {
-    if (snapshot.host?.hostId === clientIdRef.current) {
+    if (snapshot.host?.hostId === clientIdRef.current && connectionStateRef.current.acceptCommand({
+      revision: snapshot.desiredRevision
+    })) {
       applyDesiredVoiceState(snapshot.desiredConnected)
     }
   }
@@ -577,6 +612,7 @@ export function CopilotVoiceProvider ({
     const publish = (): void => {
       const current = hostStateRef.current
       void api.updateCopilotVoiceHost({
+        appliedRevision: connectionStateRef.current.appliedRevision,
         armed: true,
         clientId: clientIdRef.current,
         connected: current.connected,
@@ -592,7 +628,7 @@ export function CopilotVoiceProvider ({
     const heartbeat = setInterval(publish, 10_000)
     const unsubscribeCommands = events.subscribe('voice-host-command', command => {
       if (command.hostId !== hostId) return
-      applyDesiredVoiceState(command.desiredConnected)
+      if (connectionStateRef.current.acceptCommand(command)) applyDesiredVoiceState(command.desiredConnected)
     })
     return () => {
       clearInterval(heartbeat)
@@ -604,6 +640,7 @@ export function CopilotVoiceProvider ({
   useEffect(() => {
     if (!armed) return
     void api.updateCopilotVoiceHost({
+      appliedRevision: connectionStateRef.current.appliedRevision,
       armed: true,
       clientId: clientIdRef.current,
       connected,
@@ -636,7 +673,14 @@ export function CopilotVoiceProvider ({
       }
       return
     }
-    await connectLocal()
+    connectionStateRef.current.noteLocalIntent(voiceHost.desiredRevision)
+    const started = await connectLocal()
+    if (!started) return
+    void api.requestCopilotVoiceHostState(true)
+      .then(({ command }) => {
+        connectionStateRef.current.confirmLocalIntent(command)
+      })
+      .catch(cause => setError(errorMessage(cause)))
   }
   const disconnect = (): void => {
     setError(undefined)
@@ -644,7 +688,15 @@ export function CopilotVoiceProvider ({
       void api.requestCopilotVoiceHostState(false).catch(cause => setError(errorMessage(cause)))
       return
     }
+    connectionStateRef.current.noteLocalIntent(voiceHost.desiredRevision)
     disconnectLocal()
+    if (armed) {
+      void api.requestCopilotVoiceHostState(false)
+        .then(({ command }) => {
+          connectionStateRef.current.confirmLocalIntent(command)
+        })
+        .catch(cause => setError(errorMessage(cause)))
+    }
   }
   const selectProfile = async (profileId: string): Promise<void> => {
     if (publicConnected || transitioning) throw new Error('Disconnect voice before changing Copilot profile.')

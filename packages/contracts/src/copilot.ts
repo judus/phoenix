@@ -191,6 +191,7 @@ export const CopilotVoiceHostPhaseSchema = z.enum([
 ])
 
 export const CopilotVoiceHostHeartbeatSchema = z.object({
+  appliedRevision: z.number().int().nonnegative(),
   armed: z.literal(true),
   clientId: NonEmptyTextSchema,
   connected: z.boolean(),
@@ -205,6 +206,7 @@ export const CopilotVoiceHostStatusSchema = CopilotVoiceHostHeartbeatSchema.exte
 
 export const CopilotVoiceHostSnapshotSchema = z.object({
   desiredConnected: z.boolean(),
+  desiredRevision: z.number().int().nonnegative(),
   host: CopilotVoiceHostStatusSchema.nullable()
 }).strict()
 
@@ -216,7 +218,8 @@ export const CopilotVoiceHostCommandSchema = z.object({
   desiredConnected: z.boolean(),
   hostId: NonEmptyTextSchema,
   issuedAt: z.string().datetime(),
-  requestId: NonEmptyTextSchema
+  requestId: NonEmptyTextSchema,
+  revision: z.number().int().positive()
 }).strict()
 
 export const CopilotVoiceHostCommandAcceptedSchema = z.object({

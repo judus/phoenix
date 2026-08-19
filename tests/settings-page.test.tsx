@@ -55,7 +55,7 @@ function settingsApi (openAi = { configured: false, source: 'none' as const, sto
     },
     async getPairingStatus() { return { authenticated: true, installationId: 'test', pairingRequired: false } },
     async getCopilotProfiles() { return { activeProfileId: 'marin', profiles: [{ description: '', id: 'marin', mark: 'M', name: 'Marin', voice: 'marin' }] } },
-    async getCopilotVoiceHost() { return { desiredConnected: false, host: null } }
+    async getCopilotVoiceHost() { return { desiredConnected: false, desiredRevision: 0, host: null } }
   } as PhoenixApi
 }
 

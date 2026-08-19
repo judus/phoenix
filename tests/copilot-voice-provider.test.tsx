@@ -1,5 +1,5 @@
 import { act, create } from 'react-test-renderer'
-import { beforeAll, expect, test, vi } from 'vitest'
+import { afterEach, beforeAll, expect, test, vi } from 'vitest'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
 import type { DevicePreferences, PhoenixDevicePreferencesSnapshot } from '../apps/web/src/application/settings/device-preferences.js'
 import type {
@@ -17,6 +17,82 @@ beforeAll(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 })
 
+afterEach(() => vi.unstubAllGlobals())
+
+test('local disconnect cancels an in-progress microphone connection and acknowledges off intent', async () => {
+  const events = new FakeEventHub()
+  const mediaRequest = deferred<MediaStream>()
+  const stop = vi.fn()
+  const getUserMedia = vi.fn().mockReturnValue(mediaRequest.promise)
+  const requestCopilotVoiceHostState = vi.fn().mockResolvedValue({
+    accepted: true,
+    command: {
+      desiredConnected: false,
+      hostId: 'desktop-client',
+      issuedAt: '2026-08-19T12:00:01.000Z',
+      requestId: 'request-off',
+      revision: 1
+    }
+  })
+  const webSocket = vi.fn()
+  vi.stubGlobal('window', { isSecureContext: true })
+  vi.stubGlobal('navigator', {
+    mediaDevices: {
+      enumerateDevices: vi.fn().mockResolvedValue([]),
+      getUserMedia
+    }
+  })
+  vi.stubGlobal('WebSocket', webSocket)
+
+  const api = {
+    createCopilotRealtimeToken: vi.fn().mockResolvedValue({ model: 'realtime-test', value: 'token' }),
+    getCopilotAudioProcessing: vi.fn().mockResolvedValue({}),
+    getCopilotProfiles: vi.fn().mockResolvedValue({
+      activeProfileId: 'marin',
+      profiles: [{ description: '', id: 'marin', mark: 'M', name: 'Marin', voice: 'marin' }]
+    }),
+    getCopilotVoiceHost: vi.fn().mockResolvedValue({ desiredConnected: false, desiredRevision: 0, host: null }),
+    releaseCopilotVoiceHost: vi.fn().mockResolvedValue(undefined),
+    requestCopilotVoiceHostState,
+    updateCopilotVoiceHost: vi.fn().mockImplementation(async input => ({
+      desiredConnected: input.connected,
+      desiredRevision: input.appliedRevision,
+      host: { ...input, lastSeenAt: '2026-08-19T12:00:00.000Z' }
+    }))
+  } as unknown as PhoenixApi
+  let voice: CopilotVoiceState | undefined
+
+  function Probe() { voice = useCopilotVoice(); return null }
+  const renderer = await act(async () => create(
+    <CopilotVoiceProvider api={api} clientIdentity={{ forScope: () => 'desktop-client' }} devicePreferences={new FakeDevicePreferences()} events={events}>
+      <Probe />
+    </CopilotVoiceProvider>
+  ))
+
+  let connection!: Promise<void>
+  await act(async () => {
+    connection = voice!.connect()
+    await Promise.resolve()
+    await Promise.resolve()
+  })
+  expect(getUserMedia).toHaveBeenCalledOnce()
+
+  await act(async () => voice!.disconnect())
+  expect(requestCopilotVoiceHostState).toHaveBeenCalledWith(false)
+  expect(voice?.status).toBe('Offline')
+
+  await act(async () => {
+    mediaRequest.resolve({ getTracks: () => [{ stop }] } as unknown as MediaStream)
+    await connection
+  })
+  expect(stop).toHaveBeenCalledOnce()
+  expect(webSocket).not.toHaveBeenCalled()
+  expect(voice?.connected).toBe(false)
+  expect(requestCopilotVoiceHostState.mock.calls).toEqual([[false]])
+
+  await act(async () => renderer.unmount())
+})
+
 test('voice lifecycle observes the shared event hub and controls a remote host through the shared API', async () => {
   const events = new FakeEventHub()
   const requestCopilotVoiceHostState = vi.fn().mockResolvedValue({
@@ -24,16 +100,17 @@ test('voice lifecycle observes the shared event hub and controls a remote host t
       desiredConnected: true,
       hostId: 'desktop-host',
       issuedAt: '2026-08-16T12:00:01.000Z',
-      requestId: 'request-1'
+      requestId: 'request-1',
+      revision: 1
     },
-    snapshot: { desiredConnected: true, host: null }
+    snapshot: { desiredConnected: true, desiredRevision: 1, host: null }
   })
   const api = {
     getCopilotProfiles: vi.fn().mockResolvedValue({
       activeProfileId: 'marin',
       profiles: [{ description: '', id: 'marin', mark: 'M', name: 'Marin', voice: 'marin' }]
     }),
-    getCopilotVoiceHost: vi.fn().mockResolvedValue({ desiredConnected: false, host: null }),
+    getCopilotVoiceHost: vi.fn().mockResolvedValue({ desiredConnected: false, desiredRevision: 0, host: null }),
     requestCopilotVoiceHostState
   } as unknown as PhoenixApi
   let voice: CopilotVoiceState | undefined
@@ -56,7 +133,9 @@ test('voice lifecycle observes the shared event hub and controls a remote host t
 
   await act(async () => events.emit('voice-host', {
     desiredConnected: false,
+    desiredRevision: 0,
     host: {
+      appliedRevision: 0,
       armed: true,
       clientId: 'desktop-host',
       connected: false,
@@ -104,13 +183,14 @@ test('live profile and host events cannot be overwritten by stale initial snapsh
     })
     events.emit('voice-host', {
       desiredConnected: false,
-      host: { armed: true, clientId: 'live-host', connected: false, hostId: 'live-host', lastSeenAt: '2026-08-17T12:00:00.000Z', phase: 'ready' }
+      desiredRevision: 0,
+      host: { appliedRevision: 0, armed: true, clientId: 'live-host', connected: false, hostId: 'live-host', lastSeenAt: '2026-08-17T12:00:00.000Z', phase: 'ready' }
     })
     profilesRequest.resolve({
       activeProfileId: 'stale',
       profiles: [{ description: 'Stale', id: 'stale', mark: 'S', name: 'Stale', voice: 'marin' }]
     })
-    hostRequest.resolve({ desiredConnected: false, host: null })
+    hostRequest.resolve({ desiredConnected: false, desiredRevision: 0, host: null })
     await Promise.resolve()
   })
 
@@ -127,7 +207,7 @@ test('voice audio selection follows the device preference owner', async () => {
       activeProfileId: 'marin',
       profiles: [{ description: '', id: 'marin', mark: 'M', name: 'Marin', voice: 'marin' }]
     }),
-    getCopilotVoiceHost: vi.fn().mockResolvedValue({ desiredConnected: false, host: null })
+    getCopilotVoiceHost: vi.fn().mockResolvedValue({ desiredConnected: false, desiredRevision: 0, host: null })
   } as unknown as PhoenixApi
   let voice: CopilotVoiceState | undefined
 

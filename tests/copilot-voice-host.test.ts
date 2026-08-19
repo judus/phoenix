@@ -17,6 +17,7 @@ test('a tablet can control an armed desktop voice host through PHOENIX', async (
 
   try {
     await client.updateCopilotVoiceHost({
+      appliedRevision: 0,
       armed: true,
       clientId: 'desktop-browser',
       connected: true,
@@ -26,6 +27,7 @@ test('a tablet can control an armed desktop voice host through PHOENIX', async (
 
     await expect(client.getCopilotVoiceHost()).resolves.toMatchObject({
       desiredConnected: true,
+      desiredRevision: 0,
       host: { connected: true, hostId: 'desktop-browser', phase: 'listening' }
     })
 
@@ -36,12 +38,14 @@ test('a tablet can control an armed desktop voice host through PHOENIX', async (
     const accepted = await client.requestCopilotVoiceHostState(false)
 
     expect(accepted.command.desiredConnected).toBe(false)
+    expect(accepted.command.revision).toBe(1)
     await expect(commandPromise).resolves.toMatchObject({
       desiredConnected: false,
       hostId: 'desktop-browser'
     })
 
     await expect(client.updateCopilotVoiceHost({
+      appliedRevision: 0,
       armed: true,
       clientId: 'desktop-browser',
       connected: true,
@@ -49,6 +53,7 @@ test('a tablet can control an armed desktop voice host through PHOENIX', async (
       phase: 'listening'
     })).resolves.toMatchObject({ desiredConnected: false })
     await client.updateCopilotVoiceHost({
+      appliedRevision: 1,
       armed: true,
       clientId: 'desktop-browser',
       connected: false,
@@ -56,6 +61,7 @@ test('a tablet can control an armed desktop voice host through PHOENIX', async (
       phase: 'ready'
     })
     await expect(client.updateCopilotVoiceHost({
+      appliedRevision: 1,
       armed: true,
       clientId: 'desktop-browser',
       connected: true,
@@ -66,6 +72,7 @@ test('a tablet can control an armed desktop voice host through PHOENIX', async (
     await client.releaseCopilotVoiceHost('desktop-browser')
     await expect(client.getCopilotVoiceHost()).resolves.toEqual({
       desiredConnected: false,
+      desiredRevision: 0,
       host: null
     })
   } finally {
