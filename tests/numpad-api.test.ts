@@ -20,19 +20,19 @@ test('the numpad API projects and executes the current authoritative command map
     const initial = await client.getNumpadSnapshot()
     expect(initial.nodes).toContainEqual(expect.objectContaining({ id: 'desktop.controls', address: '1' }))
     expect(initial.nodes).toContainEqual(expect.objectContaining({ id: 'desktop.shortcuts', address: '0' }))
-    const destination = initial.nodes.find(node => node.target?.type === 'navigation')
+    const destination = initial.nodes.find(node => node.commandId?.startsWith('command.navigation.'))
     expect(destination).toBeDefined()
 
     const firstExecution = await client.executeNumpadAddress(destination!.address, initial.revision)
     expect(firstExecution.status).toBe('accepted')
 
     const settings = await client.getModuleSettings()
-    const shortcutTarget = destination!.target!
+    const shortcutCommandId = destination!.commandId!
     await client.saveModuleSettings({
       ...settings,
       numpadCommands: {
         ...settings.numpadCommands,
-        shortcuts: [{ id: 'panic-route', selector: '2', label: 'Panic route', target: shortcutTarget }]
+        shortcuts: [{ id: 'panic-route', selector: '2', label: 'Panic route', commandId: shortcutCommandId }]
       }
     })
     const current = await client.getNumpadSnapshot()
@@ -41,13 +41,13 @@ test('the numpad API projects and executes the current authoritative command map
       id: 'shortcut.panic-route',
       address: '02',
       label: 'Panic route',
-      target: shortcutTarget
+      commandId: shortcutCommandId
     }))
     const currentDestination = current.nodes.find(node => node.id === destination!.id)!
     const executed = await client.executeNumpadAddress(currentDestination.address, current.revision)
     expect(executed).toMatchObject({
       status: 'accepted',
-      command: { target: currentDestination.target }
+      command: { commandId: currentDestination.commandId }
     })
 
     const stale = await client.executeNumpadAddress(currentDestination.address, initial.revision)
@@ -61,7 +61,7 @@ test('the numpad API projects and executes the current authoritative command map
         shortcuts: [{
           id: 'missing-macro',
           selector: '7',
-          target: { type: 'macro', macroId: 'deleted-macro' }
+          commandId: 'command.macro.deleted-macro'
         }]
       }
     })
@@ -69,7 +69,7 @@ test('the numpad API projects and executes the current authoritative command map
       id: 'shortcut.missing-macro',
       address: '07',
       available: false,
-      target: { type: 'macro', macroId: 'deleted-macro' }
+      commandId: 'command.macro.deleted-macro'
     }))
   } finally {
     await application.stop()

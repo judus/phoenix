@@ -14,6 +14,7 @@ import { JsonMacroRepository } from './infrastructure/macro-repositories.js'
 import { JsonOpenAiSecretRepository } from './infrastructure/json-openai-secret-repository.js'
 import { ensureCatalogueSnapshot } from './infrastructure/catalogue-snapshot-refresh.js'
 import { serverAccessUrls } from './infrastructure/server-access-urls.js'
+import { satelliteAccessUrls } from '@phoenix/control-deck/host'
 
 let application: PhoenixApplication | null = null
 
@@ -38,6 +39,12 @@ try {
     accessControl,
     applicationPaths: paths,
     controlGridLayoutRepository: settingsRepository,
+    controlDeckGateway: process.env.PHOENIX_CONTROL_DECK_ENABLED === 'true'
+      ? {
+          host: process.env.PHOENIX_CONTROL_DECK_HOST ?? '0.0.0.0',
+          port: Number(process.env.PHOENIX_CONTROL_DECK_PORT ?? 3402)
+        }
+      : false,
     macroRepository: new JsonMacroRepository(resolve(paths.user.config, 'macros.json')),
     openAiSecretRepository: new JsonOpenAiSecretRepository(resolve(paths.user.config, 'secrets.json')),
     systemSettingsRepository: settingsRepository,
@@ -51,6 +58,11 @@ try {
   console.log(`PHOENIX server listening on ${address.host}:${address.port}`)
   console.log(`PHOENIX local URL: ${accessUrls.local}`)
   console.log(`PHOENIX device pairing code: ${accessControl.pairingCode}`)
+  const gateway = application.getControlDeckGatewayAddress()
+  if (gateway) {
+    console.log(`Control Deck satellite gateway listening on ${gateway.host}:${gateway.port}`)
+    for (const url of satelliteAccessUrls(gateway)) console.log(`Control Deck satellite URL: ${url}`)
+  }
 } catch (error) {
   console.error('ERROR_PHOENIX_START_FAILED', error)
   process.exit(1)

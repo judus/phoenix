@@ -1,10 +1,27 @@
 import { expect, test } from 'vitest'
 import {
   CommandCatalogueSnapshotSchema,
+  CommandExecutionResultSchema,
   ControlGridLayoutSchema,
   NumpadTreeSnapshotSchema,
   resolveNumpadLevel
 } from '@phoenix/control-deck'
+
+test('command results keep host-specific outcomes behind generic effects', () => {
+  const result = CommandExecutionResultSchema.parse({
+    requestId: 'request-1',
+    correlationId: 'correlation-1',
+    commandId: 'navigation.settings',
+    operation: 'tap',
+    origin: 'ui',
+    status: 'accepted',
+    timestamp: '2026-08-19T12:00:00.000Z',
+    message: 'Open settings.',
+    effects: [{ type: 'navigate', payload: { href: '/settings' } }]
+  })
+
+  expect(result.effects).toEqual([{ type: 'navigate', payload: { href: '/settings' } }])
+})
 
 test('command catalogue snapshots reject duplicate stable identities', () => {
   const command = {

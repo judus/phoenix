@@ -7,6 +7,7 @@
     "moduleResolution": "Bundler",
     "noEmit": true,
     "paths": {
+      "@phoenix/control-deck/react": ["../../packages/control-deck/src/react/index.ts"],
       "@phoenix/contracts": ["../../packages/contracts/src/index.ts"]
     },
     "strict": true,
@@ -15,6 +16,7 @@
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"],
   "references": [
+    { "path": "../../packages/control-deck" },
     { "path": "../../packages/contracts" }
   ]
 }

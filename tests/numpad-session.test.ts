@@ -16,8 +16,8 @@ const snapshot: NumpadTreeSnapshot = {
   revision: 1,
   nodes: [
     node('controls', null, '1', '1', null),
-    node('first', 'controls', '1', '11', { type: 'navigation', destinationId: 'first' }),
-    node('eleven', 'controls', '11', '111', { type: 'navigation', destinationId: 'eleven' })
+    node('first', 'controls', '1', '11', 'command.navigation.first'),
+    node('eleven', 'controls', '11', '111', 'command.navigation.eleven')
   ]
 }
 
@@ -92,17 +92,17 @@ function node (
   parentId: string | null,
   selector: string,
   address: string,
-  target: NumpadTreeSnapshot['nodes'][number]['target']
+  commandId: string | null
 ): NumpadTreeSnapshot['nodes'][number] {
   return {
     address,
     available: true,
     id,
-    kind: target ? 'navigation' : 'menu',
+    commandId,
+    kind: commandId ? 'command' : 'menu',
     label: id,
     parentId,
     risk: 'safe',
-    selector,
-    target
+    selector
   }
 }

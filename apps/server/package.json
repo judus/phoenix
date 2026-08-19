@@ -6,6 +6,7 @@
   "exports": "./dist/main.js",
   "dependencies": {
     "@jdu/llm-client": "0.1.2",
+    "@phoenix/control-deck": "*",
     "@phoenix/copilot": "*",
     "@phoenix/contracts": "*",
     "@phoenix/elite": "*"

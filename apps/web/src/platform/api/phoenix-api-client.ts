@@ -19,6 +19,7 @@ import {
   CopilotVoiceHostSnapshotSchema,
   ControlGridLayoutSchema,
   CommandCatalogResponseSchema,
+  CommandExecutionResultSchema,
   GameActionCatalogResponseSchema,
   GameActionResultSchema,
   GalnetNewsResponseSchema,
@@ -74,6 +75,8 @@ import type {
   CopilotVoiceHostSnapshot,
   ControlGridLayout,
   CommandCatalogResponse,
+  CommandExecutionResult,
+  CommandOperation,
   GameActionCatalogResponse,
   GameActionOperation,
   GameActionResult,
@@ -246,6 +249,20 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getCommands(signal?: AbortSignal): Promise<CommandCatalogResponse> {
     return this.#get('/api/commands', CommandCatalogResponseSchema, signal)
+  }
+
+  async executeCommand(
+    commandId: string,
+    operation: CommandOperation = 'tap',
+    options: { leaseId?: string, signal?: AbortSignal } = {}
+  ): Promise<CommandExecutionResult> {
+    return this.#json(
+      '/api/commands/execute',
+      'POST',
+      { commandId, operation, ...(options.leaseId ? { leaseId: options.leaseId } : {}) },
+      CommandExecutionResultSchema,
+      options.signal
+    )
   }
 
   async getNumpadSnapshot(signal?: AbortSignal): Promise<NumpadTreeSnapshot> {
@@ -512,15 +529,15 @@ export class PhoenixApiClient implements PhoenixApi {
     return this.#macroRecording('/api/macros/recordings', { clientId }, signal)
   }
 
-  async recordMacroAction(
+  async recordMacroCommand(
     recordingId: string,
     clientId: string,
-    actionId: string,
-    operation: GameActionOperation = 'tap',
+    commandId: string,
+    operation: CommandOperation = 'tap',
     signal?: AbortSignal
   ): Promise<MacroRecording> {
-    return this.#macroRecording(`/api/macros/recordings/${encodeURIComponent(recordingId)}/action`, {
-      actionId, clientId, operation
+    return this.#macroRecording(`/api/macros/recordings/${encodeURIComponent(recordingId)}/command`, {
+      commandId, clientId, operation
     }, signal)
   }
 

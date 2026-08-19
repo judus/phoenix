@@ -25,7 +25,7 @@ import {
   MacroDefinitionSchema,
   OpenAiApiKeyRequestSchema,
   PhoenixModulesSchema,
-  RecordMacroActionRequestSchema,
+  RecordMacroCommandRequestSchema,
   StartMacroRecordingRequestSchema,
   type CopilotConversationEvent,
   type DisplayCommand,
@@ -235,6 +235,32 @@ export class PhoenixHttpServer {
         this.options.accessControl && !this.options.accessControl.isAuthorized(request)) {
       response.setHeader('www-authenticate', 'Bearer realm="PHOENIX"')
       this.writeJson(response, 401, { error: { code: 'pairing_required', message: 'Pair this device with PHOENIX.' } })
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/pairing/challenge') {
+      if (!this.options.accessControl) {
+        this.writeJson(response, 400, { error: { code: 'pairing_unavailable', message: 'Pairing is not configured.' } })
+        return
+      }
+      const body = await readJsonBody(request)
+      const gatewayUrl = isRecord(body) && typeof body.gatewayUrl === 'string' ? body.gatewayUrl : ''
+      try {
+        this.writeJson(response, 200, this.options.accessControl.createPairingChallenge(gatewayUrl))
+      } catch (cause) {
+        this.writeJson(response, 400, { error: { code: 'invalid_gateway_url', message: errorMessage(cause) } })
+      }
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/pairing/sessions') {
+      this.writeJson(response, 200, { sessions: this.options.accessControl?.listSessions() ?? [] })
+      return
+    }
+
+    const pairingSessionMatch = url.pathname.match(/^\/api\/pairing\/sessions\/([^/]+)$/u)
+    if (request.method === 'DELETE' && pairingSessionMatch) {
+      this.writeJson(response, 200, { revoked: this.options.accessControl?.revokeSession(decodeURIComponent(pairingSessionMatch[1]!)) ?? false })
       return
     }
 
@@ -859,16 +885,16 @@ export class PhoenixHttpServer {
       return
     }
 
-    const recordingMatch = url.pathname.match(/^\/api\/macros\/recordings\/([^/]+)\/(action|stop|cancel)$/u)
+    const recordingMatch = url.pathname.match(/^\/api\/macros\/recordings\/([^/]+)\/(command|stop|cancel)$/u)
     if (request.method === 'POST' && recordingMatch) {
       try {
         const recordingId = decodeURIComponent(recordingMatch[1]!)
         const operation = recordingMatch[2]
         const body = await readJsonBody(request)
-        if (operation === 'action') {
-          this.writeJson(response, 200, await this.options.macros.recordAction(
+        if (operation === 'command') {
+          this.writeJson(response, 200, await this.options.macros.recordCommand(
             recordingId,
-            RecordMacroActionRequestSchema.parse(body)
+            RecordMacroCommandRequestSchema.parse(body)
           ))
         } else {
           const input = StartMacroRecordingRequestSchema.parse(body)

@@ -2,9 +2,9 @@ import { expect, test } from 'vitest'
 import { NumpadShortcutCollectionSchema } from '@phoenix/contracts'
 
 test('custom shortcut selectors are unique within their stable branch', () => {
-  const target = { type: 'navigation' as const, destinationId: 'information.home' }
+  const commandId = 'command.navigation.information.home'
   expect(() => NumpadShortcutCollectionSchema.parse([
-    { id: 'first', selector: '2', target },
-    { id: 'second', selector: '2', target }
+    { id: 'first', selector: '2', commandId },
+    { id: 'second', selector: '2', commandId }
   ])).toThrow('assigned twice')
 })

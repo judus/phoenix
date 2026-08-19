@@ -1,10 +1,8 @@
 import {
   CommandCatalogResponseSchema,
   CommandCatalogueSnapshotSchema,
-  commandTargetKey,
   type CommandCatalogueSnapshot,
-  type CommandDescriptor,
-  type CommandTarget
+  type CommandDescriptor
 } from '@phoenix/contracts'
 import type {
   CommandCatalogueChange,
@@ -28,9 +26,8 @@ export class CommandCatalogueService implements CommandCatalogueSnapshots {
     changes?.subscribe(change => { this.invalidate(change) })
   }
 
-  public find (target: CommandTarget): CommandDescriptor | undefined {
-    const key = commandTargetKey(target)
-    return this.snapshot.commands.find(command => commandTargetKey(command.target) === key)
+  public find (commandId: string): CommandDescriptor | undefined {
+    return this.snapshot.commands.find(command => command.id === commandId)
   }
 
   public getCatalog () {

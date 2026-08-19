@@ -9,7 +9,7 @@ import {
 import type { MacroRepository } from '../domain/macros.js'
 import { ensurePrivateDirectorySync, PRIVATE_FILE_MODE, restrictPrivateFileSync } from './private-user-state.js'
 
-const EMPTY_LIBRARY: MacroLibrary = { version: 1, macros: [] }
+const EMPTY_LIBRARY: MacroLibrary = { version: 2, macros: [] }
 
 export class InMemoryMacroRepository implements MacroRepository {
   private library: MacroLibrary = EMPTY_LIBRARY
@@ -24,7 +24,7 @@ export class InMemoryMacroRepository implements MacroRepository {
   public save (candidate: MacroDefinition): MacroDefinition {
     const definition = MacroDefinitionSchema.parse(candidate)
     this.library = {
-      version: 1,
+      version: 2,
       macros: [...this.library.macros.filter(macro => macro.id !== definition.id), definition]
         .sort((left, right) => left.name.localeCompare(right.name))
     }
@@ -45,14 +45,18 @@ export class JsonMacroRepository implements MacroRepository {
   public getLibrary (): MacroLibrary {
     if (!existsSync(this.path)) return EMPTY_LIBRARY
     restrictPrivateFileSync(this.path)
-    return MacroLibrarySchema.parse(JSON.parse(readFileSync(this.path, 'utf8')))
+    const candidate: unknown = JSON.parse(readFileSync(this.path, 'utf8'))
+    const migrated = migrateMacroLibrary(candidate)
+    const library = MacroLibrarySchema.parse(migrated)
+    if (migrated !== candidate) this.write(library)
+    return library
   }
 
   public save (candidate: MacroDefinition): MacroDefinition {
     const definition = MacroDefinitionSchema.parse(candidate)
     const library = this.getLibrary()
     this.write({
-      version: 1,
+      version: 2,
       macros: [...library.macros.filter(macro => macro.id !== definition.id), definition]
         .sort((left, right) => left.name.localeCompare(right.name))
     })
@@ -68,4 +72,25 @@ export class JsonMacroRepository implements MacroRepository {
     renameSync(temporary, this.path)
     restrictPrivateFileSync(this.path)
   }
+}
+
+function migrateMacroLibrary (candidate: unknown): unknown {
+  if (!isRecord(candidate) || candidate.version !== 1 || !Array.isArray(candidate.macros)) return candidate
+  return {
+    ...candidate,
+    version: 2,
+    macros: candidate.macros.map(macro => !isRecord(macro) || !Array.isArray(macro.steps)
+      ? macro
+      : {
+          ...macro,
+          version: 2,
+          steps: macro.steps.map(step => isRecord(step) && step.type === 'game-action' && typeof step.actionId === 'string'
+            ? { type: 'command', commandId: `command.${step.actionId}`, operation: step.operation }
+            : step)
+        })
+  }
+}
+
+function isRecord (value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

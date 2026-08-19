@@ -3,11 +3,9 @@ import {
   NumpadExecutionResultSchema,
   NumpadTreeNodeSchema,
   NumpadTreeSnapshotSchema,
-  commandTargetKey,
+  navigationCommandId,
   type CommandCatalogueSnapshot,
   type CommandDescriptor,
-  type CommandRisk,
-  type CommandTarget,
   type NumpadTreeNode,
   type NumpadTreeSnapshot
 } from '@phoenix/contracts'
@@ -77,7 +75,7 @@ export class NumpadTreeProjector {
 
   public getSnapshot (): NumpadTreeSnapshot {
     const catalogue = this.catalogues.getSnapshot()
-    const descriptors = new Map(catalogue.commands.map(command => [commandTargetKey(command.target), command]))
+    const descriptors = new Map(catalogue.commands.map(command => [command.id, command]))
     const nodes: NumpadTreeNode[] = []
     const diagnostics: string[] = []
 
@@ -113,19 +111,19 @@ export class NumpadTreeProjector {
     const shortcuts = this.settings.loadOrCreate().modules.numpadCommands.shortcuts
     const parent = branch(nodes, null, 'desktop.shortcuts', '0', 'Shortcuts')
     for (const shortcut of shortcuts) {
-      const descriptor = descriptors.get(commandTargetKey(shortcut.target))
+      const descriptor = descriptors.get(shortcut.commandId)
       if (!descriptor) {
         diagnostics.push(`Shortcut ${shortcut.selector} targets an unknown command.`)
         nodes.push(NumpadTreeNodeSchema.parse({
           address: parent.address + shortcut.selector,
           available: false,
           id: `shortcut.${shortcut.id}`,
-          kind: shortcut.target.type,
-          label: shortcut.label ?? commandTargetKey(shortcut.target),
+          kind: 'command',
+          label: shortcut.label ?? shortcut.commandId,
           parentId: parent.id,
           risk: 'safe',
           selector: shortcut.selector,
-          target: shortcut.target,
+          commandId: shortcut.commandId,
           unavailableReason: 'The assigned command is no longer available.'
         }))
         continue
@@ -144,7 +142,7 @@ export class NumpadTreeProjector {
     diagnostics: string[]
   ): void {
     for (const page of this.layouts.getLayout().pages) {
-      const selector = CONTROL_SELECTORS[page.category]
+      const selector = CONTROL_SELECTORS[page.groupId]
       if (!selector) {
         diagnostics.push(`Control page ${page.id} has no numpad selector.`)
         continue
@@ -154,8 +152,8 @@ export class NumpadTreeProjector {
         rows: page.rows
       })
       for (const cell of page.cells) {
-        if (!cell.target) continue
-        const descriptor = descriptors.get(commandTargetKey(cell.target))
+        if (!cell.commandId) continue
+        const descriptor = descriptors.get(cell.commandId)
         if (!descriptor) {
           diagnostics.push(`Control cell ${page.id}:${cell.position} targets an unknown command.`)
           continue
@@ -201,7 +199,7 @@ export class DefaultNumpadCommands implements NumpadCommands {
       })
     }
     const node = snapshot.nodes.find(candidateNode => candidateNode.address === request.address)
-    if (!node?.target || !node.available) {
+    if (!node?.commandId || !node.available) {
       return NumpadExecutionResultSchema.parse({
         address: request.address,
         command: null,
@@ -210,7 +208,7 @@ export class DefaultNumpadCommands implements NumpadCommands {
         status: 'rejected'
       })
     }
-    const command = await this.commands.execute({ target: node.target, operation: 'tap' }, 'numpad', signal)
+    const command = await this.commands.execute({ commandId: node.commandId, operation: 'tap' }, 'numpad', signal)
     return NumpadExecutionResultSchema.parse({
       address: request.address,
       command,
@@ -240,7 +238,7 @@ function branch (
     parentId,
     risk: 'safe',
     selector,
-    target: null,
+    commandId: null,
     ...layout
   })
   nodes.push(node)
@@ -258,15 +256,14 @@ function leaf (
   nodes.push(NumpadTreeNodeSchema.parse({
     address: parentAddress(nodes, parentId) + selector,
     available: descriptor.available,
-    category: descriptor.category,
+    commandId: descriptor.id,
     description: descriptor.description,
     id,
-    kind: descriptor.kind,
+    kind: 'command',
     label: descriptor.label,
     parentId,
     risk: descriptor.risk,
     selector,
-    target: descriptor.target,
     ...(descriptor.unavailableReason ? { unavailableReason: descriptor.unavailableReason } : {}),
     ...layout
   }))
@@ -280,7 +277,7 @@ function appendDestination (
   destinationId: string,
   diagnostics: string[]
 ): void {
-  const descriptor = descriptors.get(commandTargetKey({ type: 'navigation', destinationId }))
+  const descriptor = descriptors.get(navigationCommandId(destinationId))
   if (!descriptor) {
     diagnostics.push(`Navigation destination ${destinationId} is missing from the command catalogue.`)
     return

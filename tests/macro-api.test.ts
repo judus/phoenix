@@ -19,10 +19,10 @@ test('a browser records, saves, discovers, and plays a semantic macro', async ()
 
   try {
     const recording = await client.startMacroRecording('tablet-one')
-    const updated = await client.recordMacroAction(
+    const updated = await client.recordMacroCommand(
       recording.id,
       'tablet-one',
-      'elite.ShipSpotLightToggle'
+      'command.elite.ShipSpotLightToggle'
     )
     expect(updated.entries).toHaveLength(1)
     expect(updated.entries[0]?.delayBeforeMs).toBe(0)
@@ -36,8 +36,8 @@ test('a browser records, saves, discovers, and plays a semantic macro', async ()
       id: 'test-lights',
       name: 'Test lights',
       risk: 'safe',
-      steps: [{ type: 'game-action', actionId: 'elite.ShipSpotLightToggle', operation: 'tap' }],
-      version: 1
+      steps: [{ type: 'command', commandId: 'command.elite.ShipSpotLightToggle', operation: 'tap' }],
+      version: 2
     })
 
     expect((await client.getMacros()).macros).toHaveLength(1)
@@ -62,13 +62,11 @@ test('recording ownership prevents another browser contaminating a draft', async
   const client = new PhoenixApiClient(`http://${address.host}:${address.port}`)
 
   try {
-    const settings = await client.getModuleSettings()
-    await client.saveModuleSettings({ ...settings, macros: { ...settings.macros, enabled: true } })
     const recording = await client.startMacroRecording('tablet-one')
-    await expect(client.recordMacroAction(
+    await expect(client.recordMacroCommand(
       recording.id,
       'tablet-two',
-      'elite.ShipSpotLightToggle'
+      'command.elite.ShipSpotLightToggle'
     )).rejects.toThrow('Macro recording session is unavailable')
   } finally {
     await application.stop()

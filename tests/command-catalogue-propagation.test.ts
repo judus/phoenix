@@ -25,7 +25,7 @@ test('successful command-source mutations publish one immutable catalogue revisi
     name: 'Panic Button',
     risk: 'safe',
     steps: [{ type: 'wait', durationMs: 1 }],
-    version: 1
+    version: 2
   })
 
   expect(initial.revision).toBe(1)
@@ -42,7 +42,7 @@ test('failed persistence does not announce a catalogue revision', () => {
   const macros = new NotifyingMacroRepository({
     delete: () => { throw new Error('disk full') },
     get: () => undefined,
-    getLibrary: () => ({ version: 1, macros: [] }),
+    getLibrary: () => ({ version: 2, macros: [] }),
     save: () => { throw new Error('disk full') }
   }, changes)
   const observed: CommandCatalogueChange[] = []

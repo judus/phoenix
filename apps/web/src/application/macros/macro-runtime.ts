@@ -9,7 +9,7 @@ export interface MacroRuntime {
   library: MacroLibrary
   playback?: MacroPlayback
   play: (macro: MacroDefinition) => Promise<void>
-  recordAction: (actionId: string, operation: MacroRecording['entries'][number]['operation']) => Promise<void>
+  recordCommand: (commandId: string, operation: MacroRecording['entries'][number]['operation']) => Promise<void>
   recording?: MacroRecording
   save: (name: string) => Promise<void>
   setDraft: (draft: MacroRecording | undefined) => void

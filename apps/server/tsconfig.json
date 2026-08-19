@@ -6,6 +6,7 @@
     "moduleResolution": "NodeNext",
     "outDir": "dist",
     "paths": {
+      "@phoenix/control-deck/host": ["../../packages/control-deck/src/host/index.ts"],
       "@phoenix/contracts": ["../../packages/contracts/src/index.ts"],
       "@phoenix/copilot": ["../../packages/copilot/src/index.ts"],
       "@phoenix/elite": ["../../packages/elite/src/index.ts"]
@@ -17,6 +18,7 @@
   },
   "include": ["src/**/*.ts"],
   "references": [
+    { "path": "../../packages/control-deck" },
     { "path": "../../packages/contracts" },
     { "path": "../../packages/copilot" },
     { "path": "../../packages/elite" }

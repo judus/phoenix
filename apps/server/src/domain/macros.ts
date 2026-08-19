@@ -4,7 +4,7 @@ import type {
   MacroLibrary,
   MacroPlayback,
   MacroRecording,
-  RecordMacroActionRequest
+  RecordMacroCommandRequest
 } from '@phoenix/contracts'
 
 export interface MacroRepository {
@@ -24,7 +24,7 @@ export interface Macros extends MacroCommandExecutor {
   delete(id: string): void
   getLibrary(): MacroLibrary
   getPlayback(): MacroPlayback | null
-  recordAction(recordingId: string, request: RecordMacroActionRequest): Promise<MacroRecording>
+  recordCommand(recordingId: string, request: RecordMacroCommandRequest): Promise<MacroRecording>
   save(candidate: unknown): MacroDefinition
   startRecording(clientId: string): MacroRecording
   stopRecording(recordingId: string, clientId: string): MacroRecording

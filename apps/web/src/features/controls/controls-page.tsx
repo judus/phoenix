@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { CommandTarget, ControlGridLayout, GameActionAvailability, GameActionOperation, RuntimeState } from '@phoenix/contracts'
+import { gameActionCommandId, macroCommandId, type CommandOperation, type ControlGridLayout, type GameActionAvailability, type RuntimeState } from '@phoenix/contracts'
 import { Button, CommandTile, ControlContext, Field, PageFrame, PageHeader, Status, TextInput } from '@phoenix/ui'
 import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
 import type { ControlCategory } from '../../application/navigation/phoenix-route.js'
 import { controlsCategoryLabel } from './controls-navigation.js'
 import type { ControlsControllerSnapshot } from './use-controls-controller.js'
 
-export function ControlsPage({ category, controller, editing, macros, runtime, onEditingChange, onExecuteAction, onSaveLayout }: {
+export function ControlsPage({ category, controller, editing, macros, runtime, onEditingChange, onExecuteCommand, onSaveLayout }: {
   category: ControlCategory
   controller: ControlsControllerSnapshot
   editing: boolean
   macros: MacroRuntime
   runtime?: RuntimeState
   onEditingChange(editing: boolean): void
-  onExecuteAction(actionId: string, operation: GameActionOperation, leaseId?: string): Promise<unknown>
+  onExecuteCommand(commandId: string, operation: CommandOperation, leaseId?: string): Promise<unknown>
   onSaveLayout(layout: ControlGridLayout): Promise<ControlGridLayout>
 }) {
   const [error, setError] = useState<string>()
@@ -22,28 +22,28 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
   const [filter, setFilter] = useState('')
   const [saving, setSaving] = useState(false)
   const held = useRef(new Map<string, string>())
-  const executeAction = useRef(onExecuteAction)
-  useEffect(() => { executeAction.current = onExecuteAction }, [onExecuteAction])
+  const executeCommand = useRef(onExecuteCommand)
+  useEffect(() => { executeCommand.current = onExecuteCommand }, [onExecuteCommand])
   useEffect(() => { if (!editing) setDraft(controller.layout) }, [controller.layout, editing])
   useEffect(() => { onEditingChange(false); setEditingPosition(undefined); setFilter('') }, [category])
   useEffect(() => () => {
-    for (const [actionId, leaseId] of held.current) {
-      held.current.delete(actionId)
-      void executeAction.current(actionId, 'release', leaseId)
+    for (const [commandId, leaseId] of held.current) {
+      held.current.delete(commandId)
+      void executeCommand.current(commandId, 'release', leaseId)
     }
   }, [category])
   const activeLayout = draft ?? controller.layout
-  const page = activeLayout?.pages.find(candidate => candidate.category === category)
-  const actions = new Map(controller.actions?.actions.map(action => [action.definition.id, action]) ?? [])
+  const page = activeLayout?.pages.find(candidate => candidate.groupId === category)
+  const actions = new Map(controller.actions?.actions.map(action => [gameActionCommandId(action.definition.id), action]) ?? [])
   const capacity = (page?.columns ?? 8) * (page?.rows ?? 5)
   const cells = new Map(page?.cells.map(cell => [cell.position, cell]) ?? [])
   const covered = new Set<number>()
   for (const cell of page?.cells ?? []) for (let offset = 1; offset < cell.span; offset++) covered.add(cell.position + offset)
 
-  const execute = (action: GameActionAvailability, operation: GameActionOperation, leaseId?: string) => {
+  const execute = (commandId: string, operation: CommandOperation, leaseId?: string) => {
     const operationRequest = macros.recording
-      ? macros.recordAction(action.definition.id, operation)
-      : onExecuteAction(action.definition.id, operation, leaseId)
+      ? macros.recordCommand(commandId, operation)
+      : onExecuteCommand(commandId, operation, leaseId)
     return operationRequest
       .then(() => setError(undefined))
       .catch(cause => setError(cause instanceof Error ? cause.message : 'Control execution failed.'))
@@ -77,17 +77,17 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
               {Array.from({ length: capacity }, (_, index) => index + 1).map(position => {
                 if (covered.has(position)) return null
                 const cell = cells.get(position)
-                const target = cell?.target
-                if (!target) return editing
+                const commandId = cell?.commandId
+                if (!commandId) return editing
                   ? <Button aria-label={`Cell ${position}`} className="control-deck-empty" key={position} variant="quiet" onClick={() => { setEditingPosition(position); setFilter('') }} style={{ gridColumn: `span ${cell?.span ?? 1}` }}>{position}</Button>
                   : <div className="control-deck-empty" key={position} style={{ gridColumn: `span ${cell?.span ?? 1}` }} />
-                if (target.type === 'macro') {
-                  const macro = macros.library.macros.find(candidate => candidate.id === target.macroId)
-                  return <CommandTile key={position} kind="macro" label={macro?.name ?? target.macroId} meta={editing ? `Cell ${position}` : macro?.risk} unavailable={!editing && !macro?.enabled} onClick={() => editing ? (setEditingPosition(position), setFilter('')) : macro && void macros.play(macro)} style={{ gridColumn: `span ${cell?.span ?? 1}` }} />
+                if (commandId.startsWith(macroCommandId(''))) {
+                  const macroId = commandId.slice(macroCommandId('').length)
+                  const macro = macros.library.macros.find(candidate => candidate.id === macroId)
+                  return <CommandTile key={position} kind="macro" label={macro?.name ?? macroId} meta={editing ? `Cell ${position}` : macro?.risk} unavailable={!editing && !macro?.enabled} onClick={() => editing ? (setEditingPosition(position), setFilter('')) : macro && void macros.play(macro)} style={{ gridColumn: `span ${cell?.span ?? 1}` }} />
                 }
-                if (target.type !== 'game-action') return <MissingTarget key={position} target={target} span={cell?.span ?? 1} />
-                const action = actions.get(target.actionId)
-                if (!action) return <MissingTarget key={position} target={target} span={cell?.span ?? 1} />
+                const action = actions.get(commandId)
+                if (!action) return <MissingCommand key={position} commandId={commandId} span={cell?.span ?? 1} />
                 const active = telemetryState(runtime, action.definition.telemetryKey)
                 return <CommandTile
                   binding={action.binding?.display}
@@ -99,26 +99,26 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
                   unavailable={!action.available}
                   onClick={event => {
                     if (editing) { setEditingPosition(position); setFilter(''); return }
-                    if (action.definition.inputMode !== 'hold') void execute(action, 'tap')
+                    if (action.definition.inputMode !== 'hold') void execute(commandId, 'tap')
                     else if (event.detail === 0) {
                       const leaseId = globalThis.crypto.randomUUID()
-                      void execute(action, 'press', leaseId).then(() => execute(action, 'release', leaseId))
+                      void execute(commandId, 'press', leaseId).then(() => execute(commandId, 'release', leaseId))
                     }
                   }}
                   onPointerDown={event => {
-                    if (editing || action.definition.inputMode !== 'hold' || held.current.has(action.definition.id)) return
+                    if (editing || action.definition.inputMode !== 'hold' || held.current.has(commandId)) return
                     event.currentTarget.setPointerCapture?.(event.pointerId)
                     const leaseId = globalThis.crypto.randomUUID()
-                    held.current.set(action.definition.id, leaseId)
-                    void execute(action, 'press', leaseId)
+                    held.current.set(commandId, leaseId)
+                    void execute(commandId, 'press', leaseId)
                   }}
                   onPointerUp={() => {
-                    const leaseId = held.current.get(action.definition.id)
-                    if (leaseId) { held.current.delete(action.definition.id); void execute(action, 'release', leaseId) }
+                    const leaseId = held.current.get(commandId)
+                    if (leaseId) { held.current.delete(commandId); void execute(commandId, 'release', leaseId) }
                   }}
                   onPointerCancel={() => {
-                    const leaseId = held.current.get(action.definition.id)
-                    if (leaseId) { held.current.delete(action.definition.id); void execute(action, 'release', leaseId) }
+                    const leaseId = held.current.get(commandId)
+                    if (leaseId) { held.current.delete(commandId); void execute(commandId, 'release', leaseId) }
                   }}
                   style={{ gridColumn: `span ${cell?.span ?? 1}` }}
                 />
@@ -130,14 +130,14 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
         macros={macros}
         onClose={() => setEditingPosition(undefined)}
         onFilterChange={setFilter}
-        onSelect={target => {
+        onSelect={commandId => {
           if (!draft) return
-          setDraft(assignTarget(draft, category, editingPosition, target))
+          setDraft(assignCommand(draft, category, editingPosition, commandId))
           setEditingPosition(undefined)
         }}
         onClear={() => {
           if (!draft) return
-          setDraft(assignTarget(draft, category, editingPosition, null))
+          setDraft(assignCommand(draft, category, editingPosition, null))
           setEditingPosition(undefined)
         }}
         position={editingPosition}
@@ -153,7 +153,7 @@ function ControlPicker({ actions, filter, macros, onClear, onClose, onFilterChan
   onClear(): void
   onClose(): void
   onFilterChange(value: string): void
-  onSelect(target: CommandTarget): void
+  onSelect(commandId: string): void
   position: number
 }) {
   const needle = filter.trim().toLowerCase()
@@ -162,31 +162,30 @@ function ControlPicker({ actions, filter, macros, onClear, onClose, onFilterChan
     <header><div><strong>Assign command</strong><small>Cell {position}</small></div><Button variant="quiet" onClick={onClose}>Close</Button></header>
     <Field htmlFor="control-filter" label="Filter commands"><TextInput autoFocus value={filter} onChange={event => onFilterChange(event.target.value)} /></Field>
     <div className="control-picker-list">
-      {macros.library.macros.filter(macro => !needle || macro.name.toLowerCase().includes(needle)).map(macro => <Button alignment="start" key={macro.id} variant="quiet" onClick={() => onSelect({ type: 'macro', macroId: macro.id })}>{macro.name} · Macro</Button>)}
-      {candidates.map(action => <Button alignment="start" key={action.definition.id} variant="quiet" onClick={() => onSelect({ type: 'game-action', actionId: action.definition.id })}>{action.definition.label} · {action.binding?.display ?? 'Unbound'}</Button>)}
+      {macros.library.macros.filter(macro => !needle || macro.name.toLowerCase().includes(needle)).map(macro => <Button alignment="start" key={macro.id} variant="quiet" onClick={() => onSelect(macroCommandId(macro.id))}>{macro.name} · Macro</Button>)}
+      {candidates.map(action => <Button alignment="start" key={action.definition.id} variant="quiet" onClick={() => onSelect(gameActionCommandId(action.definition.id))}>{action.definition.label} · {action.binding?.display ?? 'Unbound'}</Button>)}
     </div>
     <footer><Button variant="danger" onClick={onClear}>Clear cell</Button></footer>
   </section>
 }
 
-function assignTarget(layout: ControlGridLayout, category: ControlCategory, position: number, target: CommandTarget | null): ControlGridLayout {
+function assignCommand(layout: ControlGridLayout, category: ControlCategory, position: number, commandId: string | null): ControlGridLayout {
   return {
     ...layout,
     pages: layout.pages.map(page => {
-      if (page.category !== category) return page
+      if (page.groupId !== category) return page
       return {
         ...page,
         cells: page.cells.some(cell => cell.position === position)
-          ? page.cells.map(cell => cell.position === position ? { ...cell, target } : cell)
-          : [...page.cells, { position, span: 1, target }].sort((left, right) => left.position - right.position)
+          ? page.cells.map(cell => cell.position === position ? { ...cell, commandId } : cell)
+          : [...page.cells, { position, span: 1, commandId }].sort((left, right) => left.position - right.position)
       }
     })
   }
 }
 
-function MissingTarget({ target, span }: { target: CommandTarget, span: number }) {
-  const label = target.type === 'navigation' ? target.destinationId : target.type === 'macro' ? target.macroId : target.actionId
-  return <CommandTile label={label} unavailable style={{ gridColumn: `span ${span}` }} />
+function MissingCommand({ commandId, span }: { commandId: string, span: number }) {
+  return <CommandTile label={commandId} unavailable style={{ gridColumn: `span ${span}` }} />
 }
 
 function telemetryState(runtime: RuntimeState | undefined, key: string | null): boolean {

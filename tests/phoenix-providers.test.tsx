@@ -137,7 +137,7 @@ function apiStub(): PhoenixApi {
       }
     },
     async getCopilotVoiceHost() { return { desiredConnected: false, host: null } },
-    async getMacros() { return { version: 1, macros: [] } },
+    async getMacros() { return { version: 2, macros: [] } },
     async getModuleSettings() {
       return {
         numpadCommands: {

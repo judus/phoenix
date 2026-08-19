@@ -30,9 +30,9 @@ test('reconstructed controls render the persisted grid with shared command tiles
       layout: DEFAULT_CONTROL_GRID_LAYOUT,
       status: 'ready'
     }}
-    macros={{ library: { version: 1, macros: [] } } as unknown as MacroRuntime}
+    macros={{ library: { version: 2, macros: [] } } as unknown as MacroRuntime}
     runtime={createEmptyRuntimeState()}
-    onExecuteAction={() => Promise.resolve()}
+    onExecuteCommand={() => Promise.resolve()}
     onEditingChange={() => undefined}
     onSaveLayout={layout => Promise.resolve(layout)}
   />)

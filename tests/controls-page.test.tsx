@@ -38,7 +38,7 @@ test('the controls page renders bound and unbound discovered commands', () => {
       }}
       macros={emptyMacroRuntime()}
       runtime={createEmptyRuntimeState()}
-      onExecuteAction={() => Promise.reject(new Error('not executed during server rendering'))}
+      onExecuteCommand={() => Promise.reject(new Error('not executed during server rendering'))}
       onEditingChange={() => undefined}
       onSaveLayout={layout => Promise.resolve(layout)}
     />
@@ -59,9 +59,9 @@ function emptyMacroRuntime (): MacroRuntime {
     abort: async () => undefined,
     cancelRecording: async () => undefined,
     deleteMacro: async () => undefined,
-    library: { version: 1, macros: [] },
+    library: { version: 2, macros: [] },
     play: async () => undefined,
-    recordAction: async () => undefined,
+    recordCommand: async () => undefined,
     save: async () => undefined,
     setDraft: () => undefined,
     startRecording: async () => undefined,

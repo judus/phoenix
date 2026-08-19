@@ -43,10 +43,10 @@ test('the reconstructed numpad renders the live command navigator', () => {
           address: '1',
           label: 'Fleet',
           description: 'Open the fleet workspace.',
-          kind: 'navigation',
+          kind: 'command',
           available: true,
-          risk: 'routine',
-          target: { type: 'navigation', href: '#/fleet' }
+          risk: 'safe',
+          commandId: 'command.navigation.fleet'
         }]
       },
       status: 'ready'

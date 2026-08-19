@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { CommandExecutionResultSchema, type CommandTarget } from '@phoenix/contracts'
+import { CommandExecutionResultSchema } from '@phoenix/contracts'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
 import { StaticGameActionBindingResolver } from '../apps/server/src/infrastructure/static-game-action-binding-resolver.js'
@@ -48,30 +48,23 @@ test('the API exposes actions, executes them, and persists the shared control la
     expect(commands.commands).toContainEqual(expect.objectContaining({
       id: 'command.elite.ShipSpotLightToggle',
       kind: 'game-action',
-      target: { type: 'game-action', actionId: 'elite.ShipSpotLightToggle' }
+      groupId: 'ship'
     }))
     expect(commands.commands).toContainEqual(expect.objectContaining({
       id: 'command.navigation.galaxy.current-system',
       kind: 'navigation',
-      target: { type: 'navigation', destinationId: 'galaxy.current-system' }
+      groupId: 'Galaxy'
     }))
 
-    const commandResult = await executeCommand(baseUrl, {
-      type: 'game-action',
-      actionId: 'elite.ShipSpotLightToggle'
-    })
+    const commandResult = await executeCommand(baseUrl, 'command.elite.ShipSpotLightToggle')
     expect(commandResult).toMatchObject({
       commandId: 'command.elite.ShipSpotLightToggle',
-      status: 'accepted',
-      target: { type: 'game-action', actionId: 'elite.ShipSpotLightToggle' }
+      status: 'accepted'
     })
 
-    const navigationResult = await executeCommand(baseUrl, {
-      type: 'navigation',
-      destinationId: 'galaxy.current-system'
-    })
+    const navigationResult = await executeCommand(baseUrl, 'command.navigation.galaxy.current-system')
     expect(navigationResult).toMatchObject({
-      navigationHref: '#/galaxy/system',
+      effects: [{ type: 'navigate', payload: { href: '#/galaxy/system' } }],
       status: 'accepted'
     })
 
@@ -86,8 +79,8 @@ test('the API exposes actions, executes them, and persists the shared control la
         : {
             ...page,
             cells: [
-              ...page.cells.map(cell => cell.position === 1 ? { ...cell, target: null } : cell),
-              { position: 2, span: 1, target: { type: 'game-action' as const, actionId: 'elite.GalaxyMapOpen' } }
+              ...page.cells.map(cell => cell.position === 1 ? { ...cell, commandId: null } : cell),
+              { position: 2, span: 1, commandId: 'command.elite.GalaxyMapOpen' }
             ]
           })
     }
@@ -95,7 +88,7 @@ test('the API exposes actions, executes them, and persists the shared control la
     expect(savedLayout.pages.find(page => page.id === 'ship')?.cells).toContainEqual({
       position: 2,
       span: 1,
-      target: { type: 'game-action', actionId: 'elite.GalaxyMapOpen' }
+      commandId: 'command.elite.GalaxyMapOpen'
     })
     expect(await client.getControlLayout()).toEqual(savedLayout)
   } finally {
@@ -103,9 +96,9 @@ test('the API exposes actions, executes them, and persists the shared control la
   }
 })
 
-async function executeCommand (baseUrl: string, target: CommandTarget) {
+async function executeCommand (baseUrl: string, commandId: string) {
   const response = await fetch(`${baseUrl}/api/commands/execute`, {
-    body: JSON.stringify({ target, operation: 'tap' }),
+    body: JSON.stringify({ commandId, operation: 'tap' }),
     headers: { accept: 'application/json', 'content-type': 'application/json' },
     method: 'POST'
   })

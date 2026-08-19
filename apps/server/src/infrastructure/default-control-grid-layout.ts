@@ -37,7 +37,7 @@ const SHIP_CELLS = [
 ]
 
 export const DEFAULT_CONTROL_GRID_LAYOUT: ControlGridLayout = ControlGridLayoutSchema.parse({
-  version: 4,
+  version: 5,
   pages: [
     page('ship', 'Ship', SHIP_CELLS),
     page('combat', 'Combat'),
@@ -52,14 +52,14 @@ export const DEFAULT_CONTROL_GRID_LAYOUT: ControlGridLayout = ControlGridLayoutS
 })
 
 function page (
-  id: ControlGridLayout['pages'][number]['category'],
+  id: string,
   label: string,
   cells: ControlGridLayout['pages'][number]['cells'] = []
 ) {
   return {
     id,
     label,
-    category: id,
+    groupId: id,
     columns: 8,
     rows: 5,
     cells
@@ -67,5 +67,5 @@ function page (
 }
 
 function cell (position: number, eliteBinding: string, span = 1) {
-  return { position, span, target: { type: 'game-action' as const, actionId: `elite.${eliteBinding}` } }
+  return { position, span, commandId: `command.elite.${eliteBinding}` }
 }

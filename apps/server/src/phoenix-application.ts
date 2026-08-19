@@ -2,6 +2,7 @@ import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { DisplayCommand, GameEventEnvelope, NavigationRoute, RuntimeState } from '@phoenix/contracts'
 import { ToolRegistry } from '@jdu/llm-client'
+import { ControlDeckSatelliteServer, type SatelliteServerAddress } from '@phoenix/control-deck/host'
 import {
   EliteDataDirectoryLocator,
   EliteBindingsDirectoryLocator,
@@ -106,6 +107,7 @@ export interface PhoenixApplicationOptions {
   copilot?: CopilotText | null
   copilotRealtime?: CopilotRealtime | null
   copilotProfiles?: CopilotProfiles | null
+  controlDeckGateway?: false | { host: string, port: number }
   databasePath?: string
   eliteDirectory?: string | null
   engineeringCatalogueDirectory?: string
@@ -133,6 +135,8 @@ export interface PhoenixApplicationOptions {
 }
 
 export class PhoenixApplication {
+  private readonly controlDeckGateway?: ControlDeckSatelliteServer
+  private controlDeckGatewayAddress?: SatelliteServerAddress
   private readonly database: SqliteDatabase
   private readonly eventIngestion: GameEventIngestionService
   private readonly inputBackend: InputBackend
@@ -314,6 +318,20 @@ export class PhoenixApplication {
       commands,
       systemSettings
     )
+    if (options.controlDeckGateway) {
+      if (!options.accessControl) throw new Error('The Control Deck satellite gateway requires pairing access control.')
+      this.controlDeckGateway = new ControlDeckSatelliteServer({
+        access: options.accessControl,
+        commands: {
+          execute: (candidate, signal) => commands.execute(candidate, 'ui', signal),
+          getCatalog: () => commands.getCatalog()
+        },
+        host: options.controlDeckGateway.host,
+        layout: controlGridLayouts,
+        numpad,
+        port: options.controlDeckGateway.port
+      })
+    }
     const statefulActions = new StatefulGameActionService(
       gameActions,
       this.stateStore,
@@ -447,6 +465,7 @@ export class PhoenixApplication {
       await this.inventorySource.start()
       await this.navigationRouteSource.start()
       const address = await this.server.start()
+      if (this.controlDeckGateway) this.controlDeckGatewayAddress = await this.controlDeckGateway.start()
       void this.journalBackfill.start()
       return address
     } catch (cause) {
@@ -454,6 +473,8 @@ export class PhoenixApplication {
       this.statusSource.stop()
       this.inventorySource.stop()
       this.navigationRouteSource.stop()
+      await this.controlDeckGateway?.stop()
+      await this.server.stop()
       await this.inputBackend.stop?.()
       this.database.close()
       throw cause
@@ -466,10 +487,15 @@ export class PhoenixApplication {
     this.inventorySource.stop()
     this.navigationRouteSource.stop()
     await this.journalBackfill.stop()
+    await this.controlDeckGateway?.stop()
     await this.server.stop()
     await this.gameActions.stop?.()
     await this.inputBackend.stop?.()
     this.database.close()
+  }
+
+  public getControlDeckGatewayAddress (): SatelliteServerAddress | undefined {
+    return this.controlDeckGatewayAddress
   }
 
   public ingestGameEvent (candidate: unknown): GameEventEnvelope {

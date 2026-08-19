@@ -15,6 +15,8 @@ import type {
   CopilotVoiceHostSnapshot,
   ControlGridLayout,
   CommandCatalogResponse,
+  CommandExecutionResult,
+  CommandOperation,
   ActivityLogResponse,
   CartographyLookupResponse,
   CommunicationsResponse,
@@ -96,6 +98,7 @@ export interface PhoenixApi {
   deleteMacro(id: string, signal?: AbortSignal): Promise<void>
   executeCopilotRealtimeTool(input: CopilotRealtimeToolRequest, signal?: AbortSignal): Promise<unknown>
   executeAction(actionId: string, operation?: GameActionOperation, options?: { leaseId?: string, signal?: AbortSignal }): Promise<GameActionResult>
+  executeCommand(commandId: string, operation?: CommandOperation, options?: { leaseId?: string, signal?: AbortSignal }): Promise<CommandExecutionResult>
   executeNumpadAddress(address: string, revision: number, signal?: AbortSignal): Promise<NumpadExecutionResult>
   getEngineeringBlueprint(symbol: string, signal?: AbortSignal): Promise<EngineeringBlueprintDetail>
   getEngineeringBlueprints(signal?: AbortSignal): Promise<EngineeringBlueprintsResponse>
@@ -138,11 +141,11 @@ export interface PhoenixApi {
   persistCopilotRealtimeTurn(input: CopilotRealtimeTurnRequest, signal?: AbortSignal): Promise<void>
   playMacro(id: string, signal?: AbortSignal): Promise<MacroPlayback>
   publishCopilotConversationEvent(event: CopilotConversationEvent, signal?: AbortSignal): Promise<void>
-  recordMacroAction(
+  recordMacroCommand(
     recordingId: string,
     clientId: string,
-    actionId: string,
-    operation?: GameActionOperation,
+    commandId: string,
+    operation?: CommandOperation,
     signal?: AbortSignal
   ): Promise<MacroRecording>
   releaseCopilotVoiceHost(hostId: string, signal?: AbortSignal): Promise<void>

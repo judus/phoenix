@@ -28,12 +28,12 @@ function node (id: string, selector: string) {
     address: selector,
     available: true,
     id,
-    kind: 'navigation' as const,
+    kind: 'command' as const,
     label: id,
     parentId: null,
     risk: 'safe' as const,
     selector,
-    target: { type: 'navigation' as const, destinationId: id }
+    commandId: `command.navigation.${id}`
   }
 }
 

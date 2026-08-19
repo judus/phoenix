@@ -108,8 +108,7 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
           structuredContent: {
             matches: [{
               commandId: 'command.elite.ShipSpotLightToggle',
-              label: 'Ship Lights',
-              target: { actionId: 'elite.ShipSpotLightToggle', type: 'game-action' }
+              label: 'Ship Lights'
             }]
           },
           type: 'tool_result'
@@ -139,8 +138,8 @@ test('the Copilot discovers and executes commander-created macros through the co
     id: 'panic-button',
     name: 'Panic Button',
     risk: 'caution',
-    steps: [{ type: 'game-action', actionId: 'elite.ShipSpotLightToggle', operation: 'tap' }],
-    version: 1
+    steps: [{ type: 'command', commandId: 'command.elite.ShipSpotLightToggle', operation: 'tap' }],
+    version: 2
   })
   const systemSettingsRepository = new InMemorySystemSettingsRepository()
   const settings = systemSettingsRepository.loadOrCreate()
@@ -172,7 +171,7 @@ test('the Copilot discovers and executes commander-created macros through the co
         type: 'tool_call'
       },
       {
-        arguments: { target: { macroId: 'panic-button', type: 'macro' } },
+        arguments: { commandId: 'command.macro.panic-button' },
         callId: 'run-panic',
         name: 'phoenix__controls_execute',
         type: 'tool_call'
@@ -193,9 +192,9 @@ test('the Copilot discovers and executes commander-created macros through the co
         callId: 'find-panic',
         structuredContent: expect.objectContaining({
           matches: [expect.objectContaining({
+            commandId: 'command.macro.panic-button',
             kind: 'macro',
-            label: 'Panic Button',
-            target: { macroId: 'panic-button', type: 'macro' }
+            label: 'Panic Button'
           })]
         })
       }),
@@ -203,8 +202,7 @@ test('the Copilot discovers and executes commander-created macros through the co
         callId: 'run-panic',
         structuredContent: expect.objectContaining({
           commandId: 'command.macro.panic-button',
-          status: 'accepted',
-          target: { macroId: 'panic-button', type: 'macro' }
+          status: 'accepted'
         })
       })
     ]))

@@ -18,7 +18,7 @@ export function MacroRuntimeProvider ({
   clientIdentity: ClientIdentity
   router: PhoenixRouter
 }) {
-  const [library, setLibrary] = useState<MacroLibrary>({ version: 1, macros: [] })
+  const [library, setLibrary] = useState<MacroLibrary>({ version: 2, macros: [] })
   const [recording, setRecording] = useState<MacroRecording>()
   const [draft, setDraft] = useState<MacroRecording>()
   const [playback, setPlayback] = useState<MacroPlayback>()
@@ -74,10 +74,10 @@ export function MacroRuntimeProvider ({
         setPlayback(undefined)
       }
     },
-    recordAction: async (actionId, operation) => {
+    recordCommand: async (commandId, operation) => {
       if (!recording) return
       try {
-        setRecording(await api.recordMacroAction(recording.id, clientId.current, actionId, operation))
+        setRecording(await api.recordMacroCommand(recording.id, clientId.current, commandId, operation))
         setError(undefined)
       } catch (cause) {
         setError(message(cause, 'Unable to record macro action.'))
@@ -128,10 +128,10 @@ function recordingDefinition (name: string, recording: MacroRecording): MacroDef
   const steps: MacroDefinition['steps'] = []
   successful.forEach((entry, index) => {
     if (index > 0 && entry.delayBeforeMs > 0) steps.push({ type: 'wait', durationMs: Math.min(entry.delayBeforeMs, 30_000) })
-    steps.push({ type: 'game-action', actionId: entry.actionId, operation: entry.operation })
+    steps.push({ type: 'command', commandId: entry.commandId, operation: entry.operation })
   })
   return {
-    assumptions: [], description: '', enabled: true, id: macroId(name), name, risk: 'safe', steps, version: 1
+    assumptions: [], description: '', enabled: true, id: macroId(name), name, risk: 'safe', steps, version: 2
   }
 }
 

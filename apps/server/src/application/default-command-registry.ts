@@ -1,10 +1,11 @@
 import {
   CommandCatalogResponseSchema,
   CommandDescriptorSchema,
-  commandTargetKey,
+  gameActionCommandId,
+  macroCommandId,
+  navigationCommandId,
   type CommandDescriptor,
-  type CommandRisk,
-  type CommandTarget
+  type CommandRisk
 } from '@phoenix/contracts'
 import type { GameActions } from './game-action-service.js'
 import { effectiveMacroRisk } from './macro-risk.js'
@@ -60,8 +61,8 @@ export class DefaultCommandRegistry implements CommandRegistry {
     private readonly macros?: MacroRepository
   ) {}
 
-  public find (target: CommandTarget): CommandDescriptor | undefined {
-    return this.descriptors().get(commandTargetKey(target))
+  public find (commandId: string): CommandDescriptor | undefined {
+    return this.descriptors().get(commandId)
   }
 
   public getCatalog () {
@@ -72,44 +73,46 @@ export class DefaultCommandRegistry implements CommandRegistry {
     const descriptors = new Map<string, CommandDescriptor>()
     const gameActionCatalog = this.gameActions.getCatalog()
     for (const action of gameActionCatalog.actions) {
-      const target = { type: 'game-action' as const, actionId: action.definition.id }
-      descriptors.set(commandTargetKey(target), CommandDescriptorSchema.parse({
-        id: `command.${action.definition.id}`,
-        kind: target.type,
+      const id = gameActionCommandId(action.definition.id)
+      descriptors.set(id, CommandDescriptorSchema.parse({
+        id,
+        kind: 'game-action',
         label: action.definition.label,
         description: action.definition.description,
-        category: action.definition.category,
+        groupId: action.definition.category,
         available: action.available,
         ...(action.unavailableReason ? { unavailableReason: action.unavailableReason } : {}),
         risk: actionRisk(action.definition.risk),
-        target
+        supportedOperations: action.definition.inputMode === 'hold' ? ['press', 'release'] : ['tap'],
+        display: action.binding ? { binding: action.binding.display } : undefined
       }))
     }
     for (const entry of this.destinations) {
-      const target = { type: 'navigation' as const, destinationId: entry.id }
-      descriptors.set(commandTargetKey(target), CommandDescriptorSchema.parse({
-        id: `command.navigation.${entry.id}`,
-        kind: target.type,
+      const id = navigationCommandId(entry.id)
+      descriptors.set(id, CommandDescriptorSchema.parse({
+        id,
+        kind: 'navigation',
         label: entry.label,
         description: entry.description,
-        category: entry.category,
+        groupId: entry.category,
         available: true,
         risk: entry.risk ?? 'safe',
-        target
+        recordable: false
       }))
     }
     for (const macro of this.macros?.getLibrary().macros ?? []) {
-      const target = { type: 'macro' as const, macroId: macro.id }
-      descriptors.set(commandTargetKey(target), CommandDescriptorSchema.parse({
-        id: `command.macro.${macro.id}`,
-        kind: target.type,
+      const id = macroCommandId(macro.id)
+      descriptors.set(id, CommandDescriptorSchema.parse({
+        id,
+        kind: 'macro',
         label: macro.name,
         ...(macro.description ? { description: macro.description } : {}),
-        category: 'macros',
+        groupId: 'macros',
         available: macro.enabled,
         ...(!macro.enabled ? { unavailableReason: 'Macro is disabled.' } : {}),
         risk: effectiveMacroRisk(macro, gameActionCatalog),
-        target
+        numericAddress: macro.numericAddress,
+        recordable: false
       }))
     }
     return descriptors

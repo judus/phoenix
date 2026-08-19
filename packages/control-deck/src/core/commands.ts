@@ -60,6 +60,11 @@ export const ExecuteCommandRequestSchema = z.object({
   timeoutMs: z.number().int().min(1).max(30_000).optional()
 })
 
+export const CommandEffectSchema = z.object({
+  type: z.string().min(1).max(80),
+  payload: z.record(z.string(), z.unknown()).default({})
+})
+
 export const CommandExecutionResultSchema = z.object({
   requestId: z.string().min(1),
   correlationId: z.string().min(1),
@@ -68,7 +73,8 @@ export const CommandExecutionResultSchema = z.object({
   origin: z.string().min(1).max(80),
   status: CommandResultStatusSchema,
   timestamp: z.iso.datetime(),
-  message: z.string().min(1)
+  message: z.string().min(1),
+  effects: z.array(CommandEffectSchema).default([])
 })
 
 export const CommandStateSchema = z.object({
@@ -81,6 +87,7 @@ export type CommandCatalogue = z.infer<typeof CommandCatalogueSchema>
 export type CommandCatalogueRevision = z.infer<typeof CommandCatalogueRevisionSchema>
 export type CommandCatalogueSnapshot = z.infer<typeof CommandCatalogueSnapshotSchema>
 export type CommandDescriptor = z.infer<typeof CommandDescriptorSchema>
+export type CommandEffect = z.infer<typeof CommandEffectSchema>
 export type CommandExecutionResult = z.infer<typeof CommandExecutionResultSchema>
 export type CommandId = z.infer<typeof CommandIdSchema>
 export type CommandOperation = z.infer<typeof CommandOperationSchema>

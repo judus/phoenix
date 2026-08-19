@@ -67,7 +67,7 @@ test('obsolete module enable switches migrate out of retained settings', () => {
   expect(persisted.modules.numpadCommands).not.toHaveProperty('enabled')
 })
 
-test('draft version-one control layouts migrate to the canonical version-four default', () => {
+test('draft version-one control layouts migrate to the canonical version-five default', () => {
   const directory = temporaryDirectory()
   const path = join(directory, 'settings.json')
   writeFileSync(path, JSON.stringify({
@@ -82,7 +82,7 @@ test('draft version-one control layouts migrate to the canonical version-four de
   const settings = new JsonSystemSettingsRepository(path).loadOrCreate()
 
   expect(settings.controls.layout).toEqual(DEFAULT_PHOENIX_SETTINGS.controls.layout)
-  expect(JSON.parse(readFileSync(path, 'utf8')).controls.layout.version).toBe(4)
+  expect(JSON.parse(readFileSync(path, 'utf8')).controls.layout.version).toBe(5)
 })
 
 test('version-two layouts preserve user choices while removing the invalid silent-running action', () => {
@@ -113,16 +113,17 @@ test('version-two layouts preserve user choices while removing the invalid silen
   const settings = new JsonSystemSettingsRepository(path).loadOrCreate()
   const cells = settings.controls.layout.pages[0]?.cells
 
-  expect(settings.controls.layout.version).toBe(4)
-  expect(cells).toContainEqual({ position: 20, span: 1, target: null })
+  expect(settings.controls.layout.version).toBe(5)
+  expect(settings.controls.layout.pages[0]?.groupId).toBe('ship')
+  expect(cells).toContainEqual({ position: 20, span: 1, commandId: null })
   expect(cells).toContainEqual({
     position: 16,
     span: 1,
-    target: { type: 'game-action', actionId: 'elite.NightVisionToggle' }
+    commandId: 'command.elite.NightVisionToggle'
   })
 })
 
-test('version-three action cells migrate to typed game-action targets', () => {
+test('version-three action cells migrate to stable command ids', () => {
   const directory = temporaryDirectory()
   const path = join(directory, 'settings.json')
   writeFileSync(path, JSON.stringify({
@@ -146,11 +147,12 @@ test('version-three action cells migrate to typed game-action targets', () => {
 
   const layout = new JsonSystemSettingsRepository(path).loadOrCreate().controls.layout
 
-  expect(layout.version).toBe(4)
+  expect(layout.version).toBe(5)
+  expect(layout.pages[0]?.groupId).toBe('ship')
   expect(layout.pages[0]?.cells).toEqual([{
     position: 1,
     span: 2,
-    target: { type: 'game-action', actionId: 'elite.GalaxyMapOpen' }
+    commandId: 'command.elite.GalaxyMapOpen'
   }])
 })
 
@@ -216,8 +218,8 @@ test('developer overrides and disabled user settings remain distinct', () => {
     platform: 'linux'
   })
   const disabledSettings: PhoenixSettings = {
-    version: 1,
-    controls: { enabled: false, backend: 'auto' }
+    ...DEFAULT_PHOENIX_SETTINGS,
+    controls: { ...DEFAULT_PHOENIX_SETTINGS.controls, enabled: false }
   }
   const disabled = bootstrapControlBackend(disabledSettings, { platform: 'linux' })
 
@@ -256,29 +258,29 @@ test('control-grid layouts are persisted inside system settings', () => {
   const layout = {
     ...settings.controls.layout,
     pages: settings.controls.layout.pages.map(page => page.id === 'ship'
-      ? { ...page, cells: [{ position: 1, target: { type: 'game-action' as const, actionId: 'elite.NightVisionToggle' } }] }
+      ? { ...page, cells: [{ position: 1, span: 1, commandId: 'command.elite.NightVisionToggle' }] }
       : page)
   }
 
   repository.saveLayout(layout)
 
   expect(repository.getLayout().pages.find(page => page.id === 'ship')?.cells).toEqual([
-    { position: 1, span: 1, target: { type: 'game-action', actionId: 'elite.NightVisionToggle' } }
+    { position: 1, span: 1, commandId: 'command.elite.NightVisionToggle' }
   ])
 })
 
 test('control-grid layouts reject overlapping cells', () => {
   expect(() => ControlGridLayoutSchema.parse({
-    version: 4,
+    version: 5,
     pages: [{
       id: 'ship',
       label: 'Ship',
-      category: 'ship',
+      groupId: 'ship',
       columns: 8,
       rows: 5,
       cells: [
-        { position: 1, span: 2, target: { type: 'game-action', actionId: 'elite.NightVisionToggle' } },
-        { position: 2, span: 1, target: { type: 'game-action', actionId: 'elite.LandingGearToggle' } }
+        { position: 1, span: 2, commandId: 'command.elite.NightVisionToggle' },
+        { position: 2, span: 1, commandId: 'command.elite.LandingGearToggle' }
       ]
     }]
   })).toThrow()
@@ -286,16 +288,16 @@ test('control-grid layouts reject overlapping cells', () => {
 
 test('control-grid layouts allow the same command in multiple cells', () => {
   expect(ControlGridLayoutSchema.parse({
-    version: 4,
+    version: 5,
     pages: [{
       id: 'ship',
       label: 'Ship',
-      category: 'ship',
+      groupId: 'ship',
       columns: 8,
       rows: 5,
       cells: [
-        { position: 1, span: 1, target: { type: 'game-action', actionId: 'elite.NightVisionToggle' } },
-        { position: 2, span: 1, target: { type: 'game-action', actionId: 'elite.NightVisionToggle' } }
+        { position: 1, span: 1, commandId: 'command.elite.NightVisionToggle' },
+        { position: 2, span: 1, commandId: 'command.elite.NightVisionToggle' }
       ]
     }]
   }).pages[0]?.cells).toHaveLength(2)

@@ -24,7 +24,7 @@ test('macro recording uses the shared API, browser identity, and typed router', 
   const draft: MacroRecording = {
     ...recording,
     entries: [{
-      actionId: 'elite.ShipSpotLightToggle',
+      commandId: 'command.elite.ShipSpotLightToggle',
       delayBeforeMs: 0,
       message: 'Accepted.',
       operation: 'tap',
@@ -33,7 +33,7 @@ test('macro recording uses the shared API, browser identity, and typed router', 
     status: 'stopped'
   }
   const api = {
-    getMacros: vi.fn().mockResolvedValue({ version: 1, macros: [] }),
+    getMacros: vi.fn().mockResolvedValue({ version: 2, macros: [] }),
     getModuleSettings: vi.fn().mockResolvedValue(modules()),
     startMacroRecording: vi.fn().mockResolvedValue(recording),
     stopMacroRecording: vi.fn().mockResolvedValue(draft)

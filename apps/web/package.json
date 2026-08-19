@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@phoenix/control-deck": "*",
     "@phoenix/contracts": "*",
     "@phoenix/ui": "*",
     "@vitejs/plugin-react": "^6.0.5",

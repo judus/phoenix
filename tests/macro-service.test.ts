@@ -19,10 +19,10 @@ test('aborting playback releases every held action', async () => {
     name: 'Held input',
     risk: 'safe',
     steps: [
-      { type: 'game-action', actionId: 'elite.PrimaryFire', operation: 'press' },
+      { type: 'command', commandId: 'command.elite.PrimaryFire', operation: 'press' },
       { type: 'wait', durationMs: 10_000 }
     ],
-    version: 1
+    version: 2
   })
   const service = new MacroService(repository, actions)
 
@@ -51,8 +51,8 @@ test('saving derives macro risk from its game actions', () => {
     id: 'dangerous-action',
     name: 'Dangerous action',
     risk: 'safe',
-    steps: [{ type: 'game-action', actionId: 'elite.EjectAllCargo', operation: 'tap' }],
-    version: 1
+    steps: [{ type: 'command', commandId: 'command.elite.EjectAllCargo', operation: 'tap' }],
+    version: 2
   }).risk).toBe('dangerous')
   expect(repository.get('dangerous-action')?.risk).toBe('dangerous')
 })
@@ -67,8 +67,8 @@ test('macro playback rechecks dangerous Copilot actions', async () => {
     id: 'understated',
     name: 'Understated',
     risk: 'safe',
-    steps: [{ type: 'game-action', actionId: 'elite.EjectAllCargo', operation: 'tap' }],
-    version: 1
+    steps: [{ type: 'command', commandId: 'command.elite.EjectAllCargo', operation: 'tap' }],
+    version: 2
   })
   const service = new MacroService(
     repository,

@@ -21,7 +21,7 @@ import {
 } from './private-user-state.js'
 
 export const DEFAULT_PHOENIX_SETTINGS: PhoenixSettings = {
-  version: 1,
+  version: 2,
   copilot: {
     activeProfileId: 'marin',
     permissions: { gameActions: false, macros: false, dangerousActions: false }
@@ -94,33 +94,46 @@ export class InMemorySystemSettingsRepository implements SystemSettingsRepositor
 
 function migrateSettings (candidate: unknown): unknown {
   if (!isRecord(candidate)) return candidate
-  const withModules = isRecord(candidate.modules)
-    ? candidate
-    : { ...candidate, modules: DEFAULT_PHOENIX_SETTINGS.modules }
-  const normalized = isRecord(withModules.modules) && ('macros' in withModules.modules || (
-    isRecord(withModules.modules.numpadCommands) && 'enabled' in withModules.modules.numpadCommands
-  ))
-    ? {
-        ...withModules,
-        modules: {
-          numpadCommands: {
-            ...(isRecord(withModules.modules.numpadCommands) ? withModules.modules.numpadCommands : {}),
-            enabled: undefined
-          }
+  let changed = candidate.version !== 2
+  let modules: unknown = candidate.modules
+  if (!isRecord(modules)) {
+    modules = DEFAULT_PHOENIX_SETTINGS.modules
+    changed = true
+  } else {
+    const numpad = isRecord(modules.numpadCommands) ? modules.numpadCommands : {}
+    const oldShortcuts = Array.isArray(numpad.shortcuts) ? numpad.shortcuts : null
+    const shortcuts = oldShortcuts
+      ? oldShortcuts.map(shortcut => migrateShortcut(shortcut))
+      : numpad.shortcuts
+    const oldModuleShape = 'macros' in modules || 'enabled' in numpad
+    const shortcutsChanged = oldShortcuts !== null && Array.isArray(shortcuts) && shortcuts.some((shortcut, index) => shortcut !== oldShortcuts[index])
+    if (oldModuleShape || shortcutsChanged) {
+      modules = {
+        numpadCommands: {
+          ...numpad,
+          enabled: undefined,
+          shortcuts
         }
       }
-    : withModules
-  if (!isRecord(normalized.controls) || !isRecord(normalized.controls.layout)) {
-    return normalized
-  }
-  if (normalized.controls.layout.version === 1) {
-    return {
-      ...normalized,
-      controls: { ...normalized.controls, layout: DEFAULT_CONTROL_GRID_LAYOUT }
+      changed = true
     }
   }
-  const layout = normalized.controls.layout
-  if (!Array.isArray(layout.pages)) return normalized
+
+  let controls: unknown = candidate.controls
+  if (isRecord(controls) && isRecord(controls.layout)) {
+    const layout = migrateLayout(controls.layout)
+    if (layout !== controls.layout) {
+      controls = { ...controls, layout }
+      changed = true
+    }
+  }
+
+  return changed ? { ...candidate, version: 2, modules, controls } : candidate
+}
+
+function migrateLayout (layout: Record<string, unknown>): unknown {
+  if (layout.version === 1) return DEFAULT_CONTROL_GRID_LAYOUT
+  if (!Array.isArray(layout.pages)) return layout
   const version3 = layout.version === 2
     ? {
         ...layout,
@@ -135,12 +148,8 @@ function migrateSettings (candidate: unknown): unknown {
             })
       }
     : layout
-  if (version3.version !== 3 || !Array.isArray(version3.pages)) return normalized
-  return {
-    ...normalized,
-    controls: {
-      ...normalized.controls,
-      layout: {
+  const version4 = version3.version === 3 && Array.isArray(version3.pages)
+    ? {
         ...version3,
         version: 4,
         pages: version3.pages.map(page => !isRecord(page) || !Array.isArray(page.cells)
@@ -158,8 +167,39 @@ function migrateSettings (candidate: unknown): unknown {
                   })
             })
       }
-    }
+    : version3
+  if (version4.version !== 4 || !Array.isArray(version4.pages)) return version4
+  return {
+    ...version4,
+    version: 5,
+    pages: version4.pages.map(page => !isRecord(page) || !Array.isArray(page.cells)
+      ? page
+      : {
+          ...page,
+          groupId: page.category,
+          category: undefined,
+          cells: page.cells.map(cell => !isRecord(cell)
+            ? cell
+            : {
+                position: cell.position,
+                ...(cell.span === undefined ? {} : { span: cell.span }),
+                commandId: commandIdFromLegacyTarget(cell.target)
+              })
+        })
   }
+}
+
+function migrateShortcut (shortcut: unknown): unknown {
+  if (!isRecord(shortcut) || 'commandId' in shortcut) return shortcut
+  return { ...shortcut, commandId: commandIdFromLegacyTarget(shortcut.target), target: undefined }
+}
+
+function commandIdFromLegacyTarget (target: unknown): unknown {
+  if (!isRecord(target) || typeof target.type !== 'string') return null
+  if (target.type === 'game-action' && typeof target.actionId === 'string') return `command.${target.actionId}`
+  if (target.type === 'navigation' && typeof target.destinationId === 'string') return `command.navigation.${target.destinationId}`
+  if (target.type === 'macro' && typeof target.macroId === 'string') return `command.macro.${target.macroId}`
+  return null
 }
 
 function isRecord (value: unknown): value is Record<string, unknown> {

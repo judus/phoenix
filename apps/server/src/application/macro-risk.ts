@@ -3,6 +3,7 @@ import type {
   MacroDefinition,
   MacroRisk
 } from '@phoenix/contracts'
+import { gameActionCommandId } from '@phoenix/contracts'
 
 const RISK_ORDER: readonly MacroRisk[] = ['safe', 'caution', 'dangerous', 'destructive']
 
@@ -22,19 +23,24 @@ export function effectiveMacroRisk (
     action.definition.risk === 'routine' ? 'safe' as const : action.definition.risk
   ]))
   return macro.steps.reduce<MacroRisk>((risk, step) => (
-    step.type === 'game-action'
-      ? maximumRisk(risk, actionRisks.get(step.actionId) ?? 'safe')
+    step.type === 'command'
+      ? maximumRisk(risk, actionRisks.get(actionId(step.commandId)) ?? 'safe')
       : risk
   ), macro.risk)
 }
 
-export function isDangerousMacroAction (
-  actionId: string,
+export function isDangerousMacroCommand (
+  commandId: string,
   catalog: GameActionCatalogResponse
 ): boolean {
   return catalog.actions.some(action => (
-    action.definition.id === actionId && action.definition.risk === 'dangerous'
+    gameActionCommandId(action.definition.id) === commandId && action.definition.risk === 'dangerous'
   ))
+}
+
+function actionId (commandId: string): string {
+  const prefix = gameActionCommandId('')
+  return commandId.startsWith(prefix) ? commandId.slice(prefix.length) : ''
 }
 
 function maximumRisk (left: MacroRisk, right: MacroRisk): MacroRisk {

@@ -33,7 +33,8 @@ export function NumpadPage({ api, controller, routeSession, view }: { api: Phoen
   const apply = (transition: NumpadSessionTransition) => { setSession(transition.state); if (transition.execute) void execute(transition.execute) }
   const applyExecution = (result: NumpadExecutionResult) => {
     setSession(current => finishNumpadSession(current, result.status === 'accepted' ? 'completed' : result.status === 'stale' ? 'stale' : 'error', result.message))
-    if (result.command?.navigationHref) { routeSession.navigate(result.command.navigationHref); return }
+    const navigation = result.command?.effects.find(effect => effect.type === 'navigate')?.payload.href
+    if (typeof navigation === 'string') { routeSession.navigate(navigation); return }
     if (result.status === 'accepted' && routeSession.leave()) return
   }
   const cancel = () => { setSession(cancelNumpadSession().state); routeSession.leave() }

@@ -7,10 +7,15 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "dist",
+    "paths": {
+      "@phoenix/control-deck": ["../control-deck/src/core/index.ts"]
+    },
     "rootDir": "src",
     "strict": true,
     "target": "ES2023"
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../control-deck" }
+  ]
 }
-

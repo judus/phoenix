@@ -30,8 +30,8 @@ test.skipIf(process.platform === 'win32')('user-state stores create and correct 
       id: 'test-macro',
       name: 'Test macro',
       risk: 'safe',
-      steps: [{ actionId: 'elite.ShipSpotLightToggle', operation: 'tap', type: 'game-action' }],
-      version: 1
+      steps: [{ commandId: 'command.elite.ShipSpotLightToggle', operation: 'tap', type: 'command' }],
+      version: 2
     })
     database.initialize()
     await new JsonConversationStore(conversationDirectory).create({ id: 'private-conversation' })

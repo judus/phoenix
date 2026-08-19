@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto'
 import {
+  CommandExecutionResultSchema,
   MacroDefinitionSchema,
-  MacroPlaybackSchema,
+  MacroPlaybackRunner,
   MacroRecordingSchema,
-  RecordMacroActionRequestSchema,
+  RecordMacroCommandRequestSchema,
+  gameActionCommandId,
   type CopilotExecutionPermissions,
   type GameActionOrigin,
   type MacroPlayback,
@@ -11,13 +13,13 @@ import {
 } from '@phoenix/contracts'
 import type { GameActions } from './game-action-service.js'
 import type { MacroRepository, Macros } from '../domain/macros.js'
-import { isDangerousMacroAction, withEffectiveMacroRisk } from './macro-risk.js'
+import { isDangerousMacroCommand, withEffectiveMacroRisk } from './macro-risk.js'
 
 interface ActiveRecording extends MacroRecording { lastCompletedAt: number }
 
 export class MacroService implements Macros {
   private readonly recordings = new Map<string, ActiveRecording>()
-  private activeRun?: { controller: AbortController, state: MacroPlayback }
+  private readonly playback: MacroPlaybackRunner
 
   public constructor (
     private readonly repository: MacroRepository,
@@ -28,7 +30,40 @@ export class MacroService implements Macros {
       macros: true,
       dangerousActions: true
     })
-  ) {}
+  ) {
+    this.playback = new MacroPlaybackRunner(
+      repository,
+      {
+        execute: async (request, origin, signal) => {
+          if (origin === 'copilot' && !this.copilotPermissions().dangerousActions &&
+              isDangerousMacroCommand(request.commandId, this.gameActions.getCatalog())) {
+            return commandResult(request.commandId, request.operation, origin, 'rejected', 'Dangerous Copilot actions are disabled in Settings.', this.now())
+          }
+          try {
+            const result = await this.gameActions.execute({
+              actionId: actionId(request.commandId),
+              operation: request.operation,
+              ...(request.leaseId ? { leaseId: request.leaseId } : {})
+            }, origin as GameActionOrigin, signal)
+            return CommandExecutionResultSchema.parse({
+              commandId: request.commandId,
+              correlationId: result.correlationId,
+              effects: [{ type: 'game-action', payload: { result } }],
+              message: result.message,
+              operation: result.operation,
+              origin: result.origin,
+              requestId: result.requestId,
+              status: result.status,
+              timestamp: result.timestamp
+            })
+          } catch (cause) {
+            return commandResult(request.commandId, request.operation, origin, 'rejected', cause instanceof Error ? cause.message : 'Macro command is unavailable.', this.now())
+          }
+        }
+      },
+      { now: this.now, randomId: randomUUID }
+    )
+  }
 
   public getLibrary () { return this.repository.getLibrary() }
   public save (candidate: unknown) {
@@ -36,7 +71,7 @@ export class MacroService implements Macros {
     return this.repository.save(withEffectiveMacroRisk(definition, this.gameActions.getCatalog()))
   }
   public delete (id: string): void { this.repository.delete(id) }
-  public getPlayback (): MacroPlayback | null { return this.activeRun?.state ?? null }
+  public getPlayback (): MacroPlayback | null { return this.playback.getPlayback() }
 
   public startRecording (clientId: string): MacroRecording {
     const startedAt = this.now()
@@ -52,20 +87,20 @@ export class MacroService implements Macros {
     return MacroRecordingSchema.parse(recording)
   }
 
-  public async recordAction (recordingId: string, candidate: unknown): Promise<MacroRecording> {
-    const request = RecordMacroActionRequestSchema.parse(candidate)
+  public async recordCommand (recordingId: string, candidate: unknown): Promise<MacroRecording> {
+    const request = RecordMacroCommandRequestSchema.parse(candidate)
     const recording = this.ownedRecording(recordingId, request.clientId)
     const emittedAt = this.now().getTime()
     const delayBeforeMs = recording.entries.length === 0
       ? 0
       : Math.max(0, emittedAt - recording.lastCompletedAt)
     const result = await this.gameActions.execute({
-      actionId: request.actionId,
+      actionId: actionId(request.commandId),
       operation: request.operation
     }, 'ui')
     recording.lastCompletedAt = this.now().getTime()
     recording.entries.push({
-      actionId: request.actionId,
+      commandId: request.commandId,
       delayBeforeMs,
       message: result.message,
       operation: request.operation,
@@ -87,68 +122,11 @@ export class MacroService implements Macros {
   }
 
   public async execute (macroId: string, origin: GameActionOrigin, callerSignal?: AbortSignal): Promise<MacroPlayback> {
-    if (this.activeRun) throw new Error(`Macro ${this.activeRun.state.macroId} is already running.`)
-    const macro = this.repository.get(macroId)
-    if (!macro?.enabled) throw new Error(`Macro ${macroId} is unavailable.`)
-    const controller = new AbortController()
-    const timeout = AbortSignal.timeout(60_000)
-    const signal = callerSignal ? AbortSignal.any([controller.signal, callerSignal, timeout]) : AbortSignal.any([controller.signal, timeout])
-    const state: MacroPlayback = MacroPlaybackSchema.parse({
-      completedSteps: 0,
-      macroId,
-      message: 'Macro playback running.',
-      runId: randomUUID(),
-      startedAt: this.now().toISOString(),
-      status: 'running',
-      totalSteps: macro.steps.length
-    })
-    this.activeRun = { controller, state }
-    const held = new Map<string, string>()
-    try {
-      for (const step of macro.steps) {
-        if (signal.aborted) throw signal.reason
-        if (step.type === 'wait') {
-          await abortableWait(step.durationMs, signal)
-        } else {
-          if (origin === 'copilot' && !this.copilotPermissions().dangerousActions &&
-              isDangerousMacroAction(step.actionId, this.gameActions.getCatalog())) {
-            throw new Error('Dangerous Copilot actions are disabled in Settings.')
-          }
-          const leaseId = step.operation === 'press'
-            ? held.get(step.actionId) ?? randomUUID()
-            : step.operation === 'release' ? held.get(step.actionId) : undefined
-          const result = await this.gameActions.execute({
-            actionId: step.actionId,
-            operation: step.operation,
-            ...(leaseId ? { leaseId } : {})
-          }, origin, signal)
-          if (!['accepted', 'confirmed', 'unconfirmed', 'already_satisfied'].includes(result.status)) {
-            throw new Error(result.message)
-          }
-          if (step.operation === 'press') held.set(step.actionId, leaseId!)
-          if (step.operation === 'release') held.delete(step.actionId)
-        }
-        state.completedSteps += 1
-      }
-      state.status = 'completed'
-      state.message = 'Macro sequence completed; game outcome is not confirmed.'
-    } catch (cause) {
-      const timedOut = signal.reason instanceof DOMException && signal.reason.name === 'TimeoutError'
-      state.status = timedOut ? 'timed_out' : signal.aborted ? 'aborted' : 'failed'
-      state.message = timedOut
-        ? 'Macro playback timed out.'
-        : signal.aborted ? 'Macro playback aborted.' : cause instanceof Error ? cause.message : 'Macro playback failed.'
-    } finally {
-      await Promise.all([...held].map(([actionId, leaseId]) => this.gameActions.execute({ actionId, leaseId, operation: 'release' }, origin)))
-      this.activeRun = undefined
-    }
-    return MacroPlaybackSchema.parse(state)
+    return this.playback.execute(macroId, origin, callerSignal)
   }
 
   public abortPlayback (): MacroPlayback | null {
-    if (!this.activeRun) return null
-    this.activeRun.controller.abort(new DOMException('Macro playback aborted.', 'AbortError'))
-    return this.activeRun.state
+    return this.playback.abortPlayback()
   }
 
   private ownedRecording (id: string, clientId: string): ActiveRecording {
@@ -158,13 +136,32 @@ export class MacroService implements Macros {
   }
 }
 
-async function abortableWait (durationMs: number, signal: AbortSignal): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    if (signal.aborted) return reject(signal.reason)
-    const timer = setTimeout(resolve, durationMs)
-    signal.addEventListener('abort', () => {
-      clearTimeout(timer)
-      reject(signal.reason)
-    }, { once: true })
+function actionId (commandId: string): string {
+  const prefix = gameActionCommandId('')
+  if (!commandId.startsWith(prefix) || commandId.startsWith('command.navigation.') || commandId.startsWith('command.macro.')) {
+    throw new Error(`Phoenix macros cannot execute non-game command ${commandId}.`)
+  }
+  return commandId.slice(prefix.length)
+}
+
+function commandResult (
+  commandId: string,
+  operation: 'tap' | 'press' | 'release',
+  origin: string,
+  status: 'rejected',
+  message: string,
+  now: Date
+) {
+  const requestId = randomUUID()
+  return CommandExecutionResultSchema.parse({
+    commandId,
+    correlationId: requestId,
+    effects: [],
+    message,
+    operation,
+    origin,
+    requestId,
+    status,
+    timestamp: now.toISOString()
   })
 }

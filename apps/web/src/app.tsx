@@ -234,7 +234,7 @@ const ControlsFeature = memo(function ControlsFeature({ application, category, e
     macros={macros}
     onEditingChange={onEditingChange}
     runtime={runtime.status === 'ready' ? runtime.state : undefined}
-    onExecuteAction={(actionId, operation, leaseId) => application.api.executeAction(actionId, operation, { leaseId })}
+    onExecuteCommand={(commandId, operation, leaseId) => application.api.executeCommand(commandId, operation, { leaseId })}
     onSaveLayout={layout => application.api.saveControlLayout(layout)}
   />
 })

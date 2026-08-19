@@ -3,13 +3,12 @@ import type {
   CommandCatalogueSnapshot,
   CommandDescriptor,
   CommandExecutionResult,
-  CommandTarget,
-  GameActionOperation,
+  CommandOperation,
   GameActionOrigin
 } from '@phoenix/contracts'
 
 export interface CommandRegistry {
-  find(target: CommandTarget): CommandDescriptor | undefined
+  find(commandId: string): CommandDescriptor | undefined
   getCatalog(): CommandCatalogResponse
 }
 
@@ -49,6 +48,6 @@ export interface NavigationCommandDestination {
 export interface NavigationCommandExecutor {
   execute(
     destination: NavigationCommandDestination,
-    operation: GameActionOperation
+    operation: CommandOperation
   ): Promise<{ href: string, message: string }>
 }

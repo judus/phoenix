@@ -58,9 +58,9 @@ function MacroDraft({ draft, name, onChange, onNameChange, onSave, successful }:
   return <Section className="macro-draft" title="Recorded draft" description={`${successful} usable commands`} actions={<><Button variant="quiet" onClick={() => onChange({ ...draft, entries: draft.entries.map(entry => ({ ...entry, delayBeforeMs: 0 })) })}>Remove pauses</Button><Field htmlFor="macro-name" label="Macro name"><TextInput value={name} onChange={event => onNameChange(event.target.value)} /></Field><Button disabled={!name.trim() || successful === 0} variant="primary" onClick={onSave}>Save macro</Button></>}>
     <DataTable density="compact" label="Recorded macro steps" minimum="wide" scheme="surface" stickyHeader>
       <thead><tr><th className="numeric">Step</th><th>Command</th><th>Operation</th><th>Status</th><th>Wait before</th></tr></thead>
-      <tbody>{draft.entries.map((entry, index) => <tr key={`${entry.actionId}:${index}`}>
+      <tbody>{draft.entries.map((entry, index) => <tr key={`${entry.commandId}:${index}`}>
         <td className="numeric">{index + 1}</td>
-        <th scope="row">{entry.actionId.replace(/^elite\./u, '')}</th>
+        <th scope="row">{entry.commandId.replace(/^command\.elite\./u, '')}</th>
         <td>{entry.operation}</td>
         <td>{entry.status}</td>
         <td>{index === 0 ? '—' : <NumberInput aria-label={`Wait before step ${index + 1}`} min="0" max="30000" step="50" value={entry.delayBeforeMs} onChange={event => updateDelay(draft, index, event.target.value, onChange)} />}</td>
