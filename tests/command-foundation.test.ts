@@ -6,7 +6,9 @@ import type {
 } from '@phoenix/contracts'
 import { DefaultCommandRegistry } from '../apps/server/src/application/default-command-registry.js'
 import { DefaultCommandDispatcher } from '../apps/server/src/application/command-dispatcher.js'
+import { MacroService } from '../apps/server/src/application/macro-service.js'
 import type { GameActions } from '../apps/server/src/application/game-action-service.js'
+import { InMemoryMacroRepository } from '../apps/server/src/infrastructure/macro-repositories.js'
 
 test('command identities survive catalogue sorting and unavailable actions remain discoverable', () => {
   const actions = new StubGameActions()
@@ -43,13 +45,45 @@ test('Copilot game execution follows explicit installation permissions', async (
   expect((await dispatcher.execute({ target: { type: 'game-action', actionId: 'elite.BoundAction' } }, 'ui')).status).toBe('accepted')
 })
 
+test('Copilot cannot execute a dangerous action through an understated macro', async () => {
+  const actions = new StubGameActions()
+  const macros = new InMemoryMacroRepository()
+  macros.save({
+    assumptions: [],
+    description: '',
+    enabled: true,
+    id: 'unsafe-safe',
+    name: 'Unsafe safe',
+    risk: 'safe',
+    steps: [{ type: 'game-action', actionId: 'elite.DangerousAction', operation: 'tap' }],
+    version: 1
+  })
+  const service = new MacroService(macros, actions)
+  const registry = new DefaultCommandRegistry(actions, [], macros)
+  const dispatcher = new DefaultCommandDispatcher(
+    registry,
+    actions,
+    [],
+    undefined,
+    service,
+    () => ({ gameActions: false, macros: true, dangerousActions: false })
+  )
+
+  expect(registry.find({ type: 'macro', macroId: 'unsafe-safe' })?.risk).toBe('dangerous')
+  await expect(dispatcher.execute({ target: { type: 'macro', macroId: 'unsafe-safe' } }, 'copilot'))
+    .resolves.toMatchObject({ status: 'rejected', message: 'Dangerous Copilot actions are disabled in Settings.' })
+  expect(actions.calls).toEqual([])
+})
+
 class StubGameActions implements GameActions {
+  public readonly calls: string[] = []
   private reversed = false
 
   public reverse (): void { this.reversed = !this.reversed }
 
   public async execute (candidate: unknown, origin: GameActionOrigin): Promise<GameActionResult> {
     const actionId = (candidate as { actionId: string }).actionId
+    this.calls.push(actionId)
     return {
       actionId,
       correlationId: 'correlation-1',
@@ -65,7 +99,8 @@ class StubGameActions implements GameActions {
   public getCatalog (): GameActionCatalogResponse {
     const actions: GameActionCatalogResponse['actions'] = [
       availability('elite.BoundAction', 'Bound action', true),
-      availability('elite.UnboundAction', 'Unbound action', false)
+      availability('elite.UnboundAction', 'Unbound action', false),
+      availability('elite.DangerousAction', 'Dangerous action', true, 'dangerous')
     ]
     return {
       actions: this.reversed ? actions.reverse() : actions,
@@ -84,7 +119,12 @@ class StubGameActions implements GameActions {
   }
 }
 
-function availability (id: string, label: string, available: boolean): GameActionCatalogResponse['actions'][number] {
+function availability (
+  id: string,
+  label: string,
+  available: boolean,
+  risk: 'routine' | 'caution' | 'dangerous' = 'routine'
+): GameActionCatalogResponse['actions'][number] {
   return {
     available,
     binding: available ? { key: 'K', modifiers: [], display: 'K' } : null,
@@ -95,7 +135,7 @@ function availability (id: string, label: string, available: boolean): GameActio
       id,
       inputMode: 'tap',
       label,
-      risk: 'routine',
+      risk,
       telemetryKey: null
     },
     unavailableReason: available ? null : 'No keyboard binding is configured.'

@@ -286,7 +286,12 @@ export class PhoenixApplication {
       options.macroRepository ?? new InMemoryMacroRepository(),
       commandCatalogueChanges
     )
-    const macros = new MacroService(macroRepository, gameActions)
+    const macros = new MacroService(
+      macroRepository,
+      gameActions,
+      undefined,
+      () => systemSettings.loadOrCreate().copilot.permissions
+    )
     const commandRegistry = new DefaultCommandRegistry(
       gameActions,
       PHOENIX_NAVIGATION_DESTINATIONS,

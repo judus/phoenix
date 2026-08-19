@@ -7,6 +7,7 @@ import {
   type CommandTarget
 } from '@phoenix/contracts'
 import type { GameActions } from './game-action-service.js'
+import { effectiveMacroRisk } from './macro-risk.js'
 import type { CommandRegistry, NavigationCommandDestination } from '../domain/commands.js'
 import type { MacroRepository } from '../domain/macros.js'
 
@@ -69,7 +70,8 @@ export class DefaultCommandRegistry implements CommandRegistry {
 
   private descriptors (): Map<string, CommandDescriptor> {
     const descriptors = new Map<string, CommandDescriptor>()
-    for (const action of this.gameActions.getCatalog().actions) {
+    const gameActionCatalog = this.gameActions.getCatalog()
+    for (const action of gameActionCatalog.actions) {
       const target = { type: 'game-action' as const, actionId: action.definition.id }
       descriptors.set(commandTargetKey(target), CommandDescriptorSchema.parse({
         id: `command.${action.definition.id}`,
@@ -106,7 +108,7 @@ export class DefaultCommandRegistry implements CommandRegistry {
         category: 'macros',
         available: macro.enabled,
         ...(!macro.enabled ? { unavailableReason: 'Macro is disabled.' } : {}),
-        risk: macro.risk,
+        risk: effectiveMacroRisk(macro, gameActionCatalog),
         target
       }))
     }
