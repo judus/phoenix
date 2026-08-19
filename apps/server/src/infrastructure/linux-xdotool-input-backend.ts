@@ -24,6 +24,7 @@ export class LinuxXdotoolInputBackend implements InputBackend {
   private readonly executablePath: string | null
   private readonly fileIsExecutable: (path: string) => boolean
   private readonly runner: XdotoolCommandRunner
+  private sendQueue: Promise<void> = Promise.resolve()
 
   public constructor (options: LinuxXdotoolInputBackendOptions = {}) {
     this.environment = options.environment ?? process.env
@@ -54,19 +55,53 @@ export class LinuxXdotoolInputBackend implements InputBackend {
     }
   }
 
-  public async send (operation: GameActionOperation, binding: LogicalInputChord, signal?: AbortSignal): Promise<void> {
+  public send (operation: GameActionOperation, binding: LogicalInputChord, signal?: AbortSignal): Promise<void> {
+    const execution = this.sendQueue.then(() => this.sendNow(operation, binding, signal))
+    this.sendQueue = execution.catch(() => undefined)
+    return execution
+  }
+
+  private async sendNow (operation: GameActionOperation, binding: LogicalInputChord, signal?: AbortSignal): Promise<void> {
     const status = this.getStatus()
     if (!status.available || !this.executablePath) throw new Error(status.detail)
 
     const keys = normalizeXdotoolBinding(binding)
-    const commands = operation === 'tap'
-      ? [...keyCommands('keydown', keys), ...keyCommands('keyup', keys)]
-      : keyCommands(operation === 'press' ? 'keydown' : 'keyup', keys)
-
-    for (const arguments_ of commands) {
-      signal?.throwIfAborted()
-      await this.runner.run(this.executablePath, arguments_, this.environment, signal)
+    const pressed = operation === 'release' ? [...keys] : []
+    try {
+      if (operation !== 'release') {
+        for (const key of keys) {
+          signal?.throwIfAborted()
+          await this.runner.run(this.executablePath, ['keydown', key], this.environment, signal)
+          pressed.push(key)
+        }
+      }
+      if (operation !== 'press') {
+        for (const key of [...keys].reverse()) {
+          signal?.throwIfAborted()
+          await this.runner.run(this.executablePath, ['keyup', key], this.environment, signal)
+          pressed.pop()
+        }
+      }
+    } catch (cause) {
+      const cleanupErrors = await this.releasePressedKeys(pressed)
+      if (cleanupErrors.length === 0) throw cause
+      const message = cause instanceof Error ? cause.message : 'xdotool input failed.'
+      throw new Error(`${message} Cleanup also failed: ${cleanupErrors.join('; ')}`, { cause })
     }
+  }
+
+  private async releasePressedKeys (pressed: string[]): Promise<string[]> {
+    if (!this.executablePath) return []
+    const signal = AbortSignal.timeout(1_000)
+    const errors: string[] = []
+    for (const key of [...pressed].reverse()) {
+      try {
+        await this.runner.run(this.executablePath, ['keyup', key], this.environment, signal)
+      } catch (cause) {
+        errors.push(cause instanceof Error ? cause.message : `Unable to release ${key}.`)
+      }
+    }
+    return errors
   }
 }
 
@@ -88,11 +123,6 @@ export class ExecFileXdotoolCommandRunner implements XdotoolCommandRunner {
       })
     })
   }
-}
-
-function keyCommands (command: 'keydown' | 'keyup', keys: string[]): string[][] {
-  const orderedKeys = command === 'keyup' ? [...keys].reverse() : keys
-  return orderedKeys.map(key => [command, key])
 }
 
 function normalizeXdotoolBinding (binding: LogicalInputChord): string[] {
