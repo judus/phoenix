@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import {
   ControlDeckConfigurationSchema,
   createControlDeckClientId,
+  type ControlDeckCommandExecutionResult,
   type ControlDeckCommandCatalogue,
   type ControlDeckCommandElement,
   type ControlDeckConfiguration,
@@ -48,10 +49,11 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
       window.setTimeout(() => setMessage(undefined), 1_500)
     } catch (cause) { setError(errorMessage(cause)) }
   }
-  const execute = async (element: ControlDeckCommandElement, operation: 'tap' | 'press' | 'release', leaseId?: string, report = true) => {
+  const execute = async (element: ControlDeckCommandElement, operation: 'tap' | 'press' | 'release', leaseId?: string) => {
     try {
       const result = await api.execute(element.target, operation, leaseId)
-      if (report) setMessage(result.message)
+      const failure = commandFailureMessage(result)
+      if (failure) { setError(failure); return }
       setError(undefined)
     } catch (cause) { setError(errorMessage(cause)) }
   }
@@ -98,7 +100,7 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
               onHoldStart={() => {
                 const leaseId = createControlDeckClientId()
                 held.current.set(element.id, leaseId)
-                void execute(element, 'press', leaseId, false)
+                void execute(element, 'press', leaseId)
               }}
               onHoldEnd={() => {
                 const leaseId = held.current.get(element.id)
@@ -217,7 +219,7 @@ export function DeckSettings ({ deck, onChange, onDelete }: { deck: ControlDeckD
     <label>Name<input value={name} onBlur={commitName} onChange={event => setName(event.target.value)} onKeyDown={commitOnEnter} /></label>
     <label>Columns<input inputMode="numeric" max="24" min={minimumColumns} type="number" value={columns} onBlur={() => commitDimension('columns')} onChange={event => setColumns(event.target.value)} onKeyDown={commitOnEnter} /></label>
     <label>Rows<input inputMode="numeric" max="24" min={minimumRows} type="number" value={rows} onBlur={() => commitDimension('rows')} onChange={event => setRows(event.target.value)} onKeyDown={commitOnEnter} /></label>
-    <button className="danger" onClick={onDelete}>Delete deck</button>
+    <button className="danger" onClick={onDelete}>Delete</button>
   </section>
 }
 
@@ -361,6 +363,10 @@ function browserKeyToControlDeckKey (key: string): string | null {
   return ({ ArrowDown: 'DownArrow', ArrowLeft: 'LeftArrow', ArrowRight: 'RightArrow', ArrowUp: 'UpArrow', Backspace: 'BackSpace', Delete: 'Delete', End: 'End', Enter: 'Enter', Esc: 'Escape', Escape: 'Escape', Home: 'Home', Insert: 'Insert', PageDown: 'PageDown', PageUp: 'PageUp', Tab: 'Tab' } as Record<string, string>)[key] ?? (/^F(?:[1-9]|1[0-9]|2[0-4])$/u.test(key) ? key : null)
 }
 function modifierLabel (modifier: string): string { return ({ LeftAlt: 'Alt', LeftControl: 'Ctrl', LeftShift: 'Shift' } as Record<string, string>)[modifier] ?? modifier }
+
+export function commandFailureMessage (result: ControlDeckCommandExecutionResult): string | undefined {
+  return ['cancelled', 'failed', 'rejected', 'timed_out'].includes(result.status) ? result.message : undefined
+}
 
 function commandLabel (element: ControlDeckCommandElement, catalogue: ControlDeckCommandCatalogue): string { return catalogue.adapters.find(adapter => adapter.id === element.target.adapterId)?.commands.find(command => command.id === element.target.commandId)?.label ?? element.target.commandId }
 function elementAt (deck: ControlDeckDeck, column: number, row: number) { return deck.elements.find(element => element.kind === 'command' && element.placement.column === column && element.placement.row === row) as ControlDeckCommandElement | undefined }

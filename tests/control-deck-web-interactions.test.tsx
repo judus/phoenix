@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { act, create } from 'react-test-renderer'
 import { afterEach, beforeAll, expect, test, vi } from 'vitest'
 import { ControlDeckCommandElementSchema } from '@jdu/control-deck-core'
-import { ButtonEditor, DeckButton, DeckSettings, FeedbackSlot, FullscreenButton, toggleFullscreen } from '../apps/control-deck-web/src/control-deck-app.js'
+import { ButtonEditor, DeckButton, DeckSettings, FeedbackSlot, FullscreenButton, commandFailureMessage, toggleFullscreen } from '../apps/control-deck-web/src/control-deck-app.js'
 
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
 afterEach(() => vi.useRealTimers())
@@ -153,6 +153,20 @@ test('fullscreen is a compact accessible icon control', () => {
     title: 'Enter fullscreen'
   })
   expect(button.findByType('svg')).toBeDefined()
+})
+
+test('successful commands stay silent while command failures remain visible', () => {
+  const result = {
+    requestId: 'request',
+    correlationId: 'correlation',
+    target: { adapterId: 'builtin.keyboard', commandId: 'key', configuration: { key: 'A' } },
+    operation: 'tap' as const,
+    ownerKey: 'session:test',
+    timestamp: '2026-08-20T00:00:00.000Z',
+    simulated: false
+  }
+  expect(commandFailureMessage({ ...result, status: 'accepted', message: 'Keyboard input accepted.' })).toBeUndefined()
+  expect(commandFailureMessage({ ...result, status: 'failed', message: 'Keyboard input failed.' })).toBe('Keyboard input failed.')
 })
 
 function createButton (
