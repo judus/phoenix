@@ -10,15 +10,14 @@ button:disabled { cursor: default; opacity: .45; }
 .pairing form > strong, .app-shell header strong { letter-spacing: .16em; color: #55c7ff; }
 .pairing input { padding: .9rem; border: 1px solid #536875; color: inherit; background: #080b0e; font-size: 1.4rem; text-transform: uppercase; }
 .pairing button { padding: .9rem; }
-.app-shell { position: relative; display: grid; height: 100%; grid-template-rows: auto auto minmax(0, 1fr); gap: .75rem; padding: .75rem; }
+.app-shell { position: relative; display: grid; height: 100%; grid-template-rows: auto minmax(0, 1fr); gap: .75rem; padding: .75rem; }
 .app-shell > header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 1rem; }
 .app-shell > header > div { display: grid; gap: .2rem; }
 .app-shell > header small { color: #8799a5; }
 .app-shell nav { display: flex; gap: .35rem; min-width: 0; overflow-x: auto; }
 .app-shell nav button, .edit-toggle { padding: .65rem .85rem; white-space: nowrap; }
 .app-shell nav button.active { border-color: #55c7ff; color: #55c7ff; }
-.feedback-slot { min-block-size: 2.25rem; }
-.notice { margin: 0; padding: .5rem .75rem; border-left: .25rem solid #55c7ff; background: #101a20; }
+.notice { position: absolute; z-index: 6; inset-inline: .75rem; inset-block-end: .75rem; margin: 0; padding: .65rem .85rem; border: 1px solid #34434e; border-left: .25rem solid #55c7ff; background: #101a20ee; box-shadow: 0 .5rem 2rem #000a; pointer-events: none; }
 .error { color: #ff8e86; }
 .notice.error { border-color: #ff6258; }
 .empty { place-self: center; text-align: center; color: #8799a5; }

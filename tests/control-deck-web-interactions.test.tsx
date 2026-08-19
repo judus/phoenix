@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { act, create } from 'react-test-renderer'
 import { afterEach, beforeAll, expect, test, vi } from 'vitest'
 import { ControlDeckCommandElementSchema } from '@jdu/control-deck-core'
@@ -80,16 +81,19 @@ test('the button editor supports the virtual keyboard and modifier toggles', () 
   }))
 })
 
-test('feedback has a stable layout slot before and after a command', () => {
+test('feedback is absent when idle and rendered as an out-of-flow notice', () => {
   let renderer!: ReturnType<typeof create>
   act(() => { renderer = create(<FeedbackSlot />) })
-  expect(renderer.toJSON()).toMatchObject({ props: { className: 'feedback-slot' }, children: null })
+  expect(renderer.toJSON()).toBeNull()
 
   act(() => renderer.update(<FeedbackSlot message="Keyboard input accepted." />))
   expect(renderer.toJSON()).toMatchObject({
-    props: { className: 'feedback-slot' },
-    children: [{ props: { className: 'notice' }, children: ['Keyboard input accepted.'] }]
+    props: { className: 'notice' },
+    children: ['Keyboard input accepted.']
   })
+  const stylesheet = readFileSync(new URL('../apps/control-deck-web/src/styles.css', import.meta.url), 'utf8')
+  expect(stylesheet).toMatch(/\.app-shell \{[^}]*grid-template-rows: auto minmax\(0, 1fr\)/u)
+  expect(stylesheet).toMatch(/\.notice \{[^}]*position: absolute/u)
 })
 
 test('deck dimensions allow temporary empty drafts and save only valid values', () => {

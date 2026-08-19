@@ -122,9 +122,8 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
 }
 
 export function FeedbackSlot ({ error, message }: { error?: string, message?: string }) {
-  return <div aria-live="polite" className="feedback-slot">
-    {(error || message) && <p className={error ? 'notice error' : 'notice'}>{error ?? message}</p>}
-  </div>
+  if (!error && !message) return null
+  return <p aria-live="polite" className={error ? 'notice error' : 'notice'}>{error ?? message}</p>
 }
 
 function Pairing ({ onClaim, error }: { onClaim(code: string): Promise<void>, error?: string }) {
