@@ -406,10 +406,12 @@ export class PhoenixApplication {
       copilotRealtime,
       commands,
       gameActions,
+      eliteInventoryDiagnostics: this.inventorySource,
       eliteJournalDiagnostics: new EliteJournalDiagnosticsService(
         this.journalSource,
         this.journalBackfill
       ),
+      eliteNavigationRouteDiagnostics: this.navigationRouteSource,
       eliteStatusDiagnostics: this.statusSource,
       healthCheck: new HealthService(this.database),
       host,

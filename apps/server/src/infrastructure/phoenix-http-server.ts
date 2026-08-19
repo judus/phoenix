@@ -29,6 +29,8 @@ import {
   StartMacroRecordingRequestSchema,
   type CopilotConversationEvent,
   type DisplayCommand,
+  type EliteInventorySourceDiagnostics,
+  type EliteNavigationRouteSourceDiagnostics,
   type NavigationRoute,
   type RuntimeState
 } from '@phoenix/contracts'
@@ -94,7 +96,9 @@ export interface PhoenixHttpServerOptions {
   copilotRealtime?: CopilotRealtime
   commands: Commands
   gameActions: GameActions
+  eliteInventoryDiagnostics: { getDiagnostics(): EliteInventorySourceDiagnostics }
   eliteJournalDiagnostics: EliteJournalDiagnosticsReader
+  eliteNavigationRouteDiagnostics: { getDiagnostics(): EliteNavigationRouteSourceDiagnostics }
   eliteStatusDiagnostics: EliteStatusDiagnosticsReader
   engineering: EngineeringDataReader
   explorationData: ExplorationDataReader
@@ -980,6 +984,16 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/developer/elite-journal') {
       this.writeJson(response, 200, this.options.eliteJournalDiagnostics.getDiagnostics())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/developer/elite-inventory') {
+      this.writeJson(response, 200, this.options.eliteInventoryDiagnostics.getDiagnostics())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/developer/elite-navigation-route') {
+      this.writeJson(response, 200, this.options.eliteNavigationRouteDiagnostics.getDiagnostics())
       return
     }
 

@@ -54,3 +54,38 @@ test('the inventory source reads, deduplicates and refreshes Elite state files',
     rmSync(directory, { recursive: true, force: true })
   }
 })
+
+test('inventory diagnostics retain listener failures and retry unchanged files', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-inventory-retry-'))
+  writeFileSync(join(directory, 'Cargo.json'), JSON.stringify({
+    timestamp: '2026-08-10T12:00:00Z',
+    event: 'Cargo',
+    Vessel: 'Ship',
+    Inventory: []
+  }))
+  let attempts = 0
+  const source = new EliteInventoryFileSource(directory, () => {
+    attempts++
+    if (attempts === 1) throw new Error('Inventory projection unavailable.')
+  }, { pollInterval: 1, retryCount: 1 })
+
+  try {
+    await source.start()
+    expect(source.getDiagnostics().files.find(file => file.filePath.endsWith('Cargo.json'))).toMatchObject({
+      error: 'Inventory projection unavailable.',
+      fileAvailable: true,
+      lastReadAt: null
+    })
+
+    await new Promise(resolve => setTimeout(resolve, 300))
+    expect(attempts).toBeGreaterThanOrEqual(2)
+    expect(source.getDiagnostics().files.find(file => file.filePath.endsWith('Cargo.json'))).toMatchObject({
+      error: null,
+      fileAvailable: true,
+      lastReadAt: expect.any(String)
+    })
+  } finally {
+    source.stop()
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
