@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { CommandTarget, ControlGridLayout, GameActionAvailability, GameActionOperation, RuntimeState } from '@phoenix/contracts'
-import { Button, CommandTile, ControlContext, Field, PageFrame, PageHeader, Status, TextInput } from '@phoenix/ui'
+import { ControlDeckSurface } from '@jdu/control-deck-ui'
+import { controlGridLayoutToControlDeckConfiguration, type CommandTarget, type ControlGridLayout, type GameActionAvailability, type GameActionOperation, type RuntimeState } from '@phoenix/contracts'
+import { Button, CommandTile, Field, PageFrame, PageHeader, Status, TextInput } from '@phoenix/ui'
 import { createClientId } from '../../application/identity/client-identity.js'
 import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
 import type { ControlCategory } from '../../application/navigation/phoenix-route.js'
@@ -29,11 +30,19 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
   useEffect(() => () => { void held.current.releaseAll() }, [category])
   const activeLayout = draft ?? controller.layout
   const page = activeLayout?.pages.find(candidate => candidate.category === category)
+  const deck = useMemo(() => controlGridLayoutToControlDeckConfiguration(activeLayout ?? {
+    version: 4,
+    pages: [{
+      id: category,
+      label: controlsCategoryLabel(category),
+      category,
+      columns: 8,
+      rows: 5,
+      cells: []
+    }]
+  }).decks.find(candidate => candidate.context === `phoenix:${category}`)!, [activeLayout, category])
   const actions = new Map(controller.actions?.actions.map(action => [action.definition.id, action]) ?? [])
-  const capacity = (page?.columns ?? 8) * (page?.rows ?? 5)
   const cells = new Map(page?.cells.map(cell => [cell.position, cell]) ?? [])
-  const covered = new Set<number>()
-  for (const cell of page?.cells ?? []) for (let offset = 1; offset < cell.span; offset++) covered.add(cell.position + offset)
 
   const execute = (action: GameActionAvailability, operation: GameActionOperation, leaseId?: string) => {
     const operationRequest = macros.recording
@@ -63,30 +72,31 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
         ? <Status tone="danger">{error ?? macros.error ?? controller.error}</Status>
         : controller.status === 'loading'
           ? <Status tone="muted">Loading command grid…</Status>
-          : <ControlContext
+          : <ControlDeckSurface
               aria-label={`${controlsCategoryLabel(category)} command grid`}
-              className="control-deck"
-              context="command"
-              style={{ gridTemplateColumns: `repeat(${page?.columns ?? 8}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${page?.rows ?? 5}, minmax(0, 1fr))` }}
-            >
-              {Array.from({ length: capacity }, (_, index) => index + 1).map(position => {
-                if (covered.has(position)) return null
+              className="controls controls-command control-deck"
+              deck={deck}
+              renderEmpty={({ column, row }) => {
+                const position = (row - 1) * deck.layout.columns + column
+                return editing
+                  ? <Button aria-label={`Cell ${position}`} className="control-deck-empty" variant="quiet" onClick={() => { setEditingPosition(position); setFilter('') }}>{position}</Button>
+                  : <div className="control-deck-empty" />
+              }}
+              renderCommand={element => {
+                const position = (element.placement.row - 1) * deck.layout.columns + element.placement.column
                 const cell = cells.get(position)
                 const target = cell?.target
-                if (!target) return editing
-                  ? <Button aria-label={`Cell ${position}`} className="control-deck-empty" key={position} variant="quiet" onClick={() => { setEditingPosition(position); setFilter('') }} style={{ gridColumn: `span ${cell?.span ?? 1}` }}>{position}</Button>
-                  : <div className="control-deck-empty" key={position} style={{ gridColumn: `span ${cell?.span ?? 1}` }} />
+                if (!target) return <div className="control-deck-empty" />
                 if (target.type === 'macro') {
                   const macro = macros.library.macros.find(candidate => candidate.id === target.macroId)
-                  return <CommandTile key={position} kind="macro" label={macro?.name ?? target.macroId} meta={editing ? `Cell ${position}` : macro?.risk} unavailable={!editing && !macro?.enabled} onClick={() => editing ? (setEditingPosition(position), setFilter('')) : macro && void macros.play(macro)} onContextMenu={event => event.preventDefault()} style={{ gridColumn: `span ${cell?.span ?? 1}` }} />
+                  return <CommandTile kind="macro" label={macro?.name ?? target.macroId} meta={editing ? `Cell ${position}` : macro?.risk} unavailable={!editing && !macro?.enabled} onClick={() => editing ? (setEditingPosition(position), setFilter('')) : macro && void macros.play(macro)} onContextMenu={event => event.preventDefault()} />
                 }
-                if (target.type !== 'game-action') return <MissingTarget key={position} target={target} span={cell?.span ?? 1} />
+                if (target.type !== 'game-action') return <MissingTarget target={target} />
                 const action = actions.get(target.actionId)
-                if (!action) return <MissingTarget key={position} target={target} span={cell?.span ?? 1} />
+                if (!action) return <MissingTarget target={target} />
                 const active = telemetryState(runtime, action.definition.telemetryKey)
                 return <CommandTile
                   binding={action.binding?.display}
-                  key={position}
                   label={action.definition.label}
                   meta={action.definition.inputMode}
                   selected={active}
@@ -113,10 +123,9 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
                   }}
                   onPointerUp={() => { void held.current.end(action.definition.id) }}
                   onPointerCancel={() => { void held.current.end(action.definition.id) }}
-                  style={{ gridColumn: `span ${cell?.span ?? 1}` }}
                 />
-              })}
-            </ControlContext>}
+              }}
+            />}
       {editing && editingPosition !== undefined && <ControlPicker
         actions={controller.actions?.actions ?? []}
         filter={filter}
@@ -186,9 +195,9 @@ function assignTarget(layout: ControlGridLayout, category: ControlCategory, posi
   }
 }
 
-function MissingTarget({ target, span }: { target: CommandTarget, span: number }) {
+function MissingTarget({ target }: { target: CommandTarget }) {
   const label = target.type === 'navigation' ? target.destinationId : target.type === 'macro' ? target.macroId : target.actionId
-  return <CommandTile label={label} unavailable style={{ gridColumn: `span ${span}` }} />
+  return <CommandTile label={label} unavailable />
 }
 
 function telemetryState(runtime: RuntimeState | undefined, key: string | null): boolean {

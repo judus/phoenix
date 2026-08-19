@@ -25,7 +25,7 @@
       min-block-size: 0;
       overflow: hidden;
 
-      > .command-tile {
+      .control-deck-slot > .command-tile {
         block-size: 100%;
         touch-action: none;
         user-select: none;

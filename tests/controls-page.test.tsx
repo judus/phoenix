@@ -94,9 +94,9 @@ test('unavailable commands remain clickable while editing the control deck', () 
 test('control-deck tiles reserve long presses for cockpit hold gestures', () => {
   const stylesheet = readFileSync(new URL('../packages/ui/src/styles/pages/controls.css', import.meta.url), 'utf8')
 
-  expect(stylesheet).toMatch(/> \.command-tile \{[\s\S]*?touch-action: none;/)
-  expect(stylesheet).toMatch(/> \.command-tile \{[\s\S]*?user-select: none;/)
-  expect(stylesheet).toMatch(/> \.command-tile \{[\s\S]*?-webkit-touch-callout: none;/)
+  expect(stylesheet).toMatch(/\.control-deck-slot > \.command-tile \{[\s\S]*?touch-action: none;/)
+  expect(stylesheet).toMatch(/\.control-deck-slot > \.command-tile \{[\s\S]*?user-select: none;/)
+  expect(stylesheet).toMatch(/\.control-deck-slot > \.command-tile \{[\s\S]*?-webkit-touch-callout: none;/)
 })
 
 function emptyMacroRuntime (): MacroRuntime {
