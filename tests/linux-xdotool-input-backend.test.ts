@@ -60,7 +60,7 @@ test.skipIf(process.platform !== 'linux')('xdotool rejects unsafe Elite keys bef
   const runner = new RecordingCommandRunner()
   const backend = configuredBackend(runner)
 
-  await expect(backend.send('tap', chord('bad;key'))).rejects.toThrow('Unsafe Elite keyboard binding')
+  await expect(backend.send('tap', chord('bad;key'))).rejects.toThrow('Unsafe keyboard binding')
   expect(runner.commands).toEqual([])
 })
 

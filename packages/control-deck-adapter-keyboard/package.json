@@ -18,5 +18,8 @@
   },
   "dependencies": {
     "@jdu/control-deck-core": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3"
   }
 }

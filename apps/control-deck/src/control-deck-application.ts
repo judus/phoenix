@@ -2,7 +2,11 @@ import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { createServer, type Server, type ServerResponse } from 'node:http'
 import { extname, relative, resolve, sep } from 'node:path'
-import { KeyboardCommandAdapter, RecordingKeyboardOutput } from '@jdu/control-deck-adapter-keyboard'
+import {
+  KeyboardCommandAdapter,
+  createPlatformKeyboardOutput,
+  type KeyboardOutput
+} from '@jdu/control-deck-adapter-keyboard'
 import { ControlDeckCommandService, PairingService } from '@jdu/control-deck-core'
 import {
   CommandHttpController,
@@ -18,11 +22,12 @@ export interface ControlDeckApplicationOptions {
   host?: string
   port?: number
   webDirectory?: string
+  keyboardOutput?: KeyboardOutput
 }
 
 export class ControlDeckApplication {
   public readonly pairing: PairingHttpController
-  public readonly keyboardOutput: RecordingKeyboardOutput
+  public readonly keyboardOutput: KeyboardOutput
   private readonly commands: ControlDeckCommandService
   private readonly commandHttp: CommandHttpController
   private readonly configurationHttp: DeckConfigurationHttpController
@@ -42,7 +47,7 @@ export class ControlDeckApplication {
       ),
       { cookieName: 'control_deck_session' }
     )
-    this.keyboardOutput = new RecordingKeyboardOutput()
+    this.keyboardOutput = options.keyboardOutput ?? createPlatformKeyboardOutput()
     this.commands = new ControlDeckCommandService(
       [new KeyboardCommandAdapter(this.keyboardOutput)],
       { createId: randomUUID }

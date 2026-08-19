@@ -73,7 +73,7 @@ test('SendInput rejects unsupported Elite keys before invoking the helper', asyn
   const runner = new RecordingSendInputRunner()
   const backend = configuredBackend(runner)
 
-  await expect(backend.send('tap', chord('Mouse_1'))).rejects.toThrow('Unsupported Elite keyboard key')
+  await expect(backend.send('tap', chord('Mouse_1'))).rejects.toThrow('Unsupported keyboard key')
   expect(runner.requests).toEqual([])
 })
 

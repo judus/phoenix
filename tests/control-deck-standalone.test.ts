@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, test } from 'vitest'
+import { RecordingKeyboardOutput } from '@jdu/control-deck-adapter-keyboard'
 import { ControlDeckApplication } from '../apps/control-deck/src/control-deck-application.js'
 
 test('standalone Control Deck mounts the shared pairing host', async () => {
@@ -10,11 +11,13 @@ test('standalone Control Deck mounts the shared pairing host', async () => {
   mkdirSync(join(webDirectory, 'assets'), { recursive: true })
   writeFileSync(join(webDirectory, 'index.html'), '<main>Control Deck client</main>')
   writeFileSync(join(webDirectory, 'assets', 'client.js'), 'globalThis.controlDeck = true')
+  const keyboardOutput = new RecordingKeyboardOutput()
   const application = new ControlDeckApplication({
     dataDirectory: directory,
     host: '127.0.0.1',
     port: 0,
-    webDirectory
+    webDirectory,
+    keyboardOutput
   })
   const address = await application.start()
   const baseUrl = `http://${address.host}:${address.port}`
@@ -96,7 +99,7 @@ test('standalone Control Deck mounts the shared pairing host', async () => {
     expect(await execute('press', 'hold-1')).toMatchObject({ status: 'accepted' })
     expect(await execute('press', 'hold-1')).toMatchObject({ message: 'Hold lease renewed.' })
     expect(await execute('release', 'hold-1')).toMatchObject({ status: 'accepted' })
-    expect(application.keyboardOutput.getRecordedInputs().map(input => input.operation)).toEqual([
+    expect(keyboardOutput.getRecordedInputs().map(input => input.operation)).toEqual([
       'tap',
       'press',
       'release'
