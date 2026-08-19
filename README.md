@@ -19,8 +19,10 @@ PHOENIX is a local-first companion application and ship-computer interface for E
 PHOENIX runs on **Linux x64 and Windows x64**. Its telemetry, controls, galaxy tools, Copilot,
 and multi-device cockpit are usable today, but the project remains under active development.
 
-The interface has been optimized primarily for **Chrome on an Android tablet**. Desktop layouts,
-other browsers, and other devices still need broader testing.
+The interface has been optimized primarily for **Chrome on an Android tablet**. Network devices
+must connect through a trusted HTTPS reverse proxy forwarding to PHOENIX on `127.0.0.1`; PHOENIX
+does not expose its authenticated plain-HTTP server directly to the LAN. Desktop layouts, other
+browsers, and other devices still need broader testing.
 
 ## Implemented features
 

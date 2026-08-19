@@ -95,6 +95,7 @@ import { ApplicationPaths } from './infrastructure/application-paths.js'
 import { FrontierGalnetSource } from './infrastructure/frontier-galnet-source.js'
 import type { PairingAccessController } from './infrastructure/pairing-access-controller.js'
 import { OpenAiConfigurationService } from './application/openai-configuration-service.js'
+import { requireLoopbackHost } from './infrastructure/loopback-host.js'
 
 export interface PhoenixApplicationOptions {
   applicationPaths?: ApplicationPaths
@@ -146,7 +147,7 @@ export class PhoenixApplication {
   public constructor (options: PhoenixApplicationOptions = {}) {
     const projectRoot = fileURLToPath(new URL('../../../', import.meta.url))
     const paths = options.applicationPaths ?? ApplicationPaths.development(projectRoot)
-    const host = options.host ?? process.env.PHOENIX_HOST ?? '0.0.0.0'
+    const host = requireLoopbackHost(options.host ?? process.env.PHOENIX_HOST ?? '127.0.0.1')
     const port = options.port ?? Number(process.env.PHOENIX_PORT ?? 3400)
     const gameEvents = new InProcessPublisher<GameEventEnvelope>()
     const copilotConversationEvents = new CopilotConversationEventService()

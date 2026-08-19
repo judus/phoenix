@@ -50,8 +50,6 @@ try {
   const accessUrls = serverAccessUrls(address)
   console.log(`PHOENIX server listening on ${address.host}:${address.port}`)
   console.log(`PHOENIX local URL: ${accessUrls.local}`)
-  for (const url of accessUrls.network) console.log(`PHOENIX network URL: ${url}`)
-  if (accessUrls.network.length > 0) console.log('PHOENIX microphone audio over a network URL requires HTTPS.')
   console.log(`PHOENIX device pairing code: ${accessControl.pairingCode}`)
 } catch (error) {
   console.error('ERROR_PHOENIX_START_FAILED', error)
