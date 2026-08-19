@@ -1,13 +1,20 @@
+import { randomUUID } from 'node:crypto'
+import {
+  CommandExecutionRuntime,
+  type CommandExecutionAdapter,
+  type CommandRuntimeRequest
+} from '@jdu/control-deck-core'
 import {
   ExecuteGameActionRequestSchema,
   GameActionCatalogResponseSchema,
+  GameActionCommandSchema,
   GameActionOriginSchema,
   GameActionResultSchema,
   type GameActionCatalogResponse,
+  type GameActionCommand,
   type GameActionOrigin,
   type GameActionResult
 } from '@phoenix/contracts'
-import { randomUUID } from 'node:crypto'
 import type { GameActionGateway } from '../domain/game-actions.js'
 
 export interface GameActions {
@@ -17,190 +24,86 @@ export interface GameActions {
 }
 
 export class GameActionService implements GameActions {
-  private readonly idempotentRequests = new Map<string, { fingerprint: string, result: Promise<GameActionResult> }>()
-  private readonly holdLeases = new Map<string, { actionId: string, origin: GameActionOrigin, timer: NodeJS.Timeout }>()
-  private readonly closedHoldLeases = new Set<string>()
-  private readonly leaseQueues = new Map<string, Promise<unknown>>()
+  private readonly runtime: CommandExecutionRuntime<GameActionCommand, GameActionResult>
 
   public constructor (
     private readonly gateway: GameActionGateway,
-    private readonly maximumHoldMs = 15_000
-  ) {}
+    maximumHoldMs = 15_000
+  ) {
+    this.runtime = new CommandExecutionRuntime(new PhoenixGameActionAdapter(gateway), maximumHoldMs)
+  }
 
   public getCatalog (): GameActionCatalogResponse {
     return GameActionCatalogResponseSchema.parse(this.gateway.getCatalog())
   }
 
-  public async execute (candidate: unknown, originCandidate: GameActionOrigin, callerSignal?: AbortSignal): Promise<GameActionResult> {
+  public execute (candidate: unknown, originCandidate: GameActionOrigin, signal?: AbortSignal): Promise<GameActionResult> {
     const request = ExecuteGameActionRequestSchema.parse(candidate)
     const origin = GameActionOriginSchema.parse(originCandidate)
     const requestId = request.requestId ?? randomUUID()
-    const command = { ...request, requestId, correlationId: request.correlationId ?? requestId, origin }
-    if (request.operation !== 'tap' && !request.leaseId) {
-      return this.rejected(command, 'Hold actions require a lease ID.')
-    }
-    const fingerprint = `${origin}:${request.actionId}:${request.operation}:${request.leaseId ?? ''}`
-    const cacheKey = request.idempotencyKey === undefined ? undefined : `${origin}:${request.idempotencyKey}`
-    const cached = cacheKey === undefined ? undefined : this.idempotentRequests.get(cacheKey)
-    if (cached) {
-      if (cached.fingerprint !== fingerprint) {
-        return GameActionResultSchema.parse({
-          ...command,
-          status: 'rejected',
-          timestamp: new Date().toISOString(),
-          message: 'The idempotency key was already used for a different action.'
-        })
-      }
-      return cached.result
-    }
-
-    const execution = command.leaseId && command.operation !== 'tap'
-      ? this.enqueueLeaseTransition(command, callerSignal)
-      : this.executeCommand(command, callerSignal)
-    if (cacheKey !== undefined) {
-      this.idempotentRequests.set(cacheKey, { fingerprint, result: execution })
-      if (this.idempotentRequests.size > 1_000) {
-        this.idempotentRequests.delete(this.idempotentRequests.keys().next().value as string)
-      }
-    }
-    return execution
+    const command = GameActionCommandSchema.parse({
+      ...request,
+      requestId,
+      correlationId: request.correlationId ?? requestId,
+      origin
+    })
+    return this.runtime.execute({
+      correlationId: command.correlationId!,
+      ...(command.idempotencyKey ? { idempotencyKey: command.idempotencyKey } : {}),
+      ...(command.leaseId ? { leaseId: command.leaseId } : {}),
+      operation: command.operation,
+      ownerKey: command.origin,
+      payload: command,
+      requestId: command.requestId!,
+      targetKey: command.actionId,
+      ...(command.timeoutMs ? { timeoutMs: command.timeoutMs } : {})
+    }, signal)
   }
 
-  public async stop (): Promise<void> {
-    await Promise.all([...this.holdLeases.keys()].map(leaseId => this.expireLease(leaseId)))
+  public stop (): Promise<void> {
+    return this.runtime.stop()
   }
+}
 
-  private enqueueLeaseTransition (
-    command: Parameters<GameActionGateway['execute']>[0],
-    callerSignal?: AbortSignal
-  ): Promise<GameActionResult> {
-    const leaseId = command.leaseId!
-    const previous = this.leaseQueues.get(leaseId) ?? Promise.resolve()
-    const execution = previous
-      .catch(() => undefined)
-      .then(() => this.executeLeaseTransition(command, callerSignal))
-    this.leaseQueues.set(leaseId, execution)
-    const cleanQueue = () => {
-      if (this.leaseQueues.get(leaseId) === execution) this.leaseQueues.delete(leaseId)
-    }
-    void execution.then(cleanQueue, cleanQueue)
-    return execution
-  }
+class PhoenixGameActionAdapter implements CommandExecutionAdapter<GameActionCommand, GameActionResult> {
+  public constructor (private readonly gateway: GameActionGateway) {}
 
-  private async executeLeaseTransition (
-    command: Parameters<GameActionGateway['execute']>[0],
-    callerSignal?: AbortSignal
-  ): Promise<GameActionResult> {
-    const leaseId = command.leaseId!
-    const lease = this.holdLeases.get(leaseId)
-    if (command.operation === 'press') {
-      if (this.closedHoldLeases.has(leaseId)) {
-        return this.rejected(command, 'This hold lease is already closed.')
-      }
-      if (lease) {
-        if (lease.actionId !== command.actionId || lease.origin !== command.origin) {
-          return this.rejected(command, 'This hold lease belongs to a different action or origin.')
-        }
-        clearTimeout(lease.timer)
-        this.holdLeases.set(leaseId, {
-          ...lease,
-          timer: this.scheduleExpiry(leaseId, this.maximumHoldMs)
-        })
-        return this.accepted(command, 'Hold lease renewed.')
-      }
-    }
-    if (command.operation === 'release') {
-      if (!lease) {
-        this.closeLease(leaseId)
-        return this.rejected(command, 'This hold lease is not active.')
-      }
-      if (lease.actionId !== command.actionId || lease.origin !== command.origin) {
-        return this.rejected(command, 'This hold lease belongs to a different action or origin.')
-      }
-    }
-
-    const result = await this.executeCommand(command, callerSignal)
-    if (result.status !== 'accepted') return result
-    if (command.operation === 'press') {
-      this.holdLeases.set(leaseId, {
-        actionId: command.actionId,
-        origin: command.origin,
-        timer: this.scheduleExpiry(leaseId, this.maximumHoldMs)
-      })
-    } else {
-      clearTimeout(lease!.timer)
-      this.holdLeases.delete(leaseId)
-      this.closeLease(leaseId)
-    }
-    return result
-  }
-
-  private scheduleExpiry (leaseId: string, delayMs: number): NodeJS.Timeout {
-    const timer = setTimeout(() => {
-      void this.expireLease(leaseId).catch(() => {
-        const lease = this.holdLeases.get(leaseId)
-        if (lease) this.holdLeases.set(leaseId, { ...lease, timer: this.scheduleExpiry(leaseId, 1_000) })
-      })
-    }, delayMs)
-    timer.unref()
-    return timer
-  }
-
-  private async expireLease (leaseId: string): Promise<void> {
-    const lease = this.holdLeases.get(leaseId)
-    if (!lease) return
+  public createExpiredRelease (
+    request: CommandRuntimeRequest<GameActionCommand>
+  ): CommandRuntimeRequest<GameActionCommand> {
     const requestId = randomUUID()
-    const result = await this.enqueueLeaseTransition({
-      actionId: lease.actionId,
+    const payload = GameActionCommandSchema.parse({
+      ...request.payload,
       correlationId: requestId,
-      leaseId,
       operation: 'release',
-      origin: lease.origin,
       requestId
     })
-    if (result.status !== 'accepted' && this.holdLeases.has(leaseId)) {
-      clearTimeout(lease.timer)
-      this.holdLeases.set(leaseId, { ...lease, timer: this.scheduleExpiry(leaseId, 1_000) })
+    return {
+      ...request,
+      correlationId: requestId,
+      operation: 'release',
+      payload,
+      requestId
     }
   }
 
-  private rejected (
-    command: Parameters<GameActionGateway['execute']>[0],
+  public createResult (
+    request: CommandRuntimeRequest<GameActionCommand>,
+    status: 'accepted' | 'rejected',
     message: string
   ): GameActionResult {
     return GameActionResultSchema.parse({
-      ...command,
-      status: 'rejected',
+      ...request.payload,
+      status,
       timestamp: new Date().toISOString(),
       message
     })
   }
 
-  private accepted (
-    command: Parameters<GameActionGateway['execute']>[0],
-    message: string
-  ): GameActionResult {
-    return GameActionResultSchema.parse({
-      ...command,
-      status: 'accepted',
-      timestamp: new Date().toISOString(),
-      message
-    })
-  }
-
-  private closeLease (leaseId: string): void {
-    this.closedHoldLeases.add(leaseId)
-    if (this.closedHoldLeases.size > 1_000) {
-      this.closedHoldLeases.delete(this.closedHoldLeases.values().next().value as string)
-    }
-  }
-
-  private async executeCommand (
-    command: Parameters<GameActionGateway['execute']>[0],
-    callerSignal?: AbortSignal
+  public async execute (
+    request: CommandRuntimeRequest<GameActionCommand>,
+    signal: AbortSignal
   ): Promise<GameActionResult> {
-    const timeout = AbortSignal.timeout(command.timeoutMs ?? 5_000)
-    const signal = callerSignal === undefined ? timeout : AbortSignal.any([callerSignal, timeout])
-    return GameActionResultSchema.parse(await this.gateway.execute(command, signal))
+    return GameActionResultSchema.parse(await this.gateway.execute(request.payload, signal))
   }
 }

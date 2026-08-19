@@ -9,12 +9,7 @@ dist/
 coverage/
 *.tsbuildinfo
 
-/data/runtime/
-/data/conversations/
-/data/settings.json
-/data/pairing.json
-/data/macros.json
-/data/secrets.json
+/data/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
@@ -27,4 +22,3 @@ coverage/
 
 *storybook.log
 storybook-static
-/data/catalogue/
