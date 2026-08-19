@@ -1,8 +1,9 @@
 import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
-import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import type { IncomingMessage } from 'node:http'
 import { dirname } from 'node:path'
 import type { PairingStatus } from '@phoenix/contracts'
+import { ensurePrivateDirectorySync, PRIVATE_FILE_MODE, restrictPrivateFileSync } from './private-user-state.js'
 
 interface BrowserSession {
   createdAt: string
@@ -123,7 +124,10 @@ export class PairingAccessController {
 }
 
 function loadOrCreateCredentials (path: string): PairingCredentials {
-  if (existsSync(path)) return parseCredentials(JSON.parse(readFileSync(path, 'utf8')))
+  if (existsSync(path)) {
+    restrictPrivateFileSync(path)
+    return parseCredentials(JSON.parse(readFileSync(path, 'utf8')))
+  }
   const credentials: PairingCredentials = {
     installationId: randomUUID(),
     pairingCode: readableCode(),
@@ -163,12 +167,12 @@ function parseBrowserSession (candidate: unknown): BrowserSession {
 }
 
 function writeCredentials (path: string, credentials: PairingCredentials): void {
-  mkdirSync(dirname(path), { recursive: true })
+  ensurePrivateDirectorySync(dirname(path))
   const temporary = `${path}.tmp-${process.pid}`
-  writeFileSync(temporary, `${JSON.stringify(credentials, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 })
-  chmodSync(temporary, 0o600)
+  writeFileSync(temporary, `${JSON.stringify(credentials, null, 2)}\n`, { encoding: 'utf8', mode: PRIVATE_FILE_MODE })
+  restrictPrivateFileSync(temporary)
   renameSync(temporary, path)
-  chmodSync(path, 0o600)
+  restrictPrivateFileSync(path)
 }
 
 function readableCode (): string {

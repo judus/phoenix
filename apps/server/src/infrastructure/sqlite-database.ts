@@ -1,4 +1,3 @@
-import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import type {
@@ -32,13 +31,17 @@ import type { ProviderCacheEntry, ProviderResponseCache } from '../domain/statio
 import type { MissionRepository } from '../domain/missions.js'
 import type { CommunicationQueryView, CommunicationRepository } from '../domain/communications.js'
 import type { FleetRepository } from '../domain/fleet.js'
+import { ensurePrivateDirectorySync, restrictPrivateFileSync } from './private-user-state.js'
 
 export class SqliteDatabase implements Database, CartographyCache, CartographyObservationStore, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository, CommunicationRepository, FleetRepository {
   private readonly connection: DatabaseSync
+  private readonly path: string
 
   public constructor (path: string) {
-    if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true })
+    this.path = path
+    if (path !== ':memory:') ensurePrivateDirectorySync(dirname(path))
     this.connection = new DatabaseSync(path)
+    this.restrictFiles()
   }
 
   public initialize (): void {
@@ -179,6 +182,7 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
       VALUES (6, datetime('now'));
 
     `)
+    this.restrictFiles()
     const missionMigration = this.connection.prepare(`
       INSERT OR IGNORE INTO schema_migrations (version, applied_at)
       VALUES (7, datetime('now'))
@@ -563,6 +567,13 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
 
   public close (): void {
     if (this.connection.isOpen) this.connection.close()
+  }
+
+  private restrictFiles (): void {
+    if (this.path === ':memory:') return
+    restrictPrivateFileSync(this.path)
+    restrictPrivateFileSync(`${this.path}-shm`)
+    restrictPrivateFileSync(`${this.path}-wal`)
   }
 }
 

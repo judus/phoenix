@@ -142,6 +142,9 @@ Copilot is optional and remains disabled when no API key is available. Use
 `PHOENIX_OPENAI_API_KEY` for an app-specific key; if unset, PHOENIX falls back to `OPENAI_API_KEY`
 from the server environment. The PHOENIX-specific variable takes precedence. See
 [`.env.example`](.env.example) for ports, paths, models, input backends, and other overrides.
+OpenAI wire logging is disabled by default because it can contain prompts, responses, and tool data.
+PHOENIX restricts its user-state directories and files to `0700` and `0600` on POSIX systems. On
+Windows, keep custom state/log paths inside a user-profile directory with an equivalent private ACL.
 
 Realtime voice requires PHOENIX to remain open in a browser on the computer running the server.
 Open it through `http://localhost:3400`, connect voice once, allow microphone access, then return
