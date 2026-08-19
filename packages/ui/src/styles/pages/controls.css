@@ -25,7 +25,12 @@
       min-block-size: 0;
       overflow: hidden;
 
-      > .command-tile { block-size: 100%; }
+      > .command-tile {
+        block-size: 100%;
+        touch-action: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+      }
     }
 
     .control-deck-empty { background: var(--color-canvas); }

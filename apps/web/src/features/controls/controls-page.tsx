@@ -77,7 +77,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
                   : <div className="control-deck-empty" key={position} style={{ gridColumn: `span ${cell?.span ?? 1}` }} />
                 if (target.type === 'macro') {
                   const macro = macros.library.macros.find(candidate => candidate.id === target.macroId)
-                  return <CommandTile key={position} kind="macro" label={macro?.name ?? target.macroId} meta={editing ? `Cell ${position}` : macro?.risk} unavailable={!editing && !macro?.enabled} onClick={() => editing ? (setEditingPosition(position), setFilter('')) : macro && void macros.play(macro)} style={{ gridColumn: `span ${cell?.span ?? 1}` }} />
+                  return <CommandTile key={position} kind="macro" label={macro?.name ?? target.macroId} meta={editing ? `Cell ${position}` : macro?.risk} unavailable={!editing && !macro?.enabled} onClick={() => editing ? (setEditingPosition(position), setFilter('')) : macro && void macros.play(macro)} onContextMenu={event => event.preventDefault()} style={{ gridColumn: `span ${cell?.span ?? 1}` }} />
                 }
                 if (target.type !== 'game-action') return <MissingTarget key={position} target={target} span={cell?.span ?? 1} />
                 const action = actions.get(target.actionId)
@@ -92,6 +92,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
                   tone={action.definition.risk === 'dangerous' ? 'danger' : 'normal'}
                   unavailable={!action.available}
                   disabled={!editing && !action.available}
+                  onContextMenu={event => event.preventDefault()}
                   onClick={event => {
                     if (editing) { setEditingPosition(position); setFilter(''); return }
                     if (action.definition.inputMode !== 'hold') void execute(action, 'tap')

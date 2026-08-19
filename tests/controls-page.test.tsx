@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test } from 'vitest'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
@@ -88,6 +89,14 @@ test('unavailable commands remain clickable while editing the control deck', () 
 
   expect(markup).toMatch(/<button class="command-tile disabled"[^>]*><strong>Ship Lights<\/strong>/)
   expect(markup).not.toMatch(/<button class="command-tile disabled"[^>]*disabled=""[^>]*><strong>Ship Lights<\/strong>/)
+})
+
+test('control-deck tiles reserve long presses for cockpit hold gestures', () => {
+  const stylesheet = readFileSync(new URL('../packages/ui/src/styles/pages/controls.css', import.meta.url), 'utf8')
+
+  expect(stylesheet).toMatch(/> \.command-tile \{[\s\S]*?touch-action: none;/)
+  expect(stylesheet).toMatch(/> \.command-tile \{[\s\S]*?user-select: none;/)
+  expect(stylesheet).toMatch(/> \.command-tile \{[\s\S]*?-webkit-touch-callout: none;/)
 })
 
 function emptyMacroRuntime (): MacroRuntime {
