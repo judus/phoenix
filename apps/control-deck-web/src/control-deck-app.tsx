@@ -69,8 +69,8 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
         }}>+ Deck</button>
       </nav>
       <div className="header-actions">
-        <FullscreenButton onError={setError} />
         <button className="edit-toggle" onClick={() => { setEditing(value => !value); setEditingCell(undefined) }}>{editing ? 'Done' : 'Edit'}</button>
+        <FullscreenButton onError={setError} />
       </div>
     </header>
     <FeedbackSlot error={error} message={message} />
