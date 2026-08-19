@@ -133,10 +133,45 @@ function Pairing ({ onClaim, error }: { onClaim(code: string): Promise<void>, er
   return <main className="center pairing"><form onSubmit={event => { event.preventDefault(); setBusy(true); void onClaim(code).finally(() => setBusy(false)) }}><strong>CONTROL DECK</strong><h1>Pair this display</h1><p>Enter the pairing code shown by the Control Deck server.</p><input autoFocus aria-label="Pairing code" value={code} onChange={event => setCode(event.target.value)} /><button disabled={busy || !code.trim()}>{busy ? 'Pairing…' : 'Pair display'}</button>{error && <p className="error">{error}</p>}</form></main>
 }
 
-function DeckSettings ({ deck, onChange, onDelete }: { deck: ControlDeckDeck, onChange(deck: ControlDeckDeck): void, onDelete(): void }) {
+export function DeckSettings ({ deck, onChange, onDelete }: { deck: ControlDeckDeck, onChange(deck: ControlDeckDeck): void, onDelete(): void }) {
+  const [name, setName] = useState(deck.name)
+  const [columns, setColumns] = useState(String(deck.layout.columns))
+  const [rows, setRows] = useState(String(deck.layout.rows))
   const minimumColumns = Math.max(1, ...deck.elements.map(element => element.placement.column + element.placement.columnSpan - 1))
   const minimumRows = Math.max(1, ...deck.elements.map(element => element.placement.row + element.placement.rowSpan - 1))
-  return <section className="deck-settings"><label>Name<input value={deck.name} onChange={event => onChange({ ...deck, name: event.target.value || 'Untitled deck' })} /></label><label>Columns<input type="number" min={minimumColumns} max="24" value={deck.layout.columns} onChange={event => onChange({ ...deck, layout: { ...deck.layout, columns: Number(event.target.value) } })} /></label><label>Rows<input type="number" min={minimumRows} max="24" value={deck.layout.rows} onChange={event => onChange({ ...deck, layout: { ...deck.layout, rows: Number(event.target.value) } })} /></label><button className="danger" onClick={onDelete}>Delete deck</button></section>
+  useEffect(() => { setName(deck.name) }, [deck.id, deck.name])
+  useEffect(() => { setColumns(String(deck.layout.columns)) }, [deck.id, deck.layout.columns])
+  useEffect(() => { setRows(String(deck.layout.rows)) }, [deck.id, deck.layout.rows])
+
+  const commitName = () => {
+    const next = name.trim()
+    if (!next) { setName(deck.name); return }
+    if (next !== deck.name) onChange({ ...deck, name: next })
+  }
+  const commitDimension = (field: 'columns' | 'rows') => {
+    const value = field === 'columns' ? columns : rows
+    const minimum = field === 'columns' ? minimumColumns : minimumRows
+    const parsed = /^\d+$/u.test(value) ? Number(value) : Number.NaN
+    if (!Number.isInteger(parsed) || parsed < minimum || parsed > 24) {
+      if (field === 'columns') setColumns(String(deck.layout.columns))
+      else setRows(String(deck.layout.rows))
+      return
+    }
+    if (parsed !== deck.layout[field]) onChange({
+      ...deck,
+      layout: { ...deck.layout, [field]: parsed }
+    })
+  }
+  const commitOnEnter = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') event.currentTarget.blur()
+  }
+
+  return <section className="deck-settings">
+    <label>Name<input value={name} onBlur={commitName} onChange={event => setName(event.target.value)} onKeyDown={commitOnEnter} /></label>
+    <label>Columns<input inputMode="numeric" max="24" min={minimumColumns} type="number" value={columns} onBlur={() => commitDimension('columns')} onChange={event => setColumns(event.target.value)} onKeyDown={commitOnEnter} /></label>
+    <label>Rows<input inputMode="numeric" max="24" min={minimumRows} type="number" value={rows} onBlur={() => commitDimension('rows')} onChange={event => setRows(event.target.value)} onKeyDown={commitOnEnter} /></label>
+    <button className="danger" onClick={onDelete}>Delete deck</button>
+  </section>
 }
 
 export function DeckButton ({ editing, element, label, onEdit, onTap, onHoldStart, onHoldEnd }: { editing: boolean, element: ControlDeckCommandElement, label: string, onEdit(): void, onTap(): void, onHoldStart(): void, onHoldEnd(): void }) {

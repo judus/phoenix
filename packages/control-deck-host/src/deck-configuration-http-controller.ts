@@ -33,7 +33,7 @@ export class DeckConfigurationHttpController {
         writeJson(response, 400, {
           error: {
             code: 'deck_configuration_invalid',
-            message: cause instanceof Error ? cause.message : 'Invalid Control Deck configuration.'
+            message: validationMessage(cause)
           }
         })
       }
@@ -41,4 +41,18 @@ export class DeckConfigurationHttpController {
     }
     return false
   }
+}
+
+function validationMessage (cause: unknown): string {
+  if (isRecord(cause) && Array.isArray(cause.issues)) {
+    const issue = cause.issues[0]
+    if (isRecord(issue) && typeof issue.message === 'string') return issue.message
+  }
+  return cause instanceof Error && !cause.message.trim().startsWith('[')
+    ? cause.message
+    : 'Invalid Control Deck configuration.'
+}
+
+function isRecord (value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

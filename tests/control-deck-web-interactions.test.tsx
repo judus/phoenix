@@ -1,7 +1,7 @@
 import { act, create } from 'react-test-renderer'
 import { afterEach, beforeAll, expect, test, vi } from 'vitest'
 import { ControlDeckCommandElementSchema } from '@jdu/control-deck-core'
-import { ButtonEditor, DeckButton, FeedbackSlot } from '../apps/control-deck-web/src/control-deck-app.js'
+import { ButtonEditor, DeckButton, DeckSettings, FeedbackSlot } from '../apps/control-deck-web/src/control-deck-app.js'
 
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
 afterEach(() => vi.useRealTimers())
@@ -90,6 +90,27 @@ test('feedback has a stable layout slot before and after a command', () => {
     props: { className: 'feedback-slot' },
     children: [{ props: { className: 'notice' }, children: ['Keyboard input accepted.'] }]
   })
+})
+
+test('deck dimensions allow temporary empty drafts and save only valid values', () => {
+  const onChange = vi.fn()
+  let renderer!: ReturnType<typeof create>
+  act(() => { renderer = create(<DeckSettings
+    deck={{ id: 'main', name: 'Main', description: '', context: null, layout: { kind: 'grid', columns: 4, rows: 3 }, elements: [] }}
+    onChange={onChange}
+    onDelete={() => undefined}
+  />) })
+  const columns = renderer.root.findAllByType('input').find(input => input.props.type === 'number' && input.props.value === '4')!
+
+  act(() => columns.props.onChange({ target: { value: '' } }))
+  expect(onChange).not.toHaveBeenCalled()
+  act(() => columns.props.onBlur())
+  expect(onChange).not.toHaveBeenCalled()
+  expect(renderer.root.findAllByType('input').some(input => input.props.value === '4')).toBe(true)
+
+  act(() => columns.props.onChange({ target: { value: '6' } }))
+  act(() => columns.props.onBlur())
+  expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ layout: { kind: 'grid', columns: 6, rows: 3 } }))
 })
 
 function createButton (

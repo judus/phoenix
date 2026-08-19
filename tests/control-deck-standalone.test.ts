@@ -47,6 +47,26 @@ test('standalone Control Deck mounts the shared pairing host', async () => {
 
     const configuration = await fetch(`${baseUrl}/api/configuration`, { headers: { cookie: cookie! } })
     expect(await configuration.json()).toEqual({ version: 1, decks: [], displays: [] })
+    const invalidConfiguration = await fetch(`${baseUrl}/api/configuration`, {
+      body: JSON.stringify({
+        version: 1,
+        decks: [{
+          id: 'invalid',
+          name: 'Invalid',
+          description: '',
+          context: null,
+          layout: { kind: 'grid', columns: 0, rows: 2 },
+          elements: []
+        }],
+        displays: []
+      }),
+      headers: { cookie: cookie!, 'content-type': 'application/json' },
+      method: 'PUT'
+    })
+    expect(invalidConfiguration.status).toBe(400)
+    expect(await invalidConfiguration.json()).toEqual({
+      error: { code: 'deck_configuration_invalid', message: 'Too small: expected number to be >=1' }
+    })
     const savedConfiguration = await fetch(`${baseUrl}/api/configuration`, {
       body: JSON.stringify({
         version: 1,
