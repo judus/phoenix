@@ -19,10 +19,12 @@ PHOENIX is a local-first companion application and ship-computer interface for E
 PHOENIX runs on **Linux x64 and Windows x64**. Its telemetry, controls, galaxy tools, Copilot,
 and multi-device cockpit are usable today, but the project remains under active development.
 
-The interface has been optimized primarily for **Chrome on an Android tablet**. Network devices
-must connect through a trusted HTTPS reverse proxy forwarding to PHOENIX on `127.0.0.1`; PHOENIX
-does not expose its authenticated plain-HTTP server directly to the LAN. Desktop layouts, other
-browsers, and other devices still need broader testing.
+The interface has been optimized primarily for **Chrome on an Android tablet**. PHOENIX binds to
+localhost by default. A trusted HTTPS reverse proxy is the secure network option; direct tablet
+access over a trusted LAN can be enabled explicitly with `PHOENIX_HOST=0.0.0.0` and
+`PHOENIX_ALLOW_INSECURE_LAN_HTTP=true`. That mode is unencrypted and must not be exposed to an
+untrusted network or the internet. Desktop layouts, other browsers, and other devices still need
+broader testing.
 
 ## Implemented features
 

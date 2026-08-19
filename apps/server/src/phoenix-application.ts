@@ -95,7 +95,7 @@ import { ApplicationPaths } from './infrastructure/application-paths.js'
 import { FrontierGalnetSource } from './infrastructure/frontier-galnet-source.js'
 import type { PairingAccessController } from './infrastructure/pairing-access-controller.js'
 import { OpenAiConfigurationService } from './application/openai-configuration-service.js'
-import { requireLoopbackHost } from './infrastructure/loopback-host.js'
+import { requireHttpListenHost } from './infrastructure/loopback-host.js'
 
 export interface PhoenixApplicationOptions {
   applicationPaths?: ApplicationPaths
@@ -114,6 +114,7 @@ export interface PhoenixApplicationOptions {
   galnetSource?: GalnetSource
   inputBackend?: InputBackend
   inputBackendMode?: 'recording' | 'linux-xdotool' | 'windows-sendinput'
+  allowInsecureLanHttp?: boolean
   moduleCataloguePath?: string
   openAiSecretRepository?: OpenAiSecretRepository
   openAiEnvironmentKey?: string | null
@@ -148,7 +149,10 @@ export class PhoenixApplication {
   public constructor (options: PhoenixApplicationOptions = {}) {
     const projectRoot = fileURLToPath(new URL('../../../', import.meta.url))
     const paths = options.applicationPaths ?? ApplicationPaths.development(projectRoot)
-    const host = requireLoopbackHost(options.host ?? process.env.PHOENIX_HOST ?? '127.0.0.1')
+    const host = requireHttpListenHost(
+      options.host ?? process.env.PHOENIX_HOST ?? '127.0.0.1',
+      options.allowInsecureLanHttp ?? process.env.PHOENIX_ALLOW_INSECURE_LAN_HTTP === 'true'
+    )
     const port = options.port ?? Number(process.env.PHOENIX_PORT ?? 3400)
     const gameEvents = new InProcessPublisher<GameEventEnvelope>()
     const copilotConversationEvents = new CopilotConversationEventService()

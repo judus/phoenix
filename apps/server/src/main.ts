@@ -50,6 +50,10 @@ try {
   const accessUrls = serverAccessUrls(address)
   console.log(`PHOENIX server listening on ${address.host}:${address.port}`)
   console.log(`PHOENIX local URL: ${accessUrls.local}`)
+  for (const url of accessUrls.network) console.log(`PHOENIX trusted-LAN URL: ${url}`)
+  if (accessUrls.network.length > 0) {
+    console.warn('WARNING: PHOENIX trusted-LAN HTTP is unencrypted. Use it only on a network you trust; microphone access still requires HTTPS.')
+  }
   console.log(`PHOENIX device pairing code: ${accessControl.pairingCode}`)
 } catch (error) {
   console.error('ERROR_PHOENIX_START_FAILED', error)
