@@ -194,11 +194,12 @@ export class PhoenixHttpServer {
       try {
         const body = await readJsonBody(request)
         const code = isRecord(body) && typeof body.code === 'string' ? body.code : ''
-        if (!this.options.accessControl.claim(code)) {
+        const sessionToken = this.options.accessControl.claim(code)
+        if (!sessionToken) {
           this.writeJson(response, 401, { error: { code: 'pairing_code_invalid', message: 'The pairing code is invalid.' } })
           return
         }
-        response.setHeader('set-cookie', this.options.accessControl.sessionCookie())
+        response.setHeader('set-cookie', this.options.accessControl.sessionCookie(sessionToken))
         this.writeJson(response, 200, {
           authenticated: true,
           installationId: this.options.accessControl.installationId,
@@ -214,6 +215,7 @@ export class PhoenixHttpServer {
     }
 
     if (request.method === 'POST' && url.pathname === '/api/pairing/release') {
+      this.options.accessControl?.release(request)
       response.setHeader('set-cookie', this.options.accessControl?.clearSessionCookie() ?? '')
       this.writeJson(response, 200, { authenticated: false })
       return
