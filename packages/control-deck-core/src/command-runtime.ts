@@ -84,21 +84,21 @@ export class CommandExecutionRuntime<Payload, Result extends CommandRuntimeResul
   }
 
   public async stop (): Promise<void> {
-    await Promise.all([...this.activeLeases.keys()].map(leaseId => this.expireLease(leaseId)))
+    await Promise.all([...this.activeLeases.keys()].map(leaseKey => this.expireLease(leaseKey)))
   }
 
   private enqueueLeaseTransition (
     request: CommandRuntimeRequest<Payload>,
     callerSignal?: AbortSignal
   ): Promise<Result> {
-    const leaseId = request.leaseId!
-    const previous = this.leaseQueues.get(leaseId) ?? Promise.resolve()
+    const leaseKey = commandLeaseKey(request)
+    const previous = this.leaseQueues.get(leaseKey) ?? Promise.resolve()
     const execution = previous
       .catch(() => undefined)
       .then(() => this.executeLeaseTransition(request, callerSignal))
-    this.leaseQueues.set(leaseId, execution)
+    this.leaseQueues.set(leaseKey, execution)
     const cleanQueue = () => {
-      if (this.leaseQueues.get(leaseId) === execution) this.leaseQueues.delete(leaseId)
+      if (this.leaseQueues.get(leaseKey) === execution) this.leaseQueues.delete(leaseKey)
     }
     void execution.then(cleanQueue, cleanQueue)
     return execution
@@ -108,10 +108,10 @@ export class CommandExecutionRuntime<Payload, Result extends CommandRuntimeResul
     request: CommandRuntimeRequest<Payload>,
     callerSignal?: AbortSignal
   ): Promise<Result> {
-    const leaseId = request.leaseId!
-    const lease = this.activeLeases.get(leaseId)
+    const leaseKey = commandLeaseKey(request)
+    const lease = this.activeLeases.get(leaseKey)
     if (request.operation === 'press') {
-      if (this.closedLeases.has(leaseId)) {
+      if (this.closedLeases.has(leaseKey)) {
         return this.adapter.createResult(request, 'rejected', 'This hold lease is already closed.')
       }
       if (lease) {
@@ -123,16 +123,16 @@ export class CommandExecutionRuntime<Payload, Result extends CommandRuntimeResul
           )
         }
         clearTimeout(lease.timer)
-        this.activeLeases.set(leaseId, {
+        this.activeLeases.set(leaseKey, {
           ...lease,
-          timer: this.scheduleExpiry(leaseId, this.maximumHoldMs)
+          timer: this.scheduleExpiry(leaseKey, this.maximumHoldMs)
         })
         return this.adapter.createResult(request, 'accepted', 'Hold lease renewed.')
       }
     }
     if (request.operation === 'release') {
       if (!lease) {
-        this.closeLease(leaseId)
+        this.closeLease(leaseKey)
         return this.adapter.createResult(request, 'rejected', 'This hold lease is not active.')
       }
       if (!sameLeaseOwner(lease.request, request)) {
@@ -147,42 +147,42 @@ export class CommandExecutionRuntime<Payload, Result extends CommandRuntimeResul
     const result = await this.executeCommand(request, callerSignal)
     if (result.status !== 'accepted') return result
     if (request.operation === 'press') {
-      this.activeLeases.set(leaseId, {
+      this.activeLeases.set(leaseKey, {
         request,
-        timer: this.scheduleExpiry(leaseId, this.maximumHoldMs)
+        timer: this.scheduleExpiry(leaseKey, this.maximumHoldMs)
       })
     } else {
       clearTimeout(lease!.timer)
-      this.activeLeases.delete(leaseId)
-      this.closeLease(leaseId)
+      this.activeLeases.delete(leaseKey)
+      this.closeLease(leaseKey)
     }
     return result
   }
 
-  private scheduleExpiry (leaseId: string, delayMs: number): ReturnType<typeof setTimeout> {
+  private scheduleExpiry (leaseKey: string, delayMs: number): ReturnType<typeof setTimeout> {
     const timer = setTimeout(() => {
-      void this.expireLease(leaseId).catch(() => {
-        const lease = this.activeLeases.get(leaseId)
-        if (lease) this.activeLeases.set(leaseId, { ...lease, timer: this.scheduleExpiry(leaseId, 1_000) })
+      void this.expireLease(leaseKey).catch(() => {
+        const lease = this.activeLeases.get(leaseKey)
+        if (lease) this.activeLeases.set(leaseKey, { ...lease, timer: this.scheduleExpiry(leaseKey, 1_000) })
       })
     }, delayMs)
     unrefTimer(timer)
     return timer
   }
 
-  private async expireLease (leaseId: string): Promise<void> {
-    const lease = this.activeLeases.get(leaseId)
+  private async expireLease (leaseKey: string): Promise<void> {
+    const lease = this.activeLeases.get(leaseKey)
     if (!lease) return
     const request = this.adapter.createExpiredRelease(lease.request)
     const result = await this.enqueueLeaseTransition(request)
-    if (result.status !== 'accepted' && this.activeLeases.has(leaseId)) {
+    if (result.status !== 'accepted' && this.activeLeases.has(leaseKey)) {
       clearTimeout(lease.timer)
-      this.activeLeases.set(leaseId, { ...lease, timer: this.scheduleExpiry(leaseId, 1_000) })
+      this.activeLeases.set(leaseKey, { ...lease, timer: this.scheduleExpiry(leaseKey, 1_000) })
     }
   }
 
-  private closeLease (leaseId: string): void {
-    this.closedLeases.add(leaseId)
+  private closeLease (leaseKey: string): void {
+    this.closedLeases.add(leaseKey)
     if (this.closedLeases.size > 1_000) {
       this.closedLeases.delete(this.closedLeases.values().next().value as string)
     }
@@ -200,6 +200,10 @@ function sameLeaseOwner<Payload> (
   right: CommandRuntimeRequest<Payload>
 ): boolean {
   return left.targetKey === right.targetKey && left.ownerKey === right.ownerKey
+}
+
+function commandLeaseKey<Payload> (request: CommandRuntimeRequest<Payload>): string {
+  return JSON.stringify([request.ownerKey, request.leaseId])
 }
 
 function unrefTimer (timer: ReturnType<typeof setTimeout>): void {

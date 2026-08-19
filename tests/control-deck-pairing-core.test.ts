@@ -39,6 +39,7 @@ test('pairing policy creates, persists, authorizes, and revokes independent sess
   expect(first).not.toBeNull()
   expect(second).not.toBe(first)
   expect(service.isAuthorized({ sessionToken: first! })).toBe(true)
+  expect(service.authorize({ sessionToken: first! })).toMatchObject({ type: 'session', id: expect.any(String) })
   expect(service.isAuthorized({ bearerToken: service.bearerToken })).toBe(true)
   expect(service.release(first!)).toBe(true)
   expect(service.isAuthorized({ sessionToken: first! })).toBe(false)

@@ -5,6 +5,7 @@ import {
   type PairingService,
   type PairingStatus
 } from '@jdu/control-deck-core'
+import { readJsonBody, writeJson } from './http-json.js'
 
 export interface PairingHttpControllerOptions {
   cookieName: string
@@ -41,6 +42,11 @@ export class PairingHttpController {
 
   public isAuthorized (request: IncomingMessage): boolean {
     return this.pairing.isAuthorized(this.evidenceFrom(request))
+  }
+
+  public ownerKey (request: IncomingMessage): string | null {
+    const authorization = this.pairing.authorize(this.evidenceFrom(request))
+    return authorization ? `${authorization.type}:${authorization.id}` : null
   }
 
   public async handle (request: IncomingMessage, response: ServerResponse): Promise<boolean> {
@@ -109,19 +115,6 @@ export class PairingHttpController {
   }
 }
 
-async function readJsonBody (request: IncomingMessage): Promise<unknown> {
-  const chunks: Buffer[] = []
-  let length = 0
-  for await (const chunk of request) {
-    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
-    length += buffer.length
-    if (length > 64 * 1024) throw new Error('Request body exceeds 64 KiB.')
-    chunks.push(buffer)
-  }
-  if (chunks.length === 0) throw new Error('Request body is empty.')
-  return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown
-}
-
 function parseCookies (header: string | undefined): Record<string, string> {
   if (!header) return {}
   return Object.fromEntries(header.split(';').flatMap(part => {
@@ -129,12 +122,6 @@ function parseCookies (header: string | undefined): Record<string, string> {
     if (separator < 1) return []
     return [[part.slice(0, separator).trim(), part.slice(separator + 1).trim()]]
   }))
-}
-
-function writeJson (response: ServerResponse, status: number, body: unknown): void {
-  response.statusCode = status
-  response.setHeader('content-type', 'application/json; charset=utf-8')
-  response.end(`${JSON.stringify(body)}\n`)
 }
 
 function isRecord (value: unknown): value is Record<string, unknown> {

@@ -2,6 +2,7 @@
   "files": [],
   "references": [
     { "path": "packages/control-deck-core" },
+    { "path": "packages/control-deck-adapter-keyboard" },
     { "path": "packages/control-deck-host" },
     { "path": "apps/control-deck" },
     { "path": "packages/contracts" },

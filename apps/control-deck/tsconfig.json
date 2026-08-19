@@ -6,6 +6,7 @@
     "moduleResolution": "NodeNext",
     "outDir": "dist",
     "paths": {
+      "@jdu/control-deck-adapter-keyboard": ["../../packages/control-deck-adapter-keyboard/src/index.ts"],
       "@jdu/control-deck-core": ["../../packages/control-deck-core/src/index.ts"],
       "@jdu/control-deck-host": ["../../packages/control-deck-host/src/index.ts"]
     },
@@ -17,6 +18,7 @@
   "include": ["src/**/*.ts"],
   "references": [
     { "path": "../../packages/control-deck-core" },
+    { "path": "../../packages/control-deck-adapter-keyboard" },
     { "path": "../../packages/control-deck-host" }
   ]
 }

@@ -59,6 +59,18 @@ test('generic command runtime rejects a lease reused by another target', async (
   await runtime.stop()
 })
 
+test('different owners may use the same local lease ID independently', async () => {
+  const adapter = new RecordingAdapter()
+  const runtime = new CommandExecutionRuntime(adapter)
+
+  await runtime.execute(command('press', 'local-hold'))
+  await runtime.execute({ ...command('press', 'local-hold'), ownerKey: 'other-device' })
+
+  expect(adapter.operations).toEqual(['press', 'press'])
+  await runtime.stop()
+  expect(adapter.operations).toEqual(['press', 'press', 'release', 'release'])
+})
+
 function command (
   operation: 'tap' | 'press' | 'release',
   leaseId?: string

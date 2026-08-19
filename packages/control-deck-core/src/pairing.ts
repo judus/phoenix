@@ -45,6 +45,11 @@ export interface PairingAccessEvidence {
   sessionToken?: string
 }
 
+export interface PairingAuthorization {
+  id: string
+  type: 'installation' | 'session'
+}
+
 export interface PairingServiceOptions {
   now?: () => number
 }
@@ -81,7 +86,7 @@ export class PairingService {
 
   public status (evidence: PairingAccessEvidence = {}): PairingStatus {
     return {
-      authenticated: this.isAuthorized(evidence),
+      authenticated: this.authorize(evidence) !== null,
       installationId: this.installationId,
       pairingRequired: true
     }
@@ -102,13 +107,20 @@ export class PairingService {
   }
 
   public isAuthorized (evidence: PairingAccessEvidence): boolean {
+    return this.authorize(evidence) !== null
+  }
+
+  public authorize (evidence: PairingAccessEvidence): PairingAuthorization | null {
     if (evidence.bearerToken !== undefined &&
-        this.security.equals(evidence.bearerToken, this.credentials.secret)) return true
-    if (evidence.sessionToken === undefined) return false
+        this.security.equals(evidence.bearerToken, this.credentials.secret)) {
+      return { id: this.credentials.installationId, type: 'installation' }
+    }
+    if (evidence.sessionToken === undefined) return null
     const now = this.now()
     this.pruneExpiredSessions(now)
     const tokenHash = this.security.hash(this.credentials.secret, evidence.sessionToken)
-    return this.credentials.sessions.some(candidate => this.security.equals(candidate.tokenHash, tokenHash))
+    const session = this.credentials.sessions.find(candidate => this.security.equals(candidate.tokenHash, tokenHash))
+    return session ? { id: session.id, type: 'session' } : null
   }
 
   public release (sessionToken: string | undefined): boolean {

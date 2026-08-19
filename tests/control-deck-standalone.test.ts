@@ -12,6 +12,7 @@ test('standalone Control Deck mounts the shared pairing host', async () => {
 
   try {
     expect((await fetch(`${baseUrl}/api/health`)).status).toBe(401)
+    expect((await fetch(`${baseUrl}/api/commands`)).status).toBe(401)
     const claim = await fetch(`${baseUrl}/api/pairing/claim`, {
       body: JSON.stringify({ code: application.pairing.pairingCode }),
       headers: { 'content-type': 'application/json' },
@@ -21,6 +22,42 @@ test('standalone Control Deck mounts the shared pairing host', async () => {
     const cookie = claim.headers.get('set-cookie')?.split(';')[0]
     expect(cookie).toMatch(/^control_deck_session=/)
     expect((await fetch(`${baseUrl}/api/health`, { headers: { cookie: cookie! } })).status).toBe(200)
+
+    const catalogue = await fetch(`${baseUrl}/api/commands`, { headers: { cookie: cookie! } })
+    expect(await catalogue.json()).toMatchObject({
+      adapters: [{ id: 'builtin.keyboard', available: true, simulated: true }]
+    })
+
+    const execute = async (operation: 'tap' | 'press' | 'release', leaseId?: string) => {
+      const response = await fetch(`${baseUrl}/api/commands/execute`, {
+        body: JSON.stringify({
+          target: {
+            adapterId: 'builtin.keyboard',
+            commandId: 'key',
+            configuration: { key: 'Space', modifiers: ['Control'] }
+          },
+          operation,
+          ...(leaseId ? { leaseId } : {})
+        }),
+        headers: {
+          cookie: cookie!,
+          'content-type': 'application/json'
+        },
+        method: 'POST'
+      })
+      expect(response.status).toBe(200)
+      return response.json()
+    }
+
+    expect(await execute('tap')).toMatchObject({ status: 'accepted', simulated: true })
+    expect(await execute('press', 'hold-1')).toMatchObject({ status: 'accepted' })
+    expect(await execute('press', 'hold-1')).toMatchObject({ message: 'Hold lease renewed.' })
+    expect(await execute('release', 'hold-1')).toMatchObject({ status: 'accepted' })
+    expect(application.keyboardOutput.getRecordedInputs().map(input => input.operation)).toEqual([
+      'tap',
+      'press',
+      'release'
+    ])
   } finally {
     await application.stop()
     rmSync(directory, { force: true, recursive: true })

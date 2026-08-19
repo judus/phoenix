@@ -5,6 +5,7 @@
   "type": "module",
   "exports": "./dist/main.js",
   "dependencies": {
+    "@jdu/control-deck-adapter-keyboard": "*",
     "@jdu/control-deck-core": "*",
     "@jdu/control-deck-host": "*"
   },
