@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CommandTarget, ControlGridLayout, GameActionAvailability, GameActionOperation, RuntimeState } from '@phoenix/contracts'
 import { Button, CommandTile, ControlContext, Field, PageFrame, PageHeader, Status, TextInput } from '@phoenix/ui'
+import { createClientId } from '../../application/identity/client-identity.js'
 import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
 import type { ControlCategory } from '../../application/navigation/phoenix-route.js'
 import { controlsCategoryLabel, gameActionCategoryLabel } from './controls-navigation.js'
@@ -97,7 +98,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
                     if (editing) { setEditingPosition(position); setFilter(''); return }
                     if (action.definition.inputMode !== 'hold') void execute(action, 'tap')
                     else if (event.detail === 0) {
-                      const leaseId = globalThis.crypto.randomUUID()
+                      const leaseId = createClientId()
                       void execute(action, 'press', leaseId).then(() => execute(action, 'release', leaseId))
                     }
                   }}

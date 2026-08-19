@@ -1,3 +1,5 @@
+import { createClientId } from '../../application/identity/client-identity.js'
+
 export type HoldGestureOperation = 'press' | 'release'
 export type HoldGestureExecutor = (operation: HoldGestureOperation, leaseId: string) => Promise<unknown>
 
@@ -13,7 +15,7 @@ export class HoldGestureController {
 
   public constructor (
     private readonly renewalMs = 5_000,
-    private readonly createLeaseId: () => string = () => globalThis.crypto.randomUUID()
+    private readonly createLeaseId: () => string = createClientId
   ) {}
 
   public begin (actionId: string, execute: HoldGestureExecutor, renew = true): void {
