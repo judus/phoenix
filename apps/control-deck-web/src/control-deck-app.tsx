@@ -159,6 +159,9 @@ export function DeckButton ({ editing, element, label, onEdit, onTap, onHoldStar
   const finishPointer = () => {
     if (armingTimer.current) globalThis.clearTimeout(armingTimer.current)
     armingTimer.current = undefined
+    if (suppressClick.current) {
+      globalThis.setTimeout(() => { suppressClick.current = false }, 0)
+    }
     if (!editing && element.interaction.confirmation.kind === 'none' && element.interaction.activation === 'hold') {
       setPressed(false)
       onHoldEnd()

@@ -24,6 +24,21 @@ test('a confirmed command requires hold-to-arm followed by a separate tap', () =
   expect(renderer.toJSON()).toMatchObject({ props: { className: 'deck-button' } })
 })
 
+test('the first intentional tap executes when Android emits no click after arming', () => {
+  vi.useFakeTimers()
+  const onTap = vi.fn()
+  const renderer = createButton(commandElement('tap', { kind: 'arm-then-tap', armedForMs: 5_000 }), { onTap })
+  const button = renderer.root.findByType('button')
+
+  act(() => button.props.onPointerDown(pointerEvent()))
+  act(() => vi.advanceTimersByTime(650))
+  act(() => button.props.onPointerUp())
+  act(() => vi.advanceTimersByTime(0))
+  act(() => button.props.onClick())
+
+  expect(onTap).toHaveBeenCalledOnce()
+})
+
 test('a hold command maps pointer lifetime to press and release callbacks', () => {
   const onHoldStart = vi.fn()
   const onHoldEnd = vi.fn()
