@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import {
   ControlDeckConfigurationSchema,
+  createControlDeckClientId,
   type ControlDeckCommandCatalogue,
   type ControlDeckCommandElement,
   type ControlDeckConfiguration,
@@ -92,7 +93,7 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
               onEdit={() => setEditingCell({ column: element.placement.column, row: element.placement.row })}
               onTap={() => void execute(element, 'tap')}
               onHoldStart={() => {
-                const leaseId = crypto.randomUUID()
+                const leaseId = createControlDeckClientId()
                 held.current.set(element.id, leaseId)
                 void execute(element, 'press', leaseId, false)
               }}
