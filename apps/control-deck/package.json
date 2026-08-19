@@ -1,16 +1,12 @@
 {
-  "name": "@phoenix/server",
+  "name": "@jdu/control-deck-app",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "exports": "./dist/main.js",
   "dependencies": {
     "@jdu/control-deck-core": "*",
-    "@jdu/control-deck-host": "*",
-    "@jdu/llm-client": "0.1.2",
-    "@phoenix/copilot": "*",
-    "@phoenix/contracts": "*",
-    "@phoenix/elite": "*"
+    "@jdu/control-deck-host": "*"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

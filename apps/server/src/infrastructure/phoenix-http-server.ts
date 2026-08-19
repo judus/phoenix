@@ -67,7 +67,7 @@ import type { MissionDataReader } from '../domain/missions.js'
 import type { CommunicationDataReader, CommunicationQueryView } from '../domain/communications.js'
 import type { FleetDataReader } from '../domain/fleet.js'
 import type { PhoenixMcpServer } from './phoenix-mcp-server.js'
-import { PairingAttemptLimitError, type PairingAccessController } from './pairing-access-controller.js'
+import type { PairingAccessController } from './pairing-access-controller.js'
 
 const CONTENT_TYPES: Record<string, string> = {
   '.css': 'text/css; charset=utf-8',
@@ -187,8 +187,10 @@ export class PhoenixHttpServer {
   private async handle (request: IncomingMessage, response: ServerResponse): Promise<void> {
     const url = new URL(request.url ?? '/', 'http://phoenix.local')
 
-    if (request.method === 'GET' && url.pathname === '/api/pairing/status') {
-      this.writeJson(response, 200, this.options.accessControl?.status(request) ?? {
+    if (this.options.accessControl && await this.options.accessControl.handle(request, response)) return
+
+    if (!this.options.accessControl && request.method === 'GET' && url.pathname === '/api/pairing/status') {
+      this.writeJson(response, 200, {
         authenticated: true,
         installationId: 'development',
         pairingRequired: false
@@ -196,37 +198,12 @@ export class PhoenixHttpServer {
       return
     }
 
-    if (request.method === 'POST' && url.pathname === '/api/pairing/claim') {
-      if (!this.options.accessControl) {
-        this.writeJson(response, 200, { authenticated: true, installationId: 'development', pairingRequired: false })
-        return
-      }
-      try {
-        const body = await readJsonBody(request)
-        const code = isRecord(body) && typeof body.code === 'string' ? body.code : ''
-        const sessionToken = this.options.accessControl.claim(code)
-        if (!sessionToken) {
-          this.writeJson(response, 401, { error: { code: 'pairing_code_invalid', message: 'The pairing code is invalid.' } })
-          return
-        }
-        response.setHeader('set-cookie', this.options.accessControl.sessionCookie(sessionToken))
-        this.writeJson(response, 200, {
-          authenticated: true,
-          installationId: this.options.accessControl.installationId,
-          pairingRequired: true
-        })
-      } catch (cause) {
-        const limited = cause instanceof PairingAttemptLimitError
-        this.writeJson(response, limited ? 429 : 400, {
-          error: { code: limited ? 'pairing_rate_limited' : 'pairing_request_invalid', message: errorMessage(cause) }
-        })
-      }
+    if (!this.options.accessControl && request.method === 'POST' && url.pathname === '/api/pairing/claim') {
+      this.writeJson(response, 200, { authenticated: true, installationId: 'development', pairingRequired: false })
       return
     }
 
-    if (request.method === 'POST' && url.pathname === '/api/pairing/release') {
-      this.options.accessControl?.release(request)
-      response.setHeader('set-cookie', this.options.accessControl?.clearSessionCookie() ?? '')
+    if (!this.options.accessControl && request.method === 'POST' && url.pathname === '/api/pairing/release') {
       this.writeJson(response, 200, { authenticated: false })
       return
     }

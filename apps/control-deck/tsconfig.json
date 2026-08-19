@@ -7,10 +7,7 @@
     "outDir": "dist",
     "paths": {
       "@jdu/control-deck-core": ["../../packages/control-deck-core/src/index.ts"],
-      "@jdu/control-deck-host": ["../../packages/control-deck-host/src/index.ts"],
-      "@phoenix/contracts": ["../../packages/contracts/src/index.ts"],
-      "@phoenix/copilot": ["../../packages/copilot/src/index.ts"],
-      "@phoenix/elite": ["../../packages/elite/src/index.ts"]
+      "@jdu/control-deck-host": ["../../packages/control-deck-host/src/index.ts"]
     },
     "rootDir": "src",
     "strict": true,
@@ -20,9 +17,6 @@
   "include": ["src/**/*.ts"],
   "references": [
     { "path": "../../packages/control-deck-core" },
-    { "path": "../../packages/control-deck-host" },
-    { "path": "../../packages/contracts" },
-    { "path": "../../packages/copilot" },
-    { "path": "../../packages/elite" }
+    { "path": "../../packages/control-deck-host" }
   ]
 }

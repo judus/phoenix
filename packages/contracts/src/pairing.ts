@@ -1,9 +1,1 @@
-import { z } from 'zod'
-
-export const PairingStatusSchema = z.object({
-  authenticated: z.boolean(),
-  installationId: z.string().min(1),
-  pairingRequired: z.boolean()
-})
-
-export type PairingStatus = z.infer<typeof PairingStatusSchema>
+export { PairingStatusSchema, type PairingStatus } from '@jdu/control-deck-core'

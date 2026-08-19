@@ -1,5 +1,5 @@
 {
-  "name": "@phoenix/contracts",
+  "name": "@jdu/control-deck-core",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -17,7 +17,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@jdu/control-deck-core": "*",
     "zod": "^4.4.3"
   }
 }
