@@ -1,5 +1,6 @@
-import { appendFileSync, existsSync, mkdirSync, renameSync, rmSync, statSync } from 'node:fs'
+import { appendFileSync, existsSync, renameSync, rmSync, statSync } from 'node:fs'
 import { dirname } from 'node:path'
+import { ensurePrivateDirectorySync, PRIVATE_FILE_MODE, restrictPrivateFileSync } from './private-user-state.js'
 
 export interface RotatingWireLoggerOptions {
   file: string
@@ -14,7 +15,10 @@ export class RotatingWireLogger {
   public constructor (private readonly options: RotatingWireLoggerOptions) {
     this.maxBytes = boundedFileSize(options.maxBytes ?? 25 * 1024 * 1024)
     this.maxFiles = positiveInteger(options.maxFiles ?? 3, 'wire log maxFiles')
-    mkdirSync(dirname(options.file), { recursive: true })
+    ensurePrivateDirectorySync(dirname(options.file))
+    for (let index = 0; index < this.maxFiles; index++) {
+      restrictPrivateFileSync(index === 0 ? options.file : `${options.file}.${index}`)
+    }
   }
 
   public write = (event: unknown): void => {
@@ -29,7 +33,8 @@ export class RotatingWireLogger {
       })}\n`
     }
     if (this.currentBytes() + Buffer.byteLength(line) > this.maxBytes) this.rotate()
-    appendFileSync(this.options.file, line, 'utf8')
+    appendFileSync(this.options.file, line, { encoding: 'utf8', mode: PRIVATE_FILE_MODE })
+    restrictPrivateFileSync(this.options.file)
   }
 
   private currentBytes (): number {

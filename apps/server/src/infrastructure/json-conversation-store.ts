@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises'
+import { readFile, rename, unlink, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import {
   AiError,
@@ -11,6 +11,11 @@ import {
   type CreateConversation,
   type MessageQuery
 } from '@jdu/llm-client'
+import {
+  ensurePrivateDirectory,
+  PRIVATE_FILE_MODE,
+  restrictPrivateFile
+} from './private-user-state.js'
 
 const SCHEMA_VERSION = 1
 
@@ -127,6 +132,7 @@ export class JsonConversationStore implements ConversationStore {
     let serialized: string
     try {
       serialized = await readFile(file, 'utf8')
+      await restrictPrivateFile(file)
     } catch (cause) {
       if (isFileNotFound(cause)) return undefined
       throw persistenceFailure(`Unable to read conversation ${id}.`, 'conversation_read_failed', cause)
@@ -148,9 +154,11 @@ export class JsonConversationStore implements ConversationStore {
     const file = this.fileForId(id)
     const temporaryFile = `${file}.${process.pid}.${randomUUID()}.tmp`
     try {
-      await mkdir(dirname(file), { recursive: true })
-      await writeFile(temporaryFile, `${JSON.stringify(record, null, 2)}\n`, 'utf8')
+      await ensurePrivateDirectory(dirname(file))
+      await writeFile(temporaryFile, `${JSON.stringify(record, null, 2)}\n`, { encoding: 'utf8', mode: PRIVATE_FILE_MODE })
+      await restrictPrivateFile(temporaryFile)
       await rename(temporaryFile, file)
+      await restrictPrivateFile(file)
     } catch (cause) {
       await unlink(temporaryFile).catch(() => {})
       throw persistenceFailure(`Unable to write conversation ${id}.`, 'conversation_write_failed', cause)

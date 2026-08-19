@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import {
   ControlGridLayoutSchema,
@@ -14,6 +14,11 @@ import type {
   SystemSettingsRepository
 } from '../domain/system-configuration.js'
 import { DEFAULT_CONTROL_GRID_LAYOUT } from './default-control-grid-layout.js'
+import {
+  ensurePrivateDirectorySync,
+  PRIVATE_FILE_MODE,
+  restrictPrivateFileSync
+} from './private-user-state.js'
 
 export const DEFAULT_PHOENIX_SETTINGS: PhoenixSettings = {
   version: 1,
@@ -41,11 +46,14 @@ export class JsonSystemSettingsRepository implements SystemSettingsRepository, C
   public constructor (private readonly path: string) {}
 
   public loadOrCreate (): PhoenixSettings {
+    ensurePrivateDirectorySync(dirname(this.path))
     if (!existsSync(this.path)) {
       const settings = PhoenixSettingsSchema.parse(DEFAULT_PHOENIX_SETTINGS)
       writeJsonAtomically(this.path, settings)
       return settings
     }
+
+    restrictPrivateFileSync(this.path)
 
     const candidate: unknown = JSON.parse(readFileSync(this.path, 'utf8'))
     const migrated = migrateSettings(candidate)
@@ -167,8 +175,10 @@ export class JsonRuntimeSystemSnapshotWriter implements RuntimeSystemSnapshotWri
 }
 
 function writeJsonAtomically (path: string, value: unknown): void {
-  mkdirSync(dirname(path), { recursive: true })
+  ensurePrivateDirectorySync(dirname(path))
   const temporaryPath = `${path}.tmp-${process.pid}`
-  writeFileSync(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8')
+  writeFileSync(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, { encoding: 'utf8', mode: PRIVATE_FILE_MODE })
+  restrictPrivateFileSync(temporaryPath)
   renameSync(temporaryPath, path)
+  restrictPrivateFileSync(path)
 }
