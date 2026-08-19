@@ -30,7 +30,6 @@ export class EliteJournalFileSource {
   private timer: NodeJS.Timeout | null = null
   private currentFilePath: string | null = null
   private currentOffset = 0
-  private carry: Buffer = Buffer.alloc(0)
   private refreshQueue: Promise<boolean> = Promise.resolve(false)
   private diagnostics: EliteJournalSourceDiagnostics
 
@@ -94,7 +93,6 @@ export class EliteJournalFileSource {
       if (latestFile !== this.currentFilePath) {
         this.currentFilePath = latestFile
         this.currentOffset = 0
-        this.carry = Buffer.alloc(0)
       }
 
       const file = openSync(latestFile, 'r')
@@ -103,7 +101,6 @@ export class EliteJournalFileSource {
         const size = fstatSync(file).size
         if (size < this.currentOffset) {
           this.currentOffset = 0
-          this.carry = Buffer.alloc(0)
         }
         const unreadBytes = size - this.currentOffset
         if (unreadBytes === 0) {
@@ -111,31 +108,42 @@ export class EliteJournalFileSource {
             ...this.diagnostics,
             filePath: latestFile,
             fileAvailable: true,
-            error: null
+            error: this.diagnostics.filePath === latestFile ? this.diagnostics.error : null
           }
           return false
         }
         contents = Buffer.allocUnsafe(unreadBytes)
         readSync(file, contents, 0, unreadBytes, this.currentOffset)
-        this.currentOffset = size
       } finally {
         closeSync(file)
       }
 
-      const combined = this.carry.length > 0
-        ? Buffer.concat([this.carry, contents])
-        : contents
-      const lastNewline = combined.lastIndexOf(0x0a)
-      this.carry = lastNewline < 0 ? combined : combined.subarray(lastNewline + 1)
-      const complete = lastNewline < 0 ? Buffer.alloc(0) : combined.subarray(0, lastNewline)
+      const initialOffset = this.currentOffset
       let processedLines = 0
       let lineError: string | null = null
-
-      for (const line of complete.toString('utf8').split(/\r?\n/)) {
-        if (line.trim().length === 0) continue
+      let lineStart = 0
+      let newline = contents.indexOf(0x0a, lineStart)
+      while (newline >= 0) {
+        const nextOffset = initialOffset + newline + 1
+        const line = contents.subarray(lineStart, newline).toString('utf8')
+        lineStart = newline + 1
+        if (line.trim().length === 0) {
+          this.currentOffset = nextOffset
+          newline = contents.indexOf(0x0a, lineStart)
+          continue
+        }
+        let event: EliteJournalEvent
         try {
-          const event = EliteJournalEventSchema.parse(JSON.parse(line))
+          event = EliteJournalEventSchema.parse(JSON.parse(line))
+        } catch (cause) {
+          lineError = cause instanceof Error ? cause.message : 'Invalid Elite journal line.'
+          this.currentOffset = nextOffset
+          newline = contents.indexOf(0x0a, lineStart)
+          continue
+        }
+        try {
           await this.listener(event)
+          this.currentOffset = nextOffset
           processedLines++
           this.diagnostics = {
             ...this.diagnostics,
@@ -143,14 +151,16 @@ export class EliteJournalFileSource {
           }
         } catch (cause) {
           lineError = cause instanceof Error ? cause.message : 'Invalid Elite journal line.'
+          break
         }
+        newline = contents.indexOf(0x0a, lineStart)
       }
 
       this.diagnostics = {
         ...this.diagnostics,
         filePath: latestFile,
         fileAvailable: true,
-        bytesRead: this.diagnostics.bytesRead + contents.length,
+        bytesRead: this.diagnostics.bytesRead + this.currentOffset - initialOffset,
         linesRead: this.diagnostics.linesRead + processedLines,
         lastReadAt: new Date().toISOString(),
         error: lineError
