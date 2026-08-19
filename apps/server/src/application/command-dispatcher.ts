@@ -93,6 +93,7 @@ export class DefaultCommandDispatcher implements Commands {
       operation: request.operation,
       requestId,
       correlationId,
+      ...(request.leaseId ? { leaseId: request.leaseId } : {}),
       ...(request.idempotencyKey ? { idempotencyKey: request.idempotencyKey } : {}),
       ...(request.timeoutMs ? { timeoutMs: request.timeoutMs } : {})
     }, origin, signal)

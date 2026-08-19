@@ -103,7 +103,7 @@ export class MacroService implements Macros {
       totalSteps: macro.steps.length
     })
     this.activeRun = { controller, state }
-    const held = new Set<string>()
+    const held = new Map<string, string>()
     try {
       for (const step of macro.steps) {
         if (signal.aborted) throw signal.reason
@@ -114,11 +114,18 @@ export class MacroService implements Macros {
               isDangerousMacroAction(step.actionId, this.gameActions.getCatalog())) {
             throw new Error('Dangerous Copilot actions are disabled in Settings.')
           }
-          const result = await this.gameActions.execute({ actionId: step.actionId, operation: step.operation }, origin, signal)
+          const leaseId = step.operation === 'press'
+            ? held.get(step.actionId) ?? randomUUID()
+            : step.operation === 'release' ? held.get(step.actionId) : undefined
+          const result = await this.gameActions.execute({
+            actionId: step.actionId,
+            operation: step.operation,
+            ...(leaseId ? { leaseId } : {})
+          }, origin, signal)
           if (!['accepted', 'confirmed', 'unconfirmed', 'already_satisfied'].includes(result.status)) {
             throw new Error(result.message)
           }
-          if (step.operation === 'press') held.add(step.actionId)
+          if (step.operation === 'press') held.set(step.actionId, leaseId!)
           if (step.operation === 'release') held.delete(step.actionId)
         }
         state.completedSteps += 1
@@ -132,7 +139,7 @@ export class MacroService implements Macros {
         ? 'Macro playback timed out.'
         : signal.aborted ? 'Macro playback aborted.' : cause instanceof Error ? cause.message : 'Macro playback failed.'
     } finally {
-      await Promise.all([...held].map(actionId => this.gameActions.execute({ actionId, operation: 'release' }, origin)))
+      await Promise.all([...held].map(([actionId, leaseId]) => this.gameActions.execute({ actionId, leaseId, operation: 'release' }, origin)))
       this.activeRun = undefined
     }
     return MacroPlaybackSchema.parse(state)

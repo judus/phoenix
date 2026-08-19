@@ -267,9 +267,15 @@ export class PhoenixApiClient implements PhoenixApi {
   async executeAction(
     actionId: string,
     operation: GameActionOperation = 'tap',
-    signal?: AbortSignal
+    options: { leaseId?: string, signal?: AbortSignal } = {}
   ): Promise<GameActionResult> {
-    return this.#json('/api/actions/execute', 'POST', { actionId, operation }, GameActionResultSchema, signal)
+    return this.#json(
+      '/api/actions/execute',
+      'POST',
+      { actionId, operation, ...(options.leaseId ? { leaseId: options.leaseId } : {}) },
+      GameActionResultSchema,
+      options.signal
+    )
   }
 
   async getActivityLog(limit = 250, signal?: AbortSignal): Promise<ActivityLogResponse> {

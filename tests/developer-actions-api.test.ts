@@ -34,8 +34,9 @@ test('the API exposes actions, executes them, and persists the shared control la
     })
     expect(result.message).toContain('no operating-system input was sent')
 
-    const pressed = await client.executeAction('elite.PrimaryFire', 'press')
-    const released = await client.executeAction('elite.PrimaryFire', 'release')
+    const lease = { leaseId: 'developer-api-pointer-1' }
+    const pressed = await client.executeAction('elite.PrimaryFire', 'press', lease)
+    const released = await client.executeAction('elite.PrimaryFire', 'release', lease)
     expect(pressed).toMatchObject({ origin: 'ui', operation: 'press', status: 'accepted' })
     expect(released).toMatchObject({ origin: 'ui', operation: 'release', status: 'accepted' })
     expect(inputBackend.getRecordedInputs().slice(-2)).toEqual([

@@ -45,6 +45,7 @@ export const CommandCatalogueRevisionSchema = CommandCatalogueSnapshotSchema.pic
 export const ExecuteCommandRequestSchema = z.object({
   target: CommandTargetSchema,
   operation: GameActionOperationSchema.default('tap'),
+  leaseId: z.string().min(1).max(200).optional(),
   requestId: z.string().min(1).optional(),
   correlationId: z.string().min(1).optional(),
   idempotencyKey: z.string().min(1).max(200).optional(),

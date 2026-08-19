@@ -13,7 +13,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
   macros: MacroRuntime
   runtime?: RuntimeState
   onEditingChange(editing: boolean): void
-  onExecuteAction(actionId: string, operation: GameActionOperation): Promise<unknown>
+  onExecuteAction(actionId: string, operation: GameActionOperation, leaseId?: string): Promise<unknown>
   onSaveLayout(layout: ControlGridLayout): Promise<ControlGridLayout>
 }) {
   const [error, setError] = useState<string>()
@@ -21,9 +21,17 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
   const [editingPosition, setEditingPosition] = useState<number>()
   const [filter, setFilter] = useState('')
   const [saving, setSaving] = useState(false)
-  const held = useRef(new Set<string>())
+  const held = useRef(new Map<string, string>())
+  const executeAction = useRef(onExecuteAction)
+  useEffect(() => { executeAction.current = onExecuteAction }, [onExecuteAction])
   useEffect(() => { if (!editing) setDraft(controller.layout) }, [controller.layout, editing])
   useEffect(() => { onEditingChange(false); setEditingPosition(undefined); setFilter('') }, [category])
+  useEffect(() => () => {
+    for (const [actionId, leaseId] of held.current) {
+      held.current.delete(actionId)
+      void executeAction.current(actionId, 'release', leaseId)
+    }
+  }, [category])
   const activeLayout = draft ?? controller.layout
   const page = activeLayout?.pages.find(candidate => candidate.category === category)
   const actions = new Map(controller.actions?.actions.map(action => [action.definition.id, action]) ?? [])
@@ -32,11 +40,11 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
   const covered = new Set<number>()
   for (const cell of page?.cells ?? []) for (let offset = 1; offset < cell.span; offset++) covered.add(cell.position + offset)
 
-  const execute = (action: GameActionAvailability, operation: GameActionOperation) => {
+  const execute = (action: GameActionAvailability, operation: GameActionOperation, leaseId?: string) => {
     const operationRequest = macros.recording
       ? macros.recordAction(action.definition.id, operation)
-      : onExecuteAction(action.definition.id, operation)
-    void operationRequest
+      : onExecuteAction(action.definition.id, operation, leaseId)
+    return operationRequest
       .then(() => setError(undefined))
       .catch(cause => setError(cause instanceof Error ? cause.message : 'Control execution failed.'))
   }
@@ -91,19 +99,27 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
                   unavailable={!action.available}
                   onClick={event => {
                     if (editing) { setEditingPosition(position); setFilter(''); return }
-                    if (action.definition.inputMode !== 'hold') execute(action, 'tap')
+                    if (action.definition.inputMode !== 'hold') void execute(action, 'tap')
                     else if (event.detail === 0) {
-                      execute(action, 'press')
-                      execute(action, 'release')
+                      const leaseId = globalThis.crypto.randomUUID()
+                      void execute(action, 'press', leaseId).then(() => execute(action, 'release', leaseId))
                     }
                   }}
                   onPointerDown={event => {
                     if (editing || action.definition.inputMode !== 'hold' || held.current.has(action.definition.id)) return
                     event.currentTarget.setPointerCapture?.(event.pointerId)
-                    held.current.add(action.definition.id); execute(action, 'press')
+                    const leaseId = globalThis.crypto.randomUUID()
+                    held.current.set(action.definition.id, leaseId)
+                    void execute(action, 'press', leaseId)
                   }}
-                  onPointerUp={() => { if (held.current.delete(action.definition.id)) execute(action, 'release') }}
-                  onPointerCancel={() => { if (held.current.delete(action.definition.id)) execute(action, 'release') }}
+                  onPointerUp={() => {
+                    const leaseId = held.current.get(action.definition.id)
+                    if (leaseId) { held.current.delete(action.definition.id); void execute(action, 'release', leaseId) }
+                  }}
+                  onPointerCancel={() => {
+                    const leaseId = held.current.get(action.definition.id)
+                    if (leaseId) { held.current.delete(action.definition.id); void execute(action, 'release', leaseId) }
+                  }}
                   style={{ gridColumn: `span ${cell?.span ?? 1}` }}
                 />
               })}
