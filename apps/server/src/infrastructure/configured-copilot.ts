@@ -20,6 +20,7 @@ import { JsonConversationStore } from './json-conversation-store.js'
 import { OpenAiRealtimeClient } from './openai-realtime-client.js'
 import { RotatingWireLogger } from './rotating-wire-logger.js'
 import type { ApplicationPaths } from './application-paths.js'
+import { prepareWritableAgentProfiles } from './writable-agent-profiles.js'
 
 export interface ConfiguredCopilot {
   profiles: CopilotProfiles
@@ -36,6 +37,7 @@ export interface ConfiguredCopilotOptions {
   mcpToken?: string
   model?: string
   missions: MissionDataReader
+  profilesDirectory?: string
   runtimeState: RuntimeStateReader
   systemSettings: SystemSettingsRepository
   timeoutMs?: number
@@ -52,6 +54,11 @@ export function createConfiguredCopilot (
 ): ConfiguredCopilot | undefined {
   const apiKey = options.apiKey ?? process.env.PHOENIX_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY
   if (!apiKey) return undefined
+
+  const profilesDirectory = prepareWritableAgentProfiles(
+    resolve(paths.resources.agents, options.agentsDirectory ?? '.'),
+    resolve(paths.user.data, options.profilesDirectory ?? 'copilot/agents')
+  )
 
   const conversations = new JsonConversationStore(
     resolve(paths.user.data, options.conversationsDirectory ?? 'conversations')
@@ -89,9 +96,7 @@ export function createConfiguredCopilot (
     ),
     ...(wireLogger === undefined ? {} : { wireLogger })
   })
-  const profiles = new FileAgentProfileRepository(
-    resolve(paths.resources.agents, options.agentsDirectory ?? '.')
-  )
+  const profiles = new FileAgentProfileRepository(profilesDirectory)
   const prompts = new AgentPromptComposer(profiles)
   const profileService = new CopilotProfileService(profiles, options.systemSettings)
   const runtimeContext = new RuntimeContextRenderer([new MissionRuntimeContext(options.missions)])
@@ -124,9 +129,7 @@ export function createConfiguredCopilot (
     text: new CopilotTextService(pipeline, options.runtimeState, conversations, () => profileService.activeProfileId()),
     realtime: new CopilotRealtimeService({
       activeProfileId: () => profileService.activeProfileId(),
-      audioProcessing: profileId => readCopilotAudioProcessing(resolve(
-        paths.resources.agents, options.agentsDirectory ?? '.', profileId, 'audio.json'
-      )),
+      audioProcessing: profileId => readCopilotAudioProcessing(resolve(profilesDirectory, profileId, 'audio.json')),
       conversations,
       gateway: new OpenAiRealtimeClient({ apiKey, wireLogger }),
       model: process.env.PHOENIX_OPENAI_REALTIME_MODEL ?? 'gpt-realtime-2.1-mini',

@@ -35,6 +35,7 @@ try {
       LOCALAPPDATA: resolve(userRoot, 'local-app-data'),
       PHOENIX_CATALOGUE_REFRESH: 'false',
       PHOENIX_HOST: '127.0.0.1',
+      PHOENIX_OPENAI_API_KEY: 'sk-phoenix-payload-smoke-test-not-a-real-key',
       PHOENIX_PATH_MODE: 'installed',
       PHOENIX_PORT: String(port),
       XDG_CACHE_HOME: resolve(userRoot, 'cache'),
@@ -60,7 +61,29 @@ try {
     if (!existsSync(required)) throw new Error(`Payload did not create expected user state: ${required}`)
   }
 
-  JSON.parse(readFileSync(resolve(configRoot, 'pairing.json'), 'utf8'))
+  const pairing = JSON.parse(readFileSync(resolve(configRoot, 'pairing.json'), 'utf8'))
+  const claim = await fetch(`http://127.0.0.1:${port}/api/pairing/claim`, {
+    body: JSON.stringify({ code: pairing.pairingCode }),
+    headers: { 'content-type': 'application/json' },
+    method: 'POST'
+  })
+  if (!claim.ok) throw new Error(`Payload pairing claim returned ${claim.status}.`)
+  const cookie = claim.headers.get('set-cookie')?.split(';')[0]
+  if (!cookie) throw new Error('Payload pairing claim did not return a session cookie.')
+  const profileResponse = await fetch(`http://127.0.0.1:${port}/api/copilot/profiles/marin`, {
+    headers: { cookie }
+  })
+  if (!profileResponse.ok) throw new Error(`Payload profile read returned ${profileResponse.status}.`)
+  const profile = await profileResponse.json()
+  const update = await fetch(`http://127.0.0.1:${port}/api/copilot/profiles/marin`, {
+    body: JSON.stringify({ ...profile, characterText: `${profile.characterText}\nPayload smoke edit.` }),
+    headers: { cookie, 'content-type': 'application/json' },
+    method: 'PUT'
+  })
+  if (!update.ok) throw new Error(`Payload profile update returned ${update.status}.`)
+  if (!existsSync(resolve(dataRoot, 'copilot/agents/marin/character.text.md'))) {
+    throw new Error('Payload did not persist the Copilot profile under writable user data.')
+  }
   const installationMode = process.platform === 'win32' ? 'isolated installation' : 'read-only installation'
   console.log(`PHOENIX payload smoke test passed: ${installationMode}, isolated writable user state.`)
 } finally {
