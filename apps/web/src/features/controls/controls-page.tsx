@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ControlDeckSurface } from '@jdu/control-deck-ui'
-import { PhoenixControlDeckThemeSchema, controlGridLayoutToControlDeckConfiguration, type CommandTarget, type ControlGridLayout, type GameActionAvailability, type GameActionOperation, type PhoenixControlDeckTheme, type RuntimeState } from '@phoenix/contracts'
+import { PHOENIX_CONTROL_LAYOUT_PRESETS, PhoenixControlDeckThemeSchema, applyControlGridPageLayoutPreset, controlGridLayoutToControlDeckConfiguration, phoenixControlLayoutPreset, type CommandTarget, type ControlGridLayout, type GameActionAvailability, type GameActionOperation, type PhoenixControlDeckTheme, type RuntimeState } from '@phoenix/contracts'
 import { Button, CommandTile, Field, IconButton, NumberInput, PageFrame, Select, Status, TextInput } from '@phoenix/ui'
 import { createClientId } from '../../application/identity/client-identity.js'
 import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
@@ -38,6 +38,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
       category,
       columns: 8,
       rows: 5,
+      layoutPresetId: null,
       theme: 'phoenix',
       cells: []
     }]
@@ -159,23 +160,45 @@ function DeckSettings ({ onCancel, onChange, onSave, page, saving }: {
   page: ControlGridLayout['pages'][number]
   saving: boolean
 }) {
+  const [columns, setColumns] = useState(String(page.columns))
+  const [rows, setRows] = useState(String(page.rows))
+  useEffect(() => setColumns(String(page.columns)), [page.columns])
+  useEffect(() => setRows(String(page.rows)), [page.rows])
+  const locked = page.layoutPresetId !== null
+  const presets = page.category === 'ship' ? PHOENIX_CONTROL_LAYOUT_PRESETS : []
   return <section aria-label="Deck settings" className="control-deck-settings">
     <Field htmlFor="control-deck-name" label="Deck">
       <TextInput maxLength={32} value={page.label} onChange={event => {
         if (event.target.value.trim()) onChange({ ...page, label: event.target.value })
       }} />
     </Field>
+    <Field htmlFor="control-deck-layout" label="Layout">
+      <Select value={page.layoutPresetId ?? ''} onChange={event => {
+        const preset = event.target.value === '' ? null : phoenixControlLayoutPreset(event.target.value)
+        if (event.target.value !== '' && !preset) return
+        onChange(applyControlGridPageLayoutPreset(page, preset ?? null))
+      }}>
+        <option value="">Custom</option>
+        {presets.map(preset => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
+      </Select>
+    </Field>
     <Field htmlFor="control-deck-columns" label="Columns">
-      <NumberInput min={2} max={12} value={page.columns} onChange={event => {
-        const columns = boundedInteger(event.target.value, 2, 12)
-        if (columns !== undefined) onChange(resizePage(page, columns, page.rows))
-      }} />
+      <NumberInput disabled={locked} min={2} max={12} value={columns}
+        onBlur={() => setColumns(String(page.columns))}
+        onChange={event => {
+          setColumns(event.target.value)
+          const nextColumns = boundedInteger(event.target.value, 2, 12)
+          if (nextColumns !== undefined) onChange(resizePage(page, nextColumns, page.rows))
+        }} />
     </Field>
     <Field htmlFor="control-deck-rows" label="Rows">
-      <NumberInput min={1} max={12} value={page.rows} onChange={event => {
-        const rows = boundedInteger(event.target.value, 1, 12)
-        if (rows !== undefined) onChange(resizePage(page, page.columns, rows))
-      }} />
+      <NumberInput disabled={locked} min={1} max={12} value={rows}
+        onBlur={() => setRows(String(page.rows))}
+        onChange={event => {
+          setRows(event.target.value)
+          const nextRows = boundedInteger(event.target.value, 1, 12)
+          if (nextRows !== undefined) onChange(resizePage(page, page.columns, nextRows))
+        }} />
     </Field>
     <Field htmlFor="control-deck-theme" label="Theme">
       <Select value={page.theme ?? 'phoenix'} onChange={event => onChange({

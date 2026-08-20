@@ -2,11 +2,16 @@ import { z } from 'zod'
 import {
   ControlDeckColorSchemeSchema,
   ControlDeckConfigurationSchema,
+  ControlDeckLayoutPresetIdSchema,
+  applyControlDeckLayoutPreset,
+  useCustomControlDeckLayout,
   type ControlDeckConfiguration,
-  type ControlDeckCommandTarget
+  type ControlDeckCommandTarget,
+  type ControlDeckLayoutPreset
 } from '@jdu/control-deck-core'
 import { GameActionCategorySchema } from './actions.js'
 import { CommandTargetSchema, type CommandTarget } from './commands.js'
+import { PHOENIX_SHIP_LAYOUT_PRESET } from './control-layout-presets.js'
 import { NumpadShortcutCollectionSchema } from './numpad.js'
 
 export const InputBackendModeSchema = z.enum(['auto', 'recording', 'linux-xdotool', 'windows-sendinput'])
@@ -40,6 +45,7 @@ const ControlGridPageSchema = z.object({
   category: GameActionCategorySchema,
   columns: z.number().int().min(2).max(12),
   rows: z.number().int().min(1).max(12).default(5),
+  layoutPresetId: ControlDeckLayoutPresetIdSchema.nullable().default(null),
   theme: PhoenixControlDeckThemeSchema.default('phoenix'),
   cells: z.array(ControlGridCellSchema).max(128)
 }).superRefine((page, context) => {
@@ -95,6 +101,7 @@ export function controlGridLayoutToControlDeckConfiguration (
       name: page.label,
       description: '',
       context: `phoenix:${page.category}`,
+      layoutPresetId: page.layoutPresetId,
       ...(page.theme === 'phoenix' ? {} : { appearance: { colorScheme: page.theme } }),
       layout: { kind: 'grid', columns: page.columns, rows: page.rows },
       elements: page.cells.map(cell => ({
@@ -142,6 +149,7 @@ export function controlDeckConfigurationToControlGridLayout (
         category,
         columns: deck.layout.columns,
         rows: deck.layout.rows,
+        layoutPresetId: deck.layoutPresetId ?? inferredLayoutPresetId(deck),
         theme: (deck.groupId ? groups.get(deck.groupId)?.appearance : undefined)?.colorScheme ?? deck.appearance?.colorScheme ?? 'phoenix',
         cells: deck.elements.map(element => {
           if (element.placement.rowSpan !== 1) {
@@ -182,6 +190,25 @@ export function mergeControlGridLayoutIntoControlDeckConfiguration (
   })
 }
 
+export function applyControlGridPageLayoutPreset (
+  candidate: ControlGridPage,
+  preset: ControlDeckLayoutPreset | null
+): ControlGridPage {
+  const page = ControlGridPageSchema.parse(candidate)
+  const configuration = controlGridLayoutToControlDeckConfiguration({ version: 4, pages: [page] })
+  const deck = configuration.decks[0]
+  if (!deck) throw new Error(`Unable to materialize PHOENIX control page ${page.id}.`)
+  const updatedDeck = preset
+    ? applyControlDeckLayoutPreset(deck, preset)
+    : useCustomControlDeckLayout(deck)
+  const updated = controlDeckConfigurationToControlGridLayout({
+    ...configuration,
+    decks: [updatedDeck]
+  }).pages[0]
+  if (!updated) throw new Error(`Unable to restore PHOENIX control page ${page.id}.`)
+  return updated
+}
+
 function phoenixTargetToControlDeckTarget (target: CommandTarget): ControlDeckCommandTarget {
   const commandId = target.type === 'game-action'
     ? `command.${target.actionId}`
@@ -205,6 +232,17 @@ function controlDeckTargetToPhoenixTarget (target: ControlDeckCommandTarget): Co
     return { type: 'game-action', actionId: target.commandId.slice('command.'.length) }
   }
   throw new Error(`Unknown PHOENIX command target: ${target.commandId}.`)
+}
+
+function inferredLayoutPresetId (deck: ControlDeckConfiguration['decks'][number]): string | null {
+  if (deck.context !== 'phoenix:ship' || deck.layout.columns !== PHOENIX_SHIP_LAYOUT_PRESET.layout.columns || deck.layout.rows !== PHOENIX_SHIP_LAYOUT_PRESET.layout.rows) return null
+  const elementsByAnchor = new Map(deck.elements.map(element => [`${element.placement.column}:${element.placement.row}`, element]))
+  const matches = PHOENIX_SHIP_LAYOUT_PRESET.slots.every(slot => {
+    const element = elementsByAnchor.get(`${slot.placement.column}:${slot.placement.row}`)
+    if (!element) return slot.placement.columnSpan === 1 && slot.placement.rowSpan === 1
+    return element.placement.columnSpan === slot.placement.columnSpan && element.placement.rowSpan === slot.placement.rowSpan
+  })
+  return matches ? PHOENIX_SHIP_LAYOUT_PRESET.id : null
 }
 
 export const PhoenixSettingsSchema = z.object({
@@ -278,6 +316,7 @@ export type InputBackendMode = z.infer<typeof InputBackendModeSchema>
 export type CopilotExecutionPermissions = z.infer<typeof CopilotExecutionPermissionsSchema>
 export type PhoenixModules = z.infer<typeof PhoenixModulesSchema>
 export type ControlGridLayout = z.infer<typeof ControlGridLayoutSchema>
+export type ControlGridPage = ControlGridLayout['pages'][number]
 export type PhoenixControlDeckTheme = z.infer<typeof PhoenixControlDeckThemeSchema>
 export type { ControlDeckConfiguration }
 export type PhoenixSettings = z.infer<typeof PhoenixSettingsSchema>

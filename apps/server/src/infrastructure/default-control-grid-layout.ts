@@ -62,6 +62,7 @@ function page (
     category: id,
     columns: 8,
     rows: 5,
+    layoutPresetId: id === 'ship' ? 'phoenix.ship' : null,
     cells
   }
 }

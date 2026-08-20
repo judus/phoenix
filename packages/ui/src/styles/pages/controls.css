@@ -39,7 +39,7 @@
 
     .control-deck-settings {
       display: grid;
-      grid-template-columns: minmax(12rem, 1fr) 6rem 6rem 8rem auto auto;
+      grid-template-columns: minmax(12rem, 1fr) minmax(9rem, auto) 6rem 6rem 8rem auto auto;
       align-items: end;
       gap: var(--spacing-sm);
       padding: var(--spacing-sm);
@@ -115,7 +115,7 @@
     }
 
     @media (max-width: 700px) {
-      .control-deck-settings { grid-template-columns: minmax(10rem, 1fr) repeat(3, minmax(5rem, auto)) auto auto; }
+      .control-deck-settings { grid-template-columns: minmax(10rem, 1fr) minmax(8rem, auto) repeat(3, minmax(5rem, auto)) auto auto; }
     }
 
     .control-picker {
