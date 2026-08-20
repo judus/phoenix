@@ -47,6 +47,7 @@ export const ControlDeckAdapterCommandSchema = z.object({
   risk: z.enum(['safe', 'caution', 'dangerous', 'destructive']),
   simulated: z.boolean(),
   operations: z.array(ControlDeckCommandOperationSchema).min(1),
+  timeoutMs: z.number().int().min(1).max(120_000).optional(),
   configurationSchema: JsonObjectSchema
 })
 
@@ -274,7 +275,7 @@ export class ControlDeckCommandService {
       payload: { adapter, target: request.target },
       requestId,
       targetKey: stableTargetKey(request.target),
-      ...(request.timeoutMs ? { timeoutMs: request.timeoutMs } : {})
+      ...((request.timeoutMs ?? command.timeoutMs) ? { timeoutMs: request.timeoutMs ?? command.timeoutMs } : {})
     }
     if (descriptor.holdOwner === 'adapter' && runtimeRequest.operation !== 'tap') {
       const timeout = AbortSignal.timeout(runtimeRequest.timeoutMs ?? 5_000)

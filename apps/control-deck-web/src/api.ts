@@ -2,10 +2,14 @@ import {
   ControlDeckCommandCatalogueSchema,
   ControlDeckCommandExecutionResultSchema,
   ControlDeckConfigurationSchema,
+  ControlDeckMacroDefinitionSchema,
+  ControlDeckMacroLibrarySchema,
+  ControlDeckMacroPlaybackSchema,
   PairingStatusSchema,
   type ControlDeckCommandOperation,
   type ControlDeckCommandTarget,
-  type ControlDeckConfiguration
+  type ControlDeckConfiguration,
+  type ControlDeckMacroDefinition
 } from '@jdu/control-deck-core'
 
 export class ControlDeckApi {
@@ -22,6 +26,22 @@ export class ControlDeckApi {
   }
 
   public commands () { return this.get('/api/commands', ControlDeckCommandCatalogueSchema) }
+
+  public macros () { return this.get('/api/macros', ControlDeckMacroLibrarySchema) }
+
+  public saveMacro (macro: ControlDeckMacroDefinition) {
+    return this.request('/api/macros', { method: 'POST', body: JSON.stringify(macro) }, ControlDeckMacroDefinitionSchema)
+  }
+
+  public deleteMacro (id: string) {
+    return this.request(`/api/macros/${encodeURIComponent(id)}`, { method: 'DELETE' }, ControlDeckMacroLibrarySchema)
+  }
+
+  public macroPlayback () { return this.get('/api/macros/playback', ControlDeckMacroPlaybackSchema.nullable()) }
+
+  public abortMacro () {
+    return this.request('/api/macros/playback', { method: 'DELETE' }, ControlDeckMacroPlaybackSchema.nullable())
+  }
 
   public execute (target: ControlDeckCommandTarget, operation: ControlDeckCommandOperation, leaseId?: string) {
     return this.request('/api/commands/execute', {

@@ -7,12 +7,14 @@ import {
   createPlatformKeyboardOutput,
   type KeyboardOutput
 } from '@jdu/control-deck-adapter-keyboard'
-import { ControlDeckCommandService, PairingService } from '@jdu/control-deck-core'
+import { ControlDeckCommandService, ControlDeckMacroCommandAdapter, PairingService, type ControlDeckCommandTarget } from '@jdu/control-deck-core'
 import {
   CommandHttpController,
   DeckConfigurationHttpController,
   FileControlDeckConfigurationRepository,
+  FileControlDeckMacroRepository,
   FilePairingCredentialsRepository,
+  MacroHttpController,
   NodePairingSecurity,
   PairingHttpController
 } from '@jdu/control-deck-host'
@@ -31,6 +33,7 @@ export class ControlDeckApplication {
   private readonly commands: ControlDeckCommandService
   private readonly commandHttp: CommandHttpController
   private readonly configurationHttp: DeckConfigurationHttpController
+  private readonly macroHttp: MacroHttpController
   private readonly host: string
   private readonly port: number
   private readonly server: Server
@@ -48,8 +51,19 @@ export class ControlDeckApplication {
       { cookieName: 'control_deck_session' }
     )
     this.keyboardOutput = options.keyboardOutput ?? createPlatformKeyboardOutput()
+    const keyboardAdapter = new KeyboardCommandAdapter(this.keyboardOutput)
+    const macroRepository = new FileControlDeckMacroRepository(resolve(options.dataDirectory, 'macros.json'))
+    const resolveKeyboardCommand = (target: ControlDeckCommandTarget) => target.adapterId === keyboardAdapter.describe().id
+      ? keyboardAdapter.describe().commands.find(command => command.id === target.commandId) ?? null
+      : null
+    const macroAdapter = new ControlDeckMacroCommandAdapter(macroRepository, {
+      createId: randomUUID,
+      executor: { execute: (request, ownerKey, signal) => this.commands.execute(request, ownerKey, signal) },
+      resolveCommand: resolveKeyboardCommand,
+      validateCommand: target => keyboardAdapter.validate(target)
+    })
     this.commands = new ControlDeckCommandService(
-      [new KeyboardCommandAdapter(this.keyboardOutput)],
+      [keyboardAdapter, macroAdapter],
       { createId: randomUUID }
     )
     this.commandHttp = new CommandHttpController(this.commands, {
@@ -58,6 +72,7 @@ export class ControlDeckApplication {
     this.configurationHttp = new DeckConfigurationHttpController(
       new FileControlDeckConfigurationRepository(resolve(options.dataDirectory, 'decks.json'))
     )
+    this.macroHttp = new MacroHttpController(macroRepository, macroAdapter)
     this.server = createServer((request, response) => {
       void this.handle(request, response).catch(cause => {
         writeJson(response, 500, {
@@ -111,6 +126,7 @@ export class ControlDeckApplication {
       return
     }
     if (await this.configurationHttp.handle(request, response)) return
+    if (await this.macroHttp.handle(request, response)) return
     if (await this.commandHttp.handle(request, response)) return
     if (request.method === 'GET' && path === '/api/health') {
       writeJson(response, 200, { name: 'Control Deck', status: 'ok' })

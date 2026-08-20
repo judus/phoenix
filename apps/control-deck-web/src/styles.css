@@ -31,8 +31,8 @@ button:disabled { cursor: default; opacity: .45; }
 .navigation-stack { min-width: 0; }
 .header-actions { display: grid; grid-auto-flow: column; grid-auto-columns: max-content; align-items: stretch; gap: .4rem; }
 .header-actions button { padding: .65rem .85rem; white-space: nowrap; }
-.header-actions .edit-toggle, .header-actions .fullscreen-toggle { display: grid; inline-size: 2.75rem; padding: .65rem; place-items: center; }
-.edit-toggle svg, .fullscreen-toggle svg { inline-size: 100%; block-size: 100%; }
+.header-actions .macro-toggle, .header-actions .edit-toggle, .header-actions .fullscreen-toggle { display: grid; inline-size: 2.75rem; padding: .65rem; place-items: center; }
+.macro-toggle svg, .edit-toggle svg, .fullscreen-toggle svg { inline-size: 100%; block-size: 100%; }
 .notice { position: absolute; z-index: 6; inset-inline: .75rem; inset-block-end: .75rem; margin: 0; padding: .65rem .85rem; border: 1px solid #34434e; border-left: .25rem solid var(--accent); background: #101a20ee; box-shadow: 0 .5rem 2rem #000a; pointer-events: none; }
 .error { color: #ff8e86; }
 .notice.error { border-color: #ff6258; }
@@ -58,8 +58,8 @@ button:disabled { cursor: default; opacity: .45; }
 .deck-button.pressed { border-color: var(--button-accent, var(--accent)); background: color-mix(in srgb, var(--button-background, var(--accent-panel)) 68%, var(--button-accent, var(--accent))); transform: translateY(1px); }
 .empty-button { border-color: var(--accent); border-style: dashed; color: var(--accent); background: #0b1014; font-size: 1.5rem; }
 .deck-settings { display: flex; align-items: end; gap: .6rem; padding: .6rem; border: 1px solid #283741; background: #0e1419; }
-.deck-settings label, .button-editor label { display: grid; gap: .25rem; color: #9cabb4; font-size: .8rem; }
-.deck-settings input, .deck-settings select, .button-editor input, .button-editor select { min-width: 0; padding: .5rem; border: 1px solid #34434e; color: inherit; background: #080b0e; }
+.deck-settings label, .button-editor label, .macro-manager label { display: grid; gap: .25rem; color: #9cabb4; font-size: .8rem; }
+.deck-settings input, .deck-settings select, .button-editor input, .button-editor select, .macro-manager input, .macro-manager select { min-width: 0; padding: .5rem; border: 1px solid #34434e; color: inherit; background: #080b0e; }
 .deck-settings input, .deck-settings select, .deck-settings > button { block-size: 2.5rem; }
 .deck-settings > button { padding: .5rem .75rem; }
 .deck-settings label:first-child, .deck-settings label:nth-child(2) { flex: 1; }
@@ -73,4 +73,26 @@ button:disabled { cursor: default; opacity: .45; }
 .modifier-picker button { padding: .5rem .75rem; }
 .modifier-picker button.active { border-color: var(--accent); color: var(--accent); background: var(--accent-panel); }
 .shortcut-preview { padding: .65rem; border-left: .2rem solid var(--accent); color: #e9f7ff; background: #080b0e; }
-@media (max-width: 700px) { .app-shell > header { grid-template-columns: 1fr auto; } .navigation-stack { grid-column: 1 / -1; grid-row: 2; } .deck-settings { flex-wrap: wrap; } .button-editor { inset: .75rem; } }
+.macro-manager { position: absolute; z-index: 7; inset: 5%; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 1rem; padding: 1.25rem; border: 1px solid var(--accent); background: #0e1419; box-shadow: 0 1rem 4rem #000c; }
+.macro-manager > header, .macro-manager footer, .macro-toolbar, .macro-list article, .macro-step, .macro-add { display: flex; align-items: center; gap: .65rem; }
+.macro-manager > header { justify-content: space-between; }
+.macro-manager > header > div, .macro-list article > div { display: grid; gap: .2rem; }
+.macro-manager small, .macro-hint, .macro-empty { color: #8799a5; }
+.macro-toolbar { align-self: start; }
+.macro-toolbar button:last-child { margin-left: auto; }
+.macro-list { display: grid; align-content: start; gap: .5rem; overflow-y: auto; }
+.macro-list article { padding: .7rem; border: 1px solid #283741; background: #080b0e; }
+.macro-list article > div { flex: 1; }
+.macro-editor { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto auto; gap: .8rem; min-height: 0; }
+.macro-fields { display: grid; grid-template-columns: minmax(8rem, 1fr) minmax(12rem, 2fr) auto; align-items: end; gap: .7rem; }
+.macro-enabled { display: flex !important; align-items: center; block-size: 2.5rem; }
+.macro-enabled input { inline-size: 1.1rem; block-size: 1.1rem; }
+.macro-steps { display: grid; align-content: start; gap: .45rem; min-height: 0; overflow-y: auto; }
+.macro-step { display: grid; grid-template-columns: 2rem minmax(10rem, 1fr) minmax(8rem, auto) auto; padding: .45rem; border: 1px solid #283741; background: #080b0e; }
+.macro-step-number { color: var(--accent); text-align: center; }
+.macro-wait { display: flex !important; align-items: center; gap: .5rem !important; }
+.macro-wait input { inline-size: 7rem; }
+.macro-step-actions { display: flex; gap: .3rem; }
+.macro-step-actions button { inline-size: 2.4rem; padding: .4rem; }
+.macro-manager footer { justify-content: flex-end; }
+@media (max-width: 700px) { .app-shell > header { grid-template-columns: 1fr auto; } .navigation-stack { grid-column: 1 / -1; grid-row: 2; } .deck-settings { flex-wrap: wrap; } .button-editor { inset: .75rem; } .macro-manager { inset: .5rem; } .macro-fields { grid-template-columns: 1fr; } .macro-step { grid-template-columns: 1.7rem minmax(0, 1fr); } .macro-step > select:nth-of-type(2), .macro-wait, .macro-step-actions { grid-column: 2; } }

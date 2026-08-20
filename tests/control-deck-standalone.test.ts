@@ -89,9 +89,34 @@ test('standalone Control Deck mounts the shared pairing host', async () => {
       displays: [{ id: 'tablet', deckId: 'desktop' }]
     })
 
+    const savedMacro = await fetch(`${baseUrl}/api/macros`, {
+      body: JSON.stringify({
+        version: 1,
+        id: 'double_key',
+        name: 'Double key',
+        description: '',
+        enabled: true,
+        steps: [
+          { type: 'command', target: { adapterId: 'builtin.keyboard', commandId: 'key', configuration: { key: 'A', modifiers: [] } }, operation: 'tap' },
+          { type: 'wait', durationMs: 1 },
+          { type: 'command', target: { adapterId: 'builtin.keyboard', commandId: 'key', configuration: { key: 'B', modifiers: [] } }, operation: 'tap' }
+        ]
+      }),
+      headers: { cookie: cookie!, 'content-type': 'application/json' },
+      method: 'POST'
+    })
+    expect(savedMacro.status).toBe(200)
+    expect(await savedMacro.json()).toMatchObject({ id: 'double_key', steps: [{ type: 'command' }, { type: 'wait' }, { type: 'command' }] })
+    expect(await (await fetch(`${baseUrl}/api/macros`, { headers: { cookie: cookie! } })).json()).toMatchObject({
+      macros: [{ id: 'double_key' }]
+    })
+
     const catalogue = await fetch(`${baseUrl}/api/commands`, { headers: { cookie: cookie! } })
     expect(await catalogue.json()).toMatchObject({
-      adapters: [{ id: 'builtin.keyboard', available: true, simulated: true }]
+      adapters: [
+        { id: 'builtin.keyboard', available: true, simulated: true },
+        { id: 'builtin.macro', commands: [{ id: 'double_key', simulated: true }] }
+      ]
     })
 
     const execute = async (operation: 'tap' | 'press' | 'release', leaseId?: string) => {
@@ -119,10 +144,22 @@ test('standalone Control Deck mounts the shared pairing host', async () => {
     expect(await execute('press', 'hold-1')).toMatchObject({ status: 'accepted' })
     expect(await execute('press', 'hold-1')).toMatchObject({ message: 'Hold lease renewed.' })
     expect(await execute('release', 'hold-1')).toMatchObject({ status: 'accepted' })
+    const macroExecution = await fetch(`${baseUrl}/api/commands/execute`, {
+      body: JSON.stringify({
+        target: { adapterId: 'builtin.macro', commandId: 'double_key', configuration: {} },
+        operation: 'tap'
+      }),
+      headers: { cookie: cookie!, 'content-type': 'application/json' },
+      method: 'POST'
+    })
+    expect(macroExecution.status).toBe(200)
+    expect(await macroExecution.json()).toMatchObject({ status: 'accepted', simulated: true })
     expect(keyboardOutput.getRecordedInputs().map(input => input.operation)).toEqual([
       'tap',
       'press',
-      'release'
+      'release',
+      'tap',
+      'tap'
     ])
   } finally {
     await application.stop()

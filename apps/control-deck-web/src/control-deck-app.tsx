@@ -5,10 +5,14 @@ import {
   type ControlDeckCommandExecutionResult,
   type ControlDeckCommandCatalogue,
   type ControlDeckCommandElement,
+  type ControlDeckCommandTarget,
   type ControlDeckColorScheme,
   type ControlDeckConfiguration,
   type ControlDeckDeck,
-  type ControlDeckDeckGroup
+  type ControlDeckDeckGroup,
+  type ControlDeckMacroDefinition,
+  type ControlDeckMacroLibrary,
+  type ControlDeckMacroStep
 } from '@jdu/control-deck-core'
 import { ControlDeckSurface } from '@jdu/control-deck-ui'
 import type { ControlDeckApi } from './api.js'
@@ -17,9 +21,11 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
   const [authenticated, setAuthenticated] = useState<boolean>()
   const [configuration, setConfiguration] = useState<ControlDeckConfiguration>()
   const [catalogue, setCatalogue] = useState<ControlDeckCommandCatalogue>()
+  const [macros, setMacros] = useState<ControlDeckMacroLibrary>()
   const [activeDeckId, setActiveDeckId] = useState<string>()
   const [editing, setEditing] = useState(false)
   const [editingCell, setEditingCell] = useState<{ column: number, row: number }>()
+  const [managingMacros, setManagingMacros] = useState(false)
   const [error, setError] = useState<string>()
   const [message, setMessage] = useState<string>()
   const held = useRef(new Map<string, string>())
@@ -29,10 +35,11 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
     const status = await api.status()
     setAuthenticated(status.authenticated)
     if (!status.authenticated) return
-    const [loadedConfiguration, nextCatalogue] = await Promise.all([api.configuration(), api.commands()])
+    const [loadedConfiguration, nextCatalogue, nextMacros] = await Promise.all([api.configuration(), api.commands(), api.macros()])
     const nextConfiguration = normalizeDeckHierarchy(loadedConfiguration)
     setConfiguration(nextConfiguration)
     setCatalogue(nextCatalogue)
+    setMacros(nextMacros)
     setActiveDeckId(current => nextConfiguration.decks.some(deck => deck.id === current)
       ? current
       : nextConfiguration.decks[0]?.id)
@@ -41,7 +48,7 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
 
   if (authenticated === undefined) return <main className="center"><p>Connecting to Control Deck…</p></main>
   if (!authenticated) return <Pairing onClaim={async code => { await api.claim(code); await load() }} error={error} />
-  if (!configuration || !catalogue) return <main className="center"><p>Loading decks…</p></main>
+  if (!configuration || !catalogue || !macros) return <main className="center"><p>Loading decks…</p></main>
 
   const deck = configuration.decks.find(candidate => candidate.id === activeDeckId)
   const group = configuration.groups?.find(candidate => candidate.id === deck?.groupId)
@@ -71,6 +78,24 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
       setError(undefined)
     } catch (cause) { setError(errorMessage(cause)) }
   }
+  const saveMacro = async (macro: ControlDeckMacroDefinition) => {
+    try {
+      const saved = await api.saveMacro(macro)
+      setMacros(current => current && ({ ...current, macros: current.macros.some(candidate => candidate.id === saved.id)
+        ? current.macros.map(candidate => candidate.id === saved.id ? saved : candidate)
+        : [...current.macros, saved] }))
+      setCatalogue(await api.commands())
+      setError(undefined)
+      return true
+    } catch (cause) { setError(errorMessage(cause)); return false }
+  }
+  const deleteMacro = async (id: string) => {
+    try {
+      setMacros(await api.deleteMacro(id))
+      setCatalogue(await api.commands())
+      setError(undefined)
+    } catch (cause) { setError(errorMessage(cause)) }
+  }
 
   return <main className={`app-shell theme-${group?.appearance?.colorScheme ?? deck?.appearance?.colorScheme ?? 'blue'}`}>
     <header>
@@ -94,6 +119,7 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
         </nav>
       </div>
       <div className="header-actions">
+        <button aria-label="Manage macros" className="macro-toggle" title="Manage macros" onClick={() => setManagingMacros(true)}><MacroIcon /></button>
         <button
           aria-label={editing ? 'Finish editing' : 'Edit deck'}
           aria-pressed={editing}
@@ -158,6 +184,7 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
             />}
           />
           {editingCell && <ButtonEditor
+            catalogue={catalogue}
             deck={deck}
             element={elementAt(deck, editingCell.column, editingCell.row)}
             position={editingCell}
@@ -170,7 +197,22 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
             }}
           />}
         </section>}
+    {managingMacros && <MacroManager
+      catalogue={catalogue}
+      configuration={configuration}
+      library={macros}
+      onAbort={async () => { try { await api.abortMacro(); setError(undefined) } catch (cause) { setError(errorMessage(cause)) } }}
+      onClose={() => setManagingMacros(false)}
+      onDelete={deleteMacro}
+      onSave={saveMacro}
+    />}
   </main>
+}
+
+function MacroIcon () {
+  return <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+    <path d="M3 12h3l2.5-6 4.5 12 2.5-6H21" stroke="currentColor" strokeLinecap="square" strokeLinejoin="miter" strokeWidth="1.75" />
+  </svg>
 }
 
 function EditIcon ({ active }: { active: boolean }) {
@@ -352,13 +394,17 @@ export function DeckButton ({ editing, element, label, onEdit, onTap, onHoldStar
   }} onPointerUp={finishPointer} onPointerCancel={finishPointer}><strong>{armed ? 'ARMED — TAP' : labelText}</strong><small>{element.target.configuration.key as string ?? element.target.commandId}</small></button>
 }
 
-export function ButtonEditor ({ element, position, onClose, onSave, onRemove }: { deck: ControlDeckDeck, element?: ControlDeckCommandElement, position: { column: number, row: number }, onClose(): void, onSave(element: ControlDeckCommandElement): void, onRemove(): void }) {
+export function ButtonEditor ({ catalogue, element, position, onClose, onSave, onRemove }: { catalogue?: ControlDeckCommandCatalogue, deck: ControlDeckDeck, element?: ControlDeckCommandElement, position: { column: number, row: number }, onClose(): void, onSave(element: ControlDeckCommandElement): void, onRemove(): void }) {
   const [label, setLabel] = useState(element?.appearance.label ?? '')
   const [key, setKey] = useState(typeof element?.target.configuration.key === 'string' ? element.target.configuration.key : '')
   const [modifiers, setModifiers] = useState<string[]>(Array.isArray(element?.target.configuration.modifiers) ? element.target.configuration.modifiers as string[] : [])
+  const [selectedCommand, setSelectedCommand] = useState(`${element?.target.adapterId ?? 'builtin.keyboard'}::${element?.target.commandId ?? 'key'}`)
   const [activation, setActivation] = useState(element?.interaction.activation ?? 'tap')
   const [confirmation, setConfirmation] = useState(element?.interaction.confirmation.kind ?? 'none')
   const [color, setColor] = useState(buttonColorId(element))
+  const commandOptions = buttonCommandOptions(catalogue, element)
+  const [adapterId, commandId] = selectedCommand.split('::') as [string, string]
+  const keyboardCommand = adapterId === 'builtin.keyboard' && commandId === 'key'
   const captureShortcut = (event: KeyboardEvent<HTMLInputElement>) => {
     if (isModifierKey(event.key)) return
     const shortcutKey = browserKeyToControlDeckKey(event.key)
@@ -375,9 +421,9 @@ export function ButtonEditor ({ element, position, onClose, onSave, onRemove }: 
     id: element?.id ?? `element_${Date.now().toString(36)}`,
     kind: 'command',
     target: {
-      adapterId: 'builtin.keyboard',
-      commandId: 'key',
-      configuration: { key: key.trim(), modifiers }
+      adapterId,
+      commandId,
+      configuration: keyboardCommand ? { key: key.trim(), modifiers } : {}
     },
     placement: element?.placement ?? {
       kind: 'grid',
@@ -393,7 +439,7 @@ export function ButtonEditor ({ element, position, onClose, onSave, onRemove }: 
       backgroundColor: BUTTON_COLORS[color]?.background ?? null
     },
     interaction: {
-      activation,
+      activation: keyboardCommand ? activation : 'tap',
       confirmation: confirmation === 'arm-then-tap'
         ? { kind: confirmation, armedForMs: 5_000 }
         : { kind: 'none' }
@@ -403,7 +449,13 @@ export function ButtonEditor ({ element, position, onClose, onSave, onRemove }: 
   return <section aria-modal="true" className="button-editor" role="dialog">
     <header><strong>Button {position.column}:{position.row}</strong><button onClick={onClose}>Close</button></header>
     <label>Label<input value={label} onChange={event => setLabel(event.target.value)} /></label>
-    <label>Shortcut<input
+    <label>Command<select value={selectedCommand} onChange={event => {
+      const next = event.target.value
+      setSelectedCommand(next)
+      const option = commandOptions.find(candidate => candidate.value === next)
+      if (!label.trim() && option) setLabel(option.label)
+    }}>{commandOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+    {keyboardCommand && <><label>Shortcut<input
       autoCapitalize="off"
       autoComplete="off"
       autoCorrect="off"
@@ -426,19 +478,182 @@ export function ButtonEditor ({ element, position, onClose, onSave, onRemove }: 
             : [...current, value])}
         >{text}</button>)}
     </div>
-    <output className="shortcut-preview">{[...modifiers.map(modifierLabel), key || 'Key'].join(' + ')}</output>
+    <output className="shortcut-preview">{[...modifiers.map(modifierLabel), key || 'Key'].join(' + ')}</output></>}
     <label>Color<select value={color} onChange={event => setColor(event.target.value)}>
       <option value="default">Deck default</option>
       {COLOR_SCHEMES.map(color => <option key={color.id} value={color.id}>{color.label}</option>)}
     </select></label>
-    <label>Activation<select value={activation} onChange={event => {
+    {keyboardCommand && <label>Activation<select value={activation} onChange={event => {
       const next = event.target.value as 'tap' | 'hold'
       setActivation(next)
       if (next === 'hold') setConfirmation('none')
-    }}><option value="tap">Tap</option><option value="hold">Hold while pressed</option></select></label>
-    <label>Safety<select disabled={activation === 'hold'} value={confirmation} onChange={event => setConfirmation(event.target.value as 'none' | 'arm-then-tap')}><option value="none">Immediate</option><option value="arm-then-tap">Hold to arm, then tap</option></select></label>
-    <footer>{element && <button className="danger" onClick={onRemove}>Remove</button>}<button disabled={!key.trim() || !label.trim()} onClick={saveButton}>Save button</button></footer>
+    }}><option value="tap">Tap</option><option value="hold">Hold while pressed</option></select></label>}
+    <label>Safety<select disabled={keyboardCommand && activation === 'hold'} value={confirmation} onChange={event => setConfirmation(event.target.value as 'none' | 'arm-then-tap')}><option value="none">Immediate</option><option value="arm-then-tap">Hold to arm, then tap</option></select></label>
+    <footer>{element && <button className="danger" onClick={onRemove}>Remove</button>}<button disabled={(keyboardCommand && !key.trim()) || !label.trim()} onClick={saveButton}>Save button</button></footer>
   </section>
+}
+
+export function MacroManager ({ catalogue, configuration, library, onAbort, onClose, onDelete, onSave }: {
+  catalogue: ControlDeckCommandCatalogue
+  configuration: ControlDeckConfiguration
+  library: ControlDeckMacroLibrary
+  onAbort(): Promise<unknown>
+  onClose(): void
+  onDelete(id: string): Promise<void>
+  onSave(macro: ControlDeckMacroDefinition): Promise<boolean>
+}) {
+  const [editing, setEditing] = useState<string | null>()
+  const macro = editing === null ? undefined : library.macros.find(candidate => candidate.id === editing)
+  const targets = macroTargetOptions(configuration, catalogue)
+
+  return <section aria-modal="true" className="macro-manager" role="dialog">
+    <header><div><strong>Macros</strong><small>Play commands and delays in sequence.</small></div><button onClick={onClose}>Close</button></header>
+    {editing !== undefined
+      ? <MacroEditor
+          key={macro?.id ?? 'new'}
+          macro={macro}
+          onCancel={() => setEditing(undefined)}
+          onSave={async candidate => { if (await onSave(candidate)) setEditing(undefined) }}
+          targets={targets}
+        />
+      : <>
+          <div className="macro-toolbar"><button onClick={() => setEditing(null)}>+ Macro</button><button onClick={() => { void onAbort() }}>Stop running macro</button></div>
+          {library.macros.length === 0
+            ? <p className="macro-empty">No macros yet.</p>
+            : <div className="macro-list">{library.macros.map(candidate => <article key={candidate.id}>
+                <div><strong>{candidate.name}</strong><small>{candidate.steps.length} {candidate.steps.length === 1 ? 'step' : 'steps'}{candidate.enabled ? '' : ' · disabled'}</small></div>
+                <button onClick={() => setEditing(candidate.id)}>Edit</button>
+                <button className="danger" onClick={() => { void onDelete(candidate.id) }}>Delete</button>
+              </article>)}</div>}
+        </>}
+  </section>
+}
+
+interface MacroTargetOption {
+  label: string
+  operations: Array<'tap' | 'press' | 'release'>
+  target: ControlDeckCommandTarget
+  value: string
+}
+
+function MacroEditor ({ macro, onCancel, onSave, targets }: {
+  macro?: ControlDeckMacroDefinition
+  onCancel(): void
+  onSave(macro: ControlDeckMacroDefinition): Promise<void>
+  targets: MacroTargetOption[]
+}) {
+  const [name, setName] = useState(macro?.name ?? '')
+  const [description, setDescription] = useState(macro?.description ?? '')
+  const [enabled, setEnabled] = useState(macro?.enabled ?? true)
+  const [steps, setSteps] = useState<ControlDeckMacroStep[]>(macro?.steps ?? [])
+  const [saving, setSaving] = useState(false)
+  const addCommand = () => {
+    const option = targets[0]
+    if (!option) return
+    setSteps(current => [...current, { type: 'command', target: option.target, operation: option.operations.includes('tap') ? 'tap' : option.operations[0]! }])
+  }
+  const replaceStep = (index: number, step: ControlDeckMacroStep) => setSteps(current => current.map((candidate, candidateIndex) => candidateIndex === index ? step : candidate))
+  const moveStep = (index: number, offset: -1 | 1) => setSteps(current => {
+    const destination = index + offset
+    if (destination < 0 || destination >= current.length) return current
+    const next = [...current]
+    ;[next[index], next[destination]] = [next[destination]!, next[index]!]
+    return next
+  })
+  const save = async () => {
+    setSaving(true)
+    try {
+      await onSave({
+        version: 1,
+        id: macro?.id ?? `macro_${Date.now().toString(36)}`,
+        name: name.trim(),
+        description: description.trim(),
+        enabled,
+        steps
+      })
+    } finally { setSaving(false) }
+  }
+
+  return <div className="macro-editor">
+    <div className="macro-fields">
+      <label>Name<input autoFocus value={name} onChange={event => setName(event.target.value)} /></label>
+      <label>Description<input value={description} onChange={event => setDescription(event.target.value)} /></label>
+      <label className="macro-enabled"><input checked={enabled} type="checkbox" onChange={event => setEnabled(event.target.checked)} /> Enabled</label>
+    </div>
+    <div className="macro-steps">
+      {steps.length === 0 && <p className="macro-empty">Add the first command or delay.</p>}
+      {steps.map((step, index) => <div className="macro-step" key={index}>
+        <span className="macro-step-number">{index + 1}</span>
+        {step.type === 'command'
+          ? <>
+              <select aria-label={`Step ${index + 1} command`} value={macroTargetKey(step.target)} onChange={event => {
+                const option = targets.find(candidate => candidate.value === event.target.value)
+                if (!option) return
+                replaceStep(index, { type: 'command', target: option.target, operation: option.operations.includes(step.operation) ? step.operation : option.operations[0]! })
+              }}>{macroTargetOptionsWithMissing(targets, step.target).map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+              <select aria-label={`Step ${index + 1} operation`} value={step.operation} onChange={event => replaceStep(index, { ...step, operation: event.target.value as 'tap' | 'press' | 'release' })}>
+                {macroTargetOptionsWithMissing(targets, step.target).find(option => option.value === macroTargetKey(step.target))?.operations.map(operation => <option key={operation} value={operation}>{operationLabel(operation)}</option>)}
+              </select>
+            </>
+          : <label className="macro-wait">Wait<input aria-label={`Step ${index + 1} delay in milliseconds`} inputMode="numeric" max="30000" min="0" type="number" value={step.durationMs} onChange={event => replaceStep(index, { type: 'wait', durationMs: Math.max(0, Math.min(30_000, Number(event.target.value) || 0)) })} /> ms</label>}
+        <div className="macro-step-actions">
+          <button aria-label={`Move step ${index + 1} up`} disabled={index === 0} onClick={() => moveStep(index, -1)}>↑</button>
+          <button aria-label={`Move step ${index + 1} down`} disabled={index === steps.length - 1} onClick={() => moveStep(index, 1)}>↓</button>
+          <button aria-label={`Remove step ${index + 1}`} className="danger" onClick={() => setSteps(current => current.filter((_, candidateIndex) => candidateIndex !== index))}>×</button>
+        </div>
+      </div>)}
+    </div>
+    <div className="macro-add"><button disabled={targets.length === 0} onClick={addCommand}>+ Command</button><button onClick={() => setSteps(current => [...current, { type: 'wait', durationMs: 250 }])}>+ Delay</button></div>
+    {targets.length === 0 && <p className="macro-hint">Configure a normal deck button before adding command steps.</p>}
+    <footer><button onClick={onCancel}>Cancel</button><button disabled={saving || !name.trim() || steps.length === 0} onClick={() => { void save() }}>{saving ? 'Saving…' : 'Save macro'}</button></footer>
+  </div>
+}
+
+function buttonCommandOptions (catalogue?: ControlDeckCommandCatalogue, element?: ControlDeckCommandElement): Array<{ label: string, value: string }> {
+  const options = [{ label: 'Keyboard', value: 'builtin.keyboard::key' }]
+  for (const command of catalogue?.adapters.find(adapter => adapter.id === 'builtin.macro')?.commands ?? []) {
+    options.push({ label: `Macro: ${command.label}`, value: `builtin.macro::${command.id}` })
+  }
+  const current = element && `${element.target.adapterId}::${element.target.commandId}`
+  if (current && !options.some(option => option.value === current)) options.push({ label: `${element.target.commandId} (unavailable)`, value: current })
+  return options
+}
+
+function macroTargetOptions (configuration: ControlDeckConfiguration, catalogue: ControlDeckCommandCatalogue): MacroTargetOption[] {
+  const options = new Map<string, MacroTargetOption>()
+  const groups = new Map((configuration.groups ?? []).map(group => [group.id, group]))
+  for (const deck of configuration.decks) {
+    const group = deck.groupId ? groups.get(deck.groupId) : undefined
+    for (const element of deck.elements) {
+      if (element.kind !== 'command' || element.target.adapterId === 'builtin.macro') continue
+      const descriptor = catalogue.adapters.find(adapter => adapter.id === element.target.adapterId)?.commands.find(command => command.id === element.target.commandId)
+      if (!descriptor?.available) continue
+      const value = macroTargetKey(element.target)
+      if (options.has(value)) continue
+      options.set(value, {
+        value,
+        target: element.target,
+        operations: descriptor.operations,
+        label: `${group?.name ?? deck.name} / ${group ? `${deck.name} / ` : ''}${element.appearance.label || descriptor.label}`
+      })
+    }
+  }
+  return [...options.values()]
+}
+
+function macroTargetOptionsWithMissing (options: MacroTargetOption[], target: ControlDeckCommandTarget): MacroTargetOption[] {
+  const value = macroTargetKey(target)
+  return options.some(option => option.value === value)
+    ? options
+    : [{ value, target, operations: ['tap', 'press', 'release'], label: `${target.commandId} (unavailable)` }, ...options]
+}
+
+function macroTargetKey (target: ControlDeckCommandTarget): string {
+  return `${target.adapterId}:${target.commandId}:${JSON.stringify(target.configuration, Object.keys(target.configuration).sort())}`
+}
+
+function operationLabel (operation: 'tap' | 'press' | 'release'): string {
+  return ({ tap: 'Tap', press: 'Press / hold', release: 'Release' })[operation]
 }
 
 function isModifierKey (key: string): boolean { return ['Alt', 'Control', 'Meta', 'Shift'].includes(key) }

@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { act, create } from 'react-test-renderer'
 import { afterEach, beforeAll, expect, test, vi } from 'vitest'
-import { ControlDeckCommandElementSchema, ControlDeckConfigurationSchema } from '@jdu/control-deck-core'
-import { ButtonEditor, ControlDeckApp, DeckButton, DeckSettings, FeedbackSlot, FullscreenButton, commandFailureMessage, createSubdeck, normalizeDeckHierarchy, toggleFullscreen } from '../apps/control-deck-web/src/control-deck-app.js'
+import { ControlDeckCommandElementSchema, ControlDeckConfigurationSchema, type ControlDeckCommandCatalogue } from '@jdu/control-deck-core'
+import { ButtonEditor, ControlDeckApp, DeckButton, DeckSettings, FeedbackSlot, FullscreenButton, MacroManager, commandFailureMessage, createSubdeck, normalizeDeckHierarchy, toggleFullscreen } from '../apps/control-deck-web/src/control-deck-app.js'
 import type { ControlDeckApi } from '../apps/control-deck-web/src/api.js'
 
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
@@ -128,6 +128,103 @@ test('the button editor captures Caps Lock as a key rather than a modifier', () 
   }))
 })
 
+test('a saved macro can be assigned to a button like a normal command', () => {
+  const onSave = vi.fn()
+  const catalogue = keyboardCatalogue()
+  catalogue.adapters.push({
+    id: 'builtin.macro',
+    version: '1',
+    label: 'Macros',
+    available: true,
+    simulated: false,
+    detail: 'Saved macros.',
+    platformRequirements: [],
+    holdOwner: 'adapter',
+    commands: [{
+      id: 'macro_boost',
+      label: 'Boost and gear',
+      description: 'Boost, wait, then toggle gear.',
+      category: 'Macros',
+      available: true,
+      unavailableReason: null,
+      risk: 'safe',
+      simulated: false,
+      operations: ['tap'],
+      configurationSchema: {}
+    }]
+  })
+  let renderer!: ReturnType<typeof create>
+  act(() => { renderer = create(<ButtonEditor
+    catalogue={catalogue}
+    deck={{ id: 'main', name: 'Main', description: '', context: null, layout: { kind: 'grid', columns: 1, rows: 1 }, elements: [] }}
+    position={{ column: 1, row: 1 }}
+    onClose={() => undefined}
+    onRemove={() => undefined}
+    onSave={onSave}
+  />) })
+
+  const command = renderer.root.findAllByType('select')[0]!
+  act(() => command.props.onChange({ target: { value: 'builtin.macro::macro_boost' } }))
+  expect(renderer.root.findAllByProps({ placeholder: 'Tap here, then press a key' })).toHaveLength(0)
+  const save = renderer.root.findAllByType('button').find(button => button.children.includes('Save button'))!
+  act(() => save.props.onClick())
+
+  expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+    target: { adapterId: 'builtin.macro', commandId: 'macro_boost', configuration: {} },
+    interaction: expect.objectContaining({ activation: 'tap' })
+  }))
+})
+
+test('the macro editor builds a sequence from configured deck commands and delays', async () => {
+  const configuration = ControlDeckConfigurationSchema.parse({
+    version: 1,
+    groups: [{ id: 'ship', name: 'Ship', description: '' }],
+    decks: [{
+      id: 'ship_01',
+      groupId: 'ship',
+      name: '01',
+      description: '',
+      context: null,
+      layout: { kind: 'grid', columns: 1, rows: 1 },
+      elements: [{
+        id: 'boost',
+        kind: 'command',
+        target: { adapterId: 'builtin.keyboard', commandId: 'key', configuration: { key: 'B', modifiers: [] } },
+        placement: { kind: 'grid', column: 1, row: 1 },
+        appearance: { label: 'Boost' },
+        interaction: { activation: 'tap', confirmation: { kind: 'none' } }
+      }]
+    }],
+    displays: []
+  })
+  const onSave = vi.fn(async () => true)
+  let renderer!: ReturnType<typeof create>
+  act(() => { renderer = create(<MacroManager
+    catalogue={keyboardCatalogue()}
+    configuration={configuration}
+    library={{ version: 1, macros: [] }}
+    onAbort={async () => undefined}
+    onClose={() => undefined}
+    onDelete={async () => undefined}
+    onSave={onSave}
+  />) })
+  act(() => renderer.root.findAllByType('button').find(button => button.children.includes('+ Macro'))!.props.onClick())
+  const name = renderer.root.findAllByType('input').find(input => input.props.autoFocus)!
+  act(() => name.props.onChange({ target: { value: 'Launch' } }))
+  act(() => renderer.root.findAllByType('button').find(button => button.children.includes('+ Command'))!.props.onClick())
+  act(() => renderer.root.findAllByType('button').find(button => button.children.includes('+ Delay'))!.props.onClick())
+  const save = renderer.root.findAllByType('button').find(button => button.children.includes('Save macro'))!
+  await act(async () => { save.props.onClick(); await Promise.resolve() })
+
+  expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+    name: 'Launch',
+    steps: [
+      { type: 'command', target: { adapterId: 'builtin.keyboard', commandId: 'key', configuration: { key: 'B', modifiers: [] } }, operation: 'tap' },
+      { type: 'wait', durationMs: 250 }
+    ]
+  }))
+})
+
 test('feedback is absent when idle and rendered as an out-of-flow notice', () => {
   let renderer!: ReturnType<typeof create>
   act(() => { renderer = create(<FeedbackSlot />) })
@@ -244,6 +341,7 @@ test('the subdeck rail appears only after a second subdeck exists', async () => 
     status: vi.fn(async () => ({ authenticated: true })),
     configuration: vi.fn(async () => configuration),
     commands: vi.fn(async () => ({ adapters: [] })),
+    macros: vi.fn(async () => ({ version: 1, macros: [] })),
     saveConfiguration: vi.fn(async candidate => candidate),
     execute: vi.fn()
   } as unknown as ControlDeckApi
@@ -359,4 +457,29 @@ function commandElement (
 
 function pointerEvent () {
   return { pointerId: 1, currentTarget: { setPointerCapture: () => undefined } }
+}
+
+function keyboardCatalogue (): ControlDeckCommandCatalogue {
+  return { adapters: [{
+    id: 'builtin.keyboard',
+    version: '1',
+    label: 'Keyboard',
+    available: true,
+    simulated: false,
+    detail: 'Keyboard input.',
+    platformRequirements: [],
+    holdOwner: 'control-deck',
+    commands: [{
+      id: 'key',
+      label: 'Keyboard key',
+      description: 'Send a keyboard shortcut.',
+      category: 'Input',
+      available: true,
+      unavailableReason: null,
+      risk: 'safe',
+      simulated: false,
+      operations: ['tap', 'press', 'release'],
+      configurationSchema: {}
+    }]
+  }] }
 }

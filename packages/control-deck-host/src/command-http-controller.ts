@@ -35,7 +35,7 @@ export class CommandHttpController {
         const result = await this.commands.execute(
           await readJsonBody(request),
           ownerKey,
-          AbortSignal.timeout(30_000)
+          AbortSignal.timeout(120_000)
         )
         writeJson(response, 200, result)
       } catch (cause) {
