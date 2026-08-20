@@ -55,13 +55,6 @@ import type {
   RuntimeState,
   ShipCatalogueResponse
 } from '@phoenix/contracts'
-import type {
-  ControlDeckCommandCatalogue,
-  ControlDeckCommandExecutionResult,
-  ControlDeckCommandOperation,
-  ControlDeckCommandTarget,
-  ControlDeckConfiguration
-} from '@jdu/control-deck-core'
 
 export type CopilotStreamEvent =
   | { type: 'started', conversationId: string }
@@ -103,7 +96,6 @@ export interface PhoenixApi {
   deleteMacro(id: string, signal?: AbortSignal): Promise<void>
   executeCopilotRealtimeTool(input: CopilotRealtimeToolRequest, signal?: AbortSignal): Promise<unknown>
   executeAction(actionId: string, operation?: GameActionOperation, options?: { leaseId?: string, signal?: AbortSignal }): Promise<GameActionResult>
-  executeControlDeckCommand(target: ControlDeckCommandTarget, operation: ControlDeckCommandOperation, leaseId?: string, signal?: AbortSignal): Promise<ControlDeckCommandExecutionResult>
   executeNumpadAddress(address: string, revision: number, signal?: AbortSignal): Promise<NumpadExecutionResult>
   getEngineeringBlueprint(symbol: string, signal?: AbortSignal): Promise<EngineeringBlueprintDetail>
   getEngineeringBlueprints(signal?: AbortSignal): Promise<EngineeringBlueprintsResponse>
@@ -118,8 +110,6 @@ export interface PhoenixApi {
   getCopilotRealtimeContext(signal?: AbortSignal): Promise<{ fingerprint: string, text: string, updatedAt: string | null }>
   getCopilotVoiceHost(signal?: AbortSignal): Promise<CopilotVoiceHostSnapshot>
   getCommunications(view?: 'all' | 'inbox' | 'traffic', limit?: number, signal?: AbortSignal): Promise<CommunicationsResponse>
-  getControlDeckCommands(signal?: AbortSignal): Promise<ControlDeckCommandCatalogue>
-  getControlDeckConfiguration(signal?: AbortSignal): Promise<ControlDeckConfiguration>
   getControlLayout(signal?: AbortSignal): Promise<ControlGridLayout>
   getCommands(signal?: AbortSignal): Promise<CommandCatalogResponse>
   getFleet(signal?: AbortSignal): Promise<FleetResponse>
@@ -159,7 +149,6 @@ export interface PhoenixApi {
   releasePairing(signal?: AbortSignal): Promise<void>
   requestCopilotVoiceHostState(connected: boolean, signal?: AbortSignal): Promise<CopilotVoiceHostCommandAccepted>
   saveMacro(macro: MacroDefinition, signal?: AbortSignal): Promise<MacroDefinition>
-  saveControlDeckConfiguration(configuration: ControlDeckConfiguration, signal?: AbortSignal): Promise<ControlDeckConfiguration>
   saveControlLayout(layout: ControlGridLayout, signal?: AbortSignal): Promise<ControlGridLayout>
   saveModuleSettings(settings: PhoenixModules, signal?: AbortSignal): Promise<PhoenixModules>
   saveInstallationSettings(settings: InstallationSettingsUpdate, signal?: AbortSignal): Promise<InstallationSettings>

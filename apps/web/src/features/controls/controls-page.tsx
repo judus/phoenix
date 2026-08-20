@@ -1,121 +1,206 @@
-import { useMemo } from 'react'
-import {
-  ControlDeckNumpadTreeContributionSchema,
-  type ControlDeckDeck,
-  type ControlDeckNumpadContributionNode,
-  type ControlDeckNumpadTreeContribution
-} from '@jdu/control-deck-core'
-import { ControlDeckApp } from '@jdu/control-deck-ui'
-import type { NumpadTreeNode, NumpadTreeSnapshot } from '@phoenix/contracts'
-import type { PhoenixApi } from '../../application/api/phoenix-api.js'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ControlDeckSurface } from '@jdu/control-deck-ui'
+import { controlGridLayoutToControlDeckConfiguration, type CommandTarget, type ControlGridLayout, type GameActionAvailability, type GameActionOperation, type RuntimeState } from '@phoenix/contracts'
+import { Button, CommandTile, Field, PageFrame, PageHeader, Status, TextInput } from '@phoenix/ui'
+import { createClientId } from '../../application/identity/client-identity.js'
+import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
 import type { ControlCategory } from '../../application/navigation/phoenix-route.js'
-import { PhoenixControlDeckClient } from './phoenix-control-deck-client.js'
+import { controlsCategoryLabel, gameActionCategoryLabel } from './controls-navigation.js'
+import type { ControlsControllerSnapshot } from './use-controls-controller.js'
+import { HoldGestureController } from './hold-gesture-controller.js'
 
-const NUMPAD_DESTINATION_PREFIX = 'phoenix-numpad:'
-
-export function ControlsPage ({ api, category, numpadSnapshot, onNavigateCategory, onNavigateHref }: {
-  api: PhoenixApi
+export function ControlsPage({ category, controller, editing, macros, runtime, onEditingChange, onExecuteAction, onSaveLayout }: {
   category: ControlCategory
-  numpadSnapshot?: NumpadTreeSnapshot
-  onNavigateCategory(category: ControlCategory): void
-  onNavigateHref(href: string): void
+  controller: ControlsControllerSnapshot
+  editing: boolean
+  macros: MacroRuntime
+  runtime?: RuntimeState
+  onEditingChange(editing: boolean): void
+  onExecuteAction(actionId: string, operation: GameActionOperation, leaseId?: string): Promise<unknown>
+  onSaveLayout(layout: ControlGridLayout): Promise<ControlGridLayout>
 }) {
-  const client = useMemo(() => new PhoenixControlDeckClient(api), [api])
-  const contributions = useMemo(() => numpadSnapshot ? phoenixNumpadContributions(numpadSnapshot) : [], [numpadSnapshot])
+  const [error, setError] = useState<string>()
+  const [draft, setDraft] = useState<ControlGridLayout>()
+  const [editingPosition, setEditingPosition] = useState<number>()
+  const [filter, setFilter] = useState('')
+  const [saving, setSaving] = useState(false)
+  const held = useRef(new HoldGestureController())
+  useEffect(() => { if (!editing) setDraft(controller.layout) }, [controller.layout, editing])
+  useEffect(() => { onEditingChange(false); setEditingPosition(undefined); setFilter('') }, [category])
+  useEffect(() => () => { void held.current.releaseAll() }, [category])
+  const activeLayout = draft ?? controller.layout
+  const page = activeLayout?.pages.find(candidate => candidate.category === category)
+  const deck = useMemo(() => controlGridLayoutToControlDeckConfiguration(activeLayout ?? {
+    version: 4,
+    pages: [{
+      id: category,
+      label: controlsCategoryLabel(category),
+      category,
+      columns: 8,
+      rows: 5,
+      cells: []
+    }]
+  }).decks.find(candidate => candidate.context === `phoenix:${category}`)!, [activeLayout, category])
+  const actions = new Map(controller.actions?.actions.map(action => [action.definition.id, action]) ?? [])
+  const cells = new Map(page?.cells.map(cell => [cell.position, cell]) ?? [])
 
-  const selectDeck = (deck: ControlDeckDeck) => {
-    const selectedCategory = controlCategoryFromContext(deck.context)
-    if (selectedCategory) onNavigateCategory(selectedCategory)
+  const execute = (action: GameActionAvailability, operation: GameActionOperation, leaseId?: string) => {
+    const operationRequest = macros.recording
+      ? macros.recordAction(action.definition.id, operation)
+      : onExecuteAction(action.definition.id, operation, leaseId)
+    return operationRequest
+      .then(() => setError(undefined))
+      .catch(cause => setError(cause instanceof Error ? cause.message : 'Control execution failed.'))
   }
 
-  const navigate = async (destinationId: string) => {
-    if (!destinationId.startsWith(NUMPAD_DESTINATION_PREFIX)) return
-    const encoded = destinationId.slice(NUMPAD_DESTINATION_PREFIX.length)
-    const separator = encoded.indexOf(':')
-    const revision = Number(encoded.slice(0, separator))
-    const address = encoded.slice(separator + 1)
-    if (!Number.isInteger(revision) || separator < 1 || !/^\d+$/u.test(address)) {
-      throw new Error('PHOENIX received an invalid Numpad destination.')
-    }
-    const result = await api.executeNumpadAddress(address, revision)
-    if (result.status !== 'accepted') throw new Error(result.message)
-    if (result.command?.navigationHref) onNavigateHref(result.command.navigationHref)
-  }
-
-  return <ControlDeckApp
-    activeDeckContext={`phoenix:${category}`}
-    api={client}
-    numpadContributions={contributions}
-    onActiveDeckChange={selectDeck}
-    onNumpadNavigate={navigate}
-  />
+  return (
+    <PageFrame className={`controls-page${editing ? ' editing' : ''}`} layout="fit">
+      <PageHeader
+        actions={macros.recording
+          ? <><span className="recording-status">Recording · {macros.recording.entries.length} commands</span><Button variant="quiet" onClick={() => void macros.cancelRecording()}>Cancel</Button><Button variant="primary" onClick={() => void macros.stopRecording()}>Stop and review</Button></>
+          : editing
+            ? <><Button variant="quiet" onClick={() => { setDraft(controller.layout); onEditingChange(false); setEditingPosition(undefined) }}>Cancel</Button><Button busy={saving} variant="primary" onClick={() => {
+              if (!draft) return
+              setSaving(true)
+              void onSaveLayout(draft).then(saved => { setDraft(saved); onEditingChange(false); setError(undefined) }).catch(cause => setError(cause instanceof Error ? cause.message : 'Unable to save control layout.')).finally(() => setSaving(false))
+            }}>Save layout</Button></>
+            : null}
+        context="Controls"
+        title={controlsCategoryLabel(category)}
+      />
+      {controller.status === 'error' || error || macros.error
+        ? <Status tone="danger">{error ?? macros.error ?? controller.error}</Status>
+        : controller.status === 'loading'
+          ? <Status tone="muted">Loading command grid…</Status>
+          : <ControlDeckSurface
+              aria-label={`${controlsCategoryLabel(category)} command grid`}
+              className="controls controls-command control-deck"
+              deck={deck}
+              renderEmpty={({ column, row }) => {
+                const position = (row - 1) * deck.layout.columns + column
+                return editing
+                  ? <Button aria-label={`Cell ${position}`} className="control-deck-empty" variant="quiet" onClick={() => { setEditingPosition(position); setFilter('') }}>{position}</Button>
+                  : <div className="control-deck-empty" />
+              }}
+              renderCommand={element => {
+                const position = (element.placement.row - 1) * deck.layout.columns + element.placement.column
+                const cell = cells.get(position)
+                const target = cell?.target
+                if (!target) return <div className="control-deck-empty" />
+                if (target.type === 'macro') {
+                  const macro = macros.library.macros.find(candidate => candidate.id === target.macroId)
+                  return <CommandTile kind="macro" label={macro?.name ?? target.macroId} meta={editing ? `Cell ${position}` : macro?.risk} unavailable={!editing && !macro?.enabled} onClick={() => editing ? (setEditingPosition(position), setFilter('')) : macro && void macros.play(macro)} onContextMenu={event => event.preventDefault()} />
+                }
+                if (target.type !== 'game-action') return <MissingTarget target={target} />
+                const action = actions.get(target.actionId)
+                if (!action) return <MissingTarget target={target} />
+                const active = telemetryState(runtime, action.definition.telemetryKey)
+                return <CommandTile
+                  binding={action.binding?.display}
+                  label={action.definition.label}
+                  meta={action.definition.inputMode}
+                  selected={active}
+                  tone={action.definition.risk === 'dangerous' ? 'danger' : 'normal'}
+                  unavailable={!action.available}
+                  disabled={!editing && !action.available}
+                  onContextMenu={event => event.preventDefault()}
+                  onClick={event => {
+                    if (editing) { setEditingPosition(position); setFilter(''); return }
+                    if (action.definition.inputMode !== 'hold') void execute(action, 'tap')
+                    else if (event.detail === 0) {
+                      const leaseId = createClientId()
+                      void execute(action, 'press', leaseId).then(() => execute(action, 'release', leaseId))
+                    }
+                  }}
+                  onPointerDown={event => {
+                    if (editing || action.definition.inputMode !== 'hold') return
+                    event.currentTarget.setPointerCapture?.(event.pointerId)
+                    held.current.begin(
+                      action.definition.id,
+                      (operation, leaseId) => execute(action, operation, leaseId),
+                      !macros.recording
+                    )
+                  }}
+                  onPointerUp={() => { void held.current.end(action.definition.id) }}
+                  onPointerCancel={() => { void held.current.end(action.definition.id) }}
+                />
+              }}
+            />}
+      {editing && editingPosition !== undefined && <ControlPicker
+        actions={controller.actions?.actions ?? []}
+        filter={filter}
+        macros={macros}
+        onClose={() => setEditingPosition(undefined)}
+        onFilterChange={setFilter}
+        onSelect={target => {
+          if (!draft) return
+          setDraft(assignTarget(draft, category, editingPosition, target))
+          setEditingPosition(undefined)
+        }}
+        onClear={() => {
+          if (!draft) return
+          setDraft(assignTarget(draft, category, editingPosition, null))
+          setEditingPosition(undefined)
+        }}
+        position={editingPosition}
+      />}
+    </PageFrame>
+  )
 }
 
-export function phoenixNumpadContributions (snapshot: NumpadTreeSnapshot): ControlDeckNumpadTreeContribution[] {
-  const children = new Map<string | null, NumpadTreeNode[]>()
-  for (const node of snapshot.nodes) children.set(node.parentId, [...(children.get(node.parentId) ?? []), node])
-  const roots = children.get(null) ?? []
-  const shortcutsRoot = roots.find(node => node.id === 'desktop.shortcuts')
-  const controlsRoot = roots.find(node => node.id === 'desktop.controls')
-  const excludedFromNavigation = new Set([
-    ...(shortcutsRoot ? descendants(shortcutsRoot.id, children) : []),
-    ...(controlsRoot ? descendants(controlsRoot.id, children) : [])
-  ].map(node => node.id))
-
-  const navigationNodes = snapshot.nodes.filter(node => !excludedFromNavigation.has(node.id))
-  const customNodes = shortcutsRoot ? descendants(shortcutsRoot.id, children).filter(node => node.id !== shortcutsRoot.id) : []
-
-  return [
-    contribution('phoenix-navigation', '2', 'PHOENIX', navigationNodes, null, snapshot.revision),
-    contribution('phoenix-custom', '3', 'Custom', customNodes, shortcutsRoot?.id ?? null, snapshot.revision)
-  ]
+function ControlPicker({ actions, filter, macros, onClear, onClose, onFilterChange, onSelect, position }: {
+  actions: GameActionAvailability[]
+  filter: string
+  macros: MacroRuntime
+  onClear(): void
+  onClose(): void
+  onFilterChange(value: string): void
+  onSelect(target: CommandTarget): void
+  position: number
+}) {
+  const needle = filter.trim().toLowerCase()
+  const candidates = useMemo(() => actions.filter(action => !needle || [
+    action.definition.label,
+    action.definition.eliteBinding,
+    gameActionCategoryLabel(action.definition.category),
+    action.binding?.display
+  ].some(value => value?.toLowerCase().includes(needle))), [actions, needle])
+  return <section aria-modal="true" className="control-picker" role="dialog">
+    <header><div><strong>Assign command</strong><small>Cell {position}</small></div><Button variant="quiet" onClick={onClose}>Close</Button></header>
+    <Field htmlFor="control-filter" label="Filter commands"><TextInput autoFocus value={filter} onChange={event => onFilterChange(event.target.value)} /></Field>
+    <div className="control-picker-list">
+      {macros.library.macros.filter(macro => !needle || macro.name.toLowerCase().includes(needle)).map(macro => <Button alignment="start" key={macro.id} variant="quiet" onClick={() => onSelect({ type: 'macro', macroId: macro.id })}>{macro.name} · Macro</Button>)}
+      {candidates.map(action => <Button alignment="start" key={action.definition.id} variant="quiet" onClick={() => onSelect({ type: 'game-action', actionId: action.definition.id })}>{controlPickerActionLabel(action)}</Button>)}
+    </div>
+    <footer><Button variant="danger" onClick={onClear}>Clear cell</Button></footer>
+  </section>
 }
 
-function contribution (
-  id: string,
-  selector: string,
-  label: string,
-  source: NumpadTreeNode[],
-  replacedParentId: string | null,
-  revision: number
-): ControlDeckNumpadTreeContribution {
-  const rootId = 'root'
-  const nodes: ControlDeckNumpadContributionNode[] = [{ id: rootId, parentId: null, selector, label, available: true, action: null }]
-  const sourceIds = new Set(source.map(node => node.id))
-  for (const node of source) {
-    nodes.push({
-      id: node.id,
-      parentId: node.parentId === replacedParentId || !node.parentId || !sourceIds.has(node.parentId) ? rootId : node.parentId,
-      selector: node.selector,
-      label: node.label,
-      ...(node.description ? { description: node.description } : {}),
-      available: node.available,
-      ...(node.unavailableReason ? { unavailableReason: node.unavailableReason } : {}),
-      action: node.target ? { type: 'navigation', destinationId: `${NUMPAD_DESTINATION_PREFIX}${revision}:${node.address}` } : null,
-      ...(node.position ? { position: node.position } : {}),
-      ...(node.span ? { columnSpan: node.span } : {}),
-      ...(node.columns ? { columns: node.columns } : {}),
-      ...(node.rows ? { rows: node.rows } : {})
+export function controlPickerActionLabel(action: GameActionAvailability): string {
+  return `${action.definition.label} · ${gameActionCategoryLabel(action.definition.category)} · ${action.binding?.display ?? 'Unbound'}`
+}
+
+function assignTarget(layout: ControlGridLayout, category: ControlCategory, position: number, target: CommandTarget | null): ControlGridLayout {
+  return {
+    ...layout,
+    pages: layout.pages.map(page => {
+      if (page.category !== category) return page
+      return {
+        ...page,
+        cells: page.cells.some(cell => cell.position === position)
+          ? page.cells.map(cell => cell.position === position ? { ...cell, target } : cell)
+          : [...page.cells, { position, span: 1, target }].sort((left, right) => left.position - right.position)
+      }
     })
   }
-  return ControlDeckNumpadTreeContributionSchema.parse({ id, nodes })
 }
 
-function descendants (rootId: string, children: Map<string | null, NumpadTreeNode[]>): NumpadTreeNode[] {
-  const result: NumpadTreeNode[] = []
-  const visit = (id: string) => {
-    const node = [...children.values()].flat().find(candidate => candidate.id === id)
-    if (node) result.push(node)
-    for (const child of children.get(id) ?? []) visit(child.id)
-  }
-  visit(rootId)
-  return result
+function MissingTarget({ target }: { target: CommandTarget }) {
+  const label = target.type === 'navigation' ? target.destinationId : target.type === 'macro' ? target.macroId : target.actionId
+  return <CommandTile label={label} unavailable />
 }
 
-function controlCategoryFromContext (context: string | null | undefined): ControlCategory | undefined {
-  if (!context?.startsWith('phoenix:')) return undefined
-  const category = context.slice('phoenix:'.length)
-  return ['ship', 'combat', 'navigation', 'vessel', 'srv', 'on_foot', 'radio', 'emote', 'misc'].includes(category)
-    ? category as ControlCategory
-    : undefined
+function telemetryState(runtime: RuntimeState | undefined, key: string | null): boolean {
+  if (!key || !runtime?.gameStatus) return false
+  return (runtime.gameStatus.flags as unknown as Record<string, boolean>)[key] === true
 }
