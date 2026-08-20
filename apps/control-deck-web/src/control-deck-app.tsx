@@ -94,7 +94,13 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
         </nav>
       </div>
       <div className="header-actions">
-        <button className="edit-toggle" onClick={() => { setEditing(value => !value); setEditingCell(undefined) }}>{editing ? 'Done' : 'Edit'}</button>
+        <button
+          aria-label={editing ? 'Finish editing' : 'Edit deck'}
+          aria-pressed={editing}
+          className="edit-toggle"
+          title={editing ? 'Finish editing' : 'Edit deck'}
+          onClick={() => { setEditing(value => !value); setEditingCell(undefined) }}
+        ><EditIcon active={editing} /></button>
         <FullscreenButton onError={setError} />
       </div>
     </header>
@@ -165,6 +171,12 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
           />}
         </section>}
   </main>
+}
+
+function EditIcon ({ active }: { active: boolean }) {
+  return <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+    <path d={active ? 'M5 12.5l4 4L19 6.5' : 'M4 20h4L19 9l-4-4L4 16v4M13.5 6.5l4 4'} stroke="currentColor" strokeLinecap="square" strokeLinejoin="miter" strokeWidth="1.75" />
+  </svg>
 }
 
 export function FullscreenButton ({ onError, documentSource = globalThis.document }: {

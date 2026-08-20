@@ -31,8 +31,8 @@ button:disabled { cursor: default; opacity: .45; }
 .navigation-stack { min-width: 0; }
 .header-actions { display: grid; grid-auto-flow: column; grid-auto-columns: max-content; align-items: stretch; gap: .4rem; }
 .header-actions button { padding: .65rem .85rem; white-space: nowrap; }
-.header-actions .fullscreen-toggle { display: grid; inline-size: 2.75rem; padding: .65rem; place-items: center; }
-.fullscreen-toggle svg { inline-size: 100%; block-size: 100%; }
+.header-actions .edit-toggle, .header-actions .fullscreen-toggle { display: grid; inline-size: 2.75rem; padding: .65rem; place-items: center; }
+.edit-toggle svg, .fullscreen-toggle svg { inline-size: 100%; block-size: 100%; }
 .notice { position: absolute; z-index: 6; inset-inline: .75rem; inset-block-end: .75rem; margin: 0; padding: .65rem .85rem; border: 1px solid #34434e; border-left: .25rem solid var(--accent); background: #101a20ee; box-shadow: 0 .5rem 2rem #000a; pointer-events: none; }
 .error { color: #ff8e86; }
 .notice.error { border-color: #ff6258; }
