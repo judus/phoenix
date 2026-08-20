@@ -146,6 +146,7 @@ test('feedback is absent when idle and rendered as an out-of-flow notice', () =>
   expect(stylesheet).toMatch(/\.deck-button:focus-visible \{ outline: none; \}/u)
   expect(stylesheet).toMatch(/\.deck-button\.armed \{[^}]*color-mix/u)
   expect(stylesheet).not.toMatch(/\.deck-button\.armed \{[^}]*box-shadow/u)
+  expect(stylesheet).toMatch(/\.empty-button \{[^}]*border-color: var\(--accent\)[^}]*color: var\(--accent\)[^}]*background: #0b1014/u)
 })
 
 test('deck dimensions allow temporary empty drafts and save only valid values', () => {
