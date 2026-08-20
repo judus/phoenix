@@ -1,7 +1,16 @@
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import {
   ControlDeckConfigurationSchema,
+  activateControlDeckNumpadSession,
+  aggregateControlDeckNumpadTrees,
+  confirmControlDeckNumpadSelection,
+  controlDeckNumpadChildren,
+  controlDeckNumpadContribution,
   createControlDeckClientId,
+  displayedControlDeckNumpadAddress,
+  enterControlDeckNumpadDigitOrCancel,
+  idleControlDeckNumpadSession,
+  selectControlDeckNumpadNode,
   type ControlDeckCommandExecutionResult,
   type ControlDeckCommandCatalogue,
   type ControlDeckCommandElement,
@@ -12,12 +21,23 @@ import {
   type ControlDeckDeckGroup,
   type ControlDeckMacroDefinition,
   type ControlDeckMacroLibrary,
-  type ControlDeckMacroStep
+  type ControlDeckMacroStep,
+  type ControlDeckNumpadAction,
+  type ControlDeckNumpadSessionState,
+  type ControlDeckNumpadTransition,
+  type ControlDeckNumpadTree,
+  type ControlDeckNumpadTreeContribution
 } from '@jdu/control-deck-core'
 import { ControlDeckSurface } from '@jdu/control-deck-ui'
 import type { ControlDeckApi } from './api.js'
 
-export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
+const EMPTY_NUMPAD_CONTRIBUTIONS: readonly ControlDeckNumpadTreeContribution[] = []
+
+export function ControlDeckApp ({ api, numpadContributions = EMPTY_NUMPAD_CONTRIBUTIONS, onNumpadNavigate }: {
+  api: ControlDeckApi
+  numpadContributions?: readonly ControlDeckNumpadTreeContribution[]
+  onNumpadNavigate?(destinationId: string): void | Promise<void>
+}) {
   const [authenticated, setAuthenticated] = useState<boolean>()
   const [configuration, setConfiguration] = useState<ControlDeckConfiguration>()
   const [catalogue, setCatalogue] = useState<ControlDeckCommandCatalogue>()
@@ -26,10 +46,15 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
   const [editing, setEditing] = useState(false)
   const [editingCell, setEditingCell] = useState<{ column: number, row: number }>()
   const [managingMacros, setManagingMacros] = useState(false)
+  const [numpadOpen, setNumpadOpen] = useState(false)
+  const [activateNumpadOnOpen, setActivateNumpadOnOpen] = useState(false)
   const [error, setError] = useState<string>()
   const [message, setMessage] = useState<string>()
   const held = useRef(new Map<string, string>())
   const rememberedSubdecks = useRef(new Map<string, string>())
+  const numpadTree = useMemo(() => configuration
+    ? aggregateControlDeckNumpadTrees([controlDeckNumpadContribution(configuration), ...numpadContributions])
+    : undefined, [configuration, numpadContributions])
 
   const load = async () => {
     const status = await api.status()
@@ -45,6 +70,17 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
       : nextConfiguration.decks[0]?.id)
   }
   useEffect(() => { void load().catch(cause => setError(errorMessage(cause))) }, [])
+  useEffect(() => {
+    if (numpadOpen || typeof globalThis.addEventListener !== 'function') return
+    const activate = (event: globalThis.KeyboardEvent) => {
+      if (event.code !== 'Numpad0' || isEditableEventTarget(event.target)) return
+      event.preventDefault()
+      setActivateNumpadOnOpen(true)
+      setNumpadOpen(true)
+    }
+    globalThis.addEventListener('keydown', activate)
+    return () => globalThis.removeEventListener('keydown', activate)
+  }, [numpadOpen])
 
   if (authenticated === undefined) return <main className="center"><p>Connecting to Control Deck…</p></main>
   if (!authenticated) return <Pairing onClaim={async code => { await api.claim(code); await load() }} error={error} />
@@ -119,6 +155,7 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
         </nav>
       </div>
       <div className="header-actions">
+        <button aria-label="Open Numpad" className="numpad-toggle" title="Open Numpad" onClick={() => { setActivateNumpadOnOpen(false); setNumpadOpen(true) }}><NumpadIcon /></button>
         <button aria-label="Manage macros" className="macro-toggle" title="Manage macros" onClick={() => setManagingMacros(true)}><MacroIcon /></button>
         <button
           aria-label={editing ? 'Finish editing' : 'Edit deck'}
@@ -206,7 +243,38 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
       onDelete={deleteMacro}
       onSave={saveMacro}
     />}
+    {numpadOpen && numpadTree && <NumpadConsole
+      initiallyActive={activateNumpadOnOpen}
+      onAction={async action => {
+        if (action.type === 'command') {
+          const result = await api.execute(action.target, 'tap')
+          const failure = commandFailureMessage(result)
+          if (failure) throw new Error(failure)
+          return
+        }
+        const deckPrefix = 'control-deck:deck:'
+        if (action.destinationId.startsWith(deckPrefix)) {
+          const deckId = action.destinationId.slice(deckPrefix.length)
+          const destination = configuration.decks.find(deck => deck.id === deckId)
+          if (!destination) throw new Error('The selected subdeck no longer exists.')
+          setActiveDeckId(deckId)
+          if (destination.groupId) rememberedSubdecks.current.set(destination.groupId, deckId)
+          return
+        }
+        if (!onNumpadNavigate) throw new Error(`No navigation handler is registered for ${action.destinationId}.`)
+        await onNumpadNavigate(action.destinationId)
+      }}
+      onClose={() => setNumpadOpen(false)}
+      onError={setError}
+      tree={numpadTree}
+    />}
   </main>
+}
+
+function NumpadIcon () {
+  return <svg aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+    {[5, 12, 19].flatMap(y => [5, 12, 19].map(x => <rect height="2.5" key={`${x}:${y}`} width="2.5" x={x - 1.25} y={y - 1.25} />))}
+  </svg>
 }
 
 function MacroIcon () {
@@ -491,6 +559,100 @@ export function ButtonEditor ({ catalogue, element, position, onClose, onSave, o
     <label>Safety<select disabled={keyboardCommand && activation === 'hold'} value={confirmation} onChange={event => setConfirmation(event.target.value as 'none' | 'arm-then-tap')}><option value="none">Immediate</option><option value="arm-then-tap">Hold to arm, then tap</option></select></label>
     <footer>{element && <button className="danger" onClick={onRemove}>Remove</button>}<button disabled={(keyboardCommand && !key.trim()) || !label.trim()} onClick={saveButton}>Save button</button></footer>
   </section>
+}
+
+export function NumpadConsole ({ initiallyActive, onAction, onClose, onError, tree }: {
+  initiallyActive: boolean
+  onAction(action: ControlDeckNumpadAction): Promise<void>
+  onClose(): void
+  onError(message?: string): void
+  tree: ControlDeckNumpadTree
+}) {
+  const [session, setSession] = useState<ControlDeckNumpadSessionState>(() => initiallyActive ? activateControlDeckNumpadSession() : idleControlDeckNumpadSession())
+  const applying = useRef(false)
+  const previousTree = useRef(tree)
+  useEffect(() => {
+    if (previousTree.current === tree) return
+    previousTree.current = tree
+    setSession(idleControlDeckNumpadSession())
+  }, [tree])
+  const cancel = () => { setSession(idleControlDeckNumpadSession()); onClose() }
+  const apply = (transition: ControlDeckNumpadTransition) => {
+    if (transition.action && applying.current) return
+    setSession(transition.state)
+    if (!transition.action) return
+    applying.current = true
+    void onAction(transition.action).then(() => {
+      onError(undefined)
+      if (transition.state.status === 'executing') onClose()
+    }).catch(cause => {
+      const message = errorMessage(cause)
+      onError(message)
+      setSession(current => ({ ...current, status: 'invalid', message }))
+    }).finally(() => { applying.current = false })
+  }
+  useEffect(() => {
+    if (typeof globalThis.addEventListener !== 'function') return
+    const input = (event: globalThis.KeyboardEvent) => {
+      if (isEditableEventTarget(event.target)) return
+      const digit = event.code.match(/^Numpad([0-9])$/u)?.[1]
+      if (!session.active && event.code === 'Numpad0') {
+        event.preventDefault()
+        setSession(activateControlDeckNumpadSession())
+        return
+      }
+      if (!session.active) return
+      if (digit) {
+        event.preventDefault()
+        const transition = enterControlDeckNumpadDigitOrCancel(tree, session, digit)
+        if (!transition.state.active) cancel()
+        else apply(transition)
+      } else if (event.code === 'NumpadDecimal' || event.key === '.' || event.key === 'Escape') {
+        event.preventDefault()
+        cancel()
+      } else if (event.code === 'NumpadEnter' || event.key === 'Enter') {
+        event.preventDefault()
+        apply(confirmControlDeckNumpadSelection(tree, session))
+      }
+    }
+    globalThis.addEventListener('keydown', input)
+    return () => globalThis.removeEventListener('keydown', input)
+  }, [session, tree])
+  const parent = tree.nodes.find(node => node.id === session.pathIds.at(-1))
+  const nodes = controlDeckNumpadChildren(tree, parent?.id ?? null)
+  const columns = parent?.columns ?? balancedNumpadColumns(nodes.length)
+  const rows = parent?.rows ?? Math.max(1, Math.ceil(nodes.length / columns))
+  const gridStyle = { '--numpad-columns': columns, '--numpad-rows': rows } as CSSProperties
+
+  return <section aria-modal="true" className="numpad-console" role="dialog">
+    <header>
+      <div><small>Address</small><strong>{displayedControlDeckNumpadAddress(tree, session)}</strong></div>
+      <div><small>Context</small><strong>{parent?.label ?? 'Decks'}</strong></div>
+      <div><small>Status</small><strong>{session.active ? session.message ?? session.status : 'Press Numpad 0'}</strong></div>
+      <button disabled={!session.active || !['ambiguous', 'ready'].includes(session.status)} onClick={() => apply(confirmControlDeckNumpadSelection(tree, session))}>Enter ↵</button>
+      <button onClick={cancel}>Exit ·</button>
+    </header>
+    <div aria-label="Numpad choices" className="numpad-grid" style={gridStyle}>
+      {nodes.length === 0 && <p className="macro-empty">No buttons configured for this level.</p>}
+      {nodes.map(node => <button
+        className={session.pendingDigits && node.selector.startsWith(session.pendingDigits) ? 'matching' : ''}
+        disabled={!node.available}
+        key={node.id}
+        onClick={() => apply(selectControlDeckNumpadNode(tree, session.active ? session : activateControlDeckNumpadSession(), node.id))}
+        style={node.position && parent?.columns
+          ? { gridColumn: `${((node.position - 1) % parent.columns) + 1} / span ${node.columnSpan ?? 1}`, gridRow: `${Math.floor((node.position - 1) / parent.columns) + 1} / span ${node.rowSpan ?? 1}` }
+          : undefined}
+      ><small>{node.selector}</small><strong>{node.label}</strong><span>{controlDeckNumpadChildren(tree, node.id).length > 0 ? 'Open ›' : node.action?.type ?? 'Unavailable'}</span></button>)}
+    </div>
+  </section>
+}
+
+function balancedNumpadColumns (count: number): number {
+  return count <= 3 ? Math.max(1, count) : Math.min(10, Math.ceil(Math.sqrt(count * 1.6)))
+}
+
+function isEditableEventTarget (target: EventTarget | null): boolean {
+  return typeof HTMLElement !== 'undefined' && target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
 }
 
 export function MacroManager ({ catalogue, configuration, library, onAbort, onClose, onDelete, onSave }: {

@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { act, create } from 'react-test-renderer'
 import { afterEach, beforeAll, expect, test, vi } from 'vitest'
-import { ControlDeckCommandElementSchema, ControlDeckConfigurationSchema, type ControlDeckCommandCatalogue } from '@jdu/control-deck-core'
-import { ButtonEditor, ControlDeckApp, DeckButton, DeckSettings, FeedbackSlot, FullscreenButton, MacroManager, commandFailureMessage, createSubdeck, normalizeDeckHierarchy, toggleFullscreen } from '../apps/control-deck-web/src/control-deck-app.js'
+import { ControlDeckCommandElementSchema, ControlDeckConfigurationSchema, aggregateControlDeckNumpadTrees, type ControlDeckCommandCatalogue } from '@jdu/control-deck-core'
+import { ButtonEditor, ControlDeckApp, DeckButton, DeckSettings, FeedbackSlot, FullscreenButton, MacroManager, NumpadConsole, commandFailureMessage, createSubdeck, normalizeDeckHierarchy, toggleFullscreen } from '../apps/control-deck-web/src/control-deck-app.js'
 import type { ControlDeckApi } from '../apps/control-deck-web/src/api.js'
 
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
@@ -225,6 +225,33 @@ test('the macro editor builds a sequence from configured deck commands and delay
   }))
 })
 
+test('the Numpad console renders numbered levels and emits semantic actions', async () => {
+  const onAction = vi.fn(async () => undefined)
+  const tree = aggregateControlDeckNumpadTrees([{
+    id: 'test',
+    nodes: [
+      { id: 'deck', parentId: null, selector: '1', label: 'Ship', available: true, action: null },
+      { id: 'subdeck', parentId: 'deck', selector: '1', label: '01', available: true, action: { type: 'navigation', destinationId: 'control-deck:deck:ship' }, columns: 2, rows: 1 },
+      { id: 'button', parentId: 'subdeck', selector: '2', label: 'Boost', available: true, action: { type: 'command', target: { adapterId: 'builtin.keyboard', commandId: 'key', configuration: { key: 'B' } } }, position: 2 }
+    ]
+  }])
+  let renderer!: ReturnType<typeof create>
+  act(() => { renderer = create(<NumpadConsole initiallyActive onAction={onAction} onClose={() => undefined} onError={() => undefined} tree={tree} />) })
+  expect(renderer.root.findByProps({ 'aria-label': 'Numpad choices' }).props.style).toMatchObject({ '--numpad-columns': 1 })
+
+  act(() => renderer.root.findAllByType('button').find(button => button.children.some(child => typeof child !== 'string' && child.children?.includes('Ship')))!.props.onClick())
+  await act(async () => {
+    renderer.root.findAllByType('button').find(button => button.children.some(child => typeof child !== 'string' && child.children?.includes('01')))!.props.onClick()
+    await Promise.resolve()
+  })
+  expect(onAction).toHaveBeenCalledWith({ type: 'navigation', destinationId: 'control-deck:deck:ship' })
+  await act(async () => {
+    renderer.root.findAllByType('button').find(button => button.children.some(child => typeof child !== 'string' && child.children?.includes('Boost')))!.props.onClick()
+    await Promise.resolve()
+  })
+  expect(onAction).toHaveBeenCalledWith({ type: 'command', target: { adapterId: 'builtin.keyboard', commandId: 'key', configuration: { key: 'B' } } })
+})
+
 test('feedback is absent when idle and rendered as an out-of-flow notice', () => {
   let renderer!: ReturnType<typeof create>
   act(() => { renderer = create(<FeedbackSlot />) })
@@ -357,6 +384,7 @@ test('the subdeck rail appears only after a second subdeck exists', async () => 
   expect(addDeck.children).toEqual(['+'])
   const edit = renderer.root.findByProps({ 'aria-label': 'Edit deck' })
   expect(edit.findByType('svg')).toBeDefined()
+  expect(renderer.root.findByProps({ 'aria-label': 'Open Numpad' }).findByType('svg')).toBeDefined()
   act(() => edit.props.onClick())
   expect(renderer.root.findByProps({ 'aria-label': 'Finish editing' }).findByType('svg')).toBeDefined()
   const add = renderer.root.findAllByType('button').find(button => button.children.includes('+ Subdeck'))!
