@@ -56,6 +56,19 @@ test('a hold command maps pointer lifetime to press and release callbacks', () =
   expect(renderer.toJSON()).toMatchObject({ props: { className: 'deck-button' } })
 })
 
+test('a tap command shows the themed pressed state for its pointer lifetime', () => {
+  const onTap = vi.fn()
+  const renderer = createButton(commandElement('tap', { kind: 'none' }), { onTap })
+  const button = renderer.root.findByType('button')
+
+  act(() => button.props.onPointerDown(pointerEvent()))
+  expect(renderer.toJSON()).toMatchObject({ props: { className: 'deck-button pressed' } })
+  act(() => button.props.onPointerUp({ currentTarget: { blur: vi.fn() } }))
+  expect(renderer.toJSON()).toMatchObject({ props: { className: 'deck-button' } })
+  act(() => button.props.onClick())
+  expect(onTap).toHaveBeenCalledOnce()
+})
+
 test('the button editor supports right-side modifiers and button colors', () => {
   const onSave = vi.fn()
   let renderer!: ReturnType<typeof create>

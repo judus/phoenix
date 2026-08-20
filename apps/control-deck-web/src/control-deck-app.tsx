@@ -253,13 +253,13 @@ export function DeckButton ({ editing, element, label, onEdit, onTap, onHoldStar
   }
   const finishPointer = (event?: { currentTarget?: { blur(): void } }) => {
     event?.currentTarget?.blur()
+    setPressed(false)
     if (armingTimer.current) globalThis.clearTimeout(armingTimer.current)
     armingTimer.current = undefined
     if (suppressClick.current) {
       globalThis.setTimeout(() => { suppressClick.current = false }, 0)
     }
     if (!editing && element.interaction.confirmation.kind === 'none' && element.interaction.activation === 'hold') {
-      setPressed(false)
       onHoldEnd()
     }
   }
@@ -270,14 +270,15 @@ export function DeckButton ({ editing, element, label, onEdit, onTap, onHoldStar
   return <button className={`deck-button${armed ? ' armed' : ''}${pressed ? ' pressed' : ''}`} style={style} onClick={activate} onContextMenu={event => event.preventDefault()} onPointerDown={event => {
     if (editing) return
     event.currentTarget.setPointerCapture?.(event.pointerId)
+    setPressed(true)
     if (element.interaction.confirmation.kind === 'arm-then-tap') {
       armingTimer.current = globalThis.setTimeout(() => {
         suppressClick.current = true
+        setPressed(false)
         setArmed(true)
         expiryTimer.current = globalThis.setTimeout(() => setArmed(false), element.interaction.confirmation.kind === 'arm-then-tap' ? element.interaction.confirmation.armedForMs : 5_000)
       }, 650)
     } else if (element.interaction.activation === 'hold') {
-      setPressed(true)
       onHoldStart()
     }
   }} onPointerUp={finishPointer} onPointerCancel={finishPointer}><strong>{armed ? 'ARMED — TAP' : labelText}</strong><small>{element.target.configuration.key as string ?? element.target.commandId}</small></button>
