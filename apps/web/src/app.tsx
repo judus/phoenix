@@ -1,5 +1,4 @@
 import { lazy, memo, Suspense, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { ApplicationNavigationItem } from '@phoenix/ui'
 import { PlaceholderPage } from './components/shell/placeholder-page.js'
 import { PhoenixApplicationShell } from './components/shell/phoenix-application-shell.js'
 import { isInformationRoute, workspaceForRoute } from './application/navigation/phoenix-route.js'
@@ -27,7 +26,6 @@ import { useCommsController } from './features/comms/use-comms-controller.js'
 import { engineeringContextForRoute, engineeringNavigationItems } from './features/engineering/engineering-navigation.js'
 import { useEngineeringController } from './features/engineering/use-engineering-controller.js'
 import { controlsContext, controlsNavigationItems } from './features/controls/controls-navigation.js'
-import { useControlsController } from './features/controls/use-controls-controller.js'
 import { useMacroRuntime } from './features/macros/macro-runtime-provider.js'
 import { numpadContext, numpadNavigationItems } from './features/numpad/numpad-navigation.js'
 import { useNumpadController } from './features/numpad/use-numpad-controller.js'
@@ -77,17 +75,6 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
   const controlsRoute = route.kind === 'controls' ? route : undefined
   const numpadRoute = route.kind === 'numpad' ? route : undefined
   const logRoute = route.kind === 'journal' || route.kind === 'developer' ? route : undefined
-  const [controlsEditing, setControlsEditing] = useState(false)
-  const controlsRailItems = useMemo<ApplicationNavigationItem[]>(() => [
-    ...controlsNavigationItems,
-    {
-      id: 'edit-layout',
-      kind: 'action',
-      label: controlsEditing ? 'Cancel layout editing' : 'Edit layout',
-      shortLabel: 'EDT',
-      pressed: controlsEditing
-    }
-  ], [controlsEditing])
   const informationContext = commanderRoute
     ? {
         informationContextItems: commanderNavigationItems,
@@ -134,11 +121,10 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       onNavigateRoute={router.push}
       onNavigateWorkspace={(workspace) => router.push(router.routeForWorkspace(workspace))}
       controls={mountedWorkspaces.current.has('controls')
-        ? <FeatureBoundary><ControlsFeature application={application} category={controlsRoute?.category ?? 'ship'} editing={controlsEditing} onEditingChange={setControlsEditing} /></FeatureBoundary>
+        ? <FeatureBoundary><ControlsFeature application={application} category={controlsRoute?.category ?? 'ship'} /></FeatureBoundary>
         : null}
-      controlsContextItems={controlsRailItems}
+      controlsContextItems={controlsNavigationItems}
       controlsCurrentContext={controlsContext(controlsRoute?.category ?? 'ship')}
-      onControlsContextAction={(item) => { if (item.id === 'edit-layout') setControlsEditing(current => !current) }}
       copilot={mountedWorkspaces.current.has('copilot')
         ? <FeatureBoundary><StableCopilotFeature application={application} view={route.kind === 'copilot' ? route.view : 'chat'} /></FeatureBoundary>
         : null}
@@ -218,24 +204,17 @@ const JournalFeature = memo(function JournalFeature({ application }: { applicati
   return <JournalPage controller={useJournalController(application.api, application.events)} />
 })
 
-const ControlsFeature = memo(function ControlsFeature({ application, category, editing, onEditingChange }: {
+const ControlsFeature = memo(function ControlsFeature({ application, category }: {
   application: PhoenixApplicationServices
   category: Extract<ReturnType<PhoenixRouter['getSnapshot']>, { kind: 'controls' }>['category']
-  editing: boolean
-  onEditingChange(editing: boolean): void
 }) {
-  const controller = useControlsController(application.api, application.events)
-  const runtime = useRuntimeState(application.runtime)
-  const macros = useMacroRuntime()
+  const numpad = useNumpadController(application.api, application.events)
   return <ControlsPage
+    api={application.api}
     category={category}
-    controller={controller}
-    editing={editing}
-    macros={macros}
-    onEditingChange={onEditingChange}
-    runtime={runtime.status === 'ready' ? runtime.state : undefined}
-    onExecuteAction={(actionId, operation, leaseId) => application.api.executeAction(actionId, operation, { leaseId })}
-    onSaveLayout={layout => application.api.saveControlLayout(layout)}
+    numpadSnapshot={numpad.snapshot}
+    onNavigateCategory={nextCategory => application.router.push({ kind: 'controls', category: nextCategory })}
+    onNavigateHref={href => application.numpadRouteSession.navigate(href)}
   />
 })
 

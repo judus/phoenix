@@ -54,6 +54,16 @@ import {
   RuntimeStateSchema,
   ShipCatalogueResponseSchema
 } from '@phoenix/contracts'
+import {
+  ControlDeckCommandCatalogueSchema,
+  ControlDeckCommandExecutionResultSchema,
+  ControlDeckConfigurationSchema,
+  type ControlDeckCommandCatalogue,
+  type ControlDeckCommandExecutionResult,
+  type ControlDeckCommandOperation,
+  type ControlDeckCommandTarget,
+  type ControlDeckConfiguration
+} from '@jdu/control-deck-core'
 import type {
   ActivityLogResponse,
   CartographyLookupResponse,
@@ -254,6 +264,33 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async executeNumpadAddress(address: string, revision: number, signal?: AbortSignal): Promise<NumpadExecutionResult> {
     return this.#json('/api/numpad/execute', 'POST', { address, revision }, NumpadExecutionResultSchema, signal)
+  }
+
+  async getControlDeckCommands(signal?: AbortSignal): Promise<ControlDeckCommandCatalogue> {
+    return this.#get('/api/control-deck/commands', ControlDeckCommandCatalogueSchema, signal)
+  }
+
+  async getControlDeckConfiguration(signal?: AbortSignal): Promise<ControlDeckConfiguration> {
+    return this.#get('/api/control-deck/configuration', ControlDeckConfigurationSchema, signal)
+  }
+
+  async saveControlDeckConfiguration(configuration: ControlDeckConfiguration, signal?: AbortSignal): Promise<ControlDeckConfiguration> {
+    return this.#json('/api/control-deck/configuration', 'PUT', ControlDeckConfigurationSchema.parse(configuration), ControlDeckConfigurationSchema, signal)
+  }
+
+  async executeControlDeckCommand(
+    target: ControlDeckCommandTarget,
+    operation: ControlDeckCommandOperation,
+    leaseId?: string,
+    signal?: AbortSignal
+  ): Promise<ControlDeckCommandExecutionResult> {
+    return this.#json(
+      '/api/control-deck/commands/execute',
+      'POST',
+      { target, operation, ...(leaseId ? { leaseId } : {}) },
+      ControlDeckCommandExecutionResultSchema,
+      signal
+    )
   }
 
   async getControlLayout(signal?: AbortSignal): Promise<ControlGridLayout> {

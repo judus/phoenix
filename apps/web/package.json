@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@jdu/control-deck-core": "*",
     "@jdu/control-deck-ui": "*",
     "@phoenix/contracts": "*",
     "@phoenix/ui": "*",

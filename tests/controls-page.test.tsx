@@ -1,139 +1,59 @@
-import { readFileSync } from 'node:fs'
-import { renderToStaticMarkup } from 'react-dom/server'
+import { aggregateControlDeckNumpadTrees, controlDeckNumpadContribution, ControlDeckConfigurationSchema } from '@jdu/control-deck-core'
 import { expect, test } from 'vitest'
-import { createEmptyRuntimeState } from '@phoenix/contracts'
-import { controlPickerActionLabel, ControlsPage } from '../apps/web/src/features/controls/controls-page.js'
-import type { MacroRuntime } from '../apps/web/src/application/macros/macro-runtime.js'
-import { DEFAULT_CONTROL_GRID_LAYOUT } from '../apps/server/src/infrastructure/default-control-grid-layout.js'
+import type { NumpadTreeSnapshot } from '@phoenix/contracts'
+import { phoenixNumpadContributions } from '../apps/web/src/features/controls/controls-page.js'
 
-test('the controls page renders bound and unbound discovered commands', () => {
-  const markup = renderToStaticMarkup(
-    <ControlsPage
-      category="ship"
-      editing={false}
-      controller={{
-        status: 'ready',
-        layout: DEFAULT_CONTROL_GRID_LAYOUT,
-        actions: {
-          backend: {
-            id: 'linux-xdotool',
-            available: true,
-            simulated: false,
-            detail: 'xdotool ready'
-          },
-          bindingSource: {
-            directory: '/game/Bindings',
-            filePath: '/game/Bindings/Custom.4.2.binds',
-            presetNames: ['Custom'],
-            available: true,
-            bindingCount: 352,
-            keyboardBindingCount: 116,
-            loadedAt: '2026-08-10T14:00:00.000Z',
-            error: null
-          },
-          actions: [
-            action('elite.ShipSpotLightToggle', 'ShipSpotLightToggle', 'Ship Lights', 'L'),
-            action('elite.UseBoostJuice', 'UseBoostJuice', 'Boost', null)
-          ]
-        }
-      }}
-      macros={emptyMacroRuntime()}
-      runtime={createEmptyRuntimeState()}
-      onExecuteAction={() => Promise.reject(new Error('not executed during server rendering'))}
-      onEditingChange={() => undefined}
-      onSaveLayout={layout => Promise.resolve(layout)}
-    />
-  )
+test('PHOENIX contributes navigation and custom-command branches beside Control Deck', () => {
+  const snapshot = numpadSnapshot()
+  const contributions = phoenixNumpadContributions(snapshot)
+  const tree = aggregateControlDeckNumpadTrees([
+    controlDeckNumpadContribution(ControlDeckConfigurationSchema.parse({
+      version: 1,
+      groups: [{ id: 'ship', name: 'Ship', description: '' }],
+      decks: [{
+        id: 'ship_01', groupId: 'ship', name: '01', description: '', context: 'phoenix:ship',
+        layout: { kind: 'grid', columns: 1, rows: 1 }, elements: []
+      }],
+      displays: []
+    })),
+    ...contributions
+  ])
 
-  expect(markup).toContain('Ship Lights')
-  expect(markup).toContain('Unbound')
-  expect(markup).toContain('class="page-frame page-fit controls-page"')
-  expect(markup).toContain('class="control-deck-empty"')
-  expect(markup).toContain('disabled=""')
-  expect(markup).toContain('class="page-header page-header-standard"')
-  expect(markup).not.toContain('class="page-footer"')
-  expect(markup).not.toContain('class="control-toolbar"')
+  expect(tree.nodes.filter(node => node.parentId === null).map(node => [node.selector, node.label]))
+    .toEqual([['1', 'Decks'], ['2', 'PHOENIX'], ['3', 'Custom']])
+  expect(tree.nodes.find(node => node.id === 'phoenix-navigation:desktop.info')?.parentId)
+    .toBe('phoenix-navigation:root')
+  expect(tree.nodes.some(node => node.id.includes('desktop.controls'))).toBe(false)
+  expect(tree.nodes.find(node => node.id === 'phoenix-custom:shortcut.lights')?.action)
+    .toEqual({ type: 'navigation', destinationId: 'phoenix-numpad:7:01' })
 })
 
-test('the control picker disambiguates commands with the same label by context', () => {
-  expect(controlPickerActionLabel(action('elite.PrimaryFire', 'PrimaryFire', 'Primary Fire', 'Space', 'combat')))
-    .toBe('Primary Fire · Combat · Space')
-  expect(controlPickerActionLabel(action('elite.HumanoidPrimaryFireButton', 'HumanoidPrimaryFireButton', 'Primary Fire', null, 'on_foot')))
-    .toBe('Primary Fire · On Foot · Unbound')
+test('PHOENIX navigation actions retain the authoritative Numpad revision and address', () => {
+  const [navigation] = phoenixNumpadContributions(numpadSnapshot())
+  const commander = navigation!.nodes.find(node => node.id === 'info.commander')
+
+  expect(commander?.action).toEqual({ type: 'navigation', destinationId: 'phoenix-numpad:7:21' })
+  expect(commander?.parentId).toBe('desktop.info')
 })
 
-test('unavailable commands remain clickable while editing the control deck', () => {
-  const markup = renderToStaticMarkup(
-    <ControlsPage
-      category="ship"
-      editing
-      controller={{
-        status: 'ready',
-        layout: DEFAULT_CONTROL_GRID_LAYOUT,
-        actions: {
-          backend: { id: 'test', available: true, simulated: false, detail: 'ready' },
-          bindingSource: {
-            directory: '/bindings', filePath: '/bindings/custom.binds', presetNames: ['Custom'],
-            available: true, bindingCount: 1, keyboardBindingCount: 0,
-            loadedAt: '2026-08-19T00:00:00.000Z', error: null
-          },
-          actions: [action('elite.ShipSpotLightToggle', 'ShipSpotLightToggle', 'Ship Lights', null)]
-        }
-      }}
-      macros={emptyMacroRuntime()}
-      onExecuteAction={() => Promise.resolve()}
-      onEditingChange={() => undefined}
-      onSaveLayout={layout => Promise.resolve(layout)}
-    />
-  )
-
-  expect(markup).toMatch(/<button class="command-tile disabled"[^>]*><strong>Ship Lights<\/strong>/)
-  expect(markup).not.toMatch(/<button class="command-tile disabled"[^>]*disabled=""[^>]*><strong>Ship Lights<\/strong>/)
-})
-
-test('control-deck tiles reserve long presses for cockpit hold gestures', () => {
-  const stylesheet = readFileSync(new URL('../packages/ui/src/styles/pages/controls.css', import.meta.url), 'utf8')
-
-  expect(stylesheet).toMatch(/\.control-deck-slot > \.command-tile \{[\s\S]*?touch-action: none;/)
-  expect(stylesheet).toMatch(/\.control-deck-slot > \.command-tile \{[\s\S]*?user-select: none;/)
-  expect(stylesheet).toMatch(/\.control-deck-slot > \.command-tile \{[\s\S]*?-webkit-touch-callout: none;/)
-})
-
-function emptyMacroRuntime (): MacroRuntime {
+function numpadSnapshot (): NumpadTreeSnapshot {
+  const menu = (id: string, parentId: string | null, selector: string, address: string, label: string) => ({
+    id, parentId, selector, address, label, kind: 'menu' as const, available: true,
+    risk: 'safe' as const, target: null
+  })
   return {
-    abort: async () => undefined,
-    cancelRecording: async () => undefined,
-    deleteMacro: async () => undefined,
-    library: { version: 1, macros: [] },
-    play: async () => undefined,
-    recordAction: async () => undefined,
-    save: async () => undefined,
-    setDraft: () => undefined,
-    startRecording: async () => undefined,
-    stopRecording: async () => undefined
-  }
-}
-
-function action (
-  id: string,
-  eliteBinding: string,
-  label: string,
-  key: string | null,
-  category: 'ship' | 'combat' | 'on_foot' = 'ship'
-) {
-  return {
-    available: key !== null,
-    binding: key ? { key, modifiers: [], display: key } : null,
-    definition: {
-      id,
-      label,
-      description: `${label} command.`,
-      category,
-      inputMode: 'tap' as const,
-      risk: 'routine' as const,
-      eliteBinding,
-      telemetryKey: null
-    },
-    unavailableReason: key ? null : `No keyboard binding is configured for ${label}.`
+    revision: 7,
+    generatedAt: '2026-08-20T12:00:00.000Z',
+    activationDigit: '0',
+    diagnostics: [],
+    nodes: [
+      menu('desktop.shortcuts', null, '0', '0', 'Shortcuts'),
+      { ...menu('shortcut.lights', 'desktop.shortcuts', '1', '01', 'Lights'), kind: 'game-action', target: { type: 'game-action', actionId: 'elite.lights' } },
+      menu('desktop.controls', null, '1', '1', 'Controls'),
+      menu('controls.ship', 'desktop.controls', '1', '11', 'Ship'),
+      menu('desktop.info', null, '2', '2', 'Information'),
+      { ...menu('info.commander', 'desktop.info', '1', '21', 'Commander'), kind: 'navigation', target: { type: 'navigation', destinationId: '#/information/commander' } },
+      menu('desktop.copilot', null, '3', '3', 'Copilot')
+    ]
   }
 }
