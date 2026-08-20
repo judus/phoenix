@@ -74,7 +74,7 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
 
   return <main className={`app-shell theme-${group?.appearance?.colorScheme ?? deck?.appearance?.colorScheme ?? 'blue'}`}>
     <header>
-      <div><strong>CONTROL DECK</strong><small>Standalone cockpit surface</small></div>
+      <div><strong>CONTROL DECK</strong><small>More Buttons. More Better.</small></div>
       <div className="navigation-stack">
         <nav aria-label="Decks">
           {(configuration.groups ?? []).map(candidate => <button className={candidate.id === group?.id ? 'active' : ''} key={candidate.id} onClick={() => {
