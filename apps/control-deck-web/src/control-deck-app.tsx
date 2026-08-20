@@ -7,7 +7,8 @@ import {
   type ControlDeckCommandElement,
   type ControlDeckColorScheme,
   type ControlDeckConfiguration,
-  type ControlDeckDeck
+  type ControlDeckDeck,
+  type ControlDeckDeckGroup
 } from '@jdu/control-deck-core'
 import { ControlDeckSurface } from '@jdu/control-deck-ui'
 import type { ControlDeckApi } from './api.js'
@@ -22,12 +23,14 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
   const [error, setError] = useState<string>()
   const [message, setMessage] = useState<string>()
   const held = useRef(new Map<string, string>())
+  const rememberedSubdecks = useRef(new Map<string, string>())
 
   const load = async () => {
     const status = await api.status()
     setAuthenticated(status.authenticated)
     if (!status.authenticated) return
-    const [nextConfiguration, nextCatalogue] = await Promise.all([api.configuration(), api.commands()])
+    const [loadedConfiguration, nextCatalogue] = await Promise.all([api.configuration(), api.commands()])
+    const nextConfiguration = normalizeDeckHierarchy(loadedConfiguration)
     setConfiguration(nextConfiguration)
     setCatalogue(nextCatalogue)
     setActiveDeckId(current => nextConfiguration.decks.some(deck => deck.id === current)
@@ -41,13 +44,23 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
   if (!configuration || !catalogue) return <main className="center"><p>Loading decks…</p></main>
 
   const deck = configuration.decks.find(candidate => candidate.id === activeDeckId)
+  const group = configuration.groups?.find(candidate => candidate.id === deck?.groupId)
+  const subdecks = configuration.decks.filter(candidate => candidate.groupId === group?.id)
+  const addSubdeck = () => {
+    if (!group) return
+    const next = createSubdeck(configuration, group.id)
+    void save(next.configuration)
+    rememberedSubdecks.current.set(group.id, next.deck.id)
+    setActiveDeckId(next.deck.id)
+    setEditing(true)
+  }
   const save = async (candidate: ControlDeckConfiguration) => {
     try {
       const saved = await api.saveConfiguration(ControlDeckConfigurationSchema.parse(candidate))
       setConfiguration(saved)
       setError(undefined)
       setMessage('Saved')
-      window.setTimeout(() => setMessage(undefined), 1_500)
+      globalThis.setTimeout(() => setMessage(undefined), 1_500)
     } catch (cause) { setError(errorMessage(cause)) }
   }
   const execute = async (element: ControlDeckCommandElement, operation: 'tap' | 'press' | 'release', leaseId?: string) => {
@@ -59,18 +72,27 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
     } catch (cause) { setError(errorMessage(cause)) }
   }
 
-  return <main className={`app-shell theme-${deck?.appearance?.colorScheme ?? 'blue'}`}>
+  return <main className={`app-shell theme-${group?.appearance?.colorScheme ?? deck?.appearance?.colorScheme ?? 'blue'}`}>
     <header>
       <div><strong>CONTROL DECK</strong><small>Standalone cockpit surface</small></div>
-      <nav>
-        {configuration.decks.map(candidate => <button className={candidate.id === deck?.id ? 'active' : ''} key={candidate.id} onClick={() => { setActiveDeckId(candidate.id); setEditingCell(undefined) }}>{candidate.name}</button>)}
-        <button onClick={() => {
-          const next = createDeck(configuration)
-          void save(next.configuration)
-          setActiveDeckId(next.deck.id)
-          setEditing(true)
-        }}>+ Deck</button>
-      </nav>
+      <div className="navigation-stack">
+        <nav aria-label="Decks">
+          {(configuration.groups ?? []).map(candidate => <button className={candidate.id === group?.id ? 'active' : ''} key={candidate.id} onClick={() => {
+            const remembered = rememberedSubdecks.current.get(candidate.id)
+            const nextDeckId = configuration.decks.some(deck => deck.id === remembered && deck.groupId === candidate.id)
+              ? remembered
+              : configuration.decks.find(deck => deck.groupId === candidate.id)?.id
+            setActiveDeckId(nextDeckId)
+            setEditingCell(undefined)
+          }}>{candidate.name}</button>)}
+          <button onClick={() => {
+            const next = createDeckGroup(configuration)
+            void save(next.configuration)
+            setActiveDeckId(next.deck.id)
+            setEditing(true)
+          }}>+ Deck</button>
+        </nav>
+      </div>
       <div className="header-actions">
         <button className="edit-toggle" onClick={() => { setEditing(value => !value); setEditingCell(undefined) }}>{editing ? 'Done' : 'Edit'}</button>
         <FullscreenButton onError={setError} />
@@ -79,10 +101,28 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
     <FeedbackSlot error={error} message={message} />
     {!deck
       ? <section className="empty"><h1>Build your first deck</h1><p>Add a deck, then assign keyboard commands to its buttons.</p></section>
-      : <section className={`deck-workspace${editing ? ' editing' : ''}`}>
-          {editing && <DeckSettings deck={deck} onChange={updated => void save(replaceDeck(configuration, updated))} onDelete={() => {
-            const next = { ...configuration, decks: configuration.decks.filter(candidate => candidate.id !== deck.id), displays: configuration.displays.map(display => display.deckId === deck.id ? { ...display, deckId: null } : display) }
-            setActiveDeckId(next.decks[0]?.id)
+      : <section className={`deck-workspace${editing ? ' editing' : ''}${subdecks.length > 1 ? ' with-subdeck-rail' : ''}`}>
+          {group && subdecks.length > 1 && <nav aria-label="Subdecks" className="subdeck-navigation">
+            {subdecks.map(candidate => <button className={candidate.id === deck.id ? 'active' : ''} key={candidate.id} onClick={() => {
+              rememberedSubdecks.current.set(group.id, candidate.id)
+              setActiveDeckId(candidate.id)
+              setEditingCell(undefined)
+            }}>{candidate.name}</button>)}
+            <button aria-label={`Add subdeck to ${group.name}`} onClick={addSubdeck}>+</button>
+          </nav>}
+          {editing && group && <DeckSettings deck={deck} group={group} onAddSubdeck={subdecks.length === 1 ? addSubdeck : undefined} onChange={updated => void save(replaceDeck(configuration, updated))} onGroupChange={updated => void save(replaceGroup(configuration, updated))} onDelete={() => {
+            const remainingDecks = configuration.decks.filter(candidate => candidate.id !== deck.id)
+            const groupStillExists = remainingDecks.some(candidate => candidate.groupId === group.id)
+            const next = {
+              ...configuration,
+              groups: groupStillExists ? configuration.groups : configuration.groups?.filter(candidate => candidate.id !== group.id),
+              decks: remainingDecks,
+              displays: configuration.displays.map(display => display.deckId === deck.id ? { ...display, deckId: null } : display)
+            }
+            const nextDeckId = remainingDecks.find(candidate => candidate.groupId === group.id)?.id ?? remainingDecks[0]?.id
+            if (nextDeckId && groupStillExists) rememberedSubdecks.current.set(group.id, nextDeckId)
+            else rememberedSubdecks.current.delete(group.id)
+            setActiveDeckId(nextDeckId)
             void save(next)
           }} />}
           <ControlDeckSurface
@@ -183,16 +223,30 @@ function Pairing ({ onClaim, error }: { onClaim(code: string): Promise<void>, er
   return <main className="center pairing"><form onSubmit={event => { event.preventDefault(); setBusy(true); void onClaim(code).finally(() => setBusy(false)) }}><strong>CONTROL DECK</strong><h1>Pair this display</h1><p>Enter the pairing code shown by the Control Deck server.</p><input autoFocus aria-label="Pairing code" value={code} onChange={event => setCode(event.target.value)} /><button disabled={busy || !code.trim()}>{busy ? 'Pairing…' : 'Pair display'}</button>{error && <p className="error">{error}</p>}</form></main>
 }
 
-export function DeckSettings ({ deck, onChange, onDelete }: { deck: ControlDeckDeck, onChange(deck: ControlDeckDeck): void, onDelete(): void }) {
+export function DeckSettings ({ deck, group, onAddSubdeck, onChange, onGroupChange, onDelete }: {
+  deck: ControlDeckDeck
+  group: ControlDeckDeckGroup
+  onAddSubdeck?(): void
+  onChange(deck: ControlDeckDeck): void
+  onGroupChange(group: ControlDeckDeckGroup): void
+  onDelete(): void
+}) {
+  const [groupName, setGroupName] = useState(group.name)
   const [name, setName] = useState(deck.name)
   const [columns, setColumns] = useState(String(deck.layout.columns))
   const [rows, setRows] = useState(String(deck.layout.rows))
   const minimumColumns = Math.max(1, ...deck.elements.map(element => element.placement.column + element.placement.columnSpan - 1))
   const minimumRows = Math.max(1, ...deck.elements.map(element => element.placement.row + element.placement.rowSpan - 1))
+  useEffect(() => { setGroupName(group.name) }, [group.id, group.name])
   useEffect(() => { setName(deck.name) }, [deck.id, deck.name])
   useEffect(() => { setColumns(String(deck.layout.columns)) }, [deck.id, deck.layout.columns])
   useEffect(() => { setRows(String(deck.layout.rows)) }, [deck.id, deck.layout.rows])
 
+  const commitGroupName = () => {
+    const next = groupName.trim()
+    if (!next) { setGroupName(group.name); return }
+    if (next !== group.name) onGroupChange({ ...group, name: next })
+  }
   const commitName = () => {
     const next = name.trim()
     if (!next) { setName(deck.name); return }
@@ -217,13 +271,15 @@ export function DeckSettings ({ deck, onChange, onDelete }: { deck: ControlDeckD
   }
 
   return <section className="deck-settings">
-    <label>Name<input value={name} onBlur={commitName} onChange={event => setName(event.target.value)} onKeyDown={commitOnEnter} /></label>
+    <label>Deck<input value={groupName} onBlur={commitGroupName} onChange={event => setGroupName(event.target.value)} onKeyDown={commitOnEnter} /></label>
+    <label>Subdeck<input value={name} onBlur={commitName} onChange={event => setName(event.target.value)} onKeyDown={commitOnEnter} /></label>
     <label>Columns<input inputMode="numeric" max="24" min={minimumColumns} type="number" value={columns} onBlur={() => commitDimension('columns')} onChange={event => setColumns(event.target.value)} onKeyDown={commitOnEnter} /></label>
     <label>Rows<input inputMode="numeric" max="24" min={minimumRows} type="number" value={rows} onBlur={() => commitDimension('rows')} onChange={event => setRows(event.target.value)} onKeyDown={commitOnEnter} /></label>
-    <label>Theme<select value={deck.appearance?.colorScheme ?? 'blue'} onChange={event => onChange({
-      ...deck,
+    <label>Theme<select value={group.appearance?.colorScheme ?? deck.appearance?.colorScheme ?? 'blue'} onChange={event => onGroupChange({
+      ...group,
       appearance: { colorScheme: event.target.value as ControlDeckColorScheme }
     })}>{COLOR_SCHEMES.map(color => <option key={color.id} value={color.id}>{color.label}</option>)}</select></label>
+    {onAddSubdeck && <button onClick={onAddSubdeck}>+ Subdeck</button>}
     <button className="danger" onClick={onDelete}>Delete</button>
   </section>
 }
@@ -417,5 +473,70 @@ function commandLabel (element: ControlDeckCommandElement, catalogue: ControlDec
 function elementAt (deck: ControlDeckDeck, column: number, row: number) { return deck.elements.find(element => element.kind === 'command' && element.placement.column === column && element.placement.row === row) as ControlDeckCommandElement | undefined }
 function upsertElement (deck: ControlDeckDeck, next: ControlDeckCommandElement): ControlDeckDeck { return { ...deck, elements: deck.elements.some(element => element.id === next.id) ? deck.elements.map(element => element.id === next.id ? next : element) : [...deck.elements, next] } }
 function replaceDeck (configuration: ControlDeckConfiguration, deck: ControlDeckDeck): ControlDeckConfiguration { return { ...configuration, decks: configuration.decks.map(candidate => candidate.id === deck.id ? deck : candidate) } }
-function createDeck (configuration: ControlDeckConfiguration) { const deck: ControlDeckDeck = { id: `deck_${Date.now().toString(36)}`, name: `Deck ${configuration.decks.length + 1}`, description: '', context: null, appearance: { colorScheme: 'blue' }, layout: { kind: 'grid', columns: 4, rows: 3 }, elements: [] }; return { deck, configuration: { ...configuration, decks: [...configuration.decks, deck] } } }
+function replaceGroup (configuration: ControlDeckConfiguration, group: ControlDeckDeckGroup): ControlDeckConfiguration { return { ...configuration, groups: configuration.groups?.map(candidate => candidate.id === group.id ? group : candidate) } }
+
+export function normalizeDeckHierarchy (configuration: ControlDeckConfiguration): ControlDeckConfiguration & { groups: ControlDeckDeckGroup[] } {
+  const groups = [...(configuration.groups ?? [])]
+  const groupIds = new Set(groups.map(group => group.id))
+  const decks = configuration.decks.map(deck => {
+    if (deck.groupId) return deck
+    const groupId = uniqueEntityId(deck.id, groupIds)
+    groupIds.add(groupId)
+    groups.push({
+      id: groupId,
+      name: deck.name,
+      description: deck.description,
+      ...(deck.appearance ? { appearance: deck.appearance } : {})
+    })
+    return { ...deck, groupId, name: '01' }
+  })
+  return { ...configuration, groups, decks }
+}
+
+export function createDeckGroup (configuration: ControlDeckConfiguration) {
+  const groups = configuration.groups ?? []
+  const groupId = uniqueEntityId(`deck_${Date.now().toString(36)}`, new Set(groups.map(group => group.id)))
+  const group: ControlDeckDeckGroup = {
+    id: groupId,
+    name: `Deck ${groups.length + 1}`,
+    description: '',
+    appearance: { colorScheme: 'blue' }
+  }
+  const deck = blankSubdeck(groupId, '01')
+  return {
+    group,
+    deck,
+    configuration: { ...configuration, groups: [...groups, group], decks: [...configuration.decks, deck] }
+  }
+}
+
+export function createSubdeck (configuration: ControlDeckConfiguration, groupId: string) {
+  const siblings = configuration.decks.filter(deck => deck.groupId === groupId)
+  const names = new Set(siblings.map(deck => deck.name))
+  let ordinal = 1
+  while (names.has(String(ordinal).padStart(2, '0'))) ordinal++
+  const deck = blankSubdeck(groupId, String(ordinal).padStart(2, '0'))
+  return { deck, configuration: { ...configuration, decks: [...configuration.decks, deck] } }
+}
+
+function blankSubdeck (groupId: string, name: string): ControlDeckDeck {
+  return {
+    id: `deck_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+    groupId,
+    name,
+    description: '',
+    context: null,
+    layout: { kind: 'grid', columns: 4, rows: 3 },
+    elements: []
+  }
+}
+
+function uniqueEntityId (preferred: string, existing: ReadonlySet<string>): string {
+  if (!existing.has(preferred)) return preferred
+  for (let suffix = 2; suffix < 1_000; suffix++) {
+    const candidate = `${preferred.slice(0, 63 - String(suffix).length)}_${suffix}`
+    if (!existing.has(candidate)) return candidate
+  }
+  throw new Error(`Could not allocate an id for ${preferred}.`)
+}
 function errorMessage (cause: unknown) { return cause instanceof Error ? cause.message : 'Control Deck operation failed.' }

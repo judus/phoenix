@@ -26,6 +26,13 @@ export const ControlDeckDeckAppearanceSchema = z.object({
   colorScheme: ControlDeckColorSchemeSchema
 })
 
+export const ControlDeckDeckGroupSchema = z.object({
+  id: EntityIdSchema,
+  name: z.string().min(1).max(80),
+  description: z.string().max(500).default(''),
+  appearance: ControlDeckDeckAppearanceSchema.optional()
+})
+
 export const ControlDeckInteractionSchema = z.object({
   activation: z.enum(['command-default', 'tap', 'hold']).default('command-default'),
   confirmation: z.discriminatedUnion('kind', [
@@ -81,6 +88,7 @@ export const ControlDeckGridLayoutSchema = z.object({
 
 export const ControlDeckDeckSchema = z.object({
   id: EntityIdSchema,
+  groupId: EntityIdSchema.nullable().optional(),
   name: z.string().min(1).max(80),
   description: z.string().max(500).default(''),
   context: z.string().min(1).max(100).nullable().default(null),
@@ -126,13 +134,29 @@ export const ControlDeckDisplaySchema = z.object({
 
 export const ControlDeckConfigurationSchema = z.object({
   version: z.literal(1),
+  groups: z.array(ControlDeckDeckGroupSchema).max(256).optional(),
   decks: z.array(ControlDeckDeckSchema).max(256),
   displays: z.array(ControlDeckDisplaySchema).max(64)
 }).superRefine((configuration, context) => {
+  const groupIds = new Set<string>()
+  for (const group of configuration.groups ?? []) {
+    if (groupIds.has(group.id)) context.addIssue({ code: 'custom', message: `Duplicate deck group id: ${group.id}.` })
+    groupIds.add(group.id)
+  }
   const deckIds = new Set<string>()
+  const populatedGroupIds = new Set<string>()
   for (const deck of configuration.decks) {
     if (deckIds.has(deck.id)) context.addIssue({ code: 'custom', message: `Duplicate deck id: ${deck.id}.` })
     deckIds.add(deck.id)
+    if (deck.groupId && !groupIds.has(deck.groupId)) {
+      context.addIssue({ code: 'custom', message: `Deck ${deck.id} references unknown group ${deck.groupId}.` })
+    }
+    if (deck.groupId) populatedGroupIds.add(deck.groupId)
+  }
+  for (const group of configuration.groups ?? []) {
+    if (!populatedGroupIds.has(group.id)) {
+      context.addIssue({ code: 'custom', message: `Deck group ${group.id} has no subdecks.` })
+    }
   }
   const displayIds = new Set<string>()
   for (const display of configuration.displays) {
@@ -149,6 +173,7 @@ export const ControlDeckConfigurationSchema = z.object({
 export type ControlDeckElementAppearance = z.infer<typeof ControlDeckElementAppearanceSchema>
 export type ControlDeckColorScheme = z.infer<typeof ControlDeckColorSchemeSchema>
 export type ControlDeckDeckAppearance = z.infer<typeof ControlDeckDeckAppearanceSchema>
+export type ControlDeckDeckGroup = z.infer<typeof ControlDeckDeckGroupSchema>
 export type ControlDeckInteraction = z.infer<typeof ControlDeckInteractionSchema>
 export type ControlDeckGridPlacement = z.infer<typeof ControlDeckGridPlacementSchema>
 export type ControlDeckCommandElement = z.infer<typeof ControlDeckCommandElementSchema>

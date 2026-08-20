@@ -46,6 +46,33 @@ test('Control Deck configuration rejects displays assigned to missing decks', ()
   })).toThrow('references unknown deck')
 })
 
+test('Control Deck configuration validates optional deck groups', () => {
+  const grouped = { ...deck('ship'), groupId: 'elite' }
+  expect(ControlDeckConfigurationSchema.parse({
+    version: 1,
+    groups: [{ id: 'elite', name: 'Elite Dangerous', description: '', appearance: { colorScheme: 'orange' } }],
+    decks: [grouped],
+    displays: []
+  })).toMatchObject({
+    groups: [{ id: 'elite', appearance: { colorScheme: 'orange' } }],
+    decks: [{ groupId: 'elite' }]
+  })
+
+  expect(() => ControlDeckConfigurationSchema.parse({
+    version: 1,
+    groups: [],
+    decks: [grouped],
+    displays: []
+  })).toThrow('references unknown group')
+
+  expect(() => ControlDeckConfigurationSchema.parse({
+    version: 1,
+    groups: [{ id: 'empty', name: 'Empty', description: '' }],
+    decks: [],
+    displays: []
+  })).toThrow('has no subdecks')
+})
+
 function deck (id: string) {
   return {
     id,

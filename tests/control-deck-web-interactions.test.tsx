@@ -1,11 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { act, create } from 'react-test-renderer'
 import { afterEach, beforeAll, expect, test, vi } from 'vitest'
-import { ControlDeckCommandElementSchema } from '@jdu/control-deck-core'
-import { ButtonEditor, DeckButton, DeckSettings, FeedbackSlot, FullscreenButton, commandFailureMessage, toggleFullscreen } from '../apps/control-deck-web/src/control-deck-app.js'
+import { ControlDeckCommandElementSchema, ControlDeckConfigurationSchema } from '@jdu/control-deck-core'
+import { ButtonEditor, ControlDeckApp, DeckButton, DeckSettings, FeedbackSlot, FullscreenButton, commandFailureMessage, createSubdeck, normalizeDeckHierarchy, toggleFullscreen } from '../apps/control-deck-web/src/control-deck-app.js'
+import type { ControlDeckApi } from '../apps/control-deck-web/src/api.js'
 
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
-afterEach(() => vi.useRealTimers())
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals() })
 
 test('a confirmed command requires hold-to-arm followed by a separate tap', () => {
   vi.useFakeTimers()
@@ -147,14 +148,18 @@ test('feedback is absent when idle and rendered as an out-of-flow notice', () =>
   expect(stylesheet).toMatch(/\.deck-button\.armed \{[^}]*color-mix/u)
   expect(stylesheet).not.toMatch(/\.deck-button\.armed \{[^}]*box-shadow/u)
   expect(stylesheet).toMatch(/\.empty-button \{[^}]*border-color: var\(--accent\)[^}]*color: var\(--accent\)[^}]*background: #0b1014/u)
+  expect(stylesheet).toMatch(/\.subdeck-navigation \{[^}]*flex-direction: column/u)
 })
 
 test('deck dimensions allow temporary empty drafts and save only valid values', () => {
   const onChange = vi.fn()
+  const onGroupChange = vi.fn()
   let renderer!: ReturnType<typeof create>
   act(() => { renderer = create(<DeckSettings
-    deck={{ id: 'main', name: 'Main', description: '', context: null, layout: { kind: 'grid', columns: 4, rows: 3 }, elements: [] }}
+    deck={{ id: 'main', groupId: 'creative', name: '01', description: '', context: null, layout: { kind: 'grid', columns: 4, rows: 3 }, elements: [] }}
+    group={{ id: 'creative', name: 'Creative', description: '', appearance: { colorScheme: 'blue' } }}
     onChange={onChange}
+    onGroupChange={onGroupChange}
     onDelete={() => undefined}
   />) })
   const columns = renderer.root.findAllByType('input').find(input => input.props.type === 'number' && input.props.value === '4')!
@@ -171,7 +176,95 @@ test('deck dimensions allow temporary empty drafts and save only valid values', 
 
   const theme = renderer.root.findByType('select')
   act(() => theme.props.onChange({ target: { value: 'violet' } }))
-  expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ appearance: { colorScheme: 'violet' } }))
+  expect(onGroupChange).toHaveBeenCalledWith(expect.objectContaining({ appearance: { colorScheme: 'violet' } }))
+})
+
+test('legacy flat decks become one-subdeck groups without losing their controls', () => {
+  const legacy = ControlDeckConfigurationSchema.parse({
+    version: 1,
+    decks: [{
+      id: 'photoshop',
+      name: 'Photoshop',
+      description: 'Image controls',
+      context: null,
+      appearance: { colorScheme: 'violet' },
+      layout: { kind: 'grid', columns: 2, rows: 2 },
+      elements: []
+    }],
+    displays: [{ id: 'tablet', name: 'Tablet', deckId: 'photoshop', order: 0 }]
+  })
+
+  const hierarchical = normalizeDeckHierarchy(legacy)
+  expect(hierarchical.groups).toEqual([expect.objectContaining({
+    id: 'photoshop',
+    name: 'Photoshop',
+    appearance: { colorScheme: 'violet' }
+  })])
+  expect(hierarchical.decks).toEqual([expect.objectContaining({
+    id: 'photoshop',
+    groupId: 'photoshop',
+    name: '01',
+    layout: { kind: 'grid', columns: 2, rows: 2 }
+  })])
+  expect(hierarchical.displays[0]?.deckId).toBe('photoshop')
+
+  const withSecond = createSubdeck(hierarchical, 'photoshop').configuration
+  expect(withSecond.decks.map(deck => ({ groupId: deck.groupId, name: deck.name }))).toEqual([
+    { groupId: 'photoshop', name: '01' },
+    { groupId: 'photoshop', name: '02' }
+  ])
+
+  const withGap = { ...withSecond, decks: withSecond.decks.map(deck => deck.name === '02' ? { ...deck, name: '03' } : deck) }
+  expect(createSubdeck(withGap, 'photoshop').deck.name).toBe('02')
+})
+
+test('the subdeck rail appears only after a second subdeck exists', async () => {
+  vi.stubGlobal('document', {
+    addEventListener: vi.fn(),
+    documentElement: { requestFullscreen: vi.fn(async () => undefined) },
+    exitFullscreen: vi.fn(async () => undefined),
+    fullscreenElement: null,
+    removeEventListener: vi.fn()
+  })
+  const configuration = ControlDeckConfigurationSchema.parse({
+    version: 1,
+    groups: [{ id: 'photoshop', name: 'Photoshop', description: '' }],
+    decks: [{
+      id: 'photoshop_01',
+      groupId: 'photoshop',
+      name: '01',
+      description: '',
+      context: null,
+      layout: { kind: 'grid', columns: 2, rows: 2 },
+      elements: []
+    }],
+    displays: []
+  })
+  const api = {
+    status: vi.fn(async () => ({ authenticated: true })),
+    configuration: vi.fn(async () => configuration),
+    commands: vi.fn(async () => ({ adapters: [] })),
+    saveConfiguration: vi.fn(async candidate => candidate),
+    execute: vi.fn()
+  } as unknown as ControlDeckApi
+  let renderer!: ReturnType<typeof create>
+  await act(async () => {
+    renderer = create(<ControlDeckApp api={api} />)
+    await Promise.resolve()
+  })
+
+  expect(renderer.root.findAllByProps({ 'aria-label': 'Subdecks' })).toHaveLength(0)
+  const edit = renderer.root.findAllByType('button').find(button => button.children.includes('Edit'))!
+  act(() => edit.props.onClick())
+  const add = renderer.root.findAllByType('button').find(button => button.children.includes('+ Subdeck'))!
+  await act(async () => {
+    add.props.onClick()
+    await Promise.resolve()
+  })
+
+  const rail = renderer.root.findByProps({ 'aria-label': 'Subdecks' })
+  expect(rail.props.className).toBe('subdeck-navigation')
+  expect(rail.findAllByType('button').map(button => button.children[0])).toEqual(['01', '02', '+'])
 })
 
 test('fullscreen toggles the document root and exits through the browser API', async () => {

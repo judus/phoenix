@@ -22,9 +22,14 @@ test('legacy PHOENIX layout edits preserve generic Control Deck decks', async ()
       layout: { kind: 'grid', columns: 8, rows: 5 }
     })
 
-    const withUtilityDeck = ControlDeckConfigurationSchema.parse({
+    const groupedInitial = ControlDeckConfigurationSchema.parse({
       ...initial,
-      decks: [...initial.decks, {
+      groups: [{ id: 'ship_group', name: 'Ship', description: '', appearance: { colorScheme: 'orange' } }],
+      decks: initial.decks.map(deck => deck.id === 'ship' ? { ...deck, groupId: 'ship_group', name: '01' } : deck)
+    })
+    const withUtilityDeck = ControlDeckConfigurationSchema.parse({
+      ...groupedInitial,
+      decks: [...groupedInitial.decks, {
         id: 'utility',
         name: 'Utility',
         description: 'Standalone controls',
@@ -58,6 +63,8 @@ test('legacy PHOENIX layout edits preserve generic Control Deck decks', async ()
     ))
     expect(saved.decks.find(deck => deck.id === 'utility')).toEqual(withUtilityDeck.decks.at(-1))
     expect(saved.displays).toEqual(withUtilityDeck.displays)
+    expect(saved.groups).toContainEqual(expect.objectContaining({ id: 'ship_group', appearance: { colorScheme: 'orange' } }))
+    expect(saved.decks.find(deck => deck.id === 'ship')).toMatchObject({ groupId: 'ship_group', name: '01' })
     expect(saved.decks.find(deck => deck.id === 'ship')?.elements).toContainEqual(expect.objectContaining({
       target: {
         adapterId: 'phoenix.commands',

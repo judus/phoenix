@@ -125,6 +125,7 @@ export function controlDeckConfigurationToControlGridLayout (
   candidate: ControlDeckConfiguration
 ): ControlGridLayout {
   const configuration = ControlDeckConfigurationSchema.parse(candidate)
+  const groups = new Map((configuration.groups ?? []).map(group => [group.id, group]))
   return ControlGridLayoutSchema.parse({
     version: 4,
     pages: configuration.decks.flatMap(deck => {
@@ -133,7 +134,7 @@ export function controlDeckConfigurationToControlGridLayout (
       if (deck.layout.kind !== 'grid') throw new Error(`PHOENIX deck ${deck.id} does not use a grid layout.`)
       return [{
         id: deck.id,
-        label: deck.name,
+        label: (deck.groupId ? groups.get(deck.groupId)?.name : undefined) ?? deck.name,
         category,
         columns: deck.layout.columns,
         rows: deck.layout.rows,
@@ -161,9 +162,18 @@ export function mergeControlGridLayoutIntoControlDeckConfiguration (
   controlDeckConfigurationToControlGridLayout(configuration)
   const replacement = controlGridLayoutToControlDeckConfiguration(layoutCandidate)
   const retainedDecks = configuration.decks.filter(deck => !deck.context?.startsWith('phoenix:'))
+  const replacementDecks = replacement.decks.map(deck => {
+    const previous = configuration.decks.find(candidate => candidate.id === deck.id)
+    return previous?.groupId
+      ? { ...deck, groupId: previous.groupId, name: previous.name, appearance: previous.appearance }
+      : deck
+  })
+  const decks = [...replacementDecks, ...retainedDecks]
+  const retainedGroupIds = new Set(decks.flatMap(deck => deck.groupId ? [deck.groupId] : []))
   return ControlDeckConfigurationSchema.parse({
     ...configuration,
-    decks: [...replacement.decks, ...retainedDecks]
+    groups: configuration.groups?.filter(group => retainedGroupIds.has(group.id)),
+    decks
   })
 }
 
