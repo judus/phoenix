@@ -85,12 +85,12 @@ export function ControlDeckApp ({ api }: { api: ControlDeckApi }) {
             setActiveDeckId(nextDeckId)
             setEditingCell(undefined)
           }}>{candidate.name}</button>)}
-          <button onClick={() => {
+          <button aria-label="Add deck" onClick={() => {
             const next = createDeckGroup(configuration)
             void save(next.configuration)
             setActiveDeckId(next.deck.id)
             setEditing(true)
-          }}>+ Deck</button>
+          }}>+</button>
         </nav>
       </div>
       <div className="header-actions">

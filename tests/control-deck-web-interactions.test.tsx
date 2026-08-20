@@ -254,6 +254,8 @@ test('the subdeck rail appears only after a second subdeck exists', async () => 
   })
 
   expect(renderer.root.findAllByProps({ 'aria-label': 'Subdecks' })).toHaveLength(0)
+  const addDeck = renderer.root.findByProps({ 'aria-label': 'Add deck' })
+  expect(addDeck.children).toEqual(['+'])
   const edit = renderer.root.findAllByType('button').find(button => button.children.includes('Edit'))!
   act(() => edit.props.onClick())
   const add = renderer.root.findAllByType('button').find(button => button.children.includes('+ Subdeck'))!
