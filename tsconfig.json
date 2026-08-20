@@ -1,12 +1,10 @@
 {
   "files": [],
   "references": [
-    { "path": "packages/control-deck-core" },
-    { "path": "packages/control-deck-ui" },
-    { "path": "packages/control-deck-adapter-keyboard" },
-    { "path": "packages/control-deck-host" },
-    { "path": "apps/control-deck-web" },
-    { "path": "apps/control-deck" },
+    { "path": "vendor/control-deck/packages/control-deck-core" },
+    { "path": "vendor/control-deck/packages/control-deck-ui" },
+    { "path": "vendor/control-deck/packages/control-deck-adapter-keyboard" },
+    { "path": "vendor/control-deck/packages/control-deck-host" },
     { "path": "packages/contracts" },
     { "path": "apps/server" },
     { "path": "apps/web" }

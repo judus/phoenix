@@ -1,0 +1,3 @@
+[submodule "vendor/control-deck"]
+	path = vendor/control-deck
+	url = git@github.com:judus/control-deck.git

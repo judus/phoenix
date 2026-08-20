@@ -8,7 +8,7 @@
     "moduleResolution": "NodeNext",
     "outDir": "dist",
     "paths": {
-      "@jdu/control-deck-core": ["../control-deck-core/src/index.ts"]
+      "@jdu/control-deck-core": ["../../vendor/control-deck/packages/control-deck-core/src/index.ts"]
     },
     "rootDir": "src",
     "strict": true,
@@ -16,6 +16,6 @@
   },
   "include": ["src/**/*.ts"],
   "references": [
-    { "path": "../control-deck-core" }
+    { "path": "../../vendor/control-deck/packages/control-deck-core" }
   ]
 }

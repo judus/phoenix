@@ -3,8 +3,7 @@ import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { DisplayCommand, GameEventEnvelope, NavigationRoute, RuntimeState } from '@phoenix/contracts'
 import { ToolRegistry } from '@jdu/llm-client'
-import { ControlDeckCommandService } from '@jdu/control-deck-core'
-import { CommandHttpController, DeckConfigurationHttpController } from '@jdu/control-deck-host'
+import { ControlDeckIntegration } from '@jdu/control-deck-host'
 import {
   EliteDataDirectoryLocator,
   EliteBindingsDirectoryLocator,
@@ -137,7 +136,7 @@ export interface PhoenixApplicationOptions {
 }
 
 export class PhoenixApplication {
-  private readonly controlDeckCommands: ControlDeckCommandService
+  private readonly controlDeck: ControlDeckIntegration
   private readonly database: SqliteDatabase
   private readonly eventIngestion: GameEventIngestionService
   private readonly inputBackend: InputBackend
@@ -291,9 +290,6 @@ export class PhoenixApplication {
       options.controlGridLayoutRepository ?? new InMemoryControlGridLayoutRepository(),
       commandCatalogueChanges
     )
-    const controlDeckConfigurationHttp = new DeckConfigurationHttpController(controlGridLayouts, {
-      path: '/api/control-deck/configuration'
-    })
     const macroRepository = new NotifyingMacroRepository(
       options.macroRepository ?? new InMemoryMacroRepository(),
       commandCatalogueChanges
@@ -318,13 +314,12 @@ export class PhoenixApplication {
       macros,
       () => systemSettings.loadOrCreate().copilot.permissions
     )
-    this.controlDeckCommands = new ControlDeckCommandService(
-      [new PhoenixControlDeckCommandAdapter(commands, gameActions)],
-      { createId: randomUUID }
-    )
-    const controlDeckCommandHttp = new CommandHttpController(this.controlDeckCommands, {
-      pathPrefix: '/api/control-deck/commands',
-      ownerKey: request => options.accessControl?.ownerKey(request) ?? 'development'
+    this.controlDeck = new ControlDeckIntegration({
+      adapters: [new PhoenixControlDeckCommandAdapter(commands, gameActions)],
+      configurationRepository: controlGridLayouts,
+      createId: randomUUID,
+      ownerKey: request => options.accessControl?.ownerKey(request) ?? 'development',
+      pathPrefix: '/api/control-deck'
     })
     const numpad = new DefaultNumpadCommands(
       new NumpadTreeProjector(commandCatalogue, controlGridLayouts, systemSettings),
@@ -415,8 +410,7 @@ export class PhoenixApplication {
       accessControl: options.accessControl,
       catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
       commandCatalogue,
-      controlDeckCommandHttp,
-      controlDeckConfigurationHttp,
+      controlDeckHttp: this.controlDeck.http,
       controlGridLayouts,
       copilot,
       copilotProfiles,
@@ -461,7 +455,7 @@ export class PhoenixApplication {
   public async start (): Promise<{ host: string, port: number }> {
     this.database.initialize()
     try {
-      await this.controlDeckCommands.start()
+      await this.controlDeck.start()
       await this.journalSource.start()
       await this.statusSource.start()
       await this.inventorySource.start()
@@ -474,7 +468,7 @@ export class PhoenixApplication {
       this.statusSource.stop()
       this.inventorySource.stop()
       this.navigationRouteSource.stop()
-      await this.controlDeckCommands.stop()
+      await this.controlDeck.stop()
       await this.inputBackend.stop?.()
       this.database.close()
       throw cause
@@ -488,7 +482,7 @@ export class PhoenixApplication {
     this.navigationRouteSource.stop()
     await this.journalBackfill.stop()
     await this.server.stop()
-    await this.controlDeckCommands.stop()
+    await this.controlDeck.stop()
     await this.gameActions.stop?.()
     await this.inputBackend.stop?.()
     this.database.close()

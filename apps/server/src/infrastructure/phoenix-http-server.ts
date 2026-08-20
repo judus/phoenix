@@ -35,7 +35,7 @@ import {
   type RuntimeState
 } from '@phoenix/contracts'
 import { AiError, serializeAiError, type AiStreamEvent } from '@jdu/llm-client'
-import type { CommandHttpController, DeckConfigurationHttpController } from '@jdu/control-deck-host'
+import type { ControlDeckHttpHandler } from '@jdu/control-deck-host'
 import type { CopilotText, CopilotTextRequest } from '../application/copilot-text-service.js'
 import type { CopilotConversationEvents } from '../application/copilot-conversation-event-service.js'
 import type { CopilotVoiceHostControl } from '../application/copilot-voice-host-coordinator.js'
@@ -89,8 +89,7 @@ export interface PhoenixHttpServerOptions {
   accessControl?: PairingAccessController
   catalogueDiagnostics: CatalogueDiagnosticsReader
   commandCatalogue: CommandCatalogueSnapshots
-  controlDeckCommandHttp?: CommandHttpController
-  controlDeckConfigurationHttp?: DeckConfigurationHttpController
+  controlDeckHttp?: ControlDeckHttpHandler
   controlGridLayouts: ControlGridLayoutRepository
   copilot?: CopilotText
   copilotProfiles?: CopilotProfiles
@@ -218,11 +217,8 @@ export class PhoenixHttpServer {
       return
     }
 
-    if (this.options.controlDeckConfigurationHttp &&
-        await this.options.controlDeckConfigurationHttp.handle(request, response)) return
-
-    if (this.options.controlDeckCommandHttp &&
-        await this.options.controlDeckCommandHttp.handle(request, response)) return
+    if (this.options.controlDeckHttp &&
+        await this.options.controlDeckHttp.handle(request, response)) return
 
     if (url.pathname === '/mcp') {
       await this.options.mcpServer.handle(request, response)
