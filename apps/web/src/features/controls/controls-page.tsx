@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ControlDeckSurface } from '@jdu/control-deck-ui'
-import { controlGridLayoutToControlDeckConfiguration, type CommandTarget, type ControlGridLayout, type GameActionAvailability, type GameActionOperation, type RuntimeState } from '@phoenix/contracts'
-import { Button, CommandTile, Field, PageFrame, PageHeader, Status, TextInput } from '@phoenix/ui'
+import { PhoenixControlDeckThemeSchema, controlGridLayoutToControlDeckConfiguration, type CommandTarget, type ControlGridLayout, type GameActionAvailability, type GameActionOperation, type PhoenixControlDeckTheme, type RuntimeState } from '@phoenix/contracts'
+import { Button, CommandTile, Field, IconButton, NumberInput, PageFrame, Select, Status, TextInput } from '@phoenix/ui'
 import { createClientId } from '../../application/identity/client-identity.js'
 import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
 import type { ControlCategory } from '../../application/navigation/phoenix-route.js'
@@ -38,6 +38,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
       category,
       columns: 8,
       rows: 5,
+      theme: 'phoenix',
       cells: []
     }]
   }).decks.find(candidate => candidate.context === `phoenix:${category}`)!, [activeLayout, category])
@@ -54,20 +55,23 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
   }
 
   return (
-    <PageFrame className={`controls-page${editing ? ' editing' : ''}`} layout="fit">
-      <PageHeader
-        actions={macros.recording
-          ? <><span className="recording-status">Recording · {macros.recording.entries.length} commands</span><Button variant="quiet" onClick={() => void macros.cancelRecording()}>Cancel</Button><Button variant="primary" onClick={() => void macros.stopRecording()}>Stop and review</Button></>
-          : editing
-            ? <><Button variant="quiet" onClick={() => { setDraft(controller.layout); onEditingChange(false); setEditingPosition(undefined) }}>Cancel</Button><Button busy={saving} variant="primary" onClick={() => {
-              if (!draft) return
-              setSaving(true)
-              void onSaveLayout(draft).then(saved => { setDraft(saved); onEditingChange(false); setError(undefined) }).catch(cause => setError(cause instanceof Error ? cause.message : 'Unable to save control layout.')).finally(() => setSaving(false))
-            }}>Save layout</Button></>
-            : null}
-        context="Controls"
-        title={controlsCategoryLabel(category)}
-      />
+    <PageFrame className={`controls-page theme-${page?.theme ?? 'phoenix'}${editing ? ' editing' : ''}${macros.recording ? ' recording' : ''}`} layout="fit">
+      {macros.recording && <section className="control-recording-toolbar">
+        <span className="recording-status">Recording · {macros.recording.entries.length} commands</span>
+        <Button variant="quiet" onClick={() => void macros.cancelRecording()}>Cancel</Button>
+        <Button variant="primary" onClick={() => void macros.stopRecording()}>Stop and review</Button>
+      </section>}
+      {editing && page && <DeckSettings
+        page={page}
+        onChange={updated => draft && setDraft(replacePage(draft, updated))}
+        onCancel={() => { setDraft(controller.layout); onEditingChange(false); setEditingPosition(undefined) }}
+        onSave={() => {
+          if (!draft) return
+          setSaving(true)
+          void onSaveLayout(draft).then(saved => { setDraft(saved); onEditingChange(false); setError(undefined) }).catch(cause => setError(cause instanceof Error ? cause.message : 'Unable to save control layout.')).finally(() => setSaving(false))
+        }}
+        saving={saving}
+      />}
       {controller.status === 'error' || error || macros.error
         ? <Status tone="danger">{error ?? macros.error ?? controller.error}</Status>
         : controller.status === 'loading'
@@ -148,6 +152,52 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
   )
 }
 
+function DeckSettings ({ onCancel, onChange, onSave, page, saving }: {
+  onCancel(): void
+  onChange(page: ControlGridLayout['pages'][number]): void
+  onSave(): void
+  page: ControlGridLayout['pages'][number]
+  saving: boolean
+}) {
+  return <section aria-label="Deck settings" className="control-deck-settings">
+    <Field htmlFor="control-deck-name" label="Deck">
+      <TextInput maxLength={32} value={page.label} onChange={event => {
+        if (event.target.value.trim()) onChange({ ...page, label: event.target.value })
+      }} />
+    </Field>
+    <Field htmlFor="control-deck-columns" label="Columns">
+      <NumberInput min={2} max={12} value={page.columns} onChange={event => {
+        const columns = boundedInteger(event.target.value, 2, 12)
+        if (columns !== undefined) onChange(resizePage(page, columns, page.rows))
+      }} />
+    </Field>
+    <Field htmlFor="control-deck-rows" label="Rows">
+      <NumberInput min={1} max={12} value={page.rows} onChange={event => {
+        const rows = boundedInteger(event.target.value, 1, 12)
+        if (rows !== undefined) onChange(resizePage(page, page.columns, rows))
+      }} />
+    </Field>
+    <Field htmlFor="control-deck-theme" label="Theme">
+      <Select value={page.theme ?? 'phoenix'} onChange={event => onChange({
+        ...page,
+        theme: PhoenixControlDeckThemeSchema.parse(event.target.value)
+      })}>
+        {['phoenix', 'blue', 'cyan', 'green', 'amber', 'orange', 'red', 'violet', 'magenta'].map(theme => <option key={theme} value={theme}>{themeLabel(PhoenixControlDeckThemeSchema.parse(theme))}</option>)}
+      </Select>
+    </Field>
+    <IconButton label="Cancel layout editing" size="md" variant="quiet" onClick={onCancel}><CrossIcon /></IconButton>
+    <IconButton busy={saving} label="Save layout" size="md" variant="primary" onClick={onSave}><CheckIcon /></IconButton>
+  </section>
+}
+
+function CrossIcon () {
+  return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" /></svg>
+}
+
+function CheckIcon () {
+  return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
+}
+
 function ControlPicker({ actions, filter, macros, onClear, onClose, onFilterChange, onSelect, position }: {
   actions: GameActionAvailability[]
   filter: string
@@ -193,6 +243,39 @@ function assignTarget(layout: ControlGridLayout, category: ControlCategory, posi
       }
     })
   }
+}
+
+function replacePage (layout: ControlGridLayout, replacement: ControlGridLayout['pages'][number]): ControlGridLayout {
+  return { ...layout, pages: layout.pages.map(page => page.category === replacement.category ? replacement : page) }
+}
+
+export function resizePage (
+  page: ControlGridLayout['pages'][number],
+  columns: number,
+  rows: number
+): ControlGridLayout['pages'][number] {
+  return {
+    ...page,
+    columns,
+    rows,
+    cells: page.cells.flatMap(cell => {
+      const column = (cell.position - 1) % page.columns + 1
+      const row = Math.floor((cell.position - 1) / page.columns) + 1
+      return row <= rows && column + cell.span - 1 <= columns
+        ? [{ ...cell, position: (row - 1) * columns + column }]
+        : []
+    })
+  }
+}
+
+function boundedInteger (candidate: string, minimum: number, maximum: number): number | undefined {
+  if (candidate.trim() === '') return undefined
+  const value = Number(candidate)
+  return Number.isInteger(value) && value >= minimum && value <= maximum ? value : undefined
+}
+
+function themeLabel (theme: PhoenixControlDeckTheme): string {
+  return `${theme.charAt(0).toUpperCase()}${theme.slice(1)}`
 }
 
 function MissingTarget({ target }: { target: CommandTarget }) {

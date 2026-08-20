@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import {
+  ControlDeckColorSchemeSchema,
   ControlDeckConfigurationSchema,
   type ControlDeckConfiguration,
   type ControlDeckCommandTarget
@@ -9,6 +10,7 @@ import { CommandTargetSchema, type CommandTarget } from './commands.js'
 import { NumpadShortcutCollectionSchema } from './numpad.js'
 
 export const InputBackendModeSchema = z.enum(['auto', 'recording', 'linux-xdotool', 'windows-sendinput'])
+export const PhoenixControlDeckThemeSchema = z.union([z.literal('phoenix'), ControlDeckColorSchemeSchema])
 
 export const CopilotExecutionPermissionsSchema = z.object({
   gameActions: z.boolean().default(false),
@@ -38,6 +40,7 @@ const ControlGridPageSchema = z.object({
   category: GameActionCategorySchema,
   columns: z.number().int().min(2).max(12),
   rows: z.number().int().min(1).max(12).default(5),
+  theme: PhoenixControlDeckThemeSchema.default('phoenix'),
   cells: z.array(ControlGridCellSchema).max(128)
 }).superRefine((page, context) => {
   const capacity = page.columns * page.rows
@@ -92,6 +95,7 @@ export function controlGridLayoutToControlDeckConfiguration (
       name: page.label,
       description: '',
       context: `phoenix:${page.category}`,
+      ...(page.theme === 'phoenix' ? {} : { appearance: { colorScheme: page.theme } }),
       layout: { kind: 'grid', columns: page.columns, rows: page.rows },
       elements: page.cells.map(cell => ({
         id: `cell_${cell.position}`,
@@ -138,6 +142,7 @@ export function controlDeckConfigurationToControlGridLayout (
         category,
         columns: deck.layout.columns,
         rows: deck.layout.rows,
+        theme: (deck.groupId ? groups.get(deck.groupId)?.appearance : undefined)?.colorScheme ?? deck.appearance?.colorScheme ?? 'phoenix',
         cells: deck.elements.map(element => {
           if (element.placement.rowSpan !== 1) {
             throw new Error(`PHOENIX legacy controls cannot represent row-spanning element ${element.id}.`)
@@ -273,6 +278,7 @@ export type InputBackendMode = z.infer<typeof InputBackendModeSchema>
 export type CopilotExecutionPermissions = z.infer<typeof CopilotExecutionPermissionsSchema>
 export type PhoenixModules = z.infer<typeof PhoenixModulesSchema>
 export type ControlGridLayout = z.infer<typeof ControlGridLayoutSchema>
+export type PhoenixControlDeckTheme = z.infer<typeof PhoenixControlDeckThemeSchema>
 export type { ControlDeckConfiguration }
 export type PhoenixSettings = z.infer<typeof PhoenixSettingsSchema>
 export type OpenAiConfigurationStatus = z.infer<typeof OpenAiConfigurationStatusSchema>

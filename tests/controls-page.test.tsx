@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test } from 'vitest'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
-import { controlPickerActionLabel, ControlsPage } from '../apps/web/src/features/controls/controls-page.js'
+import { controlPickerActionLabel, ControlsPage, resizePage } from '../apps/web/src/features/controls/controls-page.js'
 import type { MacroRuntime } from '../apps/web/src/application/macros/macro-runtime.js'
 import { DEFAULT_CONTROL_GRID_LAYOUT } from '../apps/server/src/infrastructure/default-control-grid-layout.js'
 
@@ -47,10 +47,10 @@ test('the controls page renders bound and unbound discovered commands', () => {
 
   expect(markup).toContain('Ship Lights')
   expect(markup).toContain('Unbound')
-  expect(markup).toContain('class="page-frame page-fit controls-page"')
+  expect(markup).toContain('class="page-frame page-fit controls-page theme-phoenix"')
   expect(markup).toContain('class="control-deck-empty"')
   expect(markup).toContain('disabled=""')
-  expect(markup).toContain('class="page-header page-header-standard"')
+  expect(markup).not.toContain('class="page-header')
   expect(markup).not.toContain('class="page-footer"')
   expect(markup).not.toContain('class="control-toolbar"')
 })
@@ -89,6 +89,27 @@ test('unavailable commands remain clickable while editing the control deck', () 
 
   expect(markup).toMatch(/<button class="command-tile disabled"[^>]*><strong>Ship Lights<\/strong>/)
   expect(markup).not.toMatch(/<button class="command-tile disabled"[^>]*disabled=""[^>]*><strong>Ship Lights<\/strong>/)
+  expect(markup).toContain('aria-label="Deck settings"')
+  expect(markup).toContain('id="control-deck-name"')
+  expect(markup).toContain('id="control-deck-columns"')
+  expect(markup).toContain('id="control-deck-rows"')
+  expect(markup).toContain('id="control-deck-theme"')
+  expect(markup).toContain('<option value="phoenix" selected="">Phoenix</option>')
+  expect(markup).toContain('aria-label="Cancel layout editing"')
+  expect(markup).toContain('aria-label="Save layout"')
+  expect(markup).not.toContain('Subdeck')
+  expect(markup).not.toContain('Delete deck')
+})
+
+test('resizing a PHOENIX deck removes only cells that no longer fit', () => {
+  const page = DEFAULT_CONTROL_GRID_LAYOUT.pages.find(candidate => candidate.category === 'ship')!
+  const resized = resizePage(page, 4, 4)
+
+  expect(resized.columns).toBe(4)
+  expect(resized.rows).toBe(4)
+  expect(resized.cells.find(cell => cell.target?.type === 'game-action' && cell.target.actionId === 'elite.SystemMapOpen')?.position).toBe(5)
+  expect(resized.cells.every(cell => cell.position + cell.span - 1 <= 16)).toBe(true)
+  expect(resized.cells.every(cell => (cell.position - 1) % 4 + cell.span <= 4)).toBe(true)
 })
 
 test('control-deck tiles reserve long presses for cockpit hold gestures', () => {
@@ -97,6 +118,8 @@ test('control-deck tiles reserve long presses for cockpit hold gestures', () => 
   expect(stylesheet).toMatch(/\.control-deck-slot > \.command-tile \{[\s\S]*?touch-action: none;/)
   expect(stylesheet).toMatch(/\.control-deck-slot > \.command-tile \{[\s\S]*?user-select: none;/)
   expect(stylesheet).toMatch(/\.control-deck-slot > \.command-tile \{[\s\S]*?-webkit-touch-callout: none;/)
+  expect(stylesheet).toMatch(/\.control-deck-settings \{[\s\S]*?grid-template-columns:/)
+  expect(stylesheet).toMatch(/\.theme-orange \{ --control-deck-accent: #ff8a4c;/)
 })
 
 function emptyMacroRuntime (): MacroRuntime {
