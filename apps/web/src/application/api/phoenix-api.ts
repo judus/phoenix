@@ -55,6 +55,7 @@ import type {
   RuntimeState,
   ShipCatalogueResponse
 } from '@phoenix/contracts'
+import type { ControlDeckCommandCatalogue } from '@jdu/control-deck-core'
 
 export type CopilotStreamEvent =
   | { type: 'started', conversationId: string }
@@ -111,6 +112,7 @@ export interface PhoenixApi {
   getCopilotVoiceHost(signal?: AbortSignal): Promise<CopilotVoiceHostSnapshot>
   getCommunications(view?: 'all' | 'inbox' | 'traffic', limit?: number, signal?: AbortSignal): Promise<CommunicationsResponse>
   getControlLayout(signal?: AbortSignal): Promise<ControlGridLayout>
+  getControlDeckCommands(signal?: AbortSignal): Promise<ControlDeckCommandCatalogue>
   getCommands(signal?: AbortSignal): Promise<CommandCatalogResponse>
   getFleet(signal?: AbortSignal): Promise<FleetResponse>
   getGalnetNews(limit?: number, signal?: AbortSignal): Promise<GalnetNewsResponse>

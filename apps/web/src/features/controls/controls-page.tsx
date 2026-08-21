@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { ControlDeckSurface } from '@jdu/control-deck-ui'
-import { PHOENIX_CONTROL_LAYOUT_PRESETS, PhoenixControlDeckThemeSchema, applyControlGridPageLayoutPreset, controlGridLayoutToControlDeckConfiguration, phoenixControlLayoutPreset, type CommandTarget, type ControlGridLayout, type GameActionAvailability, type GameActionOperation, type PhoenixControlDeckTheme, type RuntimeState } from '@phoenix/contracts'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import type { ControlDeckCommandElement } from '@jdu/control-deck-core'
+import { ButtonEditor, ControlDeckArmingController, ControlDeckSurface } from '@jdu/control-deck-ui'
+import { PHOENIX_CONTROL_LAYOUT_PRESETS, PhoenixControlDeckThemeSchema, applyControlGridPageLayoutPreset, controlDeckTargetToPhoenixTarget, controlGridLayoutToControlDeckConfiguration, phoenixControlLayoutPreset, type CommandTarget, type ControlGridLayout, type GameActionAvailability, type GameActionOperation, type PhoenixControlDeckTheme, type RuntimeState } from '@phoenix/contracts'
 import { Button, CommandTile, Field, IconButton, NumberInput, PageFrame, Select, Status, TextInput } from '@phoenix/ui'
 import { createClientId } from '../../application/identity/client-identity.js'
 import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
@@ -22,12 +23,23 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
   const [error, setError] = useState<string>()
   const [draft, setDraft] = useState<ControlGridLayout>()
   const [editingPosition, setEditingPosition] = useState<number>()
-  const [filter, setFilter] = useState('')
   const [saving, setSaving] = useState(false)
   const held = useRef(new HoldGestureController())
+  const arming = useRef(new ControlDeckArmingController()).current
+  const armingTimers = useRef(new Map<number, ReturnType<typeof globalThis.setTimeout>>())
+  const suppressClicks = useRef(new Set<string>())
+  const armedElementId = useSyncExternalStore(arming.subscribe, arming.getSnapshot, arming.getSnapshot)
   useEffect(() => { if (!editing) setDraft(controller.layout) }, [controller.layout, editing])
-  useEffect(() => { onEditingChange(false); setEditingPosition(undefined); setFilter('') }, [category])
-  useEffect(() => () => { void held.current.releaseAll() }, [category])
+  useEffect(() => { onEditingChange(false); setEditingPosition(undefined); arming.cancel() }, [category])
+  useEffect(() => {
+    if (editing) arming.cancel()
+  }, [arming, editing])
+  useEffect(() => () => {
+    void held.current.releaseAll()
+    for (const timer of armingTimers.current.values()) globalThis.clearTimeout(timer)
+    armingTimers.current.clear()
+    arming.cancel()
+  }, [arming, category])
   const activeLayout = draft ?? controller.layout
   const page = activeLayout?.pages.find(candidate => candidate.category === category)
   const deck = useMemo(() => controlGridLayoutToControlDeckConfiguration(activeLayout ?? {
@@ -45,6 +57,12 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
   }).decks.find(candidate => candidate.context === `phoenix:${category}`)!, [activeLayout, category])
   const actions = new Map(controller.actions?.actions.map(action => [action.definition.id, action]) ?? [])
   const cells = new Map(page?.cells.map(cell => [cell.position, cell]) ?? [])
+  const editorColumn = editingPosition === undefined ? undefined : (editingPosition - 1) % deck.layout.columns + 1
+  const editorRow = editingPosition === undefined ? undefined : Math.floor((editingPosition - 1) / deck.layout.columns) + 1
+  const editorSlot = editorColumn === undefined || editorRow === undefined
+    ? undefined
+    : deck.elements.find(element => element.placement.column === editorColumn && element.placement.row === editorRow)
+  const editorElement = editorSlot?.kind === 'command' ? editorSlot : undefined
 
   const execute = (action: GameActionAvailability, operation: GameActionOperation, leaseId?: string) => {
     const operationRequest = macros.recording
@@ -55,14 +73,38 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
       .catch(cause => setError(cause instanceof Error ? cause.message : 'Control execution failed.'))
   }
 
+  const beginSafetyHold = (elementId: string, armedForMs: number, pointerId: number) => {
+    if (armedElementId === elementId) return
+    arming.cancel()
+    const existing = armingTimers.current.get(pointerId)
+    if (existing) globalThis.clearTimeout(existing)
+    armingTimers.current.set(pointerId, globalThis.setTimeout(() => {
+      armingTimers.current.delete(pointerId)
+      suppressClicks.current.add(elementId)
+      arming.arm(elementId, armedForMs)
+    }, 650))
+  }
+  const finishSafetyHold = (elementId: string, pointerId: number) => {
+    const timer = armingTimers.current.get(pointerId)
+    if (timer) globalThis.clearTimeout(timer)
+    armingTimers.current.delete(pointerId)
+    if (suppressClicks.current.has(elementId)) {
+      globalThis.setTimeout(() => suppressClicks.current.delete(elementId), 0)
+    }
+  }
+  const confirmSafety = (elementId: string): boolean => {
+    if (suppressClicks.current.delete(elementId)) return false
+    return arming.confirm(elementId)
+  }
+
   return (
-    <PageFrame className={`controls-page theme-${page?.theme ?? 'phoenix'}${editing ? ' editing' : ''}${macros.recording ? ' recording' : ''}`} layout="fit">
+    <PageFrame className={`controls-page theme-${page?.theme ?? 'phoenix'}${editing ? ' editing' : ''}${editingPosition !== undefined ? ' button-editing' : ''}${macros.recording ? ' recording' : ''}`} layout="fit">
       {macros.recording && <section className="control-recording-toolbar">
         <span className="recording-status">Recording · {macros.recording.entries.length} commands</span>
         <Button variant="quiet" onClick={() => void macros.cancelRecording()}>Cancel</Button>
         <Button variant="primary" onClick={() => void macros.stopRecording()}>Stop and review</Button>
       </section>}
-      {editing && page && <DeckSettings
+      {editing && editingPosition === undefined && page && <DeckSettings
         page={page}
         onChange={updated => draft && setDraft(replacePage(draft, updated))}
         onCancel={() => { setDraft(controller.layout); onEditingChange(false); setEditingPosition(undefined) }}
@@ -77,14 +119,40 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
         ? <Status tone="danger">{error ?? macros.error ?? controller.error}</Status>
         : controller.status === 'loading'
           ? <Status tone="muted">Loading command grid…</Status>
-          : <ControlDeckSurface
+          : editing && editingPosition !== undefined && editorColumn !== undefined && editorRow !== undefined
+            ? <ButtonEditor
+                capabilities={{ appearance: false }}
+                catalogue={controller.commands}
+                deck={deck}
+                element={editorElement}
+                placement={editorSlot?.placement ?? {
+                  kind: 'grid',
+                  column: editorColumn,
+                  row: editorRow,
+                  columnSpan: cells.get(editingPosition)?.span ?? 1,
+                  rowSpan: 1
+                }}
+                position={{ column: editorColumn, row: editorRow }}
+                onClose={() => setEditingPosition(undefined)}
+                onRemove={() => {
+                  if (!draft) return
+                  setDraft(assignElement(draft, category, editingPosition, null))
+                  setEditingPosition(undefined)
+                }}
+                onSave={element => {
+                  if (!draft) return
+                  setDraft(assignElement(draft, category, editingPosition, element))
+                  setEditingPosition(undefined)
+                }}
+              />
+            : <ControlDeckSurface
               aria-label={`${controlsCategoryLabel(category)} command grid`}
               className="controls controls-command control-deck"
               deck={deck}
               renderEmpty={({ column, row }) => {
                 const position = (row - 1) * deck.layout.columns + column
                 return editing
-                  ? <Button aria-label={`Cell ${position}`} className="control-deck-empty" variant="quiet" onClick={() => { setEditingPosition(position); setFilter('') }}>{position}</Button>
+                  ? <Button aria-label={`Cell ${position}`} className="control-deck-empty" variant="quiet" onClick={() => setEditingPosition(position)}>{position}</Button>
                   : <div className="control-deck-empty" />
               }}
               renderCommand={element => {
@@ -94,23 +162,58 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
                 if (!target) return <div className="control-deck-empty" />
                 if (target.type === 'macro') {
                   const macro = macros.library.macros.find(candidate => candidate.id === target.macroId)
-                  return <CommandTile kind="macro" label={macro?.name ?? target.macroId} meta={editing ? `Cell ${position}` : macro?.risk} unavailable={!editing && !macro?.enabled} onClick={() => editing ? (setEditingPosition(position), setFilter('')) : macro && void macros.play(macro)} onContextMenu={event => event.preventDefault()} />
+                  const elementId = element.id
+                  const confirmation = cell?.interaction.confirmation
+                  const armed = armedElementId === elementId
+                  return <CommandTile
+                    kind="macro"
+                    label={macro?.name ?? target.macroId}
+                    meta={editing ? `Cell ${position}` : armed ? 'armed — tap' : macro?.risk}
+                    selected={armed}
+                    unavailable={!editing && !macro?.enabled}
+                    onClick={() => {
+                      if (editing) { setEditingPosition(position); return }
+                      if (!macro) return
+                      if (confirmation?.kind === 'arm-then-tap') {
+                        if (!confirmSafety(elementId)) return
+                      } else arming.cancel()
+                      void macros.play(macro)
+                    }}
+                    onContextMenu={event => event.preventDefault()}
+                    onPointerDown={event => {
+                      if (editing) return
+                      event.currentTarget.setPointerCapture?.(event.pointerId)
+                      if (confirmation?.kind === 'arm-then-tap') beginSafetyHold(elementId, confirmation.armedForMs, event.pointerId)
+                      else arming.cancel()
+                    }}
+                    onPointerUp={event => finishSafetyHold(elementId, event.pointerId)}
+                    onPointerCancel={event => finishSafetyHold(elementId, event.pointerId)}
+                  />
                 }
                 if (target.type !== 'game-action') return <MissingTarget target={target} />
                 const action = actions.get(target.actionId)
                 if (!action) return <MissingTarget target={target} />
                 const active = telemetryState(runtime, action.definition.telemetryKey)
+                const elementId = element.id
+                const confirmation = cell?.interaction.confirmation
+                const armed = armedElementId === elementId
                 return <CommandTile
                   binding={action.binding?.display}
                   label={action.definition.label}
-                  meta={action.definition.inputMode}
-                  selected={active}
+                  meta={armed ? 'armed — tap' : action.definition.inputMode}
+                  selected={armed || active}
                   tone={action.definition.risk === 'dangerous' ? 'danger' : 'normal'}
                   unavailable={!action.available}
                   disabled={!editing && !action.available}
                   onContextMenu={event => event.preventDefault()}
                   onClick={event => {
-                    if (editing) { setEditingPosition(position); setFilter(''); return }
+                    if (editing) { setEditingPosition(position); return }
+                    if (confirmation?.kind === 'arm-then-tap') {
+                      if (!confirmSafety(elementId)) return
+                      void execute(action, 'tap')
+                      return
+                    }
+                    arming.cancel()
                     if (action.definition.inputMode !== 'hold') void execute(action, 'tap')
                     else if (event.detail === 0) {
                       const leaseId = createClientId()
@@ -118,37 +221,31 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
                     }
                   }}
                   onPointerDown={event => {
-                    if (editing || action.definition.inputMode !== 'hold') return
+                    if (editing) return
                     event.currentTarget.setPointerCapture?.(event.pointerId)
+                    if (confirmation?.kind === 'arm-then-tap') {
+                      beginSafetyHold(elementId, confirmation.armedForMs, event.pointerId)
+                      return
+                    }
+                    arming.cancel()
+                    if (action.definition.inputMode !== 'hold') return
                     held.current.begin(
                       action.definition.id,
                       (operation, leaseId) => execute(action, operation, leaseId),
                       !macros.recording
                     )
                   }}
-                  onPointerUp={() => { void held.current.end(action.definition.id) }}
-                  onPointerCancel={() => { void held.current.end(action.definition.id) }}
+                  onPointerUp={event => {
+                    finishSafetyHold(elementId, event.pointerId)
+                    void held.current.end(action.definition.id)
+                  }}
+                  onPointerCancel={event => {
+                    finishSafetyHold(elementId, event.pointerId)
+                    void held.current.end(action.definition.id)
+                  }}
                 />
               }}
             />}
-      {editing && editingPosition !== undefined && <ControlPicker
-        actions={controller.actions?.actions ?? []}
-        filter={filter}
-        macros={macros}
-        onClose={() => setEditingPosition(undefined)}
-        onFilterChange={setFilter}
-        onSelect={target => {
-          if (!draft) return
-          setDraft(assignTarget(draft, category, editingPosition, target))
-          setEditingPosition(undefined)
-        }}
-        onClear={() => {
-          if (!draft) return
-          setDraft(assignTarget(draft, category, editingPosition, null))
-          setEditingPosition(undefined)
-        }}
-        position={editingPosition}
-      />}
     </PageFrame>
   )
 }
@@ -221,48 +318,31 @@ function CheckIcon () {
   return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
 }
 
-function ControlPicker({ actions, filter, macros, onClear, onClose, onFilterChange, onSelect, position }: {
-  actions: GameActionAvailability[]
-  filter: string
-  macros: MacroRuntime
-  onClear(): void
-  onClose(): void
-  onFilterChange(value: string): void
-  onSelect(target: CommandTarget): void
-  position: number
-}) {
-  const needle = filter.trim().toLowerCase()
-  const candidates = useMemo(() => actions.filter(action => !needle || [
-    action.definition.label,
-    action.definition.eliteBinding,
-    gameActionCategoryLabel(action.definition.category),
-    action.binding?.display
-  ].some(value => value?.toLowerCase().includes(needle))), [actions, needle])
-  return <section aria-modal="true" className="control-picker" role="dialog">
-    <header><div><strong>Assign command</strong><small>Cell {position}</small></div><Button variant="quiet" onClick={onClose}>Close</Button></header>
-    <Field htmlFor="control-filter" label="Filter commands"><TextInput autoFocus value={filter} onChange={event => onFilterChange(event.target.value)} /></Field>
-    <div className="control-picker-list">
-      {macros.library.macros.filter(macro => !needle || macro.name.toLowerCase().includes(needle)).map(macro => <Button alignment="start" key={macro.id} variant="quiet" onClick={() => onSelect({ type: 'macro', macroId: macro.id })}>{macro.name} · Macro</Button>)}
-      {candidates.map(action => <Button alignment="start" key={action.definition.id} variant="quiet" onClick={() => onSelect({ type: 'game-action', actionId: action.definition.id })}>{controlPickerActionLabel(action)}</Button>)}
-    </div>
-    <footer><Button variant="danger" onClick={onClear}>Clear cell</Button></footer>
-  </section>
-}
-
 export function controlPickerActionLabel(action: GameActionAvailability): string {
   return `${action.definition.label} · ${gameActionCategoryLabel(action.definition.category)} · ${action.binding?.display ?? 'Unbound'}`
 }
 
-function assignTarget(layout: ControlGridLayout, category: ControlCategory, position: number, target: CommandTarget | null): ControlGridLayout {
+function assignElement (
+  layout: ControlGridLayout,
+  category: ControlCategory,
+  position: number,
+  element: ControlDeckCommandElement | null
+): ControlGridLayout {
   return {
     ...layout,
     pages: layout.pages.map(page => {
       if (page.category !== category) return page
+      const replacement = {
+        position,
+        span: element?.placement.columnSpan ?? page.cells.find(cell => cell.position === position)?.span ?? 1,
+        target: element ? controlDeckTargetToPhoenixTarget(element.target) : null,
+        interaction: element?.interaction ?? { activation: 'command-default' as const, confirmation: { kind: 'none' as const } }
+      }
       return {
         ...page,
         cells: page.cells.some(cell => cell.position === position)
-          ? page.cells.map(cell => cell.position === position ? { ...cell, target } : cell)
-          : [...page.cells, { position, span: 1, target }].sort((left, right) => left.position - right.position)
+          ? page.cells.map(cell => cell.position === position ? replacement : cell)
+          : [...page.cells, replacement].sort((left, right) => left.position - right.position)
       }
     })
   }

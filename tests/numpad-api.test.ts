@@ -1,16 +1,16 @@
 import { expect, test } from 'vitest'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
-import { StaticGameActionBindingResolver } from '../apps/server/src/infrastructure/static-game-action-binding-resolver.js'
-import { RecordingInputBackend } from '../apps/server/src/infrastructure/recording-input-backend.js'
+import { StaticEliteDangerousBindings } from './support/static-elite-dangerous-bindings.js'
+import { RecordingKeyboardOutput } from '@jdu/control-deck-adapter-keyboard'
 import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
 
 test('the numpad API projects and executes the current authoritative command map', async () => {
   const application = new PhoenixApplication({
-    actionBindingResolver: new StaticGameActionBindingResolver(),
+    eliteBindings: new StaticEliteDangerousBindings(),
     databasePath: ':memory:',
     eliteDirectory: null,
     host: '127.0.0.1',
-    inputBackend: new RecordingInputBackend(),
+    keyboardOutput: new RecordingKeyboardOutput(),
     port: 0
   })
   const address = await application.start()

@@ -1,17 +1,14 @@
 import { expect, test } from 'vitest'
-import { DefaultGameActionGateway } from '../apps/server/src/application/default-game-action-gateway.js'
-import { DefaultGameActionCatalog } from '../apps/server/src/infrastructure/default-game-action-catalog.js'
-import { RecordingInputBackend } from '../apps/server/src/infrastructure/recording-input-backend.js'
-import { StaticGameActionBindingResolver } from '../apps/server/src/infrastructure/static-game-action-binding-resolver.js'
+import { RecordingKeyboardOutput } from '@jdu/control-deck-adapter-keyboard'
+import { ControlDeckCommandService } from '@jdu/control-deck-core'
+import { EliteDangerousCommandAdapter } from '@jdu/control-deck-integration-elite-dangerous'
+import { ControlDeckEliteGameActionGateway } from '../apps/server/src/application/control-deck-elite-game-action-gateway.js'
+import { StaticEliteDangerousBindings } from './support/static-elite-dangerous-bindings.js'
 
-test('the action gateway resolves logical bindings and delegates to its input backend', async () => {
-  const backend = new RecordingInputBackend()
-  const bindings = new StaticGameActionBindingResolver()
-  const gateway = new DefaultGameActionGateway(
-    new DefaultGameActionCatalog(bindings),
-    bindings,
-    backend
-  )
+test('the PHOENIX gateway executes Elite actions through the Control Deck integration', async () => {
+  const backend = new RecordingKeyboardOutput()
+  const adapter = new EliteDangerousCommandAdapter({ bindings: new StaticEliteDangerousBindings(), output: backend, outputId: 'recording' })
+  const gateway = new ControlDeckEliteGameActionGateway(adapter, commandService(adapter))
 
   const result = await gateway.execute({
     actionId: 'elite.ShipSpotLightToggle',
@@ -28,18 +25,14 @@ test('the action gateway resolves logical bindings and delegates to its input ba
   expect(result.message).toContain('Simulation only')
   expect(backend.getRecordedInputs()).toEqual([{
     operation: 'tap',
-    binding: { key: 'L', modifiers: [], display: 'L' }
+    configuration: { key: 'L', modifiers: [] }
   }])
 })
 
 test('the action gateway rejects unknown actions without touching the backend', async () => {
-  const backend = new RecordingInputBackend()
-  const bindings = new StaticGameActionBindingResolver()
-  const gateway = new DefaultGameActionGateway(
-    new DefaultGameActionCatalog(bindings),
-    bindings,
-    backend
-  )
+  const backend = new RecordingKeyboardOutput()
+  const adapter = new EliteDangerousCommandAdapter({ bindings: new StaticEliteDangerousBindings(), output: backend, outputId: 'recording' })
+  const gateway = new ControlDeckEliteGameActionGateway(adapter, commandService(adapter))
 
   const result = await gateway.execute({
     actionId: 'ship.unknown.toggle',
@@ -50,3 +43,8 @@ test('the action gateway rejects unknown actions without touching the backend', 
   expect(result.status).toBe('rejected')
   expect(backend.getRecordedInputs()).toEqual([])
 })
+
+function commandService (adapter: EliteDangerousCommandAdapter): ControlDeckCommandService {
+  let id = 0
+  return new ControlDeckCommandService([adapter], { createId: () => `test-${++id}` })
+}

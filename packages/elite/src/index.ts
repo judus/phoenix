@@ -1,7 +1,5 @@
 export * from './catalogue/json-game-catalogue.js'
 export * from './engineering/json-engineering-catalogue.js'
-export * from './bindings/elite-bindings-directory-locator.js'
-export * from './bindings/elite-keyboard-binding-resolver.js'
 export * from './inventory/elite-inventory-file-source.js'
 export * from './inventory/elite-inventory-parser.js'
 export * from './journal/elite-journal-file-source.js'

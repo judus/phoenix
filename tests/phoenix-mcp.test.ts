@@ -6,15 +6,15 @@ import {
   type ModelResponse
 } from '@jdu/llm-client'
 import { ScriptedProvider, textModelCapabilities } from '@jdu/llm-client/testing'
-import { StaticGameActionBindingResolver } from '../apps/server/src/infrastructure/static-game-action-binding-resolver.js'
+import { StaticEliteDangerousBindings } from './support/static-elite-dangerous-bindings.js'
 import { InMemorySystemSettingsRepository } from '../apps/server/src/infrastructure/json-system-configuration.js'
 import { InMemoryMacroRepository } from '../apps/server/src/infrastructure/macro-repositories.js'
-import { RecordingInputBackend } from '../apps/server/src/infrastructure/recording-input-backend.js'
+import { RecordingKeyboardOutput } from '@jdu/control-deck-adapter-keyboard'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 
 test('the portable AI client discovers and calls PHOENIX tools over MCP', async () => {
   const application = new PhoenixApplication({
-    actionBindingResolver: new StaticGameActionBindingResolver(),
+    eliteBindings: new StaticEliteDangerousBindings(),
     databasePath: ':memory:',
     eliteDirectory: null,
     host: '127.0.0.1',
@@ -151,13 +151,13 @@ test('the Copilot discovers and executes commander-created macros through the co
       permissions: { ...settings.copilot.permissions, macros: true }
     }
   })
-  const inputBackend = new RecordingInputBackend()
+  const inputBackend = new RecordingKeyboardOutput()
   const application = new PhoenixApplication({
-    actionBindingResolver: new StaticGameActionBindingResolver(),
+    eliteBindings: new StaticEliteDangerousBindings(),
     databasePath: ':memory:',
     eliteDirectory: null,
     host: '127.0.0.1',
-    inputBackend,
+    keyboardOutput: inputBackend,
     macroRepository,
     port: 0,
     systemSettingsRepository

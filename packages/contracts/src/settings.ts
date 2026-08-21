@@ -2,6 +2,7 @@ import { z } from 'zod'
 import {
   ControlDeckColorSchemeSchema,
   ControlDeckConfigurationSchema,
+  ControlDeckInteractionSchema,
   ControlDeckLayoutPresetIdSchema,
   applyControlDeckLayoutPreset,
   useCustomControlDeckLayout,
@@ -36,7 +37,11 @@ export const PhoenixModulesSchema = z.object({
 const ControlGridCellSchema = z.object({
   position: z.number().int().positive().max(128),
   span: z.number().int().min(1).max(12).default(1),
-  target: CommandTargetSchema.nullable()
+  target: CommandTargetSchema.nullable(),
+  interaction: ControlDeckInteractionSchema.default({
+    activation: 'command-default',
+    confirmation: { kind: 'none' }
+  })
 })
 
 const ControlGridPageSchema = z.object({
@@ -116,7 +121,7 @@ export function controlGridLayoutToControlDeckConfiguration (
                 foregroundColor: null,
                 backgroundColor: null
               },
-              interaction: { activation: 'command-default', confirmation: { kind: 'none' } }
+              interaction: cell.interaction
             }
           : { kind: 'spacer' }),
         placement: {
@@ -159,7 +164,10 @@ export function controlDeckConfigurationToControlGridLayout (
           return {
             position,
             span: element.placement.columnSpan,
-            target: element.kind === 'spacer' ? null : controlDeckTargetToPhoenixTarget(element.target)
+            target: element.kind === 'spacer' ? null : controlDeckTargetToPhoenixTarget(element.target),
+            interaction: element.kind === 'spacer'
+              ? { activation: 'command-default' as const, confirmation: { kind: 'none' as const } }
+              : element.interaction
           }
         })
       }]
@@ -209,7 +217,7 @@ export function applyControlGridPageLayoutPreset (
   return updated
 }
 
-function phoenixTargetToControlDeckTarget (target: CommandTarget): ControlDeckCommandTarget {
+export function phoenixTargetToControlDeckTarget (target: CommandTarget): ControlDeckCommandTarget {
   const commandId = target.type === 'game-action'
     ? `command.${target.actionId}`
     : target.type === 'navigation'
@@ -218,7 +226,7 @@ function phoenixTargetToControlDeckTarget (target: CommandTarget): ControlDeckCo
   return { adapterId: 'phoenix.commands', commandId, configuration: {} }
 }
 
-function controlDeckTargetToPhoenixTarget (target: ControlDeckCommandTarget): CommandTarget {
+export function controlDeckTargetToPhoenixTarget (target: ControlDeckCommandTarget): CommandTarget {
   if (target.adapterId !== 'phoenix.commands' || Object.keys(target.configuration).length > 0) {
     throw new Error('PHOENIX legacy controls can represent only unconfigured PHOENIX command targets.')
   }

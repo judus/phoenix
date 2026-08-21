@@ -31,6 +31,7 @@ export class PhoenixControlDeckCommandAdapter implements ControlDeckCommandAdapt
         label: command.label,
         description: command.description ?? command.label,
         category: command.category,
+        bindingLabel: commandBindingLabel(command, actions),
         available: command.available,
         unavailableReason: command.unavailableReason ?? null,
         risk: command.risk,
@@ -94,4 +95,10 @@ function commandOperations (
 function commandIsSimulated (command: CommandDescriptor, actions: GameActionCatalogResponse): boolean {
   if (command.target.type === 'navigation') return false
   return actions.backend.simulated
+}
+
+function commandBindingLabel (command: CommandDescriptor, actions: GameActionCatalogResponse): string | null | undefined {
+  if (command.target.type !== 'game-action') return undefined
+  const actionId = command.target.actionId
+  return actions.actions.find(candidate => candidate.definition.id === actionId)?.binding?.display ?? null
 }

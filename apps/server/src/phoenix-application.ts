@@ -3,11 +3,20 @@ import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { DisplayCommand, GameEventEnvelope, NavigationRoute, RuntimeState } from '@phoenix/contracts'
 import { ToolRegistry } from '@jdu/llm-client'
+import { ControlDeckCommandService } from '@jdu/control-deck-core'
 import { ControlDeckIntegration } from '@jdu/control-deck-host'
 import {
-  EliteDataDirectoryLocator,
+  RecordingKeyboardOutput,
+  type KeyboardOutput
+} from '@jdu/control-deck-adapter-keyboard'
+import {
   EliteBindingsDirectoryLocator,
+  EliteDangerousCommandAdapter,
   EliteKeyboardBindingResolver,
+  type EliteDangerousBindingSource
+} from '@jdu/control-deck-integration-elite-dangerous'
+import {
+  EliteDataDirectoryLocator,
   EliteInventoryFileSource,
   EliteJournalFileSource,
   EliteJournalHistoryBackfill,
@@ -23,7 +32,7 @@ import { CachedSystemCartographyService } from './application/cached-system-cart
 import { CartographyObservationIngestionService } from './application/cartography-observation-ingestion-service.js'
 import { DefaultNavigationQuery } from './application/default-navigation-query.js'
 import { DefaultSystemDetailsQuery } from './application/default-system-details-query.js'
-import { DefaultGameActionGateway } from './application/default-game-action-gateway.js'
+import { ControlDeckEliteGameActionGateway } from './application/control-deck-elite-game-action-gateway.js'
 import { DefaultCommandDispatcher } from './application/command-dispatcher.js'
 import { DefaultCommandRegistry, PHOENIX_NAVIGATION_DESTINATIONS } from './application/default-command-registry.js'
 import { CommandCatalogueService } from './application/command-catalogue-service.js'
@@ -56,7 +65,6 @@ import { DefaultExplorationBodyQuery } from './application/default-exploration-b
 import { DefaultExplorationTargetQuery } from './application/default-exploration-target-query.js'
 import type { CopilotText } from './application/copilot-text-service.js'
 import type { CopilotRealtime } from './application/copilot-realtime-service.js'
-import type { GameActionBindingResolver, InputBackend } from './domain/game-actions.js'
 import type { CartographySource } from './domain/cartography.js'
 import type { ExplorationTargetSearchSource } from './domain/exploration-target.js'
 import type { FactionPresenceSearchSource, OutfittingSearchSource, ShipyardSearchSource, StationLookupSource, StationSearchSource, StationStockSource, SystemSearchSource } from './domain/station-market.js'
@@ -64,7 +72,6 @@ import type { GalnetSource } from './domain/galnet.js'
 import type { ControlGridLayoutRepository, OpenAiSecretRepository, SystemSettingsRepository } from './domain/system-configuration.js'
 import type { MacroRepository } from './domain/macros.js'
 import type { CommandCatalogueChange } from './domain/commands.js'
-import { DefaultGameActionCatalog } from './infrastructure/default-game-action-catalog.js'
 import { InMemoryRuntimeStateStore } from './infrastructure/in-memory-runtime-state-store.js'
 import { InMemoryNavigationRouteStore } from './infrastructure/in-memory-navigation-route-store.js'
 import { InMemoryControlGridLayoutRepository } from './infrastructure/in-memory-control-grid-layout-repository.js'
@@ -79,9 +86,6 @@ import {
 import { MacroService } from './application/macro-service.js'
 import { InProcessPublisher } from './infrastructure/in-process-publisher.js'
 import { PhoenixHttpServer } from './infrastructure/phoenix-http-server.js'
-import { RecordingInputBackend } from './infrastructure/recording-input-backend.js'
-import { LinuxXdotoolInputBackend } from './infrastructure/linux-xdotool-input-backend.js'
-import { WindowsSendInputBackend } from './infrastructure/windows-sendinput-input-backend.js'
 import { SqliteDatabase } from './infrastructure/sqlite-database.js'
 import { EdsmCartographySource } from './infrastructure/edsm-cartography-source.js'
 import { createConfiguredCopilot } from './infrastructure/configured-copilot.js'
@@ -102,7 +106,7 @@ import { OpenAiConfigurationService } from './application/openai-configuration-s
 
 export interface PhoenixApplicationOptions {
   applicationPaths?: ApplicationPaths
-  actionBindingResolver?: GameActionBindingResolver
+  eliteBindings?: EliteDangerousBindingSource
   accessControl?: PairingAccessController
   cartographySource?: CartographySource
   controlGridLayoutRepository?: ControlGridLayoutRepository
@@ -115,8 +119,8 @@ export interface PhoenixApplicationOptions {
   eliteBindingsDirectory?: string | null
   host?: string
   galnetSource?: GalnetSource
-  inputBackend?: InputBackend
-  inputBackendMode?: 'recording' | 'linux-xdotool' | 'windows-sendinput'
+  keyboardOutput?: KeyboardOutput
+  keyboardOutputId?: string
   moduleCataloguePath?: string
   openAiSecretRepository?: OpenAiSecretRepository
   openAiEnvironmentKey?: string | null
@@ -137,9 +141,9 @@ export interface PhoenixApplicationOptions {
 
 export class PhoenixApplication {
   private readonly controlDeck: ControlDeckIntegration
+  private readonly eliteControls: ControlDeckCommandService
   private readonly database: SqliteDatabase
   private readonly eventIngestion: GameEventIngestionService
-  private readonly inputBackend: InputBackend
   private readonly journalSource: EliteJournalFileSource
   private readonly journalBackfill: EliteJournalHistoryBackfill
   private readonly inventorySource: EliteInventoryFileSource
@@ -265,15 +269,16 @@ export class PhoenixApplication {
         navigationRouteUpdates.publish(route)
       }
     )
-    const actionBindingResolver = options.actionBindingResolver ?? new EliteKeyboardBindingResolver(
+    const eliteBindings = options.eliteBindings ?? new EliteKeyboardBindingResolver(
       locateBindingsDirectory(options, configuredEliteDirectory)
     )
-    this.inputBackend = options.inputBackend ?? configuredInputBackend(options.inputBackendMode)
-    const actionGateway = new DefaultGameActionGateway(
-      new DefaultGameActionCatalog(actionBindingResolver),
-      actionBindingResolver,
-      this.inputBackend
-    )
+    const eliteAdapter = new EliteDangerousCommandAdapter({
+      bindings: eliteBindings,
+      output: options.keyboardOutput ?? new RecordingKeyboardOutput(),
+      outputId: options.keyboardOutputId ?? 'recording'
+    })
+    this.eliteControls = new ControlDeckCommandService([eliteAdapter], { createId: randomUUID })
+    const actionGateway = new ControlDeckEliteGameActionGateway(eliteAdapter, this.eliteControls)
     const gameActions = new LoggedGameActions(new GameActionService(actionGateway), activityLog)
     this.gameActions = gameActions
     const systemSettings = new NotifyingSystemSettingsRepository(
@@ -456,6 +461,7 @@ export class PhoenixApplication {
     this.database.initialize()
     try {
       await this.controlDeck.start()
+      await this.eliteControls.start()
       await this.journalSource.start()
       await this.statusSource.start()
       await this.inventorySource.start()
@@ -469,7 +475,7 @@ export class PhoenixApplication {
       this.inventorySource.stop()
       this.navigationRouteSource.stop()
       await this.controlDeck.stop()
-      await this.inputBackend.stop?.()
+      await this.eliteControls.stop()
       this.database.close()
       throw cause
     }
@@ -484,20 +490,13 @@ export class PhoenixApplication {
     await this.server.stop()
     await this.controlDeck.stop()
     await this.gameActions.stop?.()
-    await this.inputBackend.stop?.()
+    await this.eliteControls.stop()
     this.database.close()
   }
 
   public ingestGameEvent (candidate: unknown): GameEventEnvelope {
     return this.eventIngestion.ingest(candidate)
   }
-}
-
-function configuredInputBackend (mode: string | undefined): InputBackend {
-  if (!mode || mode === 'recording') return new RecordingInputBackend()
-  if (mode === 'linux-xdotool') return new LinuxXdotoolInputBackend()
-  if (mode === 'windows-sendinput') return new WindowsSendInputBackend()
-  throw new Error(`Unsupported PHOENIX input backend: ${mode}.`)
 }
 
 function locateBindingsDirectory (

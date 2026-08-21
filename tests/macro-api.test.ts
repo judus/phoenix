@@ -1,17 +1,17 @@
 import { expect, test } from 'vitest'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
-import { StaticGameActionBindingResolver } from '../apps/server/src/infrastructure/static-game-action-binding-resolver.js'
-import { RecordingInputBackend } from '../apps/server/src/infrastructure/recording-input-backend.js'
+import { StaticEliteDangerousBindings } from './support/static-elite-dangerous-bindings.js'
+import { RecordingKeyboardOutput } from '@jdu/control-deck-adapter-keyboard'
 
 test('a browser records, saves, discovers, and plays a semantic macro', async () => {
-  const inputBackend = new RecordingInputBackend()
+  const inputBackend = new RecordingKeyboardOutput()
   const application = new PhoenixApplication({
-    actionBindingResolver: new StaticGameActionBindingResolver(),
+    eliteBindings: new StaticEliteDangerousBindings(),
     databasePath: ':memory:',
     eliteDirectory: null,
     host: '127.0.0.1',
-    inputBackend,
+    keyboardOutput: inputBackend,
     port: 0
   })
   const address = await application.start()
@@ -51,11 +51,11 @@ test('a browser records, saves, discovers, and plays a semantic macro', async ()
 
 test('recording ownership prevents another browser contaminating a draft', async () => {
   const application = new PhoenixApplication({
-    actionBindingResolver: new StaticGameActionBindingResolver(),
+    eliteBindings: new StaticEliteDangerousBindings(),
     databasePath: ':memory:',
     eliteDirectory: null,
     host: '127.0.0.1',
-    inputBackend: new RecordingInputBackend(),
+    keyboardOutput: new RecordingKeyboardOutput(),
     port: 0
   })
   const address = await application.start()

@@ -6,8 +6,10 @@
     "moduleResolution": "NodeNext",
     "outDir": "dist",
     "paths": {
+      "@jdu/control-deck-adapter-keyboard": ["../../vendor/control-deck/packages/control-deck-adapter-keyboard/src/index.ts"],
       "@jdu/control-deck-core": ["../../vendor/control-deck/packages/control-deck-core/src/index.ts"],
       "@jdu/control-deck-host": ["../../vendor/control-deck/packages/control-deck-host/src/index.ts"],
+      "@jdu/control-deck-integration-elite-dangerous": ["../../vendor/control-deck/packages/control-deck-integration-elite-dangerous/src/index.ts"],
       "@phoenix/contracts": ["../../packages/contracts/src/index.ts"],
       "@phoenix/copilot": ["../../packages/copilot/src/index.ts"],
       "@phoenix/elite": ["../../packages/elite/src/index.ts"]
@@ -19,8 +21,10 @@
   },
   "include": ["src/**/*.ts"],
   "references": [
+    { "path": "../../vendor/control-deck/packages/control-deck-adapter-keyboard" },
     { "path": "../../vendor/control-deck/packages/control-deck-core" },
     { "path": "../../vendor/control-deck/packages/control-deck-host" },
+    { "path": "../../vendor/control-deck/packages/control-deck-integration-elite-dangerous" },
     { "path": "../../packages/contracts" },
     { "path": "../../packages/copilot" },
     { "path": "../../packages/elite" }

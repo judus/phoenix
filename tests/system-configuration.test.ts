@@ -7,15 +7,17 @@ import {
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect, test } from 'vitest'
+import type {
+  KeyboardCommandConfiguration,
+  KeyboardOutput,
+  KeyboardOutputStatus
+} from '@jdu/control-deck-adapter-keyboard'
+import type { ControlDeckCommandOperation } from '@jdu/control-deck-core'
 import { ControlGridLayoutSchema } from '@phoenix/contracts'
 import type {
-  GameActionOperation,
-  InputBackendStatus,
-  LogicalInputChord,
   PhoenixSettings
 } from '@phoenix/contracts'
-import { bootstrapControlBackend } from '../apps/server/src/application/control-backend-bootstrap.js'
-import type { InputBackend } from '../apps/server/src/domain/game-actions.js'
+import { bootstrapControlOutput } from '../apps/server/src/application/control-output-bootstrap.js'
 import {
   DEFAULT_PHOENIX_SETTINGS,
   JsonRuntimeSystemSnapshotWriter,
@@ -120,11 +122,17 @@ test('version-two layouts preserve user choices while removing the invalid silen
 
   expect(settings.controls.deckConfiguration.version).toBe(1)
   expect(layout.version).toBe(4)
-  expect(cells).toContainEqual({ position: 20, span: 1, target: null })
+  expect(cells).toContainEqual({
+    position: 20,
+    span: 1,
+    target: null,
+    interaction: { activation: 'command-default', confirmation: { kind: 'none' } }
+  })
   expect(cells).toContainEqual({
     position: 16,
     span: 1,
-    target: { type: 'game-action', actionId: 'elite.NightVisionToggle' }
+    target: { type: 'game-action', actionId: 'elite.NightVisionToggle' },
+    interaction: { activation: 'command-default', confirmation: { kind: 'none' } }
   })
 })
 
@@ -158,24 +166,25 @@ test('version-three action cells migrate to typed game-action targets', () => {
   expect(layout.pages[0]?.cells).toEqual([{
     position: 1,
     span: 2,
-    target: { type: 'game-action', actionId: 'elite.GalaxyMapOpen' }
+    target: { type: 'game-action', actionId: 'elite.GalaxyMapOpen' },
+    interaction: { activation: 'command-default', confirmation: { kind: 'none' } }
   }])
 })
 
 test('automatic Linux startup selects xdotool and produces runtime diagnostics', () => {
-  const result = bootstrapControlBackend(DEFAULT_PHOENIX_SETTINGS, {
-    createXdotoolBackend: () => new StubInputBackend({
-      id: 'linux-xdotool',
+  const result = bootstrapControlOutput(DEFAULT_PHOENIX_SETTINGS, {
+    createXdotoolOutput: () => new StubKeyboardOutput({
       available: true,
       simulated: false,
-      detail: 'xdotool ready'
+      detail: 'xdotool ready',
+      platformRequirements: []
     }),
     environment: { XDG_SESSION_TYPE: 'x11' },
     now: () => new Date('2026-08-10T19:00:00.000Z'),
     platform: 'linux'
   })
 
-  expect(result.backend.getStatus().id).toBe('linux-xdotool')
+  expect(result.id).toBe('linux-xdotool')
   expect(result.snapshot).toEqual({
     version: 1,
     generatedAt: '2026-08-10T19:00:00.000Z',
@@ -194,19 +203,19 @@ test('automatic Linux startup selects xdotool and produces runtime diagnostics',
 })
 
 test('automatic Windows startup selects SendInput and produces runtime diagnostics', () => {
-  const result = bootstrapControlBackend(DEFAULT_PHOENIX_SETTINGS, {
-    createSendInputBackend: () => new StubInputBackend({
-      id: 'windows-sendinput',
+  const result = bootstrapControlOutput(DEFAULT_PHOENIX_SETTINGS, {
+    createSendInputOutput: () => new StubKeyboardOutput({
       available: true,
       simulated: false,
-      detail: 'SendInput ready'
+      detail: 'SendInput ready',
+      platformRequirements: []
     }),
     environment: { SESSIONNAME: 'Console' },
     now: () => new Date('2026-08-18T14:00:00.000Z'),
     platform: 'win32'
   })
 
-  expect(result.backend.getStatus().id).toBe('windows-sendinput')
+  expect(result.id).toBe('windows-sendinput')
   expect(result.snapshot.controls).toEqual({
     enabled: true,
     configuredBackend: 'auto',
@@ -219,7 +228,7 @@ test('automatic Windows startup selects SendInput and produces runtime diagnosti
 })
 
 test('developer overrides and disabled user settings remain distinct', () => {
-  const overridden = bootstrapControlBackend(DEFAULT_PHOENIX_SETTINGS, {
+  const overridden = bootstrapControlOutput(DEFAULT_PHOENIX_SETTINGS, {
     environment: { PHOENIX_INPUT_BACKEND: 'recording' },
     platform: 'linux'
   })
@@ -227,7 +236,7 @@ test('developer overrides and disabled user settings remain distinct', () => {
     version: 1,
     controls: { enabled: false, backend: 'auto' }
   }
-  const disabled = bootstrapControlBackend(disabledSettings, { platform: 'linux' })
+  const disabled = bootstrapControlOutput(disabledSettings, { platform: 'linux' })
 
   expect(overridden.snapshot.controls).toMatchObject({
     configuredBackend: 'auto',
@@ -245,7 +254,7 @@ test('developer overrides and disabled user settings remain distinct', () => {
 test('runtime system diagnostics are written as validated JSON', () => {
   const directory = temporaryDirectory()
   const path = join(directory, 'runtime', 'system.json')
-  const snapshot = bootstrapControlBackend(DEFAULT_PHOENIX_SETTINGS, {
+  const snapshot = bootstrapControlOutput(DEFAULT_PHOENIX_SETTINGS, {
     environment: { PHOENIX_INPUT_BACKEND: 'recording' },
     now: () => new Date('2026-08-10T19:00:00.000Z'),
     platform: 'linux'
@@ -272,7 +281,12 @@ test('control-grid layouts are persisted inside system settings', () => {
   repository.saveLayout(layout)
 
   expect(repository.getLayout().pages.find(page => page.id === 'ship')?.cells).toEqual([
-    { position: 1, span: 1, target: { type: 'game-action', actionId: 'elite.NightVisionToggle' } }
+    {
+      position: 1,
+      span: 1,
+      target: { type: 'game-action', actionId: 'elite.NightVisionToggle' },
+      interaction: { activation: 'command-default', confirmation: { kind: 'none' } }
+    }
   ])
   expect(JSON.parse(readFileSync(path, 'utf8')).controls).not.toHaveProperty('layout')
 })
@@ -311,14 +325,14 @@ test('control-grid layouts allow the same command in multiple cells', () => {
   }).pages[0]?.cells).toHaveLength(2)
 })
 
-class StubInputBackend implements InputBackend {
-  public constructor (private readonly status: InputBackendStatus) {}
+class StubKeyboardOutput implements KeyboardOutput {
+  public constructor (private readonly status: KeyboardOutputStatus) {}
 
-  public getStatus (): InputBackendStatus {
+  public getStatus (): KeyboardOutputStatus {
     return this.status
   }
 
-  public async send (_operation: GameActionOperation, _binding: LogicalInputChord): Promise<void> {}
+  public async send (_operation: ControlDeckCommandOperation, _binding: KeyboardCommandConfiguration): Promise<void> {}
 }
 
 function temporaryDirectory (): string {

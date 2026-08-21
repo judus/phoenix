@@ -2,17 +2,17 @@ import { expect, test } from 'vitest'
 import { CommandExecutionResultSchema, type CommandTarget } from '@phoenix/contracts'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
-import { StaticGameActionBindingResolver } from '../apps/server/src/infrastructure/static-game-action-binding-resolver.js'
-import { RecordingInputBackend } from '../apps/server/src/infrastructure/recording-input-backend.js'
+import { StaticEliteDangerousBindings } from './support/static-elite-dangerous-bindings.js'
+import { RecordingKeyboardOutput } from '@jdu/control-deck-adapter-keyboard'
 
 test('the API exposes actions, executes them, and persists the shared control layout', async () => {
-  const inputBackend = new RecordingInputBackend()
+  const inputBackend = new RecordingKeyboardOutput()
   const application = new PhoenixApplication({
-    actionBindingResolver: new StaticGameActionBindingResolver(),
+    eliteBindings: new StaticEliteDangerousBindings(),
     databasePath: ':memory:',
     eliteDirectory: null,
     host: '127.0.0.1',
-    inputBackend,
+    keyboardOutput: inputBackend,
     port: 0
   })
   const address = await application.start()
@@ -40,8 +40,8 @@ test('the API exposes actions, executes them, and persists the shared control la
     expect(pressed).toMatchObject({ origin: 'ui', operation: 'press', status: 'accepted' })
     expect(released).toMatchObject({ origin: 'ui', operation: 'release', status: 'accepted' })
     expect(inputBackend.getRecordedInputs().slice(-2)).toEqual([
-      { operation: 'press', binding: { key: 'Space', modifiers: [], display: 'Space' } },
-      { operation: 'release', binding: { key: 'Space', modifiers: [], display: 'Space' } }
+      { operation: 'press', configuration: { key: 'Space', modifiers: [] } },
+      { operation: 'release', configuration: { key: 'Space', modifiers: [] } }
     ])
 
     const commands = await client.getCommands()
@@ -87,7 +87,12 @@ test('the API exposes actions, executes them, and persists the shared control la
             ...page,
             cells: [
               ...page.cells.map(cell => cell.position === 1 ? { ...cell, target: null } : cell),
-              { position: 2, span: 1, target: { type: 'game-action' as const, actionId: 'elite.GalaxyMapOpen' } }
+              {
+                position: 2,
+                span: 1,
+                target: { type: 'game-action' as const, actionId: 'elite.GalaxyMapOpen' },
+                interaction: { activation: 'command-default' as const, confirmation: { kind: 'none' as const } }
+              }
             ]
           })
     }
@@ -95,7 +100,8 @@ test('the API exposes actions, executes them, and persists the shared control la
     expect(savedLayout.pages.find(page => page.id === 'ship')?.cells).toContainEqual({
       position: 2,
       span: 1,
-      target: { type: 'game-action', actionId: 'elite.GalaxyMapOpen' }
+      target: { type: 'game-action', actionId: 'elite.GalaxyMapOpen' },
+      interaction: { activation: 'command-default', confirmation: { kind: 'none' } }
     })
     expect(await client.getControlLayout()).toEqual(savedLayout)
   } finally {

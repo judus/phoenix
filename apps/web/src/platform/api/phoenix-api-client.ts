@@ -54,6 +54,7 @@ import {
   RuntimeStateSchema,
   ShipCatalogueResponseSchema
 } from '@phoenix/contracts'
+import { ControlDeckCommandCatalogueSchema, type ControlDeckCommandCatalogue } from '@jdu/control-deck-core'
 import type {
   ActivityLogResponse,
   CartographyLookupResponse,
@@ -258,6 +259,10 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getControlLayout(signal?: AbortSignal): Promise<ControlGridLayout> {
     return this.#get('/api/control-layout', ControlGridLayoutSchema, signal)
+  }
+
+  async getControlDeckCommands(signal?: AbortSignal): Promise<ControlDeckCommandCatalogue> {
+    return this.#get('/api/control-deck/commands', ControlDeckCommandCatalogueSchema, signal)
   }
 
   async saveControlLayout(layout: ControlGridLayout, signal?: AbortSignal): Promise<ControlGridLayout> {

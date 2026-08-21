@@ -1,10 +1,14 @@
 import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { expect, test } from 'vitest'
+import { act, create } from 'react-test-renderer'
+import { afterEach, beforeAll, expect, test, vi } from 'vitest'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
 import { controlPickerActionLabel, ControlsPage, resizePage } from '../apps/web/src/features/controls/controls-page.js'
 import type { MacroRuntime } from '../apps/web/src/application/macros/macro-runtime.js'
 import { DEFAULT_CONTROL_GRID_LAYOUT } from '../apps/server/src/infrastructure/default-control-grid-layout.js'
+
+beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
+afterEach(() => vi.useRealTimers())
 
 test('the controls page renders bound and unbound discovered commands', () => {
   const markup = renderToStaticMarkup(
@@ -122,6 +126,46 @@ test('control-deck tiles reserve long presses for cockpit hold gestures', () => 
   expect(stylesheet).toMatch(/\.control-deck-slot > \.command-tile \{[\s\S]*?-webkit-touch-callout: none;/)
   expect(stylesheet).toMatch(/\.control-deck-settings \{[\s\S]*?grid-template-columns:/)
   expect(stylesheet).toMatch(/\.theme-orange \{ --control-deck-accent: #ff8a4c;/)
+})
+
+test('PHOENIX uses the shared hold-to-arm interaction before executing a safety button', () => {
+  vi.useFakeTimers()
+  const execute = vi.fn(() => Promise.resolve())
+  const actionCandidate = action('elite.EjectAllCargo', 'EjectAllCargo', 'Eject all cargo', 'X')
+  const eject = { ...actionCandidate, definition: { ...actionCandidate.definition, risk: 'dangerous' as const } }
+  let renderer!: ReturnType<typeof create>
+  act(() => { renderer = create(<ControlsPage
+    category="ship"
+    editing={false}
+    controller={{
+      status: 'ready',
+      layout: DEFAULT_CONTROL_GRID_LAYOUT,
+      actions: {
+        backend: { id: 'test', available: true, simulated: false, detail: 'ready' },
+        bindingSource: {
+          directory: '/bindings', filePath: '/bindings/custom.binds', presetNames: ['Custom'],
+          available: true, bindingCount: 1, keyboardBindingCount: 1,
+          loadedAt: '2026-08-21T00:00:00.000Z', error: null
+        },
+        actions: [eject]
+      }
+    }}
+    macros={emptyMacroRuntime()}
+    onExecuteAction={execute}
+    onEditingChange={() => undefined}
+    onSaveLayout={layout => Promise.resolve(layout)}
+  />) })
+  const button = renderer.root.findAllByType('button').find(candidate => candidate.findAllByType('strong').some(label => label.children.includes('Eject all cargo')))!
+
+  act(() => button.props.onPointerDown({ pointerId: 1, currentTarget: { setPointerCapture: vi.fn() } }))
+  act(() => vi.advanceTimersByTime(650))
+  expect(button.findAllByType('small').some(meta => meta.children.includes('armed — tap'))).toBe(true)
+  act(() => button.props.onPointerUp({ pointerId: 1 }))
+  act(() => vi.advanceTimersByTime(0))
+  act(() => button.props.onClick({ detail: 1 }))
+
+  expect(execute).toHaveBeenCalledOnce()
+  expect(execute).toHaveBeenCalledWith('elite.EjectAllCargo', 'tap', undefined)
 })
 
 function emptyMacroRuntime (): MacroRuntime {

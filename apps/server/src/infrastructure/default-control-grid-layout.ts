@@ -68,5 +68,15 @@ function page (
 }
 
 function cell (position: number, eliteBinding: string, span = 1) {
-  return { position, span, target: { type: 'game-action' as const, actionId: `elite.${eliteBinding}` } }
+  return {
+    position,
+    span,
+    target: { type: 'game-action' as const, actionId: `elite.${eliteBinding}` },
+    interaction: {
+      activation: 'command-default' as const,
+      confirmation: eliteBinding === 'EjectAllCargo'
+        ? { kind: 'arm-then-tap' as const, armedForMs: 5_000 }
+        : { kind: 'none' as const }
+    }
+  }
 }

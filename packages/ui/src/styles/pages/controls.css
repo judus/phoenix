@@ -12,6 +12,8 @@
     &.editing,
     &.recording { grid-template-rows: auto minmax(0, 1fr); }
 
+    &.editing.button-editing { grid-template-rows: minmax(0, 1fr); }
+
     &.editing.recording { grid-template-rows: auto auto minmax(0, 1fr); }
 
     &.theme-cyan { --control-deck-accent: #45e0dc; --control-deck-panel: #103638; }
@@ -118,15 +120,14 @@
       .control-deck-settings { grid-template-columns: minmax(10rem, 1fr) minmax(8rem, auto) repeat(3, minmax(5rem, auto)) auto auto; }
     }
 
-    .control-picker {
-      position: absolute;
-      z-index: 4;
-      inset: var(--spacing-xl);
+    .button-editor {
       display: grid;
-      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      grid-auto-rows: max-content;
+      align-content: start;
       gap: var(--spacing-md);
       min-inline-size: 0;
       min-block-size: 0;
+      overflow: auto;
       padding: var(--spacing-lg);
       border: 1px solid var(--color-border);
       background: var(--color-surface);
@@ -139,22 +140,40 @@
         gap: var(--spacing-sm);
       }
 
-      > header > div {
-        display: grid;
-        gap: var(--spacing-xxs);
-
-        strong { color: var(--color-action); text-transform: uppercase; }
-        small { color: var(--color-text-muted); }
+      > header strong {
+        color: var(--color-action);
+        text-transform: uppercase;
       }
 
-      .control-picker-list {
+      > label {
         display: grid;
-        align-content: start;
-        gap: 1px;
-        min-block-size: 0;
-        overflow: auto;
-
-        > .btn { inline-size: 100%; }
+        gap: var(--spacing-xs);
+        color: var(--color-text-muted);
+        font-size: var(--font-size-xs);
+        text-transform: uppercase;
       }
+
+      input,
+      select,
+      button {
+        min-block-size: var(--control-block-size);
+        padding: var(--spacing-sm);
+        border: 1px solid var(--color-border);
+        border-radius: 0;
+        color: var(--color-text);
+        background: var(--color-canvas);
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+
+        &:hover { border-color: var(--color-action); }
+        &:disabled { cursor: default; opacity: 0.45; }
+      }
+
+      footer { align-self: end; }
+      footer button:last-child { margin-inline-start: auto; border-color: var(--color-action); color: var(--color-action); }
+      footer .danger { border-color: var(--color-danger); color: var(--color-danger); }
     }
   }

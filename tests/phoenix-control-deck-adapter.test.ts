@@ -4,17 +4,17 @@ import {
 } from '@jdu/control-deck-core'
 import { expect, test } from 'vitest'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
-import { RecordingInputBackend } from '../apps/server/src/infrastructure/recording-input-backend.js'
-import { StaticGameActionBindingResolver } from '../apps/server/src/infrastructure/static-game-action-binding-resolver.js'
+import { RecordingKeyboardOutput } from '@jdu/control-deck-adapter-keyboard'
+import { StaticEliteDangerousBindings } from './support/static-elite-dangerous-bindings.js'
 
 test('PHOENIX exposes its authoritative commands through the Control Deck adapter API', async () => {
-  const inputBackend = new RecordingInputBackend()
+  const inputBackend = new RecordingKeyboardOutput()
   const application = new PhoenixApplication({
-    actionBindingResolver: new StaticGameActionBindingResolver(),
+    eliteBindings: new StaticEliteDangerousBindings(),
     databasePath: ':memory:',
     eliteDirectory: null,
     host: '127.0.0.1',
-    inputBackend,
+    keyboardOutput: inputBackend,
     port: 0
   })
   const address = await application.start()
@@ -27,9 +27,9 @@ test('PHOENIX exposes its authoritative commands through the Control Deck adapte
     const adapter = catalogue.adapters.find(candidate => candidate.id === 'phoenix.commands')
     expect(adapter).toMatchObject({ holdOwner: 'adapter', available: true })
     expect(adapter?.commands.find(command => command.id === 'command.elite.ShipSpotLightToggle'))
-      .toMatchObject({ available: true, operations: ['tap'], simulated: true })
+      .toMatchObject({ available: true, bindingLabel: 'L', operations: ['tap'], simulated: true })
     expect(adapter?.commands.find(command => command.id === 'command.elite.PrimaryFire'))
-      .toMatchObject({ available: true, operations: ['press', 'release'], simulated: true })
+      .toMatchObject({ available: true, bindingLabel: 'Space', operations: ['press', 'release'], simulated: true })
     expect(adapter?.commands.find(command => command.id === 'command.navigation.galaxy.current-system'))
       .toMatchObject({ operations: ['tap'], simulated: false })
 
@@ -43,9 +43,9 @@ test('PHOENIX exposes its authoritative commands through the Control Deck adapte
       .toMatchObject({ status: 'accepted' })
 
     expect(inputBackend.getRecordedInputs()).toEqual([
-      { operation: 'tap', binding: { key: 'L', modifiers: [], display: 'L' } },
-      { operation: 'press', binding: { key: 'Space', modifiers: [], display: 'Space' } },
-      { operation: 'release', binding: { key: 'Space', modifiers: [], display: 'Space' } }
+      { operation: 'tap', configuration: { key: 'L', modifiers: [] } },
+      { operation: 'press', configuration: { key: 'Space', modifiers: [] } },
+      { operation: 'release', configuration: { key: 'Space', modifiers: [] } }
     ])
 
     expect(await execute(baseUrl, 'command.navigation.galaxy.current-system', 'tap'))

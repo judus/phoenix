@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { loadEnvFile } from 'node:process'
 import { fileURLToPath } from 'node:url'
-import { bootstrapControlBackend } from './application/control-backend-bootstrap.js'
+import { bootstrapControlOutput } from './application/control-output-bootstrap.js'
 import {
   JsonRuntimeSystemSnapshotWriter,
   JsonSystemSettingsRepository
@@ -30,7 +30,7 @@ try {
   const runtimeSystemPath = resolve(paths.user.data, process.env.PHOENIX_RUNTIME_SYSTEM_PATH ?? 'runtime/system.json')
   const settingsRepository = new JsonSystemSettingsRepository(settingsPath)
   const settings = settingsRepository.loadOrCreate()
-  const controls = bootstrapControlBackend(settings)
+  const controls = bootstrapControlOutput(settings)
   new JsonRuntimeSystemSnapshotWriter(runtimeSystemPath).write(controls.snapshot)
   const catalogueDirectory = await ensureCatalogueSnapshot(paths)
 
@@ -41,7 +41,8 @@ try {
     macroRepository: new JsonMacroRepository(resolve(paths.user.config, 'macros.json')),
     openAiSecretRepository: new JsonOpenAiSecretRepository(resolve(paths.user.config, 'secrets.json')),
     systemSettingsRepository: settingsRepository,
-    inputBackend: controls.backend,
+    keyboardOutput: controls.output,
+    keyboardOutputId: controls.id,
     engineeringCatalogueDirectory: resolve(catalogueDirectory, 'engineering'),
     moduleCataloguePath: resolve(catalogueDirectory, 'modules.json'),
     shipCataloguePath: resolve(catalogueDirectory, 'ships.json')
