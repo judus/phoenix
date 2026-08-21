@@ -3,9 +3,9 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { act, create } from 'react-test-renderer'
 import { afterEach, beforeAll, expect, test, vi } from 'vitest'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
-import { controlPickerActionLabel, ControlsPage, resizePage } from '../apps/web/src/features/controls/controls-page.js'
+import { controlPickerActionLabel, ControlsPage, resizeDeck } from '../apps/web/src/features/controls/controls-page.js'
 import type { MacroRuntime } from '../apps/web/src/application/macros/macro-runtime.js'
-import { DEFAULT_CONTROL_GRID_LAYOUT } from '../apps/server/src/infrastructure/default-control-grid-layout.js'
+import { DEFAULT_CONTROL_DECK_CONFIGURATION } from '../apps/server/src/infrastructure/default-control-deck-configuration.js'
 
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
 afterEach(() => vi.useRealTimers())
@@ -17,7 +17,7 @@ test('the controls page renders bound and unbound discovered commands', () => {
       editing={false}
       controller={{
         status: 'ready',
-        layout: DEFAULT_CONTROL_GRID_LAYOUT,
+        configuration: DEFAULT_CONTROL_DECK_CONFIGURATION,
         actions: {
           backend: {
             id: 'linux-xdotool',
@@ -45,7 +45,7 @@ test('the controls page renders bound and unbound discovered commands', () => {
       runtime={createEmptyRuntimeState()}
       onExecuteAction={() => Promise.reject(new Error('not executed during server rendering'))}
       onEditingChange={() => undefined}
-      onSaveLayout={layout => Promise.resolve(layout)}
+      onSaveConfiguration={configuration => Promise.resolve(configuration)}
     />
   )
 
@@ -73,7 +73,7 @@ test('unavailable commands remain clickable while editing the control deck', () 
       editing
       controller={{
         status: 'ready',
-        layout: DEFAULT_CONTROL_GRID_LAYOUT,
+        configuration: DEFAULT_CONTROL_DECK_CONFIGURATION,
         actions: {
           backend: { id: 'test', available: true, simulated: false, detail: 'ready' },
           bindingSource: {
@@ -87,7 +87,7 @@ test('unavailable commands remain clickable while editing the control deck', () 
       macros={emptyMacroRuntime()}
       onExecuteAction={() => Promise.resolve()}
       onEditingChange={() => undefined}
-      onSaveLayout={layout => Promise.resolve(layout)}
+      onSaveConfiguration={configuration => Promise.resolve(configuration)}
     />
   )
 
@@ -108,14 +108,12 @@ test('unavailable commands remain clickable while editing the control deck', () 
 })
 
 test('resizing a PHOENIX deck removes only cells that no longer fit', () => {
-  const page = DEFAULT_CONTROL_GRID_LAYOUT.pages.find(candidate => candidate.category === 'ship')!
-  const resized = resizePage(page, 4, 4)
+  const deck = DEFAULT_CONTROL_DECK_CONFIGURATION.decks.find(candidate => candidate.context === 'phoenix:ship')!
+  const resized = resizeDeck(deck, 4, 4)
 
-  expect(resized.columns).toBe(4)
-  expect(resized.rows).toBe(4)
-  expect(resized.cells.find(cell => cell.target?.type === 'game-action' && cell.target.actionId === 'elite.SystemMapOpen')?.position).toBe(5)
-  expect(resized.cells.every(cell => cell.position + cell.span - 1 <= 16)).toBe(true)
-  expect(resized.cells.every(cell => (cell.position - 1) % 4 + cell.span <= 4)).toBe(true)
+  expect(resized.layout).toEqual({ kind: 'grid', columns: 4, rows: 4 })
+  expect(resized.elements.every(element => element.placement.row + element.placement.rowSpan - 1 <= 4)).toBe(true)
+  expect(resized.elements.every(element => element.placement.column + element.placement.columnSpan - 1 <= 4)).toBe(true)
 })
 
 test('control-deck tiles reserve long presses for cockpit hold gestures', () => {
@@ -139,7 +137,7 @@ test('PHOENIX uses the shared hold-to-arm interaction before executing a safety 
     editing={false}
     controller={{
       status: 'ready',
-      layout: DEFAULT_CONTROL_GRID_LAYOUT,
+      configuration: DEFAULT_CONTROL_DECK_CONFIGURATION,
       actions: {
         backend: { id: 'test', available: true, simulated: false, detail: 'ready' },
         bindingSource: {
@@ -153,7 +151,7 @@ test('PHOENIX uses the shared hold-to-arm interaction before executing a safety 
     macros={emptyMacroRuntime()}
     onExecuteAction={execute}
     onEditingChange={() => undefined}
-    onSaveLayout={layout => Promise.resolve(layout)}
+    onSaveConfiguration={configuration => Promise.resolve(configuration)}
   />) })
   const button = renderer.root.findAllByType('button').find(candidate => candidate.findAllByType('strong').some(label => label.children.includes('Eject all cargo')))!
 

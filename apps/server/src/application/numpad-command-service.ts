@@ -1,9 +1,11 @@
 import {
+  GameActionCategorySchema,
   NumpadExecuteRequestSchema,
   NumpadExecutionResultSchema,
   NumpadTreeNodeSchema,
   NumpadTreeSnapshotSchema,
   commandTargetKey,
+  controlDeckTargetToPhoenixTarget,
   type CommandCatalogueSnapshot,
   type CommandDescriptor,
   type CommandRisk,
@@ -11,9 +13,10 @@ import {
   type NumpadTreeNode,
   type NumpadTreeSnapshot
 } from '@phoenix/contracts'
+import type { ControlDeckConfigurationRepository } from '@jdu/control-deck-core'
 import type { CommandCatalogueSnapshots, Commands } from '../domain/commands.js'
 import type { NumpadCommands } from '../domain/numpad.js'
-import type { ControlGridLayoutRepository, SystemSettingsRepository } from '../domain/system-configuration.js'
+import type { SystemSettingsRepository } from '../domain/system-configuration.js'
 
 interface MenuDefinition {
   id: string
@@ -71,7 +74,7 @@ const INFORMATION_MENUS: readonly MenuDefinition[] = [
 export class NumpadTreeProjector {
   public constructor (
     private readonly catalogues: CommandCatalogueSnapshots,
-    private readonly layouts: ControlGridLayoutRepository,
+    private readonly configurations: ControlDeckConfigurationRepository,
     private readonly settings: SystemSettingsRepository
   ) {}
 
@@ -143,26 +146,32 @@ export class NumpadTreeProjector {
     controls: NumpadTreeNode,
     diagnostics: string[]
   ): void {
-    for (const page of this.layouts.getLayout().pages) {
-      const selector = CONTROL_SELECTORS[page.category]
+    const configuration = this.configurations.getConfiguration()
+    const groups = new Map((configuration.groups ?? []).map(group => [group.id, group]))
+    for (const deck of configuration.decks) {
+      const category = GameActionCategorySchema.parse(deck.context?.slice('phoenix:'.length))
+      const selector = CONTROL_SELECTORS[category]
       if (!selector) {
-        diagnostics.push(`Control page ${page.id} has no numpad selector.`)
+        diagnostics.push(`Control deck ${deck.id} has no Numpy selector.`)
         continue
       }
-      const parent = branch(nodes, controls.id, `controls.${page.id}`, selector, page.label, {
-        columns: page.columns,
-        rows: page.rows
+      const label = groups.get(deck.groupId ?? '')?.name ?? deck.name
+      const parent = branch(nodes, controls.id, `controls.${deck.id}`, selector, label, {
+        columns: deck.layout.columns,
+        rows: deck.layout.rows
       })
-      for (const cell of page.cells) {
-        if (!cell.target) continue
-        const descriptor = descriptors.get(commandTargetKey(cell.target))
+      for (const element of deck.elements) {
+        if (element.kind !== 'command') continue
+        const target = controlDeckTargetToPhoenixTarget(element.target)
+        const descriptor = descriptors.get(commandTargetKey(target))
         if (!descriptor) {
-          diagnostics.push(`Control cell ${page.id}:${cell.position} targets an unknown command.`)
+          diagnostics.push(`Control element ${deck.id}:${element.id} targets an unknown command.`)
           continue
         }
-        leaf(nodes, parent.id, `controls.${page.id}.${cell.position}`, String(cell.position), descriptor, {
-          position: cell.position,
-          span: cell.span
+        const position = (element.placement.row - 1) * deck.layout.columns + element.placement.column
+        leaf(nodes, parent.id, `controls.${deck.id}.${element.id}`, String(position), descriptor, {
+          position,
+          span: element.placement.columnSpan
         })
       }
     }

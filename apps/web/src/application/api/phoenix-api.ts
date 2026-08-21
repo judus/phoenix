@@ -13,7 +13,6 @@ import type {
   CopilotVoiceHostCommandAccepted,
   CopilotVoiceHostHeartbeat,
   CopilotVoiceHostSnapshot,
-  ControlGridLayout,
   CommandCatalogResponse,
   ActivityLogResponse,
   CartographyLookupResponse,
@@ -52,6 +51,7 @@ import type {
   PairingStatus,
   OpenAiConfigurationStatus,
   PhoenixModules,
+  PhoenixControlDeckConfiguration,
   RuntimeState,
   ShipCatalogueResponse
 } from '@phoenix/contracts'
@@ -111,7 +111,7 @@ export interface PhoenixApi {
   getCopilotRealtimeContext(signal?: AbortSignal): Promise<{ fingerprint: string, text: string, updatedAt: string | null }>
   getCopilotVoiceHost(signal?: AbortSignal): Promise<CopilotVoiceHostSnapshot>
   getCommunications(view?: 'all' | 'inbox' | 'traffic', limit?: number, signal?: AbortSignal): Promise<CommunicationsResponse>
-  getControlLayout(signal?: AbortSignal): Promise<ControlGridLayout>
+  getControlDeckConfiguration(signal?: AbortSignal): Promise<PhoenixControlDeckConfiguration>
   getControlDeckCommands(signal?: AbortSignal): Promise<ControlDeckCommandCatalogue>
   getCommands(signal?: AbortSignal): Promise<CommandCatalogResponse>
   getFleet(signal?: AbortSignal): Promise<FleetResponse>
@@ -151,7 +151,7 @@ export interface PhoenixApi {
   releasePairing(signal?: AbortSignal): Promise<void>
   requestCopilotVoiceHostState(connected: boolean, signal?: AbortSignal): Promise<CopilotVoiceHostCommandAccepted>
   saveMacro(macro: MacroDefinition, signal?: AbortSignal): Promise<MacroDefinition>
-  saveControlLayout(layout: ControlGridLayout, signal?: AbortSignal): Promise<ControlGridLayout>
+  saveControlDeckConfiguration(configuration: PhoenixControlDeckConfiguration, signal?: AbortSignal): Promise<PhoenixControlDeckConfiguration>
   saveModuleSettings(settings: PhoenixModules, signal?: AbortSignal): Promise<PhoenixModules>
   saveInstallationSettings(settings: InstallationSettingsUpdate, signal?: AbortSignal): Promise<InstallationSettings>
   saveOpenAiApiKey(apiKey: string, signal?: AbortSignal): Promise<OpenAiConfigurationStatus>

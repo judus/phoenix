@@ -3,7 +3,7 @@ import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { DisplayCommand, GameEventEnvelope, NavigationRoute, RuntimeState } from '@phoenix/contracts'
 import { ToolRegistry } from '@jdu/llm-client'
-import { ControlDeckCommandService } from '@jdu/control-deck-core'
+import { ControlDeckCommandService, type ControlDeckConfigurationRepository } from '@jdu/control-deck-core'
 import { ControlDeckIntegration } from '@jdu/control-deck-host'
 import {
   RecordingKeyboardOutput,
@@ -69,17 +69,17 @@ import type { CartographySource } from './domain/cartography.js'
 import type { ExplorationTargetSearchSource } from './domain/exploration-target.js'
 import type { FactionPresenceSearchSource, OutfittingSearchSource, ShipyardSearchSource, StationLookupSource, StationSearchSource, StationStockSource, SystemSearchSource } from './domain/station-market.js'
 import type { GalnetSource } from './domain/galnet.js'
-import type { ControlGridLayoutRepository, OpenAiSecretRepository, SystemSettingsRepository } from './domain/system-configuration.js'
+import type { OpenAiSecretRepository, SystemSettingsRepository } from './domain/system-configuration.js'
 import type { MacroRepository } from './domain/macros.js'
 import type { CommandCatalogueChange } from './domain/commands.js'
 import { InMemoryRuntimeStateStore } from './infrastructure/in-memory-runtime-state-store.js'
 import { InMemoryNavigationRouteStore } from './infrastructure/in-memory-navigation-route-store.js'
-import { InMemoryControlGridLayoutRepository } from './infrastructure/in-memory-control-grid-layout-repository.js'
+import { InMemoryControlDeckConfigurationRepository } from './infrastructure/in-memory-control-deck-configuration-repository.js'
 import { InMemorySystemSettingsRepository } from './infrastructure/json-system-configuration.js'
 import { InMemoryOpenAiSecretRepository } from './infrastructure/json-openai-secret-repository.js'
 import { InMemoryMacroRepository } from './infrastructure/macro-repositories.js'
 import {
-  NotifyingControlGridLayoutRepository,
+  NotifyingControlDeckConfigurationRepository,
   NotifyingMacroRepository,
   NotifyingSystemSettingsRepository
 } from './infrastructure/notifying-command-source-repositories.js'
@@ -109,7 +109,7 @@ export interface PhoenixApplicationOptions {
   eliteBindings?: EliteDangerousBindingSource
   accessControl?: PairingAccessController
   cartographySource?: CartographySource
-  controlGridLayoutRepository?: ControlGridLayoutRepository
+  controlDeckConfigurationRepository?: ControlDeckConfigurationRepository
   copilot?: CopilotText | null
   copilotRealtime?: CopilotRealtime | null
   copilotProfiles?: CopilotProfiles | null
@@ -291,8 +291,8 @@ export class PhoenixApplication {
         ? process.env.PHOENIX_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY
         : options.openAiEnvironmentKey ?? undefined
     )
-    const controlGridLayouts = new NotifyingControlGridLayoutRepository(
-      options.controlGridLayoutRepository ?? new InMemoryControlGridLayoutRepository(),
+    const controlDeckConfigurations = new NotifyingControlDeckConfigurationRepository(
+      options.controlDeckConfigurationRepository ?? new InMemoryControlDeckConfigurationRepository(),
       commandCatalogueChanges
     )
     const macroRepository = new NotifyingMacroRepository(
@@ -321,13 +321,13 @@ export class PhoenixApplication {
     )
     this.controlDeck = new ControlDeckIntegration({
       adapters: [new PhoenixControlDeckCommandAdapter(commands, gameActions)],
-      configurationRepository: controlGridLayouts,
+      configurationRepository: controlDeckConfigurations,
       createId: randomUUID,
       ownerKey: request => options.accessControl?.ownerKey(request) ?? 'development',
       pathPrefix: '/api/control-deck'
     })
     const numpad = new DefaultNumpadCommands(
-      new NumpadTreeProjector(commandCatalogue, controlGridLayouts, systemSettings),
+      new NumpadTreeProjector(commandCatalogue, controlDeckConfigurations, systemSettings),
       commands,
       systemSettings
     )
@@ -416,7 +416,6 @@ export class PhoenixApplication {
       catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
       commandCatalogue,
       controlDeckHttp: this.controlDeck.http,
-      controlGridLayouts,
       copilot,
       copilotProfiles,
       copilotConversationEvents,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { ControlGridLayout, GameActionCatalogResponse } from '@phoenix/contracts'
+import type { GameActionCatalogResponse, PhoenixControlDeckConfiguration } from '@phoenix/contracts'
 import type { ControlDeckCommandCatalogue } from '@jdu/control-deck-core'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
@@ -9,7 +9,7 @@ export interface ControlsControllerSnapshot {
   actions?: GameActionCatalogResponse
   commands?: ControlDeckCommandCatalogue
   error?: string
-  layout?: ControlGridLayout
+  configuration?: PhoenixControlDeckConfiguration
   status: 'loading' | 'ready' | 'error'
 }
 
@@ -20,9 +20,9 @@ export function useControlsController(api: PhoenixApi, events: PhoenixEventHub):
     const latest = new LatestRequest()
     const load = () => {
       const signal = latest.start()
-      void Promise.all([api.getActions(signal), api.getControlDeckCommands(signal), api.getControlLayout(signal)])
-        .then(([actions, commands, layout]) => {
-          if (latest.isCurrent(signal)) setSnapshot({ actions, commands, layout, status: 'ready' })
+      void Promise.all([api.getActions(signal), api.getControlDeckCommands(signal), api.getControlDeckConfiguration(signal)])
+        .then(([actions, commands, configuration]) => {
+          if (latest.isCurrent(signal)) setSnapshot({ actions, commands, configuration, status: 'ready' })
         })
         .catch(cause => {
           if (latest.isCurrent(signal)) setSnapshot({

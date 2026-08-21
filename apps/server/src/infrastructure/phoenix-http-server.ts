@@ -8,7 +8,6 @@ import {
 } from 'node:http'
 import { extname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path'
 import {
-  ControlGridLayoutSchema,
   ExecuteCommandRequestSchema,
   CopilotChatRequestSchema,
   CopilotProfileSelectionRequestSchema,
@@ -59,7 +58,6 @@ import type { ActivityLogReader, EliteJournalDiagnosticsReader } from '../domain
 import type { EliteStatusDiagnosticsReader } from '../domain/elite-status.js'
 import type { Subscribable } from '../domain/publisher.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
-import type { ControlGridLayoutRepository } from '../domain/system-configuration.js'
 import type { SystemSettingsRepository } from '../domain/system-configuration.js'
 import type { CommandCatalogueSnapshots } from '../domain/commands.js'
 import type { NumpadCommands } from '../domain/numpad.js'
@@ -90,7 +88,6 @@ export interface PhoenixHttpServerOptions {
   catalogueDiagnostics: CatalogueDiagnosticsReader
   commandCatalogue: CommandCatalogueSnapshots
   controlDeckHttp?: ControlDeckHttpHandler
-  controlGridLayouts: ControlGridLayoutRepository
   copilot?: CopilotText
   copilotProfiles?: CopilotProfiles
   copilotConversationEvents: CopilotConversationEvents
@@ -740,11 +737,6 @@ export class PhoenixHttpServer {
       return
     }
 
-    if (request.method === 'GET' && url.pathname === '/api/control-layout') {
-      this.writeJson(response, 200, this.options.controlGridLayouts.getLayout())
-      return
-    }
-
     if (request.method === 'GET' && url.pathname === '/api/settings/modules') {
       this.writeJson(response, 200, this.options.systemSettings.loadOrCreate().modules)
       return
@@ -884,24 +876,6 @@ export class PhoenixHttpServer {
 
     if (request.method === 'DELETE' && url.pathname === '/api/macros/playback') {
       this.writeJson(response, 200, { playback: this.options.macros.abortPlayback() })
-      return
-    }
-
-    if (request.method === 'PUT' && url.pathname === '/api/control-layout') {
-      try {
-        this.writeJson(
-          response,
-          200,
-          this.options.controlGridLayouts.saveLayout(
-            ControlGridLayoutSchema.parse(await readJsonBody(request))
-          )
-        )
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : 'Invalid control layout.'
-        this.writeJson(response, 400, {
-          error: { code: 'invalid_control_layout', message }
-        })
-      }
       return
     }
 

@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
 import { expect, test } from 'vitest'
-import { DEFAULT_CONTROL_GRID_LAYOUT } from '../apps/server/src/infrastructure/default-control-grid-layout.js'
+import { DEFAULT_CONTROL_DECK_CONFIGURATION } from '../apps/server/src/infrastructure/default-control-deck-configuration.js'
 import { ControlsPage } from '../apps/web/src/features/controls/controls-page.js'
 import type { MacroRuntime } from '../apps/web/src/application/macros/macro-runtime.js'
 
@@ -27,14 +27,14 @@ test('reconstructed controls render the persisted grid with shared command tiles
           unavailableReason: null
         }]
       },
-      layout: DEFAULT_CONTROL_GRID_LAYOUT,
+      configuration: DEFAULT_CONTROL_DECK_CONFIGURATION,
       status: 'ready'
     }}
     macros={{ library: { version: 1, macros: [] } } as unknown as MacroRuntime}
     runtime={createEmptyRuntimeState()}
     onExecuteAction={() => Promise.resolve()}
     onEditingChange={() => undefined}
-    onSaveLayout={layout => Promise.resolve(layout)}
+    onSaveConfiguration={configuration => Promise.resolve(configuration)}
   />)
 
   expect(markup).toContain('Ship lights')

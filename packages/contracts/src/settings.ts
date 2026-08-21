@@ -2,21 +2,44 @@ import { z } from 'zod'
 import {
   ControlDeckColorSchemeSchema,
   ControlDeckConfigurationSchema,
-  ControlDeckInteractionSchema,
-  ControlDeckLayoutPresetIdSchema,
-  applyControlDeckLayoutPreset,
-  useCustomControlDeckLayout,
-  type ControlDeckConfiguration,
-  type ControlDeckCommandTarget,
-  type ControlDeckLayoutPreset
+  type ControlDeckCommandTarget
 } from '@jdu/control-deck-core'
-import { GameActionCategorySchema } from './actions.js'
-import { CommandTargetSchema, type CommandTarget } from './commands.js'
-import { PHOENIX_SHIP_LAYOUT_PRESET } from './control-layout-presets.js'
+import type { CommandTarget } from './commands.js'
 import { NumpadShortcutCollectionSchema } from './numpad.js'
 
 export const InputBackendModeSchema = z.enum(['auto', 'recording', 'linux-xdotool', 'windows-sendinput'])
 export const PhoenixControlDeckThemeSchema = z.union([z.literal('phoenix'), ControlDeckColorSchemeSchema])
+export const PHOENIX_CONTROL_CONTEXTS = [
+  'phoenix:ship',
+  'phoenix:combat',
+  'phoenix:navigation',
+  'phoenix:vessel',
+  'phoenix:srv',
+  'phoenix:on_foot',
+  'phoenix:radio',
+  'phoenix:emote',
+  'phoenix:misc'
+] as const
+export const PhoenixControlDeckConfigurationSchema = ControlDeckConfigurationSchema.superRefine((configuration, context) => {
+  const expectedContexts = new Set<string>(PHOENIX_CONTROL_CONTEXTS)
+  const actualContexts = new Set(configuration.decks.map(deck => deck.context))
+  if (configuration.decks.length !== expectedContexts.size || actualContexts.size !== expectedContexts.size) {
+    context.addIssue({ code: 'custom', message: 'PHOENIX requires exactly one deck for each Elite control context.' })
+  }
+  for (const expected of expectedContexts) {
+    if (!actualContexts.has(expected)) context.addIssue({ code: 'custom', message: `Missing PHOENIX control context ${expected}.` })
+  }
+  for (const deck of configuration.decks) {
+    if (!deck.context || !expectedContexts.has(deck.context)) {
+      context.addIssue({ code: 'custom', message: `Unsupported PHOENIX control context ${deck.context ?? 'null'}.` })
+    }
+    for (const element of deck.elements) {
+      if (element.kind === 'command' && (element.target.adapterId !== 'phoenix.commands' || Object.keys(element.target.configuration).length > 0)) {
+        context.addIssue({ code: 'custom', message: `Deck ${deck.id} contains a non-PHOENIX command target.` })
+      }
+    }
+  }
+})
 
 export const CopilotExecutionPermissionsSchema = z.object({
   gameActions: z.boolean().default(false),
@@ -34,190 +57,6 @@ export const PhoenixModulesSchema = z.object({
   })
 })
 
-const ControlGridCellSchema = z.object({
-  position: z.number().int().positive().max(128),
-  span: z.number().int().min(1).max(12).default(1),
-  target: CommandTargetSchema.nullable(),
-  interaction: ControlDeckInteractionSchema.default({
-    activation: 'command-default',
-    confirmation: { kind: 'none' }
-  })
-})
-
-const ControlGridPageSchema = z.object({
-  id: z.string().regex(/^[a-z][a-z0-9_]*$/),
-  label: z.string().min(1).max(32),
-  category: GameActionCategorySchema,
-  columns: z.number().int().min(2).max(12),
-  rows: z.number().int().min(1).max(12).default(5),
-  layoutPresetId: ControlDeckLayoutPresetIdSchema.nullable().default(null),
-  theme: PhoenixControlDeckThemeSchema.default('phoenix'),
-  cells: z.array(ControlGridCellSchema).max(128)
-}).superRefine((page, context) => {
-  const capacity = page.columns * page.rows
-  const occupied = new Set<number>()
-
-  for (const cell of page.cells) {
-    if (cell.position + cell.span - 1 > capacity) {
-      context.addIssue({
-        code: 'custom',
-        message: `Cell ${cell.position} exceeds the ${page.columns} x ${page.rows} grid.`
-      })
-    }
-    if ((cell.position - 1) % page.columns + cell.span > page.columns) {
-      context.addIssue({
-        code: 'custom',
-        message: `Cell ${cell.position} crosses a row boundary.`
-      })
-    }
-    for (let position = cell.position; position < cell.position + cell.span; position++) {
-      if (occupied.has(position)) {
-        context.addIssue({ code: 'custom', message: `Grid position ${position} is occupied twice.` })
-      }
-      occupied.add(position)
-    }
-  }
-})
-
-export const ControlGridLayoutSchema = z.object({
-  version: z.literal(4),
-  pages: z.array(ControlGridPageSchema).max(16)
-}).superRefine((layout, context) => {
-  const pageIds = new Set<string>()
-  const categories = new Set<string>()
-  for (const page of layout.pages) {
-    if (pageIds.has(page.id)) context.addIssue({ code: 'custom', message: `Duplicate page id: ${page.id}.` })
-    if (categories.has(page.category)) {
-      context.addIssue({ code: 'custom', message: `Duplicate control category: ${page.category}.` })
-    }
-    pageIds.add(page.id)
-    categories.add(page.category)
-  }
-})
-
-export function controlGridLayoutToControlDeckConfiguration (
-  candidate: ControlGridLayout
-): ControlDeckConfiguration {
-  const layout = ControlGridLayoutSchema.parse(candidate)
-  return ControlDeckConfigurationSchema.parse({
-    version: 1,
-    revision: 0,
-    decks: layout.pages.map(page => ({
-      id: page.id,
-      name: page.label,
-      description: '',
-      context: `phoenix:${page.category}`,
-      layoutPresetId: page.layoutPresetId,
-      ...(page.theme === 'phoenix' ? {} : { appearance: { colorScheme: page.theme } }),
-      layout: { kind: 'grid', columns: page.columns, rows: page.rows },
-      elements: page.cells.map(cell => ({
-        id: `cell_${cell.position}`,
-        ...(cell.target
-          ? {
-              kind: 'command',
-              target: phoenixTargetToControlDeckTarget(cell.target),
-              appearance: {
-                label: null,
-                icon: null,
-                foregroundColor: null,
-                backgroundColor: null
-              },
-              interaction: cell.interaction
-            }
-          : { kind: 'spacer' }),
-        placement: {
-          kind: 'grid',
-          column: (cell.position - 1) % page.columns + 1,
-          row: Math.floor((cell.position - 1) / page.columns) + 1,
-          columnSpan: cell.span,
-          rowSpan: 1
-        }
-      }))
-    })),
-    displays: []
-  })
-}
-
-export function controlDeckConfigurationToControlGridLayout (
-  candidate: ControlDeckConfiguration
-): ControlGridLayout {
-  const configuration = ControlDeckConfigurationSchema.parse(candidate)
-  const groups = new Map((configuration.groups ?? []).map(group => [group.id, group]))
-  return ControlGridLayoutSchema.parse({
-    version: 4,
-    pages: configuration.decks.flatMap(deck => {
-      if (!deck.context?.startsWith('phoenix:')) return []
-      const category = GameActionCategorySchema.parse(deck.context.slice('phoenix:'.length))
-      if (deck.layout.kind !== 'grid') throw new Error(`PHOENIX deck ${deck.id} does not use a grid layout.`)
-      return [{
-        id: deck.id,
-        label: (deck.groupId ? groups.get(deck.groupId)?.name : undefined) ?? deck.name,
-        category,
-        columns: deck.layout.columns,
-        rows: deck.layout.rows,
-        layoutPresetId: deck.layoutPresetId ?? inferredLayoutPresetId(deck),
-        theme: (deck.groupId ? groups.get(deck.groupId)?.appearance : undefined)?.colorScheme ?? deck.appearance?.colorScheme ?? 'phoenix',
-        cells: deck.elements.map(element => {
-          if (element.placement.rowSpan !== 1) {
-            throw new Error(`PHOENIX legacy controls cannot represent row-spanning element ${element.id}.`)
-          }
-          const position = (element.placement.row - 1) * deck.layout.columns + element.placement.column
-          return {
-            position,
-            span: element.placement.columnSpan,
-            target: element.kind === 'spacer' ? null : controlDeckTargetToPhoenixTarget(element.target),
-            interaction: element.kind === 'spacer'
-              ? { activation: 'command-default' as const, confirmation: { kind: 'none' as const } }
-              : element.interaction
-          }
-        })
-      }]
-    })
-  })
-}
-
-export function mergeControlGridLayoutIntoControlDeckConfiguration (
-  configurationCandidate: ControlDeckConfiguration,
-  layoutCandidate: ControlGridLayout
-): ControlDeckConfiguration {
-  const configuration = ControlDeckConfigurationSchema.parse(configurationCandidate)
-  controlDeckConfigurationToControlGridLayout(configuration)
-  const replacement = controlGridLayoutToControlDeckConfiguration(layoutCandidate)
-  const retainedDecks = configuration.decks.filter(deck => !deck.context?.startsWith('phoenix:'))
-  const replacementDecks = replacement.decks.map(deck => {
-    const previous = configuration.decks.find(candidate => candidate.id === deck.id)
-    return previous?.groupId
-      ? { ...deck, groupId: previous.groupId, name: previous.name, appearance: previous.appearance }
-      : deck
-  })
-  const decks = [...replacementDecks, ...retainedDecks]
-  const retainedGroupIds = new Set(decks.flatMap(deck => deck.groupId ? [deck.groupId] : []))
-  return ControlDeckConfigurationSchema.parse({
-    ...configuration,
-    groups: configuration.groups?.filter(group => retainedGroupIds.has(group.id)),
-    decks
-  })
-}
-
-export function applyControlGridPageLayoutPreset (
-  candidate: ControlGridPage,
-  preset: ControlDeckLayoutPreset | null
-): ControlGridPage {
-  const page = ControlGridPageSchema.parse(candidate)
-  const configuration = controlGridLayoutToControlDeckConfiguration({ version: 4, pages: [page] })
-  const deck = configuration.decks[0]
-  if (!deck) throw new Error(`Unable to materialize PHOENIX control page ${page.id}.`)
-  const updatedDeck = preset
-    ? applyControlDeckLayoutPreset(deck, preset)
-    : useCustomControlDeckLayout(deck)
-  const updated = controlDeckConfigurationToControlGridLayout({
-    ...configuration,
-    decks: [updatedDeck]
-  }).pages[0]
-  if (!updated) throw new Error(`Unable to restore PHOENIX control page ${page.id}.`)
-  return updated
-}
-
 export function phoenixTargetToControlDeckTarget (target: CommandTarget): ControlDeckCommandTarget {
   const commandId = target.type === 'game-action'
     ? `command.${target.actionId}`
@@ -229,7 +68,7 @@ export function phoenixTargetToControlDeckTarget (target: CommandTarget): Contro
 
 export function controlDeckTargetToPhoenixTarget (target: ControlDeckCommandTarget): CommandTarget {
   if (target.adapterId !== 'phoenix.commands' || Object.keys(target.configuration).length > 0) {
-    throw new Error('PHOENIX legacy controls can represent only unconfigured PHOENIX command targets.')
+    throw new Error('PHOENIX controls accept only unconfigured PHOENIX command targets.')
   }
   if (target.commandId.startsWith('command.navigation.')) {
     return { type: 'navigation', destinationId: target.commandId.slice('command.navigation.'.length) }
@@ -241,17 +80,6 @@ export function controlDeckTargetToPhoenixTarget (target: ControlDeckCommandTarg
     return { type: 'game-action', actionId: target.commandId.slice('command.'.length) }
   }
   throw new Error(`Unknown PHOENIX command target: ${target.commandId}.`)
-}
-
-function inferredLayoutPresetId (deck: ControlDeckConfiguration['decks'][number]): string | null {
-  if (deck.context !== 'phoenix:ship' || deck.layout.columns !== PHOENIX_SHIP_LAYOUT_PRESET.layout.columns || deck.layout.rows !== PHOENIX_SHIP_LAYOUT_PRESET.layout.rows) return null
-  const elementsByAnchor = new Map(deck.elements.map(element => [`${element.placement.column}:${element.placement.row}`, element]))
-  const matches = PHOENIX_SHIP_LAYOUT_PRESET.slots.every(slot => {
-    const element = elementsByAnchor.get(`${slot.placement.column}:${slot.placement.row}`)
-    if (!element) return slot.placement.columnSpan === 1 && slot.placement.rowSpan === 1
-    return element.placement.columnSpan === slot.placement.columnSpan && element.placement.rowSpan === slot.placement.rowSpan
-  })
-  return matches ? PHOENIX_SHIP_LAYOUT_PRESET.id : null
 }
 
 export const PhoenixSettingsSchema = z.object({
@@ -270,7 +98,7 @@ export const PhoenixSettingsSchema = z.object({
   controls: z.object({
     enabled: z.boolean(),
     backend: InputBackendModeSchema,
-    deckConfiguration: ControlDeckConfigurationSchema.default({ version: 1, revision: 0, decks: [], displays: [] })
+    deckConfiguration: PhoenixControlDeckConfigurationSchema
   }),
   modules: PhoenixModulesSchema.default({
     numpadCommands: {
@@ -324,10 +152,8 @@ export const RuntimeSystemSnapshotSchema = z.object({
 export type InputBackendMode = z.infer<typeof InputBackendModeSchema>
 export type CopilotExecutionPermissions = z.infer<typeof CopilotExecutionPermissionsSchema>
 export type PhoenixModules = z.infer<typeof PhoenixModulesSchema>
-export type ControlGridLayout = z.infer<typeof ControlGridLayoutSchema>
-export type ControlGridPage = ControlGridLayout['pages'][number]
 export type PhoenixControlDeckTheme = z.infer<typeof PhoenixControlDeckThemeSchema>
-export type { ControlDeckConfiguration }
+export type PhoenixControlDeckConfiguration = z.infer<typeof PhoenixControlDeckConfigurationSchema>
 export type PhoenixSettings = z.infer<typeof PhoenixSettingsSchema>
 export type OpenAiConfigurationStatus = z.infer<typeof OpenAiConfigurationStatusSchema>
 export type InstallationSettings = z.infer<typeof InstallationSettingsSchema>

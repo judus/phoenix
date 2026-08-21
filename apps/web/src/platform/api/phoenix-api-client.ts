@@ -17,7 +17,7 @@ import {
   CopilotVoiceHostCommandAcceptedSchema,
   CopilotVoiceHostHeartbeatSchema,
   CopilotVoiceHostSnapshotSchema,
-  ControlGridLayoutSchema,
+  PhoenixControlDeckConfigurationSchema,
   CommandCatalogResponseSchema,
   GameActionCatalogResponseSchema,
   GameActionResultSchema,
@@ -73,7 +73,7 @@ import type {
   CopilotVoiceHostCommandAccepted,
   CopilotVoiceHostHeartbeat,
   CopilotVoiceHostSnapshot,
-  ControlGridLayout,
+  PhoenixControlDeckConfiguration,
   CommandCatalogResponse,
   GameActionCatalogResponse,
   GameActionOperation,
@@ -257,16 +257,16 @@ export class PhoenixApiClient implements PhoenixApi {
     return this.#json('/api/numpad/execute', 'POST', { address, revision }, NumpadExecutionResultSchema, signal)
   }
 
-  async getControlLayout(signal?: AbortSignal): Promise<ControlGridLayout> {
-    return this.#get('/api/control-layout', ControlGridLayoutSchema, signal)
+  async getControlDeckConfiguration(signal?: AbortSignal): Promise<PhoenixControlDeckConfiguration> {
+    return this.#get('/api/control-deck/configuration', PhoenixControlDeckConfigurationSchema, signal)
   }
 
   async getControlDeckCommands(signal?: AbortSignal): Promise<ControlDeckCommandCatalogue> {
     return this.#get('/api/control-deck/commands', ControlDeckCommandCatalogueSchema, signal)
   }
 
-  async saveControlLayout(layout: ControlGridLayout, signal?: AbortSignal): Promise<ControlGridLayout> {
-    return this.#json('/api/control-layout', 'PUT', layout, ControlGridLayoutSchema, signal)
+  async saveControlDeckConfiguration(configuration: PhoenixControlDeckConfiguration, signal?: AbortSignal): Promise<PhoenixControlDeckConfiguration> {
+    return this.#json('/api/control-deck/configuration', 'PUT', configuration, PhoenixControlDeckConfigurationSchema, signal)
   }
 
   async executeAction(

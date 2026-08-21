@@ -2,26 +2,21 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import {
   ControlDeckConfigurationConflictError,
-  ControlDeckConfigurationSchema
+  type ControlDeckConfiguration,
+  type ControlDeckConfigurationRepository
 } from '@jdu/control-deck-core'
 import {
-  ControlGridLayoutSchema,
+  PhoenixControlDeckConfigurationSchema,
   PhoenixSettingsSchema,
   RuntimeSystemSnapshotSchema,
-  controlDeckConfigurationToControlGridLayout,
-  controlGridLayoutToControlDeckConfiguration,
-  mergeControlGridLayoutIntoControlDeckConfiguration,
-  type ControlGridLayout,
-  type ControlDeckConfiguration,
   type PhoenixSettings,
   type RuntimeSystemSnapshot
 } from '@phoenix/contracts'
 import type {
-  ControlGridLayoutRepository,
   RuntimeSystemSnapshotWriter,
   SystemSettingsRepository
 } from '../domain/system-configuration.js'
-import { DEFAULT_CONTROL_GRID_LAYOUT } from './default-control-grid-layout.js'
+import { BLANK_CONTROL_DECK_CONFIGURATION, DEFAULT_CONTROL_DECK_CONFIGURATION } from './default-control-deck-configuration.js'
 import {
   ensurePrivateDirectorySync,
   PRIVATE_FILE_MODE,
@@ -37,7 +32,7 @@ export const DEFAULT_PHOENIX_SETTINGS: PhoenixSettings = {
   controls: {
     enabled: true,
     backend: 'auto',
-    deckConfiguration: controlGridLayoutToControlDeckConfiguration(DEFAULT_CONTROL_GRID_LAYOUT)
+    deckConfiguration: DEFAULT_CONTROL_DECK_CONFIGURATION
   },
   modules: {
     numpadCommands: {
@@ -50,7 +45,7 @@ export const DEFAULT_PHOENIX_SETTINGS: PhoenixSettings = {
   }
 }
 
-export class JsonSystemSettingsRepository implements SystemSettingsRepository, ControlGridLayoutRepository {
+export class JsonSystemSettingsRepository implements SystemSettingsRepository, ControlDeckConfigurationRepository {
   public constructor (private readonly path: string) {}
 
   public loadOrCreate (): PhoenixSettings {
@@ -64,19 +59,9 @@ export class JsonSystemSettingsRepository implements SystemSettingsRepository, C
     restrictPrivateFileSync(this.path)
 
     const candidate: unknown = JSON.parse(readFileSync(this.path, 'utf8'))
-    const migrated = migrateSettings(candidate)
-    const parsed = PhoenixSettingsSchema.parse(migrated)
-    if (migrated !== candidate) this.save(parsed)
-    if (parsed.controls.deckConfiguration.decks.length > 0) return parsed
-
-    const settings = {
-      ...parsed,
-      controls: {
-        ...parsed.controls,
-        deckConfiguration: controlGridLayoutToControlDeckConfiguration(DEFAULT_CONTROL_GRID_LAYOUT)
-      }
-    }
-    this.save(settings)
+    const normalized = withFreshControlDeckIfNeeded(candidate)
+    const settings = PhoenixSettingsSchema.parse(normalized)
+    if (normalized !== candidate) this.save(settings)
     return settings
   }
 
@@ -84,29 +69,18 @@ export class JsonSystemSettingsRepository implements SystemSettingsRepository, C
     writeJsonAtomically(this.path, PhoenixSettingsSchema.parse(candidate))
   }
 
-  public getLayout (): ControlGridLayout {
-    return controlDeckConfigurationToControlGridLayout(this.loadOrCreate().controls.deckConfiguration)
-  }
-
   public getConfiguration (): ControlDeckConfiguration {
     return this.loadOrCreate().controls.deckConfiguration
   }
 
   public saveConfiguration (candidate: ControlDeckConfiguration): ControlDeckConfiguration {
-    const configuration = ControlDeckConfigurationSchema.parse(candidate)
+    const configuration = PhoenixControlDeckConfigurationSchema.parse(candidate)
     const settings = this.loadOrCreate()
     const current = settings.controls.deckConfiguration
     if (configuration.revision !== current.revision) throw new ControlDeckConfigurationConflictError()
-    const saved = ControlDeckConfigurationSchema.parse({ ...configuration, revision: current.revision + 1 })
+    const saved = PhoenixControlDeckConfigurationSchema.parse({ ...configuration, revision: current.revision + 1 })
     this.save({ ...settings, controls: { ...settings.controls, deckConfiguration: saved } })
     return saved
-  }
-
-  public saveLayout (candidate: ControlGridLayout): ControlGridLayout {
-    const layout = ControlGridLayoutSchema.parse(candidate)
-    const configuration = this.getConfiguration()
-    const saved = this.saveConfiguration(mergeControlGridLayoutIntoControlDeckConfiguration(configuration, layout))
-    return controlDeckConfigurationToControlGridLayout(saved)
   }
 }
 
@@ -117,75 +91,16 @@ export class InMemorySystemSettingsRepository implements SystemSettingsRepositor
   public save (settings: PhoenixSettings): void { this.settings = PhoenixSettingsSchema.parse(settings) }
 }
 
-function migrateSettings (candidate: unknown): unknown {
-  if (!isRecord(candidate)) return candidate
-  const withModules = isRecord(candidate.modules)
-    ? candidate
-    : { ...candidate, modules: DEFAULT_PHOENIX_SETTINGS.modules }
-  const normalized = isRecord(withModules.modules) && ('macros' in withModules.modules || (
-    isRecord(withModules.modules.numpadCommands) && 'enabled' in withModules.modules.numpadCommands
-  ))
-    ? {
-        ...withModules,
-        modules: {
-          numpadCommands: {
-            ...(isRecord(withModules.modules.numpadCommands) ? withModules.modules.numpadCommands : {}),
-            enabled: undefined
-          }
-        }
-      }
-    : withModules
-  if (!isRecord(normalized.controls) || isRecord(normalized.controls.deckConfiguration)) return normalized
-  if (!isRecord(normalized.controls.layout)) return normalized
-  const legacyLayout = migrateLegacyControlGridLayout(normalized.controls.layout)
-  const { layout: _legacyLayout, ...controls } = normalized.controls
+function withFreshControlDeckIfNeeded (candidate: unknown): unknown {
+  if (!isRecord(candidate) || !isRecord(candidate.controls)) return candidate
+  if (PhoenixControlDeckConfigurationSchema.safeParse(candidate.controls.deckConfiguration).success) return candidate
   return {
-    ...normalized,
+    ...candidate,
     controls: {
-      ...controls,
-      deckConfiguration: controlGridLayoutToControlDeckConfiguration(legacyLayout)
+      ...candidate.controls,
+      deckConfiguration: BLANK_CONTROL_DECK_CONFIGURATION
     }
   }
-}
-
-function migrateLegacyControlGridLayout (layout: Record<string, unknown>): ControlGridLayout {
-  if (layout.version === 1) return DEFAULT_CONTROL_GRID_LAYOUT
-  if (!Array.isArray(layout.pages)) return ControlGridLayoutSchema.parse(layout)
-  const version3 = layout.version === 2
-    ? {
-        ...layout,
-        version: 3,
-        pages: layout.pages.map(page => !isRecord(page) || !Array.isArray(page.cells)
-          ? page
-          : {
-              ...page,
-              cells: page.cells.map(cell => !isRecord(cell) || cell.actionId !== 'elite.SilentRunning'
-                ? cell
-                : { ...cell, actionId: null })
-            })
-      }
-    : layout
-  const version4 = version3.version === 3 && Array.isArray(version3.pages)
-    ? {
-        ...version3,
-        version: 4,
-        pages: version3.pages.map(page => !isRecord(page) || !Array.isArray(page.cells)
-          ? page
-          : {
-              ...page,
-              cells: page.cells.map(cell => !isRecord(cell)
-                ? cell
-                : {
-                    position: cell.position,
-                    ...(cell.span === undefined ? {} : { span: cell.span }),
-                    target: typeof cell.actionId === 'string'
-                      ? { type: 'game-action', actionId: cell.actionId }
-                      : null
-                  })
-            })
-      }
-    : version3
-  return ControlGridLayoutSchema.parse(version4)
 }
 
 function isRecord (value: unknown): value is Record<string, unknown> {

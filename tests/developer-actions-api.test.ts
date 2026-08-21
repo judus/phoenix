@@ -75,35 +75,25 @@ test('the API exposes actions, executes them, and persists the shared control la
       status: 'accepted'
     })
 
-    const initialLayout = await client.getControlLayout()
-    const shipPage = initialLayout.pages.find(page => page.id === 'ship')
-    expect(shipPage).toMatchObject({ columns: 8, rows: 5 })
+    const initialConfiguration = await client.getControlDeckConfiguration()
+    const shipDeck = initialConfiguration.decks.find(deck => deck.context === 'phoenix:ship')
+    expect(shipDeck?.layout).toEqual({ kind: 'grid', columns: 8, rows: 5 })
 
-    const movedLayout = {
-      ...initialLayout,
-      pages: initialLayout.pages.map(page => page.id !== 'ship'
-        ? page
+    const movedConfiguration = {
+      ...initialConfiguration,
+      decks: initialConfiguration.decks.map(deck => deck.context !== 'phoenix:ship'
+        ? deck
         : {
-            ...page,
-            cells: [
-              ...page.cells.map(cell => cell.position === 1 ? { ...cell, target: null } : cell),
-              {
-                position: 2,
-                span: 1,
-                target: { type: 'game-action' as const, actionId: 'elite.GalaxyMapOpen' },
-                interaction: { activation: 'command-default' as const, confirmation: { kind: 'none' as const } }
-              }
-            ]
+            ...deck,
+            elements: deck.elements.map(element => element.id === 'cell_1'
+              ? { ...element, placement: { ...element.placement, column: 2 } }
+              : element)
           })
     }
-    const savedLayout = await client.saveControlLayout(movedLayout)
-    expect(savedLayout.pages.find(page => page.id === 'ship')?.cells).toContainEqual({
-      position: 2,
-      span: 1,
-      target: { type: 'game-action', actionId: 'elite.GalaxyMapOpen' },
-      interaction: { activation: 'command-default', confirmation: { kind: 'none' } }
-    })
-    expect(await client.getControlLayout()).toEqual(savedLayout)
+    const savedConfiguration = await client.saveControlDeckConfiguration(movedConfiguration)
+    expect(savedConfiguration.decks.find(deck => deck.context === 'phoenix:ship')?.elements)
+      .toContainEqual(expect.objectContaining({ id: 'cell_1', placement: expect.objectContaining({ column: 2, row: 1 }) }))
+    expect(await client.getControlDeckConfiguration()).toEqual(savedConfiguration)
   } finally {
     await application.stop()
   }

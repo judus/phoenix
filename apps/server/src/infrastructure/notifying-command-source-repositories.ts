@@ -1,9 +1,9 @@
-import type { ControlGridLayout, MacroDefinition, MacroLibrary, PhoenixSettings } from '@phoenix/contracts'
-import type { ControlDeckConfiguration } from '@jdu/control-deck-core'
+import type { MacroDefinition, MacroLibrary, PhoenixSettings } from '@phoenix/contracts'
+import type { ControlDeckConfiguration, ControlDeckConfigurationRepository } from '@jdu/control-deck-core'
 import type { CommandCatalogueChange, CommandCatalogueChangeSource } from '../domain/commands.js'
 import type { MacroRepository } from '../domain/macros.js'
 import type { Publisher } from '../domain/publisher.js'
-import type { ControlGridLayoutRepository, SystemSettingsRepository } from '../domain/system-configuration.js'
+import type { SystemSettingsRepository } from '../domain/system-configuration.js'
 
 abstract class NotifyingRepository {
   protected constructor (
@@ -16,22 +16,15 @@ abstract class NotifyingRepository {
   }
 }
 
-export class NotifyingControlGridLayoutRepository extends NotifyingRepository implements ControlGridLayoutRepository {
+export class NotifyingControlDeckConfigurationRepository extends NotifyingRepository implements ControlDeckConfigurationRepository {
   public constructor (
-    private readonly delegate: ControlGridLayoutRepository,
+    private readonly delegate: ControlDeckConfigurationRepository,
     changes: Publisher<CommandCatalogueChange>
   ) {
-    super(changes, 'control-layout')
+    super(changes, 'control-deck')
   }
 
-  public getLayout (): ControlGridLayout { return this.delegate.getLayout() }
   public getConfiguration (): ControlDeckConfiguration { return this.delegate.getConfiguration() }
-
-  public saveLayout (layout: ControlGridLayout): ControlGridLayout {
-    const saved = this.delegate.saveLayout(layout)
-    this.changed()
-    return saved
-  }
 
   public saveConfiguration (configuration: ControlDeckConfiguration): ControlDeckConfiguration {
     const saved = this.delegate.saveConfiguration(configuration)

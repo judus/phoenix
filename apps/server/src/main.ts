@@ -37,7 +37,7 @@ try {
   application = new PhoenixApplication({
     accessControl,
     applicationPaths: paths,
-    controlGridLayoutRepository: settingsRepository,
+    controlDeckConfigurationRepository: settingsRepository,
     macroRepository: new JsonMacroRepository(resolve(paths.user.config, 'macros.json')),
     openAiSecretRepository: new JsonOpenAiSecretRepository(resolve(paths.user.config, 'secrets.json')),
     systemSettingsRepository: settingsRepository,

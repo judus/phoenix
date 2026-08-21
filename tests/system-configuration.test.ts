@@ -16,7 +16,6 @@ import {
   ControlDeckConfigurationConflictError,
   type ControlDeckCommandOperation
 } from '@jdu/control-deck-core'
-import { ControlGridLayoutSchema } from '@phoenix/contracts'
 import type {
   PhoenixSettings
 } from '@phoenix/contracts'
@@ -26,7 +25,7 @@ import {
   JsonRuntimeSystemSnapshotWriter,
   JsonSystemSettingsRepository
 } from '../apps/server/src/infrastructure/json-system-configuration.js'
-import { DEFAULT_CONTROL_GRID_LAYOUT } from '../apps/server/src/infrastructure/default-control-grid-layout.js'
+import { BLANK_CONTROL_DECK_CONFIGURATION } from '../apps/server/src/infrastructure/default-control-deck-configuration.js'
 
 const temporaryDirectories: string[] = []
 
@@ -54,30 +53,11 @@ test('invalid JSON settings fail validation instead of being silently overwritte
   expect(() => new JsonSystemSettingsRepository(path).loadOrCreate()).toThrow()
 })
 
-test('obsolete module enable switches migrate out of retained settings', () => {
+test('noncanonical deck data is discarded instead of imported', () => {
   const directory = temporaryDirectory()
   const path = join(directory, 'settings.json')
   writeFileSync(path, JSON.stringify({
     ...DEFAULT_PHOENIX_SETTINGS,
-    modules: {
-      macros: { enabled: false, copilotExecution: false, dangerousExecution: false },
-      numpadCommands: { ...DEFAULT_PHOENIX_SETTINGS.modules.numpadCommands, enabled: false }
-    }
-  }))
-
-  const settings = new JsonSystemSettingsRepository(path).loadOrCreate()
-  const persisted = JSON.parse(readFileSync(path, 'utf8')) as { modules: Record<string, unknown> }
-
-  expect(settings.modules).toEqual(DEFAULT_PHOENIX_SETTINGS.modules)
-  expect(persisted.modules).not.toHaveProperty('macros')
-  expect(persisted.modules.numpadCommands).not.toHaveProperty('enabled')
-})
-
-test('draft version-one control layouts migrate to the canonical version-four default', () => {
-  const directory = temporaryDirectory()
-  const path = join(directory, 'settings.json')
-  writeFileSync(path, JSON.stringify({
-    version: 1,
     controls: {
       enabled: true,
       backend: 'auto',
@@ -88,90 +68,9 @@ test('draft version-one control layouts migrate to the canonical version-four de
   const repository = new JsonSystemSettingsRepository(path)
   const settings = repository.loadOrCreate()
 
-  expect(repository.getLayout()).toEqual(DEFAULT_CONTROL_GRID_LAYOUT)
-  expect(settings.controls.deckConfiguration.version).toBe(1)
+  expect(settings.controls.deckConfiguration).toEqual(BLANK_CONTROL_DECK_CONFIGURATION)
+  expect(settings.controls.deckConfiguration.decks.every(deck => deck.elements.length === 0)).toBe(true)
   expect(JSON.parse(readFileSync(path, 'utf8')).controls).not.toHaveProperty('layout')
-})
-
-test('version-two layouts preserve user choices while removing the invalid silent-running action', () => {
-  const directory = temporaryDirectory()
-  const path = join(directory, 'settings.json')
-  writeFileSync(path, JSON.stringify({
-    version: 1,
-    controls: {
-      enabled: true,
-      backend: 'auto',
-      layout: {
-        version: 2,
-        pages: [{
-          id: 'ship',
-          label: 'Ship',
-          category: 'ship',
-          columns: 8,
-          rows: 5,
-          cells: [
-            { position: 20, span: 1, actionId: 'elite.SilentRunning' },
-            { position: 16, span: 1, actionId: 'elite.NightVisionToggle' }
-          ]
-        }]
-      }
-    }
-  }))
-
-  const repository = new JsonSystemSettingsRepository(path)
-  const settings = repository.loadOrCreate()
-  const layout = repository.getLayout()
-  const cells = layout.pages[0]?.cells
-
-  expect(settings.controls.deckConfiguration.version).toBe(1)
-  expect(layout.version).toBe(4)
-  expect(cells).toContainEqual({
-    position: 20,
-    span: 1,
-    target: null,
-    interaction: { activation: 'command-default', confirmation: { kind: 'none' } }
-  })
-  expect(cells).toContainEqual({
-    position: 16,
-    span: 1,
-    target: { type: 'game-action', actionId: 'elite.NightVisionToggle' },
-    interaction: { activation: 'command-default', confirmation: { kind: 'none' } }
-  })
-})
-
-test('version-three action cells migrate to typed game-action targets', () => {
-  const directory = temporaryDirectory()
-  const path = join(directory, 'settings.json')
-  writeFileSync(path, JSON.stringify({
-    version: 1,
-    controls: {
-      enabled: true,
-      backend: 'auto',
-      layout: {
-        version: 3,
-        pages: [{
-          id: 'ship',
-          label: 'Ship',
-          category: 'ship',
-          columns: 8,
-          rows: 5,
-          cells: [{ position: 1, span: 2, actionId: 'elite.GalaxyMapOpen' }]
-        }]
-      }
-    }
-  }))
-
-  const repository = new JsonSystemSettingsRepository(path)
-  repository.loadOrCreate()
-  const layout = repository.getLayout()
-
-  expect(layout.version).toBe(4)
-  expect(layout.pages[0]?.cells).toEqual([{
-    position: 1,
-    span: 2,
-    target: { type: 'game-action', actionId: 'elite.GalaxyMapOpen' },
-    interaction: { activation: 'command-default', confirmation: { kind: 'none' } }
-  }])
 })
 
 test('automatic Linux startup selects xdotool and produces runtime diagnostics', () => {
@@ -236,8 +135,8 @@ test('developer overrides and disabled user settings remain distinct', () => {
     platform: 'linux'
   })
   const disabledSettings: PhoenixSettings = {
-    version: 1,
-    controls: { enabled: false, backend: 'auto' }
+    ...DEFAULT_PHOENIX_SETTINGS,
+    controls: { ...DEFAULT_PHOENIX_SETTINGS.controls, enabled: false }
   }
   const disabled = bootstrapControlOutput(disabledSettings, { platform: 'linux' })
 
@@ -268,29 +167,20 @@ test('runtime system diagnostics are written as validated JSON', () => {
   expect(JSON.parse(readFileSync(path, 'utf8'))).toEqual(snapshot)
 })
 
-test('control-grid layouts are persisted inside system settings', () => {
+test('Control Deck configurations are persisted inside system settings', () => {
   const directory = temporaryDirectory()
   const path = join(directory, 'settings.json')
   const repository = new JsonSystemSettingsRepository(path)
   repository.loadOrCreate()
-  const current = repository.getLayout()
-  const layout = {
+  const current = repository.getConfiguration()
+  const configuration = {
     ...current,
-    pages: current.pages.map(page => page.id === 'ship'
-      ? { ...page, cells: [{ position: 1, target: { type: 'game-action' as const, actionId: 'elite.NightVisionToggle' } }] }
-      : page)
+    decks: current.decks.map(deck => deck.context === 'phoenix:ship' ? { ...deck, elements: [] } : deck)
   }
 
-  repository.saveLayout(layout)
+  repository.saveConfiguration(configuration)
 
-  expect(repository.getLayout().pages.find(page => page.id === 'ship')?.cells).toEqual([
-    {
-      position: 1,
-      span: 1,
-      target: { type: 'game-action', actionId: 'elite.NightVisionToggle' },
-      interaction: { activation: 'command-default', confirmation: { kind: 'none' } }
-    }
-  ])
+  expect(repository.getConfiguration().decks.find(deck => deck.context === 'phoenix:ship')?.elements).toEqual([])
   expect(JSON.parse(readFileSync(path, 'utf8')).controls).not.toHaveProperty('layout')
 })
 
@@ -305,40 +195,6 @@ test('control-deck configuration saves increment revisions and reject stale writ
   expect(saved.revision).toBe(firstReader.revision + 1)
   expect(repository.getConfiguration().revision).toBe(saved.revision)
   expect(() => repository.saveConfiguration(staleReader)).toThrow(ControlDeckConfigurationConflictError)
-})
-
-test('control-grid layouts reject overlapping cells', () => {
-  expect(() => ControlGridLayoutSchema.parse({
-    version: 4,
-    pages: [{
-      id: 'ship',
-      label: 'Ship',
-      category: 'ship',
-      columns: 8,
-      rows: 5,
-      cells: [
-        { position: 1, span: 2, target: { type: 'game-action', actionId: 'elite.NightVisionToggle' } },
-        { position: 2, span: 1, target: { type: 'game-action', actionId: 'elite.LandingGearToggle' } }
-      ]
-    }]
-  })).toThrow()
-})
-
-test('control-grid layouts allow the same command in multiple cells', () => {
-  expect(ControlGridLayoutSchema.parse({
-    version: 4,
-    pages: [{
-      id: 'ship',
-      label: 'Ship',
-      category: 'ship',
-      columns: 8,
-      rows: 5,
-      cells: [
-        { position: 1, span: 1, target: { type: 'game-action', actionId: 'elite.NightVisionToggle' } },
-        { position: 2, span: 1, target: { type: 'game-action', actionId: 'elite.NightVisionToggle' } }
-      ]
-    }]
-  }).pages[0]?.cells).toHaveLength(2)
 })
 
 class StubKeyboardOutput implements KeyboardOutput {

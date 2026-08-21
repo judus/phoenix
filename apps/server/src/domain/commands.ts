@@ -14,7 +14,7 @@ export interface CommandRegistry {
 }
 
 export type CommandCatalogueChangeSource =
-  | 'control-layout'
+  | 'control-deck'
   | 'macros'
   | 'module-settings'
 

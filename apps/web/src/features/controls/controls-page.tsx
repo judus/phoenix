@@ -1,7 +1,16 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import type { ControlDeckCommandElement } from '@jdu/control-deck-core'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import {
+  applyControlDeckLayoutPreset,
+  removeControlDeckElement,
+  replaceControlDeck,
+  replaceControlDeckGroup,
+  upsertControlDeckElement,
+  useCustomControlDeckLayout,
+  type ControlDeckDeck,
+  type ControlDeckDeckGroup
+} from '@jdu/control-deck-core'
 import { ButtonEditor, ControlDeckArmingController, ControlDeckSurface } from '@jdu/control-deck-ui'
-import { PHOENIX_CONTROL_LAYOUT_PRESETS, PhoenixControlDeckThemeSchema, applyControlGridPageLayoutPreset, controlDeckTargetToPhoenixTarget, controlGridLayoutToControlDeckConfiguration, phoenixControlLayoutPreset, type CommandTarget, type ControlGridLayout, type GameActionAvailability, type GameActionOperation, type PhoenixControlDeckTheme, type RuntimeState } from '@phoenix/contracts'
+import { PHOENIX_CONTROL_LAYOUT_PRESETS, PhoenixControlDeckThemeSchema, controlDeckTargetToPhoenixTarget, phoenixControlLayoutPreset, type CommandTarget, type GameActionAvailability, type GameActionOperation, type PhoenixControlDeckConfiguration, type PhoenixControlDeckTheme, type RuntimeState } from '@phoenix/contracts'
 import { Button, CommandTile, Field, IconButton, NumberInput, PageFrame, Select, Status, TextInput } from '@phoenix/ui'
 import { createClientId } from '../../application/identity/client-identity.js'
 import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
@@ -10,7 +19,7 @@ import { controlsCategoryLabel, gameActionCategoryLabel } from './controls-navig
 import type { ControlsControllerSnapshot } from './use-controls-controller.js'
 import { HoldGestureController } from './hold-gesture-controller.js'
 
-export function ControlsPage({ category, controller, editing, macros, runtime, onEditingChange, onExecuteAction, onSaveLayout }: {
+export function ControlsPage({ category, controller, editing, macros, runtime, onEditingChange, onExecuteAction, onSaveConfiguration }: {
   category: ControlCategory
   controller: ControlsControllerSnapshot
   editing: boolean
@@ -18,10 +27,10 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
   runtime?: RuntimeState
   onEditingChange(editing: boolean): void
   onExecuteAction(actionId: string, operation: GameActionOperation, leaseId?: string): Promise<unknown>
-  onSaveLayout(layout: ControlGridLayout): Promise<ControlGridLayout>
+  onSaveConfiguration(configuration: PhoenixControlDeckConfiguration): Promise<PhoenixControlDeckConfiguration>
 }) {
   const [error, setError] = useState<string>()
-  const [draft, setDraft] = useState<ControlGridLayout>()
+  const [draft, setDraft] = useState<PhoenixControlDeckConfiguration>()
   const [editingPosition, setEditingPosition] = useState<number>()
   const [saving, setSaving] = useState(false)
   const held = useRef(new HoldGestureController())
@@ -29,7 +38,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
   const armingTimers = useRef(new Map<number, ReturnType<typeof globalThis.setTimeout>>())
   const suppressClicks = useRef(new Set<string>())
   const armedElementId = useSyncExternalStore(arming.subscribe, arming.getSnapshot, arming.getSnapshot)
-  useEffect(() => { if (!editing) setDraft(controller.layout) }, [controller.layout, editing])
+  useEffect(() => { if (!editing) setDraft(controller.configuration) }, [controller.configuration, editing])
   useEffect(() => { onEditingChange(false); setEditingPosition(undefined); arming.cancel() }, [category])
   useEffect(() => {
     if (editing) arming.cancel()
@@ -40,28 +49,15 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
     armingTimers.current.clear()
     arming.cancel()
   }, [arming, category])
-  const activeLayout = draft ?? controller.layout
-  const page = activeLayout?.pages.find(candidate => candidate.category === category)
-  const deck = useMemo(() => controlGridLayoutToControlDeckConfiguration(activeLayout ?? {
-    version: 4,
-    pages: [{
-      id: category,
-      label: controlsCategoryLabel(category),
-      category,
-      columns: 8,
-      rows: 5,
-      layoutPresetId: null,
-      theme: 'phoenix',
-      cells: []
-    }]
-  }).decks.find(candidate => candidate.context === `phoenix:${category}`)!, [activeLayout, category])
+  const activeConfiguration = draft ?? controller.configuration
+  const deck = activeConfiguration?.decks.find(candidate => candidate.context === `phoenix:${category}`)
+  const group = deck?.groupId ? activeConfiguration?.groups?.find(candidate => candidate.id === deck.groupId) : undefined
   const actions = new Map(controller.actions?.actions.map(action => [action.definition.id, action]) ?? [])
-  const cells = new Map(page?.cells.map(cell => [cell.position, cell]) ?? [])
-  const editorColumn = editingPosition === undefined ? undefined : (editingPosition - 1) % deck.layout.columns + 1
-  const editorRow = editingPosition === undefined ? undefined : Math.floor((editingPosition - 1) / deck.layout.columns) + 1
+  const editorColumn = editingPosition === undefined || !deck ? undefined : (editingPosition - 1) % deck.layout.columns + 1
+  const editorRow = editingPosition === undefined || !deck ? undefined : Math.floor((editingPosition - 1) / deck.layout.columns) + 1
   const editorSlot = editorColumn === undefined || editorRow === undefined
     ? undefined
-    : deck.elements.find(element => element.placement.column === editorColumn && element.placement.row === editorRow)
+    : deck?.elements.find(element => element.placement.column === editorColumn && element.placement.row === editorRow)
   const editorElement = editorSlot?.kind === 'command' ? editorSlot : undefined
 
   const execute = (action: GameActionAvailability, operation: GameActionOperation, leaseId?: string) => {
@@ -98,20 +94,22 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
   }
 
   return (
-    <PageFrame className={`controls-page theme-${page?.theme ?? 'phoenix'}${editing ? ' editing' : ''}${editingPosition !== undefined ? ' button-editing' : ''}${macros.recording ? ' recording' : ''}`} layout="fit">
+    <PageFrame className={`controls-page theme-${controlDeckTheme(deck, group)}${editing ? ' editing' : ''}${editingPosition !== undefined ? ' button-editing' : ''}${macros.recording ? ' recording' : ''}`} layout="fit">
       {macros.recording && <section className="control-recording-toolbar">
         <span className="recording-status">Recording · {macros.recording.entries.length} commands</span>
         <Button variant="quiet" onClick={() => void macros.cancelRecording()}>Cancel</Button>
         <Button variant="primary" onClick={() => void macros.stopRecording()}>Stop and review</Button>
       </section>}
-      {editing && editingPosition === undefined && page && <DeckSettings
-        page={page}
-        onChange={updated => draft && setDraft(replacePage(draft, updated))}
-        onCancel={() => { setDraft(controller.layout); onEditingChange(false); setEditingPosition(undefined) }}
+      {editing && editingPosition === undefined && activeConfiguration && deck && group && <DeckSettings
+        configuration={activeConfiguration}
+        deck={deck}
+        group={group}
+        onChange={setDraft}
+        onCancel={() => { setDraft(controller.configuration); onEditingChange(false); setEditingPosition(undefined) }}
         onSave={() => {
           if (!draft) return
           setSaving(true)
-          void onSaveLayout(draft).then(saved => { setDraft(saved); onEditingChange(false); setError(undefined) }).catch(cause => setError(cause instanceof Error ? cause.message : 'Unable to save control layout.')).finally(() => setSaving(false))
+          void onSaveConfiguration(draft).then(saved => { setDraft(saved); onEditingChange(false); setError(undefined) }).catch(cause => setError(cause instanceof Error ? cause.message : 'Unable to save Control Deck configuration.')).finally(() => setSaving(false))
         }}
         saving={saving}
       />}
@@ -119,6 +117,8 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
         ? <Status tone="danger">{error ?? macros.error ?? controller.error}</Status>
         : controller.status === 'loading'
           ? <Status tone="muted">Loading command grid…</Status>
+          : !deck || !activeConfiguration
+            ? <Status tone="danger">The PHOENIX Control Deck configuration is incomplete.</Status>
           : editing && editingPosition !== undefined && editorColumn !== undefined && editorRow !== undefined
             ? <ButtonEditor
                 capabilities={{ appearance: false }}
@@ -129,19 +129,19 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
                   kind: 'grid',
                   column: editorColumn,
                   row: editorRow,
-                  columnSpan: cells.get(editingPosition)?.span ?? 1,
+                  columnSpan: 1,
                   rowSpan: 1
                 }}
                 position={{ column: editorColumn, row: editorRow }}
                 onClose={() => setEditingPosition(undefined)}
                 onRemove={() => {
-                  if (!draft) return
-                  setDraft(assignElement(draft, category, editingPosition, null))
+                  if (!draft || !editorSlot) return
+                  setDraft(replaceControlDeck(draft, removeControlDeckElement(deck, editorSlot.id)))
                   setEditingPosition(undefined)
                 }}
                 onSave={element => {
                   if (!draft) return
-                  setDraft(assignElement(draft, category, editingPosition, element))
+                  setDraft(replaceControlDeck(draft, upsertControlDeckElement(deck, element)))
                   setEditingPosition(undefined)
                 }}
               />
@@ -157,13 +157,11 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
               }}
               renderCommand={element => {
                 const position = (element.placement.row - 1) * deck.layout.columns + element.placement.column
-                const cell = cells.get(position)
-                const target = cell?.target
-                if (!target) return <div className="control-deck-empty" />
+                const target = controlDeckTargetToPhoenixTarget(element.target)
                 if (target.type === 'macro') {
                   const macro = macros.library.macros.find(candidate => candidate.id === target.macroId)
                   const elementId = element.id
-                  const confirmation = cell?.interaction.confirmation
+                  const confirmation = element.interaction.confirmation
                   const armed = armedElementId === elementId
                   return <CommandTile
                     kind="macro"
@@ -195,7 +193,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
                 if (!action) return <MissingTarget target={target} />
                 const active = telemetryState(runtime, action.definition.telemetryKey)
                 const elementId = element.id
-                const confirmation = cell?.interaction.confirmation
+                const confirmation = element.interaction.confirmation
                 const armed = armedElementId === elementId
                 return <CommandTile
                   binding={action.binding?.display}
@@ -250,30 +248,34 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
   )
 }
 
-function DeckSettings ({ onCancel, onChange, onSave, page, saving }: {
+function DeckSettings ({ configuration, deck, group, onCancel, onChange, onSave, saving }: {
+  configuration: PhoenixControlDeckConfiguration
+  deck: ControlDeckDeck
+  group: ControlDeckDeckGroup
   onCancel(): void
-  onChange(page: ControlGridLayout['pages'][number]): void
+  onChange(configuration: PhoenixControlDeckConfiguration): void
   onSave(): void
-  page: ControlGridLayout['pages'][number]
   saving: boolean
 }) {
-  const [columns, setColumns] = useState(String(page.columns))
-  const [rows, setRows] = useState(String(page.rows))
-  useEffect(() => setColumns(String(page.columns)), [page.columns])
-  useEffect(() => setRows(String(page.rows)), [page.rows])
-  const locked = page.layoutPresetId !== null
-  const presets = page.category === 'ship' ? PHOENIX_CONTROL_LAYOUT_PRESETS : []
+  const [columns, setColumns] = useState(String(deck.layout.columns))
+  const [rows, setRows] = useState(String(deck.layout.rows))
+  useEffect(() => setColumns(String(deck.layout.columns)), [deck.layout.columns])
+  useEffect(() => setRows(String(deck.layout.rows)), [deck.layout.rows])
+  const locked = Boolean(deck.layoutPresetId)
+  const presets = deck.context === 'phoenix:ship' ? PHOENIX_CONTROL_LAYOUT_PRESETS : []
   return <section aria-label="Deck settings" className="control-deck-settings">
     <Field htmlFor="control-deck-name" label="Deck">
-      <TextInput maxLength={32} value={page.label} onChange={event => {
-        if (event.target.value.trim()) onChange({ ...page, label: event.target.value })
+      <TextInput maxLength={32} value={group.name} onChange={event => {
+        if (event.target.value.trim()) onChange(replaceControlDeckGroup(configuration, { ...group, name: event.target.value }))
       }} />
     </Field>
     <Field htmlFor="control-deck-layout" label="Layout">
-      <Select value={page.layoutPresetId ?? ''} onChange={event => {
+      <Select value={deck.layoutPresetId ?? ''} onChange={event => {
         const preset = event.target.value === '' ? null : phoenixControlLayoutPreset(event.target.value)
         if (event.target.value !== '' && !preset) return
-        onChange(applyControlGridPageLayoutPreset(page, preset ?? null))
+        onChange(replaceControlDeck(configuration, preset
+          ? applyControlDeckLayoutPreset(deck, preset)
+          : useCustomControlDeckLayout(deck)))
       }}>
         <option value="">Custom</option>
         {presets.map(preset => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
@@ -281,27 +283,30 @@ function DeckSettings ({ onCancel, onChange, onSave, page, saving }: {
     </Field>
     <Field htmlFor="control-deck-columns" label="Columns">
       <NumberInput disabled={locked} min={2} max={12} value={columns}
-        onBlur={() => setColumns(String(page.columns))}
+        onBlur={() => setColumns(String(deck.layout.columns))}
         onChange={event => {
           setColumns(event.target.value)
           const nextColumns = boundedInteger(event.target.value, 2, 12)
-          if (nextColumns !== undefined) onChange(resizePage(page, nextColumns, page.rows))
+          if (nextColumns !== undefined) onChange(replaceControlDeck(configuration, resizeDeck(deck, nextColumns, deck.layout.rows)))
         }} />
     </Field>
     <Field htmlFor="control-deck-rows" label="Rows">
       <NumberInput disabled={locked} min={1} max={12} value={rows}
-        onBlur={() => setRows(String(page.rows))}
+        onBlur={() => setRows(String(deck.layout.rows))}
         onChange={event => {
           setRows(event.target.value)
           const nextRows = boundedInteger(event.target.value, 1, 12)
-          if (nextRows !== undefined) onChange(resizePage(page, page.columns, nextRows))
+          if (nextRows !== undefined) onChange(replaceControlDeck(configuration, resizeDeck(deck, deck.layout.columns, nextRows)))
         }} />
     </Field>
     <Field htmlFor="control-deck-theme" label="Theme">
-      <Select value={page.theme ?? 'phoenix'} onChange={event => onChange({
-        ...page,
-        theme: PhoenixControlDeckThemeSchema.parse(event.target.value)
-      })}>
+      <Select value={controlDeckTheme(deck, group)} onChange={event => {
+        const theme = PhoenixControlDeckThemeSchema.parse(event.target.value)
+        const { appearance: _appearance, ...plainGroup } = group
+        onChange(replaceControlDeckGroup(configuration, theme === 'phoenix'
+          ? plainGroup
+          : { ...plainGroup, appearance: { colorScheme: theme } }))
+      }}>
         {['phoenix', 'blue', 'cyan', 'green', 'amber', 'orange', 'red', 'violet', 'magenta'].map(theme => <option key={theme} value={theme}>{themeLabel(PhoenixControlDeckThemeSchema.parse(theme))}</option>)}
       </Select>
     </Field>
@@ -322,52 +327,17 @@ export function controlPickerActionLabel(action: GameActionAvailability): string
   return `${action.definition.label} · ${gameActionCategoryLabel(action.definition.category)} · ${action.binding?.display ?? 'Unbound'}`
 }
 
-function assignElement (
-  layout: ControlGridLayout,
-  category: ControlCategory,
-  position: number,
-  element: ControlDeckCommandElement | null
-): ControlGridLayout {
-  return {
-    ...layout,
-    pages: layout.pages.map(page => {
-      if (page.category !== category) return page
-      const replacement = {
-        position,
-        span: element?.placement.columnSpan ?? page.cells.find(cell => cell.position === position)?.span ?? 1,
-        target: element ? controlDeckTargetToPhoenixTarget(element.target) : null,
-        interaction: element?.interaction ?? { activation: 'command-default' as const, confirmation: { kind: 'none' as const } }
-      }
-      return {
-        ...page,
-        cells: page.cells.some(cell => cell.position === position)
-          ? page.cells.map(cell => cell.position === position ? replacement : cell)
-          : [...page.cells, replacement].sort((left, right) => left.position - right.position)
-      }
-    })
-  }
-}
-
-function replacePage (layout: ControlGridLayout, replacement: ControlGridLayout['pages'][number]): ControlGridLayout {
-  return { ...layout, pages: layout.pages.map(page => page.category === replacement.category ? replacement : page) }
-}
-
-export function resizePage (
-  page: ControlGridLayout['pages'][number],
+export function resizeDeck (
+  deck: ControlDeckDeck,
   columns: number,
   rows: number
-): ControlGridLayout['pages'][number] {
+): ControlDeckDeck {
   return {
-    ...page,
-    columns,
-    rows,
-    cells: page.cells.flatMap(cell => {
-      const column = (cell.position - 1) % page.columns + 1
-      const row = Math.floor((cell.position - 1) / page.columns) + 1
-      return row <= rows && column + cell.span - 1 <= columns
-        ? [{ ...cell, position: (row - 1) * columns + column }]
-        : []
-    })
+    ...deck,
+    layout: { kind: 'grid', columns, rows },
+    elements: deck.elements.filter(element =>
+      element.placement.row + element.placement.rowSpan - 1 <= rows &&
+      element.placement.column + element.placement.columnSpan - 1 <= columns)
   }
 }
 
@@ -379,6 +349,10 @@ function boundedInteger (candidate: string, minimum: number, maximum: number): n
 
 function themeLabel (theme: PhoenixControlDeckTheme): string {
   return `${theme.charAt(0).toUpperCase()}${theme.slice(1)}`
+}
+
+function controlDeckTheme (deck: ControlDeckDeck | undefined, group: ControlDeckDeckGroup | undefined): PhoenixControlDeckTheme {
+  return group?.appearance?.colorScheme ?? deck?.appearance?.colorScheme ?? 'phoenix'
 }
 
 function MissingTarget({ target }: { target: CommandTarget }) {
