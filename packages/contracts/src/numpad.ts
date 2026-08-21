@@ -52,15 +52,6 @@ export const NumpadTreeSnapshotSchema = z.object({
   diagnostics: z.array(z.string()).max(100)
 })
 
-export const NumpadLevelResolutionSchema = z.object({
-  parentId: z.string().min(1).nullable(),
-  digits: z.string().regex(/^\d*$/u).max(3),
-  candidates: z.array(NumpadTreeNodeSchema).max(128),
-  exact: NumpadTreeNodeSchema.nullable(),
-  hasLongerMatches: z.boolean(),
-  status: z.enum(['idle', 'incomplete', 'ambiguous', 'ready', 'unavailable', 'invalid'])
-})
-
 export const NumpadExecuteRequestSchema = z.object({
   address: NumpadAddressSchema,
   revision: z.number().int().positive()
@@ -76,53 +67,6 @@ export const NumpadExecutionResultSchema = z.object({
 
 export type NumpadTreeNode = z.infer<typeof NumpadTreeNodeSchema>
 export type NumpadTreeSnapshot = z.infer<typeof NumpadTreeSnapshotSchema>
-export type NumpadLevelResolution = z.infer<typeof NumpadLevelResolutionSchema>
 export type NumpadExecuteRequest = z.infer<typeof NumpadExecuteRequestSchema>
 export type NumpadExecutionResult = z.infer<typeof NumpadExecutionResultSchema>
 export type NumpadShortcut = z.infer<typeof NumpadShortcutSchema>
-
-export function numpadChildren (
-  snapshot: NumpadTreeSnapshot,
-  parentId: string | null
-): NumpadTreeNode[] {
-  return snapshot.nodes
-    .filter(node => node.parentId === parentId)
-    .sort((left, right) => numericSelector(left.selector) - numericSelector(right.selector))
-}
-
-export function resolveNumpadLevel (
-  snapshot: NumpadTreeSnapshot,
-  parentId: string | null,
-  digits: string
-): NumpadLevelResolution {
-  const normalized = z.string().regex(/^\d*$/u).max(3).parse(digits)
-  const siblings = numpadChildren(snapshot, parentId)
-  if (normalized === '') {
-    return NumpadLevelResolutionSchema.parse({
-      parentId,
-      digits: normalized,
-      candidates: siblings,
-      exact: null,
-      hasLongerMatches: false,
-      status: 'idle'
-    })
-  }
-  const candidates = siblings.filter(node => node.selector.startsWith(normalized))
-  const exact = siblings.find(node => node.selector === normalized) ?? null
-  const hasLongerMatches = candidates.some(node => node.selector !== normalized)
-  const status: NumpadLevelResolution['status'] = exact
-    ? hasLongerMatches ? 'ambiguous' : exact.available ? 'ready' : 'unavailable'
-    : candidates.length > 0 ? 'incomplete' : 'invalid'
-  return NumpadLevelResolutionSchema.parse({
-    parentId,
-    digits: normalized,
-    candidates,
-    exact,
-    hasLongerMatches,
-    status
-  })
-}
-
-function numericSelector (selector: string): number {
-  return Number.parseInt(selector, 10)
-}

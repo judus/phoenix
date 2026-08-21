@@ -101,6 +101,7 @@ export function controlGridLayoutToControlDeckConfiguration (
   const layout = ControlGridLayoutSchema.parse(candidate)
   return ControlDeckConfigurationSchema.parse({
     version: 1,
+    revision: 0,
     decks: layout.pages.map(page => ({
       id: page.id,
       name: page.label,
@@ -269,7 +270,7 @@ export const PhoenixSettingsSchema = z.object({
   controls: z.object({
     enabled: z.boolean(),
     backend: InputBackendModeSchema,
-    deckConfiguration: ControlDeckConfigurationSchema.default({ version: 1, decks: [], displays: [] })
+    deckConfiguration: ControlDeckConfigurationSchema.default({ version: 1, revision: 0, decks: [], displays: [] })
   }),
   modules: PhoenixModulesSchema.default({
     numpadCommands: {

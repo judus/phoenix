@@ -1,6 +1,9 @@
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
-import { ControlDeckConfigurationSchema } from '@jdu/control-deck-core'
+import {
+  ControlDeckConfigurationConflictError,
+  ControlDeckConfigurationSchema
+} from '@jdu/control-deck-core'
 import {
   ControlGridLayoutSchema,
   PhoenixSettingsSchema,
@@ -92,24 +95,18 @@ export class JsonSystemSettingsRepository implements SystemSettingsRepository, C
   public saveConfiguration (candidate: ControlDeckConfiguration): ControlDeckConfiguration {
     const configuration = ControlDeckConfigurationSchema.parse(candidate)
     const settings = this.loadOrCreate()
-    this.save({ ...settings, controls: { ...settings.controls, deckConfiguration: configuration } })
-    return this.getConfiguration()
+    const current = settings.controls.deckConfiguration
+    if (configuration.revision !== current.revision) throw new ControlDeckConfigurationConflictError()
+    const saved = ControlDeckConfigurationSchema.parse({ ...configuration, revision: current.revision + 1 })
+    this.save({ ...settings, controls: { ...settings.controls, deckConfiguration: saved } })
+    return saved
   }
 
   public saveLayout (candidate: ControlGridLayout): ControlGridLayout {
     const layout = ControlGridLayoutSchema.parse(candidate)
-    const settings = this.loadOrCreate()
-    this.save({
-      ...settings,
-      controls: {
-        ...settings.controls,
-        deckConfiguration: mergeControlGridLayoutIntoControlDeckConfiguration(
-          settings.controls.deckConfiguration,
-          layout
-        )
-      }
-    })
-    return layout
+    const configuration = this.getConfiguration()
+    const saved = this.saveConfiguration(mergeControlGridLayoutIntoControlDeckConfiguration(configuration, layout))
+    return controlDeckConfigurationToControlGridLayout(saved)
   }
 }
 

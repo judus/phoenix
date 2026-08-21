@@ -12,7 +12,10 @@ import type {
   KeyboardOutput,
   KeyboardOutputStatus
 } from '@jdu/control-deck-adapter-keyboard'
-import type { ControlDeckCommandOperation } from '@jdu/control-deck-core'
+import {
+  ControlDeckConfigurationConflictError,
+  type ControlDeckCommandOperation
+} from '@jdu/control-deck-core'
 import { ControlGridLayoutSchema } from '@phoenix/contracts'
 import type {
   PhoenixSettings
@@ -289,6 +292,19 @@ test('control-grid layouts are persisted inside system settings', () => {
     }
   ])
   expect(JSON.parse(readFileSync(path, 'utf8')).controls).not.toHaveProperty('layout')
+})
+
+test('control-deck configuration saves increment revisions and reject stale writers', () => {
+  const directory = temporaryDirectory()
+  const repository = new JsonSystemSettingsRepository(join(directory, 'settings.json'))
+  const firstReader = repository.getConfiguration()
+  const staleReader = repository.getConfiguration()
+
+  const saved = repository.saveConfiguration(firstReader)
+
+  expect(saved.revision).toBe(firstReader.revision + 1)
+  expect(repository.getConfiguration().revision).toBe(saved.revision)
+  expect(() => repository.saveConfiguration(staleReader)).toThrow(ControlDeckConfigurationConflictError)
 })
 
 test('control-grid layouts reject overlapping cells', () => {

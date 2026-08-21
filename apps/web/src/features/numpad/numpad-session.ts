@@ -1,56 +1,100 @@
-import { numpadChildren, resolveNumpadLevel, type NumpadTreeNode, type NumpadTreeSnapshot } from '@phoenix/contracts'
+import {
+  activateControlDeckNumpadSession,
+  confirmControlDeckNumpadSelection,
+  controlDeckNumpadChildren,
+  displayedControlDeckNumpadAddress,
+  enterControlDeckNumpadDigit,
+  enterControlDeckNumpadDigitOrCancel,
+  idleControlDeckNumpadSession,
+  selectControlDeckNumpadNode,
+  type ControlDeckNumpadSessionState,
+  type ControlDeckNumpadSessionStatus,
+  type ControlDeckNumpadTransition,
+  type ControlDeckNumpadTree
+} from '@jdu/control-deck-core'
+import type { NumpadTreeNode, NumpadTreeSnapshot } from '@phoenix/contracts'
 
-export type NumpadSessionStatus = 'idle' | 'browsing' | 'incomplete' | 'ambiguous' | 'ready' | 'unavailable' | 'invalid' | 'executing' | 'completed' | 'error' | 'stale'
+export type NumpadSessionStatus = ControlDeckNumpadSessionStatus | 'completed' | 'error' | 'stale'
 export interface NumpadSessionState { active: boolean, pathIds: string[], pendingDigits: string, readyNodeId?: string, status: NumpadSessionStatus, message?: string }
 export interface NumpadSessionTransition { state: NumpadSessionState, execute?: NumpadTreeNode }
 
-export const idleNumpadSession = (): NumpadSessionState => ({ active: false, pathIds: [], pendingDigits: '', status: 'idle' })
-export const activateNumpadSession = (): NumpadSessionTransition => ({ state: { active: true, pathIds: [], pendingDigits: '', status: 'browsing' } })
+export const idleNumpadSession = (): NumpadSessionState => idleControlDeckNumpadSession()
+export const activateNumpadSession = (): NumpadSessionTransition => ({ state: activateControlDeckNumpadSession() })
 export const cancelNumpadSession = (): NumpadSessionTransition => ({ state: idleNumpadSession() })
 
-export function enterNumpadDigit(snapshot: NumpadTreeSnapshot, state: NumpadSessionState, digit: string, alwaysConfirm: boolean): NumpadSessionTransition {
-  if (!/^\d$/u.test(digit)) return { state }
-  const active = state.active ? state : activateNumpadSession().state
-  if (active.pendingDigits.length >= 3) return { state: { ...active, status: 'invalid', message: 'No command matches this entry.' } }
-  const digits = `${active.pendingDigits}${digit}`
-  const resolution = resolveNumpadLevel(snapshot, active.pathIds.at(-1) ?? null, digits)
-  if (resolution.status === 'ready' && resolution.exact) return chooseNode(snapshot, { ...active, pendingDigits: digits }, resolution.exact, alwaysConfirm, false)
-  return { state: { ...active, pendingDigits: digits, readyNodeId: resolution.exact?.id, status: resolution.status, message: statusMessage(resolution.status) } }
+export function enterNumpadDigit (snapshot: NumpadTreeSnapshot, state: NumpadSessionState, digit: string, alwaysConfirm: boolean): NumpadSessionTransition {
+  const tree = asControlDeckTree(snapshot, alwaysConfirm)
+  return fromControlDeckTransition(snapshot, enterControlDeckNumpadDigit(tree, asControlDeckState(state), digit))
 }
 
-export function enterNumpadDigitOrCancel(snapshot: NumpadTreeSnapshot, state: NumpadSessionState, digit: string, alwaysConfirm: boolean): NumpadSessionTransition {
-  const transition = enterNumpadDigit(snapshot, state, digit, alwaysConfirm)
-  return digit === '0' && transition.state.status === 'invalid' ? cancelNumpadSession() : transition
+export function enterNumpadDigitOrCancel (snapshot: NumpadTreeSnapshot, state: NumpadSessionState, digit: string, alwaysConfirm: boolean): NumpadSessionTransition {
+  const tree = asControlDeckTree(snapshot, alwaysConfirm)
+  return fromControlDeckTransition(snapshot, enterControlDeckNumpadDigitOrCancel(tree, asControlDeckState(state), digit))
 }
 
-export function confirmNumpadSelection(snapshot: NumpadTreeSnapshot, state: NumpadSessionState): NumpadSessionTransition {
-  if (!state.active) return { state }
-  const resolution = resolveNumpadLevel(snapshot, state.pathIds.at(-1) ?? null, state.pendingDigits)
-  return resolution.exact ? chooseNode(snapshot, state, resolution.exact, false, true) : { state: { ...state, status: 'invalid', message: 'No exact command matches this entry.' } }
+export function confirmNumpadSelection (snapshot: NumpadTreeSnapshot, state: NumpadSessionState): NumpadSessionTransition {
+  const tree = asControlDeckTree(snapshot, false)
+  return fromControlDeckTransition(snapshot, confirmControlDeckNumpadSelection(tree, asControlDeckState(state)))
 }
 
-export function selectNumpadNode(snapshot: NumpadTreeSnapshot, state: NumpadSessionState, nodeId: string, alwaysConfirm: boolean): NumpadSessionTransition {
-  const node = snapshot.nodes.find(candidate => candidate.id === nodeId)
-  return node ? chooseNode(snapshot, state.active ? state : activateNumpadSession().state, node, alwaysConfirm, false) : { state: { ...state, status: 'invalid', message: 'Command node is unavailable.' } }
+export function selectNumpadNode (snapshot: NumpadTreeSnapshot, state: NumpadSessionState, nodeId: string, alwaysConfirm: boolean): NumpadSessionTransition {
+  const tree = asControlDeckTree(snapshot, alwaysConfirm)
+  return fromControlDeckTransition(snapshot, selectControlDeckNumpadNode(tree, asControlDeckState(state), nodeId))
 }
 
 export const executingNumpadSession = (state: NumpadSessionState): NumpadSessionState => ({ ...state, status: 'executing', message: 'Executing command…' })
 export const finishNumpadSession = (_state: NumpadSessionState, status: 'completed' | 'error' | 'stale', message: string): NumpadSessionState => ({ ...idleNumpadSession(), status, message })
 export const currentNumpadParent = (snapshot: NumpadTreeSnapshot, state: NumpadSessionState) => snapshot.nodes.find(node => node.id === state.pathIds.at(-1))
-export const visibleNumpadNodes = (snapshot: NumpadTreeSnapshot, state: NumpadSessionState) => numpadChildren(snapshot, state.pathIds.at(-1) ?? null)
-export const displayedNumpadAddress = (snapshot: NumpadTreeSnapshot, state: NumpadSessionState) => `0${currentNumpadParent(snapshot, state)?.address ?? ''}${state.pendingDigits}`
+export const visibleNumpadNodes = (snapshot: NumpadTreeSnapshot, state: NumpadSessionState) => {
+  const byId = new Map(snapshot.nodes.map(node => [node.id, node]))
+  return controlDeckNumpadChildren(asControlDeckTree(snapshot, false), state.pathIds.at(-1) ?? null)
+    .flatMap(node => byId.get(node.id) ?? [])
+}
+export const displayedNumpadAddress = (snapshot: NumpadTreeSnapshot, state: NumpadSessionState) => displayedControlDeckNumpadAddress(asControlDeckTree(snapshot, false), asControlDeckState(state))
 
-function chooseNode(snapshot: NumpadTreeSnapshot, state: NumpadSessionState, node: NumpadTreeNode, alwaysConfirm: boolean, confirmed: boolean): NumpadSessionTransition {
-  if (node.kind === 'menu') return { state: { active: true, pathIds: [...state.pathIds, node.id], pendingDigits: '', status: 'browsing' } }
-  if (!node.available || !node.target) return { state: { ...state, pendingDigits: node.selector, readyNodeId: node.id, status: 'unavailable', message: node.unavailableReason ?? 'Command is unavailable.' } }
-  if (alwaysConfirm && !confirmed) return { state: { ...state, pendingDigits: node.selector, readyNodeId: node.id, status: 'ready', message: 'Press Enter to execute.' } }
-  return { execute: node, state: { ...state, pendingDigits: node.selector, readyNodeId: node.id, status: 'executing' } }
+function asControlDeckTree (snapshot: NumpadTreeSnapshot, alwaysConfirm: boolean): ControlDeckNumpadTree {
+  return {
+    activationDigit: '0',
+    nodes: snapshot.nodes.map(node => ({
+      id: node.id,
+      parentId: node.parentId,
+      selector: node.selector,
+      address: node.address,
+      label: node.label,
+      ...(node.description ? { description: node.description } : {}),
+      available: node.available,
+      ...(node.unavailableReason ? { unavailableReason: node.unavailableReason } : {}),
+      action: node.kind === 'menu' ? null : { type: 'navigation', destinationId: `phoenix-numpad:${node.id}` },
+      confirm: node.kind === 'menu' ? false : alwaysConfirm,
+      interactionHint: node.kind === 'menu' ? 'open' : 'tap',
+      ...(node.position ? { position: node.position } : {}),
+      ...(node.span ? { columnSpan: node.span } : {}),
+      ...(node.position ? { rowSpan: 1 } : {}),
+      ...(node.columns ? { columns: node.columns } : {}),
+      ...(node.rows ? { rows: node.rows } : {})
+    }))
+  }
 }
 
-function statusMessage(status: NumpadSessionStatus): string | undefined {
-  if (status === 'incomplete') return 'Enter another digit.'
-  if (status === 'ambiguous') return 'Enter another digit or press Enter for the exact match.'
-  if (status === 'invalid') return 'No command matches this entry.'
-  if (status === 'unavailable') return 'Command is unavailable.'
-  return undefined
+function asControlDeckState (state: NumpadSessionState): ControlDeckNumpadSessionState {
+  if (!isControlDeckStatus(state.status)) return idleControlDeckNumpadSession()
+  return {
+    active: state.active,
+    pathIds: state.pathIds,
+    pendingDigits: state.pendingDigits,
+    status: state.status,
+    ...(state.readyNodeId ? { readyNodeId: state.readyNodeId } : {}),
+    ...(state.message ? { message: state.message } : {})
+  }
+}
+
+function fromControlDeckTransition (snapshot: NumpadTreeSnapshot, transition: ControlDeckNumpadTransition): NumpadSessionTransition {
+  const execute = transition.action && transition.node
+    ? snapshot.nodes.find(node => node.id === transition.node?.id)
+    : undefined
+  return { state: transition.state, ...(execute ? { execute } : {}) }
+}
+
+function isControlDeckStatus (status: NumpadSessionStatus): status is ControlDeckNumpadSessionStatus {
+  return !['completed', 'error', 'stale'].includes(status)
 }
