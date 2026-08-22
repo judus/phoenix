@@ -120,31 +120,33 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
           : !deck || !activeConfiguration
             ? <Status tone="danger">The PHOENIX Control Deck configuration is incomplete.</Status>
           : editing && editingPosition !== undefined && editorColumn !== undefined && editorRow !== undefined
-            ? <ButtonEditor
-                capabilities={{ appearance: false }}
-                catalogue={controller.commands}
-                deck={deck}
-                element={editorElement}
-                placement={editorSlot?.placement ?? {
-                  kind: 'grid',
-                  column: editorColumn,
-                  row: editorRow,
-                  columnSpan: 1,
-                  rowSpan: 1
-                }}
-                position={{ column: editorColumn, row: editorRow }}
-                onClose={() => setEditingPosition(undefined)}
-                onRemove={() => {
-                  if (!draft || !editorSlot) return
-                  setDraft(replaceControlDeck(draft, removeControlDeckElement(deck, editorSlot.id)))
-                  setEditingPosition(undefined)
-                }}
-                onSave={element => {
-                  if (!draft) return
-                  setDraft(replaceControlDeck(draft, upsertControlDeckElement(deck, element)))
-                  setEditingPosition(undefined)
-                }}
-              />
+            ? <div className="control-deck-layout control-deck-theme phoenix-control-deck">
+                <ButtonEditor
+                  capabilities={{ appearance: false }}
+                  catalogue={controller.commands}
+                  deck={deck}
+                  element={editorElement}
+                  placement={editorSlot?.placement ?? {
+                    kind: 'grid',
+                    column: editorColumn,
+                    row: editorRow,
+                    columnSpan: 1,
+                    rowSpan: 1
+                  }}
+                  position={{ column: editorColumn, row: editorRow }}
+                  onClose={() => setEditingPosition(undefined)}
+                  onRemove={() => {
+                    if (!draft || !editorSlot) return
+                    setDraft(replaceControlDeck(draft, removeControlDeckElement(deck, editorSlot.id)))
+                    setEditingPosition(undefined)
+                  }}
+                  onSave={element => {
+                    if (!draft) return
+                    setDraft(replaceControlDeck(draft, upsertControlDeckElement(deck, element)))
+                    setEditingPosition(undefined)
+                  }}
+                />
+              </div>
             : <ControlDeckSurface
               aria-label={`${controlsCategoryLabel(category)} command grid`}
               className="controls controls-command control-deck"

@@ -120,60 +120,35 @@
       .control-deck-settings { grid-template-columns: minmax(10rem, 1fr) minmax(8rem, auto) repeat(3, minmax(5rem, auto)) auto auto; }
     }
 
-    .button-editor {
-      display: grid;
-      grid-auto-rows: max-content;
-      align-content: start;
-      gap: var(--spacing-md);
+    .phoenix-control-deck {
+      --accent: var(--color-action);
+      --accent-panel: rgb(255 157 0 / 10%);
+      --color-canvas: var(--palette-black);
+      --color-surface: rgb(22 9 18 / 88%);
+      --color-surface-raised: rgb(30 7 18 / 96%);
+      --color-surface-subtle: rgb(43 5 22 / 34%);
+      --color-border: rgb(255 157 0 / 65%);
+      --color-border-muted: rgb(255 157 0 / 18%);
+      --color-text: var(--palette-ice);
+      --color-text-strong: var(--palette-ice);
+      --color-text-subtle: var(--palette-slate);
+      --color-text-muted: var(--palette-slate);
+      --color-danger: var(--palette-coral);
+      --color-danger-strong: var(--palette-coral);
+      --color-danger-border: rgb(255 97 118 / 48%);
+      --color-button-text: var(--palette-ice);
+      --color-button-active-text: var(--palette-black);
+      --color-shortcut-text: var(--palette-ice);
+      --border-control: 1px solid var(--color-border);
+      --border-muted: 1px solid var(--color-border-muted);
+      --button-selected-background: rgb(255 157 0 / 14%);
+      --control-radius: 0;
+
+      grid-template-rows: minmax(0, 1fr);
       min-inline-size: 0;
       min-block-size: 0;
-      overflow: auto;
-      padding: var(--spacing-lg);
-      border: 1px solid var(--color-border);
-      background: var(--color-surface);
-
-      > header,
-      > footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: var(--spacing-sm);
-      }
-
-      > header strong {
-        color: var(--color-action);
-        text-transform: uppercase;
-      }
-
-      > label {
-        display: grid;
-        gap: var(--spacing-xs);
-        color: var(--color-text-muted);
-        font-size: var(--font-size-xs);
-        text-transform: uppercase;
-      }
-
-      input,
-      select,
-      button {
-        min-block-size: var(--control-block-size);
-        padding: var(--spacing-sm);
-        border: 1px solid var(--color-border);
-        border-radius: 0;
-        color: var(--color-text);
-        background: var(--color-canvas);
-        font: inherit;
-      }
-
-      button {
-        cursor: pointer;
-
-        &:hover { border-color: var(--color-action); }
-        &:disabled { cursor: default; opacity: 0.45; }
-      }
-
-      footer { align-self: end; }
-      footer button:last-child { margin-inline-start: auto; border-color: var(--color-action); color: var(--color-action); }
-      footer .danger { border-color: var(--color-danger); color: var(--color-danger); }
+      gap: 0;
+      padding: 0;
+      background: transparent;
     }
   }

@@ -3,7 +3,8 @@ import { createRoot } from 'react-dom/client'
 import { App } from './app.js'
 import { createPhoenixApplication } from './bootstrap/create-application.js'
 import 'deskplane/style.css'
-import '@jdu/control-deck-ui/styles.css'
+import '@jdu/control-deck-ui/layout.css'
+import '@jdu/control-deck-ui/theme.css'
 import '@phoenix/ui/styles.css'
 
 const root = document.getElementById('root')
