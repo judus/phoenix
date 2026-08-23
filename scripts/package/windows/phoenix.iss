@@ -7,6 +7,7 @@ DefaultDirName={localappdata}\Programs\PHOENIX
 DefaultGroupName=PHOENIX
 DisableProgramGroupPage=yes
 LicenseFile=@@LicensePath@@
+SetupIconFile=@@IconPath@@
 OutputDir=@@OutputRoot@@
 OutputBaseFilename=PHOENIX-@@PhoenixVersion@@-windows-x64-setup
 Compression=lzma2
@@ -25,8 +26,8 @@ Source: "@@PayloadRoot@@\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdi
 Source: "@@LauncherPath@@"; DestDir: "{app}"; DestName: "Phoenix.exe"; Flags: ignoreversion
 
 [Icons]
-Name: "{autoprograms}\PHOENIX"; Filename: "{app}\Phoenix.exe"
-Name: "{userdesktop}\PHOENIX"; Filename: "{app}\Phoenix.exe"; Tasks: desktopicon
+Name: "{autoprograms}\PHOENIX"; Filename: "{app}\Phoenix.exe"; IconFilename: "{app}\Phoenix.exe"
+Name: "{userdesktop}\PHOENIX"; Filename: "{app}\Phoenix.exe"; IconFilename: "{app}\Phoenix.exe"; Tasks: desktopicon
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"

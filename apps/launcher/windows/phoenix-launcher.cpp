@@ -9,6 +9,7 @@ constexpr UINT trayMessage = WM_APP + 1;
 constexpr UINT openCommand = 1001;
 constexpr UINT pairingCommand = 1002;
 constexpr UINT quitCommand = 1003;
+constexpr int iconResource = 101;
 
 NOTIFYICONDATAW trayIcon{};
 PROCESS_INFORMATION launcherProcess{};
@@ -178,7 +179,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR commandLine, int) {
   windowClass.lpfnWndProc = windowProcedure;
   windowClass.hInstance = instance;
   windowClass.lpszClassName = className;
-  windowClass.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
+  windowClass.hIcon = LoadIconW(instance, MAKEINTRESOURCEW(iconResource));
   RegisterClassW(&windowClass);
   HWND window = CreateWindowExW(0, className, L"PHOENIX", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, instance, nullptr);
   if (!window) return 1;
@@ -194,7 +195,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR commandLine, int) {
   trayIcon.uID = 1;
   trayIcon.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_INFO;
   trayIcon.uCallbackMessage = trayMessage;
-  trayIcon.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
+  trayIcon.hIcon = LoadIconW(instance, MAKEINTRESOURCEW(iconResource));
   wcscpy_s(trayIcon.szTip, L"PHOENIX");
   wcscpy_s(trayIcon.szInfoTitle, L"PHOENIX");
   wcscpy_s(trayIcon.szInfo, L"PHOENIX is starting. Right-click this icon for controls.");

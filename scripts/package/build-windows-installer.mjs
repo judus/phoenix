@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -28,6 +28,7 @@ const template = readFileSync(resolve(projectRoot, 'scripts/package/windows/phoe
 const definition = resolve(workRoot, 'phoenix.iss')
 writeFileSync(definition, renderTemplate(template, {
   LauncherPath: installerValue(launcher),
+  IconPath: installerValue(resolve(projectRoot, 'apps/launcher/windows/phoenix.ico')),
   LicensePath: installerValue(resolve(projectRoot, 'LICENSE')),
   OutputRoot: installerValue(outputRoot),
   PayloadRoot: installerValue(payloadRoot),
@@ -54,8 +55,13 @@ function compileLauncher (output) {
 
   const vcvars = resolve(installationPath, 'VC/Auxiliary/Build/vcvars64.bat')
   const source = resolve(projectRoot, 'apps/launcher/windows/phoenix-launcher.cpp')
+  const icon = resolve(workRoot, 'phoenix.ico')
+  const resourceDefinition = resolve(workRoot, 'phoenix.rc')
+  const compiledResource = resolve(workRoot, 'phoenix.res')
   const compileScript = resolve(workRoot, 'compile-launcher.cmd')
-  writeFileSync(compileScript, `@echo off\r\ncall "${vcvars}"\r\nif errorlevel 1 exit /b %errorlevel%\r\ncl.exe /nologo /O2 /MT /std:c++17 /DUNICODE /D_UNICODE /EHsc "${source}" /Fe:"${output}" /link /SUBSYSTEM:WINDOWS shell32.lib user32.lib\r\n`)
+  copyFileSync(resolve(projectRoot, 'apps/launcher/windows/phoenix.ico'), icon)
+  writeFileSync(resourceDefinition, '101 ICON "phoenix.ico"\r\n')
+  writeFileSync(compileScript, `@echo off\r\ncall "${vcvars}"\r\nif errorlevel 1 exit /b %errorlevel%\r\nrc.exe /nologo /fo"${compiledResource}" "${resourceDefinition}"\r\nif errorlevel 1 exit /b %errorlevel%\r\ncl.exe /nologo /O2 /MT /std:c++17 /DUNICODE /D_UNICODE /EHsc "${source}" "${compiledResource}" /Fe:"${output}" /link /SUBSYSTEM:WINDOWS shell32.lib user32.lib\r\n`)
   execFileSync('cmd.exe', ['/d', '/c', compileScript], { cwd: workRoot, stdio: 'inherit' })
 }
 
