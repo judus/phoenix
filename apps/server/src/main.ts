@@ -1,5 +1,5 @@
-import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { existsSync, mkdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
 import { loadEnvFile } from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { bootstrapControlOutput } from './application/control-output-bootstrap.js'
@@ -17,6 +17,9 @@ import { serverAccessUrls } from './infrastructure/server-access-urls.js'
 
 let application: PhoenixApplication | null = null
 let shuttingDown = false
+const runtimeStatusPath = process.env.PHOENIX_RUNTIME_STATUS_PATH
+
+removeRuntimeStatus()
 
 try {
   const projectRoot = fileURLToPath(new URL('../../../', import.meta.url))
@@ -50,12 +53,26 @@ try {
   })
   const address = await application.start()
   const accessUrls = serverAccessUrls(address)
+  if (runtimeStatusPath) {
+    mkdirSync(dirname(runtimeStatusPath), { recursive: true })
+    const temporaryPath = `${runtimeStatusPath}.${process.pid}.tmp`
+    writeFileSync(temporaryPath, [
+      'PHOENIX READY',
+      `Process: ${process.pid}`,
+      `This computer: ${accessUrls.local}`,
+      ...accessUrls.network.map(url => `Device: ${url}`),
+      ...(accessUrls.network.length === 0 ? ['Device: No LAN address detected. Check the Windows network connection.'] : []),
+      `Pairing code: ${accessControl.pairingCode}`
+    ].join('\r\n'))
+    renameSync(temporaryPath, runtimeStatusPath)
+  }
   console.log(`PHOENIX server listening on ${address.host}:${address.port}`)
   console.log(`PHOENIX local URL: ${accessUrls.local}`)
   for (const url of accessUrls.network) console.log(`PHOENIX network URL: ${url}`)
   if (accessUrls.network.length > 0) console.log('PHOENIX microphone audio over a network URL requires HTTPS.')
   console.log(`PHOENIX device pairing code: ${accessControl.pairingCode}`)
 } catch (error) {
+  removeRuntimeStatus()
   console.error('ERROR_PHOENIX_START_FAILED', error)
   process.exit(1)
 }
@@ -64,7 +81,15 @@ async function shutdown (): Promise<void> {
   if (shuttingDown) return
   shuttingDown = true
   await application?.stop()
+  removeRuntimeStatus()
   process.exit(0)
+}
+
+function removeRuntimeStatus (): void {
+  if (!runtimeStatusPath) return
+  try { unlinkSync(runtimeStatusPath) } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+  }
 }
 
 process.once('SIGINT', shutdown)

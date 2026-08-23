@@ -20,6 +20,9 @@ const configRoot = process.platform === 'win32'
 const dataRoot = process.platform === 'win32'
   ? resolve(windowsUserRoot, 'Data')
   : resolve(userRoot, 'data/phoenix')
+const launcherStateRoot = process.platform === 'win32'
+  ? resolve(windowsUserRoot, 'Logs')
+  : resolve(userRoot, 'state/phoenix/logs')
 let child
 
 try {
@@ -75,6 +78,13 @@ try {
   }
 
   const pairing = JSON.parse(readFileSync(resolve(configRoot, 'pairing.json'), 'utf8'))
+  const runtimeStatus = readFileSync(resolve(launcherStateRoot, 'runtime.txt'), 'utf8')
+  if (!runtimeStatus.includes(`Pairing code: ${pairing.pairingCode}`)) {
+    throw new Error('Payload did not expose its pairing code to the installed launcher.')
+  }
+  if (!runtimeStatus.includes('This computer: ')) {
+    throw new Error('Payload did not expose its local URL to the installed launcher.')
+  }
   const claim = await fetch(`http://127.0.0.1:${port}/api/pairing/claim`, {
     body: JSON.stringify({ code: pairing.pairingCode }),
     headers: { 'content-type': 'application/json' },

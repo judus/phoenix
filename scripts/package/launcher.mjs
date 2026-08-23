@@ -13,6 +13,7 @@ const launcherRoot = platformLauncherRoot()
 const lockPath = resolve(launcherRoot, 'launcher.lock')
 const stopPath = resolve(launcherRoot, 'launcher.stop')
 const logPath = resolve(launcherRoot, 'phoenix.log')
+const runtimeStatusPath = resolve(launcherRoot, 'runtime.txt')
 
 mkdirSync(launcherRoot, { recursive: true })
 
@@ -37,16 +38,16 @@ let forceStopTimer
 let stopPoll
 
 try {
-  try { unlinkSync(stopPath) } catch (error) {
-    if (error?.code !== 'ENOENT') throw error
-  }
+  removeFile(stopPath)
+  removeFile(runtimeStatusPath)
   logLine(log, `Launcher starting PHOENIX ${localUrl}.`)
   child = spawn(runtime, [server], {
     cwd: installRoot,
     env: {
       ...process.env,
       PHOENIX_PATH_MODE: 'installed',
-      PHOENIX_PORT: String(port)
+      PHOENIX_PORT: String(port),
+      PHOENIX_RUNTIME_STATUS_PATH: runtimeStatusPath
     },
     stdio: ['pipe', log, log]
   })
@@ -94,7 +95,8 @@ try {
   if (forceStopTimer) clearTimeout(forceStopTimer)
   if (stopPoll) clearInterval(stopPoll)
   if (child?.exitCode === null && child?.signalCode === null) child.kill('SIGKILL')
-  try { unlinkSync(stopPath) } catch {}
+  removeFile(stopPath)
+  removeFile(runtimeStatusPath)
   releaseLock()
   closeSync(log)
 }
@@ -169,6 +171,12 @@ function stopExistingLauncher () {
     return
   }
   writeFileSync(stopPath, `${Date.now()}\n`, 'utf8')
+}
+
+function removeFile (path) {
+  try { unlinkSync(path) } catch (error) {
+    if (error?.code !== 'ENOENT') throw error
+  }
 }
 
 async function waitForReady (url, serverProcess, timeout) {

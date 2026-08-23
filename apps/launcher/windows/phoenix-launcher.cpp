@@ -1,12 +1,14 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <fstream>
+#include <sstream>
 #include <string>
 
 namespace {
 constexpr UINT trayMessage = WM_APP + 1;
 constexpr UINT openCommand = 1001;
-constexpr UINT quitCommand = 1002;
+constexpr UINT pairingCommand = 1002;
+constexpr UINT quitCommand = 1003;
 
 NOTIFYICONDATAW trayIcon{};
 PROCESS_INFORMATION launcherProcess{};
@@ -42,6 +44,17 @@ void requestStop() {
 
 void openPhoenix() {
   ShellExecuteW(nullptr, L"open", L"http://127.0.0.1:3400", nullptr, nullptr, SW_SHOWNORMAL);
+}
+
+void showPairing() {
+  std::ifstream input(launcherStateDirectory() + L"\\runtime.txt", std::ios::binary);
+  if (!input) {
+    MessageBoxW(nullptr, L"PHOENIX is still starting. Try again in a moment.", L"Pair device", MB_OK | MB_ICONINFORMATION);
+    return;
+  }
+  std::ostringstream contents;
+  contents << input.rdbuf();
+  MessageBoxA(nullptr, contents.str().c_str(), "Pair device", MB_OK | MB_ICONINFORMATION);
 }
 
 bool automaticBrowserOpenEnabled() {
@@ -104,6 +117,7 @@ void showTrayMenu(HWND window) {
   GetCursorPos(&point);
   HMENU menu = CreatePopupMenu();
   AppendMenuW(menu, MF_STRING | MF_DEFAULT, openCommand, L"Open PHOENIX");
+  AppendMenuW(menu, MF_STRING, pairingCommand, L"Pair device...");
   AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
   AppendMenuW(menu, MF_STRING, quitCommand, L"Quit");
   SetForegroundWindow(window);
@@ -119,6 +133,7 @@ LRESULT CALLBACK windowProcedure(HWND window, UINT message, WPARAM wParam, LPARA
   }
   if (message == WM_COMMAND) {
     if (LOWORD(wParam) == openCommand) openPhoenix();
+    else if (LOWORD(wParam) == pairingCommand) showPairing();
     else if (LOWORD(wParam) == quitCommand) {
       quitting = true;
       DestroyWindow(window);
