@@ -35,5 +35,5 @@ try {
   execFileSync(uninstaller, ['/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART'], { stdio: 'inherit' })
   console.log(`PHOENIX Windows test installer verified: ${setup}`)
 } finally {
-  rmSync(temporaryRoot, { force: true, recursive: true })
+  rmSync(temporaryRoot, { force: true, recursive: true, maxRetries: 20, retryDelay: 250 })
 }

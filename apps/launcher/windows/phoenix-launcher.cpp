@@ -44,6 +44,12 @@ void openPhoenix() {
   ShellExecuteW(nullptr, L"open", L"http://127.0.0.1:3400", nullptr, nullptr, SW_SHOWNORMAL);
 }
 
+bool automaticBrowserOpenEnabled() {
+  wchar_t value[16]{};
+  const DWORD length = GetEnvironmentVariableW(L"PHOENIX_LAUNCHER_OPEN_BROWSER", value, 16);
+  return length == 0 || _wcsicmp(value, L"false") != 0;
+}
+
 bool startLauncher() {
   const std::wstring directory = executableDirectory();
   const std::wstring runtime = directory + L"\\runtime\\node.exe";
@@ -142,7 +148,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR commandLine, int) {
 
   instanceMutex = CreateMutexW(nullptr, TRUE, L"Local\\PhoenixLauncher");
   if (!instanceMutex || GetLastError() == ERROR_ALREADY_EXISTS) {
-    openPhoenix();
+    if (automaticBrowserOpenEnabled()) openPhoenix();
     if (instanceMutex) CloseHandle(instanceMutex);
     return 0;
   }

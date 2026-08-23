@@ -115,7 +115,7 @@ try {
     ])
   }
   makeWritable(installRoot)
-  rmSync(temporaryRoot, { recursive: true, force: true })
+  rmSync(temporaryRoot, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 })
 }
 
 async function availablePort () {
