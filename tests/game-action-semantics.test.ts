@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest'
+import { afterEach, expect, test, vi } from 'vitest'
 import type { GameActionCatalogResponse, GameActionCommand, GameActionResult } from '@phoenix/contracts'
 import { GameActionService } from '../apps/server/src/application/game-action-service.js'
 import type { GameActionGateway } from '../apps/server/src/domain/game-actions.js'
@@ -17,6 +17,8 @@ const catalog: GameActionCatalogResponse = {
     presetNames: []
   }
 }
+
+afterEach(() => vi.useRealTimers())
 
 test('assigns request identity and preserves explicit correlation', async () => {
   const gateway = new StubGateway()
@@ -103,18 +105,19 @@ test('automatically releases an expired hold lease', async () => {
 })
 
 test('renews an active hold without sending another keydown', async () => {
+  vi.useFakeTimers()
   const gateway = new StubGateway()
   const service = new GameActionService(gateway, 20)
 
   await service.execute({ actionId: 'elite.PrimaryFire', operation: 'press', leaseId: 'gesture-renewed' }, 'ui')
-  await new Promise(resolve => setTimeout(resolve, 10))
+  await vi.advanceTimersByTimeAsync(10)
   const renewal = await service.execute({ actionId: 'elite.PrimaryFire', operation: 'press', leaseId: 'gesture-renewed' }, 'ui')
-  await new Promise(resolve => setTimeout(resolve, 15))
+  await vi.advanceTimersByTimeAsync(15)
 
   expect(renewal).toMatchObject({ status: 'accepted', message: 'Hold lease renewed.' })
   expect(gateway.calls.map(call => call.operation)).toEqual(['press'])
 
-  await new Promise(resolve => setTimeout(resolve, 15))
+  await vi.advanceTimersByTimeAsync(15)
   expect(gateway.calls.map(call => call.operation)).toEqual(['press', 'release'])
   await service.stop()
 })
