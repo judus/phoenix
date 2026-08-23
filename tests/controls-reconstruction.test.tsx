@@ -38,7 +38,7 @@ test('reconstructed controls render the persisted grid with shared command tiles
   />)
 
   expect(markup).toContain('Ship lights')
-  expect(markup).toContain('class="command-tile"')
+  expect(markup).toContain('class="tile btn"')
   expect(markup).toContain('aria-label="Ship command grid"')
   expect(markup).toContain('grid-template-columns:repeat(8, minmax(0, 1fr))')
 })

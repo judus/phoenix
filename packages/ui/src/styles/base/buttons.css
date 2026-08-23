@@ -1,6 +1,4 @@
-.btn,
-.command-tile,
-.action-tile {
+.btn {
   position: relative;
 
   &::after {

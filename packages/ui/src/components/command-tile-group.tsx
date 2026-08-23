@@ -19,7 +19,7 @@ export function CommandTileGroup({
 
   return (
     <section
-      className={['command-tile-group', className].filter(Boolean).join(' ')}
+      className={['tile-group', className].filter(Boolean).join(' ')}
       aria-labelledby={headingId}
       {...props}
     >
@@ -27,7 +27,7 @@ export function CommandTileGroup({
         <h3 id={headingId}>{title}</h3>
         {meta && <span>{meta}</span>}
       </header>
-      <div className={`command-tile-group-grid columns-${columns}`}>
+      <div className={`tile-group-grid columns-${columns}`}>
         {children}
       </div>
     </section>
@@ -41,7 +41,7 @@ export function DescribedCommandTile({
   ...props
 }: HTMLAttributes<HTMLDivElement> & { description: ReactNode }) {
   return (
-    <div className={['described-command-tile', className].filter(Boolean).join(' ')} {...props}>
+    <div className={['described-tile', className].filter(Boolean).join(' ')} {...props}>
       {children}
       <p>{description}</p>
     </div>

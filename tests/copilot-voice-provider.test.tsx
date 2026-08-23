@@ -264,7 +264,8 @@ class FakeDevicePreferences implements DevicePreferences {
     audioInputId: '',
     audioOutputId: '',
     captureNumpad: true,
-    followCopilotNavigation: true
+    followCopilotNavigation: true,
+    variableNumpadFontSizes: true
   }
 
   getSnapshot = (): PhoenixDevicePreferencesSnapshot => this.#snapshot

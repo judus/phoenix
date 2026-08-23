@@ -33,8 +33,6 @@ export interface DesktopWorkspaceProps {
   settingsContextItems?: NavigationItem[]
   settingsCurrentContext?: string
   telemetry: ReactNode
-  telemetryContextItems?: NavigationItem[]
-  telemetryCurrentContext?: string
 }
 
 export function DesktopWorkspace({
@@ -60,9 +58,7 @@ export function DesktopWorkspace({
   settings,
   settingsContextItems = emptyContextItems,
   settingsCurrentContext = '',
-  telemetry,
-  telemetryContextItems = emptyContextItems,
-  telemetryCurrentContext = ''
+  telemetry
 }: DesktopWorkspaceProps) {
   const controller = useRef<Deskplane | null>(null)
   const initialDesktop = useRef(activeDesktop)
@@ -102,20 +98,7 @@ export function DesktopWorkspace({
           id: 'utilities',
           initialDesktopId: 'telemetry',
           desktops: [
-            {
-              id: 'telemetry',
-              ariaLabel: 'Numpad workspace',
-              children: (
-                <WorkspacePage
-                  contextItems={telemetryContextItems}
-                  contextLabel="Numpad views"
-                  currentContext={telemetryCurrentContext}
-                  onNavigate={onNavigateRoute}
-                >
-                  {telemetry}
-                </WorkspacePage>
-              )
-            },
+            utilityDesktop('telemetry', 'Numpad workspace', telemetry),
             utilityDesktop('macros', 'Macros workspace', macros),
             {
               id: 'journal',

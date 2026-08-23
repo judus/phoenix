@@ -150,10 +150,19 @@
     }
   }
 
-  .context-rail nav.application-navigation.navigation-compact ul {
-    flex-direction: column;
-    min-inline-size: 0;
-    block-size: auto;
+  .context-rail nav.application-navigation.navigation-compact {
+    block-size: 100%;
+
+    ul {
+      flex-direction: column;
+      min-inline-size: 0;
+      block-size: 100%;
+    }
+
+    .navigation-item-end {
+      margin-block-start: auto;
+      border-block-start: 1px solid var(--color-border-subtle);
+    }
   }
 
   nav.app-navigation {

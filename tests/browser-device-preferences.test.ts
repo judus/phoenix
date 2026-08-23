@@ -9,12 +9,14 @@ test('browser device preferences default to following Copilot and capturing the 
     audioInputId: '',
     audioOutputId: '',
     captureNumpad: true,
-    followCopilotNavigation: true
+    followCopilotNavigation: true,
+    variableNumpadFontSizes: true
   })
-  preferences.update({ audioInputId: 'mic-1', captureNumpad: false })
+  preferences.update({ audioInputId: 'mic-1', captureNumpad: false, variableNumpadFontSizes: false })
   expect(new BrowserDevicePreferences(storage).getSnapshot()).toMatchObject({
     audioInputId: 'mic-1',
-    captureNumpad: false
+    captureNumpad: false,
+    variableNumpadFontSizes: false
   })
 })
 

@@ -1,0 +1,266 @@
+/* Canonical tile markup supplied by Control Deck; all presentation is PHOENIX-owned. */
+.tile {
+  min-inline-size: 0;
+  min-block-size: 0;
+
+  > .content {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    inline-size: 100%;
+    block-size: 100%;
+    min-inline-size: 0;
+    min-block-size: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    gap: var(--spacing-xs) var(--spacing-sm);
+    text-align: start;
+
+    > :where(.header, .footer) { display: contents; }
+  }
+
+  .eyebrow {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+  }
+
+  .header > .corner {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
+    visibility: hidden;
+  }
+
+  &:is(.numbered, .cornered) .header > .corner { visibility: visible; }
+
+  .label {
+    display: -webkit-box;
+    min-inline-size: 0;
+    grid-column: 1;
+    grid-row: 1;
+    align-self: start;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    text-overflow: ellipsis;
+    white-space: normal;
+  }
+
+  .body {
+    min-inline-size: 0;
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .meta {
+    min-inline-size: 0;
+    grid-column: 1;
+    grid-row: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .note {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .footer > .corner {
+    position: absolute;
+    inset-inline-end: 0;
+    inset-block-end: 0;
+  }
+
+  &.btn {
+    display: block;
+    min-block-size: 8rem;
+    padding: var(--spacing-sm);
+    border-color: var(--command-border);
+    color: var(--command-text);
+    background: var(--command-background);
+    text-align: start;
+
+    > .content {
+      grid-template-rows: minmax(0, 1fr) auto auto;
+      gap: var(--spacing-xs) var(--spacing-sm);
+    }
+
+    .label {
+      color: var(--command-text);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-normal);
+      line-height: var(--line-height-compact);
+      text-transform: uppercase;
+    }
+
+    .meta {
+      grid-row: 2;
+      color: var(--command-meta);
+      font-size: var(--font-size-sm);
+      text-transform: uppercase;
+    }
+
+    .note {
+      color: var(--color-text-muted);
+      font-size: var(--font-size-xxs);
+      text-transform: uppercase;
+    }
+
+    &:active:not(:disabled) {
+      --command-meta: var(--color-pressed-text);
+    }
+
+    &:has(.body) {
+      > .content {
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        align-content: start;
+        gap: var(--spacing-sm);
+      }
+
+      .label {
+        color: var(--color-text);
+        font-size: var(--font-size-lg);
+      }
+
+      .body {
+        grid-row: 2;
+
+        p {
+          max-inline-size: 42ch;
+          margin: 0;
+          color: var(--color-text-muted);
+          font-size: var(--font-size-sm);
+          line-height: var(--line-height-normal);
+        }
+      }
+
+      .meta {
+        grid-row: 3;
+        color: var(--color-action);
+        font-size: var(--font-size-xs);
+        line-height: var(--line-height-compact);
+      }
+    }
+
+    &.theme-macro {
+      --command-background: linear-gradient(135deg, rgb(0 178 210 / 10%), rgb(43 5 22 / 72%));
+      --command-text: var(--color-text);
+      --command-meta: var(--color-information);
+    }
+
+    &.active {
+      --command-meta: var(--command-selected-text);
+
+      border-color: var(--command-selected-border);
+      color: var(--command-selected-text);
+      background: var(--command-selected-background);
+    }
+
+    &.theme-danger {
+      border-color: var(--command-danger-border);
+      background: var(--command-danger-background);
+
+      &:active:not(:disabled) {
+        border-color: var(--color-danger);
+        background: var(--color-pressed-danger-background);
+      }
+    }
+
+    &.unavailable,
+    &:disabled {
+      --command-meta: var(--color-text-muted);
+
+      border-color: var(--color-text-muted);
+      color: var(--command-unavailable-text);
+      background: var(--command-unavailable-background);
+      opacity: 0.48;
+
+      &::after {
+        background:
+          radial-gradient(circle, var(--color-text-muted) 0 0.08rem, transparent 0.1rem)
+          0 0 / 33.333% 33.333%;
+        opacity: 0.24;
+      }
+    }
+
+    &.label-only {
+      > .content { grid-template-rows: minmax(0, 1fr); }
+
+      .label { align-self: center; }
+
+      &::after {
+        inset-block-start: 50%;
+        inset-block-end: auto;
+        transform: translateY(-50%);
+      }
+    }
+
+    &.compact { min-block-size: var(--control-block-size); }
+  }
+
+  &.hide-meta .meta { display: none; }
+
+  &.centered {
+    > .content {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr) auto auto minmax(0, 1fr);
+      align-content: stretch;
+      justify-items: center;
+      text-align: center;
+    }
+
+    .label {
+      inline-size: 100%;
+      grid-column: 1;
+      grid-row: 2;
+      align-self: end;
+    }
+
+    .meta {
+      inline-size: 100%;
+      grid-column: 1;
+      grid-row: 3;
+    }
+
+    .header > .corner {
+      position: absolute;
+      inset-block-start: 0;
+      inset-inline-end: 0;
+    }
+
+    .note {
+      position: absolute;
+      inset-block-end: 0;
+      inset-inline-start: 0;
+    }
+  }
+
+  &.watermarked::before {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    color: var(--command-meta);
+    font-size: min(9rem, 42cqi, 68cqb);
+    font-weight: var(--font-weight-bold);
+    line-height: 1;
+    opacity: .09;
+    content: attr(data-watermark);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+  }
+
+  &:is(.variable-font-sizes, .watermarked) { container-type: size; }
+
+  &.variable-font-sizes {
+    .label { font-size: clamp(.8rem, 14cqi, var(--font-size-sm)); }
+    .label[data-text-length='medium'] { font-size: clamp(.68rem, 9cqi, var(--font-size-sm)); }
+    .label[data-text-length='long'] { font-size: clamp(.6rem, 7.5cqi, var(--font-size-sm)); }
+    .label[data-text-length='extra-long'] { font-size: clamp(.5rem, 6cqi, var(--font-size-sm)); }
+    .meta { font-size: clamp(.64rem, 8cqi, var(--font-size-sm)); }
+  }
+  :where(.header > .corner, .meta) { color: var(--command-meta); }
+  .header > .corner { font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); }
+}

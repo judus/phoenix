@@ -50,7 +50,10 @@ export const PHOENIX_NAVIGATION_DESTINATIONS: readonly NavigationCommandDestinat
   destination('records.exploration-biology', 'Biology', '#/records/exploration/biology', 'Records', 'Open biology records.'),
   destination('records.exploration-geology', 'Geology', '#/records/exploration/geology', 'Records', 'Open geology records.'),
   destination('controls.ship', 'Ship controls', '#/controls/ship', 'Controls', 'Open the ship control grid.'),
-  destination('copilot.channel', 'Copilot', '#copilot', 'Copilot', 'Open the Copilot channel.')
+  destination('copilot.channel', 'Copilot', '#copilot', 'Copilot', 'Open the Copilot channel.'),
+  destination('macros.library', 'Macros', '#/macros', 'Macros', 'Open the macro library.'),
+  destination('log.journal', 'Log', '#/records/journal', 'Log', 'Open the retained event journal.'),
+  destination('settings.dashboard', 'Settings', '#/settings', 'Settings', 'Open PHOENIX settings.')
 ]
 
 export class DefaultCommandRegistry implements CommandRegistry {
@@ -74,6 +77,8 @@ export class DefaultCommandRegistry implements CommandRegistry {
     for (const action of gameActionCatalog.actions) {
       const target = { type: 'game-action' as const, actionId: action.definition.id }
       descriptors.set(commandTargetKey(target), CommandDescriptorSchema.parse({
+        activation: action.definition.inputMode,
+        bindingLabel: action.binding?.display ?? null,
         id: `command.${action.definition.id}`,
         kind: target.type,
         label: action.definition.label,
@@ -88,6 +93,7 @@ export class DefaultCommandRegistry implements CommandRegistry {
     for (const entry of this.destinations) {
       const target = { type: 'navigation' as const, destinationId: entry.id }
       descriptors.set(commandTargetKey(target), CommandDescriptorSchema.parse({
+        activation: 'open',
         id: `command.navigation.${entry.id}`,
         kind: target.type,
         label: entry.label,
@@ -101,6 +107,7 @@ export class DefaultCommandRegistry implements CommandRegistry {
     for (const macro of this.macros?.getLibrary().macros ?? []) {
       const target = { type: 'macro' as const, macroId: macro.id }
       descriptors.set(commandTargetKey(target), CommandDescriptorSchema.parse({
+        bindingLabel: 'Macro',
         id: `command.macro.${macro.id}`,
         kind: target.type,
         label: macro.name,

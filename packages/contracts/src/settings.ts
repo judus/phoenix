@@ -5,7 +5,6 @@ import {
   type ControlDeckCommandTarget
 } from '@jdu/control-deck-core'
 import type { CommandTarget } from './commands.js'
-import { NumpadShortcutCollectionSchema } from './numpad.js'
 
 export const InputBackendModeSchema = z.enum(['auto', 'recording', 'linux-xdotool', 'windows-sendinput'])
 export const PhoenixControlDeckThemeSchema = z.union([z.literal('phoenix'), ControlDeckColorSchemeSchema])
@@ -52,8 +51,7 @@ export const PhoenixModulesSchema = z.object({
     inputAdapter: z.enum(['browser', 'touch', 'both']).default('browser'),
     presentation: z.enum(['tiles', 'columns']).default('tiles'),
     alwaysConfirm: z.boolean().default(false),
-    cancelAfterMs: z.number().int().min(1000).max(60_000).default(5000),
-    shortcuts: NumpadShortcutCollectionSchema.default([])
+    cancelAfterMs: z.number().int().min(1000).max(60_000).default(5000)
   })
 })
 
@@ -105,8 +103,7 @@ export const PhoenixSettingsSchema = z.object({
       inputAdapter: 'browser',
       presentation: 'tiles',
       alwaysConfirm: false,
-      cancelAfterMs: 5000,
-      shortcuts: []
+      cancelAfterMs: 5000
     }
   })
 })

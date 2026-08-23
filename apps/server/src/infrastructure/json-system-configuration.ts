@@ -39,8 +39,7 @@ export const DEFAULT_PHOENIX_SETTINGS: PhoenixSettings = {
       inputAdapter: 'browser',
       presentation: 'tiles',
       alwaysConfirm: false,
-      cancelAfterMs: 5000,
-      shortcuts: []
+      cancelAfterMs: 5000
     }
   }
 }

@@ -44,9 +44,7 @@
     align-items: end;
     gap: var(--spacing-xs);
 
-    .field {
-      min-inline-size: min(18rem, 40vw);
-    }
+    .system-query__input { inline-size: min(18rem, 40vw); }
   }
 
   .system-schematic__viewport {

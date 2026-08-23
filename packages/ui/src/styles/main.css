@@ -7,8 +7,8 @@
 @import './base/tables.css';
 @import './layouts/layout.css';
 @import './patterns/panels.css';
-@import './patterns/action-tiles.css';
-@import './patterns/command-tiles.css';
+@import './patterns/control-deck-tiles.css';
+@import './patterns/tile-groups.css';
 @import './patterns/switchers.css';
 @import './components/data-display.css';
 @import './components/page-header.css';
@@ -23,6 +23,7 @@
 @import './pages/numpad.css';
 @import './pages/current-ship-consolidated.css';
 @import './pages/current-ship-loadout.css';
+@import './pages/dashboard.css';
 @import './pages/commander.css';
 @import './pages/filtered-system-search.css';
 @import './pages/fleet.css';

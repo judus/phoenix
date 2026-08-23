@@ -12,7 +12,7 @@
     &.editing,
     &.recording { grid-template-rows: auto minmax(0, 1fr); }
 
-    &.editing.button-editing { grid-template-rows: minmax(0, 1fr); }
+    &.editing.button-editing { grid-template-rows: auto minmax(0, 1fr); }
 
     &.editing.recording { grid-template-rows: auto auto minmax(0, 1fr); }
 
@@ -24,7 +24,7 @@
     &.theme-violet { --control-deck-accent: #a98cff; --control-deck-panel: #271f3d; }
     &.theme-magenta { --control-deck-accent: #f06bd8; --control-deck-panel: #3a1832; }
 
-    &.editing .command-tile.disabled { cursor: pointer; }
+    &.editing .control-deck-slot > .tile.btn.unavailable { cursor: pointer; }
 
     .recording-status {
       color: var(--color-information);
@@ -40,24 +40,15 @@
     }
 
     .control-deck-settings {
-      display: grid;
-      grid-template-columns: minmax(12rem, 1fr) minmax(9rem, auto) 6rem 6rem 8rem auto auto;
-      align-items: end;
-      gap: var(--spacing-sm);
-      padding: var(--spacing-sm);
-      border: 1px solid var(--color-border);
-      background: var(--color-surface);
+      .control-deck-settings-form {
+        padding: var(--spacing-xs);
 
-      > .btn-icon { block-size: var(--control-block-size); }
-
-      > .btn-icon svg {
-        inline-size: 1.25rem;
-        block-size: 1.25rem;
-        fill: none;
-        stroke: currentColor;
-        stroke-linecap: square;
-        stroke-linejoin: miter;
-        stroke-width: 1.75;
+        .control-deck-settings-controls {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: var(--spacing-xs);
+          min-inline-size: 0;
+        }
       }
     }
 
@@ -68,7 +59,8 @@
       min-block-size: 0;
       overflow: hidden;
 
-      .control-deck-slot > .command-tile {
+      .control-deck-slot > .tile.btn {
+        min-block-size: 0;
         block-size: 100%;
         touch-action: none;
         user-select: none;
@@ -77,19 +69,19 @@
 
     }
 
-    &:not(.theme-phoenix) .control-deck .control-deck-slot > .command-tile:not(.command-danger, .disabled) {
+    &:not(.theme-phoenix) .control-deck .control-deck-slot > .tile.btn:not(.theme-danger, .unavailable) {
       --command-background: var(--control-deck-panel);
       --command-border: var(--control-deck-accent);
       --command-meta: var(--control-deck-accent);
     }
 
-    &:not(.theme-phoenix) .control-deck .control-deck-slot > .command-tile:not(.command-danger, .disabled):active,
-    &:not(.theme-phoenix) .control-deck .control-deck-slot > .command-tile:not(.command-danger, .disabled).active {
+    &:not(.theme-phoenix) .control-deck .control-deck-slot > .tile.btn:not(.theme-danger, .unavailable):active,
+    &:not(.theme-phoenix) .control-deck .control-deck-slot > .tile.btn:not(.theme-danger, .unavailable).active {
       border-color: var(--control-deck-accent);
       background: color-mix(in srgb, var(--control-deck-panel) 68%, var(--control-deck-accent));
     }
 
-    &:not(.theme-phoenix) .control-deck .control-deck-slot > .command-tile::after {
+    &:not(.theme-phoenix) .control-deck .control-deck-slot > .tile.btn::after {
       background:
         radial-gradient(circle, var(--control-deck-accent) 0 0.08rem, transparent 0.1rem)
         0 0 / 33.333% 33.333%;
@@ -116,39 +108,99 @@
       color: var(--control-deck-accent);
     }
 
-    @media (max-width: 700px) {
-      .control-deck-settings { grid-template-columns: minmax(10rem, 1fr) minmax(8rem, auto) repeat(3, minmax(5rem, auto)) auto auto; }
-    }
-
     .phoenix-control-deck {
-      --accent: var(--color-action);
-      --accent-panel: rgb(255 157 0 / 10%);
-      --color-canvas: var(--palette-black);
-      --color-surface: rgb(22 9 18 / 88%);
-      --color-surface-raised: rgb(30 7 18 / 96%);
-      --color-surface-subtle: rgb(43 5 22 / 34%);
-      --color-border: rgb(255 157 0 / 65%);
-      --color-border-muted: rgb(255 157 0 / 18%);
-      --color-text: var(--palette-ice);
-      --color-text-strong: var(--palette-ice);
-      --color-text-subtle: var(--palette-slate);
-      --color-text-muted: var(--palette-slate);
-      --color-danger: var(--palette-coral);
-      --color-danger-strong: var(--palette-coral);
-      --color-danger-border: rgb(255 97 118 / 48%);
-      --color-button-text: var(--palette-ice);
-      --color-button-active-text: var(--palette-black);
-      --color-shortcut-text: var(--palette-ice);
-      --border-control: 1px solid var(--color-border);
-      --border-muted: 1px solid var(--color-border-muted);
-      --button-selected-background: rgb(255 157 0 / 14%);
-      --control-radius: 0;
-
+      display: grid;
       grid-template-rows: minmax(0, 1fr);
       min-inline-size: 0;
       min-block-size: 0;
       gap: 0;
       padding: 0;
       background: transparent;
+
+      .button-editor {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+        grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+        min-inline-size: 0;
+        min-block-size: 0;
+        column-gap: var(--spacing-lg);
+        padding: 0;
+        overflow: hidden;
+        background: transparent;
+
+        label { display: grid; gap: var(--spacing-xs); color: var(--color-text-muted); }
+
+        .command-picker {
+          display: grid;
+          grid-column: 1;
+          grid-row: 1 / -1;
+          grid-template-rows: auto minmax(0, 1fr);
+          min-block-size: 0;
+          gap: var(--spacing-sm);
+          overflow: hidden;
+
+          > .table-region {
+            min-block-size: 0;
+            overflow: auto;
+          }
+        }
+
+        .button-editor-source { display: none; }
+        .button-editor-label { grid-column: 2; grid-row: 1; }
+        .button-editor-behavior-group { display: grid; grid-column: 2; grid-row: 2; gap: var(--spacing-lg); }
+        .button-editor-color { grid-column: 2; grid-row: 3; }
+
+        .button-editor-actions {
+          display: flex;
+          grid-column: 2;
+          grid-row: 5;
+          align-self: end;
+          justify-self: end;
+          gap: var(--spacing-xs);
+          margin: 0;
+        }
+
+        :is(input, select) { inline-size: 100%; }
+      }
+
+      .control-command-table {
+        table-layout: fixed;
+
+        :is(th, td):nth-child(2) { inline-size: 8rem; }
+        :is(th, td):nth-child(3) { inline-size: 9rem; }
+      }
+    }
+
+    .tool-action {
+      display: grid;
+      place-items: center;
+      min-block-size: var(--control-block-size);
+      border: var(--control-border-width) solid var(--button-secondary-border);
+      color: var(--button-secondary-text);
+      background: var(--button-secondary-background);
+      cursor: pointer;
+
+      &.icon-action {
+        inline-size: var(--control-block-size);
+        padding: var(--spacing-xs);
+      }
+
+      svg { display: block; inline-size: 1.25rem; block-size: 1.25rem; }
+      &.tool-delete { border-color: var(--color-danger); color: var(--color-danger); background: var(--color-danger-surface); }
+      &.tool-confirm { border-color: var(--color-action); color: var(--color-action); background: var(--color-selected-surface); }
+    }
+
+    @container page-frame (width < 48rem) {
+      .phoenix-control-deck .button-editor {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(14rem, 1fr) repeat(3, auto) minmax(0, auto) auto;
+        overflow: auto;
+
+        .command-picker { grid-column: 1; grid-row: 1; }
+        .button-editor-label { grid-column: 1; grid-row: 2; }
+        .button-editor-behavior-group { grid-column: 1; grid-row: 3; }
+        .button-editor-color { grid-column: 1; grid-row: 4; }
+        .button-editor-actions { grid-column: 1; grid-row: 6; }
+      }
     }
   }

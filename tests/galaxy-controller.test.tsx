@@ -10,6 +10,7 @@ test('Galaxy loads only the active view and accepts live plotted-route updates',
   const initialRoute = { timestamp: null, route: [{ system: 'Sol', address: 1, position: [0, 0, 0] as [number, number, number], starClass: 'G' }] }
   const updatedRoute = { timestamp: null, route: [{ system: 'Sirius', address: 2, position: [1, 0, 0] as [number, number, number], starClass: 'A' }] }
   const api = {
+    getActions: vi.fn().mockResolvedValue({ actions: [] }),
     getNavigationRoute: vi.fn().mockResolvedValue(initialRoute),
     getSystemCartography: vi.fn()
   } as unknown as PhoenixApi
@@ -20,6 +21,7 @@ test('Galaxy loads only the active view and accepts live plotted-route updates',
   const renderer = await act(async () => create(<Probe />))
 
   expect(api.getNavigationRoute).toHaveBeenCalledTimes(1)
+  expect(api.getActions).toHaveBeenCalledTimes(1)
   expect(api.getSystemCartography).not.toHaveBeenCalled()
   expect(snapshot).toMatchObject({ route: initialRoute, status: 'ready' })
 
@@ -33,6 +35,7 @@ test('a live plotted route cancels and supersedes an older route request', async
   let resolveRoute: ((route: typeof updatedRoute) => void) | undefined
   let requestSignal: AbortSignal | undefined
   const api = {
+    getActions: vi.fn().mockResolvedValue({ actions: [] }),
     getNavigationRoute: vi.fn((_signal?: AbortSignal) => {
       requestSignal = _signal
       return new Promise<typeof updatedRoute>(resolve => { resolveRoute = resolve })

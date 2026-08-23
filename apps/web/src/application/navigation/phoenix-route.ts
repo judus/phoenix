@@ -53,7 +53,7 @@ export type PhoenixRoute =
   | InformationRoute
   | { kind: 'controls', category: ControlCategory }
   | { kind: 'copilot', view: 'chat' | 'profiles' }
-  | { kind: 'numpad', view: 'navigator' | 'shortcuts' }
+  | { kind: 'numpad' }
   | { kind: 'macros' }
   | { kind: 'journal', view: 'journal' | 'credits' }
   | { kind: 'developer', view: 'overview' | 'runtime' | 'elite' | 'health' | 'tests' | 'controls' }
@@ -117,7 +117,7 @@ export function defaultRouteForWorkspace(
     case 'controls': return { kind: 'controls', category: 'ship' }
     case 'info': return rememberedInformation
     case 'copilot': return { kind: 'copilot', view: 'chat' }
-    case 'telemetry': return { kind: 'numpad', view: 'navigator' }
+    case 'telemetry': return { kind: 'numpad' }
     case 'macros': return { kind: 'macros' }
     case 'journal': return { kind: 'journal', view: 'journal' }
     case 'settings': return { kind: 'settings', view: 'dashboard' }

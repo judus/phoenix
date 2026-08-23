@@ -1,7 +1,9 @@
 import type { ButtonHTMLAttributes } from 'react'
+import { TileButton } from '@jdu/control-deck-ui'
 
 type CommandTileProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> & {
   binding?: string
+  compact?: boolean
   details?: boolean
   kind?: 'action' | 'macro'
   label: string
@@ -13,6 +15,7 @@ type CommandTileProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> & 
 
 export function CommandTile({
   binding,
+  compact = false,
   details = true,
   kind = 'action',
   label,
@@ -31,28 +34,24 @@ export function CommandTile({
     .replaceAll('RightShift', 'RS')
 
   return (
-    <button
+    <TileButton
       className={[
-        'command-tile',
+        compact && 'compact',
         !details && 'label-only',
-        kind === 'macro' && 'command-macro',
+        kind === 'macro' && 'theme-macro',
         selected && 'active',
-        tone === 'danger' && 'command-danger',
-        unavailable && 'disabled',
+        tone === 'danger' && 'theme-danger',
+        unavailable && 'unavailable',
         className
       ].filter(Boolean).join(' ')}
       aria-label={binding ? `${label}, ${binding}` : undefined}
       aria-pressed={selected || undefined}
       disabled={disabled}
+      label={label}
+      meta={details ? displayedBinding : undefined}
+      metaTitle={details ? bindingLabel : undefined}
+      note={details ? meta : undefined}
       {...props}
-    >
-      <strong>{label}</strong>
-      {details && (
-        <>
-          <span title={bindingLabel}>{displayedBinding}</span>
-          <small>{meta}</small>
-        </>
-      )}
-    </button>
+    />
   )
 }

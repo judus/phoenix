@@ -327,7 +327,7 @@ export class PhoenixApplication {
       pathPrefix: '/api/control-deck'
     })
     const numpad = new DefaultNumpadCommands(
-      new NumpadTreeProjector(commandCatalogue, controlDeckConfigurations, systemSettings),
+      new NumpadTreeProjector(commandCatalogue, controlDeckConfigurations),
       commands,
       systemSettings
     )

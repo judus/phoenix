@@ -3,6 +3,7 @@ export interface PhoenixDevicePreferencesSnapshot {
   audioOutputId: string
   captureNumpad: boolean
   followCopilotNavigation: boolean
+  variableNumpadFontSizes: boolean
 }
 
 export interface DevicePreferences {

@@ -33,7 +33,7 @@ export function Navigation({
     >
       <ul>
         {items.map((item) => (
-          <li key={item.id}>
+          <li className={item.placement === 'end' ? 'navigation-item-end' : undefined} key={item.id}>
             {item.disabled ? (
               <span className="nav-item disabled" aria-disabled="true">
                 <abbr title={item.label} aria-hidden="true">

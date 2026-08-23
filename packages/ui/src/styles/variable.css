@@ -124,9 +124,9 @@
     --control-gap: var(--spacing-xs);
     --control-border-width: 1px;
 
-    --button-primary-background: var(--color-surface-strong);
+    --button-primary-background: var(--color-action);
     --button-primary-border: var(--color-action);
-    --button-primary-text: var(--color-action);
+    --button-primary-text: var(--color-canvas);
     --button-secondary-background: var(--color-surface);
     --button-secondary-border: var(--color-border-subtle);
     --button-secondary-text: var(--color-text);

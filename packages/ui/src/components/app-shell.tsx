@@ -5,6 +5,7 @@ type NavigationItemBase = {
   disabled?: boolean
   id: string
   label: string
+  placement?: 'end'
   shortLabel?: string
 }
 

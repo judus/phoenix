@@ -1,6 +1,6 @@
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
-import type { MacroRecording, PhoenixModules } from '@phoenix/contracts'
+import type { MacroDefinition, MacroRecording, PhoenixModules } from '@phoenix/contracts'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
 import type { PhoenixRouter } from '../apps/web/src/application/navigation/phoenix-router.js'
 import {
@@ -32,10 +32,15 @@ test('macro recording uses the shared API, browser identity, and typed router', 
     }],
     status: 'stopped'
   }
+  const saved: MacroDefinition = {
+    assumptions: [], description: '', enabled: true, id: 'macro-1', name: 'Macro 1', risk: 'safe', version: 1,
+    steps: [{ type: 'game-action', actionId: 'elite.ShipSpotLightToggle', operation: 'tap' }]
+  }
   const api = {
     getMacros: vi.fn().mockResolvedValue({ version: 1, macros: [] }),
     getModuleSettings: vi.fn().mockResolvedValue(modules()),
     startMacroRecording: vi.fn().mockResolvedValue(recording),
+    saveMacro: vi.fn().mockResolvedValue(saved),
     stopMacroRecording: vi.fn().mockResolvedValue(draft)
   } as unknown as PhoenixApi
   const push = vi.fn()
@@ -64,8 +69,9 @@ test('macro recording uses the shared API, browser identity, and typed router', 
 
   await act(async () => runtime?.stopRecording())
   expect(api.stopMacroRecording).toHaveBeenCalledWith(recording.id, 'macro-browser')
+  expect(api.saveMacro).toHaveBeenCalledWith(saved)
   expect(push).toHaveBeenLastCalledWith({ kind: 'macros' })
-  expect(runtime?.draft).toEqual(draft)
+  expect(runtime?.lastSavedMacroId).toBe('macro-1')
 
   await act(async () => renderer.unmount())
 })
@@ -76,8 +82,7 @@ function modules(): PhoenixModules {
       inputAdapter: 'browser',
       presentation: 'tiles',
       alwaysConfirm: false,
-      cancelAfterMs: 5000,
-      shortcuts: []
+      cancelAfterMs: 5000
     }
   }
 }

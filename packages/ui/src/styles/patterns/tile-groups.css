@@ -1,0 +1,100 @@
+  .tile-group {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    align-content: start;
+    gap: var(--spacing-sm);
+    min-inline-size: 0;
+    min-block-size: 0;
+    block-size: 100%;
+    overflow: hidden;
+
+    > header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--spacing-sm);
+      padding-block-end: var(--spacing-xs);
+      border-block-end: 1px solid var(--color-text-muted);
+
+      h3 {
+        margin: 0;
+        color: var(--color-text-muted);
+        font-size: var(--font-size-md);
+        font-weight: var(--font-weight-semibold);
+        line-height: var(--line-height-compact);
+        text-transform: uppercase;
+      }
+
+      span {
+        color: var(--color-text-muted);
+        font-size: var(--font-size-xs);
+        line-height: var(--line-height-compact);
+        text-transform: uppercase;
+      }
+    }
+  }
+
+  .tile-group-grid {
+    display: grid;
+    align-content: start;
+    gap: var(--spacing-sm);
+    min-inline-size: 0;
+    min-block-size: 0;
+
+    &.columns-1 { grid-template-columns: minmax(0, 1fr); }
+    &.columns-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    &.columns-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    &.columns-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    > .span-full { grid-column: 1 / -1; }
+  }
+
+  .described-tile {
+    --described-tile-size: 8rem;
+
+    display: grid;
+    grid-template-rows: var(--described-tile-size) minmax(0, 1fr);
+    align-content: start;
+    gap: var(--spacing-xs);
+    min-inline-size: 0;
+
+    > .tile.btn {
+      min-block-size: 0;
+      block-size: 100%;
+    }
+
+    > p {
+      margin: 0;
+      padding-inline: var(--spacing-xxs);
+      color: var(--color-text-muted);
+      font-size: var(--font-size-sm);
+      line-height: var(--line-height-normal);
+    }
+  }
+
+  .presentation-elite {
+    .described-tile { --described-tile-size: 10rem; }
+
+    .tile.btn {
+      font-weight: var(--font-weight-normal);
+
+      &.theme-macro {
+        --command-background: linear-gradient(135deg, rgb(0 178 210 / 20%), rgb(16 9 16 / 98%));
+      }
+    }
+  }
+
+  @container page-frame (width < 42rem) {
+    .tile-group-grid.columns-3,
+    .tile-group-grid.columns-4 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @container page-frame (width < 26rem) {
+    .tile-group-grid.columns-2,
+    .tile-group-grid.columns-3,
+    .tile-group-grid.columns-4 {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }

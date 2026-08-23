@@ -14,7 +14,7 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: var(--spacing-sm);
 
-      .command-tile { min-block-size: 3rem; }
+      .tile.btn { min-block-size: 3rem; }
     }
   }
 

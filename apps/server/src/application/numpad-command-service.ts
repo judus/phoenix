@@ -14,6 +14,7 @@ import {
   type NumpadTreeSnapshot
 } from '@phoenix/contracts'
 import type { ControlDeckConfigurationRepository } from '@jdu/control-deck-core'
+import { resolveControlDeckInteraction } from '@jdu/control-deck-core'
 import type { CommandCatalogueSnapshots, Commands } from '../domain/commands.js'
 import type { NumpadCommands } from '../domain/numpad.js'
 import type { SystemSettingsRepository } from '../domain/system-configuration.js'
@@ -74,8 +75,7 @@ const INFORMATION_MENUS: readonly MenuDefinition[] = [
 export class NumpadTreeProjector {
   public constructor (
     private readonly catalogues: CommandCatalogueSnapshots,
-    private readonly configurations: ControlDeckConfigurationRepository,
-    private readonly settings: SystemSettingsRepository
+    private readonly configurations: ControlDeckConfigurationRepository
   ) {}
 
   public getSnapshot (): NumpadTreeSnapshot {
@@ -87,9 +87,11 @@ export class NumpadTreeProjector {
     const controls = branch(nodes, null, 'desktop.controls', '1', 'Controls')
     const information = branch(nodes, null, 'desktop.info', '2', 'Info')
     appendDestination(nodes, descriptors, null, '3', 'copilot.channel', diagnostics)
+    appendDestination(nodes, descriptors, null, '4', 'macros.library', diagnostics)
+    appendDestination(nodes, descriptors, null, '5', 'log.journal', diagnostics)
+    appendDestination(nodes, descriptors, null, '6', 'settings.dashboard', diagnostics)
 
     this.appendControls(nodes, descriptors, controls, diagnostics)
-    this.appendShortcuts(nodes, descriptors, diagnostics)
     appendDestination(nodes, descriptors, information.id, '0', 'information.home', diagnostics)
     for (const definition of INFORMATION_MENUS) {
       const parent = branch(nodes, information.id, definition.id, definition.selector, definition.label)
@@ -106,38 +108,6 @@ export class NumpadTreeProjector {
       nodes,
       revision: catalogue.revision
     })
-  }
-
-  private appendShortcuts (
-    nodes: NumpadTreeNode[],
-    descriptors: Map<string, CommandDescriptor>,
-    diagnostics: string[]
-  ): void {
-    const shortcuts = this.settings.loadOrCreate().modules.numpadCommands.shortcuts
-    const parent = branch(nodes, null, 'desktop.shortcuts', '0', 'Shortcuts')
-    for (const shortcut of shortcuts) {
-      const descriptor = descriptors.get(commandTargetKey(shortcut.target))
-      if (!descriptor) {
-        diagnostics.push(`Shortcut ${shortcut.selector} targets an unknown command.`)
-        nodes.push(NumpadTreeNodeSchema.parse({
-          address: parent.address + shortcut.selector,
-          available: false,
-          id: `shortcut.${shortcut.id}`,
-          kind: shortcut.target.type,
-          label: shortcut.label ?? commandTargetKey(shortcut.target),
-          parentId: parent.id,
-          risk: 'safe',
-          selector: shortcut.selector,
-          target: shortcut.target,
-          unavailableReason: 'The assigned command is no longer available.'
-        }))
-        continue
-      }
-      leaf(nodes, parent.id, `shortcut.${shortcut.id}`, shortcut.selector, {
-        ...descriptor,
-        ...(shortcut.label ? { label: shortcut.label } : {})
-      })
-    }
   }
 
   private appendControls (
@@ -169,7 +139,12 @@ export class NumpadTreeProjector {
           continue
         }
         const position = (element.placement.row - 1) * deck.layout.columns + element.placement.column
+        const interaction = resolveControlDeckInteraction(
+          element.interaction,
+          descriptor.activation === 'hold' ? 'hold' : 'tap'
+        )
         leaf(nodes, parent.id, `controls.${deck.id}.${element.id}`, String(position), descriptor, {
+          interactionHint: interaction.interactionHint,
           position,
           span: element.placement.columnSpan
         })
@@ -242,6 +217,7 @@ function branch (
 ): NumpadTreeNode {
   const node = NumpadTreeNodeSchema.parse({
     address: parentAddress(nodes, parentId) + selector,
+    interactionHint: 'open',
     available: true,
     id,
     kind: 'menu',
@@ -262,11 +238,13 @@ function leaf (
   id: string,
   selector: string,
   descriptor: CommandDescriptor,
-  layout: { position?: number, span?: number } = {}
+  layout: { interactionHint?: NumpadTreeNode['interactionHint'], position?: number, span?: number } = {}
 ): void {
   nodes.push(NumpadTreeNodeSchema.parse({
     address: parentAddress(nodes, parentId) + selector,
+    interactionHint: layout.interactionHint ?? descriptor.activation,
     available: descriptor.available,
+    bindingLabel: descriptor.bindingLabel,
     category: descriptor.category,
     description: descriptor.description,
     id,

@@ -6,7 +6,7 @@ import { BrowserDevicePreferences } from '../apps/web/src/platform/storage/brows
 
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
 
-test('device settings expose only browser-local command following and numpad capture', async () => {
+test('device settings expose browser-local display and input preferences', async () => {
   const preferences = new BrowserDevicePreferences(new MemoryStorage())
   const api = settingsApi()
   const renderer = await act(async () => create(
@@ -20,6 +20,7 @@ test('device settings expose only browser-local command following and numpad cap
 
   expect(markup).toContain('Follow Copilot')
   expect(markup).toContain('Capture numpad')
+  expect(markup).toContain('Variable font sizes')
   expect(markup).toContain('Copilot · OpenAI')
   expect(markup).toContain('Voice audio')
   expect(markup).toContain('Control permissions')

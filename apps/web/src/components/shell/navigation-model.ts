@@ -13,7 +13,7 @@ export type RouteNavigationItem = NavigationItem & { route: PhoenixRoute }
 
 export function utilityItems(fullscreen: { active: boolean, supported: boolean }): ApplicationNavigationItem[] {
   return [
-    routeItem('telemetry', 'Numpad', '011', { kind: 'numpad', view: 'navigator' }),
+    routeItem('telemetry', 'Numpad', '011', { kind: 'numpad' }),
     routeItem('macros', 'Macros', 'MCR', { kind: 'macros' }),
     routeItem('journal', 'Journal log', 'LOG', { kind: 'journal', view: 'journal' }),
     routeItem('settings', 'Settings', 'STG', { kind: 'settings', view: 'dashboard' }),

@@ -31,12 +31,12 @@ export class PhoenixControlDeckCommandAdapter implements ControlDeckCommandAdapt
         label: command.label,
         description: command.description ?? command.label,
         category: command.category,
-        bindingLabel: commandBindingLabel(command, actions),
+        bindingLabel: command.bindingLabel,
         available: command.available,
         unavailableReason: command.unavailableReason ?? null,
         risk: command.risk,
         simulated: commandIsSimulated(command, actions),
-        operations: commandOperations(command, actions),
+        operations: command.activation === 'hold' ? ['press', 'release'] : ['tap'],
         configurationSchema: { type: 'object', maxProperties: 0 }
       }))
     }
@@ -82,23 +82,7 @@ export class PhoenixControlDeckCommandAdapter implements ControlDeckCommandAdapt
   }
 }
 
-function commandOperations (
-  command: CommandDescriptor,
-  actions: GameActionCatalogResponse
-): Array<'tap' | 'press' | 'release'> {
-  if (command.target.type !== 'game-action') return ['tap']
-  const actionId = command.target.actionId
-  const action = actions.actions.find(candidate => candidate.definition.id === actionId)
-  return action?.definition.inputMode === 'hold' ? ['press', 'release'] : ['tap']
-}
-
 function commandIsSimulated (command: CommandDescriptor, actions: GameActionCatalogResponse): boolean {
   if (command.target.type === 'navigation') return false
   return actions.backend.simulated
-}
-
-function commandBindingLabel (command: CommandDescriptor, actions: GameActionCatalogResponse): string | null | undefined {
-  if (command.target.type !== 'game-action') return undefined
-  const actionId = command.target.actionId
-  return actions.actions.find(candidate => candidate.definition.id === actionId)?.binding?.display ?? null
 }

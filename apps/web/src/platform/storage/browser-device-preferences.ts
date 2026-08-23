@@ -10,7 +10,8 @@ const defaults: PhoenixDevicePreferencesSnapshot = {
   audioInputId: '',
   audioOutputId: '',
   captureNumpad: true,
-  followCopilotNavigation: true
+  followCopilotNavigation: true,
+  variableNumpadFontSizes: true
 }
 
 type BrowserStorage = Pick<Storage, 'getItem' | 'setItem'>
@@ -49,7 +50,8 @@ export class BrowserDevicePreferences implements DevicePreferences {
           audioInputId: typeof candidate.audioInputId === 'string' ? candidate.audioInputId : '',
           audioOutputId: typeof candidate.audioOutputId === 'string' ? candidate.audioOutputId : '',
           captureNumpad: candidate.captureNumpad !== false,
-          followCopilotNavigation: candidate.followCopilotNavigation !== false
+          followCopilotNavigation: candidate.followCopilotNavigation !== false,
+          variableNumpadFontSizes: candidate.variableNumpadFontSizes !== false
         }
       }
       return {

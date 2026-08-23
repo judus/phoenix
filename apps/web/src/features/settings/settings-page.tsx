@@ -187,6 +187,14 @@ function DeviceSettings ({ preferences }: { preferences: DevicePreferences }) {
         onClick={() => preferences.update({ captureNumpad: !snapshot.captureNumpad })}
       />
     </DescribedCommandTile>
+    <DescribedCommandTile description="Scale Numpy labels according to their length and available button space.">
+      <CommandTile
+        binding={snapshot.variableNumpadFontSizes ? 'On' : 'Off'}
+        label="Variable font sizes"
+        selected={snapshot.variableNumpadFontSizes}
+        onClick={() => preferences.update({ variableNumpadFontSizes: !snapshot.variableNumpadFontSizes })}
+      />
+    </DescribedCommandTile>
   </CommandTileGroup>
 }
 

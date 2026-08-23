@@ -60,6 +60,8 @@
       overflow: hidden;
     }
 
+    .route-target-command { margin-block-start: auto; }
+
     .route-table-scroll {
       min-inline-size: 0;
       min-block-size: 0;

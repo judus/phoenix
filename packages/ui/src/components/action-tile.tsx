@@ -1,19 +1,21 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { TileButton } from '@jdu/control-deck-ui'
 
 type ActionTileProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> & {
   description?: ReactNode
-  eyebrow?: ReactNode
   label: ReactNode
   status?: ReactNode
 }
 
-export function ActionTile({ className, description, eyebrow, label, status, ...props }: ActionTileProps) {
+export function ActionTile({ className, description, label, status, ...props }: ActionTileProps) {
   return (
-    <button className={['action-tile', className].filter(Boolean).join(' ')} type="button" {...props}>
-      {eyebrow && <small>{eyebrow}</small>}
-      <strong>{label}</strong>
-      {description && <p>{description}</p>}
-      {status && <span>{status}</span>}
-    </button>
+    <TileButton
+      body={description && <p>{description}</p>}
+      className={className}
+      label={label}
+      meta={status}
+      type="button"
+      {...props}
+    />
   )
 }

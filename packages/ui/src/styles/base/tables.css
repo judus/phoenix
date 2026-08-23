@@ -26,7 +26,7 @@
     align-content: start;
     min-inline-size: 0;
 
-    &.content-gap-sm > header + * { margin-block-start: var(--spacing-sm); }
+    &.content-gap-sm { row-gap: var(--spacing-sm); }
 
     &.fill {
       flex: 1 1 0;
@@ -187,6 +187,13 @@
     .numeric {
       font-variant-numeric: tabular-nums;
       text-align: end;
+    }
+
+    .col-fill { width: 100%; }
+
+    .col-fit {
+      width: 1%;
+      white-space: nowrap;
     }
 
     &.compact { --table-cell-padding-block: var(--spacing-xs); }

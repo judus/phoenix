@@ -163,14 +163,15 @@ export function DashboardPage({
         </Widget>
 
         <Widget
+          className="dashboard-route"
           title="Route"
           link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'information', section: 'galaxy', view: 'route' }}>Open route</RouteLink>}
         >
           <Stack gap="sm">
-            <Metric value={model.route.destination.toUpperCase()} detail={model.route.detail} />
+            <Metric title={model.route.destination} value={model.route.destination.toUpperCase()} detail={model.route.detail} />
             <DescriptionList columns="one" density="compact">
-              <DescriptionItem label="Current" value={model.route.current} />
-              <DescriptionItem label="Destination" value={model.route.destination} />
+              <DescriptionItem label="Current" title={model.route.current} value={model.route.current} />
+              <DescriptionItem label="Destination" title={model.route.destination} value={model.route.destination} />
             </DescriptionList>
           </Stack>
         </Widget>

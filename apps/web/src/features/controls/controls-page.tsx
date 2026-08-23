@@ -1,17 +1,18 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type ButtonHTMLAttributes } from 'react'
 import {
   applyControlDeckLayoutPreset,
   removeControlDeckElement,
   replaceControlDeck,
   replaceControlDeckGroup,
+  resolveControlDeckInteraction,
   upsertControlDeckElement,
   useCustomControlDeckLayout,
   type ControlDeckDeck,
   type ControlDeckDeckGroup
 } from '@jdu/control-deck-core'
-import { ButtonEditor, ControlDeckArmingController, ControlDeckSurface } from '@jdu/control-deck-ui'
+import { ButtonEditor, ControlDeckArmingController, ControlDeckSurface, TileButton } from '@jdu/control-deck-ui'
 import { PHOENIX_CONTROL_LAYOUT_PRESETS, PhoenixControlDeckThemeSchema, controlDeckTargetToPhoenixTarget, phoenixControlLayoutPreset, type CommandTarget, type GameActionAvailability, type GameActionOperation, type PhoenixControlDeckConfiguration, type PhoenixControlDeckTheme, type RuntimeState } from '@phoenix/contracts'
-import { Button, CommandTile, Field, IconButton, NumberInput, PageFrame, Select, Status, TextInput } from '@phoenix/ui'
+import { Breadcrumbs, Button, CommandTile, ControlContext, DataTable, NumberInput, PageFrame, PageHeader, Select, Status, Widget } from '@phoenix/ui'
 import { createClientId } from '../../application/identity/client-identity.js'
 import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
 import type { ControlCategory } from '../../application/navigation/phoenix-route.js'
@@ -98,20 +99,29 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
       {macros.recording && <section className="control-recording-toolbar">
         <span className="recording-status">Recording · {macros.recording.entries.length} commands</span>
         <Button variant="quiet" onClick={() => void macros.cancelRecording()}>Cancel</Button>
-        <Button variant="primary" onClick={() => void macros.stopRecording()}>Stop and review</Button>
+        <Button variant="primary" onClick={() => void macros.stopRecording()}>Stop and save</Button>
       </section>}
       {editing && editingPosition === undefined && activeConfiguration && deck && group && <DeckSettings
         configuration={activeConfiguration}
         deck={deck}
         group={group}
         onChange={setDraft}
-        onCancel={() => { setDraft(controller.configuration); onEditingChange(false); setEditingPosition(undefined) }}
+        onCancel={() => {
+          setDraft(controller.configuration)
+          setError(undefined)
+          onEditingChange(false)
+        }}
         onSave={() => {
           if (!draft) return
           setSaving(true)
           void onSaveConfiguration(draft).then(saved => { setDraft(saved); onEditingChange(false); setError(undefined) }).catch(cause => setError(cause instanceof Error ? cause.message : 'Unable to save Control Deck configuration.')).finally(() => setSaving(false))
         }}
         saving={saving}
+      />}
+      {editing && editingPosition !== undefined && editorColumn !== undefined && editorRow !== undefined && <PageHeader
+        context={<Breadcrumbs items={[{ label: 'Controls' }, { label: controlsCategoryLabel(category) }]} />}
+        title={`Button Slot ${editorColumn}:${editorRow}`}
+        variant="cockpit"
       />}
       {controller.status === 'error' || error || macros.error
         ? <Status tone="danger">{error ?? macros.error ?? controller.error}</Status>
@@ -120,9 +130,8 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
           : !deck || !activeConfiguration
             ? <Status tone="danger">The PHOENIX Control Deck configuration is incomplete.</Status>
           : editing && editingPosition !== undefined && editorColumn !== undefined && editorRow !== undefined
-            ? <div className="control-deck-layout control-deck-theme phoenix-control-deck">
+            ? <div className="phoenix-control-deck">
                 <ButtonEditor
-                  capabilities={{ appearance: false }}
                   catalogue={controller.commands}
                   deck={deck}
                   element={editorElement}
@@ -134,6 +143,34 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
                     rowSpan: 1
                   }}
                   position={{ column: editorColumn, row: editorRow }}
+                  renderCommandOptions={({ label, onSelect, options, selectedCommandId }) => <DataTable
+                    className="control-command-table"
+                    density="compact"
+                    label={label}
+                    narrow="priority"
+                    scheme="surface"
+                    stickyHeader
+                  >
+                    <thead><tr><th>Command</th><th>Context</th><th>Binding</th></tr></thead>
+                    <tbody>{options.map(option => <tr
+                      aria-selected={option.commandId === selectedCommandId || undefined}
+                      className={option.commandId === selectedCommandId ? 'active' : undefined}
+                      key={option.commandId}
+                      onClick={() => onSelect(option)}
+                      onKeyDown={event => {
+                        if (event.key !== 'Enter' && event.key !== ' ') return
+                        event.preventDefault()
+                        onSelect(option)
+                      }}
+                      tabIndex={0}
+                    >
+                      <td><strong>{option.label}</strong>{!option.available && <small>{option.unavailableReason ?? 'Unavailable'}</small>}</td>
+                      <td>{option.category}{option.risk !== 'safe' ? <small>{option.risk}</small> : null}</td>
+                      <td>{option.bindingLabel ?? 'Unbound'}</td>
+                    </tr>)}</tbody>
+                  </DataTable>}
+                  showBackButton={false}
+                  showHeader={false}
                   onClose={() => setEditingPosition(undefined)}
                   onRemove={() => {
                     if (!draft || !editorSlot) return
@@ -165,10 +202,12 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
                   const elementId = element.id
                   const confirmation = element.interaction.confirmation
                   const armed = armedElementId === elementId
-                  return <CommandTile
-                    kind="macro"
+                  const interaction = resolveControlDeckInteraction(element.interaction, 'tap')
+                  return <ControlDeckCommandTile
+                    binding="Macro"
                     label={macro?.name ?? target.macroId}
-                    meta={editing ? `Cell ${position}` : armed ? 'armed — tap' : macro?.risk}
+                    interaction={armed ? 'tap' : interaction.interactionHint}
+                    kind="macro"
                     selected={armed}
                     unavailable={!editing && !macro?.enabled}
                     onClick={() => {
@@ -197,10 +236,11 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
                 const elementId = element.id
                 const confirmation = element.interaction.confirmation
                 const armed = armedElementId === elementId
-                return <CommandTile
-                  binding={action.binding?.display}
+                const interaction = resolveControlDeckInteraction(element.interaction, action.definition.inputMode)
+                return <ControlDeckCommandTile
+                  binding={action.binding?.display ?? 'Unbound'}
                   label={action.definition.label}
-                  meta={armed ? 'armed — tap' : action.definition.inputMode}
+                  interaction={armed ? 'tap' : interaction.interactionHint}
                   selected={armed || active}
                   tone={action.definition.risk === 'dangerous' ? 'danger' : 'normal'}
                   unavailable={!action.available}
@@ -250,12 +290,12 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
   )
 }
 
-function DeckSettings ({ configuration, deck, group, onCancel, onChange, onSave, saving }: {
+function DeckSettings ({ configuration, deck, group, onChange, onCancel, onSave, saving }: {
   configuration: PhoenixControlDeckConfiguration
   deck: ControlDeckDeck
   group: ControlDeckDeckGroup
-  onCancel(): void
   onChange(configuration: PhoenixControlDeckConfiguration): void
+  onCancel(): void
   onSave(): void
   saving: boolean
 }) {
@@ -265,64 +305,47 @@ function DeckSettings ({ configuration, deck, group, onCancel, onChange, onSave,
   useEffect(() => setRows(String(deck.layout.rows)), [deck.layout.rows])
   const locked = Boolean(deck.layoutPresetId)
   const presets = deck.context === 'phoenix:ship' ? PHOENIX_CONTROL_LAYOUT_PRESETS : []
-  return <section aria-label="Deck settings" className="control-deck-settings">
-    <Field htmlFor="control-deck-name" label="Deck">
-      <TextInput maxLength={32} value={group.name} onChange={event => {
-        if (event.target.value.trim()) onChange(replaceControlDeckGroup(configuration, { ...group, name: event.target.value }))
-      }} />
-    </Field>
-    <Field htmlFor="control-deck-layout" label="Layout">
-      <Select value={deck.layoutPresetId ?? ''} onChange={event => {
-        const preset = event.target.value === '' ? null : phoenixControlLayoutPreset(event.target.value)
-        if (event.target.value !== '' && !preset) return
-        onChange(replaceControlDeck(configuration, preset
-          ? applyControlDeckLayoutPreset(deck, preset)
-          : useCustomControlDeckLayout(deck)))
-      }}>
-        <option value="">Custom</option>
-        {presets.map(preset => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
-      </Select>
-    </Field>
-    <Field htmlFor="control-deck-columns" label="Columns">
-      <NumberInput disabled={locked} min={2} max={12} value={columns}
-        onBlur={() => setColumns(String(deck.layout.columns))}
-        onChange={event => {
-          setColumns(event.target.value)
-          const nextColumns = boundedInteger(event.target.value, 2, 12)
-          if (nextColumns !== undefined) onChange(replaceControlDeck(configuration, resizeDeck(deck, nextColumns, deck.layout.rows)))
-        }} />
-    </Field>
-    <Field htmlFor="control-deck-rows" label="Rows">
-      <NumberInput disabled={locked} min={1} max={12} value={rows}
-        onBlur={() => setRows(String(deck.layout.rows))}
-        onChange={event => {
-          setRows(event.target.value)
-          const nextRows = boundedInteger(event.target.value, 1, 12)
-          if (nextRows !== undefined) onChange(replaceControlDeck(configuration, resizeDeck(deck, deck.layout.columns, nextRows)))
-        }} />
-    </Field>
-    <Field htmlFor="control-deck-theme" label="Theme">
-      <Select value={controlDeckTheme(deck, group)} onChange={event => {
-        const theme = PhoenixControlDeckThemeSchema.parse(event.target.value)
-        const { appearance: _appearance, ...plainGroup } = group
-        onChange(replaceControlDeckGroup(configuration, theme === 'phoenix'
-          ? plainGroup
-          : { ...plainGroup, appearance: { colorScheme: theme } }))
-      }}>
-        {['phoenix', 'blue', 'cyan', 'green', 'amber', 'orange', 'red', 'violet', 'magenta'].map(theme => <option key={theme} value={theme}>{themeLabel(PhoenixControlDeckThemeSchema.parse(theme))}</option>)}
-      </Select>
-    </Field>
-    <IconButton label="Cancel layout editing" size="md" variant="quiet" onClick={onCancel}><CrossIcon /></IconButton>
-    <IconButton busy={saving} label="Save layout" size="md" variant="primary" onClick={onSave}><CheckIcon /></IconButton>
+  return <section aria-label="Deck settings" className="control-deck-settings widget-command-row">
+    <Widget aria-label="Deck layout settings" className="control-deck-settings-form">
+      <ControlContext className="control-deck-settings-controls" density="compact">
+        <Select aria-label="Deck layout" className="form-mini" value={deck.layoutPresetId ?? ''} onChange={event => {
+          const preset = event.target.value === '' ? null : phoenixControlLayoutPreset(event.target.value)
+          if (event.target.value !== '' && !preset) return
+          onChange(replaceControlDeck(configuration, preset
+            ? applyControlDeckLayoutPreset(deck, preset)
+            : useCustomControlDeckLayout(deck)))
+        }}>
+          <option value="">Custom</option>
+          {presets.map(preset => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
+        </Select>
+        <NumberInput aria-label="Deck columns" className="form-mini" disabled={locked} min={1} max={12} value={columns}
+          onBlur={() => setColumns(String(deck.layout.columns))}
+          onChange={event => {
+            setColumns(event.target.value)
+            const nextColumns = boundedInteger(event.target.value, 1, 12)
+            if (nextColumns !== undefined) onChange(replaceControlDeck(configuration, resizeDeck(deck, nextColumns, deck.layout.rows)))
+          }} />
+        <NumberInput aria-label="Deck rows" className="form-mini" disabled={locked} min={1} max={12} value={rows}
+          onBlur={() => setRows(String(deck.layout.rows))}
+          onChange={event => {
+            setRows(event.target.value)
+            const nextRows = boundedInteger(event.target.value, 1, 12)
+            if (nextRows !== undefined) onChange(replaceControlDeck(configuration, resizeDeck(deck, deck.layout.columns, nextRows)))
+          }} />
+        <Select aria-label="Deck theme" className="form-mini" value={controlDeckTheme(deck, group)} onChange={event => {
+          const theme = PhoenixControlDeckThemeSchema.parse(event.target.value)
+          const { appearance: _appearance, ...plainGroup } = group
+          onChange(replaceControlDeckGroup(configuration, theme === 'phoenix'
+            ? plainGroup
+            : { ...plainGroup, appearance: { colorScheme: theme } }))
+        }}>
+          {['phoenix', 'blue', 'cyan', 'green', 'amber', 'orange', 'red', 'violet', 'magenta'].map(theme => <option key={theme} value={theme}>{themeLabel(PhoenixControlDeckThemeSchema.parse(theme))}</option>)}
+        </Select>
+      </ControlContext>
+    </Widget>
+    <CommandTile compact details={false} label="Cancel" unavailable={saving} onClick={onCancel} />
+    <CommandTile compact details={false} label={saving ? 'Saving…' : 'Save'} unavailable={saving} onClick={onSave} />
   </section>
-}
-
-function CrossIcon () {
-  return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" /></svg>
-}
-
-function CheckIcon () {
-  return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
 }
 
 export function controlPickerActionLabel(action: GameActionAvailability): string {
@@ -359,7 +382,34 @@ function controlDeckTheme (deck: ControlDeckDeck | undefined, group: ControlDeck
 
 function MissingTarget({ target }: { target: CommandTarget }) {
   const label = target.type === 'navigation' ? target.destinationId : target.type === 'macro' ? target.macroId : target.actionId
-  return <CommandTile label={label} unavailable />
+  return <ControlDeckCommandTile binding="Unbound" interaction="tap" label={label} unavailable />
+}
+
+function ControlDeckCommandTile({ binding, interaction, kind = 'action', label, selected = false, tone = 'normal', unavailable = false, disabled = unavailable, className, ...props }: Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> & {
+  binding?: string
+  interaction: 'tap' | 'hold' | 'arm'
+  kind?: 'action' | 'macro'
+  label: string
+  selected?: boolean
+  tone?: 'normal' | 'danger'
+  unavailable?: boolean
+}) {
+  return <TileButton
+    aria-label={binding ? `${label}, ${binding}` : label}
+    aria-pressed={selected || undefined}
+    className={[
+      kind === 'macro' && 'theme-macro',
+      selected && 'active',
+      tone === 'danger' && 'theme-danger',
+      unavailable && 'unavailable',
+      className
+    ].filter(Boolean).join(' ')}
+    disabled={disabled}
+    label={label}
+    meta={binding}
+    note={interaction}
+    {...props}
+  />
 }
 
 function telemetryState(runtime: RuntimeState | undefined, key: string | null): boolean {

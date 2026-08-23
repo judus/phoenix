@@ -29,7 +29,7 @@ describe('PHOENIX route parsing and generation', () => {
     ['#/engineering/materials/encoded', { kind: 'information', section: 'engineering', view: 'materials-encoded' }, 'info'],
     ['#/comms/radio', { kind: 'information', section: 'comms', view: 'radio' }, 'info'],
     ['#/copilot/profiles', { kind: 'copilot', view: 'profiles' }, 'copilot'],
-    ['#/numpad/shortcuts', { kind: 'numpad', view: 'shortcuts' }, 'telemetry'],
+    ['#/numpad', { kind: 'numpad' }, 'telemetry'],
     ['#/macros', { kind: 'macros' }, 'macros'],
     ['#/records/journal', { kind: 'journal', view: 'journal' }, 'journal'],
     ['#/records/credits', { kind: 'journal', view: 'credits' }, 'journal'],
@@ -134,6 +134,6 @@ describe('PHOENIX route parsing and generation', () => {
   test('workspace destinations use explicit defaults', () => {
     expect(defaultRouteForWorkspace('controls')).toEqual({ kind: 'controls', category: 'ship' })
     expect(defaultRouteForWorkspace('info')).toEqual(HOME_ROUTE)
-    expect(defaultRouteForWorkspace('telemetry')).toEqual({ kind: 'numpad', view: 'navigator' })
+    expect(defaultRouteForWorkspace('telemetry')).toEqual({ kind: 'numpad' })
   })
 })

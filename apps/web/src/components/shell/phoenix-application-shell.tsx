@@ -31,8 +31,6 @@ export interface PhoenixApplicationShellProps {
   settingsContextItems?: NavigationItem[]
   settingsCurrentContext?: string
   telemetry: ReactNode
-  telemetryContextItems?: NavigationItem[]
-  telemetryCurrentContext?: string
 }
 
 export function PhoenixApplicationShell({
@@ -58,9 +56,7 @@ export function PhoenixApplicationShell({
   settings,
   settingsContextItems,
   settingsCurrentContext,
-  telemetry,
-  telemetryContextItems,
-  telemetryCurrentContext
+  telemetry
 }: PhoenixApplicationShellProps) {
   const fullscreen = useFullscreen()
 
@@ -108,8 +104,6 @@ export function PhoenixApplicationShell({
         {...(settingsContextItems ? { settingsContextItems } : {})}
         {...(settingsCurrentContext ? { settingsCurrentContext } : {})}
         telemetry={telemetry}
-        {...(telemetryContextItems ? { telemetryContextItems } : {})}
-        {...(telemetryCurrentContext ? { telemetryCurrentContext } : {})}
       />
       <BottomBar>
         <Navigation

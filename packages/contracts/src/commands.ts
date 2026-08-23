@@ -17,6 +17,7 @@ export const CommandRiskSchema = z.enum(['safe', 'caution', 'dangerous', 'destru
 export const CommandDescriptorSchema = z.object({
   id: z.string().min(1),
   kind: z.enum(['game-action', 'navigation', 'macro']),
+  activation: z.enum(['tap', 'hold', 'open']).default('tap'),
   label: z.string().min(1),
   description: z.string().min(1).optional(),
   category: z.string().min(1),
@@ -24,6 +25,7 @@ export const CommandDescriptorSchema = z.object({
   unavailableReason: z.string().min(1).optional(),
   risk: CommandRiskSchema,
   target: CommandTargetSchema,
+  bindingLabel: z.string().min(1).nullable().default(null),
   numericAddress: z.string().regex(/^\d+$/u).optional()
 })
 

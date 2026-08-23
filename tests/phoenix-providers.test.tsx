@@ -144,8 +144,7 @@ function apiStub(): PhoenixApi {
           inputAdapter: 'browser',
           presentation: 'tiles',
           alwaysConfirm: false,
-          cancelAfterMs: 5000,
-          shortcuts: []
+          cancelAfterMs: 5000
         }
       }
     },

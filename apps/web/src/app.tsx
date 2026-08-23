@@ -29,7 +29,6 @@ import { useEngineeringController } from './features/engineering/use-engineering
 import { controlsContext, controlsNavigationItems } from './features/controls/controls-navigation.js'
 import { useControlsController } from './features/controls/use-controls-controller.js'
 import { useMacroRuntime } from './features/macros/macro-runtime-provider.js'
-import { numpadContext, numpadNavigationItems } from './features/numpad/numpad-navigation.js'
 import { useNumpadController } from './features/numpad/use-numpad-controller.js'
 import { useJournalController } from './features/journal/use-journal-controller.js'
 import { journalContext, journalNavigationItems } from './features/journal/journal-navigation.js'
@@ -75,7 +74,6 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
   const commsRoute = informationRoute.section === 'comms' ? informationRoute : undefined
   const engineeringRoute = informationRoute.section === 'engineering' ? informationRoute : undefined
   const controlsRoute = route.kind === 'controls' ? route : undefined
-  const numpadRoute = route.kind === 'numpad' ? route : undefined
   const logRoute = route.kind === 'journal' || route.kind === 'developer' ? route : undefined
   const [controlsEditing, setControlsEditing] = useState(false)
   const controlsRailItems = useMemo<ApplicationNavigationItem[]>(() => [
@@ -84,6 +82,7 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       id: 'edit-layout',
       kind: 'action',
       label: controlsEditing ? 'Cancel layout editing' : 'Edit layout',
+      placement: 'end',
       shortLabel: 'EDT',
       pressed: controlsEditing
     }
@@ -177,10 +176,8 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       settingsContextItems={settingsNavigationItems}
       settingsCurrentContext={settingsContext(route.kind === 'settings' ? route : undefined)}
       telemetry={mountedWorkspaces.current.has('telemetry')
-        ? <FeatureBoundary><NumpadFeature application={application} view={numpadRoute?.view ?? 'navigator'} /></FeatureBoundary>
+        ? <FeatureBoundary><NumpadFeature application={application} /></FeatureBoundary>
         : null}
-      telemetryContextItems={numpadNavigationItems}
-      telemetryCurrentContext={numpadContext(route)}
     />
   )
 }
@@ -210,8 +207,8 @@ const MacrosFeature = memo(function MacrosFeature() {
   return <MacrosPage runtime={useMacroRuntime()} />
 })
 
-const NumpadFeature = memo(function NumpadFeature({ application, view }: { application: PhoenixApplicationServices, view: 'navigator' | 'shortcuts' }) {
-  return <NumpadPage api={application.api} controller={useNumpadController(application.api, application.events)} routeSession={application.numpadRouteSession} view={view} />
+const NumpadFeature = memo(function NumpadFeature({ application }: { application: PhoenixApplicationServices }) {
+  return <NumpadPage api={application.api} controller={useNumpadController(application.api, application.events)} devicePreferences={application.devicePreferences} routeSession={application.numpadRouteSession} />
 })
 
 const JournalFeature = memo(function JournalFeature({ application }: { application: PhoenixApplicationServices }) {

@@ -11,7 +11,7 @@ export function NumpadActivation({ devicePreferences, routeSession, router }: { 
       if (!preferences.captureNumpad || event.code !== 'Numpad0' || editable(event.target) || router.getSnapshot().kind === 'numpad') return
       event.preventDefault()
       routeSession.arm()
-      router.push({ kind: 'numpad', view: 'navigator' })
+      router.push({ kind: 'numpad' })
     }
     window.addEventListener('keydown', activate)
     return () => window.removeEventListener('keydown', activate)

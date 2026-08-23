@@ -55,7 +55,7 @@ export function GalaxyPage({ api, controller, onNavigate, route, runtime }: {
   if (controller.status === 'error') return <GalaxyState error={controller.error} title={route.view === 'route' ? 'Plotted route' : 'System schematic'} />
   if (route.view === 'route') {
     return controller.route
-      ? <PlottedRoute route={controller.route} runtimeState={runtime.status === 'ready' ? runtime.state : undefined} />
+      ? <PlottedRoute actions={controller.actions} api={api} route={controller.route} runtimeState={runtime.status === 'ready' ? runtime.state : undefined} />
       : <GalaxyState error="Navigation route unavailable." title="Plotted route" />
   }
   return controller.lookup
@@ -81,8 +81,7 @@ function SystemView({ lookup, onNavigate, route }: {
     <PageFrame className="galaxy-system-page" layout="fit">
       <PageHeader
         variant="cockpit"
-        context={<Breadcrumbs items={[{ label: 'Galaxy' }, { label: lookup.system.name }]} />}
-        status={`${lookup.system.source.provider.toUpperCase()} · ${lookup.cache} · ${formatTimestamp(lookup.system.source.fetchedAt)}`}
+        context={<Breadcrumbs items={[{ label: 'Galaxy' }, { label: 'System schematic' }]} />}
         title={lookup.system.name}
         actions={
           <form
@@ -93,9 +92,14 @@ function SystemView({ lookup, onNavigate, route }: {
               if (systemName) onNavigate({ kind: 'information', section: 'galaxy', view: 'system', systemName })
             }}
           >
-            <Field htmlFor="system-query-name" label="System name">
-              <TextInput spellCheck="false" value={query} onChange={event => setQuery(event.target.value)} />
-            </Field>
+            <label className="sr-only" htmlFor="system-query-name">System name</label>
+            <TextInput
+              className="system-query__input"
+              id="system-query-name"
+              spellCheck="false"
+              value={query}
+              onChange={event => setQuery(event.target.value)}
+            />
             <Button variant="accent" type="submit">Load</Button>
           </form>
         }
@@ -147,9 +151,9 @@ function QueryConsole({ api, onNavigate, route, runtime }: {
           {GALAXY_QUERY_CATALOGUE.map(query => (
             <ActionTile
               description={query.purpose}
-              eyebrow={query.domain}
               key={query.id}
               label={query.title}
+              status={query.domain}
               onClick={() => onNavigate({ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: query.id })}
             />
           ))}

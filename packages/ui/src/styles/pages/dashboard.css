@@ -1,0 +1,12 @@
+  .dashboard-page {
+    .widget { gap: var(--spacing-xs); }
+
+    .dashboard-route {
+      .metric > strong,
+      .dl-list dd {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }

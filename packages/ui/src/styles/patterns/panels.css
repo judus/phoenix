@@ -67,13 +67,14 @@
     min-inline-size: 0;
     min-block-size: 0;
 
-    > .widget,
-    > .command-tile {
+    > .widget {
       min-block-size: 0;
       block-size: 100%;
     }
 
-    &:has(> .command-tile + .command-tile) {
+    > .tile.btn { block-size: 100%; }
+
+    &:has(> .tile.btn + .tile.btn) {
       grid-template-columns: minmax(0, 4fr) repeat(2, minmax(8rem, 1fr));
     }
   }
@@ -86,11 +87,12 @@
     min-block-size: 0;
     block-size: 100%;
 
-    > .widget,
-    > .command-tile {
+    > .widget {
       min-block-size: 0;
       block-size: 100%;
     }
+
+    > .tile.btn { block-size: auto; }
   }
 
   .section {
@@ -221,7 +223,7 @@
     .widget-command-row {
       grid-template-columns: minmax(0, 3fr) minmax(7rem, 1fr);
 
-      &:has(> .command-tile + .command-tile) {
+      &:has(> .tile.btn + .tile.btn) {
         grid-template-columns: minmax(0, 3fr) repeat(2, minmax(7rem, 1fr));
       }
     }

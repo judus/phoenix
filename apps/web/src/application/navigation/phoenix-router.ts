@@ -35,7 +35,7 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
   }
 
   if (section === 'numpad' || section === 'telemetry') {
-    return { kind: 'numpad', view: rest[0] === 'shortcuts' ? 'shortcuts' : 'navigator' }
+    return { kind: 'numpad' }
   }
 
   if (section === 'macros') return { kind: 'macros' }
@@ -103,7 +103,7 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
     case 'information': path = informationPath(route); break
     case 'controls': path = `/controls/${route.category}`; break
     case 'copilot': path = `/copilot/${route.view}`; break
-    case 'numpad': path = route.view === 'navigator' ? '/numpad' : '/numpad/shortcuts'; break
+    case 'numpad': path = '/numpad'; break
     case 'macros': path = '/macros'; break
     case 'journal': path = route.view === 'credits' ? '/records/credits' : '/records/journal'; break
     case 'developer': path = `/developer/${route.view}`; break

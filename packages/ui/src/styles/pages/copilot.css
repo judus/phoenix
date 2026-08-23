@@ -81,7 +81,7 @@
     gap: var(--spacing-sm);
   }
 
-  .copilot-composer-row > .command-tile {
+  .copilot-composer-row > .tile.btn {
     block-size: 100%;
   }
 
