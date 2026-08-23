@@ -17,7 +17,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@jdu/control-deck-core": "*",
+    "control-deck": "git+https://github.com/judus/control-deck.git#semver:^0.1.0",
     "zod": "^4.4.3"
   }
 }

@@ -1,5 +1,5 @@
 import type { MacroDefinition, MacroLibrary, PhoenixSettings } from '@phoenix/contracts'
-import type { ControlDeckConfiguration, ControlDeckConfigurationRepository } from '@jdu/control-deck-core'
+import type { ControlDeckConfiguration, ControlDeckConfigurationRepository } from 'control-deck/core'
 import type { CommandCatalogueChange, CommandCatalogueChangeSource } from '../domain/commands.js'
 import type { MacroRepository } from '../domain/macros.js'
 import type { Publisher } from '../domain/publisher.js'

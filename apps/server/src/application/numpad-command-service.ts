@@ -13,8 +13,8 @@ import {
   type NumpadTreeNode,
   type NumpadTreeSnapshot
 } from '@phoenix/contracts'
-import type { ControlDeckConfigurationRepository } from '@jdu/control-deck-core'
-import { resolveControlDeckInteraction } from '@jdu/control-deck-core'
+import type { ControlDeckConfigurationRepository } from 'control-deck/core'
+import { resolveControlDeckInteraction } from 'control-deck/core'
 import type { CommandCatalogueSnapshots, Commands } from '../domain/commands.js'
 import type { NumpadCommands } from '../domain/numpad.js'
 import type { SystemSettingsRepository } from '../domain/system-configuration.js'

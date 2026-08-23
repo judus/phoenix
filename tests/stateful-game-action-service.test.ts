@@ -1,15 +1,15 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { expect, test } from 'vitest'
-import { ControlDeckCommandService } from '@jdu/control-deck-core'
-import { EliteDangerousCommandAdapter } from '@jdu/control-deck-integration-elite-dangerous'
+import { ControlDeckCommandService } from 'control-deck/core'
+import { EliteDangerousCommandAdapter } from 'control-deck/integration-elite-dangerous'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
 import { parseEliteStatus } from '@phoenix/elite'
 import { ControlDeckEliteGameActionGateway } from '../apps/server/src/application/control-deck-elite-game-action-gateway.js'
 import { GameActionService } from '../apps/server/src/application/game-action-service.js'
 import { StatefulGameActionService } from '../apps/server/src/application/stateful-game-action-service.js'
 import { InMemoryRuntimeStateStore } from '../apps/server/src/infrastructure/in-memory-runtime-state-store.js'
-import { RecordingKeyboardOutput } from '@jdu/control-deck-adapter-keyboard'
+import { RecordingKeyboardOutput } from 'control-deck/adapter-keyboard'
 import { StaticEliteDangerousBindings } from './support/static-elite-dangerous-bindings.js'
 
 const fixturePath = fileURLToPath(new URL('./fixtures/elite/status-docked.json', import.meta.url))

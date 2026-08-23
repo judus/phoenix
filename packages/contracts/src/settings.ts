@@ -3,7 +3,7 @@ import {
   ControlDeckColorSchemeSchema,
   ControlDeckConfigurationSchema,
   type ControlDeckCommandTarget
-} from '@jdu/control-deck-core'
+} from 'control-deck/core'
 import type { CommandTarget } from './commands.js'
 
 export const InputBackendModeSchema = z.enum(['auto', 'recording', 'linux-xdotool', 'windows-sendinput'])

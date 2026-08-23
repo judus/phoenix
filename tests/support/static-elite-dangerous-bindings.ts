@@ -2,7 +2,7 @@ import type {
   EliteDangerousBindingDiagnostics,
   EliteDangerousBindingSource,
   EliteDangerousResolvedBinding
-} from '@jdu/control-deck-integration-elite-dangerous'
+} from 'control-deck/integration-elite-dangerous'
 
 const DEVELOPMENT_BINDINGS = new Map<string, EliteDangerousResolvedBinding['binding']>(Object.entries({
   ShipSpotLightToggle: chord('L'),

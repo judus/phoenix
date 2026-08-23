@@ -9,7 +9,7 @@ import { ScriptedProvider, textModelCapabilities } from '@jdu/llm-client/testing
 import { StaticEliteDangerousBindings } from './support/static-elite-dangerous-bindings.js'
 import { InMemorySystemSettingsRepository } from '../apps/server/src/infrastructure/json-system-configuration.js'
 import { InMemoryMacroRepository } from '../apps/server/src/infrastructure/macro-repositories.js'
-import { RecordingKeyboardOutput } from '@jdu/control-deck-adapter-keyboard'
+import { RecordingKeyboardOutput } from 'control-deck/adapter-keyboard'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 
 test('the portable AI client discovers and calls PHOENIX tools over MCP', async () => {

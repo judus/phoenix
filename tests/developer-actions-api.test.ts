@@ -3,7 +3,7 @@ import { CommandExecutionResultSchema, type CommandTarget } from '@phoenix/contr
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
 import { StaticEliteDangerousBindings } from './support/static-elite-dangerous-bindings.js'
-import { RecordingKeyboardOutput } from '@jdu/control-deck-adapter-keyboard'
+import { RecordingKeyboardOutput } from 'control-deck/adapter-keyboard'
 
 test('the API exposes actions, executes them, and persists the shared control layout', async () => {
   const inputBackend = new RecordingKeyboardOutput()

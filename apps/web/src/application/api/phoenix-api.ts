@@ -55,7 +55,7 @@ import type {
   RuntimeState,
   ShipCatalogueResponse
 } from '@phoenix/contracts'
-import type { ControlDeckCommandCatalogue } from '@jdu/control-deck-core'
+import type { ControlDeckCommandCatalogue } from 'control-deck/core'
 
 export type CopilotStreamEvent =
   | { type: 'started', conversationId: string }

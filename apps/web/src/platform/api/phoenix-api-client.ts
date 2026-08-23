@@ -54,7 +54,7 @@ import {
   RuntimeStateSchema,
   ShipCatalogueResponseSchema
 } from '@phoenix/contracts'
-import { ControlDeckCommandCatalogueSchema, type ControlDeckCommandCatalogue } from '@jdu/control-deck-core'
+import { ControlDeckCommandCatalogueSchema, type ControlDeckCommandCatalogue } from 'control-deck/core'
 import type {
   ActivityLogResponse,
   CartographyLookupResponse,

@@ -3,18 +3,18 @@ import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { DisplayCommand, GameEventEnvelope, NavigationRoute, RuntimeState } from '@phoenix/contracts'
 import { ToolRegistry } from '@jdu/llm-client'
-import { ControlDeckCommandService, type ControlDeckConfigurationRepository } from '@jdu/control-deck-core'
-import { ControlDeckIntegration } from '@jdu/control-deck-host'
+import { ControlDeckCommandService, type ControlDeckConfigurationRepository } from 'control-deck/core'
+import { ControlDeckIntegration } from 'control-deck/host'
 import {
   RecordingKeyboardOutput,
   type KeyboardOutput
-} from '@jdu/control-deck-adapter-keyboard'
+} from 'control-deck/adapter-keyboard'
 import {
   EliteBindingsDirectoryLocator,
   EliteDangerousCommandAdapter,
   EliteKeyboardBindingResolver,
   type EliteDangerousBindingSource
-} from '@jdu/control-deck-integration-elite-dangerous'
+} from 'control-deck/integration-elite-dangerous'
 import {
   EliteDataDirectoryLocator,
   EliteInventoryFileSource,

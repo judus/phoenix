@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { GameActionCatalogResponse, PhoenixControlDeckConfiguration } from '@phoenix/contracts'
-import type { ControlDeckCommandCatalogue } from '@jdu/control-deck-core'
+import type { ControlDeckCommandCatalogue } from 'control-deck/core'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
 import { LatestRequest } from '../../application/requests/latest-request.js'

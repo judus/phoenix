@@ -1,11 +1,6 @@
 {
   "files": [],
   "references": [
-    { "path": "vendor/control-deck/packages/control-deck-core" },
-    { "path": "vendor/control-deck/packages/control-deck-ui" },
-    { "path": "vendor/control-deck/packages/control-deck-adapter-keyboard" },
-    { "path": "vendor/control-deck/packages/control-deck-integration-elite-dangerous" },
-    { "path": "vendor/control-deck/packages/control-deck-host" },
     { "path": "packages/contracts" },
     { "path": "apps/server" },
     { "path": "apps/web" }

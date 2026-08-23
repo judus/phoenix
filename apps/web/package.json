@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@jdu/control-deck-ui": "*",
     "@phoenix/contracts": "*",
     "@phoenix/ui": "*",
     "@vitejs/plugin-react": "^6.0.5",
+    "control-deck": "git+https://github.com/judus/control-deck.git#semver:^0.1.0",
     "deskplane": "^0.1.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

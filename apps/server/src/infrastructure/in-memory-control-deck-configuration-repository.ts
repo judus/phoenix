@@ -2,7 +2,7 @@ import {
   ControlDeckConfigurationConflictError,
   type ControlDeckConfiguration,
   type ControlDeckConfigurationRepository
-} from '@jdu/control-deck-core'
+} from 'control-deck/core'
 import { PhoenixControlDeckConfigurationSchema } from '@phoenix/contracts'
 import { DEFAULT_CONTROL_DECK_CONFIGURATION } from './default-control-deck-configuration.js'
 

@@ -1,4 +1,4 @@
-import { applyControlDeckLayoutPreset, useCustomControlDeckLayout } from '@jdu/control-deck-core'
+import { applyControlDeckLayoutPreset, useCustomControlDeckLayout } from 'control-deck/core'
 import { PHOENIX_SHIP_LAYOUT_PRESET } from '@phoenix/contracts'
 import { expect, test } from 'vitest'
 import { DEFAULT_CONTROL_DECK_CONFIGURATION } from '../apps/server/src/infrastructure/default-control-deck-configuration.js'

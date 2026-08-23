@@ -1,4 +1,4 @@
-import { ControlDeckLayoutPresetSchema, type ControlDeckLayoutPreset } from '@jdu/control-deck-core'
+import { ControlDeckLayoutPresetSchema, type ControlDeckLayoutPreset } from 'control-deck/core'
 
 export const PHOENIX_SHIP_LAYOUT_PRESET = ControlDeckLayoutPresetSchema.parse({
   id: 'phoenix.ship',

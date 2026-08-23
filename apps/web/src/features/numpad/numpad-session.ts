@@ -11,7 +11,7 @@ import {
   type ControlDeckNumpadSessionStatus,
   type ControlDeckNumpadTransition,
   type ControlDeckNumpadTree
-} from '@jdu/control-deck-core'
+} from 'control-deck/core'
 import type { NumpadTreeNode, NumpadTreeSnapshot } from '@phoenix/contracts'
 
 export type NumpadSessionStatus = ControlDeckNumpadSessionStatus | 'completed' | 'error' | 'stale'

@@ -1,10 +1,10 @@
 import {
   ControlDeckCommandCatalogueSchema,
   ControlDeckCommandExecutionResultSchema
-} from '@jdu/control-deck-core'
+} from 'control-deck/core'
 import { expect, test } from 'vitest'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
-import { RecordingKeyboardOutput } from '@jdu/control-deck-adapter-keyboard'
+import { RecordingKeyboardOutput } from 'control-deck/adapter-keyboard'
 import { StaticEliteDangerousBindings } from './support/static-elite-dangerous-bindings.js'
 
 test('PHOENIX exposes its authoritative commands through the Control Deck adapter API', async () => {

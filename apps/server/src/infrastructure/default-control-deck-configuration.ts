@@ -2,7 +2,7 @@ import {
   type ControlDeckConfiguration,
   type ControlDeckDeck,
   type ControlDeckDeckGroup
-} from '@jdu/control-deck-core'
+} from 'control-deck/core'
 import { PhoenixControlDeckConfigurationSchema, phoenixTargetToControlDeckTarget, type GameActionCategory } from '@phoenix/contracts'
 
 const SHIP_ELEMENTS = [

@@ -1,1 +1,1 @@
-export { PairingStatusSchema, type PairingStatus } from '@jdu/control-deck-core'
+export { PairingStatusSchema, type PairingStatus } from 'control-deck/core'

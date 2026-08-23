@@ -1,11 +1,11 @@
 import {
   ControlDeckCommandService,
   type ControlDeckCommandExecutionResult
-} from '@jdu/control-deck-core'
+} from 'control-deck/core'
 import {
   ELITE_DANGEROUS_ADAPTER_ID,
   type EliteDangerousCommandAdapter
-} from '@jdu/control-deck-integration-elite-dangerous'
+} from 'control-deck/integration-elite-dangerous'
 import {
   GameActionCatalogResponseSchema,
   GameActionCommandSchema,

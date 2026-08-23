@@ -1,3 +1,0 @@
-[submodule "vendor/control-deck"]
-	path = vendor/control-deck
-	url = https://github.com/judus/control-deck.git

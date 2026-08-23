@@ -4,7 +4,7 @@ import type {
   ControlDeckCommandAdapter,
   ControlDeckCommandInvocation,
   ControlDeckCommandTarget
-} from '@jdu/control-deck-core'
+} from 'control-deck/core'
 import type { CommandDescriptor, GameActionCatalogResponse } from '@phoenix/contracts'
 import type { Commands } from '../domain/commands.js'
 import type { GameActions } from './game-action-service.js'

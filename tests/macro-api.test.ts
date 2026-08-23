@@ -2,7 +2,7 @@ import { expect, test } from 'vitest'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
 import { StaticEliteDangerousBindings } from './support/static-elite-dangerous-bindings.js'
-import { RecordingKeyboardOutput } from '@jdu/control-deck-adapter-keyboard'
+import { RecordingKeyboardOutput } from 'control-deck/adapter-keyboard'
 
 test('a browser records, saves, discovers, and plays a semantic macro', async () => {
   const inputBackend = new RecordingKeyboardOutput()

@@ -15,7 +15,6 @@
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"],
   "references": [
-    { "path": "../../vendor/control-deck/packages/control-deck-ui" },
     { "path": "../../packages/contracts" }
   ]
 }

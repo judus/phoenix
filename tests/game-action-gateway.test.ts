@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
-import { RecordingKeyboardOutput } from '@jdu/control-deck-adapter-keyboard'
-import { ControlDeckCommandService } from '@jdu/control-deck-core'
-import { EliteDangerousCommandAdapter } from '@jdu/control-deck-integration-elite-dangerous'
+import { RecordingKeyboardOutput } from 'control-deck/adapter-keyboard'
+import { ControlDeckCommandService } from 'control-deck/core'
+import { EliteDangerousCommandAdapter } from 'control-deck/integration-elite-dangerous'
 import { ControlDeckEliteGameActionGateway } from '../apps/server/src/application/control-deck-elite-game-action-gateway.js'
 import { StaticEliteDangerousBindings } from './support/static-elite-dangerous-bindings.js'
 

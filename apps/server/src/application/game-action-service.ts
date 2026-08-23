@@ -3,7 +3,7 @@ import {
   CommandExecutionRuntime,
   type CommandExecutionAdapter,
   type CommandRuntimeRequest
-} from '@jdu/control-deck-core'
+} from 'control-deck/core'
 import {
   ExecuteGameActionRequestSchema,
   GameActionCatalogResponseSchema,

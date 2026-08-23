@@ -9,8 +9,8 @@ import {
   useCustomControlDeckLayout,
   type ControlDeckDeck,
   type ControlDeckDeckGroup
-} from '@jdu/control-deck-core'
-import { ButtonEditor, ControlDeckArmingController, ControlDeckSurface, TileButton } from '@jdu/control-deck-ui'
+} from 'control-deck/core'
+import { ButtonEditor, ControlDeckArmingController, ControlDeckSurface, TileButton } from 'control-deck/ui'
 import { PHOENIX_CONTROL_LAYOUT_PRESETS, PhoenixControlDeckThemeSchema, controlDeckTargetToPhoenixTarget, phoenixControlLayoutPreset, type CommandTarget, type GameActionAvailability, type GameActionOperation, type PhoenixControlDeckConfiguration, type PhoenixControlDeckTheme, type RuntimeState } from '@phoenix/contracts'
 import { Breadcrumbs, Button, CommandTile, ControlContext, DataTable, NumberInput, PageFrame, PageHeader, Select, Status, Widget } from '@phoenix/ui'
 import { createClientId } from '../../application/identity/client-identity.js'

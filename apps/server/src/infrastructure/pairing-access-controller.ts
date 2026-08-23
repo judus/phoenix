@@ -1,9 +1,9 @@
-import { PairingService } from '@jdu/control-deck-core'
+import { PairingService } from 'control-deck/core'
 import {
   FilePairingCredentialsRepository,
   NodePairingSecurity,
   PairingHttpController
-} from '@jdu/control-deck-host'
+} from 'control-deck/host'
 
 /** PHOENIX composition adapter for the shared Control Deck pairing host. */
 export class PairingAccessController extends PairingHttpController {

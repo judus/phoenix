@@ -11,11 +11,11 @@ import type {
   KeyboardCommandConfiguration,
   KeyboardOutput,
   KeyboardOutputStatus
-} from '@jdu/control-deck-adapter-keyboard'
+} from 'control-deck/adapter-keyboard'
 import {
   ControlDeckConfigurationConflictError,
   type ControlDeckCommandOperation
-} from '@jdu/control-deck-core'
+} from 'control-deck/core'
 import type {
   PhoenixSettings
 } from '@phoenix/contracts'

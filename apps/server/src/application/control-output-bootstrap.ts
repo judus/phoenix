@@ -4,7 +4,7 @@ import {
   WindowsSendInputKeyboardOutput,
   type KeyboardOutput,
   type KeyboardOutputStatus
-} from '@jdu/control-deck-adapter-keyboard'
+} from 'control-deck/adapter-keyboard'
 import {
   InputBackendModeSchema,
   RuntimeSystemSnapshotSchema,

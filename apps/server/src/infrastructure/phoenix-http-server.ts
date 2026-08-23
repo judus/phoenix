@@ -34,7 +34,7 @@ import {
   type RuntimeState
 } from '@phoenix/contracts'
 import { AiError, serializeAiError, type AiStreamEvent } from '@jdu/llm-client'
-import type { ControlDeckHttpHandler } from '@jdu/control-deck-host'
+import type { ControlDeckHttpHandler } from 'control-deck/host'
 import type { CopilotText, CopilotTextRequest } from '../application/copilot-text-service.js'
 import type { CopilotConversationEvents } from '../application/copilot-conversation-event-service.js'
 import type { CopilotVoiceHostControl } from '../application/copilot-voice-host-coordinator.js'

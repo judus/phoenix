@@ -88,7 +88,7 @@ npm.cmd --version
 git --version
 
 cd $HOME
-git clone --recurse-submodules https://github.com/judus/phoenix.git
+git clone https://github.com/judus/phoenix.git
 cd .\phoenix
 npm.cmd install
 npm.cmd run build
@@ -100,7 +100,6 @@ Open `http://localhost:3400`. Stop PHOENIX with `Ctrl+C`. To update later:
 ```powershell
 cd $HOME\phoenix
 git pull --ff-only
-git submodule update --init --recursive
 npm.cmd install
 npm.cmd run build
 npm.cmd start
@@ -113,7 +112,7 @@ focused. PHOENIX does not modify Elite or its game files.
 ### Linux
 
 ```sh
-git clone --recurse-submodules https://github.com/judus/phoenix.git
+git clone https://github.com/judus/phoenix.git
 cd phoenix
 npm install
 npm run build
@@ -124,7 +123,6 @@ Update an existing checkout manually:
 
 ```sh
 git pull --ff-only
-git submodule update --init --recursive
 npm install
 npm run build
 npm start

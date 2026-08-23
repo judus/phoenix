@@ -7,15 +7,9 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "dist",
-    "paths": {
-      "@jdu/control-deck-core": ["../../vendor/control-deck/packages/control-deck-core/src/index.ts"]
-    },
     "rootDir": "src",
     "strict": true,
     "target": "ES2023"
   },
-  "include": ["src/**/*.ts"],
-  "references": [
-    { "path": "../../vendor/control-deck/packages/control-deck-core" }
-  ]
+  "include": ["src/**/*.ts"]
 }

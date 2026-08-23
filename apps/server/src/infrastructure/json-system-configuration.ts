@@ -4,7 +4,7 @@ import {
   ControlDeckConfigurationConflictError,
   type ControlDeckConfiguration,
   type ControlDeckConfigurationRepository
-} from '@jdu/control-deck-core'
+} from 'control-deck/core'
 import {
   PhoenixControlDeckConfigurationSchema,
   PhoenixSettingsSchema,

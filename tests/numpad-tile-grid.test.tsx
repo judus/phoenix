@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { balancedNumpadColumns } from '@jdu/control-deck-ui'
+import { balancedNumpadColumns } from 'control-deck/ui'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { NumpadTileGrid } from '../apps/web/src/features/numpad/numpad-tile-grid.js'
 
