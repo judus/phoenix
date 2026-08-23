@@ -16,7 +16,10 @@ copy('apps/server/dist')
 copy('apps/server/package.json')
 copy('apps/web/dist')
 copy('agents')
+copy('LICENSE')
+copy('apps/web/public/phoenix.svg', 'resources/phoenix.svg')
 copy('scripts/catalogue')
+copy('scripts/package/launcher.mjs')
 copy('package.json')
 
 for (const workspace of ['contracts', 'copilot', 'elite']) {

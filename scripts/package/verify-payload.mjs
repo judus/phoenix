@@ -4,7 +4,9 @@ import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const projectRoot = fileURLToPath(new URL('../../', import.meta.url))
-const payloadRoot = resolve(projectRoot, 'dist/payload', `${process.platform}-${process.arch}`)
+const payloadRoot = process.env.PHOENIX_PAYLOAD_ROOT
+  ? resolve(process.env.PHOENIX_PAYLOAD_ROOT)
+  : resolve(projectRoot, 'dist/payload', `${process.platform}-${process.arch}`)
 const manifest = JSON.parse(readFileSync(resolve(payloadRoot, 'manifest.json'), 'utf8'))
 
 for (const [path, expected] of Object.entries(manifest.files)) {
@@ -19,7 +21,10 @@ for (const required of [
   'apps/server/dist/main.js',
   'apps/web/dist/index.html',
   'agents/marin/agent.md',
+  'LICENSE',
+  'resources/phoenix.svg',
   'scripts/catalogue/refresh.mjs',
+  'scripts/package/launcher.mjs',
   'node_modules/@phoenix/contracts/dist/index.js',
   'node_modules/@jdu/llm-client/dist/index.js'
 ]) {

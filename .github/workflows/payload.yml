@@ -28,9 +28,21 @@ jobs:
       - run: npm run payload:build
       - run: npm run payload:verify
       - run: npm run payload:smoke
+      - if: runner.os == 'Linux'
+        run: npm run installer:linux
+      - if: runner.os == 'Linux'
+        run: npm run installer:linux:verify
+      - if: runner.os == 'Windows'
+        run: choco install innosetup --yes --no-progress
+      - if: runner.os == 'Windows'
+        run: npm run installer:windows
+      - if: runner.os == 'Windows'
+        run: npm run installer:windows:verify
       - uses: actions/upload-artifact@v4
         with:
           name: phoenix-${{ runner.os }}-${{ runner.arch }}-payload
-          path: dist/payload/*
+          path: |
+            dist/payload/*
+            dist/installer/*
           if-no-files-found: error
           retention-days: 7

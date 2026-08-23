@@ -16,6 +16,7 @@ import { ensureCatalogueSnapshot } from './infrastructure/catalogue-snapshot-ref
 import { serverAccessUrls } from './infrastructure/server-access-urls.js'
 
 let application: PhoenixApplication | null = null
+let shuttingDown = false
 
 try {
   const projectRoot = fileURLToPath(new URL('../../../', import.meta.url))
@@ -60,9 +61,15 @@ try {
 }
 
 async function shutdown (): Promise<void> {
+  if (shuttingDown) return
+  shuttingDown = true
   await application?.stop()
   process.exit(0)
 }
 
 process.once('SIGINT', shutdown)
 process.once('SIGTERM', shutdown)
+if (process.env.PHOENIX_PATH_MODE === 'installed') {
+  process.stdin.resume()
+  process.stdin.once('end', shutdown)
+}

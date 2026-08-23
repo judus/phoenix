@@ -6,7 +6,9 @@ import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const projectRoot = fileURLToPath(new URL('../../', import.meta.url))
-const payloadRoot = resolve(projectRoot, 'dist/payload', `${process.platform}-${process.arch}`)
+const payloadRoot = process.env.PHOENIX_PAYLOAD_ROOT
+  ? resolve(process.env.PHOENIX_PAYLOAD_ROOT)
+  : resolve(projectRoot, 'dist/payload', `${process.platform}-${process.arch}`)
 const temporaryRoot = mkdtempSync(join(tmpdir(), 'phoenix-payload-smoke-'))
 const installRoot = resolve(temporaryRoot, 'installation')
 const userRoot = resolve(temporaryRoot, 'user')
@@ -25,24 +27,30 @@ try {
   cpSync(resolve(projectRoot, 'tests/fixtures/catalogue'), resolve(dataRoot, 'runtime/catalogue'), { recursive: true })
   makeReadOnly(installRoot)
   const port = await availablePort()
-  child = spawn(resolve(installRoot, 'runtime', runtimeName), [
-    resolve(installRoot, 'apps/server/dist/main.js')
-  ], {
+  const nativeLauncher = process.env.PHOENIX_SMOKE_LAUNCHER
+    ? resolve(process.env.PHOENIX_SMOKE_LAUNCHER)
+    : null
+  const launcherRuntime = nativeLauncher ?? resolve(installRoot, 'runtime', runtimeName)
+  const launcherScript = resolve(installRoot, 'scripts/package/launcher.mjs')
+  const launcherArguments = nativeLauncher ? [] : [launcherScript]
+  const launcherEnvironment = {
+    ...process.env,
+    HOME: resolve(userRoot, 'home'),
+    LOCALAPPDATA: resolve(userRoot, 'local-app-data'),
+    PHOENIX_CATALOGUE_REFRESH: 'false',
+    PHOENIX_HOST: '127.0.0.1',
+    PHOENIX_LAUNCHER_OPEN_BROWSER: 'false',
+    PHOENIX_OPENAI_API_KEY: 'sk-phoenix-payload-smoke-test-not-a-real-key',
+    PHOENIX_PATH_MODE: 'installed',
+    PHOENIX_PORT: String(port),
+    XDG_CACHE_HOME: resolve(userRoot, 'cache'),
+    XDG_CONFIG_HOME: resolve(userRoot, 'config'),
+    XDG_DATA_HOME: resolve(userRoot, 'data'),
+    XDG_STATE_HOME: resolve(userRoot, 'state')
+  }
+  child = spawn(launcherRuntime, launcherArguments, {
     cwd: installRoot,
-    env: {
-      ...process.env,
-      HOME: resolve(userRoot, 'home'),
-      LOCALAPPDATA: resolve(userRoot, 'local-app-data'),
-      PHOENIX_CATALOGUE_REFRESH: 'false',
-      PHOENIX_HOST: '127.0.0.1',
-      PHOENIX_OPENAI_API_KEY: 'sk-phoenix-payload-smoke-test-not-a-real-key',
-      PHOENIX_PATH_MODE: 'installed',
-      PHOENIX_PORT: String(port),
-      XDG_CACHE_HOME: resolve(userRoot, 'cache'),
-      XDG_CONFIG_HOME: resolve(userRoot, 'config'),
-      XDG_DATA_HOME: resolve(userRoot, 'data'),
-      XDG_STATE_HOME: resolve(userRoot, 'state')
-    },
+    env: launcherEnvironment,
     stdio: ['ignore', 'pipe', 'pipe']
   })
 
@@ -51,6 +59,11 @@ try {
   child.stderr.on('data', chunk => output.push(chunk.toString()))
   const response = await waitForServer(`http://127.0.0.1:${port}/api/pairing/status`, child, output)
   if (response.status !== 200) throw new Error(`Payload health probe returned ${response.status}.`)
+
+  const duplicate = spawn(launcherRuntime, launcherArguments, { cwd: installRoot, env: launcherEnvironment, stdio: 'ignore' })
+  const duplicateExit = await waitForExit(duplicate, 5_000)
+  if (duplicateExit.code !== 0) throw new Error(`Duplicate launcher exited with ${duplicateExit.code ?? duplicateExit.signal}.`)
+  if (child.exitCode !== null || child.signalCode !== null) throw new Error('The primary launcher exited after a duplicate launch attempt.')
 
   for (const required of [
     resolve(configRoot, 'pairing.json'),
@@ -84,10 +97,17 @@ try {
   if (!existsSync(resolve(dataRoot, 'copilot/agents/marin/character.text.md'))) {
     throw new Error('Payload did not persist the Copilot profile under writable user data.')
   }
+
+  const stopArguments = nativeLauncher ? ['--stop'] : [launcherScript, '--stop']
+  const stop = spawn(launcherRuntime, stopArguments, { cwd: installRoot, env: launcherEnvironment, stdio: 'ignore' })
+  const stopExit = await waitForExit(stop, 5_000)
+  if (stopExit.code !== 0) throw new Error(`Launcher stop command exited with ${stopExit.code ?? stopExit.signal}.`)
+  await waitForExit(child, 7_000)
+
   const installationMode = process.platform === 'win32' ? 'isolated installation' : 'read-only installation'
-  console.log(`PHOENIX payload smoke test passed: ${installationMode}, isolated writable user state.`)
+  console.log(`PHOENIX payload smoke test passed: ${installationMode}, single instance, clean stop, isolated writable user state.`)
 } finally {
-  if (child !== undefined && child.exitCode === null) {
+  if (child !== undefined && child.exitCode === null && child.signalCode === null) {
     child.kill('SIGTERM')
     await Promise.race([
       new Promise(resolveExit => child.once('exit', resolveExit)),
@@ -121,6 +141,14 @@ async function waitForServer (url, process, output) {
     }
   }
   throw new Error(`Payload did not become ready.\n${output.join('')}`)
+}
+
+async function waitForExit (process, timeout) {
+  if (process.exitCode !== null || process.signalCode !== null) return { code: process.exitCode, signal: process.signalCode }
+  return await Promise.race([
+    new Promise(resolveExit => process.once('exit', (code, signal) => resolveExit({ code, signal }))),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Process did not exit before the smoke-test deadline.')), timeout))
+  ])
 }
 
 function makeReadOnly (directory) {
