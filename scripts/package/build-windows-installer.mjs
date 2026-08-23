@@ -24,15 +24,16 @@ mkdirSync(outputRoot, { recursive: true })
 compileLauncher(launcher)
 
 const compiler = findInnoSetupCompiler()
-const definition = resolve(projectRoot, 'scripts/package/windows/phoenix.iss')
-execFileSync(compiler, [
-  `--define=PayloadRoot=${payloadRoot}`,
-  `--define=LauncherPath=${launcher}`,
-  `--define=OutputRoot=${outputRoot}`,
-  `--define=PhoenixVersion=${packageJson.version}`,
-  `--define=LicensePath=${resolve(projectRoot, 'LICENSE')}`,
-  definition
-], { cwd: projectRoot, stdio: 'inherit' })
+const template = readFileSync(resolve(projectRoot, 'scripts/package/windows/phoenix.iss'), 'utf8')
+const definition = resolve(workRoot, 'phoenix.iss')
+writeFileSync(definition, renderTemplate(template, {
+  LauncherPath: installerValue(launcher),
+  LicensePath: installerValue(resolve(projectRoot, 'LICENSE')),
+  OutputRoot: installerValue(outputRoot),
+  PayloadRoot: installerValue(payloadRoot),
+  PhoenixVersion: installerValue(packageJson.version)
+}))
+execFileSync(compiler, [definition], { cwd: projectRoot, stdio: 'inherit' })
 
 rmSync(workRoot, { force: true, recursive: true })
 console.log(`PHOENIX Windows test installer created under ${outputRoot}`)
@@ -68,4 +69,17 @@ function findInnoSetupCompiler () {
   const compiler = candidates.find(existsSync)
   if (!compiler) throw new Error('Inno Setup compiler was not found. Set INNO_SETUP_COMPILER to ISCC.exe.')
   return compiler
+}
+
+function renderTemplate (template, values) {
+  return Object.entries(values).reduce((rendered, [name, value]) => {
+    const marker = `@@${name}@@`
+    if (!rendered.includes(marker)) throw new Error(`Inno Setup template marker is missing: ${marker}`)
+    return rendered.replaceAll(marker, value)
+  }, template)
+}
+
+function installerValue (value) {
+  if (/["\r\n]/u.test(value)) throw new Error(`Unsafe Inno Setup value: ${value}`)
+  return value
 }

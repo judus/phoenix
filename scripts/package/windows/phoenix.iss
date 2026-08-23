@@ -1,30 +1,14 @@
-#ifndef PayloadRoot
-  #error PayloadRoot is required
-#endif
-#ifndef LauncherPath
-  #error LauncherPath is required
-#endif
-#ifndef OutputRoot
-  #error OutputRoot is required
-#endif
-#ifndef PhoenixVersion
-  #error PhoenixVersion is required
-#endif
-#ifndef LicensePath
-  #error LicensePath is required
-#endif
-
 [Setup]
 AppId={{CFBC7EE5-6215-4C6B-9A68-73679F436E6B}
 AppName=PHOENIX
-AppVersion={#PhoenixVersion}
+AppVersion=@@PhoenixVersion@@
 AppPublisher=PHOENIX Project
 DefaultDirName={localappdata}\Programs\PHOENIX
 DefaultGroupName=PHOENIX
 DisableProgramGroupPage=yes
-LicenseFile={#LicensePath}
-OutputDir={#OutputRoot}
-OutputBaseFilename=PHOENIX-{#PhoenixVersion}-windows-x64-setup
+LicenseFile=@@LicensePath@@
+OutputDir=@@OutputRoot@@
+OutputBaseFilename=PHOENIX-@@PhoenixVersion@@-windows-x64-setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -37,8 +21,8 @@ RestartApplications=no
 UninstallDisplayIcon={app}\Phoenix.exe
 
 [Files]
-Source: "{#PayloadRoot}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#LauncherPath}"; DestDir: "{app}"; DestName: "Phoenix.exe"; Flags: ignoreversion
+Source: "@@PayloadRoot@@\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "@@LauncherPath@@"; DestDir: "{app}"; DestName: "Phoenix.exe"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\PHOENIX"; Filename: "{app}\Phoenix.exe"
