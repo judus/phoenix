@@ -27,7 +27,6 @@ let child
 
 try {
   cpSync(payloadRoot, installRoot, { recursive: true })
-  cpSync(resolve(projectRoot, 'tests/fixtures/catalogue'), resolve(dataRoot, 'runtime/catalogue'), { recursive: true })
   makeReadOnly(installRoot)
   const port = await availablePort()
   const nativeLauncher = process.env.PHOENIX_SMOKE_LAUNCHER
@@ -71,6 +70,7 @@ try {
   for (const required of [
     resolve(configRoot, 'pairing.json'),
     resolve(configRoot, 'settings.json'),
+    resolve(dataRoot, 'runtime/catalogue/manifest.json'),
     resolve(dataRoot, 'runtime/phoenix.sqlite'),
     resolve(dataRoot, 'runtime/system.json')
   ]) {

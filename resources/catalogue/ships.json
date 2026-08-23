@@ -1,0 +1,6042 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "name": "EDCD Coriolis Data",
+    "repository": "https://github.com/EDCD/coriolis-data",
+    "commit": "0db9234b5b9ce8c939ea84133d7ce336eea88e27",
+    "path": "ships",
+    "retrievedAt": "2026-08-19T20:52:31.440Z"
+  },
+  "generatedAt": "2026-08-19T20:52:31.440Z",
+  "aliases": {
+    "adder": "adder",
+    "alliance_challenger": "alliance_challenger",
+    "typex_3": "alliance_challenger",
+    "alliance_chieftain": "alliance_chieftain",
+    "typex": "alliance_chieftain",
+    "alliance_crusader": "alliance_crusader",
+    "typex_2": "alliance_crusader",
+    "anaconda": "anaconda",
+    "asp": "asp",
+    "asp_explorer": "asp",
+    "asp_scout": "asp_scout",
+    "beluga": "beluga",
+    "beluga_liner": "beluga",
+    "belugaliner": "beluga",
+    "cobra_mk_iii": "cobra_mk_iii",
+    "cobramkiii": "cobra_mk_iii",
+    "cobra_mkiii": "cobra_mk_iii",
+    "cobra_mk_iv": "cobra_mk_iv",
+    "cobramkiv": "cobra_mk_iv",
+    "cobra_mkiv": "cobra_mk_iv",
+    "cobramkv": "cobramkv",
+    "cobra_mk_v": "cobramkv",
+    "cobra_mkv": "cobramkv",
+    "diamondback_explorer": "diamondback_explorer",
+    "diamondbackxl": "diamondback_explorer",
+    "diamondback": "diamondback",
+    "diamondback_scout": "diamondback",
+    "dolphin": "dolphin",
+    "eagle": "eagle",
+    "explorer_nx": "explorer_nx",
+    "caspian_explorer": "explorer_nx",
+    "federal_assault_ship": "federal_assault_ship",
+    "federation_dropship_mkii": "federal_assault_ship",
+    "federal_corvette": "federal_corvette",
+    "federation_corvette": "federal_corvette",
+    "federal_dropship": "federal_dropship",
+    "federation_dropship": "federal_dropship",
+    "federal_gunship": "federal_gunship",
+    "federation_gunship": "federal_gunship",
+    "fer_de_lance": "fer_de_lance",
+    "ferdelance": "fer_de_lance",
+    "hauler": "hauler",
+    "imperial_clipper": "imperial_clipper",
+    "empire_trader": "imperial_clipper",
+    "imperial_corsair": "imperial_corsair",
+    "corsair": "imperial_corsair",
+    "imperial_courier": "imperial_courier",
+    "empire_courier": "imperial_courier",
+    "imperial_cutter": "imperial_cutter",
+    "cutter": "imperial_cutter",
+    "imperial_eagle": "imperial_eagle",
+    "empire_eagle": "imperial_eagle",
+    "keelback": "keelback",
+    "independant_trader": "keelback",
+    "kestrel": "kestrel",
+    "kestrel_mk_ii": "kestrel",
+    "krait_mkii": "krait_mkii",
+    "krait_mk_ii": "krait_mkii",
+    "krait_phantom": "krait_phantom",
+    "krait_light": "krait_phantom",
+    "mamba": "mamba",
+    "mandalay": "mandalay",
+    "orca": "orca",
+    "panthermkii": "panthermkii",
+    "panther_clipper_mk_ii": "panthermkii",
+    "panther_clipper_mkii": "panthermkii",
+    "python": "python",
+    "python_nx": "python_nx",
+    "python_mk_ii": "python_nx",
+    "python_mkii": "python_nx",
+    "sidewinder": "sidewinder",
+    "type_10_defender": "type_10_defender",
+    "type9_military": "type_10_defender",
+    "type_11_prospector": "type_11_prospector",
+    "lakonminer": "type_11_prospector",
+    "type_6_transporter": "type_6_transporter",
+    "type6": "type_6_transporter",
+    "type_7_transport": "type_7_transport",
+    "type_7_transporter": "type_7_transport",
+    "type7": "type_7_transport",
+    "type_8_transport": "type_8_transport",
+    "type_8_transporter": "type_8_transport",
+    "type8": "type_8_transport",
+    "type_9_heavy": "type_9_heavy",
+    "type9": "type_9_heavy",
+    "viper": "viper",
+    "viper_mkiii": "viper",
+    "viper_mk_iv": "viper_mk_iv",
+    "viper_mkiv": "viper_mk_iv",
+    "vulture": "vulture"
+  },
+  "ships": [
+    {
+      "id": "adder",
+      "identifiers": {
+        "coriolis": "adder",
+        "frontierEdId": 128049267
+      },
+      "displayName": "Adder",
+      "manufacturer": "Zorgon Peterson",
+      "landingPadSize": "small",
+      "performance": {
+        "baseArmour": 90,
+        "baseShieldStrength": 60,
+        "boost": 320,
+        "hullMass": 35,
+        "speed": 220
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 3
+          },
+          {
+            "name": "Thrusters",
+            "size": 3
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 3
+          },
+          {
+            "name": "Life Support",
+            "size": 1
+          },
+          {
+            "name": "Power Distributor",
+            "size": 2
+          },
+          {
+            "name": "Sensors",
+            "size": 3
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 3
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "adder.json"
+      }
+    },
+    {
+      "id": "alliance_challenger",
+      "identifiers": {
+        "coriolis": "alliance_challenger",
+        "frontierEdId": 128816588
+      },
+      "displayName": "Alliance Challenger",
+      "manufacturer": "Lakon",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 300,
+        "baseShieldStrength": 220,
+        "boost": 310,
+        "hullMass": 450,
+        "speed": 204
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 6
+          },
+          {
+            "name": "Thrusters",
+            "size": 6
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 5
+          },
+          {
+            "name": "Life Support",
+            "size": 5
+          },
+          {
+            "name": "Power Distributor",
+            "size": 6
+          },
+          {
+            "name": "Sensors",
+            "size": 4
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 4
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 4,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 4,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 4,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "alliance_challenger.json"
+      }
+    },
+    {
+      "id": "alliance_chieftain",
+      "identifiers": {
+        "coriolis": "alliance_chieftain",
+        "frontierEdId": 128816574
+      },
+      "displayName": "Alliance Chieftain",
+      "manufacturer": "Lakon",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 280,
+        "baseShieldStrength": 200,
+        "boost": 330,
+        "hullMass": 400,
+        "speed": 230
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 6
+          },
+          {
+            "name": "Thrusters",
+            "size": 6
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 5
+          },
+          {
+            "name": "Life Support",
+            "size": 5
+          },
+          {
+            "name": "Power Distributor",
+            "size": 6
+          },
+          {
+            "name": "Sensors",
+            "size": 4
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 4
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 4,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 4,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 4,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "alliance_chieftain.json"
+      }
+    },
+    {
+      "id": "alliance_crusader",
+      "identifiers": {
+        "coriolis": "alliance_crusader",
+        "frontierEdId": 128816581
+      },
+      "displayName": "Alliance Crusader",
+      "manufacturer": "Lakon",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 300,
+        "baseShieldStrength": 200,
+        "boost": 300,
+        "hullMass": 500,
+        "speed": 180
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 6
+          },
+          {
+            "name": "Thrusters",
+            "size": 6
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 5
+          },
+          {
+            "name": "Life Support",
+            "size": 5
+          },
+          {
+            "name": "Power Distributor",
+            "size": 6
+          },
+          {
+            "name": "Sensors",
+            "size": 4
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 4
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 4,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 4,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 4,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "alliance_crusader.json"
+      }
+    },
+    {
+      "id": "anaconda",
+      "identifiers": {
+        "coriolis": "anaconda",
+        "frontierEdId": 128049363
+      },
+      "displayName": "Anaconda",
+      "manufacturer": "Faulcon DeLacy",
+      "landingPadSize": "large",
+      "performance": {
+        "baseArmour": 525,
+        "baseShieldStrength": 350,
+        "boost": 240,
+        "hullMass": 400,
+        "speed": 180
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 8
+          },
+          {
+            "name": "Thrusters",
+            "size": 7
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 6
+          },
+          {
+            "name": "Life Support",
+            "size": 5
+          },
+          {
+            "name": "Power Distributor",
+            "size": 8
+          },
+          {
+            "name": "Sensors",
+            "size": 8
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 5
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 7
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "anaconda.json"
+      }
+    },
+    {
+      "id": "asp",
+      "identifiers": {
+        "coriolis": "asp",
+        "frontierEdId": 128049303
+      },
+      "displayName": "Asp Explorer",
+      "manufacturer": "Lakon",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 210,
+        "baseShieldStrength": 140,
+        "boost": 340,
+        "hullMass": 280,
+        "speed": 250
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 5
+          },
+          {
+            "name": "Thrusters",
+            "size": 5
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 5
+          },
+          {
+            "name": "Life Support",
+            "size": 4
+          },
+          {
+            "name": "Power Distributor",
+            "size": 4
+          },
+          {
+            "name": "Sensors",
+            "size": 5
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 5
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "asp.json"
+      }
+    },
+    {
+      "id": "asp_scout",
+      "identifiers": {
+        "coriolis": "asp_scout",
+        "frontierEdId": 128672276
+      },
+      "displayName": "Asp Scout",
+      "manufacturer": "Lakon",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 180,
+        "baseShieldStrength": 120,
+        "boost": 300,
+        "hullMass": 150,
+        "speed": 220
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 4
+          },
+          {
+            "name": "Thrusters",
+            "size": 4
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 4
+          },
+          {
+            "name": "Life Support",
+            "size": 3
+          },
+          {
+            "name": "Power Distributor",
+            "size": 4
+          },
+          {
+            "name": "Sensors",
+            "size": 4
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 4
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "asp_scout.json"
+      }
+    },
+    {
+      "id": "beluga",
+      "identifiers": {
+        "coriolis": "beluga",
+        "frontierEdId": 128049345
+      },
+      "displayName": "Beluga Liner",
+      "manufacturer": "Saud Kruger",
+      "landingPadSize": "large",
+      "performance": {
+        "baseArmour": 280,
+        "baseShieldStrength": 280,
+        "boost": 280,
+        "hullMass": 950,
+        "speed": 200
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 6
+          },
+          {
+            "name": "Thrusters",
+            "size": 7
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 7
+          },
+          {
+            "name": "Life Support",
+            "size": 8
+          },
+          {
+            "name": "Power Distributor",
+            "size": 6
+          },
+          {
+            "name": "Sensors",
+            "size": 5
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 7
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          }
+        ],
+        "optional": [
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "beluga.json"
+      }
+    },
+    {
+      "id": "explorer_nx",
+      "identifiers": {
+        "coriolis": "explorer_nx",
+        "frontierEdId": 129036570
+      },
+      "displayName": "Caspian Explorer",
+      "manufacturer": "Zorgon Peterson",
+      "landingPadSize": "large",
+      "performance": {
+        "baseArmour": 345,
+        "baseShieldStrength": 500,
+        "boost": 290,
+        "hullMass": 950,
+        "speed": 210
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 8
+          },
+          {
+            "name": "Thrusters",
+            "size": 7
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 8
+          },
+          {
+            "name": "Life Support",
+            "size": 5
+          },
+          {
+            "name": "Power Distributor",
+            "size": 7
+          },
+          {
+            "name": "Sensors",
+            "size": 8
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 7
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          }
+        ],
+        "optional": [
+          {
+            "size": 7
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "explorer_nx.json"
+      }
+    },
+    {
+      "id": "cobra_mk_iii",
+      "identifiers": {
+        "coriolis": "cobra_mk_iii",
+        "frontierEdId": 128049279
+      },
+      "displayName": "Cobra Mk III",
+      "manufacturer": "Faulcon DeLacy",
+      "landingPadSize": "small",
+      "performance": {
+        "baseArmour": 120,
+        "baseShieldStrength": 80,
+        "boost": 400,
+        "hullMass": 180,
+        "speed": 280
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 4
+          },
+          {
+            "name": "Thrusters",
+            "size": 4
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 4
+          },
+          {
+            "name": "Life Support",
+            "size": 3
+          },
+          {
+            "name": "Power Distributor",
+            "size": 3
+          },
+          {
+            "name": "Sensors",
+            "size": 3
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 4
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "cobra_mk_iii.json"
+      }
+    },
+    {
+      "id": "cobra_mk_iv",
+      "identifiers": {
+        "coriolis": "cobra_mk_iv",
+        "frontierEdId": 128672262
+      },
+      "displayName": "Cobra Mk IV",
+      "manufacturer": "Faulcon DeLacy",
+      "landingPadSize": "small",
+      "performance": {
+        "baseArmour": 120,
+        "baseShieldStrength": 120,
+        "boost": 300,
+        "hullMass": 210,
+        "speed": 200
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 4
+          },
+          {
+            "name": "Thrusters",
+            "size": 4
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 4
+          },
+          {
+            "name": "Life Support",
+            "size": 3
+          },
+          {
+            "name": "Power Distributor",
+            "size": 3
+          },
+          {
+            "name": "Sensors",
+            "size": 3
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 4
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "cobra_mk_iv.json"
+      }
+    },
+    {
+      "id": "cobramkv",
+      "identifiers": {
+        "coriolis": "cobramkv",
+        "frontierEdId": 129031229
+      },
+      "displayName": "Cobra Mk V",
+      "manufacturer": "Faulcon DeLacy",
+      "landingPadSize": "small",
+      "performance": {
+        "baseArmour": 180,
+        "baseShieldStrength": 160,
+        "boost": 412,
+        "hullMass": 150,
+        "speed": 291
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 4
+          },
+          {
+            "name": "Thrusters",
+            "size": 4
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 4
+          },
+          {
+            "name": "Life Support",
+            "size": 3
+          },
+          {
+            "name": "Power Distributor",
+            "size": 4
+          },
+          {
+            "name": "Sensors",
+            "size": 3
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 4
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "cobra_mk_v.json"
+      }
+    },
+    {
+      "id": "imperial_corsair",
+      "identifiers": {
+        "coriolis": "imperial_corsair",
+        "frontierEdId": 129031321
+      },
+      "displayName": "Corsair",
+      "manufacturer": "Gutamaya",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 270,
+        "baseShieldStrength": 235,
+        "boost": 355,
+        "hullMass": 265,
+        "speed": 280
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 7
+          },
+          {
+            "name": "Thrusters",
+            "size": 7
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 5
+          },
+          {
+            "name": "Life Support",
+            "size": 4
+          },
+          {
+            "name": "Power Distributor",
+            "size": 7
+          },
+          {
+            "name": "Sensors",
+            "size": 6
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 5
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          }
+        ],
+        "optional": [
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "imperial_corsair.json"
+      }
+    },
+    {
+      "id": "diamondback_explorer",
+      "identifiers": {
+        "coriolis": "diamondback_explorer",
+        "frontierEdId": 128671831
+      },
+      "displayName": "Diamondback Explorer",
+      "manufacturer": "Lakon",
+      "landingPadSize": "small",
+      "performance": {
+        "baseArmour": 150,
+        "baseShieldStrength": 150,
+        "boost": 340,
+        "hullMass": 260,
+        "speed": 260
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 4
+          },
+          {
+            "name": "Thrusters",
+            "size": 4
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 5
+          },
+          {
+            "name": "Life Support",
+            "size": 3
+          },
+          {
+            "name": "Power Distributor",
+            "size": 4
+          },
+          {
+            "name": "Sensors",
+            "size": 3
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 5
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          }
+        ],
+        "optional": [
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "diamondback_explorer.json"
+      }
+    },
+    {
+      "id": "diamondback",
+      "identifiers": {
+        "coriolis": "diamondback",
+        "frontierEdId": 128671217
+      },
+      "displayName": "Diamondback Scout",
+      "manufacturer": "Lakon",
+      "landingPadSize": "small",
+      "performance": {
+        "baseArmour": 120,
+        "baseShieldStrength": 120,
+        "boost": 380,
+        "hullMass": 170,
+        "speed": 280
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 4
+          },
+          {
+            "name": "Thrusters",
+            "size": 4
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 4
+          },
+          {
+            "name": "Life Support",
+            "size": 2
+          },
+          {
+            "name": "Power Distributor",
+            "size": 3
+          },
+          {
+            "name": "Sensors",
+            "size": 2
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 4
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "diamondback_scout.json"
+      }
+    },
+    {
+      "id": "dolphin",
+      "identifiers": {
+        "coriolis": "dolphin",
+        "frontierEdId": 128049291
+      },
+      "displayName": "Dolphin",
+      "manufacturer": "Saud Kruger",
+      "landingPadSize": "small",
+      "performance": {
+        "baseArmour": 110,
+        "baseShieldStrength": 110,
+        "boost": 350,
+        "hullMass": 140,
+        "speed": 250
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 4
+          },
+          {
+            "name": "Thrusters",
+            "size": 5
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 4
+          },
+          {
+            "name": "Life Support",
+            "size": 4
+          },
+          {
+            "name": "Power Distributor",
+            "size": 3
+          },
+          {
+            "name": "Sensors",
+            "size": 3
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 4
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "dolphin.json"
+      }
+    },
+    {
+      "id": "eagle",
+      "identifiers": {
+        "coriolis": "eagle",
+        "frontierEdId": 128049255
+      },
+      "displayName": "Eagle",
+      "manufacturer": "Core Dynamics",
+      "landingPadSize": "small",
+      "performance": {
+        "baseArmour": 40,
+        "baseShieldStrength": 60,
+        "boost": 350,
+        "hullMass": 50,
+        "speed": 240
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 2
+          },
+          {
+            "name": "Thrusters",
+            "size": 3
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 3
+          },
+          {
+            "name": "Life Support",
+            "size": 1
+          },
+          {
+            "name": "Power Distributor",
+            "size": 2
+          },
+          {
+            "name": "Sensors",
+            "size": 2
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 2
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "eagle.json"
+      }
+    },
+    {
+      "id": "federal_assault_ship",
+      "identifiers": {
+        "coriolis": "federal_assault_ship",
+        "frontierEdId": 128672145
+      },
+      "displayName": "Federal Assault Ship",
+      "manufacturer": "Core Dynamics",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 300,
+        "baseShieldStrength": 200,
+        "boost": 350,
+        "hullMass": 480,
+        "speed": 210
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 6
+          },
+          {
+            "name": "Thrusters",
+            "size": 6
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 5
+          },
+          {
+            "name": "Life Support",
+            "size": 5
+          },
+          {
+            "name": "Power Distributor",
+            "size": 6
+          },
+          {
+            "name": "Sensors",
+            "size": 4
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 4
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          }
+        ],
+        "optional": [
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 4,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 4,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "federal_assault_ship.json"
+      }
+    },
+    {
+      "id": "federal_corvette",
+      "identifiers": {
+        "coriolis": "federal_corvette",
+        "frontierEdId": 128049369
+      },
+      "displayName": "Federal Corvette",
+      "manufacturer": "Core Dynamics",
+      "landingPadSize": "large",
+      "performance": {
+        "baseArmour": 370,
+        "baseShieldStrength": 555,
+        "boost": 260,
+        "hullMass": 900,
+        "speed": 200
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 8
+          },
+          {
+            "name": "Thrusters",
+            "size": 7
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 6
+          },
+          {
+            "name": "Life Support",
+            "size": 5
+          },
+          {
+            "name": "Power Distributor",
+            "size": 8
+          },
+          {
+            "name": "Sensors",
+            "size": 8
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 5
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 7
+          },
+          {
+            "size": 7
+          },
+          {
+            "size": 7
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 5,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "federal_corvette.json"
+      }
+    },
+    {
+      "id": "federal_dropship",
+      "identifiers": {
+        "coriolis": "federal_dropship",
+        "frontierEdId": 128049321
+      },
+      "displayName": "Federal Dropship",
+      "manufacturer": "Core Dynamics",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 300,
+        "baseShieldStrength": 200,
+        "boost": 300,
+        "hullMass": 580,
+        "speed": 180
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 6
+          },
+          {
+            "name": "Thrusters",
+            "size": 6
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 5
+          },
+          {
+            "name": "Life Support",
+            "size": 5
+          },
+          {
+            "name": "Power Distributor",
+            "size": 6
+          },
+          {
+            "name": "Sensors",
+            "size": 4
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 4
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          }
+        ],
+        "optional": [
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 4,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 4,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "federal_dropship.json"
+      }
+    },
+    {
+      "id": "federal_gunship",
+      "identifiers": {
+        "coriolis": "federal_gunship",
+        "frontierEdId": 128672152
+      },
+      "displayName": "Federal Gunship",
+      "manufacturer": "Core Dynamics",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 350,
+        "baseShieldStrength": 250,
+        "boost": 280,
+        "hullMass": 580,
+        "speed": 170
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 6
+          },
+          {
+            "name": "Thrusters",
+            "size": 6
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 5
+          },
+          {
+            "name": "Life Support",
+            "size": 5
+          },
+          {
+            "name": "Power Distributor",
+            "size": 7
+          },
+          {
+            "name": "Sensors",
+            "size": 5
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 4
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 4,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 4,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 4,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "federal_gunship.json"
+      }
+    },
+    {
+      "id": "fer_de_lance",
+      "identifiers": {
+        "coriolis": "fer_de_lance",
+        "frontierEdId": 128049351
+      },
+      "displayName": "Fer-de-Lance",
+      "manufacturer": "Zorgon Peterson",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 225,
+        "baseShieldStrength": 300,
+        "boost": 350,
+        "hullMass": 250,
+        "speed": 260
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 6
+          },
+          {
+            "name": "Thrusters",
+            "size": 5
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 4
+          },
+          {
+            "name": "Life Support",
+            "size": 4
+          },
+          {
+            "name": "Power Distributor",
+            "size": 6
+          },
+          {
+            "name": "Sensors",
+            "size": 4
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 3
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 4
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          }
+        ],
+        "optional": [
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "fer_de_lance.json"
+      }
+    },
+    {
+      "id": "hauler",
+      "identifiers": {
+        "coriolis": "hauler",
+        "frontierEdId": 128049261
+      },
+      "displayName": "Hauler",
+      "manufacturer": "Zorgon Peterson",
+      "landingPadSize": "small",
+      "performance": {
+        "baseArmour": 100,
+        "baseShieldStrength": 50,
+        "boost": 300,
+        "hullMass": 14,
+        "speed": 200
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 2
+          },
+          {
+            "name": "Thrusters",
+            "size": 2
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 2
+          },
+          {
+            "name": "Life Support",
+            "size": 1
+          },
+          {
+            "name": "Power Distributor",
+            "size": 1
+          },
+          {
+            "name": "Sensors",
+            "size": 1
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 2
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "hauler.json"
+      }
+    },
+    {
+      "id": "imperial_clipper",
+      "identifiers": {
+        "coriolis": "imperial_clipper",
+        "frontierEdId": 128049315
+      },
+      "displayName": "Imperial Clipper",
+      "manufacturer": "Gutamaya",
+      "landingPadSize": "large",
+      "performance": {
+        "baseArmour": 270,
+        "baseShieldStrength": 180,
+        "boost": 380,
+        "hullMass": 400,
+        "speed": 300
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 6
+          },
+          {
+            "name": "Thrusters",
+            "size": 6
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 5
+          },
+          {
+            "name": "Life Support",
+            "size": 5
+          },
+          {
+            "name": "Power Distributor",
+            "size": 6
+          },
+          {
+            "name": "Sensors",
+            "size": 5
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 4
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          }
+        ],
+        "optional": [
+          {
+            "size": 7
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "imperial_clipper.json"
+      }
+    },
+    {
+      "id": "imperial_courier",
+      "identifiers": {
+        "coriolis": "imperial_courier",
+        "frontierEdId": 128671223
+      },
+      "displayName": "Imperial Courier",
+      "manufacturer": "Gutamaya",
+      "landingPadSize": "small",
+      "performance": {
+        "baseArmour": 80,
+        "baseShieldStrength": 200,
+        "boost": 380,
+        "hullMass": 35,
+        "speed": 280
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 4
+          },
+          {
+            "name": "Thrusters",
+            "size": 3
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 3
+          },
+          {
+            "name": "Life Support",
+            "size": 1
+          },
+          {
+            "name": "Power Distributor",
+            "size": 3
+          },
+          {
+            "name": "Sensors",
+            "size": 2
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 3
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          }
+        ],
+        "optional": [
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "imperial_courier.json"
+      }
+    },
+    {
+      "id": "imperial_cutter",
+      "identifiers": {
+        "coriolis": "imperial_cutter",
+        "frontierEdId": 128049375
+      },
+      "displayName": "Imperial Cutter",
+      "manufacturer": "Gutamaya",
+      "landingPadSize": "large",
+      "performance": {
+        "baseArmour": 400,
+        "baseShieldStrength": 600,
+        "boost": 320,
+        "hullMass": 1100,
+        "speed": 200
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 8
+          },
+          {
+            "name": "Thrusters",
+            "size": 8
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 7
+          },
+          {
+            "name": "Life Support",
+            "size": 7
+          },
+          {
+            "name": "Power Distributor",
+            "size": 7
+          },
+          {
+            "name": "Sensors",
+            "size": 7
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 6
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          }
+        ],
+        "optional": [
+          {
+            "size": 8
+          },
+          {
+            "size": 8
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 5,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "imperial_cutter.json"
+      }
+    },
+    {
+      "id": "imperial_eagle",
+      "identifiers": {
+        "coriolis": "imperial_eagle",
+        "frontierEdId": 128672138
+      },
+      "displayName": "Imperial Eagle",
+      "manufacturer": "Gutamaya",
+      "landingPadSize": "small",
+      "performance": {
+        "baseArmour": 60,
+        "baseShieldStrength": 80,
+        "boost": 400,
+        "hullMass": 50,
+        "speed": 300
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 3
+          },
+          {
+            "name": "Thrusters",
+            "size": 3
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 3
+          },
+          {
+            "name": "Life Support",
+            "size": 1
+          },
+          {
+            "name": "Power Distributor",
+            "size": 2
+          },
+          {
+            "name": "Sensors",
+            "size": 2
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 2
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "imperial_eagle.json"
+      }
+    },
+    {
+      "id": "keelback",
+      "identifiers": {
+        "coriolis": "keelback",
+        "frontierEdId": 128672269
+      },
+      "displayName": "Keelback",
+      "manufacturer": "Lakon",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 270,
+        "baseShieldStrength": 135,
+        "boost": 300,
+        "hullMass": 180,
+        "speed": 200
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 4
+          },
+          {
+            "name": "Thrusters",
+            "size": 4
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 4
+          },
+          {
+            "name": "Life Support",
+            "size": 1
+          },
+          {
+            "name": "Power Distributor",
+            "size": 3
+          },
+          {
+            "name": "Sensors",
+            "size": 2
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 4
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "keelback.json"
+      }
+    },
+    {
+      "id": "kestrel",
+      "identifiers": {
+        "coriolis": "kestrel",
+        "frontierEdId": 129041381
+      },
+      "displayName": "Kestrel Mk II",
+      "manufacturer": "Core Dynamics",
+      "landingPadSize": "small",
+      "performance": {
+        "baseArmour": 70,
+        "baseShieldStrength": 225,
+        "boost": 360,
+        "hullMass": 190,
+        "speed": 271
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 5
+          },
+          {
+            "name": "Thrusters",
+            "size": 5
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 4
+          },
+          {
+            "name": "Life Support",
+            "size": 1
+          },
+          {
+            "name": "Power Distributor",
+            "size": 5
+          },
+          {
+            "name": "Sensors",
+            "size": 2
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 4
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 4,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "kestrel.json"
+      }
+    },
+    {
+      "id": "krait_mkii",
+      "identifiers": {
+        "coriolis": "krait_mkii",
+        "frontierEdId": 128816567
+      },
+      "displayName": "Krait Mk II",
+      "manufacturer": "Faulcon DeLacy",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 220,
+        "baseShieldStrength": 220,
+        "boost": 330,
+        "hullMass": 320,
+        "speed": 240
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 7
+          },
+          {
+            "name": "Thrusters",
+            "size": 6
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 5
+          },
+          {
+            "name": "Life Support",
+            "size": 4
+          },
+          {
+            "name": "Power Distributor",
+            "size": 7
+          },
+          {
+            "name": "Sensors",
+            "size": 6
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 5
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          }
+        ],
+        "optional": [
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "krait_mkii.json"
+      }
+    },
+    {
+      "id": "krait_phantom",
+      "identifiers": {
+        "coriolis": "krait_phantom",
+        "frontierEdId": 128839281
+      },
+      "displayName": "Krait Phantom",
+      "manufacturer": "Faulcon DeLacy",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 180,
+        "baseShieldStrength": 200,
+        "boost": 350,
+        "hullMass": 270,
+        "speed": 250
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 7
+          },
+          {
+            "name": "Thrusters",
+            "size": 6
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 5
+          },
+          {
+            "name": "Life Support",
+            "size": 4
+          },
+          {
+            "name": "Power Distributor",
+            "size": 7
+          },
+          {
+            "name": "Sensors",
+            "size": 6
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 5
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          }
+        ],
+        "optional": [
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "krait_phantom.json"
+      }
+    },
+    {
+      "id": "mamba",
+      "identifiers": {
+        "coriolis": "mamba",
+        "frontierEdId": 128915979
+      },
+      "displayName": "Mamba",
+      "manufacturer": "Zorgon Peterson",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 230,
+        "baseShieldStrength": 270,
+        "boost": 380,
+        "hullMass": 250,
+        "speed": 310
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 6
+          },
+          {
+            "name": "Thrusters",
+            "size": 5
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 4
+          },
+          {
+            "name": "Life Support",
+            "size": 4
+          },
+          {
+            "name": "Power Distributor",
+            "size": 6
+          },
+          {
+            "name": "Sensors",
+            "size": 4
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 3
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "mamba.json"
+      }
+    },
+    {
+      "id": "mandalay",
+      "identifiers": {
+        "coriolis": "mandalay",
+        "frontierEdId": 129030680
+      },
+      "displayName": "Mandalay",
+      "manufacturer": "Zorgon Peterson",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 230,
+        "baseShieldStrength": 220,
+        "boost": 350,
+        "hullMass": 230,
+        "speed": 280
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 5
+          },
+          {
+            "name": "Thrusters",
+            "size": 5
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 5
+          },
+          {
+            "name": "Life Support",
+            "size": 4
+          },
+          {
+            "name": "Power Distributor",
+            "size": 5
+          },
+          {
+            "name": "Sensors",
+            "size": 5
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 5
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "mandalay.json"
+      }
+    },
+    {
+      "id": "orca",
+      "identifiers": {
+        "coriolis": "orca",
+        "frontierEdId": 128049327
+      },
+      "displayName": "Orca",
+      "manufacturer": "Saud Kruger",
+      "landingPadSize": "large",
+      "performance": {
+        "baseArmour": 220,
+        "baseShieldStrength": 220,
+        "boost": 380,
+        "hullMass": 290,
+        "speed": 300
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 5
+          },
+          {
+            "name": "Thrusters",
+            "size": 6
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 5
+          },
+          {
+            "name": "Life Support",
+            "size": 6
+          },
+          {
+            "name": "Power Distributor",
+            "size": 5
+          },
+          {
+            "name": "Sensors",
+            "size": 4
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 5
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          }
+        ],
+        "optional": [
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "orca.json"
+      }
+    },
+    {
+      "id": "panthermkii",
+      "identifiers": {
+        "coriolis": "panthermkii",
+        "frontierEdId": 129034269
+      },
+      "displayName": "Panther Clipper Mk II",
+      "manufacturer": "Zorgon Peterson",
+      "landingPadSize": "large",
+      "performance": {
+        "baseArmour": 620,
+        "baseShieldStrength": 350,
+        "boost": 250,
+        "hullMass": 1200,
+        "speed": 181
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 8
+          },
+          {
+            "name": "Thrusters",
+            "size": 8
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 7
+          },
+          {
+            "name": "Life Support",
+            "size": 5
+          },
+          {
+            "name": "Power Distributor",
+            "size": 7
+          },
+          {
+            "name": "Sensors",
+            "size": 5
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 7
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 8,
+            "name": "Cargo",
+            "eligible": {
+              "cr": 1,
+              "crl": 1,
+              "ft": 1
+            }
+          },
+          {
+            "size": 8
+          },
+          {
+            "size": 7,
+            "name": "Cargo",
+            "eligible": {
+              "cr": 1,
+              "crl": 1,
+              "ft": 1
+            }
+          },
+          {
+            "size": 7
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "panther_clipper.json"
+      }
+    },
+    {
+      "id": "python",
+      "identifiers": {
+        "coriolis": "python",
+        "frontierEdId": 128049339
+      },
+      "displayName": "Python",
+      "manufacturer": "Faulcon DeLacy",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 260,
+        "baseShieldStrength": 260,
+        "boost": 300,
+        "hullMass": 350,
+        "speed": 230
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 7
+          },
+          {
+            "name": "Thrusters",
+            "size": 6
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 5
+          },
+          {
+            "name": "Life Support",
+            "size": 4
+          },
+          {
+            "name": "Power Distributor",
+            "size": 7
+          },
+          {
+            "name": "Sensors",
+            "size": 6
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 5
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          }
+        ],
+        "optional": [
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "python.json"
+      }
+    },
+    {
+      "id": "python_nx",
+      "identifiers": {
+        "coriolis": "python_nx",
+        "frontierEdId": 129030464
+      },
+      "displayName": "Python Mk II",
+      "manufacturer": "Faulcon DeLacy",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 280,
+        "baseShieldStrength": 335,
+        "boost": 345,
+        "hullMass": 450,
+        "speed": 256
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 6
+          },
+          {
+            "name": "Thrusters",
+            "size": 6
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 5
+          },
+          {
+            "name": "Life Support",
+            "size": 4
+          },
+          {
+            "name": "Power Distributor",
+            "size": 6
+          },
+          {
+            "name": "Sensors",
+            "size": 5
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 4
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          }
+        ],
+        "optional": [
+          {
+            "size": 6
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "python_nx.json"
+      }
+    },
+    {
+      "id": "sidewinder",
+      "identifiers": {
+        "coriolis": "sidewinder",
+        "frontierEdId": 128049249
+      },
+      "displayName": "Sidewinder",
+      "manufacturer": "Faulcon DeLacy",
+      "landingPadSize": "small",
+      "performance": {
+        "baseArmour": 60,
+        "baseShieldStrength": 40,
+        "boost": 320,
+        "hullMass": 25,
+        "speed": 220
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 2
+          },
+          {
+            "name": "Thrusters",
+            "size": 2
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 2
+          },
+          {
+            "name": "Life Support",
+            "size": 1
+          },
+          {
+            "name": "Power Distributor",
+            "size": 1
+          },
+          {
+            "name": "Sensors",
+            "size": 1
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 1
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "sidewinder.json"
+      }
+    },
+    {
+      "id": "type_10_defender",
+      "identifiers": {
+        "coriolis": "type_10_defender",
+        "frontierEdId": 128785619
+      },
+      "displayName": "Type-10 Defender",
+      "manufacturer": "Lakon",
+      "landingPadSize": "large",
+      "performance": {
+        "baseArmour": 580,
+        "baseShieldStrength": 320,
+        "boost": 219,
+        "hullMass": 1200,
+        "speed": 179
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 8
+          },
+          {
+            "name": "Thrusters",
+            "size": 7
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 7
+          },
+          {
+            "name": "Life Support",
+            "size": 5
+          },
+          {
+            "name": "Power Distributor",
+            "size": 7
+          },
+          {
+            "name": "Sensors",
+            "size": 4
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 6
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 8
+          },
+          {
+            "size": 7
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 5,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 5,
+            "name": "Military",
+            "eligible": {
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "type_10_defender.json"
+      }
+    },
+    {
+      "id": "type_11_prospector",
+      "identifiers": {
+        "coriolis": "type_11_prospector",
+        "frontierEdId": 129036130
+      },
+      "displayName": "Type-11 Prospector",
+      "manufacturer": "Lakon",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 350,
+        "baseShieldStrength": 275,
+        "boost": 367,
+        "hullMass": 320,
+        "speed": 272
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 6
+          },
+          {
+            "name": "Thrusters",
+            "size": 5
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 5
+          },
+          {
+            "name": "Life Support",
+            "size": 3
+          },
+          {
+            "name": "Power Distributor",
+            "size": 7
+          },
+          {
+            "name": "Sensors",
+            "size": 3
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 5
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3,
+            "name": "Mining",
+            "eligible": {
+              "abl": 1,
+              "ml": 1,
+              "mvr": 1,
+              "pwa": 1,
+              "scl": 1,
+              "sdm": 1
+            }
+          },
+          {
+            "size": 2,
+            "name": "Mining",
+            "eligible": {
+              "abl": 1,
+              "ml": 1,
+              "pwa": 1,
+              "scl": 1,
+              "sdm": 1
+            }
+          },
+          {
+            "size": 2,
+            "name": "Mining",
+            "eligible": {
+              "abl": 1,
+              "ml": 1,
+              "pwa": 1,
+              "scl": 1,
+              "sdm": 1
+            }
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1,
+            "name": "Mining",
+            "eligible": {
+              "abl": 1,
+              "ml": 1,
+              "pwa": 1,
+              "scl": 1,
+              "sdm": 1
+            }
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5,
+            "name": "Limpets",
+            "eligible": {
+              "cc": 1,
+              "dtl": 1,
+              "fx": 1,
+              "hb": 1,
+              "mlc": 1,
+              "pc": 1,
+              "rpl": 1,
+              "rcpl": 1,
+              "rsl": 1
+            }
+          },
+          {
+            "size": 5,
+            "name": "Fighter",
+            "eligible": {
+              "fh": 1
+            }
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "type_11_prospector.json"
+      }
+    },
+    {
+      "id": "type_6_transporter",
+      "identifiers": {
+        "coriolis": "type_6_transporter",
+        "frontierEdId": 128049285
+      },
+      "displayName": "Type-6 Transporter",
+      "manufacturer": "Lakon",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 180,
+        "baseShieldStrength": 90,
+        "boost": 350,
+        "hullMass": 155,
+        "speed": 220
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 3
+          },
+          {
+            "name": "Thrusters",
+            "size": 4
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 4
+          },
+          {
+            "name": "Life Support",
+            "size": 2
+          },
+          {
+            "name": "Power Distributor",
+            "size": 3
+          },
+          {
+            "name": "Sensors",
+            "size": 2
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 4
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "type_6_transporter.json"
+      }
+    },
+    {
+      "id": "type_7_transport",
+      "identifiers": {
+        "coriolis": "type_7_transport",
+        "frontierEdId": 128049297
+      },
+      "displayName": "Type-7 Transporter",
+      "manufacturer": "Lakon",
+      "landingPadSize": "large",
+      "performance": {
+        "baseArmour": 340,
+        "baseShieldStrength": 155,
+        "boost": 300,
+        "hullMass": 350,
+        "speed": 180
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 5
+          },
+          {
+            "name": "Thrusters",
+            "size": 5
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 5
+          },
+          {
+            "name": "Life Support",
+            "size": 4
+          },
+          {
+            "name": "Power Distributor",
+            "size": 4
+          },
+          {
+            "name": "Sensors",
+            "size": 3
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 5
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "type_7_transport.json"
+      }
+    },
+    {
+      "id": "type_8_transport",
+      "identifiers": {
+        "coriolis": "type_8_transport",
+        "frontierEdId": 129030534
+      },
+      "displayName": "Type-8 Transporter",
+      "manufacturer": "Lakon",
+      "landingPadSize": "medium",
+      "performance": {
+        "baseArmour": 440,
+        "baseShieldStrength": 228,
+        "boost": 340,
+        "hullMass": 400,
+        "speed": 200
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 5
+          },
+          {
+            "name": "Thrusters",
+            "size": 5
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 5
+          },
+          {
+            "name": "Life Support",
+            "size": 3
+          },
+          {
+            "name": "Power Distributor",
+            "size": 4
+          },
+          {
+            "name": "Sensors",
+            "size": 3
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 5
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 7
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "type_8_transport.json"
+      }
+    },
+    {
+      "id": "type_9_heavy",
+      "identifiers": {
+        "coriolis": "type_9_heavy",
+        "frontierEdId": 128049333
+      },
+      "displayName": "Type-9 Heavy",
+      "manufacturer": "Lakon",
+      "landingPadSize": "large",
+      "performance": {
+        "baseArmour": 480,
+        "baseShieldStrength": 240,
+        "boost": 200,
+        "hullMass": 850,
+        "speed": 130
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 6
+          },
+          {
+            "name": "Thrusters",
+            "size": 7
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 6
+          },
+          {
+            "name": "Life Support",
+            "size": 5
+          },
+          {
+            "name": "Power Distributor",
+            "size": 6
+          },
+          {
+            "name": "Sensors",
+            "size": 4
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 6
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 8
+          },
+          {
+            "size": 8
+          },
+          {
+            "size": 7
+          },
+          {
+            "size": 6
+          },
+          {
+            "size": 5
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "type_9_heavy.json"
+      }
+    },
+    {
+      "id": "viper",
+      "identifiers": {
+        "coriolis": "viper",
+        "frontierEdId": 128049273
+      },
+      "displayName": "Viper",
+      "manufacturer": "Faulcon DeLacy",
+      "landingPadSize": "small",
+      "performance": {
+        "baseArmour": 70,
+        "baseShieldStrength": 105,
+        "boost": 400,
+        "hullMass": 50,
+        "speed": 320
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 3
+          },
+          {
+            "name": "Thrusters",
+            "size": 3
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 3
+          },
+          {
+            "name": "Life Support",
+            "size": 2
+          },
+          {
+            "name": "Power Distributor",
+            "size": 3
+          },
+          {
+            "name": "Sensors",
+            "size": 3
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 2
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "viper.json"
+      }
+    },
+    {
+      "id": "viper_mk_iv",
+      "identifiers": {
+        "coriolis": "viper_mk_iv",
+        "frontierEdId": 128672255
+      },
+      "displayName": "Viper Mk IV",
+      "manufacturer": "Faulcon DeLacy",
+      "landingPadSize": "small",
+      "performance": {
+        "baseArmour": 150,
+        "baseShieldStrength": 150,
+        "boost": 340,
+        "hullMass": 190,
+        "speed": 270
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 4
+          },
+          {
+            "name": "Thrusters",
+            "size": 4
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 4
+          },
+          {
+            "name": "Life Support",
+            "size": 2
+          },
+          {
+            "name": "Power Distributor",
+            "size": 3
+          },
+          {
+            "name": "Sensors",
+            "size": 3
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 4
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          }
+        ],
+        "optional": [
+          {
+            "size": 4
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 3
+          },
+          {
+            "size": 3,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "viper_mk_iv.json"
+      }
+    },
+    {
+      "id": "vulture",
+      "identifiers": {
+        "coriolis": "vulture",
+        "frontierEdId": 128049309
+      },
+      "displayName": "Vulture",
+      "manufacturer": "Core Dynamics",
+      "landingPadSize": "small",
+      "performance": {
+        "baseArmour": 160,
+        "baseShieldStrength": 240,
+        "boost": 340,
+        "hullMass": 230,
+        "speed": 210
+      },
+      "slots": {
+        "core": [
+          {
+            "name": "Power Plant",
+            "size": 4
+          },
+          {
+            "name": "Thrusters",
+            "size": 5
+          },
+          {
+            "name": "Frame Shift Drive",
+            "size": 4
+          },
+          {
+            "name": "Life Support",
+            "size": 3
+          },
+          {
+            "name": "Power Distributor",
+            "size": 5
+          },
+          {
+            "name": "Sensors",
+            "size": 4
+          },
+          {
+            "name": "Fuel Tank",
+            "size": 3
+          }
+        ],
+        "hardpoints": [
+          {
+            "size": 3
+          },
+          {
+            "size": 3
+          }
+        ],
+        "optional": [
+          {
+            "size": 5
+          },
+          {
+            "size": 5,
+            "name": "Military",
+            "eligible": {
+              "mahr": 1,
+              "hr": 1,
+              "scb": 1,
+              "mrp": 1,
+              "gsrp": 1,
+              "gmrp": 1,
+              "ghrp": 1
+            }
+          },
+          {
+            "size": 4
+          },
+          {
+            "size": 2
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1
+          },
+          {
+            "size": 1,
+            "name": "PlanetaryApproachSuite",
+            "eligible": {
+              "pas": 1
+            }
+          }
+        ],
+        "utilities": [
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          },
+          {
+            "size": 0
+          }
+        ]
+      },
+      "source": {
+        "file": "vulture.json"
+      }
+    }
+  ]
+}

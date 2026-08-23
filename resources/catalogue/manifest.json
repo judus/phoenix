@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-19T20:52:31.440Z",
+  "checkedAt": "2026-08-22T08:35:06.391Z",
+  "sources": {
+    "fdevids": "b8fc3d34baa4a2d17fe49d2d2782daca1539932b",
+    "coriolis": "0db9234b5b9ce8c939ea84133d7ce336eea88e27"
+  },
+  "counts": {
+    "ships": 47,
+    "modules": 1190,
+    "blueprints": 81,
+    "engineers": 38,
+    "materials": 137
+  }
+}

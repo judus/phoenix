@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto'
-import { cpSync, chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { cpSync, chmodSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { build } from 'esbuild'
 
 const projectRoot = fileURLToPath(new URL('../../', import.meta.url))
 const packageJson = JSON.parse(readFileSync(resolve(projectRoot, 'package.json'), 'utf8'))
@@ -12,26 +13,27 @@ if (!isWithin(outputRoot, allowedRoot)) throw new Error('Payload output must rem
 rmSync(outputRoot, { recursive: true, force: true })
 mkdirSync(outputRoot, { recursive: true })
 
-copy('apps/server/dist')
-copy('apps/server/package.json')
 copy('apps/web/dist')
 copy('agents')
 copy('LICENSE')
+copy('resources/catalogue')
 copy('apps/web/public/phoenix.svg', 'resources/phoenix.svg')
 copy('scripts/catalogue')
 copy('scripts/package/launcher.mjs')
 copy('package.json')
 
-for (const workspace of ['contracts', 'copilot', 'elite']) {
-  copy(`packages/${workspace}/dist`, `node_modules/@phoenix/${workspace}/dist`)
-  copy(`packages/${workspace}/package.json`, `node_modules/@phoenix/${workspace}/package.json`)
-}
-
-for (const dependency of productionDependencies()) {
-  const relativePath = relative(resolve(projectRoot, 'node_modules'), dependency)
-  if (relativePath.startsWith(`@phoenix${sep}`) || relativePath === '@phoenix') continue
-  copyAbsolute(dependency, resolve(outputRoot, 'node_modules', relativePath))
-}
+const serverEntrypoint = resolve(outputRoot, 'apps/server/dist/main.js')
+mkdirSync(dirname(serverEntrypoint), { recursive: true })
+await build({
+  bundle: true,
+  entryPoints: [resolve(projectRoot, 'apps/server/src/main.ts')],
+  format: 'esm',
+  legalComments: 'none',
+  logLevel: 'warning',
+  outfile: serverEntrypoint,
+  platform: 'node',
+  target: 'node24'
+})
 
 const runtimeName = process.platform === 'win32' ? 'node.exe' : 'node'
 copyAbsolute(process.execPath, resolve(outputRoot, 'runtime', runtimeName))
@@ -50,45 +52,6 @@ const manifest = {
 writeFileSync(resolve(outputRoot, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8')
 console.log(`PHOENIX payload staged at ${outputRoot}`)
 console.log(`${Object.keys(manifest.files).length} files · ${formatBytes(directorySize(outputRoot))}`)
-
-function productionDependencies () {
-  const discovered = new Map()
-  const visitedWorkspaces = new Set()
-  const pending = Object.keys(JSON.parse(readFileSync(resolve(projectRoot, 'apps/server/package.json'), 'utf8')).dependencies ?? {})
-  while (pending.length > 0) {
-    const name = pending.shift()
-    if (name.startsWith('@phoenix/')) {
-      if (!visitedWorkspaces.has(name)) {
-        visitedWorkspaces.add(name)
-        pending.push(...workspaceDependencies(name))
-      }
-      continue
-    }
-    if (discovered.has(name)) continue
-    const path = resolve(projectRoot, 'node_modules', name)
-    if (!existsSync(path)) continue
-    const manifest = JSON.parse(readFileSync(resolve(path, 'package.json'), 'utf8'))
-    discovered.set(name, path)
-    pending.push(...dependencyNames(manifest))
-  }
-  return [...discovered.values()]
-}
-
-function workspaceDependencies (name) {
-  const workspace = name.slice('@phoenix/'.length)
-  const manifestPath = resolve(projectRoot, 'packages', workspace, 'package.json')
-  if (!existsSync(manifestPath)) throw new Error(`Unknown PHOENIX workspace dependency: ${name}`)
-  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
-  return dependencyNames(manifest)
-}
-
-function dependencyNames (manifest) {
-  return [...new Set([
-    ...Object.keys(manifest.dependencies ?? {}),
-    ...Object.keys(manifest.optionalDependencies ?? {}),
-    ...Object.keys(manifest.peerDependencies ?? {})
-  ])]
-}
 
 function copy (source, destination = source) {
   copyAbsolute(resolve(projectRoot, source), resolve(outputRoot, destination))

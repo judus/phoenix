@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect, test, vi } from 'vitest'
@@ -32,6 +32,24 @@ test('fails clearly when refresh is disabled before the first catalogue fetch', 
   }
 })
 
+test('seeds first-launch user data from the bundled catalogue without network access', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'phoenix-catalogue-seed-'))
+  const installRoot = join(root, 'installation')
+  const userRoot = join(root, 'user')
+  const bundled = join(installRoot, 'resources/catalogue')
+  mkdirSync(bundled, { recursive: true })
+  writeFileSync(join(bundled, 'manifest.json'), '{"source":"bundled"}')
+  vi.stubEnv('PHOENIX_CATALOGUE_REFRESH', 'false')
+
+  try {
+    const directory = join(userRoot, 'runtime/catalogue')
+    await expect(ensureCatalogueSnapshot(paths(userRoot, installRoot))).resolves.toBe(directory)
+    expect(JSON.parse(readFileSync(join(directory, 'manifest.json'), 'utf8')).source).toBe('bundled')
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
 test('retains an existing local snapshot when an online refresh fails', async () => {
   const root = mkdtempSync(join(tmpdir(), 'phoenix-catalogue-stale-'))
   const directory = join(root, 'runtime/catalogue')
@@ -42,13 +60,13 @@ test('retains an existing local snapshot when an online refresh fails', async ()
 
   try {
     await expect(ensureCatalogueSnapshot(paths(root))).resolves.toBe(directory)
-    expect(warning).toHaveBeenCalledOnce()
+    await vi.waitFor(() => expect(warning).toHaveBeenCalledOnce())
   } finally {
     warning.mockRestore()
     rmSync(root, { recursive: true, force: true })
   }
 })
 
-function paths (userRoot: string): ApplicationPaths {
-  return new ApplicationPaths({ installRoot: '/opt/phoenix-test', userRoot })
+function paths (userRoot: string, installRoot = '/opt/phoenix-test'): ApplicationPaths {
+  return new ApplicationPaths({ installRoot, userRoot })
 }

@@ -38,11 +38,17 @@ jobs:
         run: npm run installer:windows
       - if: runner.os == 'Windows'
         run: npm run installer:windows:verify
-      - uses: actions/upload-artifact@v4
+      - if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
         with:
-          name: phoenix-${{ runner.os }}-${{ runner.arch }}-payload
-          path: |
-            dist/payload/*
-            dist/installer/*
+          name: phoenix-${{ runner.os }}-${{ runner.arch }}-installer
+          path: dist/installer/*.deb
+          if-no-files-found: error
+          retention-days: 7
+      - if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: phoenix-${{ runner.os }}-${{ runner.arch }}-installer
+          path: dist/installer/*.exe
           if-no-files-found: error
           retention-days: 7

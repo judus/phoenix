@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { accessSync, constants, readFileSync } from 'node:fs'
+import { accessSync, constants, existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -22,13 +22,15 @@ for (const required of [
   'apps/web/dist/index.html',
   'agents/marin/agent.md',
   'LICENSE',
+  'resources/catalogue/manifest.json',
   'resources/phoenix.svg',
   'scripts/catalogue/refresh.mjs',
-  'scripts/package/launcher.mjs',
-  'node_modules/@phoenix/contracts/dist/index.js',
-  'node_modules/@jdu/llm-client/dist/index.js'
+  'scripts/package/launcher.mjs'
 ]) {
   readFileSync(resolve(payloadRoot, required))
+}
+if (existsSync(resolve(payloadRoot, 'node_modules'))) {
+  throw new Error('The installed payload must contain the bundled server, not loose node_modules.')
 }
 
 console.log(`PHOENIX payload verified: ${Object.keys(manifest.files).length} checksums valid.`)
