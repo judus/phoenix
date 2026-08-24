@@ -69,6 +69,22 @@
 
     }
 
+    .control-deck-surface {
+      display: grid;
+      min-inline-size: 0;
+      min-block-size: 0;
+    }
+
+    .control-deck-slot {
+      min-inline-size: 0;
+      min-block-size: 0;
+
+      > * {
+        inline-size: 100%;
+        block-size: 100%;
+      }
+    }
+
     &:not(.theme-phoenix) .control-deck .control-deck-slot > .tile.btn:not(.theme-danger, .unavailable) {
       --command-background: var(--control-deck-panel);
       --command-border: var(--control-deck-accent);

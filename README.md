@@ -134,6 +134,17 @@ Open `http://localhost:3400`. Developers who want the live development servers c
 npm run dev
 ```
 
+### Embedded Control Deck runtime
+
+PHOENIX owns its cockpit UI and consumes only a compiled Control Deck runtime containing the core,
+host, keyboard adapter, and Elite Dangerous integration. The versioned tarball lives in
+`vendor/control-deck/`; installing PHOENIX does not require access to the private Control Deck
+repository, GitHub credentials, or a package registry.
+
+To update it, run `npm run package:phoenix` in the Control Deck repository, replace the versioned
+tarball, update the three `control-deck` file dependencies in PHOENIX, and run `npm install` followed
+by `npm run check`. Do not add Control Deck UI or standalone-product exports to this artifact.
+
 ### Copilot configuration
 
 Copilot is optional and remains disabled when no API key is available. Use

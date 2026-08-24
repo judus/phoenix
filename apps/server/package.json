@@ -9,7 +9,7 @@
     "@phoenix/copilot": "*",
     "@phoenix/contracts": "*",
     "@phoenix/elite": "*",
-    "control-deck": "git+https://github.com/judus/control-deck.git#semver:^0.1.0"
+    "control-deck": "file:../../vendor/control-deck/control-deck-phoenix-runtime-0.1.6.tgz"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

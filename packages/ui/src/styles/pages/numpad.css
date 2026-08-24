@@ -48,4 +48,26 @@
     }
 
     .control-deck-numpad-layout { --grid-spacing: var(--spacing-sm); }
+
+    .control-deck-numpad-layout {
+      display: grid;
+      min-inline-size: 0;
+      min-block-size: 0;
+
+      .numpad-grid {
+        display: grid;
+        min-inline-size: 0;
+        min-block-size: 0;
+        grid-template-columns: repeat(var(--numpad-columns), minmax(0, 1fr));
+        grid-template-rows: repeat(var(--numpad-rows), minmax(0, 1fr));
+        gap: var(--grid-spacing, .5rem);
+
+        > button {
+          isolation: isolate;
+          min-inline-size: 0;
+          min-block-size: 0;
+          overflow: hidden;
+        }
+      }
+    }
   }

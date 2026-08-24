@@ -28,12 +28,14 @@ describe('pairing transport', () => {
       .mockResolvedValueOnce(jsonResponse({
         authenticated: false,
         installationId: 'installation-1',
-        pairingRequired: true
+        pairingRequired: true,
+        serverDevice: false
       }))
       .mockResolvedValueOnce(jsonResponse({
         authenticated: true,
         installationId: 'installation-1',
-        pairingRequired: true
+        pairingRequired: true,
+        serverDevice: false
       }))
     const client = new PhoenixApiClient('', request)
 

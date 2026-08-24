@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes } from 'react'
-import { TileButton } from 'control-deck/ui'
+import { TileButton } from './tile'
 
 type CommandTileProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> & {
   binding?: string

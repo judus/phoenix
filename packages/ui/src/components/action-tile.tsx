@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
-import { TileButton } from 'control-deck/ui'
+import { TileButton } from './tile'
 
 type ActionTileProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> & {
   description?: ReactNode

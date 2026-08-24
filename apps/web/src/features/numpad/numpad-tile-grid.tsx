@@ -1,5 +1,5 @@
 import type { NumpadTreeNode } from '@phoenix/contracts'
-import { NumpadGrid } from 'control-deck/ui'
+import { NumpadGrid } from './numpad-grid.js'
 
 export function NumpadTileGrid({ columns, nodes, onSelect, pendingDigits, rows, variableFontSizes }: { columns?: number, nodes: NumpadTreeNode[], onSelect(id: string): void, pendingDigits: string, rows?: number, variableFontSizes: boolean }) {
   return <NumpadGrid

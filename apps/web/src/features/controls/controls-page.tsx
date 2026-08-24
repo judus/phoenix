@@ -10,15 +10,17 @@ import {
   type ControlDeckDeck,
   type ControlDeckDeckGroup
 } from 'control-deck/core'
-import { ButtonEditor, ControlDeckArmingController, ControlDeckSurface, TileButton } from 'control-deck/ui'
 import { PHOENIX_CONTROL_LAYOUT_PRESETS, PhoenixControlDeckThemeSchema, controlDeckTargetToPhoenixTarget, phoenixControlLayoutPreset, type CommandTarget, type GameActionAvailability, type GameActionOperation, type PhoenixControlDeckConfiguration, type PhoenixControlDeckTheme, type RuntimeState } from '@phoenix/contracts'
-import { Breadcrumbs, Button, CommandTile, ControlContext, DataTable, NumberInput, PageFrame, PageHeader, Select, Status, Widget } from '@phoenix/ui'
+import { Breadcrumbs, Button, CommandTile, ControlContext, DataTable, NumberInput, PageFrame, PageHeader, Select, Status, TileButton, Widget } from '@phoenix/ui'
 import { createClientId } from '../../application/identity/client-identity.js'
 import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
 import type { ControlCategory } from '../../application/navigation/phoenix-route.js'
 import { controlsCategoryLabel, gameActionCategoryLabel } from './controls-navigation.js'
 import type { ControlsControllerSnapshot } from './use-controls-controller.js'
 import { HoldGestureController } from './hold-gesture-controller.js'
+import { ArmingController } from './arming-controller.js'
+import { ButtonEditor } from './button-editor.js'
+import { ControlSurface } from './control-surface.js'
 
 export function ControlsPage({ category, controller, editing, macros, runtime, onEditingChange, onExecuteAction, onSaveConfiguration }: {
   category: ControlCategory
@@ -35,7 +37,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
   const [editingPosition, setEditingPosition] = useState<number>()
   const [saving, setSaving] = useState(false)
   const held = useRef(new HoldGestureController())
-  const arming = useRef(new ControlDeckArmingController()).current
+  const arming = useRef(new ArmingController()).current
   const armingTimers = useRef(new Map<number, ReturnType<typeof globalThis.setTimeout>>())
   const suppressClicks = useRef(new Set<string>())
   const armedElementId = useSyncExternalStore(arming.subscribe, arming.getSnapshot, arming.getSnapshot)
@@ -133,7 +135,6 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
             ? <div className="phoenix-control-deck">
                 <ButtonEditor
                   catalogue={controller.commands}
-                  deck={deck}
                   element={editorElement}
                   placement={editorSlot?.placement ?? {
                     kind: 'grid',
@@ -184,7 +185,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
                   }}
                 />
               </div>
-            : <ControlDeckSurface
+            : <ControlSurface
               aria-label={`${controlsCategoryLabel(category)} command grid`}
               className="controls controls-command control-deck"
               deck={deck}
