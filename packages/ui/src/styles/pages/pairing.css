@@ -7,7 +7,7 @@
 
     > section {
       display: grid;
-      inline-size: min(100%, 34rem);
+      inline-size: min(100%, 48rem);
       border: 1px solid var(--color-border);
       background: var(--shell-workspace-background);
 
@@ -19,5 +19,87 @@
       > .pairing-status {
         padding: var(--spacing-lg);
       }
+    }
+  }
+
+  .pairing-access {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    border-block-end: 1px solid var(--color-border-subtle);
+    background: var(--color-surface);
+
+    h2,
+    p { margin: 0; }
+
+    h2 {
+      color: var(--color-action);
+      font-size: var(--font-size-md);
+      font-weight: var(--font-weight-medium);
+      text-transform: uppercase;
+    }
+
+    a { color: var(--color-information); }
+  }
+
+  .pairing-access-copy {
+    display: grid;
+    gap: var(--spacing-sm);
+    min-inline-size: 0;
+  }
+
+  .pairing-code {
+    display: grid;
+    gap: var(--spacing-xxs);
+
+    small {
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+    }
+
+    strong {
+      color: var(--color-action);
+      font-family: var(--font-family-mono);
+      font-size: var(--font-size-xl);
+      letter-spacing: 0.12em;
+    }
+  }
+
+  .pairing-address-select {
+    display: grid;
+    gap: var(--spacing-xxs);
+
+    span {
+      color: var(--color-text-muted);
+      font-size: var(--font-size-xs);
+      text-transform: uppercase;
+    }
+  }
+
+  .pairing-qr {
+    inline-size: 10rem;
+    block-size: 10rem;
+    background: white;
+  }
+
+  .pairing-unavailable { color: var(--color-danger); }
+
+  .settings-page .pairing-access {
+    border: 1px solid var(--color-border);
+  }
+
+  @container application-shell (width < 42rem) {
+    .pairing-gate { padding: var(--spacing-sm); }
+
+    .pairing-access {
+      grid-template-columns: 1fr;
+    }
+
+    .pairing-qr {
+      inline-size: min(100%, 14rem);
+      block-size: auto;
+      justify-self: center;
     }
   }

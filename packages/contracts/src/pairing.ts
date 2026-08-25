@@ -1,1 +1,6 @@
-export { PairingStatusSchema, type PairingStatus } from 'control-deck/core'
+export {
+  PairingInfoSchema,
+  PairingStatusSchema,
+  type PairingInfo,
+  type PairingStatus
+} from 'control-deck/core'

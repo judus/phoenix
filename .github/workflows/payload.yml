@@ -24,6 +24,9 @@ jobs:
           node-version: 24.14.0
           cache: npm
       - run: npm ci
+      - id: package
+        shell: bash
+        run: echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
       - run: npm run check
       - run: npm run payload:build
       - run: npm run payload:verify
@@ -41,14 +44,14 @@ jobs:
       - if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
-          name: phoenix-${{ runner.os }}-${{ runner.arch }}-installer
+          name: phoenix-${{ steps.package.outputs.version }}-${{ runner.os }}-${{ runner.arch }}-installer
           path: dist/installer/*.deb
           if-no-files-found: error
           retention-days: 7
       - if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
-          name: phoenix-${{ runner.os }}-${{ runner.arch }}-installer
+          name: phoenix-${{ steps.package.outputs.version }}-${{ runner.os }}-${{ runner.arch }}-installer
           path: dist/installer/*.exe
           if-no-files-found: error
           retention-days: 7

@@ -16,9 +16,10 @@ import {
   TextInput,
   Widget
 } from '@phoenix/ui'
-import type { InstallationSettings, PairingStatus } from '@phoenix/contracts'
+import type { InstallationSettings, PairingInfo, PairingStatus } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { DevicePreferences } from '../../application/settings/device-preferences.js'
+import { PairingAccess } from '../../components/pairing-access.js'
 
 export interface AudioSettingsController {
   devices: {
@@ -265,7 +266,19 @@ function ControlSettings ({ settings, onSave }: {
 
 function PairingSettings ({ api, pairing }: { api: PhoenixApi, pairing: PairingStatus }) {
   const [busy, setBusy] = useState(false)
+  const [info, setInfo] = useState<PairingInfo>()
+  const [error, setError] = useState<string>()
+  useEffect(() => {
+    if (!pairing.serverDevice) return
+    const abort = new AbortController()
+    void api.getPairingInfo(abort.signal)
+      .then(setInfo)
+      .catch(cause => { if (!abort.signal.aborted) setError(message(cause)) })
+    return () => abort.abort()
+  }, [api, pairing.serverDevice])
   return <div className="widget-command-stack">
+    {info && <PairingAccess info={info} />}
+    {error && <Status tone="danger">{error}</Status>}
     <Widget title="Device pairing" meta={pairing.authenticated ? 'Paired' : 'Not paired'}>
       <DescriptionList columns="one" density="compact">
         <DescriptionItem label="Installation" value={pairing.installationId} />

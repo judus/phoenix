@@ -22,7 +22,16 @@ test('browser pairing sessions authorize independently and can be revoked per de
 
   try {
     const status = await fetch(`${baseUrl}/api/pairing/status`)
-    expect(await status.json()).toMatchObject({ authenticated: false, pairingRequired: true })
+    expect(await status.json()).toMatchObject({ authenticated: false, pairingRequired: true, serverDevice: true })
+
+    const pairingInfo = await fetch(`${baseUrl}/api/pairing/info`)
+    expect(pairingInfo.status).toBe(200)
+    expect(await pairingInfo.json()).toMatchObject({
+      access: [],
+      installationId: accessControl.installationId,
+      pairingCode: accessControl.pairingCode,
+      serverDevice: true
+    })
 
     const rejected = await fetch(`${baseUrl}/api/health`)
     expect(rejected.status).toBe(401)

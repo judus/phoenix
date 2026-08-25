@@ -7,6 +7,7 @@ import {
   type ServerResponse
 } from 'node:http'
 import { extname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path'
+import QRCode from 'qrcode/lib/browser.js'
 import {
   ExecuteCommandRequestSchema,
   CopilotChatRequestSchema,
@@ -67,6 +68,7 @@ import type { CommunicationDataReader, CommunicationQueryView } from '../domain/
 import type { FleetDataReader } from '../domain/fleet.js'
 import type { PhoenixMcpServer } from './phoenix-mcp-server.js'
 import type { PairingAccessController } from './pairing-access-controller.js'
+import { activeRouteIPv4Address, serverAccessUrls } from './server-access-urls.js'
 
 const CONTENT_TYPES: Record<string, string> = {
   '.css': 'text/css; charset=utf-8',
@@ -204,6 +206,17 @@ export class PhoenixHttpServer {
 
     if (!this.options.accessControl && request.method === 'POST' && url.pathname === '/api/pairing/release') {
       this.writeJson(response, 200, { authenticated: false })
+      return
+    }
+
+    if (this.options.accessControl && request.method === 'GET' && url.pathname === '/api/pairing/info') {
+      if (!this.options.accessControl.isServerRequest(request)) {
+        this.writeJson(response, 403, {
+          error: { code: 'server_device_required', message: 'Pairing information is only available on the PHOENIX computer.' }
+        })
+        return
+      }
+      this.writeJson(response, 200, await this.pairingInfo())
       return
     }
 
@@ -978,6 +991,38 @@ export class PhoenixHttpServer {
     }
 
     this.serveWebAsset(url.pathname, response)
+  }
+
+  private async pairingInfo () {
+    const address = this.server.address()
+    if (!address || typeof address === 'string' || !this.options.accessControl) {
+      throw new Error('PHOENIX pairing information is unavailable before the server starts.')
+    }
+    const urls = serverAccessUrls(
+      { host: this.options.host, port: address.port },
+      undefined,
+      await activeRouteIPv4Address()
+    ).network
+    const access = await Promise.all(urls.map(async url => {
+      const pairingUrl = `${url}/#pair=${encodeURIComponent(this.options.accessControl!.pairingCode)}`
+      const svg = await QRCode.toString(pairingUrl, {
+        type: 'svg',
+        errorCorrectionLevel: 'M',
+        margin: 1,
+        width: 256
+      })
+      return {
+        url,
+        pairingUrl,
+        qrDataUrl: `data:image/svg+xml;base64,${Buffer.from(svg, 'utf8').toString('base64')}`
+      }
+    }))
+    return {
+      installationId: this.options.accessControl.installationId,
+      pairingCode: this.options.accessControl.pairingCode,
+      access,
+      serverDevice: true as const
+    }
   }
 
   private writeMacroError (response: ServerResponse, cause: unknown): void {

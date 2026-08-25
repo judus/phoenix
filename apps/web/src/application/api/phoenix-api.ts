@@ -49,6 +49,7 @@ import type {
   NavigationRoute,
   NumpadExecutionResult,
   NumpadTreeSnapshot,
+  PairingInfo,
   PairingStatus,
   OpenAiConfigurationStatus,
   PhoenixModules,
@@ -135,6 +136,7 @@ export interface PhoenixApi {
   getModuleSettings(signal?: AbortSignal): Promise<PhoenixModules>
   getNavigationRoute(signal?: AbortSignal): Promise<NavigationRoute>
   getNumpadSnapshot(signal?: AbortSignal): Promise<NumpadTreeSnapshot>
+  getPairingInfo(signal?: AbortSignal): Promise<PairingInfo>
   getPairingStatus(signal?: AbortSignal): Promise<PairingStatus>
   getRuntimeState(signal?: AbortSignal): Promise<RuntimeState>
   getShipCatalogue(signal?: AbortSignal): Promise<ShipCatalogueResponse>

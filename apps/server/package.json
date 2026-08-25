@@ -6,10 +6,11 @@
   "exports": "./dist/main.js",
   "dependencies": {
     "@jdu/llm-client": "0.1.2",
-    "@phoenix/copilot": "*",
     "@phoenix/contracts": "*",
+    "@phoenix/copilot": "*",
     "@phoenix/elite": "*",
-    "control-deck": "file:../../vendor/control-deck/control-deck-phoenix-runtime-0.1.6.tgz"
+    "control-deck": "file:../../vendor/control-deck/control-deck-phoenix-runtime-0.1.6.tgz",
+    "qrcode": "^1.5.4"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

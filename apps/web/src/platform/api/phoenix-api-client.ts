@@ -48,6 +48,7 @@ import {
   NavigationRouteSchema,
   NumpadExecutionResultSchema,
   NumpadTreeSnapshotSchema,
+  PairingInfoSchema,
   PairingStatusSchema,
   OpenAiApiKeyRequestSchema,
   OpenAiConfigurationStatusSchema,
@@ -108,6 +109,7 @@ import type {
   NavigationRoute,
   NumpadExecutionResult,
   NumpadTreeSnapshot,
+  PairingInfo,
   PairingStatus,
   OpenAiConfigurationStatus,
   PhoenixModules,
@@ -146,6 +148,16 @@ export class PhoenixApiClient implements PhoenixApi {
     })
     if (!response.ok) throw await apiError(response)
     return PairingStatusSchema.parse(await response.json())
+  }
+
+  async getPairingInfo(signal?: AbortSignal): Promise<PairingInfo> {
+    const response = await this.#request(`${this.#baseUrl}/api/pairing/info`, {
+      credentials: 'same-origin',
+      headers: { accept: 'application/json' },
+      signal
+    })
+    if (!response.ok) throw await apiError(response)
+    return PairingInfoSchema.parse(await response.json())
   }
 
   async claimPairing(code: string, signal?: AbortSignal): Promise<PairingStatus> {

@@ -37,10 +37,21 @@ describe('pairing transport', () => {
         pairingRequired: true,
         serverDevice: false
       }))
+      .mockResolvedValueOnce(jsonResponse({
+        access: [{
+          pairingUrl: 'http://192.168.1.42:3400/#pair=ABCDE-12345',
+          qrDataUrl: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
+          url: 'http://192.168.1.42:3400'
+        }],
+        installationId: 'installation-1',
+        pairingCode: 'ABCDE-12345',
+        serverDevice: true
+      }))
     const client = new PhoenixApiClient('', request)
 
     await expect(client.getPairingStatus()).resolves.toMatchObject({ authenticated: false })
     await expect(client.claimPairing('ABCDE-12345')).resolves.toMatchObject({ authenticated: true })
+    await expect(client.getPairingInfo()).resolves.toMatchObject({ pairingCode: 'ABCDE-12345' })
 
     expect(request).toHaveBeenNthCalledWith(1, '/api/pairing/status', expect.objectContaining({
       credentials: 'same-origin'
@@ -49,6 +60,9 @@ describe('pairing transport', () => {
       body: JSON.stringify({ code: 'ABCDE-12345' }),
       credentials: 'same-origin',
       method: 'POST'
+    }))
+    expect(request).toHaveBeenNthCalledWith(3, '/api/pairing/info', expect.objectContaining({
+      credentials: 'same-origin'
     }))
   })
 

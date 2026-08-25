@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { Button, Field, Form, FormActions, PageFrame, PageHeader, TextInput } from '@phoenix/ui'
+import type { PairingInfo } from '@phoenix/contracts'
 import type { PhoenixApi } from '../application/api/phoenix-api.js'
+import { PairingAccess } from '../components/pairing-access.js'
 type PairingGateState =
   | { status: 'checking' }
-  | { status: 'pairing', error?: string }
+  | { status: 'pairing', error?: string, info?: PairingInfo }
   | { status: 'authenticated' }
 
 export function PairingGate({ api, children }: { api: PhoenixApi, children: ReactNode }) {
@@ -13,11 +15,25 @@ export function PairingGate({ api, children }: { api: PhoenixApi, children: Reac
   useEffect(() => {
     const abort = new AbortController()
     void api.getPairingStatus(abort.signal)
-      .then(status => {
+      .then(async status => {
         if (abort.signal.aborted) return
-        setState(status.authenticated
-          ? { status: 'authenticated' }
-          : { status: 'pairing' })
+        if (status.authenticated) {
+          setState({ status: 'authenticated' })
+          return
+        }
+        if (!status.serverDevice) {
+          setState({ status: 'pairing' })
+          return
+        }
+        try {
+          const info = await api.getPairingInfo(abort.signal)
+          if (!abort.signal.aborted) setState({ status: 'pairing', info })
+        } catch (cause) {
+          if (!abort.signal.aborted) setState({
+            status: 'pairing',
+            error: cause instanceof Error ? cause.message : 'PHOENIX pairing information unavailable.'
+          })
+        }
       })
       .catch(cause => {
         if (abort.signal.aborted) return
@@ -34,6 +50,7 @@ export function PairingGate({ api, children }: { api: PhoenixApi, children: Reac
     <PairingPage
       checking={state.status === 'checking'}
       error={state.status === 'pairing' ? state.error : undefined}
+      info={state.status === 'pairing' ? state.info : undefined}
       onPair={async code => {
         const status = await api.claimPairing(code)
         if (!status.authenticated) throw new Error('PHOENIX did not authorize this device.')
@@ -46,13 +63,15 @@ export function PairingGate({ api, children }: { api: PhoenixApi, children: Reac
 function PairingPage({
   checking,
   error,
+  info,
   onPair
 }: {
   checking: boolean
   error?: string
+  info?: PairingInfo
   onPair(code: string): Promise<void>
 }) {
-  const [code, setCode] = useState('')
+  const [code, setCode] = useState(pairingCodeFromLocation())
   const [localError, setLocalError] = useState<string>()
   const [pending, setPending] = useState(false)
 
@@ -64,6 +83,7 @@ function PairingPage({
     try {
       await onPair(candidate)
       setLocalError(undefined)
+      clearPairingLocationFragment()
     } catch (cause) {
       setLocalError(cause instanceof Error ? cause.message : 'Device pairing failed.')
     } finally {
@@ -83,33 +103,47 @@ function PairingPage({
         {checking
           ? <p className="pairing-status">Establishing secure link…</p>
           : (
-              <Form onSubmit={event => void submit(event)}>
-                <Field
-                  error={localError ?? error}
-                  hint="Enter the code shown in the PHOENIX server terminal."
-                  htmlFor="pairing-code"
-                  label="Pairing code"
-                  required
-                >
-                  <TextInput
-                    autoCapitalize="characters"
-                    autoComplete="one-time-code"
-                    autoFocus
-                    name="pairing-code"
-                    placeholder="XXXXX-XXXXX"
-                    spellCheck={false}
-                    value={code}
-                    onChange={event => setCode(event.target.value.toUpperCase())}
-                  />
-                </Field>
-                <FormActions>
-                  <Button busy={pending} disabled={!code.trim()} type="submit" variant="primary">
-                    Pair device
-                  </Button>
-                </FormActions>
-              </Form>
+              <>
+                {info && <PairingAccess info={info} />}
+                <Form onSubmit={event => void submit(event)}>
+                  <Field
+                    error={localError ?? error}
+                    hint={info ? 'Enter the code shown above.' : 'Enter the code shown on the PHOENIX computer.'}
+                    htmlFor="pairing-code"
+                    label="Pairing code"
+                    required
+                  >
+                    <TextInput
+                      autoCapitalize="characters"
+                      autoComplete="one-time-code"
+                      autoFocus
+                      name="pairing-code"
+                      placeholder="XXXXX-XXXXX"
+                      spellCheck={false}
+                      value={code}
+                      onChange={event => setCode(event.target.value.toUpperCase())}
+                    />
+                  </Field>
+                  <FormActions>
+                    <Button busy={pending} disabled={!code.trim()} type="submit" variant="primary">
+                      Pair device
+                    </Button>
+                  </FormActions>
+                </Form>
+              </>
             )}
       </section>
     </PageFrame>
   )
+}
+
+function pairingCodeFromLocation (): string {
+  if (typeof globalThis.location === 'undefined' || !globalThis.location.hash.startsWith('#')) return ''
+  return new URLSearchParams(globalThis.location.hash.slice(1)).get('pair') ?? ''
+}
+
+function clearPairingLocationFragment (): void {
+  if (typeof globalThis.location === 'undefined' || typeof globalThis.history === 'undefined') return
+  if (!new URLSearchParams(globalThis.location.hash.slice(1)).has('pair')) return
+  globalThis.history.replaceState(null, '', `${globalThis.location.pathname}${globalThis.location.search}`)
 }
