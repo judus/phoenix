@@ -26,7 +26,7 @@ jobs:
       - run: npm ci
       - id: package
         shell: bash
-        run: echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+        run: node -e "console.log('version=' + require('./package.json').version)" >> "$GITHUB_OUTPUT"
       - run: npm run check
       - run: npm run payload:build
       - run: npm run payload:verify
