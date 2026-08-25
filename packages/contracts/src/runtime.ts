@@ -49,6 +49,32 @@ export const CommanderRankProgressSchema = z.object({
   exobiologist: z.number().int().min(0).max(100).nullable()
 })
 
+export const COMMANDER_RANK_NAMES = {
+  combat: ['Harmless', 'Mostly Harmless', 'Novice', 'Competent', 'Expert', 'Master', 'Dangerous', 'Deadly', 'Elite'],
+  trade: ['Penniless', 'Mostly Penniless', 'Peddler', 'Dealer', 'Merchant', 'Broker', 'Entrepreneur', 'Tycoon', 'Elite'],
+  exploration: ['Aimless', 'Mostly Aimless', 'Scout', 'Surveyor', 'Trailblazer', 'Pathfinder', 'Ranger', 'Pioneer', 'Elite'],
+  federation: ['None', 'Recruit', 'Cadet', 'Midshipman', 'Petty Officer', 'Chief Petty Officer', 'Warrant Officer', 'Ensign', 'Lieutenant', 'Lieutenant Commander', 'Post Commander', 'Post Captain', 'Rear Admiral', 'Vice Admiral', 'Admiral'],
+  empire: ['None', 'Outsider', 'Serf', 'Master', 'Squire', 'Knight', 'Lord', 'Baron', 'Viscount', 'Count', 'Earl', 'Marquis', 'Duke', 'Prince', 'King'],
+  cqc: ['Helpless', 'Mostly Helpless', 'Amateur', 'Semi Professional', 'Professional', 'Champion', 'Hero', 'Legend', 'Elite'],
+  mercenary: ['Defenceless', 'Mostly Defenceless', 'Rookie', 'Soldier', 'Gunslinger', 'Warrior', 'Gladiator', 'Deadeye', 'Elite'],
+  exobiologist: ['Directionless', 'Mostly Directionless', 'Compiler', 'Collector', 'Cataloguer', 'Taxonomist', 'Ecologist', 'Geneticist', 'Elite']
+} as const satisfies Record<keyof z.infer<typeof CommanderRanksSchema>, readonly string[]>
+
+export const CommanderReputationSchema = z.object({
+  empire: z.number().min(-100).max(100).nullable(),
+  federation: z.number().min(-100).max(100).nullable(),
+  independent: z.number().min(-100).max(100).nullable(),
+  alliance: z.number().min(-100).max(100).nullable()
+})
+
+export const CommanderStatisticsSchema = z.object({
+  updatedAt: z.iso.datetime(),
+  groups: z.record(
+    z.string().min(1),
+    z.record(z.string().min(1), z.number().finite())
+  )
+})
+
 export const NamedGameValueSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1).nullable()
@@ -190,7 +216,9 @@ export const RuntimeStateSchema = z.object({
     name: z.string().min(1).nullable(),
     engineers: z.array(CommanderEngineerProgressSchema),
     ranks: CommanderRanksSchema,
-    rankProgress: CommanderRankProgressSchema
+    rankProgress: CommanderRankProgressSchema,
+    reputation: CommanderReputationSchema,
+    statistics: CommanderStatisticsSchema.nullable()
   }),
   inventory: CommanderInventorySchema,
   system: CurrentSystemSchema,
@@ -225,6 +253,14 @@ export const GameEventEnvelopeSchema = z.discriminatedUnion('type', [
   GameEventEnvelopeBaseSchema.extend({
     type: z.literal('commander.engineers_changed'),
     payload: z.array(CommanderEngineerProgressSchema)
+  }),
+  GameEventEnvelopeBaseSchema.extend({
+    type: z.literal('commander.reputation_changed'),
+    payload: CommanderReputationSchema
+  }),
+  GameEventEnvelopeBaseSchema.extend({
+    type: z.literal('commander.statistics_changed'),
+    payload: CommanderStatisticsSchema
   }),
   GameEventEnvelopeBaseSchema.extend({
     type: z.literal('inventory.cargo_changed'),
@@ -288,7 +324,14 @@ export function createEmptyRuntimeState (): RuntimeState {
       name: null,
       engineers: [],
       ranks: emptyCommanderRanks(),
-      rankProgress: emptyCommanderRanks()
+      rankProgress: emptyCommanderRanks(),
+      reputation: {
+        empire: null,
+        federation: null,
+        independent: null,
+        alliance: null
+      },
+      statistics: null
     },
     inventory: {
       cargo: null,

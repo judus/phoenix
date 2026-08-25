@@ -21,7 +21,7 @@ test('the information workspace composes primary navigation, rail, and page cont
   expect(markup).toContain('class="deskplane-section"')
   expect(markup).toContain('aria-label="Primary"')
   expect(markup).toContain('aria-label="Commander views"')
-  expect(markup).toContain('href="#/commander/overview"')
+  expect(markup).toContain('href="#/commander/career"')
   expect(markup).toContain('href="#/galaxy/system"')
   expect(markup).toContain('class="page-frame page-flow"')
   expect(markup).toContain('<h1>Overview</h1>')

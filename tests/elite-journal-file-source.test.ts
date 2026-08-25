@@ -37,6 +37,8 @@ test('the journal source replays, tails partial writes and follows journal rotat
       'Commander',
       'Rank',
       'Progress',
+      'Reputation',
+      'Statistics',
       'Location',
       'Loadout',
       'Cargo',

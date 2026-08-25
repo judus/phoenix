@@ -64,8 +64,9 @@ describe('PHOENIX route parsing and generation', () => {
   test('migrated Commander routes do not expose an arbitrary query bag', () => {
     const route = parsePhoenixRoute('#/commander/progress?rank=combat')
 
-    expect(route).toEqual({ kind: 'information', section: 'commander', view: 'progress' })
-    expect(phoenixRouteHash(route)).toBe('#/commander/progress')
+    expect(route).toEqual({ kind: 'information', section: 'commander', view: 'career' })
+    expect(phoenixRouteHash(route)).toBe('#/commander/career')
+    expect(phoenixRouteHash(parsePhoenixRoute('#/commander/overview'))).toBe('#/commander/career')
   })
 
   test('Activities routes do not preserve arbitrary query fields', () => {

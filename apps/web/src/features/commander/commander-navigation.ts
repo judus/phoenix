@@ -5,19 +5,19 @@ import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js
 type CommanderNavigationItem = NavigationItem & { route: InformationRoute }
 
 const routes = {
-  overview: { kind: 'information', section: 'commander', view: 'overview' },
+  career: { kind: 'information', section: 'commander', view: 'career' },
+  statistics: { kind: 'information', section: 'commander', view: 'statistics' },
   inventory: { kind: 'information', section: 'commander', view: 'inventory' },
-  progress: { kind: 'information', section: 'commander', view: 'progress' }
 } as const satisfies Record<string, InformationRoute>
 
 export const commanderNavigationItems: CommanderNavigationItem[] = [
-  item('overview', 'Overview', 'CMD'),
-  item('inventory', 'Personal stores', 'INV'),
-  item('progress', 'Career progress', 'RNK')
+  item('career', 'Career', 'CAR'),
+  item('statistics', 'Statistics', 'STA'),
+  item('inventory', 'Personal stores', 'INV')
 ]
 
 export function commanderContextForRoute(route: InformationRoute): string {
-  return route.section === 'commander' ? route.view : 'overview'
+  return route.section === 'commander' ? route.view : 'career'
 }
 
 function item(id: keyof typeof routes, label: string, shortLabel: string): CommanderNavigationItem {

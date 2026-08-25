@@ -13,6 +13,14 @@
     overflow: hidden;
   }
 
+  .commander-page .page-header > .page-status {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-end: 0;
+    max-inline-size: 42%;
+    text-align: end;
+  }
+
   .commander-content {
     align-content: start;
     min-inline-size: 0;

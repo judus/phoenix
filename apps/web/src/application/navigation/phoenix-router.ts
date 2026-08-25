@@ -75,7 +75,10 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
   if (section === 'navigation') return parseGalaxyRoute(rest, query)
 
   if (section === 'commander') {
-    const view = oneOf(rest[0], ['overview', 'inventory', 'progress'] as const) ?? 'overview'
+    const legacyCareer = rest[0] === 'overview' || rest[0] === 'progress'
+    const view = legacyCareer
+      ? 'career'
+      : oneOf(rest[0], ['career', 'statistics', 'inventory'] as const) ?? 'career'
     return { kind: 'information', section, view }
   }
 

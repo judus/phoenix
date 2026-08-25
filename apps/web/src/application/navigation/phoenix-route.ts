@@ -38,7 +38,7 @@ export type GalaxyQueryId = typeof GALAXY_QUERY_IDS[number]
 
 export type InformationRoute =
   | { kind: 'information', section: 'home', view: 'overview' }
-  | { kind: 'information', section: 'commander', view: 'overview' | 'inventory' | 'progress' }
+  | { kind: 'information', section: 'commander', view: 'career' | 'statistics' | 'inventory' }
   | { kind: 'information', section: 'fleet', view: 'overview' | 'current-overview' | 'current-loadout' | 'current-cargo' | 'current-engineering' | 'carriers' | 'stored-modules' }
   | { kind: 'information', section: 'fleet', view: 'catalogue', selectedShipId?: string }
   | { kind: 'information', section: 'galaxy', view: 'system', systemName?: string, selectedName?: string }
@@ -100,7 +100,7 @@ export function workspaceForRoute(route: PhoenixRoute): PhoenixWorkspace {
 export function defaultRouteForInformationSection(section: InformationPrimarySection): InformationRoute {
   switch (section) {
     case 'home': return HOME_ROUTE
-    case 'commander': return { kind: 'information', section, view: 'overview' }
+    case 'commander': return { kind: 'information', section, view: 'career' }
     case 'fleet': return { kind: 'information', section, view: 'overview' }
     case 'galaxy': return { kind: 'information', section, view: 'system' }
     case 'activities': return { kind: 'information', section, view: 'missions' }

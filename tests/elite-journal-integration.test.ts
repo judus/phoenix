@@ -32,11 +32,20 @@ test('application startup projects the current commander, ranks, location and sh
     const journal = await client.getActivityLog()
 
     expect(state).toMatchObject({
-      revision: 13,
+      revision: 15,
       commander: {
         name: 'Test Commander',
         ranks: { combat: 5, trade: 8, exploration: 6, exobiologist: 4 },
-        rankProgress: { combat: 42, exploration: 73, exobiologist: 91 }
+        rankProgress: { combat: 42, exploration: 73, exobiologist: 91 },
+        reputation: { empire: 12.5, federation: 92, independent: 4, alliance: -40 },
+        statistics: {
+          updatedAt: '2026-08-10T12:00:03Z',
+          groups: {
+            Bank_Account: { Current_Wealth: 148827050, Insurance_Claims: 4 },
+            Combat: { Bounties_Claimed: 17, Highest_Single_Reward: 850000 },
+            Exploration: { Systems_Visited: 412, Total_Hyperspace_Distance: 8021.5, Time_Played: 93784 }
+          }
+        }
       },
       system: {
         name: 'Sol',
@@ -160,11 +169,11 @@ test('application startup projects the current commander, ranks, location and sh
       directory: eliteDirectory,
       watching: true,
       fileAvailable: true,
-      linesRead: 12,
+      linesRead: 14,
       error: null
     })
-    expect(journal.retained).toBe(25)
-    expect(journal.entries).toHaveLength(25)
+    expect(journal.retained).toBe(29)
+    expect(journal.entries).toHaveLength(29)
     expect(journal.entries).toContainEqual(expect.objectContaining({
       source: 'runtime',
       event: 'inventory.material_adjusted',

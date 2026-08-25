@@ -68,6 +68,30 @@ export class EliteJournalIngestionService {
       })
     }
 
+    if (event.event === 'Reputation') {
+      candidates.push({
+        type: 'commander.reputation_changed',
+        gameTimestamp,
+        payload: {
+          empire: numberValue(event, 'Empire'),
+          federation: numberValue(event, 'Federation'),
+          independent: numberValue(event, 'Independent'),
+          alliance: numberValue(event, 'Alliance')
+        }
+      })
+    }
+
+    if (event.event === 'Statistics') {
+      candidates.push({
+        type: 'commander.statistics_changed',
+        gameTimestamp,
+        payload: {
+          updatedAt: event.timestamp,
+          groups: statisticsGroups(event)
+        }
+      })
+    }
+
     const system = mapSystem(event)
     if (system) candidates.push({ type: 'system.changed', gameTimestamp, payload: system })
 
@@ -108,6 +132,20 @@ export class EliteJournalIngestionService {
 
     return candidates
   }
+}
+
+function statisticsGroups (event: EliteJournalEvent): Record<string, Record<string, number>> {
+  return Object.fromEntries(
+    Object.entries(event).flatMap(([group, candidate]) => {
+      if (!isRecord(candidate)) return []
+      const metrics = Object.fromEntries(
+        Object.entries(candidate).filter((entry): entry is [string, number] => (
+          typeof entry[1] === 'number' && Number.isFinite(entry[1])
+        ))
+      )
+      return Object.keys(metrics).length > 0 ? [[group, metrics]] : []
+    })
+  )
 }
 
 function mapMaterialConsumption (event: EliteJournalEvent): EngineeringMaterialConsumption[] {

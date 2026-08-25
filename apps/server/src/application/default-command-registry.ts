@@ -13,9 +13,9 @@ import type { MacroRepository } from '../domain/macros.js'
 
 export const PHOENIX_NAVIGATION_DESTINATIONS: readonly NavigationCommandDestination[] = [
   destination('information.home', 'Home', '#/', 'Information', 'Open the operational dashboard.'),
-  destination('commander.overview', 'Commander', '#/commander/overview', 'Commander', 'Open commander overview.'),
+  destination('commander.career', 'Career', '#/commander/career', 'Commander', 'Open commander career progression and reputation.'),
+  destination('commander.statistics', 'Statistics', '#/commander/statistics', 'Commander', 'Open commander lifetime statistics.'),
   destination('commander.inventory', 'Inventory', '#/commander/inventory', 'Commander', 'Open commander inventory.'),
-  destination('commander.progress', 'Progress', '#/commander/progress', 'Commander', 'Open commander progression.'),
   destination('fleet.overview', 'Fleet overview', '#/fleet/overview', 'Fleet', 'Open fleet overview.'),
   destination('fleet.current', 'Current ship', '#/fleet/current/overview', 'Fleet', 'Open the current ship overview.'),
   destination('fleet.current-loadout', 'Current loadout', '#/fleet/ships/current/loadout', 'Fleet', 'Open the current ship loadout.'),

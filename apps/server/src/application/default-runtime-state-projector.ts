@@ -38,7 +38,11 @@ export class DefaultRuntimeStateProjector implements RuntimeStateProjector {
             ? { ...current.commander, rankProgress: event.payload }
             : event.type === 'commander.engineers_changed'
               ? { ...current.commander, engineers: event.payload }
-              : current.commander,
+              : event.type === 'commander.reputation_changed'
+                ? { ...current.commander, reputation: event.payload }
+                : event.type === 'commander.statistics_changed'
+                  ? { ...current.commander, statistics: event.payload }
+                  : current.commander,
       ship: event.type === 'ship.loadout_changed'
         ? this.shipLoadoutEnricher.enrich(event.payload)
         : current.ship,

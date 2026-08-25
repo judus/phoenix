@@ -10,7 +10,15 @@ test('commander view model preserves raw rank and inventory provenance', () => {
       ...empty.commander,
       name: 'Ellan Murdock',
       ranks: { ...empty.commander.ranks, combat: 5 },
-      rankProgress: { ...empty.commander.rankProgress, combat: 72 }
+      rankProgress: { ...empty.commander.rankProgress, combat: 72 },
+      reputation: { ...empty.commander.reputation, federation: 92, alliance: -40 },
+      statistics: {
+        updatedAt: '2026-08-16T12:00:00.000Z',
+        groups: {
+          Exploration: { Systems_Visited: 412, Total_Hyperspace_Distance: 8021.5, Time_Played: 93784 },
+          Bank_Account: { Current_Wealth: 148827050 }
+        }
+      }
     },
     inventory: {
       ...empty.inventory,
@@ -25,7 +33,16 @@ test('commander view model preserves raw rank and inventory provenance', () => {
   })
 
   expect(model.name).toBe('Ellan Murdock')
-  expect(model.ranks[0]).toMatchObject({ label: 'Combat', level: 'Level 5', progress: 72, progressLabel: '72%' })
+  expect(model.ranks[0]).toMatchObject({ label: 'Combat', level: 'Master', progress: 72, progressLabel: '72%' })
+  expect(model.reputation).toEqual(expect.arrayContaining([
+    expect.objectContaining({ label: 'Federation', status: 'Allied', valueLabel: '+92%' }),
+    expect.objectContaining({ label: 'Alliance', status: 'Unfriendly', valueLabel: '-40%' })
+  ]))
+  expect(model.statistics?.groups.map(group => group.label)).toEqual(['Bank Account', 'Exploration'])
+  expect(model.statistics?.groups[1]?.metrics).toEqual(expect.arrayContaining([
+    expect.objectContaining({ label: 'Time Played', value: '1d 2h 3m' }),
+    expect.objectContaining({ label: 'Total Hyperspace Distance', value: "8'021.5 ly" })
+  ]))
   expect(model.stores[0]?.categories[0]?.items[0]).toMatchObject({
     identifier: 'ancient_key',
     name: 'ancient_key',
@@ -43,5 +60,7 @@ test('commander view model reports honest unknowns when snapshots are absent', (
 
   expect(model.name).toBe('Unknown commander')
   expect(model.ranks.every(rank => rank.level === '—' && rank.progressLabel === 'Not reported')).toBe(true)
+  expect(model.reputation.every(reputation => reputation.status === 'Unknown')).toBe(true)
+  expect(model.statistics).toBeNull()
   expect(model.stores.map(store => store.meta)).toEqual(['0 units · No snapshot', '0 units · No snapshot'])
 })

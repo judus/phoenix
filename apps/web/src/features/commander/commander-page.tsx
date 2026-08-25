@@ -3,9 +3,8 @@ import {
   Breadcrumbs,
   DataTable,
   DataTableGroup,
-  DescriptionItem,
-  DescriptionList,
   Meter,
+  Metric,
   PageFrame,
   PageHeader,
   Section,
@@ -14,7 +13,8 @@ import {
 } from '@phoenix/ui'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
 import type { CommanderViewModel } from './commander-view-model.js'
-export type CommanderView = 'overview' | 'inventory' | 'progress'
+
+export type CommanderView = 'career' | 'statistics' | 'inventory'
 
 export function CommanderPage({ model, runtime, view }: {
   model?: CommanderViewModel
@@ -39,9 +39,9 @@ export function CommanderPage({ model, runtime, view }: {
       <div className="commander-layout">
         <CommanderHeader model={model} view={view} />
         <Stack className="commander-content" gap="xl" tabIndex={0}>
-          {view === 'overview' && <CommanderOverview model={model} />}
+          {view === 'career' && <CommanderCareer model={model} />}
+          {view === 'statistics' && <CommanderStatistics statistics={model.statistics} />}
           {view === 'inventory' && <CommanderInventory stores={model.stores} />}
-          {view === 'progress' && <CommanderProgress ranks={model.ranks} />}
         </Stack>
       </div>
     </PageFrame>
@@ -49,47 +49,44 @@ export function CommanderPage({ model, runtime, view }: {
 }
 
 function CommanderHeader({ model, view }: { model?: CommanderViewModel, view: CommanderView }) {
-  if (view === 'overview') {
-    return (
-      <PageHeader
-        variant="entity"
-        context="Commander profile"
-        title={model?.name ?? 'Commander'}
-        description={model ? `${model.situation.place} · ${model.situation.system}` : undefined}
-        metadata={model ? `Current ship: ${model.situation.ship}` : undefined}
-      />
-    )
-  }
-  const title = view === 'inventory' ? 'Personal stores' : 'Career progress'
+  const section = view === 'career' ? 'Career' : view === 'statistics' ? 'Lifetime Statistics' : 'Personal Stores'
+
   return (
     <PageHeader
       variant="cockpit"
-      context={<Breadcrumbs items={[{ label: 'Commander', href: '#/commander/overview' }, { label: title }]} />}
-      title={title}
+      context={<Breadcrumbs items={[{ label: 'Commander', href: '#/commander/career' }, { label: section }]} />}
+      title={`CMDR ${model?.name ?? 'Unknown'}`}
+      status={view === 'statistics' && model?.statistics ? `Reported ${model.statistics.updatedAt}` : undefined}
     />
   )
 }
 
-function CommanderOverview({ model }: { model: CommanderViewModel }) {
+function CommanderCareer({ model }: { model: CommanderViewModel }) {
   return (
     <>
-      <Section title="Current situation">
-        <DescriptionList columns="two">
-          <DescriptionItem label="System" value={model.situation.system} />
-          <DescriptionItem label="Location" value={model.situation.place} />
-          <DescriptionItem label="State" value={model.situation.locationState} />
-          <DescriptionItem label="Current ship" value={model.situation.ship} />
-        </DescriptionList>
+      <Section title="Career ranks" description="Percentages show progress toward the next rank.">
+        <DataTable className="commander-progress" density="compact" label="Commander career ranks" narrow="priority" scheme="surface">
+          <thead><tr><th>Discipline</th><th>Reported level</th><th>Progress</th></tr></thead>
+          <tbody>
+            {model.ranks.map(rank => (
+              <tr key={rank.id}>
+                <th scope="row"><strong>{rank.label}</strong><small>{rank.group === 'pilot' ? 'Pilots Federation' : 'Superpower navy'}</small></th>
+                <td>{rank.level}</td>
+                <td>
+                  <Meter className="commander-rank-meter" label={`${rank.label} progress`} layout="inline" value={rank.progress ?? 0} valueLabel={rank.progressLabel} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </DataTable>
       </Section>
-      <Section divider title="Career ranks" description="Raw journal rank levels and reported progress.">
-        <AutoGrid gap="lg" minimum="md">
-          {model.ranks.map(rank => (
-            <Meter
-              key={rank.id}
-              label={`${rank.label} · ${rank.level}`}
-              value={rank.progress ?? 0}
-              valueLabel={rank.progressLabel}
-            />
+
+      <Section divider title="Galactic reputation" description="Standing reported on Frontier's −100 to +100 scale.">
+        <AutoGrid className="commander-reputation" gap="lg" minimum="md">
+          {model.reputation.map(reputation => (
+            <DataTableGroup key={reputation.id} meta={reputation.status} title={reputation.label}>
+              <Metric density="compact" label="Reputation" value={reputation.valueLabel} />
+            </DataTableGroup>
           ))}
         </AutoGrid>
       </Section>
@@ -97,22 +94,32 @@ function CommanderOverview({ model }: { model: CommanderViewModel }) {
   )
 }
 
-function CommanderProgress({ ranks }: { ranks: CommanderViewModel['ranks'] }) {
+function CommanderStatistics({ statistics }: { statistics: CommanderViewModel['statistics'] }) {
+  if (!statistics) {
+    return <Status tone="muted">Lifetime statistics have not been reported by the game yet.</Status>
+  }
+  if (statistics.groups.length === 0) {
+    return <Status tone="muted">The game reported an empty lifetime statistics snapshot.</Status>
+  }
+
   return (
-    <DataTable className="commander-progress" density="compact" label="Commander career ranks" narrow="priority" scheme="surface">
-      <thead><tr><th>Discipline</th><th>Reported level</th><th>Progress</th></tr></thead>
-      <tbody>
-        {ranks.map(rank => (
-          <tr key={rank.id}>
-            <th scope="row">{rank.label}</th>
-            <td>{rank.level}</td>
-            <td>
-              <Meter className="commander-rank-meter" label={`${rank.label} progress`} layout="inline" value={rank.progress ?? 0} valueLabel={rank.progressLabel} />
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </DataTable>
+    <AutoGrid className="commander-statistics" gap="lg" minimum="xl">
+      {statistics.groups.map(group => (
+        <DataTableGroup key={group.id} meta={`${group.metrics.length} records`} title={group.label}>
+          <DataTable density="compact" label={`${group.label} lifetime statistics`} narrow="priority" scheme="surface">
+            <thead><tr><th>Record</th><th>Value</th></tr></thead>
+            <tbody>
+              {group.metrics.map(metric => (
+                <tr key={metric.id}>
+                  <th scope="row">{metric.label}</th>
+                  <td className="numeric">{metric.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </DataTable>
+        </DataTableGroup>
+      ))}
+    </AutoGrid>
   )
 }
 

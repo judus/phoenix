@@ -15,6 +15,7 @@ import { copilotContext, copilotNavigationItems } from './features/copilot/copil
 import { createDashboardViewModel } from './features/dashboard/dashboard-view-model.js'
 import { useDashboardController } from './features/dashboard/use-dashboard-controller.js'
 import { createCommanderViewModel } from './features/commander/commander-view-model.js'
+import type { CommanderView } from './features/commander/commander-page.js'
 import { commanderContextForRoute, commanderNavigationItems } from './features/commander/commander-navigation.js'
 import { fleetContextForRoute, fleetNavigationItems } from './features/fleet/fleet-navigation.js'
 import { useFleetController } from './features/fleet/use-fleet-controller.js'
@@ -300,7 +301,7 @@ const FleetFeature = memo(function FleetFeature({ application, route }: {
 
 const CommanderFeature = memo(function CommanderFeature({ application, view }: {
   application: PhoenixApplicationServices
-  view: 'overview' | 'inventory' | 'progress'
+  view: CommanderView
 }) {
   const runtime = useRuntimeState(application.runtime)
   const model = useMemo(

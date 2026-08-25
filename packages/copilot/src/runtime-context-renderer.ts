@@ -1,19 +1,8 @@
-import type { RuntimeState, ShipModule } from '@phoenix/contracts'
+import { COMMANDER_RANK_NAMES, type RuntimeState, type ShipModule } from '@phoenix/contracts'
 
 const number = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 
-const RANKS: Record<keyof RuntimeState['commander']['ranks'], readonly string[]> = {
-  combat: ['Harmless', 'Mostly Harmless', 'Novice', 'Competent', 'Expert', 'Master', 'Dangerous', 'Deadly', 'Elite'],
-  trade: ['Penniless', 'Mostly Penniless', 'Peddler', 'Dealer', 'Merchant', 'Broker', 'Entrepreneur', 'Tycoon', 'Elite'],
-  exploration: ['Aimless', 'Mostly Aimless', 'Scout', 'Surveyor', 'Trailblazer', 'Pathfinder', 'Ranger', 'Pioneer', 'Elite'],
-  federation: ['None', 'Recruit', 'Cadet', 'Midshipman', 'Petty Officer', 'Chief Petty Officer', 'Warrant Officer', 'Ensign', 'Lieutenant', 'Lieutenant Commander', 'Post Commander', 'Post Captain', 'Rear Admiral', 'Vice Admiral', 'Admiral'],
-  empire: ['None', 'Outsider', 'Serf', 'Master', 'Squire', 'Knight', 'Lord', 'Baron', 'Viscount', 'Count', 'Earl', 'Marquis', 'Duke', 'Prince', 'King'],
-  cqc: ['Helpless', 'Mostly Helpless', 'Amateur', 'Semi Professional', 'Professional', 'Champion', 'Hero', 'Legend', 'Elite'],
-  mercenary: ['Defenceless', 'Mostly Defenceless', 'Rookie', 'Soldier', 'Gunslinger', 'Warrior', 'Gladiator', 'Deadeye', 'Elite'],
-  exobiologist: ['Directionless', 'Mostly Directionless', 'Compiler', 'Collector', 'Cataloguer', 'Taxonomist', 'Ecologist', 'Geneticist', 'Elite']
-}
-
-const RANK_LABELS: Record<keyof typeof RANKS, string> = {
+const RANK_LABELS: Record<keyof typeof COMMANDER_RANK_NAMES, string> = {
   combat: 'Combat',
   trade: 'Trade',
   exploration: 'Exploration',
@@ -70,11 +59,11 @@ function commanderLines (state: RuntimeState): string[] {
   return lines
 }
 
-function rankText (state: RuntimeState, keys: Array<keyof typeof RANKS>): string | null {
+function rankText (state: RuntimeState, keys: Array<keyof typeof COMMANDER_RANK_NAMES>): string | null {
   const ranks = keys.flatMap(key => {
     const level = state.commander.ranks[key]
     if (level === null) return []
-    const title = RANKS[key][level] ?? `Level ${level}`
+    const title = COMMANDER_RANK_NAMES[key][level] ?? `Rank ${level}`
     const progress = state.commander.rankProgress[key]
     return [`${RANK_LABELS[key]} ${title}${progress === null ? '' : ` (${progress}%)`}`]
   })
