@@ -43,7 +43,6 @@ export function JournalPage({ controller }: { controller: JournalControllerSnaps
       variant="cockpit"
       context={<Breadcrumbs items={[{ label: 'Log' }, { label: 'Journal' }]} />}
       title="Journal"
-      status={`${controller.retained} retained`}
     />
     {controller.status === 'error'
       ? <Status tone="danger">{controller.error}</Status>

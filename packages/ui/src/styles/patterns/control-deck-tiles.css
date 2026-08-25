@@ -83,6 +83,8 @@
     background: var(--command-background);
     text-align: start;
 
+    &:focus-visible { outline-offset: -2px; }
+
     > .content {
       grid-template-rows: minmax(0, 1fr) auto auto;
       gap: var(--spacing-xs) var(--spacing-sm);

@@ -132,12 +132,12 @@ export function createCurrentShipModel(state: RuntimeState, locale = 'en-CH'): C
       }))
     },
     controls: [
-      { actionId: 'elite.DeployHardpointToggle', label: 'Hardpoints', active: flags?.hardpointsDeployed ?? false },
-      { actionId: 'elite.LandingGearToggle', label: 'Landing gear', active: flags?.landingGearDown ?? false },
-      { actionId: 'elite.ToggleCargoScoop', label: 'Cargo scoop', active: flags?.cargoScoopDeployed ?? false },
+      { actionId: 'elite.TargetNextRouteSystem', label: 'Target next jump', active: false },
+      { actionId: 'elite.GalaxyMapOpen', label: 'Galaxy map', active: false },
+      { actionId: 'elite.SystemMapOpen', label: 'System map', active: false },
+      { actionId: 'elite.OrbitLinesToggle', label: 'Orbit lines', active: false },
       { actionId: 'elite.ShipSpotLightToggle', label: 'Lights', active: flags?.lightsOn ?? false },
-      { actionId: 'elite.NightVisionToggle', label: 'Night vision', active: flags?.nightVision ?? false },
-      { actionId: 'elite.ToggleFlightAssist', label: 'Flight assist', active: flags ? !flags.flightAssistOff : false }
+      { actionId: 'elite.NightVisionToggle', label: 'Night vision', active: flags?.nightVision ?? false }
     ],
     modules: moduleGroups.map(group => moduleGroupModel(ship, group)).filter(group => group.capacity > 0)
   }

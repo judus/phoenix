@@ -165,6 +165,7 @@ export function PlottedRoute({ actions, api, route, runtimeState }: PlottedRoute
                     {nextHop && <CommandTile
                       binding={targetNextRouteAction?.binding?.display}
                       className="route-target-command"
+                      compact
                       disabled={targeting || !targetNextRouteAction?.available}
                       label={targeting ? 'Targeting…' : 'Target next jump'}
                       meta="Tap"

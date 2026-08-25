@@ -27,6 +27,7 @@ import {
   EngineeringBlueprintsResponseSchema,
   EngineeringEngineersResponseSchema,
   EngineeringMaterialsResponseSchema,
+  ExplorationLedgerResponseSchema,
   GalaxyFilteredSystemsResponseSchema,
   GalaxyCommodityMarketsResponseSchema,
   GalaxyExplorationTargetsResponseSchema,
@@ -85,6 +86,7 @@ import type {
   EngineeringEngineersResponse,
   EngineeringMaterial,
   EngineeringMaterialsResponse,
+  ExplorationLedgerResponse,
   GalaxyFilteredSystemsResponse,
   GalaxyCommodityMarketsResponse,
   GalaxyExplorationTargetsResponse,
@@ -207,6 +209,10 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getMissions(signal?: AbortSignal): Promise<MissionsResponse> {
     return this.#get('/api/operations/missions', MissionsResponseSchema, signal)
+  }
+
+  async getExplorationLedger(signal?: AbortSignal): Promise<ExplorationLedgerResponse> {
+    return this.#get('/api/exploration/ledger', ExplorationLedgerResponseSchema, signal)
   }
 
   async getEngineeringEngineers(signal?: AbortSignal): Promise<EngineeringEngineersResponse> {

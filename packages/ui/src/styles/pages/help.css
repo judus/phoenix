@@ -1,0 +1,103 @@
+  .help-page {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--spacing-xs);
+    min-block-size: 0;
+    overflow: hidden;
+
+    .help-layout {
+      display: grid;
+      grid-template-columns: minmax(18rem, 0.36fr) minmax(0, 1fr);
+      gap: var(--spacing-lg);
+      min-inline-size: 0;
+      min-block-size: 0;
+      overflow: hidden;
+    }
+
+    .help-index,
+    .help-reader-group {
+      grid-template-rows: auto minmax(0, 1fr);
+      min-inline-size: 0;
+      min-block-size: 0;
+      overflow: hidden;
+    }
+
+    .help-topic-index,
+    .help-reader {
+      min-inline-size: 0;
+      min-block-size: 0;
+      overflow: hidden;
+    }
+
+    .help-index-scroll,
+    .help-reader {
+      block-size: 100%;
+      min-block-size: 0;
+      padding-inline-end: var(--spacing-xs);
+      overflow: auto;
+      overscroll-behavior: contain;
+
+      &:focus-visible {
+        outline: 2px solid var(--color-focus);
+        outline-offset: -2px;
+      }
+    }
+
+    .help-index .item-list > li { cursor: pointer; }
+
+    .help-reader {
+      scroll-behavior: smooth;
+
+      > section {
+        max-inline-size: 82rem;
+        padding: var(--spacing-md);
+        scroll-margin-block-start: var(--spacing-md);
+
+        + section { border-block-start: 1px solid var(--color-border); }
+
+        > header {
+          margin-block-end: var(--spacing-md);
+
+          h2 {
+            margin: 0;
+            color: var(--color-text);
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-normal);
+            line-height: var(--line-height-tight);
+          }
+        }
+
+        > div {
+          max-inline-size: 76ch;
+
+          h3 {
+            margin: var(--spacing-lg) 0 var(--spacing-xs);
+            color: var(--color-action);
+            font-size: var(--font-size-md);
+            font-weight: var(--font-weight-normal);
+
+            &:first-child { margin-block-start: 0; }
+          }
+
+          p {
+            margin: 0;
+            line-height: var(--line-height-normal);
+
+            + p { margin-block-start: var(--spacing-sm); }
+          }
+
+          a { color: var(--color-information); }
+
+          > .status { margin-block-end: var(--spacing-lg); }
+        }
+      }
+    }
+  }
+
+  @container page-frame (width < 52rem) {
+    .help-page .help-layout {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(10rem, 0.42fr) minmax(18rem, 1fr);
+      gap: var(--spacing-sm);
+    }
+  }

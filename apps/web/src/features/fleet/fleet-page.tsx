@@ -136,10 +136,9 @@ function CurrentShipOverview({ actions, model, onExecuteAction, onNavigate }: {
   return (
     <PageFrame layout="fit">
       <div className="current-ship consolidated">
-        <CurrentShipHeader model={model} />
         <div className="ship-grid">
           <div className="vessel-column">
-            <FactsWidget title="Vessel" items={model.vessel} />
+            <FactsWidget title="Current Vessel" items={model.vessel} />
             <FactsWidget title="Operational status" items={model.operation} />
             <ControlContext className="command-grid" context="command" aria-label="Ship controls">
               {model.controls.map(control => {
@@ -149,6 +148,7 @@ function CurrentShipOverview({ actions, model, onExecuteAction, onNavigate }: {
                   <CommandTile
                     aria-label={`${control.label}: ${control.active ? 'active' : 'inactive'}`}
                     binding={action?.binding?.display}
+                    compact
                     key={control.actionId}
                     label={control.label}
                     onClick={() => onExecuteAction?.(control.actionId)}
@@ -180,8 +180,8 @@ function CurrentShipOverview({ actions, model, onExecuteAction, onNavigate }: {
               </div>
             </Widget>
             <div className="actions">
-              <CommandTile details={false} label="Loadout" onClick={() => onNavigate(currentRoutes['current-loadout'])} />
-              <CommandTile details={false} label="Engineering" onClick={() => onNavigate(currentRoutes['current-engineering'])} />
+              <CommandTile compact details={false} label="Loadout" onClick={() => onNavigate(currentRoutes['current-loadout'])} />
+              <CommandTile compact details={false} label="Engineering" onClick={() => onNavigate(currentRoutes['current-engineering'])} />
             </div>
           </div>
         </div>

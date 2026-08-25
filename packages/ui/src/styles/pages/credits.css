@@ -1,0 +1,17 @@
+  .credits-page {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--spacing-xs);
+
+    .credits-sources {
+      overflow: auto;
+      padding-inline-end: var(--spacing-xs);
+
+      .panel { gap: var(--spacing-xs); }
+
+      a {
+        color: var(--color-information);
+        text-decoration: none;
+      }
+    }
+  }

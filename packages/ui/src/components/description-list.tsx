@@ -30,12 +30,13 @@ export function DescriptionList({
 
 type DescriptionItemProps = HTMLAttributes<HTMLDivElement> & {
   label: ReactNode
+  labelTone?: 'standard' | 'action'
   value: ReactNode
 }
 
-export function DescriptionItem({ className, label, value, ...props }: DescriptionItemProps) {
+export function DescriptionItem({ className, label, labelTone = 'standard', value, ...props }: DescriptionItemProps) {
   return (
-    <div className={className} {...props}>
+    <div className={[labelTone === 'action' && 'label-action', className].filter(Boolean).join(' ')} {...props}>
       <dt>{label}</dt>
       <dd>{value}</dd>
     </div>

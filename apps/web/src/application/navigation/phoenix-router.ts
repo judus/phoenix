@@ -54,6 +54,10 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
       systemName,
       ...(selectedName ? { selectedName } : {})
     }
+    const legacyView = section === 'records' ? rest[1] : rest[0]
+    if (legacyView === 'biology' || legacyView === 'ledger') {
+      return { kind: 'information', section: 'galaxy', view: 'exobiology' }
+    }
     return { kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'exploration-targets' }
   }
 
@@ -167,7 +171,7 @@ function parseFleetRoute(rest: string[], query: RawRouteQuery): InformationRoute
 }
 
 function parseGalaxyRoute(rest: string[], query: RawRouteQuery): InformationRoute {
-  const view = oneOf(rest[0], ['system', 'route', 'database'] as const) ?? 'system'
+  const view = oneOf(rest[0], ['system', 'route', 'database', 'exobiology'] as const) ?? 'system'
   if (view === 'system') {
     const { name, selected } = query
     return {

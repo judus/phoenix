@@ -42,7 +42,7 @@ export function GalnetRadioControls({ actionCatalog, className, onExecute }: {
 
   return (
     <>
-      <EqualGrid className={className} columns={4} gap="sm" aria-label="GalNet Audio controls">
+      <EqualGrid className={className} columns={4} gap="xs" aria-label="GalNet Audio controls">
         {RADIO_COMMANDS.map(command => {
           const action = actions.get(command.actionId)
           return (

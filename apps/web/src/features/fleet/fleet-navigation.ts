@@ -13,8 +13,8 @@ const routes = {
 } as const satisfies Record<string, InformationRoute>
 
 export const fleetNavigationItems: FleetNavigationItem[] = [
-  item('overview', 'Overview', 'FLT'),
   item('current', 'Current ship', 'SHP'),
+  item('overview', 'Overview', 'FLT'),
   item('carriers', 'Carriers', 'CAR'),
   item('stored-modules', 'Stored modules', 'MOD'),
   item('catalogue', 'Ship catalogue', 'CAT')

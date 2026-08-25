@@ -9,8 +9,13 @@ export interface DashboardViewModel {
     time: string
   }[]
   commander: {
-    credits: string
+    credits: string | null
+    legalState: string | null
     name: string
+    notoriety: {
+      label: string
+      value: number
+    } | null
   }
   route: {
     current: string
@@ -41,6 +46,7 @@ export function createDashboardViewModel(
   activity: readonly ActivityLogEntry[],
   locale?: string
 ): DashboardViewModel {
+  const notoriety = runtime?.commander.statistics?.groups.Crime?.Notoriety ?? null
   const system = runtime?.system.name ?? 'Unknown system'
   const place = runtime?.location.place?.name ?? locationLabel(runtime)
   const cargo = runtime?.inventory.cargo?.items.reduce((total, item) => total + item.count, 0)
@@ -60,7 +66,12 @@ export function createDashboardViewModel(
       })),
     commander: {
       credits: formatCredits(runtime?.gameStatus?.balance, locale),
-      name: runtime?.commander.name ?? 'Identity pending'
+      legalState: runtime?.gameStatus?.legalState ? humanize(runtime.gameStatus.legalState) : null,
+      name: runtime?.commander.name ?? 'Identity pending',
+      notoriety: notoriety === null ? null : {
+        label: formatNumber(notoriety, locale) ?? 'Not reported',
+        value: notoriety
+      }
     },
     route: {
       current: runtime?.system.name ?? 'Current system unknown',
@@ -126,8 +137,8 @@ function formatNumber(value?: number | null, locale?: string): string | undefine
   return value == null ? undefined : new Intl.NumberFormat(locale).format(value)
 }
 
-function formatCredits(value?: number | null, locale?: string): string {
-  return value == null ? '—' : `${new Intl.NumberFormat(locale).format(Math.round(value))} CR`
+function formatCredits(value?: number | null, locale?: string): string | null {
+  return value == null ? null : `${new Intl.NumberFormat(locale).format(Math.round(value))} CR`
 }
 
 function formatTime(timestamp: string, locale?: string): string {
@@ -135,5 +146,8 @@ function formatTime(timestamp: string, locale?: string): string {
 }
 
 function humanize(value: string): string {
-  return value.replace(/[._-]+/gu, ' ').replace(/\b\w/gu, letter => letter.toUpperCase())
+  return value
+    .replace(/([a-z])([A-Z])/gu, '$1 $2')
+    .replace(/[._-]+/gu, ' ')
+    .replace(/\b\w/gu, letter => letter.toUpperCase())
 }

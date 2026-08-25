@@ -1,7 +1,7 @@
   .numpad-page {
     display: grid;
     grid-template-rows: minmax(0, 1fr);
-    gap: var(--spacing-md);
+    gap: var(--spacing-xs);
 
     > .status { align-self: start; }
     .numpad-shortcuts { min-block-size: 0; overflow: auto; }
@@ -17,7 +17,7 @@
     .numpad-console {
       display: grid;
       grid-template-rows: auto minmax(0, 1fr);
-      gap: var(--spacing-sm);
+      gap: var(--spacing-xs);
       min-block-size: 0;
 
       > header {
@@ -47,7 +47,7 @@
       --command-meta: var(--color-action);
     }
 
-    .control-deck-numpad-layout { --grid-spacing: var(--spacing-sm); }
+    .control-deck-numpad-layout { --grid-spacing: var(--spacing-xs); }
 
     .control-deck-numpad-layout {
       display: grid;

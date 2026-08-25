@@ -31,6 +31,8 @@ test('dashboard exposes degraded evidence and preserves radio control order', ()
   expect(markup).toContain('Runtime unavailable.')
   expect(markup).toContain('Voice unavailable.')
   expect(markup).toContain('No recent activity retained.')
+  expect(markup).toContain('<span>Total credits</span><strong>—</strong>')
+  expect(markup).toContain('<dt>Legal status</dt><dd>—</dd>')
   expect(markup.indexOf('aria-label="Previous"')).toBeLessThan(markup.indexOf('aria-label="Stop"'))
   expect(markup.indexOf('aria-label="Stop"')).toBeLessThan(markup.indexOf('aria-label="Play"'))
   expect(markup.indexOf('aria-label="Play"')).toBeLessThan(markup.indexOf('aria-label="Next"'))
@@ -66,7 +68,7 @@ test('dashboard identifies its loading state without replacing the shell', () =>
 function model(): DashboardViewModel {
   return {
     activity: [],
-    commander: { credits: '—', name: 'Identity pending' },
+    commander: { credits: null, legalState: null, name: 'Identity pending', notoriety: null },
     route: { current: 'Current system unknown', destination: 'No route plotted', detail: 'Navigation computer idle' },
     ship: { cargo: '—', hull: '—', identifier: 'Loadout pending', jumpRange: '—', name: 'No ship identified' },
     situation: { allegiance: '—', economy: '—', place: 'Establishing telemetry link', population: '—', security: '—', system: 'Unknown system' },

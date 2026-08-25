@@ -28,6 +28,8 @@
       color: var(--color-text-muted);
     }
 
+    > div.label-action dt { color: var(--color-action); }
+
     dd {
       min-inline-size: 0;
       margin: 0;
@@ -81,6 +83,14 @@
     margin: 0;
     padding: 0;
     list-style: none;
+
+    &.surface > li {
+      background: var(--color-surface);
+
+      &:hover { background: var(--color-interactive-surface); }
+
+      &.active { background: var(--color-danger-surface); }
+    }
 
     > li {
       position: relative;
@@ -224,4 +234,3 @@
       }
     }
   }
-

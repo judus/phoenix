@@ -16,10 +16,11 @@ describe('navigation stylesheet boundary', () => {
     expect(offenders).toEqual([])
   })
 
-  test('navigation items expose only default and active visual states', () => {
+  test('navigation items expose only default, active, and keyboard-focus visual states', () => {
     const stylesheet = readFileSync(navigationStylesheet, 'utf8')
 
-    expect(stylesheet).not.toMatch(/:(?:hover|active|focus-visible)\b/)
+    expect(stylesheet).not.toMatch(/:(?:hover|active)\b/)
+    expect(stylesheet).toMatch(/&:focus-visible\s*{[^}]*outline:\s*2px solid var\(--color-action\)/s)
     expect(stylesheet).not.toMatch(/\.disabled\b/)
   })
 })

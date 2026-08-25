@@ -4,12 +4,13 @@ type MetricProps = HTMLAttributes<HTMLDivElement> & {
   density?: 'standard' | 'compact'
   detail?: ReactNode
   label?: ReactNode
+  labelTone?: 'standard' | 'action'
   value: ReactNode
 }
 
-export function Metric({ className, density = 'standard', detail, label, value, ...props }: MetricProps) {
+export function Metric({ className, density = 'standard', detail, label, labelTone = 'standard', value, ...props }: MetricProps) {
   return (
-    <div className={['metric', density === 'compact' && 'compact', className].filter(Boolean).join(' ')} {...props}>
+    <div className={['metric', density === 'compact' && 'compact', labelTone === 'action' && 'label-action', className].filter(Boolean).join(' ')} {...props}>
       {label && <span>{label}</span>}
       <strong>{value}</strong>
       {detail && <small>{detail}</small>}

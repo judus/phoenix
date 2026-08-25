@@ -67,11 +67,12 @@ export function SettingsPage ({
   }
 
   return (
-    <PageFrame layout="fit">
+    <PageFrame className="settings-page" layout="fit">
       <DashboardColumns
+        gap="xs"
         primary={<>
           <CopilotSettings api={api} settings={settings} onChange={setSettings} />
-          <EqualGrid columns={2} gap="sm">
+          <EqualGrid columns={2} gap="xs">
             <DeviceSettings preferences={devicePreferences} />
             <ControlSettings settings={settings} onSave={updateSettings} />
           </EqualGrid>

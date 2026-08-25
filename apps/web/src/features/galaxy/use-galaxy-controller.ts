@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { CartographyLookupResponse, GameActionCatalogResponse, NavigationRoute } from '@phoenix/contracts'
+import type { CartographyLookupResponse, ExplorationLedgerResponse, GameActionCatalogResponse, NavigationRoute } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { readControllerSnapshot, storeControllerSnapshot } from '../../application/cache/controller-snapshot-cache.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
@@ -8,6 +8,7 @@ import { LatestRequest } from '../../application/requests/latest-request.js'
 export interface GalaxyControllerSnapshot {
   actions?: GameActionCatalogResponse
   error?: string
+  exploration?: ExplorationLedgerResponse
   lookup?: CartographyLookupResponse
   route?: NavigationRoute
   status: 'idle' | 'loading' | 'ready' | 'error'
@@ -16,7 +17,7 @@ export interface GalaxyControllerSnapshot {
 export function useGalaxyController(
   api: PhoenixApi,
   events: PhoenixEventHub,
-  view: 'system' | 'route' | 'database',
+  view: 'system' | 'route' | 'database' | 'exobiology',
   systemName?: string
 ): GalaxyControllerSnapshot {
   const cacheKey = `galaxy:${view}:${systemName ?? ''}`
@@ -38,8 +39,10 @@ export function useGalaxyController(
       if (showLoading) setSnapshot(retained ?? { status: 'loading' })
       const request = view === 'system'
         ? api.getSystemCartography(systemName, signal).then(lookup => ({ lookup }))
-        : Promise.all([api.getNavigationRoute(signal), api.getActions(signal)])
-          .then(([route, actions]) => ({ actions, route }))
+        : view === 'exobiology'
+          ? api.getExplorationLedger(signal).then(exploration => ({ exploration }))
+          : Promise.all([api.getNavigationRoute(signal), api.getActions(signal)])
+            .then(([route, actions]) => ({ actions, route }))
       void request.then(result => {
         if (latest.isCurrent(signal)) publish({ ...result, status: 'ready' })
       }).catch(cause => {
@@ -59,12 +62,28 @@ export function useGalaxyController(
     const unsubscribeCatalogue = view === 'route'
       ? events.subscribe('command-catalogue', () => load())
       : undefined
+    const unsubscribeExploration = view === 'exobiology'
+      ? events.subscribe('activity-entry', entry => {
+          if (entry.source === 'journal' && explorationEvents.has(entry.event)) load()
+        })
+      : undefined
     return () => {
       latest.cancel()
       unsubscribeRoute?.()
       unsubscribeCatalogue?.()
+      unsubscribeExploration?.()
     }
   }, [api, cacheKey, events, systemName, view])
 
   return snapshot
 }
+
+const explorationEvents = new Set([
+  'FSSAllBodiesFound',
+  'FSSBodySignals',
+  'FSSDiscoveryScan',
+  'SAAScanComplete',
+  'SAASignalsFound',
+  'Scan',
+  'ScanOrganic'
+])

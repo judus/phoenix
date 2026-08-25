@@ -163,7 +163,7 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
         : null}
       journal={mountedWorkspaces.current.has('journal')
         ? <FeatureBoundary>{logRoute?.kind === 'developer'
-            ? <PlaceholderPage context="Log · Developer" title="Developer tools" description="Runtime inspection and diagnostics" />
+            ? <PlaceholderPage context="Log · Developer" title="Developer tools" />
             : logRoute?.view === 'credits'
               ? <CreditsPage />
               : <JournalFeature application={application} />}</FeatureBoundary>

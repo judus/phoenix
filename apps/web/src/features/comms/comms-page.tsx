@@ -151,9 +151,9 @@ function Contacts({ response }: { response: CommunicationsResponse }) {
   const selected = response.contacts.find(contact => contact.id === selectedId) ?? response.contacts[0]
   return (
     <PageFrame className="traffic-page" layout="fit">
-      <CommsHeader title="Contacts" />
+      <CommsHeader status="Last-seen evidence only" title="Contacts" />
       <MetricStrip columns={3}>
-        <MetricStripItem detail="Last-seen evidence only" label="Observed commanders" value={response.contacts.length} />
+        <MetricStripItem label="Observed commanders" value={response.contacts.length} />
         <MetricStripItem label="Inbound" value={response.summary.inbound} />
         <MetricStripItem label="Outbound" value={response.summary.outbound} />
       </MetricStrip>
@@ -214,7 +214,7 @@ function Galnet({ news }: { news: NonNullable<CommsControllerSnapshot['galnet']>
         <div className="galnet-layout">
           <DataTableGroup className="galnet-index" meta={`${news.articles.length} articles`} title="Latest news">
             <div className="galnet-index-scroll" tabIndex={0}>
-              <ItemList density="compact" aria-label="GalNet articles">
+              <ItemList className="surface" density="compact" aria-label="GalNet articles">
                 {news.articles.map(article => (
                   <ItemListItem
                     eyebrow={<time className="text-information" dateTime={article.publishedAt}>{shortDate(article.publishedAt)}</time>}

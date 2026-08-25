@@ -12,8 +12,8 @@ const routes = {
 
 export const commanderNavigationItems: CommanderNavigationItem[] = [
   item('career', 'Career', 'CAR'),
-  item('statistics', 'Statistics', 'STA'),
-  item('inventory', 'Personal stores', 'INV')
+  item('inventory', 'Personal stores', 'INV'),
+  item('statistics', 'Statistics', 'STA')
 ]
 
 export function commanderContextForRoute(route: InformationRoute): string {

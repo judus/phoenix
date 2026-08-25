@@ -15,7 +15,7 @@
     display: grid;
     min-block-size: 0;
     grid-template-columns: minmax(13rem, 0.7fr) minmax(0, 3fr);
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
     overflow: hidden;
   }
 
@@ -29,7 +29,7 @@
     min-inline-size: 0;
     min-block-size: 0;
     grid-template-rows: auto minmax(0, 1fr) auto;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
     overflow: hidden;
   }
 
@@ -61,7 +61,7 @@
     min-inline-size: 0;
     min-block-size: 0;
     grid-template-rows: minmax(0, 1fr) auto;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
     overflow: hidden;
   }
 
@@ -78,7 +78,7 @@
     display: grid;
     min-inline-size: 0;
     grid-template-columns: minmax(0, 1fr) minmax(9rem, 0.2fr);
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
   }
 
   .copilot-composer-row > .tile.btn {

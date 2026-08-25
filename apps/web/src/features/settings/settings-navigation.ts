@@ -17,7 +17,7 @@ export const settingsNavigationItems: Array<NavigationItem & { route: SettingsRo
   },
   {
     id: 'help',
-    label: 'Help & Q&A',
+    label: 'Help',
     shortLabel: 'HLP',
     route: helpRoute,
     href: phoenixRouteHash(helpRoute)

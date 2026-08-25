@@ -1,4 +1,6 @@
   .current-ship.consolidated {
+    grid-template-rows: minmax(0, 1fr);
+
     .ship-grid {
       grid-template-rows: minmax(0, 1fr);
       grid-template-areas: none;

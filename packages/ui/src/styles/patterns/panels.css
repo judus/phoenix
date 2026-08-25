@@ -59,6 +59,8 @@
     grid-template-rows: minmax(0, 1fr);
   }
 
+  .widget.compact { gap: var(--spacing-xs); }
+
   .widget-command-row {
     display: grid;
     grid-template-columns: minmax(0, 4fr) minmax(8rem, 1fr);

@@ -10,8 +10,8 @@ test('commander view model preserves raw rank and inventory provenance', () => {
       ...empty.commander,
       name: 'Ellan Murdock',
       ranks: { ...empty.commander.ranks, combat: 5 },
-      rankProgress: { ...empty.commander.rankProgress, combat: 72 },
-      reputation: { ...empty.commander.reputation, federation: 92, alliance: -40 },
+      rankProgress: { ...empty.commander.rankProgress, combat: 72.3456 },
+      reputation: { ...empty.commander.reputation, federation: 92.3456, alliance: -40.126 },
       statistics: {
         updatedAt: '2026-08-16T12:00:00.000Z',
         groups: {
@@ -33,10 +33,15 @@ test('commander view model preserves raw rank and inventory provenance', () => {
   })
 
   expect(model.name).toBe('Ellan Murdock')
-  expect(model.ranks[0]).toMatchObject({ label: 'Combat', level: 'Master', progress: 72, progressLabel: '72%' })
+  expect(model.legal).toEqual({
+    credits: null,
+    state: null,
+    notoriety: null
+  })
+  expect(model.ranks[0]).toMatchObject({ label: 'Combat', level: 'Master', progress: 72.3456, progressLabel: '72.35%' })
   expect(model.reputation).toEqual(expect.arrayContaining([
-    expect.objectContaining({ label: 'Federation', status: 'Allied', valueLabel: '+92%' }),
-    expect.objectContaining({ label: 'Alliance', status: 'Unfriendly', valueLabel: '-40%' })
+    expect.objectContaining({ label: 'Federation', status: 'Allied', valueLabel: '+92.35%' }),
+    expect.objectContaining({ label: 'Alliance', status: 'Unfriendly', valueLabel: '-40.13%' })
   ]))
   expect(model.statistics?.groups.map(group => group.label)).toEqual(['Bank Account', 'Exploration'])
   expect(model.statistics?.groups[1]?.metrics).toEqual(expect.arrayContaining([

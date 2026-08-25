@@ -40,18 +40,43 @@
     min-inline-size: 0;
   }
 
-  .commander-rank-meter.meter-inline {
-    grid-template-columns: minmax(0, 1fr) 4rem;
+  dl.dl-list.compact.commander-legal-status-list {
+    > div { padding-block: 0; }
+    > div:not(:last-child) { padding-block-end: var(--spacing-xxs); }
+    > div:not(:first-child) { padding-block-start: var(--spacing-xxs); }
+  }
 
-    > span {
-      position: absolute;
-      inline-size: 1px;
-      block-size: 1px;
-      overflow: hidden;
-      clip-path: inset(50%);
-      white-space: nowrap;
+  .commander-career-rows {
+    display: grid;
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+    min-block-size: 0;
+    block-size: 100%;
+
+    > .auto-grid { min-block-size: 0; }
+
+    .widget {
+      min-block-size: 0;
+      block-size: 100%;
+    }
+  }
+
+  @container page-frame (width < 48rem) {
+    .commander-career-page { overflow: auto; }
+
+    .commander-career-dashboard {
+      grid-template-rows: auto auto;
+      block-size: auto;
+
+      > .thirds-layout:last-child,
+      > .thirds-layout:last-child > .thirds-grid {
+        block-size: auto;
+      }
     }
 
-    > progress { grid-column: 1; }
-    > output { grid-column: 2; }
+    .commander-career-rows {
+      grid-template-rows: none;
+      block-size: auto;
+
+      .widget { block-size: auto; }
+    }
   }

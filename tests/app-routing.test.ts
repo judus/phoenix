@@ -89,6 +89,16 @@ describe('PHOENIX route parsing and generation', () => {
     expect(phoenixRouteHash(parsePhoenixRoute('#/operations/overview'))).toBe('#/activities/missions')
   })
 
+  test('Fleet lands on the current ship dashboard', () => {
+    expect(defaultRouteForInformationSection('fleet')).toEqual({ kind: 'information', section: 'fleet', view: 'current-overview' })
+  })
+
+  test('Exobiology is an owned Galaxy route', () => {
+    const route = parsePhoenixRoute('#/galaxy/exobiology')
+    expect(route).toEqual({ kind: 'information', section: 'galaxy', view: 'exobiology' })
+    expect(phoenixRouteHash(route)).toBe('#/galaxy/exobiology')
+  })
+
   test('Fleet promotes catalogue selection and drops arbitrary query fields', () => {
     const catalogue = parsePhoenixRoute('#/fleet/catalogue?ship=python&layout=cards')
     const overview = parsePhoenixRoute('#/fleet/overview?selected=42')
@@ -117,7 +127,7 @@ describe('PHOENIX route parsing and generation', () => {
       selectedName: 'Earth'
     })
     expect(phoenixRouteHash(route)).toBe('#/galaxy/system?name=Sol&selected=Earth')
-    expect(phoenixRouteHash(parsePhoenixRoute('#/exploration/ledger'))).toBe('#/galaxy/database?query=exploration-targets')
+    expect(phoenixRouteHash(parsePhoenixRoute('#/exploration/ledger'))).toBe('#/galaxy/exobiology')
   })
 
   test.each([

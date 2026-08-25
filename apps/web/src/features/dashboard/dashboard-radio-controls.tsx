@@ -11,7 +11,7 @@ export function DashboardRadioControls({
 }) {
   return (
     <Stack gap="sm" fill justify="space-between">
-      <Metric value="GALNET AUDIO" />
+      <Metric value="GALNET RADIO" />
       <GalnetRadioControls actionCatalog={actionCatalog} onExecute={onExecute} />
     </Stack>
   )

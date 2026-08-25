@@ -43,6 +43,7 @@ export type InformationRoute =
   | { kind: 'information', section: 'fleet', view: 'catalogue', selectedShipId?: string }
   | { kind: 'information', section: 'galaxy', view: 'system', systemName?: string, selectedName?: string }
   | { kind: 'information', section: 'galaxy', view: 'route' }
+  | { kind: 'information', section: 'galaxy', view: 'exobiology' }
   | { kind: 'information', section: 'galaxy', view: 'database', selectedQueryId?: GalaxyQueryId }
   | { kind: 'information', section: 'activities', view: 'missions' | 'objectives' | 'community-goals' | 'powerplay' | 'colonisation' }
   | { kind: 'information', section: 'engineering', view: 'blueprints', selectedBlueprintSymbol?: string }
@@ -101,7 +102,7 @@ export function defaultRouteForInformationSection(section: InformationPrimarySec
   switch (section) {
     case 'home': return HOME_ROUTE
     case 'commander': return { kind: 'information', section, view: 'career' }
-    case 'fleet': return { kind: 'information', section, view: 'overview' }
+    case 'fleet': return { kind: 'information', section, view: 'current-overview' }
     case 'galaxy': return { kind: 'information', section, view: 'system' }
     case 'activities': return { kind: 'information', section, view: 'missions' }
     case 'engineering': return { kind: 'information', section, view: 'blueprints' }

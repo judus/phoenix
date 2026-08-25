@@ -27,6 +27,7 @@ import type {
   EngineeringEngineersResponse,
   EngineeringMaterial,
   EngineeringMaterialsResponse,
+  ExplorationLedgerResponse,
   GalaxyFilteredSystemsResponse,
   GalaxyCommodityMarketsResponse,
   GalaxyExplorationTargetsResponse,
@@ -102,6 +103,7 @@ export interface PhoenixApi {
   getEngineeringBlueprints(signal?: AbortSignal): Promise<EngineeringBlueprintsResponse>
   getEngineeringEngineers(signal?: AbortSignal): Promise<EngineeringEngineersResponse>
   getEngineeringMaterials(category: EngineeringMaterial['category'], signal?: AbortSignal): Promise<EngineeringMaterialsResponse>
+  getExplorationLedger(signal?: AbortSignal): Promise<ExplorationLedgerResponse>
   getActions(signal?: AbortSignal): Promise<GameActionCatalogResponse>
   getActivityLog(limit?: number, signal?: AbortSignal): Promise<ActivityLogResponse>
   getCopilotAudioProcessing(profileId?: string, signal?: AbortSignal): Promise<CopilotAudioProcessing>

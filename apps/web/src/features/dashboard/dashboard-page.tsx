@@ -15,6 +15,7 @@ import {
   Status,
   Widget
 } from '@phoenix/ui'
+import { CommanderSummaryWidget } from '../../components/commander-summary-widget.js'
 import type { GameActionCatalogResponse, GameActionResult } from '@phoenix/contracts'
 import type { PhoenixEventConnectionSnapshot } from '../../application/events/phoenix-event-hub.js'
 import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
@@ -66,6 +67,7 @@ export function DashboardPage({
   return (
     <PageFrame className="dashboard-page" layout="fit" aria-busy={controller.status === 'loading'}>
       <DashboardGrid
+        gap="xs"
         lastRow={(
           <>
             <Widget
@@ -101,12 +103,7 @@ export function DashboardPage({
           </>
         )}
       >
-        <Widget className="span-full" title="Commander" meta="Total credits">
-          <EqualGrid columns={2}>
-            <Metric value={model.commander.name.toUpperCase()} />
-            <Metric className="text-end" value={model.commander.credits} />
-          </EqualGrid>
-        </Widget>
+        <CommanderSummaryWidget className="span-full" {...model.commander} />
 
         <Widget
           className="span-two"

@@ -8,8 +8,8 @@ import { fleetFixture } from './fixtures/fleet-fixture.js'
 
 test('Fleet supplies feature-owned contextual destinations', () => {
   expect(fleetNavigationItems.map(item => [item.label, item.href])).toEqual([
-    ['Overview', '#/fleet/overview'],
     ['Current ship', '#/fleet/ships/current/overview'],
+    ['Overview', '#/fleet/overview'],
     ['Carriers', '#/fleet/carriers'],
     ['Stored modules', '#/fleet/stored-modules'],
     ['Ship catalogue', '#/fleet/catalogue']
@@ -27,9 +27,15 @@ test('Fleet overview and current ship render live records without shell chrome',
   expect(overview).toContain('MURDOCK')
   expect(overview).toContain('No authoritative record observed')
   expect(current).toContain('Prospector')
+  expect(current).not.toContain('page-header')
   expect(current).not.toContain('Current ship views')
   expect(current).toContain('Loadout')
   expect(current).toContain('Engineering')
+  expect(current).toContain('Target next jump')
+  expect(current).toContain('Galaxy map')
+  expect(current).toContain('System map')
+  expect(current).toContain('Orbit lines')
+  expect(current).not.toContain('Flight assist')
   expect(current).toContain('Unbound')
   expect(current).not.toContain('application-shell')
   expect(loadout).toContain('href="#/fleet/overview">Fleet')

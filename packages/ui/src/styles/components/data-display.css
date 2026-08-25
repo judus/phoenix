@@ -91,6 +91,8 @@
       text-transform: uppercase;
     }
 
+    &.label-action > span { color: var(--color-action); }
+
     > strong {
       color: var(--color-text);
       font-size: var(--font-size-xl);
@@ -191,6 +193,16 @@
       }
 
       > output { grid-column: 1 / -1; }
+    }
+
+    &.meter-value-hidden > output {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
     }
 
     > span,

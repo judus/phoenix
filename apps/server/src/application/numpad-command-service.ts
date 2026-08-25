@@ -49,7 +49,8 @@ const INFORMATION_MENUS: readonly MenuDefinition[] = [
     destination('fleet.catalogue', '7')
   ]),
   menu('info.galaxy', 'Galaxy', '3', [
-    destination('galaxy.current-system', '1'), destination('galaxy.route', '2'), destination('galaxy.database', '3')
+    destination('galaxy.current-system', '1'), destination('galaxy.route', '2'), destination('galaxy.database', '3'),
+    destination('galaxy.exobiology', '4')
   ]),
   menu('info.operations', 'Operations', '4', [
     destination('operations.overview', '1'), destination('operations.missions', '2'),

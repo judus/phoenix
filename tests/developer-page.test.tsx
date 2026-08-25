@@ -6,7 +6,6 @@ test('the developer route clearly renders its current placeholder surface', () =
   const markup = renderToStaticMarkup(
     <PlaceholderPage
       context="Log · Developer"
-      description="Runtime inspection and diagnostics"
       title="Developer tools"
     />
   )
@@ -14,5 +13,5 @@ test('the developer route clearly renders its current placeholder surface', () =
   expect(markup).toContain('class="page-frame page-flow"')
   expect(markup).toContain('Log · Developer')
   expect(markup).toContain('<h1>Developer tools</h1>')
-  expect(markup).toContain('Runtime inspection and diagnostics')
+  expect(markup).toContain('page-header-cockpit')
 })

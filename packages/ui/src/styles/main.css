@@ -25,11 +25,14 @@
 @import './pages/current-ship-loadout.css';
 @import './pages/dashboard.css';
 @import './pages/commander.css';
+@import './pages/credits.css';
+@import './pages/settings.css';
 @import './pages/filtered-system-search.css';
 @import './pages/fleet.css';
 @import './pages/fleet-runtime.css';
 @import './pages/galnet.css';
 @import './pages/galnet-radio.css';
+@import './pages/help.css';
 @import './pages/journal.css';
 @import './pages/personal-stores.css';
 @import './pages/pairing.css';

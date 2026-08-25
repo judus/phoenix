@@ -38,6 +38,7 @@ import { SystemSchematicLink } from '../../components/system-location-link.js'
 import { GALAXY_QUERY_CATALOGUE } from './galaxy-query-catalogue.js'
 import type { GalaxyQueryDefinition, GalaxyQueryField } from './galaxy-query-catalogue.js'
 import { PlottedRoute } from './plotted-route.js'
+import { ExobiologyPage } from './exobiology-page.js'
 import { SystemSchematic, type CartographicSelection } from './system-schematic.js'
 import type { GalaxyControllerSnapshot } from './use-galaxy-controller.js'
 
@@ -51,6 +52,7 @@ export function GalaxyPage({ api, controller, onNavigate, route, runtime }: {
   runtime: RuntimeStateSnapshot
 }) {
   if (route.view === 'database') return <QueryConsole api={api} onNavigate={onNavigate} route={route} runtime={runtime} />
+  if (route.view === 'exobiology') return <ExobiologyPage controller={controller} />
   if (controller.status === 'loading' || controller.status === 'idle') return <GalaxyState title={route.view === 'route' ? 'Plotted route' : 'System schematic'} />
   if (controller.status === 'error') return <GalaxyState error={controller.error} title={route.view === 'route' ? 'Plotted route' : 'System schematic'} />
   if (route.view === 'route') {

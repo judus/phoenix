@@ -80,6 +80,14 @@ export interface CommanderStoreModel {
 }
 
 export interface CommanderViewModel {
+  legal: {
+    credits: string | null
+    state: string | null
+    notoriety: {
+      label: string
+      value: number
+    } | null
+  }
   name: string
   ranks: CommanderRankModel[]
   reputation: CommanderReputationModel[]
@@ -94,7 +102,17 @@ export function createCommanderViewModel(
   state: RuntimeState,
   locale = 'en-CH'
 ): CommanderViewModel {
+  const notoriety = state.commander.statistics?.groups.Crime?.Notoriety
+
   return {
+    legal: {
+      credits: formatCredits(state.gameStatus?.balance, locale),
+      state: state.gameStatus?.legalState ? humanize(state.gameStatus.legalState) : null,
+      notoriety: notoriety === undefined ? null : {
+        label: new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(notoriety),
+        value: notoriety
+      }
+    },
     name: state.commander.name ?? 'Unknown commander',
     ranks: ranks.map(([id, label, group]) => {
       const level = state.commander.ranks[id]
@@ -105,7 +123,7 @@ export function createCommanderViewModel(
         group,
         level: level === null ? '—' : COMMANDER_RANK_NAMES[id][level] ?? `Rank ${level}`,
         progress,
-        progressLabel: progress === null ? 'Not reported' : `${progress}%`
+        progressLabel: progress === null ? 'Not reported' : formatPercentage(progress, locale)
       }
     }),
     reputation: reputations.map(([id, label]) => {
@@ -116,7 +134,7 @@ export function createCommanderViewModel(
         label,
         status,
         value,
-        valueLabel: value === null ? 'Not reported' : `${value > 0 ? '+' : ''}${value}%`
+        valueLabel: value === null ? 'Not reported' : formatPercentage(value, locale, true)
       }
     }),
     statistics: state.commander.statistics
@@ -131,6 +149,18 @@ export function createCommanderViewModel(
       createStore('Backpack', state.inventory.backpack, locale)
     ]
   }
+}
+
+function formatPercentage(value: number, locale: string, showPositiveSign = false): string {
+  return new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 2,
+    signDisplay: showPositiveSign ? 'exceptZero' : 'auto',
+    style: 'percent'
+  }).format(value / 100)
+}
+
+function formatCredits(value: number | null | undefined, locale: string): string | null {
+  return value == null ? null : `${new Intl.NumberFormat(locale).format(Math.round(value))} CR`
 }
 
 function createStatisticGroups(
@@ -190,7 +220,10 @@ function reputationStatus(value: number | null): string {
 }
 
 function humanize(value: string): string {
-  return value.replaceAll('_', ' ').replace(/\b\w/gu, letter => letter.toUpperCase())
+  return value
+    .replace(/([a-z])([A-Z])/gu, '$1 $2')
+    .replaceAll('_', ' ')
+    .replace(/\b\w/gu, letter => letter.toUpperCase())
 }
 
 function createStore(title: string, inventory: MicroResourceInventory | null, locale: string): CommanderStoreModel {
