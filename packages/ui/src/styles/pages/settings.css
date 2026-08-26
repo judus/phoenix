@@ -5,4 +5,27 @@
     .tile-group-grid {
       gap: var(--spacing-xs);
     }
+
+    .pairing-settings {
+      display: grid;
+      align-content: start;
+      gap: var(--spacing-xs);
+      min-inline-size: 0;
+      min-block-size: 0;
+      overflow: auto;
+    }
+
+    .pairing-access {
+      gap: var(--spacing-sm);
+      padding: var(--spacing-sm);
+
+      .pairing-access-copy { gap: var(--spacing-xs); }
+
+      .pairing-qr {
+        inline-size: 8rem;
+        block-size: 8rem;
+      }
+
+      .pairing-code strong { font-size: var(--font-size-lg); }
+    }
   }

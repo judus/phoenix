@@ -276,16 +276,16 @@ function PairingSettings ({ api, pairing }: { api: PhoenixApi, pairing: PairingS
       .catch(cause => { if (!abort.signal.aborted) setError(message(cause)) })
     return () => abort.abort()
   }, [api, pairing.serverDevice])
-  return <div className="widget-command-stack">
+  return <div className="pairing-settings">
     {info && <PairingAccess info={info} />}
     {error && <Status tone="danger">{error}</Status>}
-    <Widget title="Device pairing" meta={pairing.authenticated ? 'Paired' : 'Not paired'}>
+    {!info && <Widget title="Device pairing" meta={pairing.authenticated ? 'Paired' : 'Not paired'}>
       <DescriptionList columns="one" density="compact">
         <DescriptionItem label="Installation" value={pairing.installationId} />
         <DescriptionItem label="This browser" value={pairing.authenticated ? 'Paired' : 'Not paired'} />
         <DescriptionItem label="Required" value={pairing.pairingRequired ? 'Yes' : 'No'} />
       </DescriptionList>
-    </Widget>
+    </Widget>}
     {pairing.pairingRequired && pairing.authenticated && <CommandTile
       binding={busy ? 'Working' : 'Paired'}
       label="Unpair device"
