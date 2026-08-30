@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { DisplayCommand, GameEventEnvelope, NavigationRoute, RuntimeState } from '@phoenix/contracts'
+import type { DisplayCommand, GameEventEnvelope, NavigationRoute, PhoenixControlDeckConfiguration, RuntimeState } from '@phoenix/contracts'
 import { ToolRegistry } from '@jdu/llm-client'
 import { ControlDeckCommandService, type ControlDeckConfigurationRepository } from 'control-deck/core'
 import { ControlDeckIntegration } from 'control-deck/host'
@@ -36,7 +36,7 @@ import { ControlDeckEliteGameActionGateway } from './application/control-deck-el
 import { DefaultCommandDispatcher } from './application/command-dispatcher.js'
 import { DefaultCommandRegistry, PHOENIX_NAVIGATION_DESTINATIONS } from './application/default-command-registry.js'
 import { CommandCatalogueService } from './application/command-catalogue-service.js'
-import { PhoenixControlDeckCommandAdapter } from './application/phoenix-control-deck-command-adapter.js'
+import { createPhoenixControlDeckCommandIntegration } from './application/create-phoenix-control-deck-command-integration.js'
 import { DefaultNumpadCommands, NumpadTreeProjector } from './application/numpad-command-service.js'
 import { DefaultRuntimeStateProjector } from './application/default-runtime-state-projector.js'
 import { GameActionService, type GameActions } from './application/game-action-service.js'
@@ -109,7 +109,7 @@ export interface PhoenixApplicationOptions {
   eliteBindings?: EliteDangerousBindingSource
   accessControl?: PairingAccessController
   cartographySource?: CartographySource
-  controlDeckConfigurationRepository?: ControlDeckConfigurationRepository
+  controlDeckConfigurationRepository?: ControlDeckConfigurationRepository<PhoenixControlDeckConfiguration>
   copilot?: CopilotText | null
   copilotRealtime?: CopilotRealtime | null
   copilotProfiles?: CopilotProfiles | null
@@ -320,7 +320,12 @@ export class PhoenixApplication {
       () => systemSettings.loadOrCreate().copilot.permissions
     )
     this.controlDeck = new ControlDeckIntegration({
-      adapters: [new PhoenixControlDeckCommandAdapter(commands, gameActions)],
+      integrations: [createPhoenixControlDeckCommandIntegration(
+        commands,
+        gameActions,
+        this.stateStore,
+        runtimeStateUpdates
+      )],
       configurationRepository: controlDeckConfigurations,
       createId: randomUUID,
       ownerKey: request => options.accessControl?.ownerKey(request) ?? 'development',
@@ -328,8 +333,7 @@ export class PhoenixApplication {
     })
     const numpad = new DefaultNumpadCommands(
       new NumpadTreeProjector(commandCatalogue, controlDeckConfigurations),
-      commands,
-      systemSettings
+      commands
     )
     const statefulActions = new StatefulGameActionService(
       gameActions,

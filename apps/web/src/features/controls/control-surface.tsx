@@ -1,10 +1,10 @@
 import type { CSSProperties, ReactNode } from 'react'
-import type { ControlDeckCommandElement, ControlDeckDeck, ControlDeckSpacerElement } from 'control-deck/core'
+import type { ControlDeckGridCommandElement, ControlDeckGridDeck, ControlDeckGridSpacerElement } from 'control-deck/core'
 
 interface EmptyCell {
   column: number
   row: number
-  spacer?: ControlDeckSpacerElement
+  spacer?: ControlDeckGridSpacerElement
 }
 
 interface SurfaceSlot {
@@ -12,7 +12,7 @@ interface SurfaceSlot {
   row: number
   columnSpan: number
   rowSpan: number
-  element?: ControlDeckCommandElement | ControlDeckSpacerElement
+  element?: ControlDeckGridCommandElement | ControlDeckGridSpacerElement
 }
 
 export function ControlSurface({
@@ -24,8 +24,8 @@ export function ControlSurface({
 }: {
   'aria-label': string
   className?: string
-  deck: ControlDeckDeck
-  renderCommand(element: ControlDeckCommandElement): ReactNode
+  deck: ControlDeckGridDeck
+  renderCommand(element: ControlDeckGridCommandElement): ReactNode
   renderEmpty(cell: EmptyCell): ReactNode
 }) {
   const style: CSSProperties = {
@@ -64,7 +64,7 @@ export function ControlSurface({
   </div>
 }
 
-function surfaceSlots(deck: ControlDeckDeck): SurfaceSlot[] {
+function surfaceSlots(deck: ControlDeckGridDeck): SurfaceSlot[] {
   const occupied = new Set<string>()
   const slots: SurfaceSlot[] = deck.elements.map(element => {
     const placement = element.placement

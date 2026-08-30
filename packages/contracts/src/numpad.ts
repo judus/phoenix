@@ -1,44 +1,28 @@
 import { z } from 'zod'
 import {
-  CommandExecutionResultSchema,
-  CommandRiskSchema,
-  CommandTargetSchema
+  ControlDeckNumpadNodeSchema,
+  ControlDeckNumpadTreeSchema,
+  type ControlDeckNumpadNode
+} from 'control-deck/core'
+import {
+  CommandExecutionResultSchema
 } from './commands.js'
+import { GameActionOperationSchema } from './actions.js'
 
-export const NumpadSelectorSchema = z.string().regex(/^\d+$/u).max(3)
 export const NumpadAddressSchema = z.string().regex(/^\d+$/u).max(32)
+export const NumpadTreeNodeSchema = ControlDeckNumpadNodeSchema
 
-export const NumpadTreeNodeSchema = z.object({
-  id: z.string().min(1),
-  parentId: z.string().min(1).nullable(),
-  selector: NumpadSelectorSchema,
-  address: NumpadAddressSchema,
-  label: z.string().min(1),
-  interactionHint: z.enum(['tap', 'hold', 'arm', 'open']).default('tap'),
-  bindingLabel: z.string().min(1).nullable().default(null),
-  description: z.string().min(1).optional(),
-  kind: z.enum(['menu', 'navigation', 'game-action', 'macro']),
-  available: z.boolean(),
-  unavailableReason: z.string().min(1).optional(),
-  risk: CommandRiskSchema,
-  target: CommandTargetSchema.nullable(),
-  position: z.number().int().positive().optional(),
-  span: z.number().int().positive().max(12).optional(),
-  columns: z.number().int().min(1).max(12).optional(),
-  rows: z.number().int().min(1).max(12).optional()
-})
-
-export const NumpadTreeSnapshotSchema = z.object({
+export const NumpadTreeSnapshotSchema = ControlDeckNumpadTreeSchema.extend({
   revision: z.number().int().positive(),
   generatedAt: z.iso.datetime(),
-  activationDigit: z.literal('0'),
-  nodes: z.array(NumpadTreeNodeSchema).max(1024),
   diagnostics: z.array(z.string()).max(100)
 })
 
 export const NumpadExecuteRequestSchema = z.object({
   address: NumpadAddressSchema,
-  revision: z.number().int().positive()
+  revision: z.number().int().positive(),
+  operation: GameActionOperationSchema.default('tap'),
+  leaseId: z.string().min(1).max(200).optional()
 })
 
 export const NumpadExecutionResultSchema = z.object({
@@ -49,7 +33,7 @@ export const NumpadExecutionResultSchema = z.object({
   command: CommandExecutionResultSchema.nullable()
 })
 
-export type NumpadTreeNode = z.infer<typeof NumpadTreeNodeSchema>
+export type NumpadTreeNode = ControlDeckNumpadNode
 export type NumpadTreeSnapshot = z.infer<typeof NumpadTreeSnapshotSchema>
 export type NumpadExecuteRequest = z.infer<typeof NumpadExecuteRequestSchema>
 export type NumpadExecutionResult = z.infer<typeof NumpadExecutionResultSchema>

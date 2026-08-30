@@ -7,6 +7,7 @@ import {
 } from '@phoenix/contracts'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type { GameActions } from './game-action-service.js'
+import { readRuntimeTelemetryFlag } from './runtime-telemetry.js'
 
 export interface SetGameSwitchRequest {
   actionId: string
@@ -50,7 +51,7 @@ export class StatefulGameActionService {
       )
     }
 
-    const current = readTelemetryFlag(this.runtimeState, telemetryKey)
+    const current = readRuntimeTelemetryFlag(this.runtimeState.getCurrent(), telemetryKey)
     if (current === request.enabled) {
       return this.result(
         request.actionId,
@@ -79,12 +80,12 @@ export class StatefulGameActionService {
     const deadline = Date.now() + this.confirmationTimeoutMs
     while (Date.now() < deadline) {
       signal?.throwIfAborted()
-      if (readTelemetryFlag(this.runtimeState, telemetryKey) === expected) return true
+      if (readRuntimeTelemetryFlag(this.runtimeState.getCurrent(), telemetryKey) === expected) return true
       await delay(Math.min(this.pollIntervalMs, Math.max(1, deadline - Date.now())), undefined, {
         ...(signal === undefined ? {} : { signal })
       })
     }
-    return readTelemetryFlag(this.runtimeState, telemetryKey) === expected
+    return readRuntimeTelemetryFlag(this.runtimeState.getCurrent(), telemetryKey) === expected
   }
 
   private result (
@@ -104,11 +105,4 @@ export class StatefulGameActionService {
       message
     })
   }
-}
-
-function readTelemetryFlag (runtimeState: RuntimeStateReader, key: string): boolean | undefined {
-  const status = runtimeState.getCurrent().gameStatus
-  if (!status) return undefined
-  const flags: Record<string, unknown> = { ...status.flags, ...status.flags2 }
-  return typeof flags[key] === 'boolean' ? flags[key] : undefined
 }

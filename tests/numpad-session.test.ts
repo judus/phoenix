@@ -34,7 +34,7 @@ test('ambiguous keyboard input waits but Enter executes its exact match', () => 
   expect(ambiguous.state.status).toBe('ambiguous')
 
   const confirmed = confirmNumpadSelection(snapshot, ambiguous.state)
-  expect(confirmed.execute?.id).toBe('first')
+  expect(confirmed.execute?.node.id).toBe('first')
 })
 
 test('always-confirm mode waits for Enter even for a unique leaf', () => {
@@ -43,12 +43,12 @@ test('always-confirm mode waits for Enter even for a unique leaf', () => {
   transition = enterNumpadDigit(snapshot, transition.state, '1', true)
   expect(transition.execute).toBeUndefined()
   expect(transition.state.status).toBe('ready')
-  expect(confirmNumpadSelection(snapshot, transition.state).execute?.id).toBe('eleven')
+  expect(confirmNumpadSelection(snapshot, transition.state).execute?.node.id).toBe('eleven')
 })
 
 test('tile selection addresses the exact node without prefix ambiguity', () => {
   const branch = enterNumpadDigit(snapshot, activateNumpadSession().state, '1', false).state
-  expect(selectNumpadNode(snapshot, branch, 'first', false).execute?.id).toBe('first')
+  expect(selectNumpadNode(snapshot, branch, 'first', false).execute?.node.id).toBe('first')
 })
 
 test('an empty menu still opens instead of being treated as an unavailable command', () => {
@@ -92,17 +92,16 @@ function node (
   parentId: string | null,
   selector: string,
   address: string,
-  target: NumpadTreeSnapshot['nodes'][number]['target']
+  action: NumpadTreeSnapshot['nodes'][number]['action']
 ): NumpadTreeSnapshot['nodes'][number] {
   return {
+    action,
     address,
     available: true,
     id,
-    kind: target ? 'navigation' : 'menu',
+    interactionHint: action ? 'tap' : 'open',
     label: id,
     parentId,
-    risk: 'safe',
-    selector,
-    target
+    selector
   }
 }

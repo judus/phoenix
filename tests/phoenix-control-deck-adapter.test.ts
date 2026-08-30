@@ -1,6 +1,7 @@
 import {
   ControlDeckCommandCatalogueSchema,
-  ControlDeckCommandExecutionResultSchema
+  ControlDeckCommandExecutionResultSchema,
+  ControlDeckCommandStateSnapshotSchema
 } from 'control-deck/core'
 import { expect, test } from 'vitest'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
@@ -27,11 +28,15 @@ test('PHOENIX exposes its authoritative commands through the Control Deck adapte
     const adapter = catalogue.adapters.find(candidate => candidate.id === 'phoenix.commands')
     expect(adapter).toMatchObject({ holdOwner: 'adapter', available: true })
     expect(adapter?.commands.find(command => command.id === 'command.elite.ShipSpotLightToggle'))
-      .toMatchObject({ available: true, bindingLabel: 'L', operations: ['tap'], simulated: true })
+      .toMatchObject({ available: true, bindingLabel: 'L', operations: ['tap'], simulated: true, state: { kind: 'boolean' } })
     expect(adapter?.commands.find(command => command.id === 'command.elite.PrimaryFire'))
       .toMatchObject({ available: true, bindingLabel: 'Space', operations: ['press', 'release'], simulated: true })
     expect(adapter?.commands.find(command => command.id === 'command.navigation.galaxy.current-system'))
       .toMatchObject({ operations: ['tap'], simulated: false })
+
+    const stateResponse = await fetch(`${baseUrl}/api/control-deck/commands/states`)
+    expect(stateResponse.status).toBe(200)
+    expect(ControlDeckCommandStateSnapshotSchema.parse(await stateResponse.json()).states).toEqual([])
 
     expect(await execute(baseUrl, 'command.elite.ShipSpotLightToggle', 'tap'))
       .toMatchObject({ status: 'accepted', simulated: true })

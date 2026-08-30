@@ -9,6 +9,7 @@ import {
   selectControlDeckNumpadNode,
   type ControlDeckNumpadSessionState,
   type ControlDeckNumpadSessionStatus,
+  type ControlDeckNumpadAction,
   type ControlDeckNumpadTransition,
   type ControlDeckNumpadTree
 } from 'control-deck/core'
@@ -16,7 +17,7 @@ import type { NumpadTreeNode, NumpadTreeSnapshot } from '@phoenix/contracts'
 
 export type NumpadSessionStatus = ControlDeckNumpadSessionStatus | 'completed' | 'error' | 'stale'
 export interface NumpadSessionState { active: boolean, pathIds: string[], pendingDigits: string, readyNodeId?: string, status: NumpadSessionStatus, message?: string }
-export interface NumpadSessionTransition { state: NumpadSessionState, execute?: NumpadTreeNode }
+export interface NumpadSessionTransition { state: NumpadSessionState, execute?: { action: ControlDeckNumpadAction, node: NumpadTreeNode } }
 
 export const idleNumpadSession = (): NumpadSessionState => idleControlDeckNumpadSession()
 export const activateNumpadSession = (): NumpadSessionTransition => ({ state: activateControlDeckNumpadSession() })
@@ -55,24 +56,7 @@ export const displayedNumpadAddress = (snapshot: NumpadTreeSnapshot, state: Nump
 function asControlDeckTree (snapshot: NumpadTreeSnapshot, alwaysConfirm: boolean): ControlDeckNumpadTree {
   return {
     activationDigit: '0',
-    nodes: snapshot.nodes.map(node => ({
-      id: node.id,
-      parentId: node.parentId,
-      selector: node.selector,
-      address: node.address,
-      label: node.label,
-      ...(node.description ? { description: node.description } : {}),
-      available: node.available,
-      ...(node.unavailableReason ? { unavailableReason: node.unavailableReason } : {}),
-      action: node.kind === 'menu' ? null : { type: 'navigation', destinationId: `phoenix-numpad:${node.id}` },
-      confirm: node.kind === 'menu' ? false : alwaysConfirm,
-      interactionHint: node.kind === 'menu' ? 'open' : 'tap',
-      ...(node.position ? { position: node.position } : {}),
-      ...(node.span ? { columnSpan: node.span } : {}),
-      ...(node.position ? { rowSpan: 1 } : {}),
-      ...(node.columns ? { columns: node.columns } : {}),
-      ...(node.rows ? { rows: node.rows } : {})
-    }))
+    nodes: snapshot.nodes.map(node => ({ ...node, confirm: node.confirm || (node.action !== null && alwaysConfirm) }))
   }
 }
 
@@ -89,9 +73,10 @@ function asControlDeckState (state: NumpadSessionState): ControlDeckNumpadSessio
 }
 
 function fromControlDeckTransition (snapshot: NumpadTreeSnapshot, transition: ControlDeckNumpadTransition): NumpadSessionTransition {
-  const execute = transition.action && transition.node
-    ? snapshot.nodes.find(node => node.id === transition.node?.id)
+  const node = transition.action && transition.node
+    ? snapshot.nodes.find(candidate => candidate.id === transition.node?.id)
     : undefined
+  const execute = node && transition.action ? { action: transition.action, node } : undefined
   return { state: transition.state, ...(execute ? { execute } : {}) }
 }
 

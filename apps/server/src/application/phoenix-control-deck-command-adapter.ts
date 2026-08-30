@@ -5,7 +5,7 @@ import type {
   ControlDeckCommandInvocation,
   ControlDeckCommandTarget
 } from 'control-deck/core'
-import type { CommandDescriptor, GameActionCatalogResponse } from '@phoenix/contracts'
+import { PHOENIX_CONTROL_DECK_ADAPTER_ID, type CommandDescriptor, type GameActionCatalogResponse } from '@phoenix/contracts'
 import type { Commands } from '../domain/commands.js'
 import type { GameActions } from './game-action-service.js'
 
@@ -18,7 +18,7 @@ export class PhoenixControlDeckCommandAdapter implements ControlDeckCommandAdapt
   public describe (): ControlDeckAdapterDescriptor {
     const actions = this.gameActions.getCatalog()
     return {
-      id: 'phoenix.commands',
+      id: PHOENIX_CONTROL_DECK_ADAPTER_ID,
       version: '1',
       label: 'PHOENIX',
       available: true,
@@ -37,13 +37,14 @@ export class PhoenixControlDeckCommandAdapter implements ControlDeckCommandAdapt
         risk: command.risk,
         simulated: commandIsSimulated(command, actions),
         operations: command.activation === 'hold' ? ['press', 'release'] : ['tap'],
+        ...(commandHasObservableState(command, actions) ? { state: { kind: 'boolean' as const } } : {}),
         configurationSchema: { type: 'object', maxProperties: 0 }
       }))
     }
   }
 
   public validate (target: ControlDeckCommandTarget): string | null {
-    if (target.adapterId !== 'phoenix.commands') return 'Unsupported PHOENIX command adapter.'
+    if (target.adapterId !== PHOENIX_CONTROL_DECK_ADAPTER_ID) return 'Unsupported PHOENIX command adapter.'
     if (Object.keys(target.configuration).length > 0) return 'PHOENIX commands do not accept target configuration.'
     return this.find(target.commandId) ? null : `Unknown PHOENIX command: ${target.commandId}.`
   }
@@ -85,4 +86,12 @@ export class PhoenixControlDeckCommandAdapter implements ControlDeckCommandAdapt
 function commandIsSimulated (command: CommandDescriptor, actions: GameActionCatalogResponse): boolean {
   if (command.target.type === 'navigation') return false
   return actions.backend.simulated
+}
+
+function commandHasObservableState (command: CommandDescriptor, actions: GameActionCatalogResponse): boolean {
+  if (command.target.type !== 'game-action') return false
+  const actionId = command.target.actionId
+  return actions.actions.some(action => (
+    action.definition.id === actionId && action.definition.telemetryKey !== null
+  ))
 }

@@ -1,4 +1,4 @@
-import type { MacroDefinition, MacroLibrary, PhoenixSettings } from '@phoenix/contracts'
+import type { MacroDefinition, MacroLibrary, PhoenixControlDeckConfiguration, PhoenixSettings } from '@phoenix/contracts'
 import type { ControlDeckConfiguration, ControlDeckConfigurationRepository } from 'control-deck/core'
 import type { CommandCatalogueChange, CommandCatalogueChangeSource } from '../domain/commands.js'
 import type { MacroRepository } from '../domain/macros.js'
@@ -16,17 +16,17 @@ abstract class NotifyingRepository {
   }
 }
 
-export class NotifyingControlDeckConfigurationRepository extends NotifyingRepository implements ControlDeckConfigurationRepository {
+export class NotifyingControlDeckConfigurationRepository extends NotifyingRepository implements ControlDeckConfigurationRepository<PhoenixControlDeckConfiguration> {
   public constructor (
-    private readonly delegate: ControlDeckConfigurationRepository,
+    private readonly delegate: ControlDeckConfigurationRepository<PhoenixControlDeckConfiguration>,
     changes: Publisher<CommandCatalogueChange>
   ) {
     super(changes, 'control-deck')
   }
 
-  public getConfiguration (): ControlDeckConfiguration { return this.delegate.getConfiguration() }
+  public getConfiguration (): PhoenixControlDeckConfiguration { return this.delegate.getConfiguration() }
 
-  public saveConfiguration (configuration: ControlDeckConfiguration): ControlDeckConfiguration {
+  public saveConfiguration (configuration: ControlDeckConfiguration): PhoenixControlDeckConfiguration {
     const saved = this.delegate.saveConfiguration(configuration)
     this.changed()
     return saved

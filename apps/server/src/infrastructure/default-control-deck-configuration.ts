@@ -1,9 +1,8 @@
 import {
-  type ControlDeckConfiguration,
-  type ControlDeckDeck,
+  type ControlDeckGridDeck,
   type ControlDeckDeckGroup
 } from 'control-deck/core'
-import { PhoenixControlDeckConfigurationSchema, phoenixTargetToControlDeckTarget, type GameActionCategory } from '@phoenix/contracts'
+import { PhoenixControlDeckConfigurationSchema, phoenixTargetToControlDeckTarget, type GameActionCategory, type PhoenixControlDeckConfiguration } from '@phoenix/contracts'
 
 const SHIP_ELEMENTS = [
   element(1, 'GalaxyMapOpen'),
@@ -53,7 +52,7 @@ const DEFINITIONS: ReadonlyArray<{ category: GameActionCategory, label: string }
   { category: 'misc', label: 'Miscellaneous' }
 ]
 
-export const DEFAULT_CONTROL_DECK_CONFIGURATION: ControlDeckConfiguration = PhoenixControlDeckConfigurationSchema.parse({
+export const DEFAULT_CONTROL_DECK_CONFIGURATION: PhoenixControlDeckConfiguration = PhoenixControlDeckConfigurationSchema.parse({
   version: 1,
   revision: 0,
   groups: DEFINITIONS.map(group),
@@ -61,7 +60,7 @@ export const DEFAULT_CONTROL_DECK_CONFIGURATION: ControlDeckConfiguration = Phoe
   displays: []
 })
 
-export const BLANK_CONTROL_DECK_CONFIGURATION: ControlDeckConfiguration = PhoenixControlDeckConfigurationSchema.parse({
+export const BLANK_CONTROL_DECK_CONFIGURATION: PhoenixControlDeckConfiguration = PhoenixControlDeckConfigurationSchema.parse({
   ...DEFAULT_CONTROL_DECK_CONFIGURATION,
   decks: DEFAULT_CONTROL_DECK_CONFIGURATION.decks.map(deck => ({
     ...deck,
@@ -74,7 +73,7 @@ function group ({ category, label }: { category: GameActionCategory, label: stri
   return { id: category, name: label, description: '' }
 }
 
-function deck ({ category }: { category: GameActionCategory }): ControlDeckDeck {
+function deck ({ category }: { category: GameActionCategory }): ControlDeckGridDeck {
   return {
     id: category,
     groupId: category,

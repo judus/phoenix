@@ -30,7 +30,7 @@ export function NumpadPage({ api, controller, devicePreferences, routeSession }:
     setSession(current => executingNumpadSession(current))
     try { applyExecution(await api.executeNumpadAddress(node.address, snapshot.revision)) } catch (cause) { setSession(current => finishNumpadSession(current, 'error', cause instanceof Error ? cause.message : 'Command execution failed.')) }
   }
-  const apply = (transition: NumpadSessionTransition) => { setSession(transition.state); if (transition.execute) void execute(transition.execute) }
+  const apply = (transition: NumpadSessionTransition) => { setSession(transition.state); if (transition.execute) void execute(transition.execute.node) }
   const applyExecution = (result: NumpadExecutionResult) => {
     setSession(current => finishNumpadSession(current, result.status === 'accepted' ? 'completed' : result.status === 'stale' ? 'stale' : 'error', result.message))
     if (result.command?.navigationHref) { routeSession.navigate(result.command.navigationHref); return }

@@ -99,7 +99,7 @@ export interface PhoenixApi {
   deleteMacro(id: string, signal?: AbortSignal): Promise<void>
   executeCopilotRealtimeTool(input: CopilotRealtimeToolRequest, signal?: AbortSignal): Promise<unknown>
   executeAction(actionId: string, operation?: GameActionOperation, options?: { leaseId?: string, signal?: AbortSignal }): Promise<GameActionResult>
-  executeNumpadAddress(address: string, revision: number, signal?: AbortSignal): Promise<NumpadExecutionResult>
+  executeNumpadAddress(address: string, revision: number, operation?: GameActionOperation, leaseId?: string, signal?: AbortSignal): Promise<NumpadExecutionResult>
   getEngineeringBlueprint(symbol: string, signal?: AbortSignal): Promise<EngineeringBlueprintDetail>
   getEngineeringBlueprints(signal?: AbortSignal): Promise<EngineeringBlueprintsResponse>
   getEngineeringEngineers(signal?: AbortSignal): Promise<EngineeringEngineersResponse>

@@ -1,5 +1,5 @@
 import { useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
-import type { ControlDeckCommandCatalogue, ControlDeckCommandElement } from 'control-deck/core'
+import type { ControlDeckCommandCatalogue, ControlDeckGridCommandElement } from 'control-deck/core'
 import { createClientId } from '../../application/identity/client-identity.js'
 
 interface CommandOption {
@@ -34,14 +34,14 @@ export function ButtonEditor({
   onRemove
 }: {
   catalogue?: ControlDeckCommandCatalogue
-  element?: ControlDeckCommandElement
-  placement?: ControlDeckCommandElement['placement']
+  element?: ControlDeckGridCommandElement
+  placement?: ControlDeckGridCommandElement['placement']
   position: { column: number, row: number }
   renderCommandOptions?(options: ButtonEditorCommandOptions): ReactNode
   showBackButton?: boolean
   showHeader?: boolean
   onClose(): void
-  onSave(element: ControlDeckCommandElement): void
+  onSave(element: ControlDeckGridCommandElement): void
   onRemove(): void
 }) {
   const source = commandSource(catalogue, element)
@@ -156,7 +156,7 @@ export function ButtonEditor({
   </section>
 }
 
-function commandSource(catalogue?: ControlDeckCommandCatalogue, element?: ControlDeckCommandElement): { id: string, label: string, commands: CommandOption[] } {
+function commandSource(catalogue?: ControlDeckCommandCatalogue, element?: ControlDeckGridCommandElement): { id: string, label: string, commands: CommandOption[] } {
   const adapter = catalogue?.adapters.find(candidate => candidate.id === element?.target.adapterId) ?? catalogue?.adapters[0]
   const source = {
     id: adapter?.id ?? element?.target.adapterId ?? 'phoenix.commands',
@@ -224,7 +224,7 @@ const BUTTON_COLORS: Readonly<Record<string, { foreground: string, background: s
   magenta: { foreground: '#f06bd8', background: '#3a1832' }
 }
 
-function buttonColorId(element?: ControlDeckCommandElement): string {
+function buttonColorId(element?: ControlDeckGridCommandElement): string {
   if (!element) return 'default'
   return Object.entries(BUTTON_COLORS).find(([, value]) =>
     value.foreground === element.appearance.foregroundColor && value.background === element.appearance.backgroundColor

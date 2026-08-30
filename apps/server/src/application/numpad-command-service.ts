@@ -1,23 +1,27 @@
+import { randomUUID } from 'node:crypto'
 import {
   GameActionCategorySchema,
   NumpadExecuteRequestSchema,
   NumpadExecutionResultSchema,
-  NumpadTreeNodeSchema,
   NumpadTreeSnapshotSchema,
   commandTargetKey,
   controlDeckTargetToPhoenixTarget,
-  type CommandCatalogueSnapshot,
+  phoenixTargetToControlDeckTarget,
+  type CommandExecutionResult,
   type CommandDescriptor,
-  type CommandRisk,
-  type CommandTarget,
-  type NumpadTreeNode,
-  type NumpadTreeSnapshot
+  type NumpadTreeSnapshot,
+  type PhoenixControlDeckConfiguration
 } from '@phoenix/contracts'
-import type { ControlDeckConfigurationRepository } from 'control-deck/core'
-import { resolveControlDeckInteraction } from 'control-deck/core'
+import {
+  ControlDeckNumpadTreeContributionSchema,
+  ControlDeckNumpadContributionNodeSchema,
+  aggregateControlDeckNumpadTrees,
+  resolveControlDeckInteraction,
+  type ControlDeckConfigurationRepository,
+  type ControlDeckNumpadContributionNode
+} from 'control-deck/core'
 import type { CommandCatalogueSnapshots, Commands } from '../domain/commands.js'
 import type { NumpadCommands } from '../domain/numpad.js'
-import type { SystemSettingsRepository } from '../domain/system-configuration.js'
 
 interface MenuDefinition {
   id: string
@@ -76,13 +80,13 @@ const INFORMATION_MENUS: readonly MenuDefinition[] = [
 export class NumpadTreeProjector {
   public constructor (
     private readonly catalogues: CommandCatalogueSnapshots,
-    private readonly configurations: ControlDeckConfigurationRepository
+    private readonly configurations: ControlDeckConfigurationRepository<PhoenixControlDeckConfiguration>
   ) {}
 
   public getSnapshot (): NumpadTreeSnapshot {
     const catalogue = this.catalogues.getSnapshot()
     const descriptors = new Map(catalogue.commands.map(command => [commandTargetKey(command.target), command]))
-    const nodes: NumpadTreeNode[] = []
+    const nodes: ControlDeckNumpadContributionNode[] = []
     const diagnostics: string[] = []
 
     const controls = branch(nodes, null, 'desktop.controls', '1', 'Controls')
@@ -101,20 +105,21 @@ export class NumpadTreeProjector {
       }
     }
 
-    validateNodes(nodes, diagnostics)
+    const tree = aggregateControlDeckNumpadTrees([
+      ControlDeckNumpadTreeContributionSchema.parse({ id: 'phoenix', nodes })
+    ])
     return NumpadTreeSnapshotSchema.parse({
-      activationDigit: '0',
+      ...tree,
       diagnostics,
       generatedAt: catalogue.generatedAt,
-      nodes,
       revision: catalogue.revision
     })
   }
 
   private appendControls (
-    nodes: NumpadTreeNode[],
+    nodes: ControlDeckNumpadContributionNode[],
     descriptors: Map<string, CommandDescriptor>,
-    controls: NumpadTreeNode,
+    controls: ControlDeckNumpadContributionNode,
     diagnostics: string[]
   ): void {
     const configuration = this.configurations.getConfiguration()
@@ -145,9 +150,11 @@ export class NumpadTreeProjector {
           descriptor.activation === 'hold' ? 'hold' : 'tap'
         )
         leaf(nodes, parent.id, `controls.${deck.id}.${element.id}`, String(position), descriptor, {
+          confirm: element.interaction.confirmation.kind !== 'none',
           interactionHint: interaction.interactionHint,
           position,
-          span: element.placement.columnSpan
+          columnSpan: element.placement.columnSpan,
+          rowSpan: element.placement.rowSpan
         })
       }
     }
@@ -167,8 +174,7 @@ export class NumpadTreeProjector {
 export class DefaultNumpadCommands implements NumpadCommands {
   public constructor (
     private readonly projector: NumpadTreeProjector,
-    private readonly commands: Commands,
-    private readonly settings: SystemSettingsRepository
+    private readonly commands: Commands
   ) {}
 
   public getSnapshot (): NumpadTreeSnapshot { return this.projector.getSnapshot() }
@@ -186,7 +192,7 @@ export class DefaultNumpadCommands implements NumpadCommands {
       })
     }
     const node = snapshot.nodes.find(candidateNode => candidateNode.address === request.address)
-    if (!node?.target || !node.available) {
+    if (node?.action?.type !== 'command' || !node.available) {
       return NumpadExecutionResultSchema.parse({
         address: request.address,
         command: null,
@@ -195,7 +201,22 @@ export class DefaultNumpadCommands implements NumpadCommands {
         status: 'rejected'
       })
     }
-    const command = await this.commands.execute({ target: node.target, operation: 'tap' }, 'numpad', signal)
+    const target = controlDeckTargetToPhoenixTarget(node.action.target)
+    let command: CommandExecutionResult
+    if (request.operation === 'tap' && node.action.activation === 'hold') {
+      const leaseId = request.leaseId ?? `numpad-${randomUUID()}`
+      command = await this.commands.execute({ target, operation: 'press', leaseId }, 'numpad', signal)
+      if (command.status === 'accepted') {
+        const release = await this.commands.execute({ target, operation: 'release', leaseId }, 'numpad', signal)
+        if (release.status !== 'accepted') command = release
+      }
+    } else {
+      command = await this.commands.execute({
+        target,
+        operation: request.operation,
+        ...(request.leaseId ? { leaseId: request.leaseId } : {})
+      }, 'numpad', signal)
+    }
     return NumpadExecutionResultSchema.parse({
       address: request.address,
       command,
@@ -209,24 +230,21 @@ export class DefaultNumpadCommands implements NumpadCommands {
 }
 
 function branch (
-  nodes: NumpadTreeNode[],
+  nodes: ControlDeckNumpadContributionNode[],
   parentId: string | null,
   id: string,
   selector: string,
   label: string,
   layout: { columns?: number, rows?: number } = {}
-): NumpadTreeNode {
-  const node = NumpadTreeNodeSchema.parse({
-    address: parentAddress(nodes, parentId) + selector,
+): ControlDeckNumpadContributionNode {
+  const node = ControlDeckNumpadContributionNodeSchema.parse({
+    action: null,
     interactionHint: 'open',
     available: true,
     id,
-    kind: 'menu',
     label,
     parentId,
-    risk: 'safe',
     selector,
-    target: null,
     ...layout
   })
   nodes.push(node)
@@ -234,34 +252,41 @@ function branch (
 }
 
 function leaf (
-  nodes: NumpadTreeNode[],
+  nodes: ControlDeckNumpadContributionNode[],
   parentId: string | null,
   id: string,
   selector: string,
   descriptor: CommandDescriptor,
-  layout: { interactionHint?: NumpadTreeNode['interactionHint'], position?: number, span?: number } = {}
+  layout: {
+    confirm?: boolean
+    interactionHint?: ControlDeckNumpadContributionNode['interactionHint']
+    position?: number
+    columnSpan?: number
+    rowSpan?: number
+  } = {}
 ): void {
-  nodes.push(NumpadTreeNodeSchema.parse({
-    address: parentAddress(nodes, parentId) + selector,
+  nodes.push(ControlDeckNumpadContributionNodeSchema.parse({
     interactionHint: layout.interactionHint ?? descriptor.activation,
     available: descriptor.available,
-    bindingLabel: descriptor.bindingLabel,
-    category: descriptor.category,
+    ...(descriptor.bindingLabel ? { bindingLabel: descriptor.bindingLabel } : {}),
     description: descriptor.description,
     id,
-    kind: descriptor.kind,
     label: descriptor.label,
     parentId,
-    risk: descriptor.risk,
     selector,
-    target: descriptor.target,
+    action: {
+      type: 'command',
+      target: phoenixTargetToControlDeckTarget(descriptor.target),
+      activation: descriptor.activation === 'hold' ? 'hold' : 'tap'
+    },
+    confirm: layout.confirm ?? (descriptor.risk === 'dangerous' || descriptor.risk === 'destructive'),
     ...(descriptor.unavailableReason ? { unavailableReason: descriptor.unavailableReason } : {}),
     ...layout
   }))
 }
 
 function appendDestination (
-  nodes: NumpadTreeNode[],
+  nodes: ControlDeckNumpadContributionNode[],
   descriptors: Map<string, CommandDescriptor>,
   parentId: string | null,
   selector: string,
@@ -274,26 +299,6 @@ function appendDestination (
     return
   }
   leaf(nodes, parentId, `navigation.${destinationId}`, selector, descriptor)
-}
-
-function parentAddress (nodes: readonly NumpadTreeNode[], parentId: string | null): string {
-  if (parentId === null) return ''
-  return nodes.find(node => node.id === parentId)?.address ?? ''
-}
-
-function validateNodes (nodes: readonly NumpadTreeNode[], diagnostics: string[]): void {
-  const ids = new Set<string>()
-  const addresses = new Set<string>()
-  const selectors = new Set<string>()
-  for (const node of nodes) {
-    if (ids.has(node.id)) diagnostics.push(`Duplicate numpad node id: ${node.id}.`)
-    if (addresses.has(node.address)) diagnostics.push(`Duplicate numpad address: ${node.address}.`)
-    const selectorKey = `${node.parentId ?? 'root'}:${node.selector}`
-    if (selectors.has(selectorKey)) diagnostics.push(`Duplicate selector ${node.selector} below ${node.parentId ?? 'root'}.`)
-    ids.add(node.id)
-    addresses.add(node.address)
-    selectors.add(selectorKey)
-  }
 }
 
 function menu (

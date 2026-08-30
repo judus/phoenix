@@ -271,8 +271,13 @@ export class PhoenixApiClient implements PhoenixApi {
     return this.#get('/api/numpad', NumpadTreeSnapshotSchema, signal)
   }
 
-  async executeNumpadAddress(address: string, revision: number, signal?: AbortSignal): Promise<NumpadExecutionResult> {
-    return this.#json('/api/numpad/execute', 'POST', { address, revision }, NumpadExecutionResultSchema, signal)
+  async executeNumpadAddress(address: string, revision: number, operation: GameActionOperation = 'tap', leaseId?: string, signal?: AbortSignal): Promise<NumpadExecutionResult> {
+    return this.#json('/api/numpad/execute', 'POST', {
+      address,
+      revision,
+      operation,
+      ...(leaseId ? { leaseId } : {})
+    }, NumpadExecutionResultSchema, signal)
   }
 
   async getControlDeckConfiguration(signal?: AbortSignal): Promise<PhoenixControlDeckConfiguration> {

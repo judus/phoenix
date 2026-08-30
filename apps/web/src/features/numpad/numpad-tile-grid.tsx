@@ -6,13 +6,14 @@ export function NumpadTileGrid({ columns, nodes, onSelect, pendingDigits, rows, 
     columns={columns}
     nodes={nodes.map(node => ({
       available: node.available,
-      bindingLabel: node.bindingLabel ?? undefined,
-      columnSpan: node.span,
-      hasChildren: node.kind === 'menu' || node.kind === 'navigation',
+      bindingLabel: node.bindingLabel,
+      columnSpan: node.columnSpan,
+      hasChildren: node.interactionHint === 'open',
       id: node.id,
       interactionHint: node.interactionHint,
       label: node.label,
       position: node.position,
+      rowSpan: node.rowSpan,
       selector: node.selector
     }))}
     pendingDigits={pendingDigits}

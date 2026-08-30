@@ -10,6 +10,7 @@ import {
   PhoenixSettingsSchema,
   RuntimeSystemSnapshotSchema,
   type PhoenixSettings,
+  type PhoenixControlDeckConfiguration,
   type RuntimeSystemSnapshot
 } from '@phoenix/contracts'
 import type {
@@ -44,7 +45,7 @@ export const DEFAULT_PHOENIX_SETTINGS: PhoenixSettings = {
   }
 }
 
-export class JsonSystemSettingsRepository implements SystemSettingsRepository, ControlDeckConfigurationRepository {
+export class JsonSystemSettingsRepository implements SystemSettingsRepository, ControlDeckConfigurationRepository<PhoenixControlDeckConfiguration> {
   public constructor (private readonly path: string) {}
 
   public loadOrCreate (): PhoenixSettings {
@@ -68,11 +69,11 @@ export class JsonSystemSettingsRepository implements SystemSettingsRepository, C
     writeJsonAtomically(this.path, PhoenixSettingsSchema.parse(candidate))
   }
 
-  public getConfiguration (): ControlDeckConfiguration {
+  public getConfiguration (): PhoenixControlDeckConfiguration {
     return this.loadOrCreate().controls.deckConfiguration
   }
 
-  public saveConfiguration (candidate: ControlDeckConfiguration): ControlDeckConfiguration {
+  public saveConfiguration (candidate: ControlDeckConfiguration): PhoenixControlDeckConfiguration {
     const configuration = PhoenixControlDeckConfigurationSchema.parse(candidate)
     const settings = this.loadOrCreate()
     const current = settings.controls.deckConfiguration

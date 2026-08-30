@@ -18,12 +18,14 @@ test('PHOENIX passes command metadata into the shared Numpy tiles', () => {
       available: true,
       bindingLabel: 'NP_5',
       id: 'lights',
-      kind: 'game-action',
       label: 'Lights',
       parentId: null,
-      risk: 'safe',
       selector: '1',
-      target: { type: 'game-action', actionId: 'elite.ShipSpotLightToggle' }
+      action: {
+        type: 'command',
+        target: { adapterId: 'phoenix.commands', commandId: 'command.elite.ShipSpotLightToggle', configuration: {} },
+        activation: 'tap'
+      }
     }]}
     pendingDigits=""
     variableFontSizes

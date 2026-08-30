@@ -2,12 +2,14 @@ import { z } from 'zod'
 import {
   ControlDeckColorSchemeSchema,
   ControlDeckConfigurationSchema,
+  ControlDeckGridDeckSchema,
   type ControlDeckCommandTarget
 } from 'control-deck/core'
 import type { CommandTarget } from './commands.js'
 
 export const InputBackendModeSchema = z.enum(['auto', 'recording', 'linux-xdotool', 'windows-sendinput'])
 export const PhoenixControlDeckThemeSchema = z.union([z.literal('phoenix'), ControlDeckColorSchemeSchema])
+export const PHOENIX_CONTROL_DECK_ADAPTER_ID = 'phoenix.commands'
 export const PHOENIX_CONTROL_CONTEXTS = [
   'phoenix:ship',
   'phoenix:combat',
@@ -19,7 +21,9 @@ export const PHOENIX_CONTROL_CONTEXTS = [
   'phoenix:emote',
   'phoenix:misc'
 ] as const
-export const PhoenixControlDeckConfigurationSchema = ControlDeckConfigurationSchema.superRefine((configuration, context) => {
+export const PhoenixControlDeckConfigurationSchema = ControlDeckConfigurationSchema.safeExtend({
+  decks: z.array(ControlDeckGridDeckSchema).max(256)
+}).superRefine((configuration, context) => {
   const expectedContexts = new Set<string>(PHOENIX_CONTROL_CONTEXTS)
   const actualContexts = new Set(configuration.decks.map(deck => deck.context))
   if (configuration.decks.length !== expectedContexts.size || actualContexts.size !== expectedContexts.size) {
@@ -33,7 +37,7 @@ export const PhoenixControlDeckConfigurationSchema = ControlDeckConfigurationSch
       context.addIssue({ code: 'custom', message: `Unsupported PHOENIX control context ${deck.context ?? 'null'}.` })
     }
     for (const element of deck.elements) {
-      if (element.kind === 'command' && (element.target.adapterId !== 'phoenix.commands' || Object.keys(element.target.configuration).length > 0)) {
+      if (element.kind === 'command' && (element.target.adapterId !== PHOENIX_CONTROL_DECK_ADAPTER_ID || Object.keys(element.target.configuration).length > 0)) {
         context.addIssue({ code: 'custom', message: `Deck ${deck.id} contains a non-PHOENIX command target.` })
       }
     }
@@ -61,11 +65,11 @@ export function phoenixTargetToControlDeckTarget (target: CommandTarget): Contro
     : target.type === 'navigation'
       ? `command.navigation.${target.destinationId}`
       : `command.macro.${target.macroId}`
-  return { adapterId: 'phoenix.commands', commandId, configuration: {} }
+  return { adapterId: PHOENIX_CONTROL_DECK_ADAPTER_ID, commandId, configuration: {} }
 }
 
 export function controlDeckTargetToPhoenixTarget (target: ControlDeckCommandTarget): CommandTarget {
-  if (target.adapterId !== 'phoenix.commands' || Object.keys(target.configuration).length > 0) {
+  if (target.adapterId !== PHOENIX_CONTROL_DECK_ADAPTER_ID || Object.keys(target.configuration).length > 0) {
     throw new Error('PHOENIX controls accept only unconfigured PHOENIX command targets.')
   }
   if (target.commandId.startsWith('command.navigation.')) {

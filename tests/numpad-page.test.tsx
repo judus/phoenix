@@ -48,13 +48,10 @@ test('the reconstructed numpad renders the live command navigator', () => {
           selector: '1',
           address: '1',
           interactionHint: 'open',
-          bindingLabel: null,
           label: 'Fleet',
           description: 'Open the fleet workspace.',
-          kind: 'navigation',
           available: true,
-          risk: 'routine',
-          target: { type: 'navigation', href: '#/fleet' }
+          action: { type: 'navigation', destinationId: 'fleet' }
         }]
       },
       status: 'ready'

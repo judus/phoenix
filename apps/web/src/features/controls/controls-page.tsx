@@ -7,7 +7,7 @@ import {
   resolveControlDeckInteraction,
   upsertControlDeckElement,
   useCustomControlDeckLayout,
-  type ControlDeckDeck,
+  type ControlDeckGridDeck,
   type ControlDeckDeckGroup
 } from 'control-deck/core'
 import { PHOENIX_CONTROL_LAYOUT_PRESETS, PhoenixControlDeckThemeSchema, controlDeckTargetToPhoenixTarget, phoenixControlLayoutPreset, type CommandTarget, type GameActionAvailability, type GameActionOperation, type PhoenixControlDeckConfiguration, type PhoenixControlDeckTheme, type RuntimeState } from '@phoenix/contracts'
@@ -293,7 +293,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
 
 function DeckSettings ({ configuration, deck, group, onChange, onCancel, onSave, saving }: {
   configuration: PhoenixControlDeckConfiguration
-  deck: ControlDeckDeck
+  deck: ControlDeckGridDeck
   group: ControlDeckDeckGroup
   onChange(configuration: PhoenixControlDeckConfiguration): void
   onCancel(): void
@@ -354,10 +354,10 @@ export function controlPickerActionLabel(action: GameActionAvailability): string
 }
 
 export function resizeDeck (
-  deck: ControlDeckDeck,
+  deck: ControlDeckGridDeck,
   columns: number,
   rows: number
-): ControlDeckDeck {
+): ControlDeckGridDeck {
   return {
     ...deck,
     layout: { kind: 'grid', columns, rows },
@@ -377,7 +377,7 @@ function themeLabel (theme: PhoenixControlDeckTheme): string {
   return `${theme.charAt(0).toUpperCase()}${theme.slice(1)}`
 }
 
-function controlDeckTheme (deck: ControlDeckDeck | undefined, group: ControlDeckDeckGroup | undefined): PhoenixControlDeckTheme {
+function controlDeckTheme (deck: ControlDeckGridDeck | undefined, group: ControlDeckDeckGroup | undefined): PhoenixControlDeckTheme {
   return group?.appearance?.colorScheme ?? deck?.appearance?.colorScheme ?? 'phoenix'
 }
 
