@@ -10,7 +10,8 @@ import { afterEach, expect, test } from 'vitest'
 import type {
   KeyboardCommandConfiguration,
   KeyboardOutput,
-  KeyboardOutputStatus
+  KeyboardOutputStatus,
+  PlatformKeyboardOutputOptions
 } from 'control-deck/adapter-keyboard'
 import {
   ControlDeckConfigurationConflictError,
@@ -75,7 +76,7 @@ test('noncanonical deck data is discarded instead of imported', () => {
 
 test('automatic Linux startup selects xdotool and produces runtime diagnostics', () => {
   const result = bootstrapControlOutput(DEFAULT_PHOENIX_SETTINGS, {
-    createXdotoolOutput: () => new StubKeyboardOutput({
+    createPlatformOutput: () => new StubKeyboardOutput({
       available: true,
       simulated: false,
       detail: 'xdotool ready',
@@ -104,9 +105,39 @@ test('automatic Linux startup selects xdotool and produces runtime diagnostics',
   })
 })
 
+test('automatic Linux startup selects the Wayland portal and preserves its restore token', () => {
+  let platformOptions: PlatformKeyboardOutputOptions | null = null
+  const result = bootstrapControlOutput(DEFAULT_PHOENIX_SETTINGS, {
+    createPlatformOutput: options => {
+      platformOptions = options
+      return new StubKeyboardOutput({
+        available: true,
+        simulated: false,
+        detail: 'Wayland portal ready',
+        platformRequirements: []
+      })
+    },
+    environment: { XDG_SESSION_TYPE: 'wayland', WAYLAND_DISPLAY: 'wayland-0' },
+    platform: 'linux',
+    waylandRestoreTokenPath: '/tmp/phoenix-wayland-keyboard.json'
+  })
+
+  expect(result.id).toBe('linux-wayland-portal')
+  expect(result.snapshot.controls).toMatchObject({
+    effectiveBackend: 'linux-wayland-portal',
+    available: true,
+    detail: 'Wayland portal ready'
+  })
+  expect(platformOptions).toEqual({
+    environment: { XDG_SESSION_TYPE: 'wayland', WAYLAND_DISPLAY: 'wayland-0' },
+    platform: 'linux',
+    waylandRestoreTokenPath: '/tmp/phoenix-wayland-keyboard.json'
+  })
+})
+
 test('automatic Windows startup selects SendInput and produces runtime diagnostics', () => {
   const result = bootstrapControlOutput(DEFAULT_PHOENIX_SETTINGS, {
-    createSendInputOutput: () => new StubKeyboardOutput({
+    createPlatformOutput: () => new StubKeyboardOutput({
       available: true,
       simulated: false,
       detail: 'SendInput ready',

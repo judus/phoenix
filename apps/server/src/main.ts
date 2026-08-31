@@ -34,7 +34,9 @@ try {
   const runtimeSystemPath = resolve(paths.user.data, process.env.PHOENIX_RUNTIME_SYSTEM_PATH ?? 'runtime/system.json')
   const settingsRepository = new JsonSystemSettingsRepository(settingsPath)
   const settings = settingsRepository.loadOrCreate()
-  const controls = bootstrapControlOutput(settings)
+  const controls = bootstrapControlOutput(settings, {
+    waylandRestoreTokenPath: resolve(paths.user.data, 'wayland-keyboard.json')
+  })
   new JsonRuntimeSystemSnapshotWriter(runtimeSystemPath).write(controls.snapshot)
   const catalogueDirectory = await ensureCatalogueSnapshot(paths)
 

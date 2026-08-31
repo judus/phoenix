@@ -1,9 +1,12 @@
 import {
+  createPlatformKeyboardOutput,
+  detectLinuxDisplaySession,
   LinuxXdotoolKeyboardOutput,
   RecordingKeyboardOutput,
   WindowsSendInputKeyboardOutput,
   type KeyboardOutput,
-  type KeyboardOutputStatus
+  type KeyboardOutputStatus,
+  type PlatformKeyboardOutputOptions
 } from 'control-deck/adapter-keyboard'
 import {
   InputBackendModeSchema,
@@ -14,11 +17,13 @@ import {
 } from '@phoenix/contracts'
 
 export interface ControlOutputBootstrapOptions {
+  createPlatformOutput?: (options: PlatformKeyboardOutputOptions) => KeyboardOutput
   createSendInputOutput?: () => KeyboardOutput
   createXdotoolOutput?: () => KeyboardOutput
   environment?: NodeJS.ProcessEnv
   now?: () => Date
   platform?: NodeJS.Platform
+  waylandRestoreTokenPath?: string
 }
 
 export interface ControlOutputBootstrapResult {
@@ -38,7 +43,7 @@ export function bootstrapControlOutput (
     : null
   const requestedBackend = overrideBackend ?? settings.controls.backend
   const selected = settings.controls.enabled
-    ? selectOutput(requestedBackend, platform, options.createXdotoolOutput, options.createSendInputOutput)
+    ? selectOutput(requestedBackend, platform, environment, options)
     : { id: 'disabled', output: new DisabledKeyboardOutput('Game controls are disabled in PHOENIX settings.') }
   const status = selected.output.getStatus()
 
@@ -65,15 +70,32 @@ export function bootstrapControlOutput (
 function selectOutput (
   mode: InputBackendMode,
   platform: NodeJS.Platform,
-  createXdotoolOutput: (() => KeyboardOutput) | undefined,
-  createSendInputOutput: (() => KeyboardOutput) | undefined
+  environment: NodeJS.ProcessEnv,
+  options: ControlOutputBootstrapOptions
 ): { id: string, output: KeyboardOutput } {
   if (mode === 'recording') return { id: 'recording', output: new RecordingKeyboardOutput() }
-  if (mode === 'linux-xdotool') return { id: 'linux-xdotool', output: createXdotoolOutput?.() ?? new LinuxXdotoolKeyboardOutput() }
-  if (mode === 'windows-sendinput') return { id: 'windows-sendinput', output: createSendInputOutput?.() ?? new WindowsSendInputKeyboardOutput({ platform }) }
-  if (platform === 'linux') return { id: 'linux-xdotool', output: createXdotoolOutput?.() ?? new LinuxXdotoolKeyboardOutput() }
-  if (platform === 'win32') return { id: 'windows-sendinput', output: createSendInputOutput?.() ?? new WindowsSendInputKeyboardOutput({ platform }) }
-  return { id: `unsupported-${platform}`, output: new DisabledKeyboardOutput(`Automatic game input is not implemented for ${platform}.`) }
+  if (mode === 'linux-xdotool') return { id: 'linux-xdotool', output: options.createXdotoolOutput?.() ?? new LinuxXdotoolKeyboardOutput({ environment }) }
+  if (mode === 'windows-sendinput') return { id: 'windows-sendinput', output: options.createSendInputOutput?.() ?? new WindowsSendInputKeyboardOutput({ platform }) }
+
+  const platformOptions: PlatformKeyboardOutputOptions = {
+    environment,
+    platform,
+    ...(options.waylandRestoreTokenPath ? { waylandRestoreTokenPath: options.waylandRestoreTokenPath } : {})
+  }
+  return {
+    id: automaticOutputId(platform, environment),
+    output: options.createPlatformOutput?.(platformOptions) ?? createPlatformKeyboardOutput(platformOptions)
+  }
+}
+
+function automaticOutputId (platform: NodeJS.Platform, environment: NodeJS.ProcessEnv): string {
+  if (platform === 'linux') {
+    return detectLinuxDisplaySession(environment).kind === 'wayland'
+      ? 'linux-wayland-portal'
+      : 'linux-xdotool'
+  }
+  if (platform === 'win32') return 'windows-sendinput'
+  return `unsupported-${platform}`
 }
 
 class DisabledKeyboardOutput implements KeyboardOutput {
