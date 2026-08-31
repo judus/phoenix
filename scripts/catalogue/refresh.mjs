@@ -1,6 +1,7 @@
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
+import { selectJournalModuleRows } from './select-journal-module-rows.mjs'
 
 const projectRoot = resolve(import.meta.dirname, '../..')
 const repositories = {
@@ -49,8 +50,9 @@ const shipyard = parseCsv(shipyardCsv)
 const generatedAt = new Date().toISOString()
 const blueprints = buildBlueprints(blueprintsSource, modifications, blueprintModules)
 const engineers = await buildEngineers(engineerRows, blueprints)
+const modules = buildModules(outfitting, revisions.fdevids, generatedAt)
 const files = {
-  'modules.json': buildModules(outfitting, revisions.fdevids, generatedAt),
+  'modules.json': modules,
   'ships.json': buildShips(shipFiles, shipyard, revisions.coriolis, generatedAt),
   'engineering/blueprints.json': blueprints,
   'engineering/engineers.json': engineers,
@@ -63,7 +65,7 @@ const files = {
     sources: revisions,
     counts: {
       ships: shipFiles.length,
-      modules: outfitting.length,
+      modules: modules.modules.length,
       blueprints: blueprints.length,
       engineers: engineers.length,
       materials: materials.length
@@ -169,7 +171,7 @@ function buildModules (rows, revision, generatedAt) {
   return {
     schemaVersion: 1,
     source: { name: 'EDCD FDevIDs', repository: 'https://github.com/EDCD/FDevIDs', revision, path: 'outfitting.csv', retrievedAt: generatedAt },
-    modules: rows.map(row => ({
+    modules: selectJournalModuleRows(rows).map(row => ({
       journalId: row.symbol,
       displayName: row.name,
       category: nullable(row.category),
