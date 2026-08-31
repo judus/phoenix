@@ -111,6 +111,32 @@ focused. PHOENIX does not modify Elite or its game files.
 
 ### Linux
 
+PHOENIX sends configured keyboard bindings through `xdotool` on X11 and through the XDG
+RemoteDesktop portal on Wayland. A source installation therefore needs the input helper for its
+desktop session:
+
+- **X11:** `xdotool`
+- **Wayland:** `xkbcli` and an XDG RemoteDesktop portal implementation with keyboard support.
+  GNOME and KDE installations normally include the appropriate portal backend already.
+
+Install the helpers for both session types if you switch between X11 and Wayland:
+
+```sh
+# Debian, Ubuntu, Linux Mint
+sudo apt install xdotool libxkbcommon-tools
+
+# Fedora
+sudo dnf install xdotool libxkbcommon-utils
+
+# Arch Linux
+sudo pacman -S xdotool libxkbcommon
+```
+
+On Wayland, PHOENIX asks the desktop for permission when it first sends an input. If controls remain
+unavailable, check `data/runtime/system.json`; its `controls.detail` field reports a missing keymap
+reader or portal. Install `xdg-desktop-portal` and the matching GNOME or KDE portal backend if the
+desktop does not provide one.
+
 ```sh
 git clone https://github.com/judus/phoenix.git
 cd phoenix
