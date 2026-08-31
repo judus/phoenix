@@ -19,6 +19,10 @@ if (!stopping) startChild('dev:web')
 function startChild (script) {
   const child = spawn('npm', ['run', script], {
     detached: process.platform !== 'win32',
+    env: {
+      ...process.env,
+      ...(script === 'dev:server' ? { PHOENIX_WEB_PORT: String(webPort) } : {})
+    },
     stdio: ['ignore', 'inherit', 'inherit']
   })
   children.push(child)

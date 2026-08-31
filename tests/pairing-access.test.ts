@@ -73,6 +73,31 @@ test('browser pairing sessions authorize independently and can be revoked per de
   }
 })
 
+test('pairing links can target the separate development web server', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-pairing-'))
+  const accessControl = new PairingAccessController(join(directory, 'pairing.json'))
+  const application = new PhoenixApplication({
+    accessControl,
+    databasePath: ':memory:',
+    eliteDirectory: null,
+    host: '0.0.0.0',
+    port: 0,
+    webPort: 3401
+  })
+  const address = await application.start()
+
+  try {
+    const response = await fetch(`http://127.0.0.1:${address.port}/api/pairing/info`)
+    const pairing = await response.json() as { access: Array<{ pairingUrl: string, url: string }> }
+    expect(pairing.access.length).toBeGreaterThan(0)
+    expect(pairing.access.every(access => new URL(access.url).port === '3401')).toBe(true)
+    expect(pairing.access.every(access => new URL(access.pairingUrl).port === '3401')).toBe(true)
+  } finally {
+    await application.stop()
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
+
 function requestWithCookie (cookie: string): IncomingMessage {
   return { headers: { cookie } } as IncomingMessage
 }

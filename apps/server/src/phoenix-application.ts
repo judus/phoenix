@@ -136,6 +136,7 @@ export interface PhoenixApplicationOptions {
   explorationTargetSource?: ExplorationTargetSearchSource
   stationStockSource?: StationStockSource
   systemSettingsRepository?: SystemSettingsRepository
+  webPort?: number
   webRoot?: string
 }
 
@@ -456,6 +457,7 @@ export class PhoenixApplication {
       navigationRouteUpdates,
       numpad,
       openAiConfiguration,
+      webPort: options.webPort ?? optionalPort(process.env.PHOENIX_WEB_PORT),
       webRoot: resolveProjectPath(projectRoot, options.webRoot ?? paths.resources.web)
     })
   }
@@ -517,4 +519,13 @@ function locateBindingsDirectory (
 function resolveProjectPath (projectRoot: string, path: string): string {
   if (path === ':memory:' || isAbsolute(path)) return path
   return resolve(projectRoot, path)
+}
+
+function optionalPort (value: string | undefined): number | undefined {
+  if (value === undefined) return undefined
+  const port = Number(value)
+  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+    throw new Error(`Invalid PHOENIX_WEB_PORT: ${value}`)
+  }
+  return port
 }

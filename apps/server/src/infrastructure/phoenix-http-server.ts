@@ -123,6 +123,7 @@ export interface PhoenixHttpServerOptions {
   runtimeState: RuntimeStateReader
   runtimeStateUpdates: Subscribable<RuntimeState>
   systemSettings: SystemSettingsRepository
+  webPort?: number
   webRoot: string
 }
 
@@ -999,7 +1000,7 @@ export class PhoenixHttpServer {
       throw new Error('PHOENIX pairing information is unavailable before the server starts.')
     }
     const urls = serverAccessUrls(
-      { host: this.options.host, port: address.port },
+      { host: this.options.host, port: this.options.webPort ?? address.port },
       undefined,
       await activeRouteIPv4Address()
     ).network
