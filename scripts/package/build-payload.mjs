@@ -25,6 +25,9 @@ copy('package.json')
 const serverEntrypoint = resolve(outputRoot, 'apps/server/dist/main.js')
 mkdirSync(dirname(serverEntrypoint), { recursive: true })
 await build({
+  banner: {
+    js: "import { createRequire as __phoenixCreateRequire } from 'node:module'; const require = __phoenixCreateRequire(import.meta.url);"
+  },
   bundle: true,
   entryPoints: [resolve(projectRoot, 'apps/server/src/main.ts')],
   format: 'esm',
