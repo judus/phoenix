@@ -1,15 +1,12 @@
 import type { JsonObject } from '@jdu/llm-client'
 import {
   GalaxyExplorationTargetSchema,
-  type ExplorationBodyRecord,
-  type GalaxyExplorationTarget,
   type GalaxyExplorationTargetsResponse
 } from '@phoenix/contracts'
 import type { SystemCartography } from '../domain/cartography.js'
 import type { ExplorationTargetSearchRequest, ExplorationTargetSearchResult, ExplorationTargetSearchSource, ExplorationLandableFilter } from '../domain/exploration-target.js'
 import type { ProviderResponseCache } from '../domain/station-market.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
-import type { ExplorationDataReader } from './exploration-data-service.js'
 import type { ExplorationTargetQuery } from './mcp-tools/tool-gateways.js'
 import { boundedLimit, json, optionalIntegerArgument, optionalStringArgument, output } from './mcp-tools/tool-support.js'
 
@@ -17,9 +14,10 @@ const CACHE_MS = 30 * 60 * 1000
 const CANDIDATE_LIMIT = 100
 
 export interface ExplorationTargetSearchInput {
-  atmosphere: string | null
-  bodyType: string | null
+  atmospheres: string[]
+  bodySubtypes: string[]
   landable: ExplorationLandableFilter
+  lastReportedBefore: string | null
   maxDistanceLy: number
   maxGravityG: number | null
   maxTemperatureK: number | null
@@ -28,7 +26,7 @@ export interface ExplorationTargetSearchInput {
   minGravityG: number | null
   minTemperatureK: number | null
   systemName: string
-  volcanism: string | null
+  volcanismTypes: string[]
 }
 
 export interface ExplorationTargetReader {
@@ -42,16 +40,16 @@ export class DefaultExplorationTargetQuery implements ExplorationTargetReader, E
     private readonly source: ExplorationTargetSearchSource,
     private readonly cartography: SystemCartography,
     private readonly runtimeState: RuntimeStateReader,
-    private readonly exploration: ExplorationDataReader,
     private readonly cache: ProviderResponseCache,
     private readonly now: () => Date = () => new Date()
   ) {}
 
   public async searchTargets (arguments_: JsonObject) {
     const result = await this.searchExplorationTargets({
-      atmosphere: optionalStringArgument(arguments_, 'atmosphere') ?? null,
-      bodyType: optionalStringArgument(arguments_, 'bodyType') ?? null,
+      atmospheres: optionalStringArrayArgument(arguments_, 'atmospheres'),
+      bodySubtypes: optionalStringArrayArgument(arguments_, 'bodySubtypes'),
       landable: landableArgument(arguments_.landable),
+      lastReportedBefore: optionalDateArgument(arguments_, 'lastReportedBefore'),
       maxDistanceLy: boundedInteger(optionalIntegerArgument(arguments_, 'maxDistance'), 100, 1, 500),
       maxGravityG: optionalNumber(arguments_, 'maxGravityG'),
       maxTemperatureK: optionalNumber(arguments_, 'maxTemperatureK'),
@@ -60,11 +58,11 @@ export class DefaultExplorationTargetQuery implements ExplorationTargetReader, E
       minGravityG: optionalNumber(arguments_, 'minGravityG'),
       minTemperatureK: optionalNumber(arguments_, 'minTemperatureK'),
       systemName: optionalStringArgument(arguments_, 'systemName') ?? this.currentSystem(),
-      volcanism: optionalStringArgument(arguments_, 'volcanism') ?? null
+      volcanismTypes: optionalStringArrayArgument(arguments_, 'volcanismTypes')
     }, boundedLimit(optionalIntegerArgument(arguments_, 'limit'), 10, 20))
     return output(
       result.targets.length > 0
-        ? [`Reported exploration candidates near ${result.originSystem}:`, ...result.targets.map(target => `- ${target.bodyName} (${target.systemName}, ${target.distanceLy.toFixed(1)} ly): ${target.subtype ?? target.bodyType ?? 'unknown body'}, ${target.biologicalSignals} biological / ${target.geologicalSignals} geological signals${target.localEvidence.observed ? '; locally observed' : ''}.`), result.caveat].join('\n')
+        ? [`Reported exploration candidates near ${result.originSystem}:`, ...result.targets.map(target => `- ${target.bodyName} (${target.systemName}, ${target.distanceLy.toFixed(1)} ly): ${target.subtype ?? target.bodyType ?? 'unknown body'}, ${target.biologicalSignals} biological / ${target.geologicalSignals} geological signals.`), result.caveat].join('\n')
         : `No reported exploration candidates matched near ${result.originSystem}. ${result.caveat}`,
       json(result)
     )
@@ -72,22 +70,20 @@ export class DefaultExplorationTargetQuery implements ExplorationTargetReader, E
 
   public async searchExplorationTargets (input: ExplorationTargetSearchInput, limit = 20): Promise<GalaxyExplorationTargetsResponse> {
     validateRanges(input)
-    const origin = await this.cartography.getSystem(input.systemName)
-    if (!origin.system.position) throw new Error(`Coordinates for ${input.systemName} are unavailable.`)
-    const { systemName: _systemName, minBiologicalSignals, minGeologicalSignals, ...providerFilters } = input
-    const request: ExplorationTargetSearchRequest = { ...providerFilters, referencePosition: origin.system.position }
-    const cached = await this.cached(stableKey({ ...request, systemName: origin.system.name }), () => this.source.findTargets(request))
-    const ledgerBodies = this.exploration.getLedger().systems.flatMap(system => system.bodies)
+    const origin = await this.resolveOrigin(input.systemName)
+    const { systemName: _systemName, ...providerFilters } = input
+    const request: ExplorationTargetSearchRequest = { ...providerFilters, referencePosition: origin.position }
+    const cached = await this.cached(stableKey({ ...request, systemName: origin.name }), () => this.source.findTargets(request))
     const targets = cached.value
-      .filter(target => target.biologicalSignals >= minBiologicalSignals && target.geologicalSignals >= minGeologicalSignals)
-      .map(target => enrich(target, ledgerBodies))
+      .filter(target => target.biologicalSignals >= input.minBiologicalSignals && target.geologicalSignals >= input.minGeologicalSignals)
+      .map(target => GalaxyExplorationTargetSchema.parse(target))
       .slice(0, boundedLimit(limit, 20, 100))
     return {
       cache: cached.cache,
       candidatesExamined: Math.min(cached.value.length, CANDIDATE_LIMIT),
-      caveat: `Signal requirements were verified locally over the nearest ${cached.value.length} physical candidates returned by Spansh; farther matches may be omitted. Community reports and local journal history may be incomplete, and no result proves that exploration remains unfinished.`,
-      filters: { ...providerFilters, minBiologicalSignals, minGeologicalSignals },
-      originSystem: origin.system.name,
+      caveat: `Spansh applied the requested physical, signal, and report-date filters before returning these nearest candidates. Community reports may be incomplete, and no result proves that exploration remains unfinished.`,
+      filters: providerFilters,
+      originSystem: origin.name,
       provenance: 'Spansh community-reported body data',
       targets
     }
@@ -97,6 +93,15 @@ export class DefaultExplorationTargetQuery implements ExplorationTargetReader, E
     const name = this.runtimeState.getCurrent().system.name
     if (!name) throw new Error('Current system is unavailable; provide systemName.')
     return name
+  }
+
+  private async resolveOrigin (systemName: string): Promise<{ name: string, position: [number, number, number] }> {
+    const requested = systemName.trim()
+    const current = this.runtimeState.getCurrent().system
+    if (current.name && current.position && same(current.name, requested)) return { name: current.name, position: current.position }
+    const external = await this.cartography.getSystem(requested)
+    if (!external.system.position) throw new Error(`Coordinates for ${requested} are unavailable.`)
+    return { name: external.system.name, position: external.system.position }
   }
 
   private async cached (key: string, load: () => Promise<ExplorationTargetSearchResult[]>): Promise<{ cache: 'fresh' | 'refreshed' | 'stale', value: ExplorationTargetSearchResult[] }> {
@@ -120,29 +125,21 @@ export class DefaultExplorationTargetQuery implements ExplorationTargetReader, E
   }
 }
 
-function enrich (target: ExplorationTargetSearchResult, ledger: ExplorationBodyRecord[]): GalaxyExplorationTarget {
-  const local = ledger.find(body => same(body.systemName, target.systemName) && (body.bodyId !== null && target.bodyId !== null ? body.bodyId === target.bodyId : same(body.name, target.bodyName)))
-  return GalaxyExplorationTargetSchema.parse({
-    ...target,
-    localEvidence: local ? {
-      biologicalSamplesCompleted: completedSamples(local), biologicalSignalsRecorded: local.signals.biological,
-      discovered: local.discovered, geologicalSignalsRecorded: local.signals.geological, mapped: local.mapped,
-      observed: true, observedAt: local.observedAt, surfaceScanCompleted: local.surfaceScanCompleted
-    } : {
-      biologicalSamplesCompleted: 0, biologicalSignalsRecorded: 0, discovered: null, geologicalSignalsRecorded: 0,
-      mapped: null, observed: false, observedAt: null, surfaceScanCompleted: null
-    }
-  })
-}
-
-function completedSamples (body: ExplorationBodyRecord): number { return new Set([...body.organicSamples.filter(sample => sample.completed).map(sample => sample.genus), ...body.manualBiologicalCompletions.map(item => item.signalKey)]).size }
 function same (left: string, right: string): boolean { return left.trim().toLocaleLowerCase() === right.trim().toLocaleLowerCase() }
 function stableKey (value: object): string { return JSON.stringify(Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right)))) }
 function isSourceResults (value: unknown): value is ExplorationTargetSearchResult[] { return Array.isArray(value) && value.every(item => { const candidate = item as Partial<ExplorationTargetSearchResult>; return typeof candidate.bodyName === 'string' && typeof candidate.systemName === 'string' && typeof candidate.distanceLy === 'number' && Number.isInteger(candidate.biologicalSignals) && Number.isInteger(candidate.geologicalSignals) }) }
 function boundedInteger (value: number | undefined, fallback: number, min: number, max: number): number { return value === undefined ? fallback : Math.min(Math.max(value, min), max) }
 function optionalNumber (arguments_: JsonObject, key: string): number | null { const value = arguments_[key]; if (value === undefined || value === null) return null; if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) throw new Error(`${key} must be a non-negative number.`); return value }
+function optionalStringArrayArgument (arguments_: JsonObject, key: string): string[] { const value = arguments_[key]; if (value === undefined || value === null) return []; if (!Array.isArray(value) || value.some(item => typeof item !== 'string' || !item.trim())) throw new Error(`${key} must be an array of non-empty strings.`); return [...new Set(value.map(item => String(item).trim()))] }
+function optionalDateArgument (arguments_: JsonObject, key: string): string | null { const value = arguments_[key]; if (value === undefined || value === null) return null; if (typeof value !== 'string' || !validDate(value)) throw new Error(`${key} must be a date in YYYY-MM-DD format.`); return value }
 function landableArgument (value: unknown): ExplorationLandableFilter { if (value === undefined || value === null) return 'any'; if (value === 'any' || value === 'yes' || value === 'no') return value; throw new Error('landable must be any, yes, or no.') }
 function validateRanges (input: ExplorationTargetSearchInput): void {
   if (input.minGravityG !== null && input.maxGravityG !== null && input.minGravityG > input.maxGravityG) throw new Error('minGravityG must not exceed maxGravityG.')
   if (input.minTemperatureK !== null && input.maxTemperatureK !== null && input.minTemperatureK > input.maxTemperatureK) throw new Error('minTemperatureK must not exceed maxTemperatureK.')
+  if (input.lastReportedBefore !== null && !validDate(input.lastReportedBefore)) throw new Error('lastReportedBefore must be a date in YYYY-MM-DD format.')
+}
+function validDate (value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const parsed = new Date(`${value}T00:00:00.000Z`)
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().startsWith(value)
 }

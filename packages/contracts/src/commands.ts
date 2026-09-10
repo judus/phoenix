@@ -19,6 +19,7 @@ export const CommandDescriptorSchema = z.object({
   kind: z.enum(['game-action', 'navigation', 'macro']),
   activation: z.enum(['tap', 'hold', 'open']).default('tap'),
   label: z.string().min(1),
+  aliases: z.array(z.string().min(1).max(100)).max(20).optional(),
   description: z.string().min(1).optional(),
   category: z.string().min(1),
   available: z.boolean(),

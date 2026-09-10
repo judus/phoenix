@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { act, create } from 'react-test-renderer'
 import { createEmptyRuntimeState, type CartographyLookupResponse, type GameActionCatalogResponse, type NavigationRoute } from '@phoenix/contracts'
 import { beforeAll, expect, test, vi } from 'vitest'
-import { buildRouteLegs, PlottedRoute, type PlottedRouteProps } from '../apps/web/src/features/galaxy/plotted-route.js'
+import { buildRouteLegs, centerRouteRow, PlottedRoute, type PlottedRouteProps } from '../apps/web/src/features/galaxy/plotted-route.js'
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
 
@@ -26,6 +26,20 @@ const actions: GameActionCatalogResponse = {
       id: 'elite.TargetNextRouteSystem',
       inputMode: 'tap',
       label: 'Next Route System',
+      risk: 'routine',
+      telemetryKey: null
+    },
+    unavailableReason: null
+  }, {
+    available: true,
+    binding: { display: 'J', key: 'J', modifiers: [] },
+    definition: {
+      category: 'navigation',
+      description: 'Engage the frame shift drive for hyperspace.',
+      eliteBinding: 'Hyperspace',
+      id: 'elite.Hyperspace',
+      inputMode: 'tap',
+      label: 'Hyperspace',
       risk: 'routine',
       telemetryKey: null
     },
@@ -67,6 +81,19 @@ test('plotted route derives leg and cumulative distances from Elite coordinates'
     { cumulative: 5, distance: 5 },
     { cumulative: 17, distance: 12 }
   ])
+})
+
+test('the current route row is centered within the scroll viewport', () => {
+  const scroller = {
+    clientHeight: 300,
+    scrollTop: 400,
+    getBoundingClientRect: () => ({ top: 100 }) as DOMRect
+  }
+  const row = { getBoundingClientRect: () => ({ top: 280, height: 40 }) as DOMRect }
+
+  centerRouteRow(scroller, row)
+
+  expect(scroller.scrollTop).toBe(450)
 })
 
 test('plotted route renders route progress and begins loading the next jump preview', () => {
@@ -115,10 +142,14 @@ test('plotted route previews only current and forward systems through existing A
   expect(api.getSystemCartography).toHaveBeenLastCalledWith('Lave', expect.any(AbortSignal))
   expect(JSON.stringify(renderer!.toJSON())).toContain('2 jumps ahead')
 
-  const targetButton = renderer!.root.findAllByType('button').find(button => button.props.className.includes('route-target-command'))
+  const targetButton = renderer!.root.findAllByType('button').find(button => button.findAllByType('strong').some(label => label.children.includes('Target next jump')))
   await act(async () => targetButton!.props.onClick())
   expect(api.executeAction).toHaveBeenCalledWith('elite.TargetNextRouteSystem', 'tap')
   expect(JSON.stringify(renderer!.toJSON())).toContain('Next Route System input accepted.')
+
+  const hyperspaceButton = renderer!.root.findAllByType('button').find(button => button.findAllByType('strong').some(label => label.children.includes('Hyperspace')))
+  await act(async () => hyperspaceButton!.props.onClick())
+  expect(api.executeAction).toHaveBeenCalledWith('elite.Hyperspace', 'tap')
   await act(async () => renderer!.unmount())
 })
 

@@ -12,6 +12,7 @@ import {
   FormActions,
   FormGrid,
   FormSection,
+  MultiSelect,
   NumberInput,
   PageFrame,
   PageHeader,
@@ -36,7 +37,7 @@ import type { InformationRoute, PhoenixRoute } from '../../application/navigatio
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
 import { SystemSchematicLink } from '../../components/system-location-link.js'
 import { GALAXY_QUERY_CATALOGUE } from './galaxy-query-catalogue.js'
-import type { GalaxyQueryDefinition, GalaxyQueryField } from './galaxy-query-catalogue.js'
+import type { GalaxyQueryDefinition, GalaxyQueryField, GalaxyQueryValue } from './galaxy-query-catalogue.js'
 import { PlottedRoute } from './plotted-route.js'
 import { ExobiologyPage } from './exobiology-page.js'
 import { SystemSchematic, type CartographicSelection } from './system-schematic.js'
@@ -182,8 +183,8 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, onBack }: {
   definition: GalaxyQueryDefinition & { id: Exclude<GalaxyQueryDefinition['id'], 'filtered-systems'> }
   onBack(): void
 }) {
-  const initial = () => ({ ...definition.defaults, origin: defaultOrigin || definition.defaults.origin || '' })
-  const [values, setValues] = useState<Record<string, string>>(initial)
+  const initial = (): Record<string, GalaxyQueryValue> => ({ ...definition.defaults, origin: defaultOrigin || scalar(definition.defaults.origin) })
+  const [values, setValues] = useState<Record<string, GalaxyQueryValue>>(initial)
   const [result, setResult] = useState<GalaxyQueryResult>()
   const [error, setError] = useState<string>()
   const [loading, setLoading] = useState(false)
@@ -210,22 +211,19 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, onBack }: {
         />
         {result
           ? <GalaxyQueryResults onEdit={() => setResult(undefined)} result={result} />
-          : <ControlContext context="panel">
+          : <ControlContext context="panel" density="compact">
               <Form onSubmit={execute}>
                 <div className="query-workspace">
                   <aside className="query-envelope" aria-label="Current query">
-                    <header><small>{definition.domain}</small><strong>{definition.title}</strong><p>from {values.origin || 'an unresolved system'}</p></header>
+                    <header><small>{definition.domain}</small><strong>{definition.title}</strong><p>from {scalar(values.origin) || 'an unresolved system'}</p></header>
                     <dl><div><dt>Parameters</dt><dd>{definition.fields.length}</dd></div><div><dt>Data source</dt><dd>Community intelligence</dd></div></dl>
                     <p>{definition.purpose}</p>
                   </aside>
                   <div className="query-parameters">
                     <div className="query-fields">
-                      <FormSection title="Query parameters" description={definition.purpose}>
-                        <FormGrid>{definition.fields.map(field => <CatalogueField field={field} key={field.id} value={values[field.id] ?? ''} onChange={value => setValues(current => ({ ...current, [field.id]: value }))} />)}</FormGrid>
-                      </FormSection>
-                      {error && <Status tone="danger">{error}</Status>}
+                      <FormGrid>{definition.fields.map(field => <CatalogueField field={field} key={field.id} value={values[field.id] ?? ''} onChange={value => setValues(current => ({ ...current, [field.id]: value }))} />)}</FormGrid>
                     </div>
-                    <FormActions className="query-actions" layout="columns">
+                    <FormActions className="query-actions" layout="columns" message={error ? <Status tone="danger" wrap>{error}</Status> : undefined}>
                       <FormActionGroup columns="two"><Button alignment="start" variant="outline" size="lg" type="button" onClick={onBack}>Back</Button><Button alignment="start" variant="outline" size="lg" type="button" onClick={() => setValues(initial())}>Reset query</Button></FormActionGroup>
                       <Button alignment="start" variant="accent" size="lg" type="submit" disabled={loading}>{loading ? 'Executing…' : 'Execute query'}</Button>
                     </FormActions>
@@ -238,26 +236,28 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, onBack }: {
   )
 }
 
-function CatalogueField({ field, onChange, value }: { field: GalaxyQueryField, onChange(value: string): void, value: string }) {
-  const control = field.type === 'select'
-    ? <Select required={field.required} value={value} onChange={event => onChange(event.target.value)}>{field.options?.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</Select>
+function CatalogueField({ field, onChange, value }: { field: GalaxyQueryField, onChange(value: GalaxyQueryValue): void, value: GalaxyQueryValue }) {
+  const control = field.type === 'multi-select'
+    ? <MultiSelect id={`query-${field.id}`} options={field.options ?? []} value={multiple(value)} onChange={onChange} />
+    : field.type === 'select'
+      ? <Select required={field.required} value={scalar(value)} onChange={event => onChange(event.target.value)}>{field.options?.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</Select>
     : field.type === 'number'
-      ? <NumberInput max={field.max} min={field.min} required={field.required} value={value} onChange={event => onChange(event.target.value)} />
-      : <TextInput placeholder={field.placeholder} required={field.required} value={value} onChange={event => onChange(event.target.value)} />
-  return <Field htmlFor={`query-${field.id}`} label={field.label} required={field.required}>{control}</Field>
+      ? <NumberInput max={field.max} min={field.min} required={field.required} value={scalar(value)} onChange={event => onChange(event.target.value)} />
+      : <TextInput placeholder={field.placeholder} required={field.required} type={field.type === 'date' ? 'date' : 'text'} value={scalar(value)} onChange={event => onChange(event.target.value)} />
+  return <Field htmlFor={`query-${field.id}`} hint={field.hint} label={field.label} required={field.required}>{control}</Field>
 }
 
-async function executeGalaxyQuery(api: PhoenixApi, id: Exclude<GalaxyQueryDefinition['id'], 'filtered-systems'>, values: Record<string, string>): Promise<GalaxyQueryResult> {
+async function executeGalaxyQuery(api: PhoenixApi, id: Exclude<GalaxyQueryDefinition['id'], 'filtered-systems'>, values: Record<string, GalaxyQueryValue>): Promise<GalaxyQueryResult> {
   switch (id) {
-    case 'nearby-systems': return { id, value: await api.findGalaxyNearbySystems({ maxDistance: numeric(values.radius), systemName: values.origin ?? '' }) }
-    case 'shipyards': return { id, value: await api.findGalaxyShipyards({ hullName: values.hull ?? '', systemName: values.origin ?? '' }) }
-    case 'facilities': return { id, value: await api.findGalaxyNearestStations({ minimumPadSize: pad(values.pad), service: values.service ?? '', systemName: values.origin ?? '' }) }
-    case 'commodity-markets': return { id, value: await api.findGalaxyCommodityMarkets({ commodity: values.commodity ?? '', intent: values.intent === 'buy' ? 'buy' : 'sell', maxDaysAgo: numeric(values.maxDaysAgo), maxDistance: numeric(values.maxDistance), minVolume: numeric(values.minVolume), systemName: values.origin ?? '' }) }
-    case 'outfitting-stock': return { id, value: await api.findGalaxyOutfitting({ maxDaysAgo: numeric(values.maxDaysAgo), maxDistance: numeric(values.maxDistance), minimumPadSize: pad(values.pad), module: values.module ?? '', systemName: values.origin ?? '' }) }
-    case 'station-lookup': return { id, value: await api.findGalaxyStations({ maxDistance: numeric(values.radius), minimumPadSize: pad(values.pad), name: values.name ?? '', stationType: stationType(values.stationType), systemName: values.origin ?? '' }) }
-    case 'faction-presence': return { id, value: await api.findGalaxyFactionPresences({ allegiance: selection(values.allegiance), controlling: controlling(values.controlling), factionName: values.faction ?? '', government: selection(values.government), maxDistance: numeric(values.maxDistance), minInfluence: numeric(values.minInfluence), state: selection(values.state), systemName: values.origin ?? '' }) }
-    case 'trade-opportunities': return { id, value: await api.findGalaxyTradeOpportunities({ availableCredits: numeric(values.availableCredits) ?? 0, cargoCapacity: numeric(values.cargoCapacity) ?? 0, maxDaysAgo: numeric(values.maxDaysAgo), maxDistance: numeric(values.maxDistance), minVolume: numeric(values.minVolume), systemName: values.origin ?? '' }) }
-    case 'exploration-targets': return { id, value: await api.findGalaxyExplorationTargets({ atmosphere: text(values.atmosphere), bodyType: text(values.bodyType), landable: landable(values.landable), maxDistance: numeric(values.maxDistance), maxGravityG: decimal(values.maxGravityG), maxTemperatureK: decimal(values.maxTemperatureK), minBiologicalSignals: numeric(values.minBiologicalSignals), minGeologicalSignals: numeric(values.minGeologicalSignals), minGravityG: decimal(values.minGravityG), minTemperatureK: decimal(values.minTemperatureK), systemName: values.origin ?? '', volcanism: text(values.volcanism) }) }
+    case 'nearby-systems': return { id, value: await api.findGalaxyNearbySystems({ maxDistance: numeric(values.radius), systemName: scalar(values.origin) }) }
+    case 'shipyards': return { id, value: await api.findGalaxyShipyards({ hullName: scalar(values.hull), systemName: scalar(values.origin) }) }
+    case 'facilities': return { id, value: await api.findGalaxyNearestStations({ minimumPadSize: pad(values.pad), service: scalar(values.service), systemName: scalar(values.origin) }) }
+    case 'commodity-markets': return { id, value: await api.findGalaxyCommodityMarkets({ commodity: scalar(values.commodity), intent: scalar(values.intent) === 'buy' ? 'buy' : 'sell', maxDaysAgo: numeric(values.maxDaysAgo), maxDistance: numeric(values.maxDistance), minVolume: numeric(values.minVolume), systemName: scalar(values.origin) }) }
+    case 'outfitting-stock': return { id, value: await api.findGalaxyOutfitting({ maxDaysAgo: numeric(values.maxDaysAgo), maxDistance: numeric(values.maxDistance), minimumPadSize: pad(values.pad), module: scalar(values.module), systemName: scalar(values.origin) }) }
+    case 'station-lookup': return { id, value: await api.findGalaxyStations({ maxDistance: numeric(values.radius), minimumPadSize: pad(values.pad), name: scalar(values.name), stationType: stationType(values.stationType), systemName: scalar(values.origin) }) }
+    case 'faction-presence': return { id, value: await api.findGalaxyFactionPresences({ allegiance: selection(values.allegiance), controlling: controlling(values.controlling), factionName: scalar(values.faction), government: selection(values.government), maxDistance: numeric(values.maxDistance), minInfluence: numeric(values.minInfluence), state: selection(values.state), systemName: scalar(values.origin) }) }
+    case 'trade-opportunities': return { id, value: await api.findGalaxyTradeOpportunities({ availableCredits: numeric(values.availableCredits) ?? 0, cargoCapacity: numeric(values.cargoCapacity) ?? 0, maxDaysAgo: numeric(values.maxDaysAgo), maxDistance: numeric(values.maxDistance), minVolume: numeric(values.minVolume), systemName: scalar(values.origin) }) }
+    case 'exploration-targets': return { id, value: await api.findGalaxyExplorationTargets({ atmospheres: multiple(values.atmosphere), bodySubtypes: multiple(values.bodyType), landable: landable(values.landable), lastReportedBefore: text(values.lastReportedBefore), maxDistance: numeric(values.maxDistance), maxGravityG: decimal(values.maxGravityG), maxTemperatureK: decimal(values.maxTemperatureK), minBiologicalSignals: numeric(values.minBiologicalSignals), minGeologicalSignals: numeric(values.minGeologicalSignals), minGravityG: decimal(values.minGravityG), minTemperatureK: decimal(values.minTemperatureK), systemName: scalar(values.origin), volcanismTypes: multiple(values.volcanism) }) }
   }
 }
 
@@ -291,14 +291,16 @@ function resultRows(result: GalaxyQueryResult): ResultRow[] {
 }
 
 function resultStatus(result: GalaxyQueryResult): string { return `${result.value.cache} · ${resultRows(result).length} results` }
-function numeric(value?: string): number | undefined { return value?.trim() ? Number.parseInt(value, 10) : undefined }
-function decimal(value?: string): number | undefined { return value?.trim() ? Number(value) : undefined }
-function text(value?: string): string | undefined { return value?.trim() || undefined }
-function selection(value?: string): string | undefined { return value && value !== 'any' ? value : undefined }
-function pad(value?: string): 'large' | 'medium' | 'small' | undefined { return value === 'large' || value === 'medium' || value === 'small' ? value : undefined }
-function stationType(value?: string): 'any' | 'carrier' | 'orbital' | 'surface' | undefined { return value === 'carrier' || value === 'orbital' || value === 'surface' ? value : 'any' }
-function controlling(value?: string): 'any' | 'yes' | 'no' { return value === 'yes' || value === 'no' ? value : 'any' }
-function landable(value?: string): 'any' | 'yes' | 'no' { return value === 'yes' || value === 'no' ? value : 'any' }
+function scalar(value?: GalaxyQueryValue): string { return typeof value === 'string' ? value : '' }
+function multiple(value?: GalaxyQueryValue): string[] { return Array.isArray(value) ? value : [] }
+function numeric(value?: GalaxyQueryValue): number | undefined { const candidate = scalar(value); return candidate.trim() ? Number.parseInt(candidate, 10) : undefined }
+function decimal(value?: GalaxyQueryValue): number | undefined { const candidate = scalar(value); return candidate.trim() ? Number(candidate) : undefined }
+function text(value?: GalaxyQueryValue): string | undefined { return scalar(value).trim() || undefined }
+function selection(value?: GalaxyQueryValue): string | undefined { const candidate = scalar(value); return candidate && candidate !== 'any' ? candidate : undefined }
+function pad(value?: GalaxyQueryValue): 'large' | 'medium' | 'small' | undefined { const candidate = scalar(value); return candidate === 'large' || candidate === 'medium' || candidate === 'small' ? candidate : undefined }
+function stationType(value?: GalaxyQueryValue): 'any' | 'carrier' | 'orbital' | 'surface' | undefined { const candidate = scalar(value); return candidate === 'carrier' || candidate === 'orbital' || candidate === 'surface' ? candidate : 'any' }
+function controlling(value?: GalaxyQueryValue): 'any' | 'yes' | 'no' { const candidate = scalar(value); return candidate === 'yes' || candidate === 'no' ? candidate : 'any' }
+function landable(value?: GalaxyQueryValue): 'any' | 'yes' | 'no' { const candidate = scalar(value); return candidate === 'yes' || candidate === 'no' ? candidate : 'any' }
 function coordinates(value: [number, number, number]): string { return value.map(axis => axis.toFixed(2)).join(' · ') }
 function credits(value: number | null): string { return value === null ? '—' : `${value.toLocaleString()} CR` }
 function padLabel(value: number | null): string { return value === 3 ? 'Large' : value === 2 ? 'Medium' : value === 1 ? 'Small' : 'Unknown' }
@@ -363,7 +365,7 @@ function FilteredSystemSearch({ api, defaultOrigin, onBack }: {
         />
         {result
           ? <FilteredSystemResults onEdit={() => setResult(undefined)} result={result} />
-          : <ControlContext context="panel">
+          : <ControlContext context="panel" density="compact">
               <Form onSubmit={execute}>
                 <div className="query-workspace">
                   <aside className="query-envelope" aria-label="Current search envelope">
@@ -394,9 +396,8 @@ function FilteredSystemSearch({ api, defaultOrigin, onBack }: {
                           <ProfileSelect id="security" label="Security" value={values.security} values={['Anarchy', 'Low', 'Medium', 'High']} onChange={value => set('security', value)} />
                         </FormGrid>
                       </FormSection>
-                      {error && <Status tone="danger">{error}</Status>}
                     </div>
-                    <FormActions className="query-actions" layout="columns">
+                    <FormActions className="query-actions" layout="columns" message={error ? <Status tone="danger" wrap>{error}</Status> : undefined}>
                       <FormActionGroup columns="two"><Button alignment="start" variant="outline" size="lg" type="button" onClick={onBack}>Back</Button><Button alignment="start" variant="outline" size="lg" type="button" onClick={() => setValues(initial())}>Reset filters</Button></FormActionGroup>
                       <Button alignment="start" variant="accent" size="lg" type="submit" disabled={loading}>{loading ? 'Executing…' : 'Execute query'}</Button>
                     </FormActions>

@@ -344,8 +344,8 @@ export class PhoenixApiClient implements PhoenixApi {
   }
 
   async findGalaxyExplorationTargets(input: GalaxyExplorationTargetSearch, signal?: AbortSignal): Promise<GalaxyExplorationTargetsResponse> {
-    const { systemName, ...filters } = input
-    return this.#get(`/api/galaxy/exploration-targets?${parameters({ ...filters, system: systemName })}`, GalaxyExplorationTargetsResponseSchema, signal)
+    const { atmospheres, bodySubtypes, systemName, volcanismTypes, ...filters } = input
+    return this.#get(`/api/galaxy/exploration-targets?${parameters({ ...filters, atmosphere: atmospheres, bodySubtype: bodySubtypes, system: systemName, volcanism: volcanismTypes })}`, GalaxyExplorationTargetsResponseSchema, signal)
   }
 
   async findGalaxyFactionPresences(input: GalaxyFactionPresenceSearch, signal?: AbortSignal): Promise<GalaxyFactionPresencesResponse> {
@@ -632,10 +632,11 @@ export class PhoenixApiClient implements PhoenixApi {
   }
 }
 
-function parameters(values: Record<string, boolean | number | string | undefined>): URLSearchParams {
+function parameters(values: Record<string, boolean | number | string | readonly string[] | undefined>): URLSearchParams {
   const query = new URLSearchParams()
   for (const [key, value] of Object.entries(values)) {
-    if (value !== undefined && value !== '') query.set(key, String(value))
+    if (Array.isArray(value)) value.forEach(item => query.append(key, item))
+    else if (value !== undefined && value !== '') query.set(key, String(value))
   }
   return query
 }

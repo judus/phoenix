@@ -83,6 +83,7 @@ export class DefaultCommandRegistry implements CommandRegistry {
         id: `command.${action.definition.id}`,
         kind: target.type,
         label: action.definition.label,
+        ...(action.definition.aliases ? { aliases: action.definition.aliases } : {}),
         description: action.definition.description,
         category: action.definition.category,
         available: action.available,

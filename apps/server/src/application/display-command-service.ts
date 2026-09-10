@@ -5,6 +5,7 @@ import type { Publisher, Subscribable, Unsubscribe } from '../domain/publisher.j
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type { DisplayCommands } from './mcp-tools/tool-gateways.js'
 import { optionalStringArgument, output, stringArgument } from './mcp-tools/tool-support.js'
+import { resolveDisplayPage } from './display-page-catalogue.js'
 
 export class DisplayCommandService implements DisplayCommands, Subscribable<DisplayCommand> {
   public constructor (
@@ -13,10 +14,21 @@ export class DisplayCommandService implements DisplayCommands, Subscribable<Disp
     private readonly now: () => Date = () => new Date()
   ) {}
 
+  public openPage (arguments_: JsonObject) {
+    const page = resolveDisplayPage(stringArgument(arguments_, 'page'))
+    this.commands.publish(DisplayCommandSchema.parse({
+      id: randomUUID(),
+      type: 'open_page',
+      pageId: page.id,
+      createdAt: this.now().toISOString()
+    }))
+    return output(`Opened the PHOENIX ${page.label} page.`, { displayed: true, pageId: page.id })
+  }
+
   public showSystem (arguments_: JsonObject) {
     const systemName = this.resolveSystemName(optionalStringArgument(arguments_, 'systemName'))
     const selectedName = optionalStringArgument(arguments_, 'objectName') ?? null
-    this.publish('show_system', systemName, selectedName)
+    this.publishSystem('show_system', systemName, selectedName)
     return output(
       selectedName
         ? `Opened the PHOENIX ${systemName} system schematic and selected ${selectedName}.`
@@ -28,7 +40,7 @@ export class DisplayCommandService implements DisplayCommands, Subscribable<Disp
   public showBody (arguments_: JsonObject) {
     const systemName = this.resolveSystemName(optionalStringArgument(arguments_, 'systemName'))
     const bodyName = stringArgument(arguments_, 'bodyName')
-    this.publish('show_body', systemName, bodyName)
+    this.publishSystem('show_body', systemName, bodyName)
     return output(`Opened ${bodyName} body details in PHOENIX.`, {
       bodyName,
       displayed: true,
@@ -40,7 +52,7 @@ export class DisplayCommandService implements DisplayCommands, Subscribable<Disp
     return this.commands.subscribe(listener)
   }
 
-  private publish (type: DisplayCommand['type'], systemName: string, selectedName: string | null): void {
+  private publishSystem (type: 'show_system' | 'show_body', systemName: string, selectedName: string | null): void {
     this.commands.publish(DisplayCommandSchema.parse({
       id: randomUUID(),
       type,

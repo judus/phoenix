@@ -29,6 +29,7 @@ export const GameActionCategorySchema = z.enum([
 export const GameActionDefinitionSchema = z.object({
   id: z.string().regex(/^[A-Za-z][A-Za-z0-9_-]*(?:\.[A-Za-z][A-Za-z0-9_-]*)+$/),
   label: z.string().min(1),
+  aliases: z.array(z.string().min(1).max(100)).max(20).optional(),
   description: z.string().min(1),
   category: GameActionCategorySchema,
   inputMode: z.enum(['tap', 'hold']),

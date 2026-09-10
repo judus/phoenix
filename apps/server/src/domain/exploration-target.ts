@@ -1,16 +1,19 @@
 export type ExplorationLandableFilter = 'any' | 'yes' | 'no'
 
 export interface ExplorationTargetSearchRequest {
-  atmosphere: string | null
-  bodyType: string | null
+  atmospheres: string[]
+  bodySubtypes: string[]
   landable: ExplorationLandableFilter
+  lastReportedBefore: string | null
   maxDistanceLy: number
   maxGravityG: number | null
   maxTemperatureK: number | null
   minGravityG: number | null
+  minBiologicalSignals: number
+  minGeologicalSignals: number
   minTemperatureK: number | null
   referencePosition: [number, number, number]
-  volcanism: string | null
+  volcanismTypes: string[]
 }
 
 export interface ExplorationTargetSearchResult {

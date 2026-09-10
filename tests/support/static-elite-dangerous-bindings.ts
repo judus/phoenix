@@ -10,6 +10,7 @@ const DEVELOPMENT_BINDINGS = new Map<string, EliteDangerousResolvedBinding['bind
   LandingGearToggle: chord('L', ['LeftAlt']),
   ToggleCargoScoop: chord('Home'),
   DeployHardpointToggle: chord('U'),
+  TargetNextRouteSystem: chord('J'),
   FireChaffLauncher: chord('C'),
   PrimaryFire: chord('Space')
 }))

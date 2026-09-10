@@ -103,6 +103,8 @@ import { ApplicationPaths } from './infrastructure/application-paths.js'
 import { FrontierGalnetSource } from './infrastructure/frontier-galnet-source.js'
 import type { PairingAccessController } from './infrastructure/pairing-access-controller.js'
 import { OpenAiConfigurationService } from './application/openai-configuration-service.js'
+import { OpenAiWebSearchSource } from './infrastructure/openai-web-search-source.js'
+import type { WebSearchSource } from './domain/web-search.js'
 
 export interface PhoenixApplicationOptions {
   applicationPaths?: ApplicationPaths
@@ -138,6 +140,7 @@ export interface PhoenixApplicationOptions {
   systemSettingsRepository?: SystemSettingsRepository
   webPort?: number
   webRoot?: string
+  webSearchSource?: WebSearchSource
 }
 
 export class PhoenixApplication {
@@ -373,7 +376,6 @@ export class PhoenixApplication {
       options.explorationTargetSource ?? new SpanshExplorationTargetSource(),
       cartography,
       this.stateStore,
-      explorationData,
       this.database
     )
     const toolRegistry = new ToolRegistry(createPhoenixMcpTools({
@@ -393,7 +395,11 @@ export class PhoenixApplication {
       statefulActions,
       stations: stationMarkets,
       systems,
-      systemSearch: stationMarkets
+      systemSearch: stationMarkets,
+      webSearch: options.webSearchSource ?? new OpenAiWebSearchSource({
+        apiKey: () => openAiConfiguration.activeApiKey(),
+        model: process.env.PHOENIX_OPENAI_WEB_SEARCH_MODEL ?? process.env.PHOENIX_OPENAI_MODEL ?? 'gpt-5.6-terra'
+      })
     }))
     const mcpServer = new PhoenixMcpServer(toolRegistry)
     const configuredCopilot = options.copilot === undefined && options.copilotRealtime === undefined

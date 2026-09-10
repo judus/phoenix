@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest'
 import { createEmptyRuntimeState, type CartographicSystem, type DisplayCommand } from '@phoenix/contracts'
 import { DisplayCommandService } from '../apps/server/src/application/display-command-service.js'
+import { resolveDisplayPage } from '../apps/server/src/application/display-page-catalogue.js'
 import type { CartographySource } from '../apps/server/src/domain/cartography.js'
 import { InMemoryRuntimeStateStore } from '../apps/server/src/infrastructure/in-memory-runtime-state-store.js'
 import { InProcessPublisher } from '../apps/server/src/infrastructure/in-process-publisher.js'
@@ -52,6 +53,37 @@ test('display commands resolve current context and publish a browser-neutral ins
     systemName: 'Sol',
     selectedName: 'Earth',
     createdAt: '2026-08-11T20:00:00.000Z'
+  })])
+})
+
+test.each([
+  ['plotted route', 'galaxy.route'],
+  ['current route', 'galaxy.route'],
+  ['show me the current route', 'galaxy.route'],
+  ['open the personal stores page', 'commander.inventory'],
+  ['please take me to GalNet Radio', 'comms.radio']
+] as const)('display page catalogue resolves %s without exposing browser routes', (request, pageId) => {
+  expect(resolveDisplayPage(request).id).toBe(pageId)
+})
+
+test('display service publishes a stable page destination', () => {
+  const runtime = new InMemoryRuntimeStateStore()
+  const publisher = new InProcessPublisher<DisplayCommand>()
+  const display = new DisplayCommandService(
+    publisher,
+    runtime,
+    () => new Date('2026-09-09T20:00:00.000Z')
+  )
+  const commands: DisplayCommand[] = []
+  publisher.subscribe(command => commands.push(command))
+
+  const result = display.openPage({ page: 'show me the plotted route' })
+
+  expect(result.structuredContent).toEqual({ displayed: true, pageId: 'galaxy.route' })
+  expect(commands).toEqual([expect.objectContaining({
+    type: 'open_page',
+    pageId: 'galaxy.route',
+    createdAt: '2026-09-09T20:00:00.000Z'
   })])
 })
 

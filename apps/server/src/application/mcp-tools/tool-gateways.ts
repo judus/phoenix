@@ -8,6 +8,7 @@ export interface CommanderEngineersQuery {
 }
 
 export interface DisplayCommands {
+  openPage(arguments_: JsonObject): DeferredToolResult
   showBody(arguments_: JsonObject): DeferredToolResult
   showSystem(arguments_: JsonObject): DeferredToolResult
 }

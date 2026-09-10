@@ -206,7 +206,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
                   const interaction = resolveControlDeckInteraction(element.interaction, 'tap')
                   return <ControlDeckCommandTile
                     binding="Macro"
-                    label={macro?.name ?? target.macroId}
+                    label={element.appearance.label ?? macro?.name ?? target.macroId}
                     interaction={armed ? 'tap' : interaction.interactionHint}
                     kind="macro"
                     selected={armed}
@@ -240,7 +240,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
                 const interaction = resolveControlDeckInteraction(element.interaction, action.definition.inputMode)
                 return <ControlDeckCommandTile
                   binding={action.binding?.display ?? 'Unbound'}
-                  label={action.definition.label}
+                  label={element.appearance.label ?? action.definition.label}
                   interaction={armed ? 'tap' : interaction.interactionHint}
                   selected={armed || active}
                   tone={action.definition.risk === 'dangerous' ? 'danger' : 'normal'}
@@ -335,10 +335,7 @@ function DeckSettings ({ configuration, deck, group, onChange, onCancel, onSave,
           }} />
         <Select aria-label="Deck theme" className="form-mini" value={controlDeckTheme(deck, group)} onChange={event => {
           const theme = PhoenixControlDeckThemeSchema.parse(event.target.value)
-          const { appearance: _appearance, ...plainGroup } = group
-          onChange(replaceControlDeckGroup(configuration, theme === 'phoenix'
-            ? plainGroup
-            : { ...plainGroup, appearance: { colorScheme: theme } }))
+          onChange(applyControlDeckTheme(configuration, deck, group, theme))
         }}>
           {['phoenix', 'blue', 'cyan', 'green', 'amber', 'orange', 'red', 'violet', 'magenta'].map(theme => <option key={theme} value={theme}>{themeLabel(PhoenixControlDeckThemeSchema.parse(theme))}</option>)}
         </Select>
@@ -379,6 +376,33 @@ function themeLabel (theme: PhoenixControlDeckTheme): string {
 
 function controlDeckTheme (deck: ControlDeckGridDeck | undefined, group: ControlDeckDeckGroup | undefined): PhoenixControlDeckTheme {
   return group?.appearance?.colorScheme ?? deck?.appearance?.colorScheme ?? 'phoenix'
+}
+
+export function applyControlDeckTheme (
+  configuration: PhoenixControlDeckConfiguration,
+  deck: ControlDeckGridDeck,
+  group: ControlDeckDeckGroup,
+  theme: PhoenixControlDeckTheme
+): PhoenixControlDeckConfiguration {
+  const groupAppearance = withoutColorScheme(group.appearance)
+  const deckAppearance = withoutColorScheme(deck.appearance)
+  const themedGroup: ControlDeckDeckGroup = {
+    ...group,
+    appearance: theme === 'phoenix'
+      ? groupAppearance
+      : { ...groupAppearance, colorScheme: theme }
+  }
+  const normalizedDeck: ControlDeckGridDeck = { ...deck, appearance: deckAppearance }
+  return replaceControlDeck(
+    replaceControlDeckGroup(configuration, themedGroup),
+    normalizedDeck
+  ) as PhoenixControlDeckConfiguration
+}
+
+function withoutColorScheme (appearance: ControlDeckDeckGroup['appearance']): ControlDeckDeckGroup['appearance'] {
+  if (!appearance) return undefined
+  const { colorScheme: _colorScheme, ...rest } = appearance
+  return Object.keys(rest).length > 0 ? rest : undefined
 }
 
 function MissingTarget({ target }: { target: CommandTarget }) {

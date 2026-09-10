@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { act, create } from 'react-test-renderer'
 import { afterEach, beforeAll, expect, test, vi } from 'vitest'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
-import { controlPickerActionLabel, ControlsPage, resizeDeck } from '../apps/web/src/features/controls/controls-page.js'
+import { applyControlDeckTheme, controlPickerActionLabel, ControlsPage, resizeDeck } from '../apps/web/src/features/controls/controls-page.js'
 import type { MacroRuntime } from '../apps/web/src/application/macros/macro-runtime.js'
 import { DEFAULT_CONTROL_DECK_CONFIGURATION } from '../apps/server/src/infrastructure/default-control-deck-configuration.js'
 
@@ -57,6 +57,46 @@ test('the controls page renders bound and unbound discovered commands', () => {
   expect(markup).not.toContain('class="page-header')
   expect(markup).not.toContain('class="page-footer"')
   expect(markup).not.toContain('class="control-toolbar"')
+})
+
+test('a button label override replaces the command catalogue label', () => {
+  const configuration = {
+    ...DEFAULT_CONTROL_DECK_CONFIGURATION,
+    decks: DEFAULT_CONTROL_DECK_CONFIGURATION.decks.map(deck => deck.context !== 'phoenix:ship'
+      ? deck
+      : {
+          ...deck,
+          elements: deck.elements.map(element => element.kind !== 'command' || element.target.commandId !== 'command.elite.ShipSpotLightToggle'
+            ? element
+            : { ...element, appearance: { ...element.appearance, label: 'Floodlights' } })
+        })
+  }
+  const markup = renderToStaticMarkup(
+    <ControlsPage
+      category="ship"
+      editing={false}
+      controller={{
+        status: 'ready',
+        configuration,
+        actions: {
+          backend: { id: 'test', available: true, simulated: false, detail: 'ready' },
+          bindingSource: {
+            directory: '/bindings', filePath: '/bindings/custom.binds', presetNames: ['Custom'],
+            available: true, bindingCount: 1, keyboardBindingCount: 1,
+            loadedAt: '2026-08-19T00:00:00.000Z', error: null
+          },
+          actions: [action('elite.ShipSpotLightToggle', 'ShipSpotLightToggle', 'Ship Lights', 'L')]
+        }
+      }}
+      macros={emptyMacroRuntime()}
+      onExecuteAction={() => Promise.resolve()}
+      onEditingChange={() => undefined}
+      onSaveConfiguration={saved => Promise.resolve(saved)}
+    />
+  )
+
+  expect(markup).toMatch(/<strong class="label"[^>]*>Floodlights<\/strong>/)
+  expect(markup).not.toMatch(/<strong class="label"[^>]*>Ship Lights<\/strong>/)
 })
 
 test('the control picker disambiguates commands with the same label by context', () => {
@@ -116,6 +156,23 @@ test('resizing a PHOENIX deck removes only cells that no longer fit', () => {
   expect(resized.layout).toEqual({ kind: 'grid', columns: 4, rows: 4 })
   expect(resized.elements.every(element => element.placement.row + element.placement.rowSpan - 1 <= 4)).toBe(true)
   expect(resized.elements.every(element => element.placement.column + element.placement.columnSpan - 1 <= 4)).toBe(true)
+})
+
+test('selecting the Phoenix theme clears legacy group and deck colors', () => {
+  const sourceDeck = DEFAULT_CONTROL_DECK_CONFIGURATION.decks.find(candidate => candidate.context === 'phoenix:combat')!
+  const sourceGroup = DEFAULT_CONTROL_DECK_CONFIGURATION.groups!.find(candidate => candidate.id === sourceDeck.groupId)!
+  const deck = { ...sourceDeck, appearance: { colorScheme: 'blue' as const } }
+  const group = { ...sourceGroup, appearance: { colorScheme: 'orange' as const } }
+  const configuration = {
+    ...DEFAULT_CONTROL_DECK_CONFIGURATION,
+    groups: DEFAULT_CONTROL_DECK_CONFIGURATION.groups!.map(candidate => candidate.id === group.id ? group : candidate),
+    decks: DEFAULT_CONTROL_DECK_CONFIGURATION.decks.map(candidate => candidate.id === deck.id ? deck : candidate)
+  }
+
+  const updated = applyControlDeckTheme(configuration, deck, group, 'phoenix')
+
+  expect(updated.groups?.find(candidate => candidate.id === group.id)?.appearance).toBeUndefined()
+  expect(updated.decks.find(candidate => candidate.id === deck.id)?.appearance).toBeUndefined()
 })
 
 test('control-deck tiles reserve long presses for cockpit hold gestures', () => {

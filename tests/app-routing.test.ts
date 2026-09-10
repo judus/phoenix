@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest'
+import { DISPLAY_PAGE_IDS } from '@phoenix/contracts'
 import {
   HOME_ROUTE,
   defaultRouteForInformationSection,
@@ -9,6 +10,7 @@ import {
   parsePhoenixRoute,
   phoenixRouteHash
 } from '../apps/web/src/application/navigation/phoenix-router.js'
+import { routeForDisplayCommand, routeForDisplayPage } from '../apps/web/src/application/navigation/display-page-routes.js'
 
 describe('PHOENIX route parsing and generation', () => {
   test('empty and Home hashes resolve to the Information workspace', () => {
@@ -146,5 +148,21 @@ describe('PHOENIX route parsing and generation', () => {
     expect(defaultRouteForWorkspace('controls')).toEqual({ kind: 'controls', category: 'ship' })
     expect(defaultRouteForWorkspace('info')).toEqual(HOME_ROUTE)
     expect(defaultRouteForWorkspace('telemetry')).toEqual({ kind: 'numpad' })
+  })
+
+  test('every Copilot display destination maps to a canonical typed route', () => {
+    for (const pageId of DISPLAY_PAGE_IDS) {
+      const route = routeForDisplayPage(pageId)
+      expect(parsePhoenixRoute(phoenixRouteHash(route)), pageId).toEqual(route)
+    }
+  })
+
+  test('Copilot page commands resolve through the typed application router', () => {
+    expect(routeForDisplayCommand({
+      id: 'display-1',
+      type: 'open_page',
+      pageId: 'galaxy.route',
+      createdAt: '2026-09-09T20:00:00.000Z'
+    })).toEqual({ kind: 'information', section: 'galaxy', view: 'route' })
   })
 })

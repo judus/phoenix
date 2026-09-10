@@ -227,16 +227,6 @@ export const GalaxyExplorationTargetSchema = z.object({
   geologicalSignals: z.number().int().nonnegative(),
   gravityG: nullableNumber,
   landable: z.boolean().nullable(),
-  localEvidence: z.object({
-    biologicalSamplesCompleted: z.number().int().nonnegative(),
-    biologicalSignalsRecorded: z.number().int().nonnegative(),
-    discovered: z.boolean().nullable(),
-    geologicalSignalsRecorded: z.number().int().nonnegative(),
-    mapped: z.boolean().nullable(),
-    observed: z.boolean(),
-    observedAt: z.string().datetime().nullable(),
-    surfaceScanCompleted: z.boolean().nullable()
-  }),
   providerUpdatedAt: z.string().datetime().nullable(),
   signalsUpdatedAt: z.string().datetime().nullable(),
   subtype: nullableString,
@@ -251,9 +241,10 @@ export const GalaxyExplorationTargetsResponseSchema = z.object({
   candidatesExamined: z.number().int().nonnegative(),
   caveat: z.string().min(1),
   filters: z.object({
-    atmosphere: nullableString,
-    bodyType: nullableString,
+    atmospheres: z.array(z.string().min(1)),
+    bodySubtypes: z.array(z.string().min(1)),
     landable: z.enum(['any', 'yes', 'no']),
+    lastReportedBefore: nullableString,
     maxDistanceLy: z.number().int().min(1).max(500),
     maxGravityG: nullableNumber,
     maxTemperatureK: nullableNumber,
@@ -261,7 +252,7 @@ export const GalaxyExplorationTargetsResponseSchema = z.object({
     minGeologicalSignals: z.number().int().nonnegative(),
     minGravityG: nullableNumber,
     minTemperatureK: nullableNumber,
-    volcanism: nullableString
+    volcanismTypes: z.array(z.string().min(1))
   }),
   originSystem: z.string().min(1),
   provenance: z.literal('Spansh community-reported body data'),

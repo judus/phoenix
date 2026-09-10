@@ -34,7 +34,7 @@ export class ControlsFindActionsTool implements LocalTool {
       .filter(command => command.kind !== 'navigation')
       .filter(command => category === undefined || command.category === category)
       .filter(command => {
-        const haystack = [command.id, command.label, command.description, command.category, JSON.stringify(command.target)].join(' ').toLowerCase()
+        const haystack = [command.id, command.label, ...(command.aliases ?? []), command.description, command.category, JSON.stringify(command.target)].join(' ').toLowerCase()
         return terms.every(term => haystack.includes(term))
       })
       .slice(0, limit)

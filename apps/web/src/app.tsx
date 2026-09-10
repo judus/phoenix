@@ -1,4 +1,4 @@
-import { lazy, memo, Suspense, useMemo, useRef, useState, type ReactNode } from 'react'
+import { lazy, memo, Suspense, useMemo, useState, type ReactNode } from 'react'
 import type { ApplicationNavigationItem } from '@phoenix/ui'
 import { PlaceholderPage } from './components/shell/placeholder-page.js'
 import { PhoenixApplicationShell } from './components/shell/phoenix-application-shell.js'
@@ -65,8 +65,6 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
   const { router } = application
   const route = usePhoenixRoute(router)
   const activeDesktop = workspaceForRoute(route)
-  const mountedWorkspaces = useRef(new Set([activeDesktop]))
-  mountedWorkspaces.current.add(activeDesktop)
   const informationRoute = isInformationRoute(route) ? route : router.getRememberedInformationRoute()
   const commanderRoute = informationRoute.section === 'commander' ? informationRoute : undefined
   const fleetRoute = informationRoute.section === 'fleet' ? informationRoute : undefined
@@ -133,18 +131,18 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       {...informationContext}
       onNavigateRoute={router.push}
       onNavigateWorkspace={(workspace) => router.push(router.routeForWorkspace(workspace))}
-      controls={mountedWorkspaces.current.has('controls')
+      controls={activeDesktop === 'controls'
         ? <FeatureBoundary><ControlsFeature application={application} category={controlsRoute?.category ?? 'ship'} editing={controlsEditing} onEditingChange={setControlsEditing} /></FeatureBoundary>
         : null}
       controlsContextItems={controlsRailItems}
       controlsCurrentContext={controlsContext(controlsRoute?.category ?? 'ship')}
       onControlsContextAction={(item) => { if (item.id === 'edit-layout') setControlsEditing(current => !current) }}
-      copilot={mountedWorkspaces.current.has('copilot')
+      copilot={activeDesktop === 'copilot'
         ? <FeatureBoundary><StableCopilotFeature application={application} view={route.kind === 'copilot' ? route.view : 'chat'} /></FeatureBoundary>
         : null}
       copilotContextItems={copilotNavigationItems}
       copilotCurrentContext={copilotContext(route)}
-      information={mountedWorkspaces.current.has('info')
+      information={activeDesktop === 'info'
         ? <FeatureBoundary>{isDashboardRoute(informationRoute)
             ? <DashboardFeature application={application} />
             : commanderRoute
@@ -161,7 +159,7 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
                         ? <EngineeringFeature key={router.href(engineeringRoute)} application={application} route={engineeringRoute} />
                         : null}</FeatureBoundary>
         : null}
-      journal={mountedWorkspaces.current.has('journal')
+      journal={activeDesktop === 'journal'
         ? <FeatureBoundary>{logRoute?.kind === 'developer'
             ? <PlaceholderPage context="Log · Developer" title="Developer tools" />
             : logRoute?.view === 'credits'
@@ -170,13 +168,13 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
         : null}
       journalContextItems={journalNavigationItems}
       journalCurrentContext={journalContext(route)}
-      macros={mountedWorkspaces.current.has('macros') ? <FeatureBoundary><MacrosFeature /></FeatureBoundary> : null}
-      settings={mountedWorkspaces.current.has('settings')
+      macros={activeDesktop === 'macros' ? <FeatureBoundary><MacrosFeature /></FeatureBoundary> : null}
+      settings={activeDesktop === 'settings'
         ? <FeatureBoundary><SettingsFeature application={application} view={route.kind === 'settings' ? route.view : 'dashboard'} /></FeatureBoundary>
         : null}
       settingsContextItems={settingsNavigationItems}
       settingsCurrentContext={settingsContext(route.kind === 'settings' ? route : undefined)}
-      telemetry={mountedWorkspaces.current.has('telemetry')
+      telemetry={activeDesktop === 'telemetry'
         ? <FeatureBoundary><NumpadFeature application={application} /></FeatureBoundary>
         : null}
     />

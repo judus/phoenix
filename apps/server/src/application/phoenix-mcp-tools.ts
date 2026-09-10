@@ -11,6 +11,7 @@ import { ControlsFindActionsTool } from './mcp-tools/controls-find-actions-tool.
 import { ControlsSetSwitchTool } from './mcp-tools/controls-set-switch-tool.js'
 import { DisplayShowBodyTool } from './mcp-tools/display-show-body-tool.js'
 import { DisplayShowSystemTool } from './mcp-tools/display-show-system-tool.js'
+import { DisplayOpenPageTool } from './mcp-tools/display-open-page-tool.js'
 import { NavigationCanJumpToTool } from './mcp-tools/navigation-can-jump-to-tool.js'
 import { NavigationGetRouteTool } from './mcp-tools/navigation-get-route-tool.js'
 import { ShipGetCargoTool } from './mcp-tools/ship-get-cargo-tool.js'
@@ -36,11 +37,13 @@ import { OutfittingFindModuleTool } from './mcp-tools/outfitting-find-module-too
 import { CommsListMessagesTool } from './mcp-tools/comms-list-messages-tool.js'
 import { FleetListShipsTool } from './mcp-tools/fleet-list-ships-tool.js'
 import { FleetListStoredModulesTool } from './mcp-tools/fleet-list-stored-modules-tool.js'
+import { WebSearchTool } from './mcp-tools/web-search-tool.js'
 import type { CommanderEngineersQuery, DisplayCommands, ExplorationBodyQuery, ExplorationTargetQuery, FactionPresenceQuery, NavigationQuery, StationQuery, SystemDetailsQuery, SystemSearchQuery, TradeMarketQuery } from './mcp-tools/tool-gateways.js'
 import type { StatefulGameActionService } from './stateful-game-action-service.js'
 import type { MissionDataReader } from '../domain/missions.js'
 import type { CommunicationDataReader } from '../domain/communications.js'
 import type { FleetDataReader } from '../domain/fleet.js'
+import type { WebSearchSource } from '../domain/web-search.js'
 
 export interface PhoenixMcpToolDependencies {
   commands: Commands
@@ -60,6 +63,7 @@ export interface PhoenixMcpToolDependencies {
   stations: StationQuery
   systems: SystemDetailsQuery
   systemSearch: SystemSearchQuery
+  webSearch: WebSearchSource
 }
 
 /**
@@ -77,6 +81,7 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new ControlsFindActionsTool(dependencies.commands),
     new ControlsExecuteTool(dependencies.commands),
     new ControlsSetSwitchTool(dependencies.statefulActions),
+    new DisplayOpenPageTool(dependencies.display),
     new DisplayShowBodyTool(dependencies.display),
     new DisplayShowSystemTool(dependencies.display),
     new ExplorationGetCurrentBodyTool(dependencies.exploration),
@@ -102,6 +107,7 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new StationsLookupTool(dependencies.stations),
     new StationsSearchOutfittingTool(dependencies.stations),
     new SystemsGetDetailsTool(dependencies.systems),
-    new SystemsSearchTool(dependencies.systemSearch)
+    new SystemsSearchTool(dependencies.systemSearch),
+    new WebSearchTool(dependencies.webSearch)
   ]
 }

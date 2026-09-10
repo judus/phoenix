@@ -178,6 +178,9 @@ Copilot is optional and remains disabled when no API key is available. Use
 from the server environment. The PHOENIX-specific variable takes precedence. See
 [`.env.example`](.env.example) for ports, paths, models, input backends, and other overrides.
 OpenAI wire logging is disabled by default because it can contain prompts, responses, and tool data.
+The same configured API key enables the Copilot's bounded public-web search tool for typed and
+realtime voice conversations. `PHOENIX_OPENAI_WEB_SEARCH_MODEL` can select a separate Responses API
+model for those searches; it defaults to `PHOENIX_OPENAI_MODEL`.
 PHOENIX restricts its user-state directories and files to `0700` and `0600` on POSIX systems. On
 Windows, keep custom state/log paths inside a user-profile directory with an equivalent private ACL.
 

@@ -4,6 +4,7 @@ import { CopilotVoiceProvider } from '../features/copilot/copilot-voice-provider
 import { MacroRuntimeProvider } from '../features/macros/macro-runtime-provider.js'
 import type { PhoenixApplicationServices } from './create-application.js'
 import { NumpadActivation } from '../features/numpad/numpad-activation.js'
+import { routeForDisplayCommand } from '../application/navigation/display-page-routes.js'
 
 const PhoenixApplicationContext = createContext<PhoenixApplicationServices | undefined>(undefined)
 
@@ -18,13 +19,7 @@ export function PhoenixProviders({
   useEffect(() => {
     const unsubscribeDisplay = application.events.subscribe('display-command', command => {
       if (!devicePreferences.getSnapshot().followCopilotNavigation) return
-      application.router.push({
-        kind: 'information',
-        section: 'galaxy',
-        view: 'system',
-        systemName: command.systemName,
-        ...(command.selectedName ? { selectedName: command.selectedName } : {})
-      })
+      application.router.push(routeForDisplayCommand(command))
     })
     application.runtime.start()
     application.events.start()

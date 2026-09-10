@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CartographyLookupResponse, GameActionCatalogResponse, NavigationRoute, NavigationRouteHop, RuntimeState } from '@phoenix/contracts'
 import {
   Breadcrumbs,
@@ -46,6 +46,7 @@ export function PlottedRoute({ actions, api, route, runtimeState }: PlottedRoute
   const nextIndex = progressKnown ? currentIndex + 1 : route.route.length > 0 ? 0 : -1
   const nextHop = route.route[nextIndex]
   const targetNextRouteAction = actions?.actions.find(action => action.definition.id === 'elite.TargetNextRouteSystem')
+  const hyperspaceAction = actions?.actions.find(action => action.definition.id === 'elite.Hyperspace')
   const totalDistance = legs.at(-1)?.cumulativeDistance ?? null
   const defaultPreviewIndex = nextHop ? nextIndex : -1
   const routeIdentity = useMemo(
@@ -58,10 +59,19 @@ export function PlottedRoute({ actions, api, route, runtimeState }: PlottedRoute
     : defaultPreviewIndex
   const previewHop = route.route[previewIndex]
   const [preview, setPreview] = useState<PreviewState>({ status: previewHop ? 'loading' : 'idle' })
-  const [targeting, setTargeting] = useState(false)
+  const [executingActionId, setExecutingActionId] = useState<string>()
   const [actionState, setActionState] = useState<ActionState>()
+  const routeTableScroll = useRef<HTMLDivElement>(null)
 
   useEffect(() => setRequestedPreviewIndex(defaultPreviewIndex), [defaultPreviewIndex, routeIdentity])
+
+  useLayoutEffect(() => {
+    const scroller = routeTableScroll.current
+    const currentRow = currentIndex < 0
+      ? null
+      : scroller?.querySelector<HTMLElement>(`[data-route-index="${currentIndex}"]`)
+    if (scroller && currentRow) centerRouteRow(scroller, currentRow)
+  }, [currentIndex, routeIdentity])
 
   useEffect(() => {
     if (!previewHop) {
@@ -83,22 +93,22 @@ export function PlottedRoute({ actions, api, route, runtimeState }: PlottedRoute
     return () => latest.cancel()
   }, [api, previewHop])
 
-  const targetNextJump = async () => {
-    setTargeting(true)
+  const executeRouteAction = async (actionId: string, fallback: string) => {
+    setExecutingActionId(actionId)
     setActionState(undefined)
     try {
-      const result = await api.executeAction('elite.TargetNextRouteSystem', 'tap')
+      const result = await api.executeAction(actionId, 'tap')
       setActionState({
         message: result.message,
         tone: result.status === 'accepted' ? 'positive' : result.status === 'rejected' ? 'warning' : 'danger'
       })
     } catch (cause) {
       setActionState({
-        message: cause instanceof Error ? cause.message : 'Unable to send the next-route-system command.',
+        message: cause instanceof Error ? cause.message : fallback,
         tone: 'danger'
       })
     } finally {
-      setTargeting(false)
+      setExecutingActionId(undefined)
     }
   }
 
@@ -162,21 +172,31 @@ export function PlottedRoute({ actions, api, route, runtimeState }: PlottedRoute
                     {!progressKnown && runtimeState?.system.name && (
                       <Status tone="muted">Current system is not present in this route; progress is unknown.</Status>
                     )}
-                    {nextHop && <CommandTile
-                      binding={targetNextRouteAction?.binding?.display}
-                      className="route-target-command"
-                      compact
-                      disabled={targeting || !targetNextRouteAction?.available}
-                      label={targeting ? 'Targeting…' : 'Target next jump'}
-                      meta="Tap"
-                      onClick={targetNextJump}
-                      unavailable={targetNextRouteAction !== undefined && !targetNextRouteAction.available}
-                    />}
+                    {nextHop && <div className="route-target-commands">
+                      <CommandTile
+                        binding={targetNextRouteAction?.binding?.display}
+                        compact
+                        disabled={executingActionId !== undefined || !targetNextRouteAction?.available}
+                        label={executingActionId === 'elite.TargetNextRouteSystem' ? 'Targeting…' : 'Target next jump'}
+                        meta="Tap"
+                        onClick={() => void executeRouteAction('elite.TargetNextRouteSystem', 'Unable to send the next-route-system command.')}
+                        unavailable={targetNextRouteAction !== undefined && !targetNextRouteAction.available}
+                      />
+                      <CommandTile
+                        binding={hyperspaceAction?.binding?.display}
+                        compact
+                        disabled={executingActionId !== undefined || !hyperspaceAction?.available}
+                        label={executingActionId === 'elite.Hyperspace' ? 'Engaging…' : 'Hyperspace'}
+                        meta="Tap"
+                        onClick={() => void executeRouteAction('elite.Hyperspace', 'Unable to send the hyperspace command.')}
+                        unavailable={hyperspaceAction !== undefined && !hyperspaceAction.available}
+                      />
+                    </div>}
                   </Stack>
                 </DataTableGroup>
 
                 <DataTableGroup className="route-sequence" title="Jump sequence">
-                  <div className="route-table-scroll" tabIndex={0}>
+                  <div className="route-table-scroll" ref={routeTableScroll} tabIndex={0}>
                     <DataTable density="compact" label="Plotted route jump sequence" narrow="priority" scheme="surface" stickyHeader>
                       <thead><tr><th>Jump</th><th>System</th><th>Star</th><th className="numeric">Leg</th><th className="numeric">Route distance</th></tr></thead>
                       <tbody>
@@ -186,6 +206,7 @@ export function PlottedRoute({ actions, api, route, runtimeState }: PlottedRoute
                             <tr
                               aria-selected={leg.index === previewIndex || undefined}
                               className={leg.index === previewIndex ? 'active' : undefined}
+                              data-route-index={leg.index}
                               key={`${leg.hop.address ?? leg.hop.system}-${leg.index}`}
                               onClick={selectable ? () => setRequestedPreviewIndex(leg.index) : undefined}
                               onKeyDown={selectable ? event => {
@@ -213,6 +234,15 @@ export function PlottedRoute({ actions, api, route, runtimeState }: PlottedRoute
       </div>
     </PageFrame>
   )
+}
+
+export function centerRouteRow (
+  scroller: Pick<HTMLElement, 'clientHeight' | 'getBoundingClientRect' | 'scrollTop'>,
+  row: Pick<HTMLElement, 'getBoundingClientRect'>
+): void {
+  const scrollerRect = scroller.getBoundingClientRect()
+  const rowRect = row.getBoundingClientRect()
+  scroller.scrollTop = Math.max(0, scroller.scrollTop + rowRect.top - scrollerRect.top - (scroller.clientHeight - rowRect.height) / 2)
 }
 
 function canPreview(index: number, currentIndex: number, progressKnown: boolean, routeLength: number): boolean {

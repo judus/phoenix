@@ -7,17 +7,20 @@ export interface GalaxyQueryFieldOption {
 
 export interface GalaxyQueryField {
   id: string
+  hint?: string
   label: string
   max?: number
   min?: number
   options?: GalaxyQueryFieldOption[]
   placeholder?: string
   required?: boolean
-  type: 'number' | 'select' | 'text'
+  type: 'date' | 'multi-select' | 'number' | 'select' | 'text'
 }
 
+export type GalaxyQueryValue = string | string[]
+
 export interface GalaxyQueryDefinition {
-  defaults: Record<string, string>
+  defaults: Record<string, GalaxyQueryValue>
   domain: 'Cartography' | 'Facilities' | 'Markets' | 'Politics'
   fields: GalaxyQueryField[]
   id: GalaxyQueryId
@@ -40,6 +43,57 @@ const PAD: GalaxyQueryField = {
 }
 const MAX_AGE: GalaxyQueryField = { id: 'maxDaysAgo', label: 'Maximum report age (days)', min: 1, max: 365, required: true, type: 'number' }
 
+const BODY_SUBTYPES = options([
+  'Ammonia world',
+  'Class I gas giant',
+  'Class II gas giant',
+  'Class III gas giant',
+  'Class IV gas giant',
+  'Class V gas giant',
+  'Earth-like world',
+  'Gas giant with ammonia-based life',
+  'Gas giant with water-based life',
+  'Helium gas giant',
+  'Helium-rich gas giant',
+  'High metal content world',
+  'Icy body',
+  'Metal-rich body',
+  'Rocky Ice world',
+  'Rocky body',
+  'Water giant',
+  'Water world'
+])
+
+const ATMOSPHERES = options([
+  'Ammonia', 'Ammonia and Oxygen', 'Ammonia-rich', 'Argon', 'Argon-rich',
+  'Carbon dioxide', 'Carbon dioxide-rich', 'Helium', 'Hot Argon', 'Hot Argon-rich',
+  'Hot Carbon dioxide', 'Hot Carbon dioxide-rich', 'Hot Metallic vapour', 'Hot Silicate vapour',
+  'Hot Sulphur dioxide', 'Hot Water', 'Hot Water-rich', 'Hot thick Ammonia',
+  'Hot thick Ammonia-rich', 'Hot thick Argon', 'Hot thick Argon-rich', 'Hot thick Carbon dioxide',
+  'Hot thick Carbon dioxide-rich', 'Hot thick Metallic vapour', 'Hot thick Methane',
+  'Hot thick Methane-rich', 'Hot thick Nitrogen', 'Hot thick Silicate vapour',
+  'Hot thick Sulphur dioxide', 'Hot thick Water', 'Hot thick Water-rich', 'Hot thin Carbon dioxide',
+  'Hot thin Metallic vapour', 'Hot thin Silicate vapour', 'Hot thin Sulphur dioxide', 'Methane',
+  'Methane-rich', 'Neon-rich', 'Nitrogen', 'No atmosphere', 'Oxygen', 'Suitable for water-based life',
+  'Sulphur dioxide', 'Thick Ammonia', 'Thick Ammonia and Oxygen', 'Thick Ammonia-rich',
+  'Thick Argon', 'Thick Argon-rich', 'Thick Carbon dioxide', 'Thick Carbon dioxide-rich',
+  'Thick Helium', 'Thick Methane', 'Thick Methane-rich', 'Thick Nitrogen', 'Thick No atmosphere',
+  'Thick Suitable for water-based life', 'Thick Sulphur dioxide', 'Thick Water', 'Thick Water-rich',
+  'Thin Ammonia', 'Thin Ammonia and Oxygen', 'Thin Ammonia-rich', 'Thin Argon', 'Thin Argon-rich',
+  'Thin Carbon dioxide', 'Thin Carbon dioxide-rich', 'Thin Helium', 'Thin Methane', 'Thin Methane-rich',
+  'Thin Neon', 'Thin Neon-rich', 'Thin Nitrogen', 'Thin Oxygen', 'Thin Sulphur dioxide', 'Thin Water',
+  'Thin Water-rich', 'Water', 'Water-rich'
+])
+
+const VOLCANISM_TYPES = options([
+  'Carbon Dioxide Geysers', 'Major Carbon Dioxide Geysers', 'Major Metallic Magma',
+  'Major Rocky Magma', 'Major Silicate Vapour Geysers', 'Major Water Geysers', 'Major Water Magma',
+  'Metallic Magma', 'Minor Ammonia Magma', 'Minor Carbon Dioxide Geysers', 'Minor Metallic Magma',
+  'Minor Methane Magma', 'Minor Nitrogen Magma', 'Minor Rocky Magma', 'Minor Silicate Vapour Geysers',
+  'Minor Water Geysers', 'Minor Water Magma', 'No volcanism', 'Rocky Magma',
+  'Silicate Vapour Geysers', 'Water Geysers', 'Water Magma'
+])
+
 const SERVICES: GalaxyQueryFieldOption[] = [
   ['interstellar-factors', 'Interstellar factors'],
   ['material-trader', 'Material trader'],
@@ -55,21 +109,22 @@ const SERVICES: GalaxyQueryFieldOption[] = [
 
 const GALAXY_QUERY_DEFINITIONS: GalaxyQueryDefinition[] = [
   {
-    defaults: { atmosphere: '', bodyType: '', landable: 'yes', maxDistance: '100', maxGravityG: '', maxTemperatureK: '', minBiologicalSignals: '1', minGeologicalSignals: '0', minGravityG: '', minTemperatureK: '', origin: '', volcanism: '' },
+    defaults: { atmosphere: [], bodyType: [], landable: 'yes', lastReportedBefore: '', maxDistance: '100', maxGravityG: '', maxTemperatureK: '', minBiologicalSignals: '1', minGeologicalSignals: '0', minGravityG: '', minTemperatureK: '', origin: '', volcanism: [] },
     domain: 'Cartography',
     fields: [
       ORIGIN,
       { ...RADIUS, id: 'maxDistance' },
-      { id: 'bodyType', label: 'Body subtype', placeholder: 'Rocky body', type: 'text' },
-      { id: 'atmosphere', label: 'Atmosphere', placeholder: 'Thin Carbon dioxide', type: 'text' },
+      { id: 'bodyType', label: 'Body subtype', options: BODY_SUBTYPES, type: 'multi-select' },
+      { id: 'atmosphere', label: 'Atmosphere', options: ATMOSPHERES, type: 'multi-select' },
       { id: 'landable', label: 'Landable', options: [{ label: 'Any', value: 'any' }, { label: 'Yes', value: 'yes' }, { label: 'No', value: 'no' }], type: 'select' },
       { id: 'minGravityG', label: 'Minimum gravity (g)', min: 0, type: 'number' },
       { id: 'maxGravityG', label: 'Maximum gravity (g)', min: 0, type: 'number' },
       { id: 'minTemperatureK', label: 'Minimum temperature (K)', min: 0, type: 'number' },
       { id: 'maxTemperatureK', label: 'Maximum temperature (K)', min: 0, type: 'number' },
-      { id: 'volcanism', label: 'Volcanism', type: 'text' },
+      { id: 'volcanism', label: 'Volcanism', options: VOLCANISM_TYPES, type: 'multi-select' },
       { id: 'minBiologicalSignals', label: 'Minimum biological signals', min: 0, type: 'number' },
-      { id: 'minGeologicalSignals', label: 'Minimum geological signals', min: 0, type: 'number' }
+      { id: 'minGeologicalSignals', label: 'Minimum geological signals', min: 0, type: 'number' },
+      { id: 'lastReportedBefore', label: 'Last reported before', hint: 'For pre-Odyssey candidates, use 2021-05-19 and set minimum biological signals to 0.', type: 'date' }
     ],
     id: 'exploration-targets',
     purpose: 'Locate reported bodies by physical characteristics and surface signals without claiming unfinished exploration.',
@@ -215,4 +270,8 @@ export function galaxyQueryDefinition (id: GalaxyQueryId): GalaxyQueryDefinition
 
 function commonAnyOptions (values: string[]): GalaxyQueryFieldOption[] {
   return [{ label: 'Any', value: 'any' }, ...values.map(value => ({ label: value, value }))]
+}
+
+function options (values: string[]): GalaxyQueryFieldOption[] {
+  return values.map(value => ({ label: value, value }))
 }

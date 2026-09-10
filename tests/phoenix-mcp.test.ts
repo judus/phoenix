@@ -63,6 +63,7 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
       'phoenix__controls_find_actions',
       'phoenix__controls_execute',
       'phoenix__controls_set_switch',
+      'phoenix__display_open_page',
       'phoenix__display_show_body',
       'phoenix__display_show_system',
       'phoenix__exploration_get_current_body',
@@ -88,8 +89,19 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
       'phoenix__stations_lookup',
       'phoenix__stations_search_outfitting',
       'phoenix__systems_get_details',
-      'phoenix__systems_search'
+      'phoenix__systems_search',
+      'phoenix__web_search'
     ])
+    expect(provider.requests[0]?.tools?.find(tool => tool.name === 'phoenix__display_open_page')).toMatchObject({
+      inputSchema: {
+        additionalProperties: false,
+        properties: { page: { minLength: 1, type: 'string' } },
+        required: ['page'],
+        type: 'object'
+      }
+    })
+    expect(JSON.stringify(provider.requests[0]?.tools?.find(tool => tool.name === 'phoenix__display_open_page')))
+      .not.toContain('galaxy.route')
     expect(provider.requests[1]?.messages.at(-1)).toMatchObject({
       role: 'tool',
       content: [
@@ -209,6 +221,48 @@ test('the Copilot discovers and executes commander-created macros through the co
       })
     ]))
     expect(inputBackend.getRecordedInputs()).toHaveLength(1)
+  } finally {
+    await application.stop()
+  }
+})
+
+test('the Copilot discovers controls by integration-provided aliases', async () => {
+  const application = new PhoenixApplication({
+    eliteBindings: new StaticEliteDangerousBindings(),
+    databasePath: ':memory:',
+    eliteDirectory: null,
+    host: '127.0.0.1',
+    port: 0
+  })
+  const address = await application.start()
+  const provider = configuredProvider([
+    response('alias-search', [{
+      arguments: { query: 'target next jump' },
+      callId: 'find-next-jump',
+      name: 'phoenix__controls_find_actions',
+      type: 'tool_call'
+    }], 'tool_calls'),
+    response('alias-answer', [{ source: 'generated', text: 'Found it.', type: 'text' }], 'stop')
+  ])
+  const client = createAiClient({
+    mcp: [{ name: 'phoenix', url: `http://${address.host}:${address.port}/mcp` }],
+    provider
+  })
+
+  try {
+    await client.user('Can you find target next jump?').run()
+    expect(provider.requests[1]?.messages.at(-1)?.content).toEqual([
+      expect.objectContaining({
+        callId: 'find-next-jump',
+        structuredContent: expect.objectContaining({
+          matches: [expect.objectContaining({
+            commandId: 'command.elite.TargetNextRouteSystem',
+            target: { actionId: 'elite.TargetNextRouteSystem', type: 'game-action' }
+          })]
+        }),
+        type: 'tool_result'
+      })
+    ])
   } finally {
     await application.stop()
   }

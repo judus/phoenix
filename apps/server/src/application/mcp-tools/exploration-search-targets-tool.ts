@@ -8,13 +8,15 @@ export class ExplorationSearchTargetsTool implements LocalTool {
     inputSchema: {
       additionalProperties: false,
       properties: {
-        atmosphere: { minLength: 1, type: 'string' }, bodyType: { minLength: 1, type: 'string' },
+        atmospheres: { items: { minLength: 1, type: 'string' }, type: 'array' },
+        bodySubtypes: { items: { minLength: 1, type: 'string' }, type: 'array' },
         landable: { enum: ['any', 'yes', 'no'], type: 'string' }, limit: { maximum: 20, minimum: 1, type: 'integer' },
+        lastReportedBefore: { description: 'Latest accepted community body-report date in YYYY-MM-DD format. Use 2021-05-19 with zero required biological signals to inspect pre-Odyssey cartography candidates.', pattern: '^\\d{4}-\\d{2}-\\d{2}$', type: 'string' },
         maxDistance: { maximum: 500, minimum: 1, type: 'integer' }, maxGravityG: { minimum: 0, type: 'number' },
         maxTemperatureK: { minimum: 0, type: 'number' }, minBiologicalSignals: { minimum: 0, type: 'integer' },
         minGeologicalSignals: { minimum: 0, type: 'integer' }, minGravityG: { minimum: 0, type: 'number' },
         minTemperatureK: { minimum: 0, type: 'number' }, systemName: { minLength: 1, type: 'string' },
-        volcanism: { minLength: 1, type: 'string' }
+        volcanismTypes: { items: { minLength: 1, type: 'string' }, type: 'array' }
       }, type: 'object'
     },
     name: 'exploration.search_targets'

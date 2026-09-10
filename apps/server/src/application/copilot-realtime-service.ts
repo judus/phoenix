@@ -49,6 +49,7 @@ const TOOL_INSTRUCTIONS = [
   'Existence and discovery questions such as "do you see", "can you find", "is there", or "list" are read-only: find and report the control, but never execute it unless the commander separately gives an imperative execution request.',
   'Distinguish the full-screen Elite Galaxy/System Maps from PHOENIX system schematics and body details; ask which interface when a map request is ambiguous.',
   'For observable on/off controls, use phoenix_controls_set_switch and answer from its result.',
+  'Use phoenix_web_search for current public-web information that PHOENIX telemetry and structured galaxy tools cannot answer. Preserve its source URLs in typed answers and identify important sources briefly in speech.',
   'After a routine action is confirmed, say only "Done." Never invent confirmation.'
 ].join(' ')
 

@@ -447,9 +447,10 @@ export class PhoenixHttpServer {
     if (request.method === 'GET' && url.pathname === '/api/galaxy/exploration-targets') {
       const landable = optionalQueryChoice(url, 'landable', ['any', 'yes', 'no'] as const) ?? 'any'
       this.writeJson(response, 200, await this.options.explorationTargets.searchExplorationTargets({
-        atmosphere: optionalQuery(url, 'atmosphere'),
-        bodyType: optionalQuery(url, 'bodyType'),
+        atmospheres: repeatedQuery(url, 'atmosphere'),
+        bodySubtypes: repeatedQuery(url, 'bodySubtype'),
         landable,
+        lastReportedBefore: optionalQueryDate(url, 'lastReportedBefore'),
         maxDistanceLy: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
         maxGravityG: optionalQueryNumber(url, 'maxGravityG', 0),
         maxTemperatureK: optionalQueryNumber(url, 'maxTemperatureK', 0),
@@ -458,7 +459,7 @@ export class PhoenixHttpServer {
         minGravityG: optionalQueryNumber(url, 'minGravityG', 0),
         minTemperatureK: optionalQueryNumber(url, 'minTemperatureK', 0),
         systemName: requiredQuery(url, 'system'),
-        volcanism: optionalQuery(url, 'volcanism')
+        volcanismTypes: repeatedQuery(url, 'volcanism')
       }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
       return
     }
@@ -1549,6 +1550,10 @@ function optionalQuery (url: URL, name: string): string | null {
   return value && value !== 'any' ? value : null
 }
 
+function repeatedQuery (url: URL, name: string): string[] {
+  return [...new Set(url.searchParams.getAll(name).map(value => value.trim()).filter(Boolean))]
+}
+
 function optionalQueryInteger (url: URL, name: string, minimum: number, maximum: number): number | null {
   const raw = url.searchParams.get(name)
   if (raw === null || raw === '') return null
@@ -1565,6 +1570,14 @@ function optionalQueryNumber (url: URL, name: string, minimum: number): number |
   const value = Number(raw)
   if (!Number.isFinite(value) || value < minimum) throw new HttpRequestValidationError(`${name} must be a number of at least ${minimum}.`)
   return value
+}
+
+function optionalQueryDate (url: URL, name: string): string | null {
+  const value = optionalQuery(url, name)
+  if (value === null) return null
+  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00.000Z`) : null
+  if (parsed && Number.isFinite(parsed.getTime()) && parsed.toISOString().startsWith(value)) return value
+  throw new HttpRequestValidationError(`${name} must be a date in YYYY-MM-DD format.`)
 }
 
 function optionalQueryChoice<const T extends readonly string[]> (url: URL, name: string, choices: T): T[number] | null {

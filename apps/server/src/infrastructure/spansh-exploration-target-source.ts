@@ -3,6 +3,8 @@ import type { ExplorationTargetSearchRequest, ExplorationTargetSearchResult, Exp
 const DEFAULT_BASE_URL = 'https://spansh.co.uk/api/'
 const DEFAULT_TIMEOUT_MS = 30_000
 const DEFAULT_RESULT_SIZE = 100
+const ELITE_RELEASED_AT = '2014-12-16T00:00:00.000Z'
+const MAX_SIGNAL_COUNT = 100
 
 export interface SpanshExplorationTargetSourceOptions { baseUrl?: string, fetch?: typeof fetch, timeoutMs?: number }
 
@@ -39,15 +41,30 @@ export class SpanshExplorationTargetSource implements ExplorationTargetSearchSou
 
 function providerFilters (request: ExplorationTargetSearchRequest): Record<string, unknown> {
   const filters: Record<string, unknown> = { distance: { min: 0, max: request.maxDistanceLy } }
-  if (request.bodyType) filters.subtype = { value: [request.bodyType] }
-  if (request.atmosphere) filters.atmosphere = { value: [request.atmosphere] }
+  if (request.bodySubtypes.length > 0) filters.subtype = { value: request.bodySubtypes }
+  if (request.atmospheres.length > 0) filters.atmosphere = { value: request.atmospheres }
   if (request.landable !== 'any') filters.is_landable = { value: request.landable === 'yes' }
-  if (request.volcanism) filters.volcanism_type = { value: [request.volcanism] }
+  if (request.volcanismTypes.length > 0) filters.volcanism_type = { value: request.volcanismTypes }
   const gravity = range(request.minGravityG, request.maxGravityG)
   if (gravity) filters.gravity = gravity
   const temperature = range(request.minTemperatureK, request.maxTemperatureK)
   if (temperature) filters.surface_temperature = temperature
+  const signals = [
+    signalFilter('Biological', request.minBiologicalSignals),
+    signalFilter('Geological', request.minGeologicalSignals)
+  ].filter(isPresent)
+  if (signals.length > 0) filters.signals = signals
+  if (request.lastReportedBefore) {
+    filters.updated_at = {
+      comparison: '<=>',
+      value: [ELITE_RELEASED_AT, `${request.lastReportedBefore}T23:59:59.999Z`]
+    }
+  }
   return filters
+}
+
+function signalFilter (name: string, minimum: number): { comparison: '<=>', count: [number, number], name: string } | null {
+  return minimum > 0 ? { comparison: '<=>', count: [minimum, MAX_SIGNAL_COUNT], name } : null
 }
 
 function mapTarget (candidate: unknown): ExplorationTargetSearchResult | null {

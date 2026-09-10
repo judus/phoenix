@@ -60,7 +60,12 @@
       overflow: hidden;
     }
 
-    .route-target-command { margin-block-start: auto; }
+    .route-target-commands {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--spacing-xs);
+      margin-block-start: auto;
+    }
 
     .route-table-scroll {
       min-inline-size: 0;

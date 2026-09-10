@@ -87,7 +87,7 @@ export interface GalaxyStationLookupSearch { limit?: number, maxDistance?: numbe
 export interface GalaxyCommodityMarketSearch { commodity: string, fleetCarriers?: boolean, intent: 'buy' | 'sell', maxDaysAgo?: number, maxDistance?: number, minVolume?: number, systemName: string }
 export interface GalaxyTradeOpportunitySearch { availableCredits: number, cargoCapacity: number, fleetCarriers?: boolean, limit?: number, maxDaysAgo?: number, maxDistance?: number, minVolume?: number, systemName: string }
 export interface GalaxyFactionPresenceSearch { allegiance?: string, controlling?: 'any' | 'yes' | 'no', factionName: string, government?: string, limit?: number, maxDistance?: number, minInfluence?: number, state?: string, systemName: string }
-export interface GalaxyExplorationTargetSearch { atmosphere?: string, bodyType?: string, landable?: 'any' | 'yes' | 'no', limit?: number, maxDistance?: number, maxGravityG?: number, maxTemperatureK?: number, minBiologicalSignals?: number, minGeologicalSignals?: number, minGravityG?: number, minTemperatureK?: number, systemName: string, volcanism?: string }
+export interface GalaxyExplorationTargetSearch { atmospheres?: string[], bodySubtypes?: string[], landable?: 'any' | 'yes' | 'no', lastReportedBefore?: string, limit?: number, maxDistance?: number, maxGravityG?: number, maxTemperatureK?: number, minBiologicalSignals?: number, minGeologicalSignals?: number, minGravityG?: number, minTemperatureK?: number, systemName: string, volcanismTypes?: string[] }
 type PadSize = 'small' | 'medium' | 'large'
 
 export interface PhoenixApi {

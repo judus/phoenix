@@ -30,4 +30,15 @@ describe('Galaxy query catalogue', () => {
       'faction-presence'
     ])
   })
+
+  it('uses canonical exploration choices and keeps the report cutoff last', () => {
+    const exploration = GALAXY_QUERY_CATALOGUE.find(query => query.id === 'exploration-targets')
+    expect(exploration?.fields.at(-1)?.id).toBe('lastReportedBefore')
+    for (const id of ['bodyType', 'atmosphere', 'volcanism']) {
+      const field = exploration?.fields.find(candidate => candidate.id === id)
+      expect(field?.type, id).toBe('multi-select')
+      expect(field?.options?.length, id).toBeGreaterThan(1)
+      expect(exploration?.defaults[id], id).toEqual([])
+    }
+  })
 })

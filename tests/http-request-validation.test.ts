@@ -28,6 +28,12 @@ test('invalid galaxy query parameters are reported as client errors', async () =
     await expect(partialInteger.json()).resolves.toEqual({
       error: { code: 'invalid_request', message: 'limit must be an integer.' }
     })
+
+    const invalidDate = await fetch(`http://${address.host}:${address.port}/api/galaxy/exploration-targets?system=Sol&lastReportedBefore=2021-02-31`)
+    expect(invalidDate.status).toBe(400)
+    await expect(invalidDate.json()).resolves.toEqual({
+      error: { code: 'invalid_request', message: 'lastReportedBefore must be a date in YYYY-MM-DD format.' }
+    })
   } finally {
     await application.stop()
   }

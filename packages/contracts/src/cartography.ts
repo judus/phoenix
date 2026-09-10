@@ -119,18 +119,9 @@ export const CartographyLookupResponseSchema = z.object({
   system: CartographicSystemSchema
 })
 
-export const DisplayCommandSchema = z.object({
-  id: z.string().min(1),
-  type: z.enum(['show_system', 'show_body']),
-  systemName: z.string().min(1),
-  selectedName: z.string().min(1).nullable(),
-  createdAt: z.iso.datetime()
-})
-
 export type CartographicBody = z.infer<typeof CartographicBodySchema>
 export type CartographicStation = z.infer<typeof CartographicStationSchema>
 export type CartographicSystem = z.infer<typeof CartographicSystemSchema>
 export type CartographyLookupResponse = z.infer<typeof CartographyLookupResponseSchema>
-export type DisplayCommand = z.infer<typeof DisplayCommandSchema>
 export type NavigationRoute = z.infer<typeof NavigationRouteSchema>
 export type NavigationRouteHop = z.infer<typeof NavigationRouteHopSchema>
