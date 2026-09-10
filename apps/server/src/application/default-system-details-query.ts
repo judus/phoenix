@@ -48,7 +48,7 @@ export class DefaultSystemDetailsQuery implements SystemDetailsQuery {
         services: station.services,
         facilities: station.facilities
       })),
-      source: system.source,
+      provenance: system.provenance,
       cache: result.cache
     }
     return output([

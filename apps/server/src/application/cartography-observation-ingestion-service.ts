@@ -1,43 +1,55 @@
 import type { EliteJournalEvent } from '@phoenix/elite'
+import type { CartographyUpdate } from '@phoenix/contracts'
 import type {
-  CartographyObservationStore,
+  CartographyRepository,
   LocalBodyCartographyObservation,
   LocalOrganicSampleObservation,
   LocalSystemCartographyObservation
 } from '../domain/cartography.js'
+import type { Publisher } from '../domain/publisher.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
+import { projectCartographicSystem } from './cartographic-system-projector.js'
 
-const BODY_EVENTS = new Set(['Scan', 'FSSBodySignals', 'SAASignalsFound', 'SAAScanComplete', 'ScanOrganic'])
+const BODY_EVENTS = new Set(['Disembark', 'Scan', 'FSSBodySignals', 'SAASignalsFound', 'SAAScanComplete', 'ScanOrganic'])
 const SYSTEM_EVENTS = new Set(['FSSDiscoveryScan', 'FSSAllBodiesFound'])
 
 export class CartographyObservationIngestionService {
   public constructor (
-    private readonly store: CartographyObservationStore,
-    private readonly runtimeState: RuntimeStateReader
+    private readonly repository: CartographyRepository,
+    private readonly runtimeState: RuntimeStateReader,
+    private readonly updates: Publisher<CartographyUpdate>
   ) {}
 
   public ingest (event: EliteJournalEvent): void {
     if (!BODY_EVENTS.has(event.event) && !SYSTEM_EVENTS.has(event.event)) return
     const systemName = stringValue(event.SystemName) ?? stringValue(event.StarSystem) ?? this.runtimeState.getCurrent().system.name
     if (!systemName) return
-    const current = this.store.getObservation(systemName) ?? emptyObservation(systemName, event)
+    const current = this.repository.findRecord(systemName)?.local ?? emptyObservation(systemName, event)
     if (event.timestamp < current.updatedAt) return
     const reportedBodyCount = SYSTEM_EVENTS.has(event.event)
       ? integerValue(event.BodyCount) ?? current.reportedBodyCount
       : current.reportedBodyCount
     const bodyId = event.event === 'ScanOrganic' ? integerCandidate(event.Body) : integerValue(event.BodyID)
     const runtimePlace = this.runtimeState.getCurrent().location.place
-    const bodyName = stringValue(event.BodyName)
+    const bodyName = stringValue(event.BodyName) ?? stringValue(event.Body)
       ?? current.bodies.find(body => bodyId !== null && body.bodyId === bodyId)?.bodyName
       ?? (runtimePlace?.kind === 'body' && (bodyId === null || runtimePlace.id === bodyId) ? runtimePlace.name : null)
     const bodies = bodyName ? mergeBody(current.bodies, bodyName, bodyId, event) : current.bodies
-    this.store.putObservation({
+    const observation = {
       ...current,
       allBodiesFound: event.event === 'FSSAllBodiesFound' || current.allBodiesFound === true,
       systemAddress: integerValue(event.SystemAddress) ?? current.systemAddress,
       reportedBodyCount,
       bodies,
       updatedAt: event.timestamp
+    }
+    this.repository.putLocalObservation(observation)
+    const record = this.repository.findRecord(observation.systemName)
+    if (!record) throw new Error(`Cartography observation for "${observation.systemName}" was not persisted.`)
+    this.updates.publish({
+      system: projectCartographicSystem(record, this.runtimeState.getCurrent().system),
+      systemName: observation.systemName,
+      updatedAt: observation.updatedAt
     })
   }
 }
@@ -70,11 +82,14 @@ function mergeBody (
     observedAt: event.timestamp,
     scan: event.event === 'Scan' ? copyRecord(event) : current.scan,
     bodySignals: event.event === 'FSSBodySignals' ? copyRecord(event) : current.bodySignals,
+    footfallCompleted: event.event === 'Disembark' && event.OnPlanet === true
+      ? true
+      : current.footfallCompleted,
     surfaceSignals: event.event === 'SAASignalsFound' ? copyRecord(event) : current.surfaceSignals,
     surfaceScanCompleted: event.event === 'SAAScanComplete' || current.surfaceScanCompleted,
-    discovered: event.event === 'Scan' ? booleanValue(event.WasDiscovered) : current.discovered,
-    footfalled: event.event === 'Scan' ? booleanValue(event.WasFootfalled) : current.footfalled,
-    mapped: event.event === 'Scan' ? booleanValue(event.WasMapped) : current.mapped,
+    previouslyDiscovered: event.event === 'Scan' ? booleanValue(event.WasDiscovered) : current.previouslyDiscovered,
+    previouslyFootfalled: event.event === 'Scan' ? booleanValue(event.WasFootfalled) : current.previouslyFootfalled,
+    previouslyMapped: event.event === 'Scan' ? booleanValue(event.WasMapped) : current.previouslyMapped,
     organicSamples: event.event === 'ScanOrganic'
       ? mergeOrganicSample(current.organicSamples ?? [], event)
       : current.organicSamples ?? []
@@ -88,9 +103,10 @@ function emptyBody (bodyName: string, event: EliteJournalEvent): LocalBodyCartog
     bodyId: integerValue(event.BodyID),
     bodyName,
     bodySignals: null,
-    discovered: null,
-    footfalled: null,
-    mapped: null,
+    footfallCompleted: false,
+    previouslyDiscovered: null,
+    previouslyFootfalled: null,
+    previouslyMapped: null,
     observedAt: event.timestamp,
     organicSamples: [],
     scan: null,

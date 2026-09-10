@@ -13,12 +13,13 @@ import {
 export type CartographicSelection = CartographicBody | CartographicStation
 
 export interface SystemSchematicProps {
+  commanderName?: string | null
   onSelect(name?: string): void
   selected?: CartographicSelection | null
   system: CartographicSystem
 }
 
-export function SystemSchematic ({ onSelect, selected, system }: SystemSchematicProps) {
+export function SystemSchematic ({ commanderName, onSelect, selected, system }: SystemSchematicProps) {
   const hierarchy = buildSystemHierarchy(system)
 
   return (
@@ -63,7 +64,7 @@ export function SystemSchematic ({ onSelect, selected, system }: SystemSchematic
 
       </section>
 
-      {selected && <CartographyDetail selection={selected} />}
+      {selected && <CartographyDetail commanderName={commanderName} selection={selected} />}
       <SystemSummary system={system} />
     </div>
   )
@@ -284,14 +285,17 @@ function StationGlyph () {
   return <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 5h22v22H5zM10 10h12v12H10zM2 16h7M23 16h7M16 2v7M16 23v7" /></svg>
 }
 
-function CartographyDetail ({ selection }: { selection: CartographicSelection }) {
+function CartographyDetail ({ commanderName, selection }: { commanderName?: string | null, selection: CartographicSelection }) {
   if (isStation(selection)) return <StationDetail station={selection} />
-  return <BodyDetail body={selection} />
+  return <BodyDetail body={selection} commanderName={commanderName} />
 }
 
-function BodyDetail ({ body }: { body: CartographicBody }) {
-  const raw = body.raw
+function BodyDetail ({ body, commanderName }: { body: CartographicBody, commanderName?: string | null }) {
   const signals = body.local?.signals
+  const details = body.details
+  const orbit = details.orbit
+  const hasOrbit = Object.values(orbit).some(value => value !== null)
+  const hasStarDetails = [details.absoluteMagnitude, details.ageMillionYears, details.isMainStar, details.isScoopable, details.luminosity, details.solarMasses, details.solarRadius, details.spectralClass, details.starSubclass].some(value => value !== null)
   return (
     <aside className="cartography-detail">
       <header className="cartography-detail__body">
@@ -300,23 +304,96 @@ function BodyDetail ({ body }: { body: CartographicBody }) {
       </header>
       <DetailSection title="Navigation">
         <Fact label="Arrival" value={formatDistance(body.distanceToArrival)} />
-        <Fact label="Landable" value={booleanLabel(raw.landable ?? raw.isLandable)} />
+        <Fact label="Body ID" value={body.bodyId === null ? null : String(body.bodyId)} />
+        <Fact label="Scan type" value={details.scanType} />
+      </DetailSection>
+      <DetailSection title="Survey">
+        <Fact label="Scanned" value={booleanLabel(body.local?.discovered)} />
         <Fact label="Mapped" value={booleanLabel(body.local?.mapped)} />
-        <Fact label="Discovered" value={booleanLabel(body.local?.discovered)} />
+        <Fact label="Set foot" value={booleanLabel(body.local?.footfalled)} />
+        <Fact label="First discovered by" value={firstCommander(body.local?.firstDiscoveredByCommander, body.firstDiscoveredBy, commanderName)} />
+        <Fact label="First mapped by" value={firstCommander(body.local?.firstMappedByCommander, body.firstMappedBy, commanderName)} />
+        <Fact label="First footfall" value={firstFootfall(body)} />
       </DetailSection>
       <DetailSection title="Environment">
-        <Fact label="Gravity" value={formatUnit(numberValue(raw.surfaceGravity ?? raw.gravity), 'g', 2)} />
-        <Fact label="Temperature" value={formatUnit(numberValue(raw.surfaceTemperature ?? raw.temperature), ' K', 0)} />
-        <Fact label="Radius" value={formatUnit(numberValue(raw.radius), ' km', 0)} />
-        <Fact label="Atmosphere" value={textValue(raw.atmosphereType ?? raw.atmosphere)} />
+        <Fact label="Landable" value={booleanLabel(body.landable)} />
+        <Fact label="Mass" value={formatMass(details.massEarths, details.solarMasses)} />
+        <Fact label="Gravity" value={formatUnit(body.gravityGs, 'g', 2)} />
+        <Fact label="Temperature" value={formatUnit(body.surfaceTemperatureKelvin, ' K', 0)} />
+        <Fact label="Radius" value={formatUnit(body.radiusKilometres, ' km', 0)} />
+        <Fact label="Pressure" value={formatPressure(details.surfacePressurePascals)} />
+        <Fact label="Atmosphere" value={body.atmosphere} />
+        <Fact label="Volcanism" value={details.volcanism} />
+        <Fact label="Terraforming" value={details.terraformState} />
+        <Fact label="Tidal lock" value={booleanLabel(details.tidallyLocked)} />
       </DetailSection>
-      {signals && (signals.biological + signals.geological + signals.human > 0) && (
-        <DetailSection title="Signals">
-          <Fact label="Biological" value={String(signals.biological)} />
-          <Fact label="Geological" value={String(signals.geological)} />
-          <Fact label="Human" value={String(signals.human)} />
+      {hasStarDetails && (
+        <DetailSection title="Star">
+          <Fact label="Class" value={details.spectralClass} />
+          <Fact label="Subclass" value={details.starSubclass === null ? null : String(details.starSubclass)} />
+          <Fact label="Luminosity" value={details.luminosity} />
+          <Fact label="Age" value={formatUnit(details.ageMillionYears, ' million years', 0)} />
+          <Fact label="Absolute magnitude" value={formatNumberValue(details.absoluteMagnitude, 2)} />
+          <Fact label="Solar radius" value={formatUnit(details.solarRadius, ' R☉', 2)} />
+          <Fact label="Main star" value={booleanLabel(details.isMainStar)} />
+          <Fact label="Scoopable" value={booleanLabel(details.isScoopable)} />
         </DetailSection>
       )}
+      {details.atmosphereComposition.length > 0 && (
+        <DetailSection title="Atmosphere composition">
+          <TagList values={details.atmosphereComposition.map(item => `${item.name} ${formatPercent(item.percent)}`)} />
+        </DetailSection>
+      )}
+      {details.solidComposition && (
+        <DetailSection title="Solid composition">
+          <TagList values={[
+            compositionLabel('Ice', details.solidComposition.icePercent),
+            compositionLabel('Rock', details.solidComposition.rockPercent),
+            compositionLabel('Metal', details.solidComposition.metalPercent)
+          ].filter((value): value is string => value !== null)} />
+        </DetailSection>
+      )}
+      {details.materials.length > 0 && (
+        <DetailSection title="Materials">
+          <TagList values={details.materials.map(item => `${item.name} ${formatPercent(item.percent)}`)} />
+        </DetailSection>
+      )}
+      {hasOrbit && (
+        <DetailSection title="Orbit and rotation">
+          <Fact label="Semi-major axis" value={formatOrbitalDistance(orbit.semiMajorAxisKilometres)} />
+          <Fact label="Orbital period" value={formatDuration(orbit.orbitalPeriodSeconds)} />
+          <Fact label="Eccentricity" value={formatNumberValue(orbit.eccentricity, 4)} />
+          <Fact label="Inclination" value={formatAngle(orbit.inclinationDegrees)} />
+          <Fact label="Periapsis" value={formatAngle(orbit.periapsisDegrees)} />
+          <Fact label="Ascending node" value={formatAngle(orbit.ascendingNodeDegrees)} />
+          <Fact label="Mean anomaly" value={formatAngle(orbit.meanAnomalyDegrees)} />
+          <Fact label="Rotation period" value={formatDuration(orbit.rotationPeriodSeconds)} />
+          <Fact label="Axial tilt" value={formatAngle(orbit.axialTiltDegrees)} />
+        </DetailSection>
+      )}
+      {details.rings.length > 0 && (
+        <DetailSection title="Rings">
+          <Fact label="Reserves" value={details.reserveLevel} />
+          {details.rings.map(ring => (
+            <Fact
+              key={ring.name}
+              label={shortBodyName(ring.name)}
+              value={ringDescription(ring)}
+            />
+          ))}
+        </DetailSection>
+      )}
+      {body.local?.signalDetails.length ? (
+        <DetailSection title="Signals">
+          {body.local.signalDetails.map(signal => <Fact key={signal.type} label={signal.type} value={String(signal.count)} />)}
+        </DetailSection>
+      ) : signals && (signals.biological + signals.geological + signals.human > 0) ? (
+        <DetailSection title="Signals">
+          {signals.biological > 0 && <Fact label="Biological" value={String(signals.biological)} />}
+          {signals.geological > 0 && <Fact label="Geological" value={String(signals.geological)} />}
+          {signals.human > 0 && <Fact label="Human" value={String(signals.human)} />}
+        </DetailSection>
+      ) : null}
       {body.local?.biologicalGenuses.length ? (
         <DetailSection title="Biological genera"><TagList values={body.local.biologicalGenuses} /></DetailSection>
       ) : null}
@@ -368,8 +445,7 @@ function bodyKind (body: CartographicBody): BodyKind {
 }
 
 function isRinged (body: CartographicBody): boolean {
-  const rings = body.raw.rings
-  return Array.isArray(rings) && rings.length > 0
+  return body.ringed
 }
 
 function isStation (selection: CartographicSelection): selection is CartographicStation {
@@ -402,16 +478,75 @@ function formatNumber (value: number | null): string {
   return value == null ? '—' : value.toLocaleString()
 }
 
-function numberValue (value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null
-}
-
-function textValue (value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value : null
-}
-
 function booleanLabel (value: unknown): string | null {
   return typeof value === 'boolean' ? value ? 'Yes' : 'No' : null
+}
+
+function firstCommander (credited: boolean | undefined, reportedName: string | null, commanderName: string | null | undefined): string {
+  if (credited) return commanderName ?? 'Current commander'
+  return reportedName ?? 'Unknown'
+}
+
+function firstFootfall (body: CartographicBody): string {
+  if (body.firstFootfallBy) return body.firstFootfallBy
+  if (body.local?.previouslyFootfalled === false) return 'Unclaimed when scanned'
+  if (body.local?.previouslyFootfalled === true) return 'Claimed'
+  return 'Unknown'
+}
+
+function formatMass (earthMasses: number | null, solarMasses: number | null): string | null {
+  if (earthMasses !== null) return `${formatNumberValue(earthMasses, 4)} M⊕`
+  if (solarMasses !== null) return `${formatNumberValue(solarMasses, 4)} M☉`
+  return null
+}
+
+function formatPressure (pascals: number | null): string | null {
+  if (pascals === null) return null
+  const atmospheres = pascals / 101_325
+  return `${pascals.toLocaleString(undefined, { maximumFractionDigits: 0 })} Pa · ${atmospheres.toLocaleString(undefined, { maximumSignificantDigits: 3 })} atm`
+}
+
+function formatPercent (value: number): string {
+  return `${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}%`
+}
+
+function compositionLabel (name: string, value: number | null): string | null {
+  return value === null ? null : `${name} ${formatPercent(value)}`
+}
+
+function formatNumberValue (value: number | null, decimals: number): string | null {
+  return value === null ? null : value.toLocaleString(undefined, { maximumFractionDigits: decimals })
+}
+
+function formatAngle (value: number | null): string | null {
+  return value === null ? null : `${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}°`
+}
+
+function formatDuration (seconds: number | null): string | null {
+  if (seconds === null) return null
+  const absolute = Math.abs(seconds)
+  if (absolute >= 86_400) return `${(seconds / 86_400).toLocaleString(undefined, { maximumFractionDigits: 2 })} d`
+  if (absolute >= 3_600) return `${(seconds / 3_600).toLocaleString(undefined, { maximumFractionDigits: 2 })} h`
+  if (absolute >= 60) return `${(seconds / 60).toLocaleString(undefined, { maximumFractionDigits: 2 })} min`
+  return `${seconds.toLocaleString(undefined, { maximumFractionDigits: 1 })} s`
+}
+
+function formatOrbitalDistance (kilometres: number | null): string | null {
+  if (kilometres === null) return null
+  const astronomicalUnits = kilometres / 149_597_870.7
+  return astronomicalUnits >= 0.01
+    ? `${astronomicalUnits.toLocaleString(undefined, { maximumFractionDigits: 3 })} au`
+    : `${kilometres.toLocaleString(undefined, { maximumFractionDigits: 0 })} km`
+}
+
+function ringDescription (ring: CartographicBody['details']['rings'][number]): string {
+  const radii = ring.innerRadiusKilometres !== null && ring.outerRadiusKilometres !== null
+    ? `${ring.innerRadiusKilometres.toLocaleString(undefined, { maximumFractionDigits: 0 })}–${ring.outerRadiusKilometres.toLocaleString(undefined, { maximumFractionDigits: 0 })} km`
+    : null
+  const mass = ring.massMegatonnes === null
+    ? null
+    : `${ring.massMegatonnes.toLocaleString(undefined, { maximumSignificantDigits: 4 })} Mt`
+  return [ring.type, radii, mass].filter(Boolean).join(' · ') || 'Reported'
 }
 
 function formatUnit (value: number | null, unit: string, decimals: number): string | null {

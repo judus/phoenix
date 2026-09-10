@@ -1,5 +1,6 @@
 import {
   ActivityLogEntrySchema,
+  CartographyUpdateSchema,
   CommandCatalogueRevisionSchema,
   CopilotConversationEventSchema,
   CopilotProfilesResponseSchema,
@@ -19,6 +20,7 @@ import type {
 
 const EVENT_NAMES: readonly PhoenixEventName[] = [
   'activity-entry',
+  'cartography-updated',
   'command-catalogue',
   'conversation-event',
   'copilot-profiles',
@@ -31,6 +33,7 @@ const EVENT_NAMES: readonly PhoenixEventName[] = [
 
 const EVENT_SCHEMAS: Record<PhoenixEventName, { parse(value: unknown): unknown }> = {
   'activity-entry': ActivityLogEntrySchema,
+  'cartography-updated': CartographyUpdateSchema,
   'command-catalogue': CommandCatalogueRevisionSchema,
   'conversation-event': CopilotConversationEventSchema,
   'copilot-profiles': CopilotProfilesResponseSchema,

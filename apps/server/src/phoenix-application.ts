@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { DisplayCommand, GameEventEnvelope, NavigationRoute, PhoenixControlDeckConfiguration, RuntimeState } from '@phoenix/contracts'
+import type { CartographyUpdate, DisplayCommand, GameEventEnvelope, NavigationRoute, PhoenixControlDeckConfiguration, RuntimeState } from '@phoenix/contracts'
 import { ToolRegistry } from '@jdu/llm-client'
 import { ControlDeckCommandService, type ControlDeckConfigurationRepository } from 'control-deck/core'
 import { ControlDeckIntegration } from 'control-deck/host'
@@ -28,7 +28,7 @@ import { CopilotConversationEventService } from './application/copilot-conversat
 import { CopilotVoiceHostCoordinator } from './application/copilot-voice-host-coordinator.js'
 import type { CopilotProfiles } from './application/copilot-profile-service.js'
 import { CatalogueDiagnosticsService } from './application/catalogue-diagnostics-service.js'
-import { CachedSystemCartographyService } from './application/cached-system-cartography-service.js'
+import { SystemCartographyService } from './application/system-cartography-service.js'
 import { CartographyObservationIngestionService } from './application/cartography-observation-ingestion-service.js'
 import { DefaultNavigationQuery } from './application/default-navigation-query.js'
 import { DefaultSystemDetailsQuery } from './application/default-system-details-query.js'
@@ -65,7 +65,7 @@ import { DefaultExplorationBodyQuery } from './application/default-exploration-b
 import { DefaultExplorationTargetQuery } from './application/default-exploration-target-query.js'
 import type { CopilotText } from './application/copilot-text-service.js'
 import type { CopilotRealtime } from './application/copilot-realtime-service.js'
-import type { CartographySource } from './domain/cartography.js'
+import type { ExternalCartographySource } from './domain/cartography.js'
 import type { ExplorationTargetSearchSource } from './domain/exploration-target.js'
 import type { FactionPresenceSearchSource, OutfittingSearchSource, ShipyardSearchSource, StationLookupSource, StationSearchSource, StationStockSource, SystemSearchSource } from './domain/station-market.js'
 import type { GalnetSource } from './domain/galnet.js'
@@ -110,7 +110,7 @@ export interface PhoenixApplicationOptions {
   applicationPaths?: ApplicationPaths
   eliteBindings?: EliteDangerousBindingSource
   accessControl?: PairingAccessController
-  cartographySource?: CartographySource
+  cartographySource?: ExternalCartographySource
   controlDeckConfigurationRepository?: ControlDeckConfigurationRepository<PhoenixControlDeckConfiguration>
   copilot?: CopilotText | null
   copilotRealtime?: CopilotRealtime | null
@@ -166,6 +166,7 @@ export class PhoenixApplication {
     const copilotConversationEvents = new CopilotConversationEventService()
     const copilotVoiceHost = new CopilotVoiceHostCoordinator()
     const runtimeStateUpdates = new InProcessPublisher<RuntimeState>()
+    const cartographyUpdates = new InProcessPublisher<CartographyUpdate>()
     const displayCommandUpdates = new InProcessPublisher<DisplayCommand>()
     const commandCatalogueChanges = new InProcessPublisher<CommandCatalogueChange>()
     this.stateStore = new InMemoryRuntimeStateStore()
@@ -211,7 +212,7 @@ export class PhoenixApplication {
         }).locate()
     const statusIngestion = new EliteStatusIngestionService(this.eventIngestion)
     const journalIngestion = new EliteJournalIngestionService(this.eventIngestion)
-    const cartographyObservationIngestion = new CartographyObservationIngestionService(this.database, this.stateStore)
+    const cartographyObservationIngestion = new CartographyObservationIngestionService(this.database, this.stateStore, cartographyUpdates)
     const historicalState = new InMemoryRuntimeStateStore()
     const historicalEvents = new InProcessPublisher<GameEventEnvelope>()
     const historicalProjector = new DefaultRuntimeStateProjector(
@@ -227,7 +228,8 @@ export class PhoenixApplication {
     )
     const historicalCartographyIngestion = new CartographyObservationIngestionService(
       this.database,
-      historicalState
+      historicalState,
+      cartographyUpdates
     )
     const inventoryIngestion = new EliteInventoryIngestionService(this.eventIngestion)
     const liveJournalProjections = new EliteJournalProjectionPipeline([
@@ -346,11 +348,10 @@ export class PhoenixApplication {
       50,
       () => systemSettings.loadOrCreate().copilot.permissions
     )
-    const cartography = new CachedSystemCartographyService(
+    const cartography = new SystemCartographyService(
       options.cartographySource ?? new EdsmCartographySource(),
       this.database,
-      this.stateStore,
-      this.database
+      this.stateStore
     )
     const navigation = new DefaultNavigationQuery(navigationRoutes, cartography, this.stateStore)
     const systems = new DefaultSystemDetailsQuery(cartography, this.stateStore)
@@ -425,6 +426,7 @@ export class PhoenixApplication {
     this.server = new PhoenixHttpServer({
       accessControl: options.accessControl,
       catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
+      cartographyUpdates,
       commandCatalogue,
       controlDeckHttp: this.controlDeck.http,
       copilot,

@@ -1,10 +1,11 @@
 import { expect, test } from 'vitest'
-import { createEmptyRuntimeState, type CartographicSystem } from '@phoenix/contracts'
+import { createEmptyRuntimeState, type CartographicSystem, type CartographyUpdate } from '@phoenix/contracts'
 import { CartographyObservationIngestionService } from '../apps/server/src/application/cartography-observation-ingestion-service.js'
 import { DefaultExplorationBodyQuery } from '../apps/server/src/application/default-exploration-body-query.js'
 import type { SystemCartography } from '../apps/server/src/domain/cartography.js'
 import { InMemoryRuntimeStateStore } from '../apps/server/src/infrastructure/in-memory-runtime-state-store.js'
 import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
+import { InProcessPublisher } from '../apps/server/src/infrastructure/in-process-publisher.js'
 
 test('current-body query combines live location, scans, signals, and organic sample progress', async () => {
   const database = new SqliteDatabase(':memory:')
@@ -16,7 +17,7 @@ test('current-body query combines live location, scans, signals, and organic sam
     system: { ...state.system, name: 'Test System', address: 42 },
     location: { state: 'on_foot', place: { kind: 'body', name: 'Test System 1', id: 1, type: 'Planet' } }
   })
-  const ingestion = new CartographyObservationIngestionService(database, runtime)
+  const ingestion = new CartographyObservationIngestionService(database, runtime, new InProcessPublisher<CartographyUpdate>())
   ingestion.ingest({
     timestamp: '2026-08-11T12:00:00Z', event: 'Scan', StarSystem: 'Test System', SystemAddress: 42,
     BodyName: 'Test System 1', BodyID: 1, PlanetClass: 'Rocky body', Atmosphere: 'thin ammonia atmosphere',
@@ -46,7 +47,7 @@ test('current-body query combines live location, scans, signals, and organic sam
     expect(result.content[0]).toMatchObject({ text: expect.stringContaining('Bacterium Aurasus - Lime: complete') })
     expect(result.structuredContent).toMatchObject({
       currentBody: {
-        name: 'Test System 1', status: 'on foot', discovered: 'No', mapped: 'No', footfalled: 'No',
+        name: 'Test System 1', status: 'on foot', discovered: 'Yes', mapped: 'No', footfalled: 'No',
         planetClass: 'Rocky body', atmosphere: 'thin ammonia atmosphere'
       },
       signalCounts: { biological: 2, geological: 1, human: 0 },
@@ -81,12 +82,21 @@ function cartography (): SystemCartography {
 
 function fixtureSystem (): CartographicSystem {
   return {
-    schemaVersion: 1,
+    schemaVersion: 5,
     name: 'Test System', address: 42, position: [1, 2, 3], permitRequired: null, permitName: null,
     information: { allegiance: null, government: null, security: null, state: null, primaryEconomy: null, secondaryEconomy: null, population: null, controllingFaction: null },
     primaryStar: null,
-    bodies: [{ id: 1, id64: null, bodyId: 1, name: 'Test System 1', type: 'Planet', subType: 'Rocky body', distanceToArrival: 50, parents: [], local: null, raw: {} }],
+    bodies: [{ id: 1, id64: null, bodyId: 1, name: 'Test System 1', type: 'Planet', subType: 'Rocky body', distanceToArrival: 50, parents: [], landable: true, gravityGs: null, surfaceTemperatureKelvin: null, radiusKilometres: null, atmosphere: null, ringed: false, details: emptyDetails(), firstDiscoveredBy: null, firstFootfallBy: null, firstMappedBy: null, local: null, raw: {} }],
     stations: [], scanProgress: { knownBodies: 1, reportedBodies: 1, percent: 100 }, localSystem: null,
-    source: { provider: 'edsm', fetchedAt: '2026-08-11T12:00:00.000Z' }, raw: { system: {}, bodies: {}, stations: {} }
+    provenance: { edsm: { fetchedAt: '2026-08-11T12:00:00.000Z' }, journal: null }, raw: { system: {}, bodies: {}, stations: {} }
+  }
+}
+
+function emptyDetails (): CartographicSystem['bodies'][number]['details'] {
+  return {
+    absoluteMagnitude: null, ageMillionYears: null, atmosphereComposition: [], isMainStar: null, isScoopable: null,
+    luminosity: null, massEarths: null, materials: [], orbit: { ascendingNodeDegrees: null, axialTiltDegrees: null, eccentricity: null, inclinationDegrees: null, meanAnomalyDegrees: null, orbitalPeriodSeconds: null, periapsisDegrees: null, rotationPeriodSeconds: null, semiMajorAxisKilometres: null },
+    reserveLevel: null, rings: [], scanType: null, solarMasses: null, solarRadius: null, solidComposition: null,
+    spectralClass: null, starSubclass: null, surfacePressurePascals: null, terraformState: null, tidallyLocked: null, volcanism: null
   }
 }

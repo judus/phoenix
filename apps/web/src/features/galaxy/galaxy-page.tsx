@@ -62,11 +62,17 @@ export function GalaxyPage({ api, controller, onNavigate, route, runtime }: {
       : <GalaxyState error="Navigation route unavailable." title="Plotted route" />
   }
   return controller.lookup
-    ? <SystemView lookup={controller.lookup} onNavigate={onNavigate} route={route} />
+    ? <SystemView
+        commanderName={runtime.status === 'ready' ? runtime.state.commander.name : null}
+        lookup={controller.lookup}
+        onNavigate={onNavigate}
+        route={route}
+      />
     : <GalaxyState error="System cartography unavailable." title="System schematic" />
 }
 
-function SystemView({ lookup, onNavigate, route }: {
+function SystemView({ commanderName, lookup, onNavigate, route }: {
+  commanderName: string | null
   lookup: NonNullable<GalaxyControllerSnapshot['lookup']>
   onNavigate(route: PhoenixRoute): void
   route: Extract<GalaxyRoute, { view: 'system' }>
@@ -108,6 +114,7 @@ function SystemView({ lookup, onNavigate, route }: {
         }
       />
       <SystemSchematic
+        commanderName={commanderName}
         onSelect={selectedName => onNavigate({
           kind: 'information',
           section: 'galaxy',

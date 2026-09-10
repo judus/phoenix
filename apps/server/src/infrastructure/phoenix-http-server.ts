@@ -28,6 +28,7 @@ import {
   RecordMacroActionRequestSchema,
   StartMacroRecordingRequestSchema,
   type CopilotConversationEvent,
+  type CartographyUpdate,
   type DisplayCommand,
   type EliteInventorySourceDiagnostics,
   type EliteNavigationRouteSourceDiagnostics,
@@ -88,6 +89,7 @@ type CopilotConversationEventPayload = CopilotConversationEvent extends infer Ev
 export interface PhoenixHttpServerOptions {
   accessControl?: PairingAccessController
   catalogueDiagnostics: CatalogueDiagnosticsReader
+  cartographyUpdates: Subscribable<CartographyUpdate>
   commandCatalogue: CommandCatalogueSnapshots
   controlDeckHttp?: ControlDeckHttpHandler
   copilot?: CopilotText
@@ -1073,6 +1075,7 @@ export class PhoenixHttpServer {
     const send = (event: string, payload: unknown): void => writeSse(response, event, payload)
     const unsubscribers = [
       this.options.runtimeStateUpdates.subscribe(state => send('runtime-state', state)),
+      this.options.cartographyUpdates.subscribe(update => send('cartography-updated', update)),
       this.options.activityLog.subscribe(entry => send('activity-entry', entry)),
       this.options.displayCommands.subscribe(command => send('display-command', command)),
       this.options.navigationRouteUpdates.subscribe(route => send('navigation-route', route)),

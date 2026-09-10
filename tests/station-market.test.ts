@@ -489,7 +489,7 @@ function cartography (): SystemCartography {
 
 function fixtureSystem (): CartographicSystem {
   return {
-    schemaVersion: 1,
+    schemaVersion: 5,
     name: 'Sol', address: 10477373803, position: [0, 0, 0], permitRequired: null, permitName: null,
     information: { allegiance: 'Federation', government: 'Democracy', security: 'High', state: null, primaryEconomy: 'Service', secondaryEconomy: null, population: 23000000000, controllingFaction: 'Mother Gaia' },
     primaryStar: null, bodies: [], scanProgress: { knownBodies: 0, reportedBodies: null, percent: null }, localSystem: null,
@@ -498,7 +498,7 @@ function fixtureSystem (): CartographicSystem {
       allegiance: 'Federation', government: 'Democracy', economy: 'Refinery', secondEconomy: null,
       controllingFaction: 'Mother Gaia', services: ['Repair'], facilities: { market: true, shipyard: true, outfitting: true }, raw: {}
     }],
-    source: { provider: 'edsm', fetchedAt: '2026-08-11T12:00:00.000Z' },
+    provenance: { edsm: { fetchedAt: '2026-08-11T12:00:00.000Z' }, journal: null },
     raw: { system: {}, bodies: {}, stations: {} }
   }
 }

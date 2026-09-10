@@ -34,11 +34,22 @@ test('schematic cartography prefers reported installation parents and otherwise 
 })
 
 test('schematic cartography renders symbolic bodies, stations, and scan markers', () => {
+  const system = fixtureSystem()
+  const selected = system.bodies[1]!
+  selected.details = {
+    ...selected.details,
+    atmosphereComposition: [{ name: 'Nitrogen', percent: 78 }],
+    massEarths: 1,
+    surfacePressurePascals: 101_325,
+    terraformState: 'Not terraformable',
+    volcanism: 'None'
+  }
   const markup = renderToStaticMarkup(
     <SystemSchematic
+      commanderName="Ellan Murdock"
       onSelect={vi.fn()}
-      selected={fixtureSystem().bodies[1]}
-      system={fixtureSystem()}
+      selected={selected}
+      system={system}
     />
   )
 
@@ -47,6 +58,12 @@ test('schematic cartography renders symbolic bodies, stations, and scan markers'
   expect(markup).toContain('system-body--earthlike')
   expect(markup).toContain('system-body--child')
   expect(markup).toContain('Biological signals')
+  expect(markup).toContain('Ellan Murdock')
+  expect(markup).toContain('First footfall')
+  expect(markup).toContain('Unclaimed when scanned')
+  expect(markup).toContain('Atmosphere composition')
+  expect(markup).toContain('Nitrogen 78%')
+  expect(markup).toContain('Not terraformable')
   expect(markup).toContain('Galileo')
   expect(markup).toContain('Installation')
   expect(markup).not.toContain('System summary')
@@ -68,7 +85,7 @@ test('schematic cartography uses the full map workspace until an object is selec
 
 function fixtureSystem (): CartographicSystem {
   return {
-    schemaVersion: 1,
+    schemaVersion: 5,
     name: 'Sol',
     address: 10477373803,
     position: [0, 0, 0],
@@ -108,7 +125,7 @@ function fixtureSystem (): CartographicSystem {
     }],
     scanProgress: { knownBodies: 4, reportedBodies: 4, percent: 100 },
     localSystem: null,
-    source: { provider: 'edsm', fetchedAt: '2026-08-11T20:00:00.000Z' },
+    provenance: { edsm: { fetchedAt: '2026-08-11T20:00:00.000Z' }, journal: null },
     raw: { system: {}, bodies: {}, stations: {} }
   }
 }
@@ -131,19 +148,42 @@ function body (
     subType,
     distanceToArrival,
     parents,
+    landable: null,
+    gravityGs: null,
+    surfaceTemperatureKelvin: null,
+    radiusKilometres: null,
+    atmosphere: null,
+    ringed: false,
+    details: emptyDetails(),
+    firstDiscoveredBy: null,
+    firstFootfallBy: null,
+    firstMappedBy: null,
     local: local
       ? {
           observedAt: '2026-08-11T20:00:00.000Z',
           discovered: true,
           footfalled: false,
           mapped: true,
+          firstDiscoveredByCommander: true,
+          firstMappedByCommander: true,
+          previouslyFootfalled: false,
           surfaceScanCompleted: true,
           signals: { biological: 2, geological: 0, human: 0 },
+          signalDetails: [{ type: 'Biological', count: 2 }],
           biologicalGenuses: ['Bacterium'],
           organicSamples: [],
           raw: { scan: null, bodySignals: null, surfaceSignals: null }
         }
       : null,
     raw: {}
+  }
+}
+
+function emptyDetails (): CartographicBody['details'] {
+  return {
+    absoluteMagnitude: null, ageMillionYears: null, atmosphereComposition: [], isMainStar: null, isScoopable: null,
+    luminosity: null, massEarths: null, materials: [], orbit: { ascendingNodeDegrees: null, axialTiltDegrees: null, eccentricity: null, inclinationDegrees: null, meanAnomalyDegrees: null, orbitalPeriodSeconds: null, periapsisDegrees: null, rotationPeriodSeconds: null, semiMajorAxisKilometres: null },
+    reserveLevel: null, rings: [], scanType: null, solarMasses: null, solarRadius: null, solidComposition: null,
+    spectralClass: null, starSubclass: null, surfacePressurePascals: null, terraformState: null, tidallyLocked: null, volcanism: null
   }
 }
