@@ -74,7 +74,7 @@ interface CachedResult<T> {
 interface ResolvedStation {
   station: CartographicStation
   systemName: string
-  cache: 'fresh' | 'refreshed' | 'stale'
+  cache: 'fresh' | 'refreshed' | 'stale' | 'local'
 }
 
 interface TradeOpportunitySearchResult {

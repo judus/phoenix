@@ -3,7 +3,7 @@ import { z } from 'zod'
 const nullableNumber = z.number().finite().nonnegative().nullable()
 const nullableString = z.string().min(1).nullable()
 
-export const GalaxyCacheStateSchema = z.enum(['fresh', 'refreshed', 'stale'])
+export const GalaxyCacheStateSchema = z.enum(['fresh', 'refreshed', 'stale', 'local'])
 
 export const GalaxyNearbySystemSchema = z.object({
   distanceLy: z.number().finite().nonnegative(),

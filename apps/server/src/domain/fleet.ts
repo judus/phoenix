@@ -13,3 +13,7 @@ export interface FleetRepository {
 export interface FleetDataReader {
   getFleet(): FleetResponse
 }
+
+export interface MarketStationResolver {
+  resolve(systemName: string, marketId: number): string | null
+}

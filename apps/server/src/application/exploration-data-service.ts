@@ -5,7 +5,7 @@ import {
   type ExplorationSystemRecord
 } from '@phoenix/contracts'
 import type {
-  CartographyObservationStore,
+  CartographyRepository,
   LocalBodyCartographyObservation,
   LocalSystemCartographyObservation
 } from '../domain/cartography.js'
@@ -21,14 +21,14 @@ export interface ExplorationDataReader {
 
 export class ExplorationDataService implements ExplorationDataReader {
   public constructor (
-    private readonly observations: CartographyObservationStore,
+    private readonly cartography: CartographyRepository,
     private readonly overrides: BiologicalCompletionOverrideRepository
   ) {}
 
   public getLedger (): ExplorationLedgerResponse {
     const manualCompletions = this.overrides.listBiologicalCompletionOverrides()
-    const systems = this.observations.listObservations()
-      .map(observation => systemRecord(observation, manualCompletions))
+    const systems = this.cartography.listObservedRecords()
+      .flatMap(record => record.local ? [systemRecord(record.local, manualCompletions)] : [])
     const bodies = systems.flatMap(system => system.bodies)
     return ExplorationLedgerResponseSchema.parse({
       systems,
@@ -83,9 +83,9 @@ function bodyRecord (
     bodyId: body.bodyId,
     name: body.bodyName,
     observedAt: body.observedAt,
-    discovered: body.discovered,
-    mapped: body.mapped,
-    footfalled: body.footfalled ?? null,
+    discovered: body.scan !== null,
+    mapped: body.surfaceScanCompleted,
+    footfalled: body.previouslyFootfalled,
     surfaceScanCompleted: body.surfaceScanCompleted,
     scanned: body.scan !== null,
     planetClass: stringField(scan.PlanetClass),

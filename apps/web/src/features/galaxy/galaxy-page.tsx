@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import {
   ActionTile,
   Breadcrumbs,
@@ -18,7 +18,8 @@ import {
   PageHeader,
   Select,
   Status,
-  TextInput
+  TextInput,
+  ToggleButton
 } from '@phoenix/ui'
 import type {
   GalaxyCommodityMarketsResponse,
@@ -30,7 +31,8 @@ import type {
   GalaxyOutfittingResponse,
   GalaxyShipyardsResponse,
   GalaxyStationLookupResponse,
-  GalaxyTradeOpportunitiesResponse
+  GalaxyTradeOpportunitiesResponse,
+  PlotEliteDestinationResult
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { InformationRoute, PhoenixRoute } from '../../application/navigation/phoenix-route.js'
@@ -41,6 +43,7 @@ import type { GalaxyQueryDefinition, GalaxyQueryField, GalaxyQueryValue } from '
 import { PlottedRoute } from './plotted-route.js'
 import { ExobiologyPage } from './exobiology-page.js'
 import { SystemSchematic, type CartographicSelection } from './system-schematic.js'
+import { BookmarksPage } from './bookmarks-page.js'
 import type { GalaxyControllerSnapshot } from './use-galaxy-controller.js'
 
 type GalaxyRoute = Extract<InformationRoute, { section: 'galaxy' }>
@@ -54,25 +57,54 @@ export function GalaxyPage({ api, controller, onNavigate, route, runtime }: {
 }) {
   if (route.view === 'database') return <QueryConsole api={api} onNavigate={onNavigate} route={route} runtime={runtime} />
   if (route.view === 'exobiology') return <ExobiologyPage controller={controller} />
-  if (controller.status === 'loading' || controller.status === 'idle') return <GalaxyState title={route.view === 'route' ? 'Plotted route' : 'System schematic'} />
-  if (controller.status === 'error') return <GalaxyState error={controller.error} title={route.view === 'route' ? 'Plotted route' : 'System schematic'} />
+  if (route.view === 'bookmarks') return <BookmarksPage api={api} onNavigate={onNavigate} route={route} />
+  if (controller.status === 'loading' || controller.status === 'idle') {
+    return route.view === 'system'
+      ? <SystemState onNavigate={onNavigate} route={route} runtime={runtime} />
+      : <GalaxyState title="Plotted route" />
+  }
+  if (controller.status === 'error') {
+    return route.view === 'system'
+      ? <SystemState error={controller.error} onNavigate={onNavigate} route={route} runtime={runtime} />
+      : <GalaxyState error={controller.error} title="Plotted route" />
+  }
   if (route.view === 'route') {
     return controller.route
       ? <PlottedRoute actions={controller.actions} api={api} route={controller.route} runtimeState={runtime.status === 'ready' ? runtime.state : undefined} />
       : <GalaxyState error="Navigation route unavailable." title="Plotted route" />
   }
   return controller.lookup
-    ? <SystemView lookup={controller.lookup} onNavigate={onNavigate} route={route} />
-    : <GalaxyState error="System cartography unavailable." title="System schematic" />
+    ? <SystemView
+        api={api}
+        commanderName={runtime.status === 'ready' ? runtime.state.commander.name : null}
+        lookup={controller.lookup}
+        onNavigate={onNavigate}
+        route={route}
+      />
+    : <SystemState error="System cartography unavailable." onNavigate={onNavigate} route={route} runtime={runtime} />
 }
 
-function SystemView({ lookup, onNavigate, route }: {
+function SystemView({ api, commanderName, lookup, onNavigate, route }: {
+  api: PhoenixApi
+  commanderName: string | null
   lookup: NonNullable<GalaxyControllerSnapshot['lookup']>
   onNavigate(route: PhoenixRoute): void
   route: Extract<GalaxyRoute, { view: 'system' }>
 }) {
+  const following = route.systemName === undefined
   const [query, setQuery] = useState(route.systemName ?? lookup.system.name)
+  const [plotting, setPlotting] = useState(false)
+  const [plotResult, setPlotResult] = useState<PlotEliteDestinationResult>()
+  const plotAbort = useRef<AbortController | null>(null)
   useEffect(() => setQuery(route.systemName ?? lookup.system.name), [lookup.system.name, route.systemName])
+  useEffect(() => {
+    setPlotting(false)
+    setPlotResult(undefined)
+    return () => {
+      plotAbort.current?.abort()
+      plotAbort.current = null
+    }
+  }, [lookup.system.name])
   const selected = useMemo<CartographicSelection | null>(() => {
     if (!route.selectedName) return null
     return lookup.system.bodies.find(item => item.name === route.selectedName)
@@ -80,39 +112,66 @@ function SystemView({ lookup, onNavigate, route }: {
       ?? null
   }, [lookup.system, route.selectedName])
 
+  const plotRoute = () => {
+    const controller = new AbortController()
+    plotAbort.current = controller
+    setPlotting(true)
+    setPlotResult(undefined)
+    void api.plotEliteDestination(lookup.system.name, controller.signal)
+      .then(result => {
+        if (plotAbort.current === controller) {
+          setPlotResult(result)
+          if (result.status === 'confirmed') {
+            onNavigate({ kind: 'information', section: 'galaxy', view: 'route' })
+          }
+        }
+      })
+      .catch(cause => {
+        if (plotAbort.current === controller) {
+          setPlotResult({
+            requestedSystem: lookup.system.name,
+            confirmedSystem: null,
+            status: 'failed',
+            phase: 'preflight',
+            message: cause instanceof Error ? cause.message : 'Galaxy Map automation failed.'
+          })
+        }
+      })
+      .finally(() => {
+        if (plotAbort.current === controller) {
+          plotAbort.current = null
+          setPlotting(false)
+        }
+      })
+  }
+
   return (
     <PageFrame className="galaxy-system-page" layout="fit">
-      <PageHeader
-        variant="cockpit"
-        context={<Breadcrumbs items={[{ label: 'Galaxy' }, { label: 'System schematic' }]} />}
-        title={lookup.system.name}
-        actions={
-          <form
-            className="system-query"
-            onSubmit={event => {
-              event.preventDefault()
-              const systemName = query.trim()
-              if (systemName) onNavigate({ kind: 'information', section: 'galaxy', view: 'system', systemName })
-            }}
-          >
-            <label className="sr-only" htmlFor="system-query-name">System name</label>
-            <TextInput
-              className="system-query__input"
-              id="system-query-name"
-              spellCheck="false"
-              value={query}
-              onChange={event => setQuery(event.target.value)}
-            />
-            <Button variant="accent" type="submit">Load</Button>
-          </form>
-        }
+      <SystemHeader
+        following={following}
+        onFollow={() => onNavigate({
+          kind: 'information',
+          section: 'galaxy',
+          view: 'system',
+          ...(following ? { systemName: lookup.system.name } : {})
+        })}
+        onLoad={systemName => onNavigate({ kind: 'information', section: 'galaxy', view: 'system', systemName })}
+        onBookmark={() => onNavigate({ kind: 'information', section: 'galaxy', view: 'bookmarks', systemName: lookup.system.name })}
+        onPlot={plotRoute}
+        plotResult={plotResult}
+        plotting={plotting}
+        query={query}
+        setQuery={setQuery}
+        systemName={lookup.system.name}
       />
       <SystemSchematic
+        commanderName={commanderName}
+        onBookmarkBody={bodyName => onNavigate({ kind: 'information', section: 'galaxy', view: 'bookmarks', systemName: lookup.system.name, bodyName })}
         onSelect={selectedName => onNavigate({
           kind: 'information',
           section: 'galaxy',
           view: 'system',
-          systemName: lookup.system.name,
+          ...(route.systemName ? { systemName: lookup.system.name } : {}),
           ...(selectedName ? { selectedName } : {})
         })}
         selected={selected}
@@ -120,6 +179,110 @@ function SystemView({ lookup, onNavigate, route }: {
       />
     </PageFrame>
   )
+}
+
+function SystemState({ error, onNavigate, route, runtime }: {
+  error?: string
+  onNavigate(route: PhoenixRoute): void
+  route: Extract<GalaxyRoute, { view: 'system' }>
+  runtime: RuntimeStateSnapshot
+}) {
+  const following = route.systemName === undefined
+  const currentSystemName = runtime.status === 'ready' ? runtime.state.system.name : null
+  const systemName = route.systemName ?? currentSystemName
+  const [query, setQuery] = useState(systemName ?? '')
+  useEffect(() => setQuery(systemName ?? ''), [systemName])
+
+  return (
+    <PageFrame className="galaxy-system-page" layout="fit">
+      <SystemHeader
+        following={following}
+        onFollow={() => {
+          if (following && !systemName) return
+          onNavigate({
+            kind: 'information',
+            section: 'galaxy',
+            view: 'system',
+            ...(following ? { systemName: systemName! } : {})
+          })
+        }}
+        onLoad={name => onNavigate({ kind: 'information', section: 'galaxy', view: 'system', systemName: name })}
+        onBookmark={systemName ? () => onNavigate({ kind: 'information', section: 'galaxy', view: 'bookmarks', systemName }) : undefined}
+        query={query}
+        setQuery={setQuery}
+        systemName={systemName ?? 'System schematic'}
+      />
+      <div className="system-schematic__state">
+        <Status marker={false} tone="muted">{error ?? 'Loading system schematic…'}</Status>
+      </div>
+    </PageFrame>
+  )
+}
+
+function SystemHeader({ following, onBookmark, onFollow, onLoad, onPlot, plotResult, plotting = false, query, setQuery, systemName }: {
+  following: boolean
+  onBookmark?: () => void
+  onFollow(): void
+  onLoad(systemName: string): void
+  onPlot?: () => void
+  plotResult?: PlotEliteDestinationResult
+  plotting?: boolean
+  query: string
+  setQuery(query: string): void
+  systemName: string
+}) {
+  return (
+    <PageHeader
+      variant="cockpit"
+      context={<Breadcrumbs items={[{ label: 'Galaxy' }, { label: 'System schematic' }]} />}
+      title={systemName}
+      actions={
+        <form
+          className="system-query"
+          onSubmit={event => {
+            event.preventDefault()
+            const name = query.trim()
+            if (name) onLoad(name)
+          }}
+        >
+          <label className="sr-only" htmlFor="system-query-name">System name</label>
+          <TextInput
+            className="system-query__input"
+            id="system-query-name"
+            spellCheck="false"
+            value={query}
+            onChange={event => setQuery(event.target.value)}
+          />
+          <Button variant="accent" type="submit">Load</Button>
+          <Button disabled={!onBookmark} type="button" variant="outline" onClick={onBookmark}>Bookmark</Button>
+          <ToggleButton pressed={following} onClick={onFollow}>
+            Follow {following ? 'on' : 'off'}
+          </ToggleButton>
+          <Button disabled={!onPlot || plotting} type="button" variant="accent" onClick={onPlot}>
+            {plotting ? 'Plotting…' : 'Plot Route'}
+          </Button>
+          {plotResult && (
+            <Status marker={false} tone={plotResult.status === 'confirmed' ? 'positive' : 'danger'} wrap>
+              {plotResult.status === 'confirmed' ? plotResult.message : `${destinationPhaseLabel(plotResult.phase)}: ${plotResult.message}`}
+            </Status>
+          )}
+        </form>
+      }
+    />
+  )
+}
+
+function destinationPhaseLabel (phase: PlotEliteDestinationResult['phase']): string {
+  return {
+    preflight: 'Preflight',
+    open_map: 'Opening Galaxy Map',
+    focus_search: 'Opening search',
+    enter_destination: 'Entering destination',
+    select_result: 'Selecting result',
+    plot_route: 'Plotting route',
+    confirm_route: 'Confirming route',
+    close_map: 'Closing Galaxy Map'
+  }[phase]
 }
 
 function QueryConsole({ api, onNavigate, route, runtime }: {

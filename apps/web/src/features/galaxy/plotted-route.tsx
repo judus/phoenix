@@ -142,7 +142,7 @@ export function PlottedRoute({ actions, api, route, runtimeState }: PlottedRoute
                   className="route-preview"
                   contentGap="sm"
                   fill
-                  meta={preview.status === 'ready' ? `${preview.lookup.cache} · ${preview.lookup.system.source.provider.toUpperCase()}` : undefined}
+                  meta={preview.status === 'ready' ? `${preview.lookup.cache} · ${provenanceLabel(preview.lookup)}` : undefined}
                   title={previewTitle(previewIndex, currentIndex, progressKnown)}
                 >
                   <Stack fill gap="lg">
@@ -263,6 +263,14 @@ function bodyCount(lookup: CartographyLookupResponse): string {
   return reportedBodies !== null && reportedBodies !== knownBodies
     ? `${knownBodies} known · ${reportedBodies} reported`
     : `${knownBodies} known`
+}
+
+function provenanceLabel (lookup: CartographyLookupResponse): string {
+  const sources = [
+    lookup.system.provenance.edsm ? 'EDSM' : null,
+    lookup.system.provenance.journal ? 'JOURNAL' : null
+  ].filter((source): source is string => source !== null)
+  return sources.join(' + ') || 'UNKNOWN'
 }
 
 function population(value: number | null): string {

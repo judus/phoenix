@@ -2,14 +2,14 @@ import { expect, test } from 'vitest'
 import { createEmptyRuntimeState, type CartographicSystem, type DisplayCommand } from '@phoenix/contracts'
 import { DisplayCommandService } from '../apps/server/src/application/display-command-service.js'
 import { resolveDisplayPage } from '../apps/server/src/application/display-page-catalogue.js'
-import type { CartographySource } from '../apps/server/src/domain/cartography.js'
+import type { ExternalCartographySource } from '../apps/server/src/domain/cartography.js'
 import { InMemoryRuntimeStateStore } from '../apps/server/src/infrastructure/in-memory-runtime-state-store.js'
 import { InProcessPublisher } from '../apps/server/src/infrastructure/in-process-publisher.js'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
 
 test('navigation API exposes lossless system cartography and the current plotted route', async () => {
-  const source: CartographySource = { fetchSystem: async systemName => fixtureSystem(systemName) }
+  const source: ExternalCartographySource = { fetchSystem: async systemName => fixtureSystem(systemName) }
   const application = new PhoenixApplication({
     cartographySource: source,
     databasePath: ':memory:',
@@ -89,7 +89,7 @@ test('display service publishes a stable page destination', () => {
 
 function fixtureSystem (name: string): CartographicSystem {
   return {
-    schemaVersion: 1,
+    schemaVersion: 5,
     name,
     address: 10477373803,
     position: [0, 0, 0],
@@ -110,7 +110,7 @@ function fixtureSystem (name: string): CartographicSystem {
     stations: [],
     scanProgress: { knownBodies: 0, reportedBodies: null, percent: null },
     localSystem: null,
-    source: { provider: 'edsm', fetchedAt: '2026-08-11T20:00:00.000Z' },
+    provenance: { edsm: { fetchedAt: '2026-08-11T20:00:00.000Z' }, journal: null },
     raw: {
       system: { providerSpecific: 'retained' },
       bodies: { bodies: [] },

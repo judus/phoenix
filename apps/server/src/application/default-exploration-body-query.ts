@@ -1,7 +1,7 @@
 import type { JsonObject } from '@jdu/llm-client'
 import type { CartographicBody } from '@phoenix/contracts'
 import type {
-  CartographyObservationStore,
+  CartographyRepository,
   LocalBodyCartographyObservation,
   SystemCartography
 } from '../domain/cartography.js'
@@ -11,7 +11,7 @@ import { json, output } from './mcp-tools/tool-support.js'
 
 export class DefaultExplorationBodyQuery implements ExplorationBodyQuery {
   public constructor (
-    private readonly observations: CartographyObservationStore,
+    private readonly cartographyRepository: CartographyRepository,
     private readonly cartography: SystemCartography,
     private readonly runtimeState: RuntimeStateReader
   ) {}
@@ -25,7 +25,7 @@ export class DefaultExplorationBodyQuery implements ExplorationBodyQuery {
       return output('No current or nearby body is known from local telemetry.', { currentBody: null })
     }
 
-    const observation = this.observations.getObservation(systemName)
+    const observation = this.cartographyRepository.findRecord(systemName)?.local ?? null
     const local = observation?.bodies.find(body => (
       sameName(body.bodyName, bodyName) ||
       (runtimeBody?.id !== null && runtimeBody?.id !== undefined && body.bodyId === runtimeBody.id)
@@ -44,9 +44,9 @@ export class DefaultExplorationBodyQuery implements ExplorationBodyQuery {
       status: bodyStatus(state.location.state),
       latitude: state.gameStatus?.latitude ?? null,
       longitude: state.gameStatus?.longitude ?? null,
-      discovered: knownBoolean(local?.discovered),
-      mapped: knownBoolean(local ? local.surfaceScanCompleted || local.mapped === true : null),
-      footfalled: knownBoolean(local?.footfalled),
+      discovered: knownBoolean(local ? local.scan !== null : null),
+      mapped: knownBoolean(local ? local.surfaceScanCompleted : null),
+      footfalled: knownBoolean(local?.previouslyFootfalled),
       planetClass: stringField(scan.PlanetClass) ?? external?.subType ?? 'Unknown',
       atmosphere: stringField(scan.Atmosphere) ?? stringField(scan.AtmosphereType) ?? 'Unknown',
       volcanism: stringField(scan.Volcanism) ?? 'Unknown'

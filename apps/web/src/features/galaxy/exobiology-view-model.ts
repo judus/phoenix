@@ -19,6 +19,7 @@ export interface ExobiologyBodyViewModel {
   name: string
   observedAt: string
   samples: ExobiologySampleViewModel[]
+  systemName: string
   total: number
 }
 
@@ -70,6 +71,7 @@ function createBodyViewModel(body: ExplorationBodyRecord): ExobiologyBodyViewMod
     name: body.name,
     observedAt: body.observedAt,
     samples,
+    systemName: body.systemName,
     total: samples.length
   }
 }

@@ -17,7 +17,7 @@ export interface GalaxyControllerSnapshot {
 export function useGalaxyController(
   api: PhoenixApi,
   events: PhoenixEventHub,
-  view: 'system' | 'route' | 'database' | 'exobiology',
+  view: 'system' | 'route' | 'database' | 'exobiology' | 'bookmarks',
   systemName?: string
 ): GalaxyControllerSnapshot {
   const cacheKey = `galaxy:${view}:${systemName ?? ''}`
@@ -26,7 +26,7 @@ export function useGalaxyController(
   )
 
   useEffect(() => {
-    if (view === 'database') {
+    if (view === 'database' || view === 'bookmarks') {
       setSnapshot({ status: 'ready' })
       return
     }
@@ -59,6 +59,13 @@ export function useGalaxyController(
           setSnapshot(current => storeControllerSnapshot(api, cacheKey, { ...current, route, status: 'ready' }))
         })
       : undefined
+    const unsubscribeCartography = view === 'system'
+      ? events.subscribe('cartography-updated', update => {
+          if (!systemName || !sameSystemName(update.systemName, systemName)) return
+          latest.cancel()
+          publish({ lookup: { cache: 'local', system: update.system }, status: 'ready' })
+        })
+      : undefined
     const unsubscribeCatalogue = view === 'route'
       ? events.subscribe('command-catalogue', () => load())
       : undefined
@@ -70,12 +77,17 @@ export function useGalaxyController(
     return () => {
       latest.cancel()
       unsubscribeRoute?.()
+      unsubscribeCartography?.()
       unsubscribeCatalogue?.()
       unsubscribeExploration?.()
     }
   }, [api, cacheKey, events, systemName, view])
 
   return snapshot
+}
+
+function sameSystemName (left: string, right: string): boolean {
+  return left.trim().toLocaleLowerCase() === right.trim().toLocaleLowerCase()
 }
 
 const explorationEvents = new Set([

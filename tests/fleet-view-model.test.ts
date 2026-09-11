@@ -66,12 +66,43 @@ test('fleet models preserve authority distinctions and stored-module provenance'
   const overview = createFleetOverviewModel(fleet)
   const storage = createStoredModulesModel(fleet)
 
-  expect(overview.ships[0]).toMatchObject({ active: true, name: 'MURDOCK', detail: 'Viper Mk IV · VI-04' })
-  expect(overview.assets[1]).toEqual({ label: 'Fleet carriers', value: 0, detail: 'No authoritative record observed' })
+  expect(overview.ships[0]).toMatchObject({
+    active: true,
+    name: 'MURDOCK',
+    detail: 'Viper Mk IV · VI-04',
+    location: { locationName: 'Atata Hub', systemName: 'Atata' },
+    transfer: '—'
+  })
+  expect(overview.summary).toEqual([
+    { label: 'Owned', value: '1' },
+    { label: 'Locations', value: '1' },
+    { label: 'Transferring', value: '0' },
+    { label: 'Fleet value', value: "5'000'000 CR" }
+  ])
   expect(storage.details).toBe('Complete snapshot')
-  expect(storage.groups[0]?.items[0]).toMatchObject({
+  expect(storage.meta).toBe('1 module · 1 location')
+  expect(storage.items[0]).toMatchObject({
     identifier: '$int_engine_size5_class5_name; · Hot',
-    engineering: 'DirtyDrive G2'
+    engineering: 'DirtyDrive G2',
+    location: { locationName: 'Atata Hub', systemName: 'Atata' }
+  })
+})
+
+test('fleet overview shows the available cost and time for retrieving a remote ship', () => {
+  const fleet = fleetFixture()
+  fleet.ships.push({
+    displayName: 'Sidewinder', hot: false, id: 9, identifier: null, marketId: 2,
+    name: null, state: 'stored-remote', station: 'Shajn Market', system: 'Shinrarta Dezhra',
+    transferPrice: 1_395, transferSeconds: 2_425, typeId: 'sidewinder',
+    updatedAt: '2026-08-16T12:00:00.000Z', value: 27_450
+  })
+  fleet.summary = { active: 1, owned: 2, stored: 1, transferring: 0, unknown: 0 }
+
+  const overview = createFleetOverviewModel(fleet)
+
+  expect(overview.ships[1]).toMatchObject({
+    location: { locationName: 'Shajn Market', systemName: 'Shinrarta Dezhra' },
+    transfer: "40m 25s · 1'395 CR"
   })
 })
 

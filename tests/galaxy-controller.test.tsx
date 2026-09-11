@@ -1,6 +1,6 @@
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
-import type { ActivityLogEntry, ExplorationLedgerResponse } from '@phoenix/contracts'
+import type { ActivityLogEntry, CartographicSystem, ExplorationLedgerResponse } from '@phoenix/contracts'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
 import type { PhoenixEventHub, PhoenixEventMap, PhoenixEventName } from '../apps/web/src/application/events/phoenix-event-hub.js'
 import { useGalaxyController, type GalaxyControllerSnapshot } from '../apps/web/src/features/galaxy/use-galaxy-controller.js'
@@ -58,6 +58,40 @@ test('a live plotted route cancels and supersedes an older route request', async
   await act(async () => renderer.unmount())
 })
 
+test('Galaxy replaces the current schematic with matching live cartography updates', async () => {
+  const initial = cartographicSystem('Sol', 0)
+  const updated = cartographicSystem('Sol', 1)
+  const api = {
+    getSystemCartography: vi.fn().mockResolvedValue({ cache: 'fresh', system: initial })
+  } as unknown as PhoenixApi
+  const events = new FakeEventHub()
+  let snapshot: GalaxyControllerSnapshot | undefined
+
+  function Probe() { snapshot = useGalaxyController(api, events, 'system', 'Sol'); return null }
+  const renderer = await act(async () => create(<Probe />))
+
+  expect(snapshot?.lookup?.system.scanProgress.knownBodies).toBe(0)
+  await act(async () => events.emit('cartography-updated', {
+    system: updated,
+    systemName: 'SOL',
+    updatedAt: '2026-08-16T12:01:00.000Z'
+  }))
+
+  expect(api.getSystemCartography).toHaveBeenCalledTimes(1)
+  expect(snapshot).toMatchObject({
+    lookup: { cache: 'local', system: { scanProgress: { knownBodies: 1 } } },
+    status: 'ready'
+  })
+
+  await act(async () => events.emit('cartography-updated', {
+    system: cartographicSystem('Sirius', 2),
+    systemName: 'Sirius',
+    updatedAt: '2026-08-16T12:02:00.000Z'
+  }))
+  expect(snapshot?.lookup?.system.name).toBe('Sol')
+  await act(async () => renderer.unmount())
+})
+
 test('Galaxy loads Exobiology and refreshes it for cartography journal events', async () => {
   const response = explorationResponse()
   const events = new FakeEventHub()
@@ -93,6 +127,34 @@ function explorationResponse(): ExplorationLedgerResponse {
 
 function activity(event: string): ActivityLogEntry {
   return { actionable: false, data: {}, event, id: event, importance: 'routine', ingestedAt: '2026-08-16T12:00:00.000Z', source: 'journal', timestamp: '2026-08-16T12:00:00.000Z' }
+}
+
+function cartographicSystem(name: string, knownBodies: number): CartographicSystem {
+  return {
+    schemaVersion: 5,
+    name,
+    address: null,
+    position: null,
+    permitRequired: null,
+    permitName: null,
+    information: {
+      allegiance: null,
+      government: null,
+      security: null,
+      state: null,
+      primaryEconomy: null,
+      secondaryEconomy: null,
+      population: null,
+      controllingFaction: null
+    },
+    primaryStar: null,
+    bodies: [],
+    stations: [],
+    scanProgress: { knownBodies, reportedBodies: null, percent: null },
+    localSystem: null,
+    provenance: { edsm: null, journal: { updatedAt: '2026-08-16T12:00:00.000Z' } },
+    raw: { system: {}, bodies: {}, stations: {} }
+  }
 }
 
 class FakeEventHub implements PhoenixEventHub {

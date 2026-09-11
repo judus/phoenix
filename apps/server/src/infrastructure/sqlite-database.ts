@@ -9,6 +9,7 @@ import {
   CartographicSystemSchema,
   CommunicationMessageSchema,
   FleetShipSchema,
+  GalaxyBookmarkSchema,
   MissionSchema,
   StoredModuleSchema,
   type ActivityLogEntry,
@@ -16,11 +17,15 @@ import {
   type CommunicationMessage,
   type DatabaseHealth,
   type FleetShip,
+  type GalaxyBookmark,
   type Mission,
   type StoredModule
 } from '@phoenix/contracts'
-import type { CartographyCache } from '../domain/cartography.js'
-import type { CartographyObservationStore, LocalSystemCartographyObservation } from '../domain/cartography.js'
+import type {
+  CartographyRecord,
+  CartographyRepository,
+  LocalSystemCartographyObservation
+} from '../domain/cartography.js'
 import type { Database } from '../domain/database.js'
 import type { ActivityLogRepository } from '../domain/elite-journal.js'
 import type {
@@ -31,9 +36,12 @@ import type { ProviderCacheEntry, ProviderResponseCache } from '../domain/statio
 import type { MissionRepository } from '../domain/missions.js'
 import type { CommunicationQueryView, CommunicationRepository } from '../domain/communications.js'
 import type { FleetRepository } from '../domain/fleet.js'
+import { galaxyBookmarkTargetKey, type GalaxyBookmarkRepository } from '../domain/galaxy-bookmarks.js'
+import { edsmBodyDetails } from './edsm-cartography-source.js'
 import { ensurePrivateDirectorySync, restrictPrivateFileSync } from './private-user-state.js'
+import { parseStoredCartographyObservation, upgradeStoredCartographyObservation } from './stored-cartography-observation.js'
 
-export class SqliteDatabase implements Database, CartographyCache, CartographyObservationStore, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository, CommunicationRepository, FleetRepository {
+export class SqliteDatabase implements Database, CartographyRepository, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository, CommunicationRepository, FleetRepository, GalaxyBookmarkRepository {
   private readonly connection: DatabaseSync
   private readonly path: string
 
@@ -57,22 +65,23 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
       INSERT OR IGNORE INTO schema_migrations (version, applied_at)
       VALUES (1, datetime('now'));
 
-      CREATE TABLE IF NOT EXISTS cartographic_systems (
+      CREATE TABLE IF NOT EXISTS cartography_records (
         system_key TEXT PRIMARY KEY,
         system_name TEXT NOT NULL,
-        fetched_at TEXT NOT NULL,
-        document TEXT NOT NULL
+        external_fetched_at TEXT,
+        local_updated_at TEXT,
+        external_document TEXT,
+        local_document TEXT,
+        CHECK (external_document IS NOT NULL OR local_document IS NOT NULL),
+        CHECK ((external_fetched_at IS NULL) = (external_document IS NULL)),
+        CHECK ((local_updated_at IS NULL) = (local_document IS NULL))
       ) STRICT;
 
-      CREATE INDEX IF NOT EXISTS cartographic_systems_fetched_at
-      ON cartographic_systems (fetched_at);
+      CREATE INDEX IF NOT EXISTS cartography_records_external_fetched_at
+      ON cartography_records (external_fetched_at);
 
-      CREATE TABLE IF NOT EXISTS cartographic_observations (
-        system_key TEXT PRIMARY KEY,
-        system_name TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        document TEXT NOT NULL
-      ) STRICT;
+      CREATE INDEX IF NOT EXISTS cartography_records_local_updated_at
+      ON cartography_records (local_updated_at);
 
       CREATE TABLE IF NOT EXISTS activity_log (
         id TEXT PRIMARY KEY,
@@ -211,60 +220,68 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
     if (missionProvenanceMigration.changes > 0) {
       this.connection.exec('DELETE FROM elite_journal_checkpoints;')
     }
+    this.migrateCartographyRecords()
+    this.migrateCartographicBodyModel()
+    this.migrateCartographyObservationMeaning()
+    this.migrateCartographicBodyAttribution()
+    this.migrateCartographicBodyDetails()
+    this.migrateGalaxyBookmarks()
   }
 
-  public getSystem (systemName: string): CartographicSystem | null {
+  public findRecord (systemName: string): CartographyRecord | null {
     const row = this.connection.prepare(`
-      SELECT document
-      FROM cartographic_systems
+      SELECT system_name, external_document, local_document
+      FROM cartography_records
       WHERE system_key = ?
-    `).get(systemKey(systemName)) as { document: string } | undefined
-    return row ? CartographicSystemSchema.parse(JSON.parse(row.document)) : null
+    `).get(systemKey(systemName)) as {
+      system_name: string
+      external_document: string | null
+      local_document: string | null
+    } | undefined
+    return row ? cartographyRecord(row) : null
   }
 
-  public putSystem (system: CartographicSystem): void {
+  public listObservedRecords (): CartographyRecord[] {
+    const rows = this.connection.prepare(`
+      SELECT system_name, external_document, local_document
+      FROM cartography_records
+      WHERE local_document IS NOT NULL
+      ORDER BY local_updated_at DESC, system_name ASC
+    `).all() as Array<{
+      system_name: string
+      external_document: string | null
+      local_document: string | null
+    }>
+    return rows.map(cartographyRecord)
+  }
+
+  public putExternalSystem (system: CartographicSystem): void {
     const validated = CartographicSystemSchema.parse(system)
+    const fetchedAt = validated.provenance.edsm?.fetchedAt
+    if (!fetchedAt) throw new Error('External cartography requires EDSM provenance.')
     this.connection.prepare(`
-      INSERT INTO cartographic_systems (system_key, system_name, fetched_at, document)
+      INSERT INTO cartography_records (system_key, system_name, external_fetched_at, external_document)
       VALUES (?, ?, ?, ?)
       ON CONFLICT(system_key) DO UPDATE SET
         system_name = excluded.system_name,
-        fetched_at = excluded.fetched_at,
-        document = excluded.document
+        external_fetched_at = excluded.external_fetched_at,
+        external_document = excluded.external_document
     `).run(
       systemKey(validated.name),
       validated.name,
-      validated.source.fetchedAt,
+      fetchedAt,
       JSON.stringify(validated)
     )
   }
 
-  public getObservation (systemName: string): LocalSystemCartographyObservation | null {
-    const row = this.connection.prepare(`
-      SELECT document
-      FROM cartographic_observations
-      WHERE system_key = ?
-    `).get(systemKey(systemName)) as { document: string } | undefined
-    return row ? JSON.parse(row.document) as LocalSystemCartographyObservation : null
-  }
-
-  public listObservations (): LocalSystemCartographyObservation[] {
-    const rows = this.connection.prepare(`
-      SELECT document
-      FROM cartographic_observations
-      ORDER BY updated_at DESC, system_name ASC
-    `).all() as Array<{ document: string }>
-    return rows.map(row => JSON.parse(row.document) as LocalSystemCartographyObservation)
-  }
-
-  public putObservation (observation: LocalSystemCartographyObservation): void {
+  public putLocalObservation (observation: LocalSystemCartographyObservation): void {
     this.connection.prepare(`
-      INSERT INTO cartographic_observations (system_key, system_name, updated_at, document)
+      INSERT INTO cartography_records (system_key, system_name, local_updated_at, local_document)
       VALUES (?, ?, ?, ?)
       ON CONFLICT(system_key) DO UPDATE SET
         system_name = excluded.system_name,
-        updated_at = excluded.updated_at,
-        document = excluded.document
+        local_updated_at = excluded.local_updated_at,
+        local_document = excluded.local_document
     `).run(
       systemKey(observation.systemName),
       observation.systemName,
@@ -538,6 +555,48 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
     }
   }
 
+  public deleteGalaxyBookmark (id: string): void {
+    this.connection.prepare('DELETE FROM galaxy_bookmarks WHERE bookmark_id = ?').run(id)
+  }
+
+  public findGalaxyBookmarkByTarget (target: GalaxyBookmark['target']): GalaxyBookmark | null {
+    const row = this.connection.prepare(`
+      SELECT document FROM galaxy_bookmarks WHERE target_key = ?
+    `).get(galaxyBookmarkTargetKey(target)) as { document: string } | undefined
+    return row ? GalaxyBookmarkSchema.parse(JSON.parse(row.document)) : null
+  }
+
+  public getGalaxyBookmark (id: string): GalaxyBookmark | null {
+    const row = this.connection.prepare(`
+      SELECT document FROM galaxy_bookmarks WHERE bookmark_id = ?
+    `).get(id) as { document: string } | undefined
+    return row ? GalaxyBookmarkSchema.parse(JSON.parse(row.document)) : null
+  }
+
+  public listGalaxyBookmarks (): GalaxyBookmark[] {
+    const rows = this.connection.prepare(`
+      SELECT document FROM galaxy_bookmarks ORDER BY updated_at DESC, bookmark_id ASC
+    `).all() as Array<{ document: string }>
+    return rows.map(row => GalaxyBookmarkSchema.parse(JSON.parse(row.document)))
+  }
+
+  public putGalaxyBookmark (bookmark: GalaxyBookmark): void {
+    const validated = GalaxyBookmarkSchema.parse(bookmark)
+    this.connection.prepare(`
+      INSERT INTO galaxy_bookmarks (bookmark_id, target_key, updated_at, document)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(bookmark_id) DO UPDATE SET
+        target_key = excluded.target_key,
+        updated_at = excluded.updated_at,
+        document = excluded.document
+    `).run(
+      validated.id,
+      galaxyBookmarkTargetKey(validated.target),
+      validated.updatedAt,
+      JSON.stringify(validated)
+    )
+  }
+
   public getProviderResponse (namespace: string, key: string): ProviderCacheEntry | null {
     const row = this.connection.prepare(`
       SELECT fetched_at, document
@@ -569,12 +628,200 @@ export class SqliteDatabase implements Database, CartographyCache, CartographyOb
     if (this.connection.isOpen) this.connection.close()
   }
 
+  private migrateCartographyRecords (): void {
+    const applied = this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = 11').get()
+    if (applied) return
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      if (this.tableExists('cartographic_systems')) {
+        const rows = this.connection.prepare(`
+          SELECT system_name, fetched_at, document
+          FROM cartographic_systems
+        `).all() as Array<{ system_name: string, fetched_at: string, document: string }>
+        for (const row of rows) {
+          const external = upgradeExternalSystem(row.document, row.fetched_at)
+          this.putExternalSystem(external)
+        }
+      }
+      if (this.tableExists('cartographic_observations')) {
+        const rows = this.connection.prepare(`
+          SELECT document
+          FROM cartographic_observations
+        `).all() as Array<{ document: string }>
+        for (const row of rows) this.putLocalObservation(upgradeStoredCartographyObservation(row.document))
+      }
+      this.connection.exec(`
+        DROP TABLE IF EXISTS cartographic_systems;
+        DROP TABLE IF EXISTS cartographic_observations;
+        INSERT INTO schema_migrations (version, applied_at) VALUES (11, datetime('now'));
+        COMMIT;
+      `)
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
+    }
+  }
+
+  private migrateCartographicBodyModel (): void {
+    const applied = this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = 12').get()
+    if (applied) return
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      const rows = this.connection.prepare(`
+        SELECT external_fetched_at, external_document
+        FROM cartography_records
+        WHERE external_document IS NOT NULL
+      `).all() as Array<{ external_fetched_at: string, external_document: string }>
+      for (const row of rows) {
+        this.putExternalSystem(upgradeExternalSystem(row.external_document, row.external_fetched_at))
+      }
+      this.connection.exec(`
+        INSERT INTO schema_migrations (version, applied_at) VALUES (12, datetime('now'));
+        COMMIT;
+      `)
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
+    }
+  }
+
+  private migrateCartographyObservationMeaning (): void {
+    const applied = this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = 13').get()
+    if (applied) return
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      const rows = this.connection.prepare(`
+        SELECT local_document
+        FROM cartography_records
+        WHERE local_document IS NOT NULL
+      `).all() as Array<{ local_document: string }>
+      for (const row of rows) {
+        this.putLocalObservation(upgradeStoredCartographyObservation(row.local_document))
+      }
+      this.connection.exec(`
+        INSERT INTO schema_migrations (version, applied_at) VALUES (13, datetime('now'));
+        COMMIT;
+      `)
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
+    }
+  }
+
+  private migrateCartographicBodyAttribution (): void {
+    const applied = this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = 14').get()
+    if (applied) return
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      const rows = this.connection.prepare(`
+        SELECT external_fetched_at, external_document
+        FROM cartography_records
+        WHERE external_document IS NOT NULL
+      `).all() as Array<{ external_fetched_at: string, external_document: string }>
+      for (const row of rows) {
+        this.putExternalSystem(upgradeExternalSystem(row.external_document, row.external_fetched_at))
+      }
+      this.connection.exec(`
+        INSERT INTO schema_migrations (version, applied_at) VALUES (14, datetime('now'));
+        COMMIT;
+      `)
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
+    }
+  }
+
+  private migrateCartographicBodyDetails (): void {
+    const applied = this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = 15').get()
+    if (applied) return
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      const rows = this.connection.prepare(`
+        SELECT external_fetched_at, external_document
+        FROM cartography_records
+        WHERE external_document IS NOT NULL
+      `).all() as Array<{ external_fetched_at: string, external_document: string }>
+      for (const row of rows) {
+        this.putExternalSystem(upgradeExternalSystem(row.external_document, row.external_fetched_at))
+      }
+      this.connection.exec(`
+        INSERT INTO schema_migrations (version, applied_at) VALUES (15, datetime('now'));
+        COMMIT;
+      `)
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
+    }
+  }
+
+  private migrateGalaxyBookmarks (): void {
+    const applied = this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = 16').get()
+    if (applied) return
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      this.connection.exec(`
+        CREATE TABLE galaxy_bookmarks (
+          bookmark_id TEXT PRIMARY KEY,
+          target_key TEXT NOT NULL UNIQUE,
+          updated_at TEXT NOT NULL,
+          document TEXT NOT NULL
+        ) STRICT;
+        CREATE INDEX galaxy_bookmarks_updated_at
+        ON galaxy_bookmarks (updated_at DESC);
+        INSERT INTO schema_migrations (version, applied_at) VALUES (16, datetime('now'));
+        COMMIT;
+      `)
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
+    }
+  }
+
+  private tableExists (name: string): boolean {
+    return this.connection.prepare(`
+      SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?
+    `).get(name) !== undefined
+  }
+
   private restrictFiles (): void {
     if (this.path === ':memory:') return
     restrictPrivateFileSync(this.path)
     restrictPrivateFileSync(`${this.path}-shm`)
     restrictPrivateFileSync(`${this.path}-wal`)
   }
+}
+
+function cartographyRecord (row: {
+  system_name: string
+  external_document: string | null
+  local_document: string | null
+}): CartographyRecord {
+  return {
+    systemName: row.system_name,
+    external: row.external_document ? CartographicSystemSchema.parse(JSON.parse(row.external_document)) : null,
+    local: row.local_document ? parseStoredCartographyObservation(row.local_document) : null
+  }
+}
+
+function upgradeExternalSystem (document: string, fetchedAt: string): CartographicSystem {
+  const candidate = JSON.parse(document) as Record<string, unknown>
+  const { source: _source, ...system } = candidate
+  const bodies = Array.isArray(candidate.bodies)
+    ? candidate.bodies.map(value => {
+        if (value === null || typeof value !== 'object' || Array.isArray(value)) return value
+        const body = value as Record<string, unknown>
+        const raw = body.raw !== null && typeof body.raw === 'object' && !Array.isArray(body.raw)
+          ? body.raw as Record<string, unknown>
+          : {}
+        return { ...body, ...edsmBodyDetails(raw) }
+      })
+    : candidate.bodies
+  return CartographicSystemSchema.parse({
+    ...system,
+    bodies,
+    schemaVersion: 5,
+    provenance: { edsm: { fetchedAt }, journal: null }
+  })
 }
 
 function systemKey (systemName: string): string {

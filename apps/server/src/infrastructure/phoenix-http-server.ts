@@ -20,14 +20,17 @@ import {
   CopilotRealtimeToolRequestSchema,
   CopilotRealtimeTurnRequestSchema,
   ExplorationManualCompletionRequestSchema,
+  GalaxyBookmarkWriteRequestSchema,
   InstallationSettingsSchema,
   InstallationSettingsUpdateSchema,
   MacroDefinitionSchema,
   OpenAiApiKeyRequestSchema,
+  PlotEliteDestinationRequestSchema,
   PhoenixModulesSchema,
   RecordMacroActionRequestSchema,
   StartMacroRecordingRequestSchema,
   type CopilotConversationEvent,
+  type CartographyUpdate,
   type DisplayCommand,
   type EliteInventorySourceDiagnostics,
   type EliteNavigationRouteSourceDiagnostics,
@@ -47,6 +50,7 @@ import {
 } from '../application/copilot-realtime-service.js'
 import type { CatalogueDiagnosticsReader } from '../application/catalogue-diagnostics-service.js'
 import type { GameActions } from '../application/game-action-service.js'
+import type { EliteDestinations } from '../domain/elite-destination.js'
 import type { Commands } from '../domain/commands.js'
 import type { HealthCheck } from '../application/health-service.js'
 import type { EngineeringDataReader } from '../application/engineering-data-service.js'
@@ -66,6 +70,7 @@ import type { Macros } from '../domain/macros.js'
 import type { MissionDataReader } from '../domain/missions.js'
 import type { CommunicationDataReader, CommunicationQueryView } from '../domain/communications.js'
 import type { FleetDataReader } from '../domain/fleet.js'
+import type { GalaxyBookmarks } from '../domain/galaxy-bookmarks.js'
 import type { PhoenixMcpServer } from './phoenix-mcp-server.js'
 import type { PairingAccessController } from './pairing-access-controller.js'
 import { activeRouteIPv4Address, serverAccessUrls } from './server-access-urls.js'
@@ -88,6 +93,7 @@ type CopilotConversationEventPayload = CopilotConversationEvent extends infer Ev
 export interface PhoenixHttpServerOptions {
   accessControl?: PairingAccessController
   catalogueDiagnostics: CatalogueDiagnosticsReader
+  cartographyUpdates: Subscribable<CartographyUpdate>
   commandCatalogue: CommandCatalogueSnapshots
   controlDeckHttp?: ControlDeckHttpHandler
   copilot?: CopilotText
@@ -98,6 +104,7 @@ export interface PhoenixHttpServerOptions {
   commands: Commands
   gameActions: GameActions
   eliteInventoryDiagnostics: { getDiagnostics(): EliteInventorySourceDiagnostics }
+  eliteDestinations: EliteDestinations
   eliteJournalDiagnostics: EliteJournalDiagnosticsReader
   eliteNavigationRouteDiagnostics: { getDiagnostics(): EliteNavigationRouteSourceDiagnostics }
   eliteStatusDiagnostics: EliteStatusDiagnosticsReader
@@ -105,6 +112,7 @@ export interface PhoenixHttpServerOptions {
   explorationData: ExplorationDataReader
   explorationTargets: ExplorationTargetReader
   fleet: FleetDataReader
+  bookmarks: GalaxyBookmarks
   galaxyData: GalaxyDataReader
   galnet: GalnetNewsReader
   healthCheck: HealthCheck
@@ -286,6 +294,31 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/bookmarks') {
+      this.writeJson(response, 200, this.options.bookmarks.getAll())
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/galaxy/bookmarks') {
+      const input = await readValidatedJsonBody(request, GalaxyBookmarkWriteRequestSchema)
+      this.writeJson(response, 201, this.options.bookmarks.create(input))
+      return
+    }
+
+    const galaxyBookmarkMatch = url.pathname.match(/^\/api\/galaxy\/bookmarks\/([^/]+)$/u)
+    if (galaxyBookmarkMatch && request.method === 'PUT') {
+      const input = await readValidatedJsonBody(request, GalaxyBookmarkWriteRequestSchema)
+      this.writeJson(response, 200, this.options.bookmarks.update(decodeURIComponent(galaxyBookmarkMatch[1]!), input))
+      return
+    }
+
+    if (galaxyBookmarkMatch && request.method === 'DELETE') {
+      this.options.bookmarks.delete(decodeURIComponent(galaxyBookmarkMatch[1]!))
+      response.writeHead(204)
+      response.end()
+      return
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/comms/messages') {
       const requestedLimit = Number.parseInt(url.searchParams.get('limit') ?? '250', 10)
       const requestedView = url.searchParams.get('view')
@@ -304,6 +337,30 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/navigation/route') {
       this.writeJson(response, 200, this.options.navigationData.getRoute())
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/navigation/destination') {
+      try {
+        const input = PlotEliteDestinationRequestSchema.parse(await readJsonBody(request))
+        const controller = new AbortController()
+        const abort = (): void => {
+          if (!response.writableEnded) controller.abort(new DOMException('Client disconnected.', 'AbortError'))
+        }
+        response.once('close', abort)
+        try {
+          this.writeJson(response, 200, await this.options.eliteDestinations.plot(input.systemName, controller.signal))
+        } finally {
+          response.off('close', abort)
+        }
+      } catch (cause) {
+        this.writeJson(response, 400, {
+          error: {
+            code: 'invalid_destination_request',
+            message: cause instanceof Error ? cause.message : 'Invalid Elite destination request.'
+          }
+        })
+      }
       return
     }
 
@@ -1073,6 +1130,7 @@ export class PhoenixHttpServer {
     const send = (event: string, payload: unknown): void => writeSse(response, event, payload)
     const unsubscribers = [
       this.options.runtimeStateUpdates.subscribe(state => send('runtime-state', state)),
+      this.options.cartographyUpdates.subscribe(update => send('cartography-updated', update)),
       this.options.activityLog.subscribe(entry => send('activity-entry', entry)),
       this.options.displayCommands.subscribe(command => send('display-command', command)),
       this.options.navigationRouteUpdates.subscribe(route => send('navigation-route', route)),
@@ -1470,6 +1528,17 @@ async function readJsonBody (request: IncomingMessage): Promise<unknown> {
 
   if (chunks.length === 0) throw new Error('Request body is empty.')
   return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown
+}
+
+async function readValidatedJsonBody<T> (
+  request: IncomingMessage,
+  schema: { parse(value: unknown): T }
+): Promise<T> {
+  try {
+    return schema.parse(await readJsonBody(request))
+  } catch (cause) {
+    throw new HttpRequestValidationError(cause instanceof Error ? cause.message : 'Invalid request body.')
+  }
 }
 
 function writeCopilotStreamEvent (response: ServerResponse, event: AiStreamEvent): void {

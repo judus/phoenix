@@ -22,6 +22,7 @@ import {
 import type { InformationRoute, PhoenixRoute } from '../../application/navigation/phoenix-route.js'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
 import { DataSyncNotice } from '../../components/data-sync-notice.js'
+import { SystemLocationLink } from '../../components/system-location-link.js'
 import type { FleetControllerSnapshot, FleetView } from './use-fleet-controller.js'
 import {
   createCurrentShipModel,
@@ -86,19 +87,27 @@ function FleetState({ error, status, title }: { error?: string, status: 'idle' |
 
 function FleetOverview({ fleet }: { fleet: NonNullable<FleetControllerSnapshot['fleet']> }) {
   const model = createFleetOverviewModel(fleet)
+  const hasNotices = fleet.shipsSnapshotAt === null || fleet.summary.unknown > 0
   return (
     <PageFrame layout="fit">
-      <div className="fleet-overview">
+      <div className={`fleet-overview${hasNotices ? ' has-notices' : ''}`}>
         <PageHeader
           variant="cockpit"
           context={<Breadcrumbs items={[{ label: 'Fleet' }]} />}
           title="Fleet"
         />
-        <MetricStrip columns={5}>
+        <MetricStrip columns={4}>
           {model.summary.map(item => <MetricStripItem key={item.label} label={item.label} value={item.value} />)}
         </MetricStrip>
-        {fleet.shipsSnapshotAt === null
-          ? <DataSyncNotice>Stored fleet not synchronized. Open Starport Services → Shipyard in Elite to publish the vessel manifest.</DataSyncNotice>
+        {hasNotices
+          ? <div className="fleet-notices">
+              {fleet.shipsSnapshotAt === null
+                ? <DataSyncNotice>Stored fleet not synchronized. Open Starport Services → Shipyard in Elite to publish the vessel manifest.</DataSyncNotice>
+                : null}
+              {fleet.summary.unknown > 0
+                ? <DataSyncNotice>{`${fleet.summary.unknown} vessel ${fleet.summary.unknown === 1 ? 'record is' : 'records are'} unresolved. Open Starport Services → Shipyard in Elite to refresh the fleet manifest.`}</DataSyncNotice>
+                : null}
+            </div>
           : null}
         <DataTableGroup className="vessels" title="Owned vessels">
           <DataTable density="compact" label="Owned vessels" minimum="wide" narrow="priority" scheme="surface">
@@ -110,7 +119,12 @@ function FleetOverview({ fleet }: { fleet: NonNullable<FleetControllerSnapshot['
                     <tr className={ship.active ? 'active' : undefined} key={ship.id}>
                       <td><strong>{ship.name}</strong><small>{ship.detail}</small></td>
                       <td>{ship.state}</td>
-                      <td className="priority-secondary">{ship.location}</td>
+                      <td className="priority-secondary">
+                        <SystemLocationLink
+                          locationName={ship.location.locationName}
+                          systemName={ship.location.systemName}
+                        />
+                      </td>
                       <td className="numeric">{ship.value}</td>
                       <td className="priority-tertiary">{ship.transfer}</td>
                       <td className="priority-tertiary">{ship.observed}</td>
@@ -119,9 +133,6 @@ function FleetOverview({ fleet }: { fleet: NonNullable<FleetControllerSnapshot['
             </tbody>
           </DataTable>
         </DataTableGroup>
-        <dl className="asset-summary">
-          {model.assets.map(item => <div key={item.label}><dt>{item.label}</dt><dd>{item.value}</dd><small>{item.detail}</small></div>)}
-        </dl>
       </div>
     </PageFrame>
   )
@@ -340,14 +351,17 @@ function StoredModules({ fleet }: { fleet: NonNullable<FleetControllerSnapshot['
         status={`${model.details} · ${model.authority}`}
         title="Stored modules"
       />
-      <div className="module-groups" tabIndex={0}>
+      <div className="module-manifest">
         {fleet.storedModules.snapshotAt === null
           ? <DataSyncNotice>Stored modules not synchronized. Open Starport Services → Outfitting in Elite to publish the module manifest.</DataSyncNotice>
-          : model.groups.length === 0 ? <Status tone="muted">No stored modules were present in the latest snapshot.</Status> : model.groups.map(group => (
-          <DataTableGroup className="module-storage" meta={`${group.items.length} modules`} title={group.system} key={group.system}>
-            <DataTable density="compact" label={`Modules stored at ${group.system}`} narrow="priority" scheme="surface"><thead><tr><th>Module</th><th>Engineering</th><th className="numeric">Storage slot</th><th>Transfer</th><th className="numeric">Purchase value</th><th>Observed</th></tr></thead><tbody>{group.items.map(item => <tr key={item.key}><td><strong>{item.name}</strong><small>{item.identifier}</small></td><td className={item.engineering !== '—' ? 'text-information' : undefined}>{item.engineering}</td><td className="numeric">{item.slot}</td><td>{item.transfer}</td><td className="numeric">{item.value}</td><td>{item.observed}</td></tr>)}</tbody></DataTable>
-          </DataTableGroup>
-        ))}
+          : model.items.length === 0
+            ? <Status tone="muted">No stored modules were present in the latest snapshot.</Status>
+            : <DataTableGroup className="module-storage fill" meta={model.meta} title="Module manifest">
+                <DataTable density="compact" label="Stored module manifest" minimum="wide" narrow="priority" scheme="surface" stickyHeader>
+                  <thead><tr><th>Module</th><th className="priority-secondary">Engineering</th><th>Location</th><th>Transfer</th><th className="numeric priority-tertiary">Purchase value</th></tr></thead>
+                  <tbody>{model.items.map(item => <tr key={item.key}><td><strong>{item.name}</strong><small>{item.identifier}</small></td><td className={`priority-secondary${item.engineering !== '—' ? ' text-information' : ''}`}>{item.engineering}</td><td><SystemLocationLink locationName={item.location.locationName} systemName={item.location.systemName} /></td><td>{item.transfer}</td><td className="numeric priority-tertiary">{item.value}</td></tr>)}</tbody>
+                </DataTable>
+              </DataTableGroup>}
       </div>
     </div></PageFrame>
   )

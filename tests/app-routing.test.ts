@@ -63,6 +63,17 @@ describe('PHOENIX route parsing and generation', () => {
     expect(phoenixRouteHash(route)).toBe('#/galaxy/system?name=Sol&selected=Earth')
   })
 
+  test('a selected body can remain in the route while the system follows runtime state', () => {
+    const route = parsePhoenixRoute('#/galaxy/system?selected=Earth')
+    expect(route).toEqual({
+      kind: 'information',
+      section: 'galaxy',
+      view: 'system',
+      selectedName: 'Earth'
+    })
+    expect(phoenixRouteHash(route)).toBe('#/galaxy/system?selected=Earth')
+  })
+
   test('migrated Commander routes do not expose an arbitrary query bag', () => {
     const route = parsePhoenixRoute('#/commander/progress?rank=combat')
 
@@ -99,6 +110,21 @@ describe('PHOENIX route parsing and generation', () => {
     const route = parsePhoenixRoute('#/galaxy/exobiology')
     expect(route).toEqual({ kind: 'information', section: 'galaxy', view: 'exobiology' })
     expect(phoenixRouteHash(route)).toBe('#/galaxy/exobiology')
+  })
+
+  test('Galaxy bookmark routes preserve editor and target context', () => {
+    const target = parsePhoenixRoute('#/galaxy/bookmarks?system=Sol&body=Earth')
+    expect(target).toEqual({
+      bodyName: 'Earth',
+      kind: 'information',
+      section: 'galaxy',
+      systemName: 'Sol',
+      view: 'bookmarks'
+    })
+    expect(phoenixRouteHash(target)).toBe('#/galaxy/bookmarks?system=Sol&body=Earth')
+
+    const editor = parsePhoenixRoute('#/galaxy/bookmarks?edit=00000000-0000-4000-8000-000000000001')
+    expect(phoenixRouteHash(editor)).toBe('#/galaxy/bookmarks?edit=00000000-0000-4000-8000-000000000001')
   })
 
   test('Fleet promotes catalogue selection and drops arbitrary query fields', () => {

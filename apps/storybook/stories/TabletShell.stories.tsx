@@ -74,7 +74,7 @@ function Brand() {
       <i aria-hidden="true" />
       <span>
         <strong>PHOENIX</strong>
-        <small>Terminal</small>
+        <small>Control Deck</small>
       </span>
     </div>
   )

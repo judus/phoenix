@@ -1,11 +1,13 @@
 import type { CartographicSystem } from '@phoenix/contracts'
 
-export interface CartographyCache {
-  getSystem(systemName: string): CartographicSystem | null
-  putSystem(system: CartographicSystem): void
+export interface CartographyRepository {
+  findRecord(systemName: string): CartographyRecord | null
+  listObservedRecords(): CartographyRecord[]
+  putExternalSystem(system: CartographicSystem): void
+  putLocalObservation(observation: LocalSystemCartographyObservation): void
 }
 
-export interface CartographySource {
+export interface ExternalCartographySource {
   fetchSystem(systemName: string): Promise<CartographicSystem>
 }
 
@@ -13,14 +15,24 @@ export interface LocalBodyCartographyObservation {
   bodyId: number | null
   bodyName: string
   bodySignals: Record<string, unknown> | null
-  discovered: boolean | null
-  footfalled: boolean | null
-  mapped: boolean | null
+  footfallCompleted: boolean
+  previouslyDiscovered: boolean | null
+  previouslyFootfalled: boolean | null
+  previouslyMapped: boolean | null
   observedAt: string
   organicSamples: LocalOrganicSampleObservation[]
   scan: Record<string, unknown> | null
   surfaceScanCompleted: boolean
   surfaceSignals: Record<string, unknown> | null
+}
+
+export function hasCartographicBodyEvidence (observation: LocalBodyCartographyObservation): boolean {
+  return observation.scan !== null ||
+    observation.bodySignals !== null ||
+    observation.surfaceSignals !== null ||
+    observation.surfaceScanCompleted ||
+    observation.footfallCompleted ||
+    observation.organicSamples.length > 0
 }
 
 export interface LocalOrganicSampleObservation {
@@ -45,10 +57,10 @@ export interface LocalSystemCartographyObservation {
   updatedAt: string
 }
 
-export interface CartographyObservationStore {
-  getObservation(systemName: string): LocalSystemCartographyObservation | null
-  listObservations(): LocalSystemCartographyObservation[]
-  putObservation(observation: LocalSystemCartographyObservation): void
+export interface CartographyRecord {
+  external: CartographicSystem | null
+  local: LocalSystemCartographyObservation | null
+  systemName: string
 }
 
 export interface CartographyLookupOptions {
@@ -56,7 +68,7 @@ export interface CartographyLookupOptions {
 }
 
 export interface CartographyLookupResult {
-  cache: 'fresh' | 'refreshed' | 'stale'
+  cache: 'fresh' | 'refreshed' | 'stale' | 'local'
   system: CartographicSystem
 }
 

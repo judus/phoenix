@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { DisplayCommand, GameEventEnvelope, NavigationRoute, PhoenixControlDeckConfiguration, RuntimeState } from '@phoenix/contracts'
+import type { CartographyUpdate, DisplayCommand, GameEventEnvelope, NavigationRoute, PhoenixControlDeckConfiguration, RuntimeState } from '@phoenix/contracts'
 import { ToolRegistry } from '@jdu/llm-client'
 import { ControlDeckCommandService, type ControlDeckConfigurationRepository } from 'control-deck/core'
 import { ControlDeckIntegration } from 'control-deck/host'
@@ -28,7 +28,7 @@ import { CopilotConversationEventService } from './application/copilot-conversat
 import { CopilotVoiceHostCoordinator } from './application/copilot-voice-host-coordinator.js'
 import type { CopilotProfiles } from './application/copilot-profile-service.js'
 import { CatalogueDiagnosticsService } from './application/catalogue-diagnostics-service.js'
-import { CachedSystemCartographyService } from './application/cached-system-cartography-service.js'
+import { SystemCartographyService } from './application/system-cartography-service.js'
 import { CartographyObservationIngestionService } from './application/cartography-observation-ingestion-service.js'
 import { DefaultNavigationQuery } from './application/default-navigation-query.js'
 import { DefaultSystemDetailsQuery } from './application/default-system-details-query.js'
@@ -53,6 +53,7 @@ import { ActivityLogService } from './application/activity-log-service.js'
 import { LoggedGameActions } from './application/logged-game-actions.js'
 import { DisplayCommandService } from './application/display-command-service.js'
 import { NavigationDataService } from './application/navigation-data-service.js'
+import { EliteDestinationService } from './application/elite-destination-service.js'
 import { EngineeringDataService } from './application/engineering-data-service.js'
 import { ExplorationDataService } from './application/exploration-data-service.js'
 import { DefaultCommanderEngineersQuery } from './application/default-commander-engineers-query.js'
@@ -61,11 +62,13 @@ import { GalnetNewsService } from './application/galnet-news-service.js'
 import { MissionDataService } from './application/mission-data-service.js'
 import { CommunicationDataService } from './application/communication-data-service.js'
 import { FleetDataService } from './application/fleet-data-service.js'
+import { CachedCartographyStationResolver } from './application/cached-cartography-station-resolver.js'
+import { GalaxyBookmarkService } from './application/galaxy-bookmark-service.js'
 import { DefaultExplorationBodyQuery } from './application/default-exploration-body-query.js'
 import { DefaultExplorationTargetQuery } from './application/default-exploration-target-query.js'
 import type { CopilotText } from './application/copilot-text-service.js'
 import type { CopilotRealtime } from './application/copilot-realtime-service.js'
-import type { CartographySource } from './domain/cartography.js'
+import type { ExternalCartographySource } from './domain/cartography.js'
 import type { ExplorationTargetSearchSource } from './domain/exploration-target.js'
 import type { FactionPresenceSearchSource, OutfittingSearchSource, ShipyardSearchSource, StationLookupSource, StationSearchSource, StationStockSource, SystemSearchSource } from './domain/station-market.js'
 import type { GalnetSource } from './domain/galnet.js'
@@ -104,13 +107,14 @@ import { FrontierGalnetSource } from './infrastructure/frontier-galnet-source.js
 import type { PairingAccessController } from './infrastructure/pairing-access-controller.js'
 import { OpenAiConfigurationService } from './application/openai-configuration-service.js'
 import { OpenAiWebSearchSource } from './infrastructure/openai-web-search-source.js'
+import { ControlDeckEliteDestinationInput } from './infrastructure/control-deck-elite-destination-input.js'
 import type { WebSearchSource } from './domain/web-search.js'
 
 export interface PhoenixApplicationOptions {
   applicationPaths?: ApplicationPaths
   eliteBindings?: EliteDangerousBindingSource
   accessControl?: PairingAccessController
-  cartographySource?: CartographySource
+  cartographySource?: ExternalCartographySource
   controlDeckConfigurationRepository?: ControlDeckConfigurationRepository<PhoenixControlDeckConfiguration>
   copilot?: CopilotText | null
   copilotRealtime?: CopilotRealtime | null
@@ -166,6 +170,7 @@ export class PhoenixApplication {
     const copilotConversationEvents = new CopilotConversationEventService()
     const copilotVoiceHost = new CopilotVoiceHostCoordinator()
     const runtimeStateUpdates = new InProcessPublisher<RuntimeState>()
+    const cartographyUpdates = new InProcessPublisher<CartographyUpdate>()
     const displayCommandUpdates = new InProcessPublisher<DisplayCommand>()
     const commandCatalogueChanges = new InProcessPublisher<CommandCatalogueChange>()
     this.stateStore = new InMemoryRuntimeStateStore()
@@ -178,6 +183,7 @@ export class PhoenixApplication {
     const activityLog = new ActivityLogService(this.database)
     const missions = new MissionDataService(this.database)
     const communications = new CommunicationDataService(this.database)
+    const bookmarks = new GalaxyBookmarkService(this.database)
     const runtimeCatalogueDirectory = resolve(paths.user.data, 'runtime/catalogue')
     const engineeringCatalogueDirectory = resolveProjectPath(projectRoot,
       options.engineeringCatalogueDirectory ?? process.env.PHOENIX_ENGINEERING_CATALOGUE_PATH ?? resolve(runtimeCatalogueDirectory, 'engineering'))
@@ -192,7 +198,8 @@ export class PhoenixApplication {
     const engineeringCatalogue = catalogues.engineering
     const fleet = new FleetDataService(
       this.database,
-      identifier => gameCatalogue.resolveShip(identifier)?.displayName ?? null
+      identifier => gameCatalogue.resolveShip(identifier)?.displayName ?? null,
+      new CachedCartographyStationResolver(this.database)
     )
     const projector = new DefaultRuntimeStateProjector(
       this.stateStore,
@@ -211,7 +218,7 @@ export class PhoenixApplication {
         }).locate()
     const statusIngestion = new EliteStatusIngestionService(this.eventIngestion)
     const journalIngestion = new EliteJournalIngestionService(this.eventIngestion)
-    const cartographyObservationIngestion = new CartographyObservationIngestionService(this.database, this.stateStore)
+    const cartographyObservationIngestion = new CartographyObservationIngestionService(this.database, this.stateStore, cartographyUpdates)
     const historicalState = new InMemoryRuntimeStateStore()
     const historicalEvents = new InProcessPublisher<GameEventEnvelope>()
     const historicalProjector = new DefaultRuntimeStateProjector(
@@ -227,7 +234,8 @@ export class PhoenixApplication {
     )
     const historicalCartographyIngestion = new CartographyObservationIngestionService(
       this.database,
-      historicalState
+      historicalState,
+      cartographyUpdates
     )
     const inventoryIngestion = new EliteInventoryIngestionService(this.eventIngestion)
     const liveJournalProjections = new EliteJournalProjectionPipeline([
@@ -276,9 +284,10 @@ export class PhoenixApplication {
     const eliteBindings = options.eliteBindings ?? new EliteKeyboardBindingResolver(
       locateBindingsDirectory(options, configuredEliteDirectory)
     )
+    const keyboardOutput = options.keyboardOutput ?? new RecordingKeyboardOutput()
     const eliteAdapter = new EliteDangerousCommandAdapter({
       bindings: eliteBindings,
-      output: options.keyboardOutput ?? new RecordingKeyboardOutput(),
+      output: keyboardOutput,
       outputId: options.keyboardOutputId ?? 'recording'
     })
     this.eliteControls = new ControlDeckCommandService([eliteAdapter], { createId: randomUUID })
@@ -346,11 +355,10 @@ export class PhoenixApplication {
       50,
       () => systemSettings.loadOrCreate().copilot.permissions
     )
-    const cartography = new CachedSystemCartographyService(
+    const cartography = new SystemCartographyService(
       options.cartographySource ?? new EdsmCartographySource(),
       this.database,
-      this.stateStore,
-      this.database
+      this.stateStore
     )
     const navigation = new DefaultNavigationQuery(navigationRoutes, cartography, this.stateStore)
     const systems = new DefaultSystemDetailsQuery(cartography, this.stateStore)
@@ -368,6 +376,11 @@ export class PhoenixApplication {
     )
     const galnet = new GalnetNewsService(options.galnetSource ?? new FrontierGalnetSource(), this.database)
     const navigationData = new NavigationDataService(cartography, navigationRoutes, this.stateStore)
+    const eliteDestinations = new EliteDestinationService(
+      new ControlDeckEliteDestinationInput(eliteBindings, keyboardOutput),
+      this.stateStore,
+      navigationRoutes
+    )
     const display = new DisplayCommandService(displayCommandUpdates, this.stateStore)
     const engineering = new EngineeringDataService(engineeringCatalogue, this.stateStore)
     const exploration = new DefaultExplorationBodyQuery(this.database, cartography, this.stateStore)
@@ -425,6 +438,7 @@ export class PhoenixApplication {
     this.server = new PhoenixHttpServer({
       accessControl: options.accessControl,
       catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
+      cartographyUpdates,
       commandCatalogue,
       controlDeckHttp: this.controlDeck.http,
       copilot,
@@ -435,6 +449,7 @@ export class PhoenixApplication {
       commands,
       gameActions,
       eliteInventoryDiagnostics: this.inventorySource,
+      eliteDestinations,
       eliteJournalDiagnostics: new EliteJournalDiagnosticsService(
         this.journalSource,
         this.journalBackfill
@@ -447,6 +462,7 @@ export class PhoenixApplication {
       mcpServer,
       macros,
       missions,
+      bookmarks,
       communications,
       port,
       runtimeState: this.stateStore,

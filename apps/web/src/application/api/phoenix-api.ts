@@ -38,6 +38,9 @@ import type {
   GalaxyShipyardsResponse,
   GalaxyStationLookupResponse,
   GalaxyTradeOpportunitiesResponse,
+  GalaxyBookmark,
+  GalaxyBookmarksResponse,
+  GalaxyBookmarkWriteRequest,
   HealthResponse,
   InstallationSettings,
   InstallationSettingsUpdate,
@@ -47,6 +50,7 @@ import type {
   MacroRecording,
   MissionsResponse,
   NavigationRoute,
+  PlotEliteDestinationResult,
   NumpadExecutionResult,
   NumpadTreeSnapshot,
   PairingInfo,
@@ -118,6 +122,7 @@ export interface PhoenixApi {
   getControlDeckCommands(signal?: AbortSignal): Promise<ControlDeckCommandCatalogue>
   getCommands(signal?: AbortSignal): Promise<CommandCatalogResponse>
   getFleet(signal?: AbortSignal): Promise<FleetResponse>
+  getGalaxyBookmarks(signal?: AbortSignal): Promise<GalaxyBookmarksResponse>
   getGalnetNews(limit?: number, signal?: AbortSignal): Promise<GalnetNewsResponse>
   getFilteredSystems(input: FilteredSystemsQuery, signal?: AbortSignal): Promise<GalaxyFilteredSystemsResponse>
   findGalaxyCommodityMarkets(input: GalaxyCommodityMarketSearch, signal?: AbortSignal): Promise<GalaxyCommodityMarketsResponse>
@@ -135,6 +140,7 @@ export interface PhoenixApi {
   getMissions(signal?: AbortSignal): Promise<MissionsResponse>
   getModuleSettings(signal?: AbortSignal): Promise<PhoenixModules>
   getNavigationRoute(signal?: AbortSignal): Promise<NavigationRoute>
+  plotEliteDestination(systemName: string, signal?: AbortSignal): Promise<PlotEliteDestinationResult>
   getNumpadSnapshot(signal?: AbortSignal): Promise<NumpadTreeSnapshot>
   getPairingInfo(signal?: AbortSignal): Promise<PairingInfo>
   getPairingStatus(signal?: AbortSignal): Promise<PairingStatus>
@@ -155,6 +161,7 @@ export interface PhoenixApi {
   releasePairing(signal?: AbortSignal): Promise<void>
   requestCopilotVoiceHostState(connected: boolean, signal?: AbortSignal): Promise<CopilotVoiceHostCommandAccepted>
   saveMacro(macro: MacroDefinition, signal?: AbortSignal): Promise<MacroDefinition>
+  saveGalaxyBookmark(input: GalaxyBookmarkWriteRequest, id?: string, signal?: AbortSignal): Promise<GalaxyBookmark>
   saveControlDeckConfiguration(configuration: PhoenixControlDeckConfiguration, signal?: AbortSignal): Promise<PhoenixControlDeckConfiguration>
   saveModuleSettings(settings: PhoenixModules, signal?: AbortSignal): Promise<PhoenixModules>
   saveInstallationSettings(settings: InstallationSettingsUpdate, signal?: AbortSignal): Promise<InstallationSettings>
@@ -166,5 +173,6 @@ export interface PhoenixApi {
   streamCopilotMessage(input: CopilotChatRequest, onEvent: (event: CopilotStreamEvent) => void, signal?: AbortSignal): Promise<void>
   updateCopilotProfile(profileId: string, input: CopilotProfileWriteRequest, signal?: AbortSignal): Promise<CopilotProfileDocument>
   updateCopilotVoiceHost(input: CopilotVoiceHostHeartbeat, signal?: AbortSignal): Promise<CopilotVoiceHostSnapshot>
+  deleteGalaxyBookmark(id: string, signal?: AbortSignal): Promise<void>
   eventStreamUrl(): string
 }

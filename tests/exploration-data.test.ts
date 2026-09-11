@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { ExplorationDataService } from '../apps/server/src/application/exploration-data-service.js'
 import type {
-  CartographyObservationStore,
+  CartographyRecord,
+  CartographyRepository,
   LocalSystemCartographyObservation
 } from '../apps/server/src/domain/cartography.js'
 import type { BiologicalCompletionOverride } from '../apps/server/src/domain/exploration.js'
@@ -41,16 +42,22 @@ describe('ExplorationDataService', () => {
       true
     )).toBe(true)
     expect(service.getLedger().systems[0]!.bodies[0]!.manualBiologicalCompletions).toHaveLength(1)
-    expect(store.getObservation('Synuefe X')!.bodies[0]!.organicSamples[0]!.completed).toBe(true)
+    expect(store.findRecord('Synuefe X')!.local!.bodies[0]!.organicSamples[0]!.completed).toBe(true)
   })
 })
 
-class ObservationStore implements CartographyObservationStore {
+class ObservationStore implements CartographyRepository {
   private readonly overrides: BiologicalCompletionOverride[] = []
   public constructor (private readonly observations: LocalSystemCartographyObservation[]) {}
-  public getObservation (name: string) { return this.observations.find(item => item.systemName === name) ?? null }
-  public listObservations () { return this.observations }
-  public putObservation (_observation: LocalSystemCartographyObservation) {}
+  public findRecord (name: string): CartographyRecord | null {
+    const local = this.observations.find(item => item.systemName === name) ?? null
+    return local ? { external: null, local, systemName: local.systemName } : null
+  }
+  public listObservedRecords (): CartographyRecord[] {
+    return this.observations.map(local => ({ external: null, local, systemName: local.systemName }))
+  }
+  public putExternalSystem () {}
+  public putLocalObservation (_observation: LocalSystemCartographyObservation) {}
   public listBiologicalCompletionOverrides () { return this.overrides }
   public setBiologicalCompletionOverride (bodyKey: string, signalKey: string, completed: boolean) {
     const index = this.overrides.findIndex(item => item.bodyKey === bodyKey && item.signalKey === signalKey)
@@ -70,9 +77,9 @@ function observation (systemName: string, updatedAt: string): LocalSystemCartogr
       bodyId: 1,
       bodyName: `${systemName} 1 A`,
       bodySignals: null,
-      discovered: false,
-      footfalled: false,
-      mapped: true,
+      previouslyDiscovered: false,
+      previouslyFootfalled: false,
+      previouslyMapped: true,
       observedAt: updatedAt,
       organicSamples: [{
         completed: true,

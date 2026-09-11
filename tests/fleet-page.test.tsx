@@ -25,7 +25,11 @@ test('Fleet overview and current ship render live records without shell chrome',
 
   expect(overview).toContain('Owned vessels')
   expect(overview).toContain('MURDOCK')
-  expect(overview).toContain('No authoritative record observed')
+  expect(overview).toContain('href="#/galaxy/system?name=Atata"')
+  expect(overview).toContain('href="#/galaxy/system?name=Atata&amp;selected=Atata+Hub"')
+  expect(overview).toContain('Fleet value')
+  expect(overview).not.toContain('Stored equipment')
+  expect(overview).not.toContain('Fleet carriers')
   expect(current).toContain('Prospector')
   expect(current).not.toContain('page-header')
   expect(current).not.toContain('Current ship views')
@@ -63,6 +67,18 @@ test('Fleet explains missing stored-ship and stored-module snapshots', () => {
   expect(modules).toContain('Open Starport Services → Outfitting')
   expect(overview).toContain('href="#/settings/help"')
   expect(modules).toContain('href="#/settings/help"')
+})
+
+test('stored modules render a compact manifest with linked record locations', () => {
+  const markup = renderToStaticMarkup(<FleetPage controller={{ fleet: fleetFixture(), status: 'ready' }} onNavigate={vi.fn()} route={{ kind: 'information', section: 'fleet', view: 'stored-modules' }} runtime={{ status: 'loading' }} />)
+
+  expect(markup).toContain('Module manifest')
+  expect(markup).toContain('1 module · 1 location')
+  expect(markup).toContain('href="#/galaxy/system?name=Atata"')
+  expect(markup).toContain('href="#/galaxy/system?name=Atata&amp;selected=Atata+Hub"')
+  expect(markup).toContain('Purchase value')
+  expect(markup).not.toContain('Storage slot')
+  expect(markup).not.toContain('<th>Observed</th>')
 })
 
 test('catalogue selection comes from the typed route', () => {

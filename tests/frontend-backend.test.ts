@@ -127,7 +127,7 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
 
 function fixtureSystem (): CartographicSystem {
   return {
-    schemaVersion: 1,
+    schemaVersion: 5,
     name: 'Sol',
     address: 10477373803,
     position: [0, 0, 0],
@@ -142,7 +142,7 @@ function fixtureSystem (): CartographicSystem {
     stations: [],
     scanProgress: { knownBodies: 0, reportedBodies: null, percent: null },
     localSystem: null,
-    source: { provider: 'edsm', fetchedAt: '2026-08-15T00:00:00.000Z' },
+    provenance: { edsm: { fetchedAt: '2026-08-15T00:00:00.000Z' }, journal: null },
     raw: { system: {}, bodies: {}, stations: {} }
   }
 }

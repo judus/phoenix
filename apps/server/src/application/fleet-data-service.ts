@@ -7,12 +7,13 @@ import {
   type StoredModule
 } from '@phoenix/contracts'
 import type { EliteJournalEvent } from '@phoenix/elite'
-import type { FleetDataReader, FleetRepository } from '../domain/fleet.js'
+import type { FleetDataReader, FleetRepository, MarketStationResolver } from '../domain/fleet.js'
 
 export class FleetDataService implements FleetDataReader {
   public constructor (
     private readonly repository: FleetRepository,
-    private readonly resolveShipDisplayName: (identifier: string) => string | null = () => null
+    private readonly resolveShipDisplayName: (identifier: string) => string | null = () => null,
+    private readonly stationResolver: MarketStationResolver = { resolve: () => null }
   ) {}
 
   public ingest (event: EliteJournalEvent): void {
@@ -39,9 +40,14 @@ export class FleetDataService implements FleetDataReader {
       .filter(ship => ship.state !== 'sold')
       .map(ship => FleetShipSchema.parse({
         ...ship,
-        displayName: ship.displayName ?? (ship.typeId === null ? null : this.resolveShipDisplayName(ship.typeId))
+        displayName: ship.displayName ?? (ship.typeId === null ? null : this.resolveShipDisplayName(ship.typeId)),
+        station: ship.station ?? this.resolveStoredStation(ship)
       }))
       .sort(compareShips)
+    const storedModules = this.repository.listStoredModules().map(module => ({
+      ...module,
+      station: this.stationResolver.resolve(module.system, module.marketId)
+    }))
     const snapshotAt = this.repository.getFleetProjectionTimestamp('stored-modules-snapshot')
     const latestMutationAt = this.repository.getFleetProjectionTimestamp('stored-modules-mutation')
     const details = snapshotAt === null
@@ -55,7 +61,7 @@ export class FleetDataService implements FleetDataReader {
       shipsSnapshotAt: this.repository.getFleetProjectionTimestamp('stored-ships-snapshot'),
       storedModules: {
         details,
-        items: this.repository.listStoredModules(),
+        items: storedModules,
         latestMutationAt,
         snapshotAt
       },
@@ -67,6 +73,12 @@ export class FleetDataService implements FleetDataReader {
         unknown: count('unknown')
       }
     })
+  }
+
+  private resolveStoredStation (ship: FleetShip): string | null {
+    if (ship.state !== 'stored-remote' && ship.state !== 'transfer') return null
+    if (ship.system === null || ship.marketId === null) return null
+    return this.stationResolver.resolve(ship.system, ship.marketId)
   }
 
   private ingestLoadout (event: EliteJournalEvent): void {

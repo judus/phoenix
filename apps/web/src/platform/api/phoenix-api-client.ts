@@ -38,6 +38,9 @@ import {
   GalaxyShipyardsResponseSchema,
   GalaxyStationLookupResponseSchema,
   GalaxyTradeOpportunitiesResponseSchema,
+  GalaxyBookmarkSchema,
+  GalaxyBookmarksResponseSchema,
+  GalaxyBookmarkWriteRequestSchema,
   InstallationSettingsSchema,
   InstallationSettingsUpdateSchema,
   MacroDefinitionSchema,
@@ -46,6 +49,8 @@ import {
   MacroRecordingSchema,
   MissionsResponseSchema,
   NavigationRouteSchema,
+  PlotEliteDestinationRequestSchema,
+  PlotEliteDestinationResultSchema,
   NumpadExecutionResultSchema,
   NumpadTreeSnapshotSchema,
   PairingInfoSchema,
@@ -98,6 +103,9 @@ import type {
   GalaxyShipyardsResponse,
   GalaxyStationLookupResponse,
   GalaxyTradeOpportunitiesResponse,
+  GalaxyBookmark,
+  GalaxyBookmarksResponse,
+  GalaxyBookmarkWriteRequest,
   HealthResponse,
   InstallationSettings,
   InstallationSettingsUpdate,
@@ -107,6 +115,7 @@ import type {
   MacroRecording,
   MissionsResponse,
   NavigationRoute,
+  PlotEliteDestinationResult,
   NumpadExecutionResult,
   NumpadTreeSnapshot,
   PairingInfo,
@@ -219,6 +228,24 @@ export class PhoenixApiClient implements PhoenixApi {
     return this.#get('/api/fleet', FleetResponseSchema, signal)
   }
 
+  async getGalaxyBookmarks(signal?: AbortSignal): Promise<GalaxyBookmarksResponse> {
+    return this.#get('/api/galaxy/bookmarks', GalaxyBookmarksResponseSchema, signal)
+  }
+
+  async saveGalaxyBookmark(input: GalaxyBookmarkWriteRequest, id?: string, signal?: AbortSignal): Promise<GalaxyBookmark> {
+    return this.#json(
+      id ? `/api/galaxy/bookmarks/${encodeURIComponent(id)}` : '/api/galaxy/bookmarks',
+      id ? 'PUT' : 'POST',
+      GalaxyBookmarkWriteRequestSchema.parse(input),
+      GalaxyBookmarkSchema,
+      signal
+    )
+  }
+
+  async deleteGalaxyBookmark(id: string, signal?: AbortSignal): Promise<void> {
+    await this.#empty(`/api/galaxy/bookmarks/${encodeURIComponent(id)}`, 'DELETE', undefined, signal)
+  }
+
   async getMissions(signal?: AbortSignal): Promise<MissionsResponse> {
     return this.#get('/api/operations/missions', MissionsResponseSchema, signal)
   }
@@ -312,6 +339,16 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getNavigationRoute(signal?: AbortSignal): Promise<NavigationRoute> {
     return this.#get('/api/navigation/route', NavigationRouteSchema, signal)
+  }
+
+  async plotEliteDestination(systemName: string, signal?: AbortSignal): Promise<PlotEliteDestinationResult> {
+    return this.#json(
+      '/api/navigation/destination',
+      'POST',
+      PlotEliteDestinationRequestSchema.parse({ systemName }),
+      PlotEliteDestinationResultSchema,
+      signal
+    )
   }
 
   async getSystemCartography(systemName?: string, signal?: AbortSignal): Promise<CartographyLookupResponse> {

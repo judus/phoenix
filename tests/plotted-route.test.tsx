@@ -177,8 +177,8 @@ function cartography(systemName: string): CartographyLookupResponse {
       primaryStar: null,
       raw: { bodies: {}, stations: {}, system: {} },
       scanProgress: { knownBodies: 0, percent: 0, reportedBodies: 3 },
-      schemaVersion: 1,
-      source: { fetchedAt: '2026-08-15T16:29:09.000Z', provider: 'edsm' },
+      schemaVersion: 5,
+      provenance: { edsm: { fetchedAt: '2026-08-15T16:29:09.000Z' }, journal: null },
       stations: []
     }
   }
