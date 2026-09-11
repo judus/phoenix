@@ -63,6 +63,17 @@ describe('PHOENIX route parsing and generation', () => {
     expect(phoenixRouteHash(route)).toBe('#/galaxy/system?name=Sol&selected=Earth')
   })
 
+  test('a selected body can remain in the route while the system follows runtime state', () => {
+    const route = parsePhoenixRoute('#/galaxy/system?selected=Earth')
+    expect(route).toEqual({
+      kind: 'information',
+      section: 'galaxy',
+      view: 'system',
+      selectedName: 'Earth'
+    })
+    expect(phoenixRouteHash(route)).toBe('#/galaxy/system?selected=Earth')
+  })
+
   test('migrated Commander routes do not expose an arbitrary query bag', () => {
     const route = parsePhoenixRoute('#/commander/progress?rank=combat')
 

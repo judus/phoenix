@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
-import { expect, test, vi } from 'vitest'
+import { act, create } from 'react-test-renderer'
+import { beforeAll, expect, test, vi } from 'vitest'
 import type { CartographicBody, CartographicSystem } from '@phoenix/contracts'
 import {
   buildSystemHierarchy,
@@ -8,6 +9,8 @@ import {
 } from '../apps/web/src/features/galaxy/system-hierarchy.js'
 import { layoutSystemHierarchy } from '../apps/web/src/features/galaxy/system-orbital-layout.js'
 import { SystemSchematic } from '../apps/web/src/features/galaxy/system-schematic.js'
+
+beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
 
 test('schematic cartography orders bodies by body id and preserves the complete parent hierarchy', () => {
   const system = fixtureSystem()
@@ -282,6 +285,41 @@ test('schematic cartography renders symbolic bodies, stations, and scan markers'
   expect(markup).toContain('has-selection')
 })
 
+test('schematic cartography omits planetary survey fields for stars', () => {
+  const system = fixtureSystem()
+  const selected = system.bodies[0]!
+  selected.subType = 'N'
+  selected.surfaceTemperatureKelvin = 1_000_000
+  selected.radiusKilometres = 10
+  selected.details = { ...selected.details, isScoopable: false, solarMasses: 1.4, spectralClass: 'N', tidallyLocked: false }
+  const markup = renderToStaticMarkup(
+    <SystemSchematic
+      commanderName="Ellan Murdock"
+      onSelect={vi.fn()}
+      selected={selected}
+      system={system}
+    />
+  )
+  const sidebar = markup.match(/<aside class="cartography-detail">.*<\/aside>/)?.[0]
+
+  expect(sidebar).toBeDefined()
+  expect(sidebar).toContain('Neutron Star')
+  expect(sidebar).toContain('<dt>Scoopable</dt><dd>No</dd>')
+  expect(sidebar).toContain('<h3>Star</h3>')
+  expect(sidebar).toContain('<dt>Mass</dt><dd>1.4 M☉</dd>')
+  expect(sidebar).toContain('<dt>Temperature</dt><dd>1,000,000 K</dd>')
+  expect(sidebar).toContain('<dt>Radius</dt><dd>10 km</dd>')
+  expect(sidebar).toContain('<dt>Tidal lock</dt><dd>No</dd>')
+  expect(sidebar).not.toContain('<h3>Environment</h3>')
+  expect(sidebar).toContain('Scanned')
+  expect(sidebar).toContain('First discovered')
+  expect(sidebar).not.toContain('<dt>Landable</dt>')
+  expect(sidebar).not.toContain('<dt>Mapped</dt>')
+  expect(sidebar).not.toContain('<dt>Set foot</dt>')
+  expect(sidebar).not.toContain('<dt>First mapped</dt>')
+  expect(sidebar).not.toContain('<dt>First footfall</dt>')
+})
+
 test('schematic cartography uses the full map workspace until an object is selected', () => {
   const markup = renderToStaticMarkup(
     <SystemSchematic
@@ -293,6 +331,34 @@ test('schematic cartography uses the full map workspace until an object is selec
   expect(markup).toContain('class="system-cartography"')
   expect(markup).not.toContain('has-selection')
   expect(markup).not.toContain('cartography-detail')
+})
+
+test('schematic zoom changes the orbital canvas scale and resets to 100 percent', async () => {
+  let renderer: ReturnType<typeof create>
+  await act(async () => {
+    renderer = create(<SystemSchematic onSelect={vi.fn()} system={fixtureSystem()} />)
+  })
+
+  const orbitalViewport = () => renderer.root.findByProps({ className: 'system-orbital-layout' })
+  const orbitalCanvas = () => renderer.root.findByProps({ className: 'system-orbital-layout__canvas' })
+  const originalInlineSize = orbitalViewport().props.style.inlineSize
+
+  await act(async () => renderer.root.findByProps({ 'aria-label': 'Zoom in' }).props.onClick())
+  expect(renderer.root.findByProps({ 'aria-label': 'Reset zoom to 100%' }).props.children.join('')).toBe('125%')
+  expect(orbitalViewport().props.style.inlineSize).not.toBe(originalInlineSize)
+  expect(orbitalCanvas().props.style.transform).toBe('scale(1.25)')
+
+  await act(async () => renderer.update(
+    <SystemSchematic onSelect={vi.fn()} selected={fixtureSystem().bodies[1]} system={fixtureSystem()} />
+  ))
+  expect(renderer.root.findByProps({ 'aria-label': 'Reset zoom to 100%' }).props.children.join('')).toBe('125%')
+
+  await act(async () => renderer.root.findByProps({ 'aria-label': 'Reset zoom to 100%' }).props.onClick())
+  expect(renderer.root.findByProps({ 'aria-label': 'Reset zoom to 100%' }).props.children.join('')).toBe('100%')
+  expect(orbitalViewport().props.style.inlineSize).toBe(originalInlineSize)
+  expect(orbitalCanvas().props.style.transform).toBe('scale(1)')
+
+  await act(async () => renderer.unmount())
 })
 
 function fixtureSystem (): CartographicSystem {

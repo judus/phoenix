@@ -48,6 +48,7 @@
   }
 
   .system-schematic__viewport {
+    grid-area: 1 / 1;
     min-block-size: 0;
     padding: var(--spacing-md);
     overflow: auto;
@@ -56,6 +57,16 @@
     &::-webkit-scrollbar {
       display: none;
     }
+  }
+
+  .system-schematic__zoom {
+    grid-area: 1 / 1;
+    align-self: start;
+    justify-self: end;
+    z-index: 2;
+    display: flex;
+    gap: var(--spacing-xxs);
+    margin: var(--spacing-md);
   }
 
   .system-schematic__empty {
@@ -91,6 +102,13 @@
     position: relative;
     min-inline-size: 13.5rem;
     min-block-size: 13.5rem;
+  }
+
+  .system-orbital-layout__canvas {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    transform-origin: top left;
   }
 
   .system-orbital-layout__connections {
@@ -372,8 +390,7 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
-    padding: var(--spacing-xxs) 0 0;
-    border-block-start: 1px solid var(--color-border);
+    padding-block: var(--spacing-sm) 0;
     background: rgb(8 8 12 / 88%);
     overflow: hidden;
 
@@ -462,12 +479,13 @@
 
       dl > div {
         display: grid;
-        grid-template-columns: minmax(6rem, 0.8fr) minmax(0, 1.2fr);
+        grid-template-columns: minmax(7rem, 0.8fr) minmax(0, 1.2fr);
         gap: var(--spacing-xs);
       }
 
       dt {
         color: var(--color-text-muted);
+        font-size: var(--font-size-sm);
       }
 
       dd {
@@ -524,7 +542,7 @@
 
   @media (width < 58rem) {
     .system-cartography.has-selection {
-      grid-template-columns: minmax(0, 1fr) clamp(16rem, 34vw, 21rem);
+      grid-template-columns: minmax(0, 1fr) clamp(18rem, 38vw, 23rem);
     }
   }
 

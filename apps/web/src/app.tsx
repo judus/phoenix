@@ -150,7 +150,7 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
               : fleetRoute
                 ? <FleetFeature key={router.href(fleetRoute)} application={application} route={fleetRoute} />
                 : galaxyRoute
-                  ? <GalaxyFeature key={router.href(galaxyRoute)} application={application} route={galaxyRoute} />
+                  ? <GalaxyFeature key={galaxyRoute.view} application={application} route={galaxyRoute} />
                   : activitiesRoute
                     ? <ActivitiesFeature key={router.href(activitiesRoute)} application={application} route={activitiesRoute} />
                     : commsRoute

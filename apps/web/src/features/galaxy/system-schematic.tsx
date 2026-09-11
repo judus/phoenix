@@ -1,9 +1,10 @@
-import type { CSSProperties, MouseEvent, ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react'
 import type {
   CartographicBody,
   CartographicStation,
   CartographicSystem
 } from '@phoenix/contracts'
+import { Button } from '@phoenix/ui'
 import {
   buildSystemHierarchy,
   type AttachedInstallation,
@@ -27,12 +28,36 @@ export interface SystemSchematicProps {
 export function SystemSchematic ({ commanderName, onSelect, selected, system }: SystemSchematicProps) {
   const hierarchy = buildSystemHierarchy(system)
   const layout = layoutSystemHierarchy(hierarchy.roots)
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const focalPointRef = useRef<{ x: number, y: number } | null>(null)
+  const [zoomPercent, setZoomPercent] = useState(100)
+
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current
+    const focalPoint = focalPointRef.current
+    if (!viewport || !focalPoint) return
+    viewport.scrollLeft = focalPoint.x * viewport.scrollWidth - viewport.clientWidth / 2
+    viewport.scrollTop = focalPoint.y * viewport.scrollHeight - viewport.clientHeight / 2
+    focalPointRef.current = null
+  }, [zoomPercent])
+
+  const changeZoom = (nextZoomPercent: number) => {
+    const viewport = viewportRef.current
+    if (viewport) {
+      focalPointRef.current = {
+        x: (viewport.scrollLeft + viewport.clientWidth / 2) / viewport.scrollWidth,
+        y: (viewport.scrollTop + viewport.clientHeight / 2) / viewport.scrollHeight
+      }
+    }
+    setZoomPercent(Math.max(50, Math.min(200, nextZoomPercent)))
+  }
 
   return (
     <div className={selected ? 'system-cartography has-selection' : 'system-cartography'}>
       <section className="system-schematic" aria-label={`Schematic map of ${system.name}`}>
         <div
           className="system-schematic__viewport"
+          ref={viewportRef}
           onClick={(event: MouseEvent<HTMLDivElement>) => {
             if (!(event.target instanceof Element) || !event.target.closest('button')) onSelect()
           }}
@@ -43,6 +68,7 @@ export function SystemSchematic ({ commanderName, onSelect, selected, system }: 
               onSelect={onSelect}
               selectedName={selected?.name}
               systemName={system.name}
+              zoomPercent={zoomPercent}
             />
           )}
           {hierarchy.roots.length === 0 && hierarchy.unassignedInstallations.length === 0 && (
@@ -67,6 +93,32 @@ export function SystemSchematic ({ commanderName, onSelect, selected, system }: 
             </section>
           )}
         </div>
+        <div className="system-schematic__zoom" aria-label="Schematic zoom controls">
+          <Button
+            aria-label="Zoom out"
+            disabled={zoomPercent === 50}
+            size="sm"
+            type="button"
+            variant="outline"
+            onClick={() => changeZoom(zoomPercent - 25)}
+          >−</Button>
+          <Button
+            aria-label="Reset zoom to 100%"
+            size="sm"
+            title="Reset zoom"
+            type="button"
+            variant="quiet"
+            onClick={() => changeZoom(100)}
+          >{zoomPercent}%</Button>
+          <Button
+            aria-label="Zoom in"
+            disabled={zoomPercent === 200}
+            size="sm"
+            type="button"
+            variant="outline"
+            onClick={() => changeZoom(zoomPercent + 25)}
+          >+</Button>
+        </div>
 
       </section>
 
@@ -80,63 +132,73 @@ function OrbitalMap ({
   layout,
   onSelect,
   selectedName,
-  systemName
+  systemName,
+  zoomPercent
 }: {
   layout: SystemOrbitalLayout
   onSelect(name: string): void
   selectedName?: string
   systemName: string
+  zoomPercent: number
 }) {
+  const scale = zoomPercent / 100
+  const viewportStyle: CSSProperties = {
+    blockSize: `${layout.height * 9 * scale}rem`,
+    inlineSize: `${layout.width * 9 * scale}rem`
+  }
   const canvasStyle: CSSProperties = {
     blockSize: `${layout.height * 9}rem`,
-    inlineSize: `${layout.width * 9}rem`
+    inlineSize: `${layout.width * 9}rem`,
+    transform: `scale(${scale})`
   }
   return (
-    <div className="system-orbital-layout" style={canvasStyle}>
-      <svg
-        aria-hidden="true"
-        className="system-orbital-layout__connections"
-        preserveAspectRatio="none"
-        viewBox={`0 0 ${layout.width} ${layout.height}`}
-      >
-        {layout.edges.map(edge => (
-          <polyline
-            key={edge.key}
-            points={edge.points.map(point => `${point.x},${point.y}`).join(' ')}
-            vectorEffect="non-scaling-stroke"
-          />
-        ))}
-      </svg>
-      {layout.nodes.map(item => (
-        <div
-          className={[
-            'system-orbital-layout__node',
-            item.compact ? 'is-compact' : '',
-            item.node.kind === 'unresolved-body' ? 'is-structural' : ''
-          ].filter(Boolean).join(' ')}
-          key={item.node.key}
-          style={layoutPosition(item, layout)}
+    <div className="system-orbital-layout" style={viewportStyle}>
+      <div className="system-orbital-layout__canvas" style={canvasStyle}>
+        <svg
+          aria-hidden="true"
+          className="system-orbital-layout__connections"
+          preserveAspectRatio="none"
+          viewBox={`0 0 ${layout.width} ${layout.height}`}
         >
-          {item.node.kind === 'body'
-            ? <BodyNode
-                child={item.compact}
-                node={item.node}
-                onSelect={onSelect}
-                selectedName={selectedName}
-                systemName={systemName}
-              />
-            : <UnresolvedBodyNode bodyId={item.node.bodyId} bodyType={item.node.bodyType} />}
-        </div>
-      ))}
-      {layout.installations.map(item => (
-        <div className="system-orbital-layout__installation" key={item.key} style={layoutPosition(item, layout)}>
-          <InstallationNode
-            installation={item.installation}
-            onSelect={onSelect}
-            selected={selectedName === item.installation.station.name}
-          />
-        </div>
-      ))}
+          {layout.edges.map(edge => (
+            <polyline
+              key={edge.key}
+              points={edge.points.map(point => `${point.x},${point.y}`).join(' ')}
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+        </svg>
+        {layout.nodes.map(item => (
+          <div
+            className={[
+              'system-orbital-layout__node',
+              item.compact ? 'is-compact' : '',
+              item.node.kind === 'unresolved-body' ? 'is-structural' : ''
+            ].filter(Boolean).join(' ')}
+            key={item.node.key}
+            style={layoutPosition(item, layout)}
+          >
+            {item.node.kind === 'body'
+              ? <BodyNode
+                  child={item.compact}
+                  node={item.node}
+                  onSelect={onSelect}
+                  selectedName={selectedName}
+                  systemName={systemName}
+                />
+              : <UnresolvedBodyNode bodyId={item.node.bodyId} bodyType={item.node.bodyType} />}
+          </div>
+        ))}
+        {layout.installations.map(item => (
+          <div className="system-orbital-layout__installation" key={item.key} style={layoutPosition(item, layout)}>
+            <InstallationNode
+              installation={item.installation}
+              onSelect={onSelect}
+              selected={selectedName === item.installation.station.name}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -312,41 +374,54 @@ function BodyDetail ({ body, commanderName }: { body: CartographicBody, commande
   const signals = body.local?.signals
   const details = body.details
   const orbit = details.orbit
+  const stellar = isStellarBody(body)
   const hasOrbit = Object.values(orbit).some(value => value !== null)
-  const hasStarDetails = [details.absoluteMagnitude, details.ageMillionYears, details.isMainStar, details.isScoopable, details.luminosity, details.solarMasses, details.solarRadius, details.spectralClass, details.starSubclass].some(value => value !== null)
   return (
     <aside className="cartography-detail">
       <header className="cartography-detail__body">
         <BodyGlyph kind={bodyKind(body)} ringed={isRinged(body)} />
-        <div><span>Body</span><h2>{body.name}</h2><p>{body.subType ?? body.type ?? 'Unclassified'}</p></div>
+        <div><span>Body</span><h2>{body.name}</h2><p>{bodyTypeLabel(body)}</p></div>
       </header>
       <DetailSection title="Navigation">
         <Fact label="Arrival" value={formatDistance(body.distanceToArrival)} />
-        <Fact label="Body ID" value={body.bodyId === null ? null : String(body.bodyId)} />
-        <Fact label="Scan type" value={details.scanType} />
+        {stellar && <Fact label="Scoopable" value={booleanLabel(details.isScoopable)} />}
+        {!stellar && <Fact label="Landable" value={booleanLabel(body.landable)} />}
       </DetailSection>
       <DetailSection title="Survey">
         <Fact label="Scanned" value={booleanLabel(body.local?.discovered)} />
-        <Fact label="Mapped" value={booleanLabel(body.local?.mapped)} />
-        <Fact label="Set foot" value={booleanLabel(body.local?.footfalled)} />
-        <Fact label="First discovered by" value={firstCommander(body.local?.firstDiscoveredByCommander, body.firstDiscoveredBy, commanderName)} />
-        <Fact label="First mapped by" value={firstCommander(body.local?.firstMappedByCommander, body.firstMappedBy, commanderName)} />
-        <Fact label="First footfall" value={firstFootfall(body)} />
+        {!stellar && (
+          <>
+            <Fact label="Mapped" value={booleanLabel(body.local?.mapped)} />
+            <Fact label="Set foot" value={booleanLabel(body.local?.footfalled)} />
+          </>
+        )}
+        <Fact label="First discovered" value={firstCommander(body.local?.firstDiscoveredByCommander, body.firstDiscoveredBy, commanderName)} />
+        {!stellar && (
+          <>
+            <Fact label="First mapped" value={firstCommander(body.local?.firstMappedByCommander, body.firstMappedBy, commanderName)} />
+            <Fact label="First footfall" value={firstFootfall(body)} />
+          </>
+        )}
       </DetailSection>
-      <DetailSection title="Environment">
-        <Fact label="Landable" value={booleanLabel(body.landable)} />
-        <Fact label="Mass" value={formatMass(details.massEarths, details.solarMasses)} />
-        <Fact label="Gravity" value={formatUnit(body.gravityGs, 'g', 2)} />
-        <Fact label="Temperature" value={formatUnit(body.surfaceTemperatureKelvin, ' K', 0)} />
-        <Fact label="Radius" value={formatUnit(body.radiusKilometres, ' km', 0)} />
-        <Fact label="Pressure" value={formatPressure(details.surfacePressurePascals)} />
-        <Fact label="Atmosphere" value={body.atmosphere} />
-        <Fact label="Volcanism" value={details.volcanism} />
-        <Fact label="Terraforming" value={details.terraformState} />
-        <Fact label="Tidal lock" value={booleanLabel(details.tidallyLocked)} />
-      </DetailSection>
-      {hasStarDetails && (
+      {!stellar && (
+        <DetailSection title="Environment">
+          <Fact label="Mass" value={formatMass(details.massEarths, details.solarMasses)} />
+          <Fact label="Gravity" value={formatUnit(body.gravityGs, 'g', 2)} />
+          <Fact label="Temperature" value={formatUnit(body.surfaceTemperatureKelvin, ' K', 0)} />
+          <Fact label="Radius" value={formatUnit(body.radiusKilometres, ' km', 0)} />
+          <Fact label="Pressure" value={formatPressure(details.surfacePressurePascals)} />
+          <Fact label="Atmosphere" value={body.atmosphere} />
+          <Fact label="Volcanism" value={details.volcanism} />
+          <Fact label="Terraforming" value={details.terraformState} />
+          <Fact label="Tidal lock" value={booleanLabel(details.tidallyLocked)} />
+        </DetailSection>
+      )}
+      {stellar && (
         <DetailSection title="Star">
+          <Fact label="Mass" value={formatMass(details.massEarths, details.solarMasses)} />
+          <Fact label="Temperature" value={formatUnit(body.surfaceTemperatureKelvin, ' K', 0)} />
+          <Fact label="Radius" value={formatUnit(body.radiusKilometres, ' km', 0)} />
+          <Fact label="Tidal lock" value={booleanLabel(details.tidallyLocked)} />
           <Fact label="Class" value={details.spectralClass} />
           <Fact label="Subclass" value={details.starSubclass === null ? null : String(details.starSubclass)} />
           <Fact label="Luminosity" value={details.luminosity} />
@@ -354,7 +429,6 @@ function BodyDetail ({ body, commanderName }: { body: CartographicBody, commande
           <Fact label="Absolute magnitude" value={formatNumberValue(details.absoluteMagnitude, 2)} />
           <Fact label="Solar radius" value={formatUnit(details.solarRadius, ' R☉', 2)} />
           <Fact label="Main star" value={booleanLabel(details.isMainStar)} />
-          <Fact label="Scoopable" value={booleanLabel(details.isScoopable)} />
         </DetailSection>
       )}
       {details.atmosphereComposition.length > 0 && (
@@ -460,6 +534,73 @@ function bodyKind (body: CartographicBody): BodyKind {
   if (type.includes('icy') || type.includes('ice')) return 'ice'
   if (type.includes('rock') || type.includes('metal')) return 'rocky'
   return 'exotic'
+}
+
+function isStellarBody (body: CartographicBody): boolean {
+  const kind = bodyKind(body)
+  return kind === 'star' || kind === 'black-hole'
+}
+
+const starTypeLabels: Readonly<Record<string, string>> = {
+  O: 'Blue Main-Sequence Star',
+  B: 'Blue-White Main-Sequence Star',
+  A: 'White Main-Sequence Star',
+  F: 'Yellow-White Main-Sequence Star',
+  G: 'Yellow Dwarf',
+  K: 'Orange Dwarf',
+  M: 'Red Dwarf',
+  L: 'Brown Dwarf',
+  T: 'Brown Dwarf',
+  Y: 'Brown Dwarf',
+  TTS: 'T Tauri Star',
+  AEBE: 'Herbig Ae/Be Star',
+  W: 'Wolf-Rayet Star',
+  WN: 'Nitrogen-Rich Wolf-Rayet Star',
+  WNC: 'Transitional Wolf-Rayet Star',
+  WC: 'Carbon-Rich Wolf-Rayet Star',
+  WO: 'Oxygen-Rich Wolf-Rayet Star',
+  CS: 'Carbon Star',
+  C: 'Carbon Star',
+  CN: 'Carbon Star',
+  CJ: 'Carbon Star',
+  CH: 'Carbon Star',
+  CHD: 'Hydrogen-Deficient Carbon Star',
+  MS: 'MS-Type Star',
+  S: 'S-Type Star',
+  D: 'White Dwarf',
+  DA: 'DA-Type White Dwarf',
+  DAB: 'DAB-Type White Dwarf',
+  DAO: 'DAO-Type White Dwarf',
+  DAZ: 'DAZ-Type White Dwarf',
+  DAV: 'DAV-Type White Dwarf',
+  DB: 'DB-Type White Dwarf',
+  DBZ: 'DBZ-Type White Dwarf',
+  DBV: 'DBV-Type White Dwarf',
+  DO: 'DO-Type White Dwarf',
+  DOV: 'DOV-Type White Dwarf',
+  DQ: 'DQ-Type White Dwarf',
+  DC: 'DC-Type White Dwarf',
+  DCV: 'DCV-Type White Dwarf',
+  DX: 'DX-Type White Dwarf',
+  N: 'Neutron Star',
+  H: 'Black Hole',
+  X: 'Exotic Star',
+  SUPERMASSIVEBLACKHOLE: 'Supermassive Black Hole',
+  A_BLUEWHITESUPERGIANT: 'Blue-White Supergiant',
+  F_WHITESUPERGIANT: 'White Supergiant',
+  M_REDSUPERGIANT: 'Red Supergiant',
+  M_REDGIANT: 'Red Giant',
+  K_ORANGEGIANT: 'Orange Giant',
+  ROGUEPLANET: 'Rogue Planet',
+  NEBULA: 'Nebula',
+  STELLARREMNANTNEBULA: 'Stellar Remnant Nebula'
+}
+
+function bodyTypeLabel (body: CartographicBody): string {
+  if (!isStellarBody(body)) return body.subType ?? body.type ?? 'Unclassified'
+  const classification = body.details.spectralClass ?? body.subType
+  const code = classification?.trim().match(/^[A-Za-z_]+/)?.[0].toLocaleUpperCase()
+  return (code && starTypeLabels[code]) ?? body.subType ?? body.type ?? 'Unclassified'
 }
 
 function isRinged (body: CartographicBody): boolean {

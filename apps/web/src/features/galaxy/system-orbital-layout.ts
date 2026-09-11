@@ -12,7 +12,7 @@ export interface OrbitalLayoutEdge {
 
 export interface OrbitalLayoutNode extends OrbitalLayoutPoint {
   compact: boolean
-  node: OrbitalHierarchyNode
+  node: Exclude<OrbitalHierarchyNode, { kind: 'barycentre' }>
 }
 
 export interface OrbitalLayoutInstallation extends OrbitalLayoutPoint {
@@ -201,7 +201,7 @@ function attachVertically (fragment: LayoutFragment, children: OrbitalHierarchyN
   return fragment
 }
 
-function ownNodeFragment (node: OrbitalHierarchyNode, compact: boolean): LayoutFragment {
+function ownNodeFragment (node: Exclude<OrbitalHierarchyNode, { kind: 'barycentre' }>, compact: boolean): LayoutFragment {
   const installations = node.kind === 'body'
     ? node.installations.map((installation, index) => ({
         installation,

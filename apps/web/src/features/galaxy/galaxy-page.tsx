@@ -18,7 +18,8 @@ import {
   PageHeader,
   Select,
   Status,
-  TextInput
+  TextInput,
+  ToggleButton
 } from '@phoenix/ui'
 import type {
   GalaxyCommodityMarketsResponse,
@@ -77,6 +78,7 @@ function SystemView({ commanderName, lookup, onNavigate, route }: {
   onNavigate(route: PhoenixRoute): void
   route: Extract<GalaxyRoute, { view: 'system' }>
 }) {
+  const following = route.systemName === undefined
   const [query, setQuery] = useState(route.systemName ?? lookup.system.name)
   useEffect(() => setQuery(route.systemName ?? lookup.system.name), [lookup.system.name, route.systemName])
   const selected = useMemo<CartographicSelection | null>(() => {
@@ -110,6 +112,17 @@ function SystemView({ commanderName, lookup, onNavigate, route }: {
               onChange={event => setQuery(event.target.value)}
             />
             <Button variant="accent" type="submit">Load</Button>
+            <ToggleButton
+              pressed={following}
+              onClick={() => onNavigate({
+                kind: 'information',
+                section: 'galaxy',
+                view: 'system',
+                ...(following ? { systemName: lookup.system.name } : {})
+              })}
+            >
+              Follow {following ? 'on' : 'off'}
+            </ToggleButton>
           </form>
         }
       />
@@ -119,7 +132,7 @@ function SystemView({ commanderName, lookup, onNavigate, route }: {
           kind: 'information',
           section: 'galaxy',
           view: 'system',
-          systemName: lookup.system.name,
+          ...(route.systemName ? { systemName: lookup.system.name } : {}),
           ...(selectedName ? { selectedName } : {})
         })}
         selected={selected}
