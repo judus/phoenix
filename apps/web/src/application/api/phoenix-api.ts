@@ -47,6 +47,7 @@ import type {
   MacroRecording,
   MissionsResponse,
   NavigationRoute,
+  PlotEliteDestinationResult,
   NumpadExecutionResult,
   NumpadTreeSnapshot,
   PairingInfo,
@@ -135,6 +136,7 @@ export interface PhoenixApi {
   getMissions(signal?: AbortSignal): Promise<MissionsResponse>
   getModuleSettings(signal?: AbortSignal): Promise<PhoenixModules>
   getNavigationRoute(signal?: AbortSignal): Promise<NavigationRoute>
+  plotEliteDestination(systemName: string, signal?: AbortSignal): Promise<PlotEliteDestinationResult>
   getNumpadSnapshot(signal?: AbortSignal): Promise<NumpadTreeSnapshot>
   getPairingInfo(signal?: AbortSignal): Promise<PairingInfo>
   getPairingStatus(signal?: AbortSignal): Promise<PairingStatus>

@@ -53,6 +53,7 @@ import { ActivityLogService } from './application/activity-log-service.js'
 import { LoggedGameActions } from './application/logged-game-actions.js'
 import { DisplayCommandService } from './application/display-command-service.js'
 import { NavigationDataService } from './application/navigation-data-service.js'
+import { EliteDestinationService } from './application/elite-destination-service.js'
 import { EngineeringDataService } from './application/engineering-data-service.js'
 import { ExplorationDataService } from './application/exploration-data-service.js'
 import { DefaultCommanderEngineersQuery } from './application/default-commander-engineers-query.js'
@@ -104,6 +105,7 @@ import { FrontierGalnetSource } from './infrastructure/frontier-galnet-source.js
 import type { PairingAccessController } from './infrastructure/pairing-access-controller.js'
 import { OpenAiConfigurationService } from './application/openai-configuration-service.js'
 import { OpenAiWebSearchSource } from './infrastructure/openai-web-search-source.js'
+import { ControlDeckEliteDestinationInput } from './infrastructure/control-deck-elite-destination-input.js'
 import type { WebSearchSource } from './domain/web-search.js'
 
 export interface PhoenixApplicationOptions {
@@ -278,9 +280,10 @@ export class PhoenixApplication {
     const eliteBindings = options.eliteBindings ?? new EliteKeyboardBindingResolver(
       locateBindingsDirectory(options, configuredEliteDirectory)
     )
+    const keyboardOutput = options.keyboardOutput ?? new RecordingKeyboardOutput()
     const eliteAdapter = new EliteDangerousCommandAdapter({
       bindings: eliteBindings,
-      output: options.keyboardOutput ?? new RecordingKeyboardOutput(),
+      output: keyboardOutput,
       outputId: options.keyboardOutputId ?? 'recording'
     })
     this.eliteControls = new ControlDeckCommandService([eliteAdapter], { createId: randomUUID })
@@ -369,6 +372,11 @@ export class PhoenixApplication {
     )
     const galnet = new GalnetNewsService(options.galnetSource ?? new FrontierGalnetSource(), this.database)
     const navigationData = new NavigationDataService(cartography, navigationRoutes, this.stateStore)
+    const eliteDestinations = new EliteDestinationService(
+      new ControlDeckEliteDestinationInput(eliteBindings, keyboardOutput),
+      this.stateStore,
+      navigationRoutes
+    )
     const display = new DisplayCommandService(displayCommandUpdates, this.stateStore)
     const engineering = new EngineeringDataService(engineeringCatalogue, this.stateStore)
     const exploration = new DefaultExplorationBodyQuery(this.database, cartography, this.stateStore)
@@ -437,6 +445,7 @@ export class PhoenixApplication {
       commands,
       gameActions,
       eliteInventoryDiagnostics: this.inventorySource,
+      eliteDestinations,
       eliteJournalDiagnostics: new EliteJournalDiagnosticsService(
         this.journalSource,
         this.journalBackfill

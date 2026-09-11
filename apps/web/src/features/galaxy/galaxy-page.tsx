@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import {
   ActionTile,
   Breadcrumbs,
@@ -31,7 +31,8 @@ import type {
   GalaxyOutfittingResponse,
   GalaxyShipyardsResponse,
   GalaxyStationLookupResponse,
-  GalaxyTradeOpportunitiesResponse
+  GalaxyTradeOpportunitiesResponse,
+  PlotEliteDestinationResult
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { InformationRoute, PhoenixRoute } from '../../application/navigation/phoenix-route.js'
@@ -64,6 +65,7 @@ export function GalaxyPage({ api, controller, onNavigate, route, runtime }: {
   }
   return controller.lookup
     ? <SystemView
+        api={api}
         commanderName={runtime.status === 'ready' ? runtime.state.commander.name : null}
         lookup={controller.lookup}
         onNavigate={onNavigate}
@@ -72,7 +74,8 @@ export function GalaxyPage({ api, controller, onNavigate, route, runtime }: {
     : <GalaxyState error="System cartography unavailable." title="System schematic" />
 }
 
-function SystemView({ commanderName, lookup, onNavigate, route }: {
+function SystemView({ api, commanderName, lookup, onNavigate, route }: {
+  api: PhoenixApi
   commanderName: string | null
   lookup: NonNullable<GalaxyControllerSnapshot['lookup']>
   onNavigate(route: PhoenixRoute): void
@@ -80,7 +83,18 @@ function SystemView({ commanderName, lookup, onNavigate, route }: {
 }) {
   const following = route.systemName === undefined
   const [query, setQuery] = useState(route.systemName ?? lookup.system.name)
+  const [plotting, setPlotting] = useState(false)
+  const [plotResult, setPlotResult] = useState<PlotEliteDestinationResult>()
+  const plotAbort = useRef<AbortController | null>(null)
   useEffect(() => setQuery(route.systemName ?? lookup.system.name), [lookup.system.name, route.systemName])
+  useEffect(() => {
+    setPlotting(false)
+    setPlotResult(undefined)
+    return () => {
+      plotAbort.current?.abort()
+      plotAbort.current = null
+    }
+  }, [lookup.system.name])
   const selected = useMemo<CartographicSelection | null>(() => {
     if (!route.selectedName) return null
     return lookup.system.bodies.find(item => item.name === route.selectedName)
@@ -127,6 +141,48 @@ function SystemView({ commanderName, lookup, onNavigate, route }: {
         }
       />
       <SystemSchematic
+        actions={
+          <div className="system-schematic__destination">
+            <Button
+              disabled={plotting}
+              size="sm"
+              type="button"
+              variant="accent"
+              onClick={() => {
+                const controller = new AbortController()
+                plotAbort.current = controller
+                setPlotting(true)
+                setPlotResult(undefined)
+                void api.plotEliteDestination(lookup.system.name, controller.signal)
+                  .then(result => {
+                    if (plotAbort.current === controller) setPlotResult(result)
+                  })
+                  .catch(cause => {
+                    if (plotAbort.current === controller) {
+                      setPlotResult({
+                        requestedSystem: lookup.system.name,
+                        confirmedSystem: null,
+                        status: 'failed',
+                        phase: 'preflight',
+                        message: cause instanceof Error ? cause.message : 'Galaxy Map automation failed.'
+                      })
+                    }
+                  })
+                  .finally(() => {
+                    if (plotAbort.current === controller) {
+                      plotAbort.current = null
+                      setPlotting(false)
+                    }
+                  })
+              }}
+            >{plotting ? 'Plotting…' : 'Plot in Elite'}</Button>
+            {plotResult && (
+              <Status marker={false} tone={plotResult.status === 'confirmed' ? 'positive' : 'danger'} wrap>
+                {plotResult.status === 'confirmed' ? plotResult.message : `${destinationPhaseLabel(plotResult.phase)}: ${plotResult.message}`}
+              </Status>
+            )}
+          </div>
+        }
         commanderName={commanderName}
         onSelect={selectedName => onNavigate({
           kind: 'information',
@@ -140,6 +196,19 @@ function SystemView({ commanderName, lookup, onNavigate, route }: {
       />
     </PageFrame>
   )
+}
+
+function destinationPhaseLabel (phase: PlotEliteDestinationResult['phase']): string {
+  return {
+    preflight: 'Preflight',
+    open_map: 'Opening Galaxy Map',
+    focus_search: 'Opening search',
+    enter_destination: 'Entering destination',
+    select_result: 'Selecting result',
+    plot_route: 'Plotting route',
+    confirm_route: 'Confirming route',
+    close_map: 'Closing Galaxy Map'
+  }[phase]
 }
 
 function QueryConsole({ api, onNavigate, route, runtime }: {

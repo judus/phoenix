@@ -46,6 +46,8 @@ import {
   MacroRecordingSchema,
   MissionsResponseSchema,
   NavigationRouteSchema,
+  PlotEliteDestinationRequestSchema,
+  PlotEliteDestinationResultSchema,
   NumpadExecutionResultSchema,
   NumpadTreeSnapshotSchema,
   PairingInfoSchema,
@@ -107,6 +109,7 @@ import type {
   MacroRecording,
   MissionsResponse,
   NavigationRoute,
+  PlotEliteDestinationResult,
   NumpadExecutionResult,
   NumpadTreeSnapshot,
   PairingInfo,
@@ -312,6 +315,16 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getNavigationRoute(signal?: AbortSignal): Promise<NavigationRoute> {
     return this.#get('/api/navigation/route', NavigationRouteSchema, signal)
+  }
+
+  async plotEliteDestination(systemName: string, signal?: AbortSignal): Promise<PlotEliteDestinationResult> {
+    return this.#json(
+      '/api/navigation/destination',
+      'POST',
+      PlotEliteDestinationRequestSchema.parse({ systemName }),
+      PlotEliteDestinationResultSchema,
+      signal
+    )
   }
 
   async getSystemCartography(systemName?: string, signal?: AbortSignal): Promise<CartographyLookupResponse> {

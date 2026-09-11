@@ -95,6 +95,35 @@ test('selecting a body does not pin a schematic that is following the current sy
   await act(async () => renderer.unmount())
 })
 
+test('system schematic submits its displayed system to Elite and shows confirmed route evidence', async () => {
+  const plotEliteDestination = vi.fn().mockResolvedValue({
+    requestedSystem: 'Achenar',
+    confirmedSystem: 'Achenar',
+    status: 'confirmed',
+    phase: 'confirm_route',
+    message: 'Route to Achenar was confirmed.'
+  })
+  let renderer: ReturnType<typeof create>
+
+  await act(async () => {
+    renderer = create(<GalaxyPage
+      api={{ plotEliteDestination } as unknown as PhoenixApi}
+      controller={{ lookup: { cache: 'local', system: emptySystem('Achenar') }, status: 'ready' }}
+      onNavigate={vi.fn()}
+      route={{ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Achenar' }}
+      runtime={{ state: createEmptyRuntimeState(), status: 'ready' }}
+    />)
+  })
+  const plotButton = renderer.root.findAllByType('button').find(button => button.props.children === 'Plot in Elite')
+  expect(plotButton).toBeDefined()
+
+  await act(async () => plotButton!.props.onClick())
+
+  expect(plotEliteDestination).toHaveBeenCalledWith('Achenar', expect.any(AbortSignal))
+  expect(renderer.root.findAll(node => node.children.includes('Route to Achenar was confirmed.'))).not.toHaveLength(0)
+  await act(async () => renderer.unmount())
+})
+
 function emptySystem(name: string): CartographicSystem {
   return {
     address: null,

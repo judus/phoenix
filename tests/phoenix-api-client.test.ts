@@ -100,6 +100,25 @@ test('filtered Galaxy search serializes typed parameters and validates the respo
   expect(request.mock.calls[0]?.[0]).toBe('/api/galaxy/systems/search?maxDistance=75&population=inhabited&system=Sol&economy=High+Tech&minPopulation=1')
 })
 
+test('Elite destination transport sends a validated system name to the durable navigation endpoint', async () => {
+  const request = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({
+    requestedSystem: 'Sol',
+    confirmedSystem: 'Sol',
+    status: 'confirmed',
+    phase: 'confirm_route',
+    message: 'Route to Sol was confirmed.'
+  }))
+
+  await expect(new PhoenixApiClient('', request).plotEliteDestination(' Sol ')).resolves.toMatchObject({
+    requestedSystem: 'Sol',
+    status: 'confirmed'
+  })
+  expect(request).toHaveBeenCalledWith('/api/navigation/destination', expect.objectContaining({
+    body: JSON.stringify({ systemName: 'Sol' }),
+    method: 'POST'
+  }))
+})
+
 test('mission transport uses the durable Operations endpoint and validates its contract', async () => {
   const request = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({
     missions: [],

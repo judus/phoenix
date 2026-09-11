@@ -19,13 +19,14 @@ import {
 export type CartographicSelection = CartographicBody | CartographicStation
 
 export interface SystemSchematicProps {
+  actions?: ReactNode
   commanderName?: string | null
   onSelect(name?: string): void
   selected?: CartographicSelection | null
   system: CartographicSystem
 }
 
-export function SystemSchematic ({ commanderName, onSelect, selected, system }: SystemSchematicProps) {
+export function SystemSchematic ({ actions, commanderName, onSelect, selected, system }: SystemSchematicProps) {
   const hierarchy = buildSystemHierarchy(system)
   const layout = layoutSystemHierarchy(hierarchy.roots)
   const viewportRef = useRef<HTMLDivElement>(null)
@@ -93,31 +94,34 @@ export function SystemSchematic ({ commanderName, onSelect, selected, system }: 
             </section>
           )}
         </div>
-        <div className="system-schematic__zoom" aria-label="Schematic zoom controls">
-          <Button
-            aria-label="Zoom out"
-            disabled={zoomPercent === 50}
-            size="sm"
-            type="button"
-            variant="outline"
-            onClick={() => changeZoom(zoomPercent - 25)}
-          >−</Button>
-          <Button
-            aria-label="Reset zoom to 100%"
-            size="sm"
-            title="Reset zoom"
-            type="button"
-            variant="quiet"
-            onClick={() => changeZoom(100)}
-          >{zoomPercent}%</Button>
-          <Button
-            aria-label="Zoom in"
-            disabled={zoomPercent === 200}
-            size="sm"
-            type="button"
-            variant="outline"
-            onClick={() => changeZoom(zoomPercent + 25)}
-          >+</Button>
+        <div className="system-schematic__controls">
+          {actions}
+          <div className="system-schematic__zoom" aria-label="Schematic zoom controls">
+            <Button
+              aria-label="Zoom out"
+              disabled={zoomPercent === 50}
+              size="sm"
+              type="button"
+              variant="outline"
+              onClick={() => changeZoom(zoomPercent - 25)}
+            >−</Button>
+            <Button
+              aria-label="Reset zoom to 100%"
+              size="sm"
+              title="Reset zoom"
+              type="button"
+              variant="quiet"
+              onClick={() => changeZoom(100)}
+            >{zoomPercent}%</Button>
+            <Button
+              aria-label="Zoom in"
+              disabled={zoomPercent === 200}
+              size="sm"
+              type="button"
+              variant="outline"
+              onClick={() => changeZoom(zoomPercent + 25)}
+            >+</Button>
+          </div>
         </div>
 
       </section>

@@ -24,6 +24,7 @@ import {
   InstallationSettingsUpdateSchema,
   MacroDefinitionSchema,
   OpenAiApiKeyRequestSchema,
+  PlotEliteDestinationRequestSchema,
   PhoenixModulesSchema,
   RecordMacroActionRequestSchema,
   StartMacroRecordingRequestSchema,
@@ -48,6 +49,7 @@ import {
 } from '../application/copilot-realtime-service.js'
 import type { CatalogueDiagnosticsReader } from '../application/catalogue-diagnostics-service.js'
 import type { GameActions } from '../application/game-action-service.js'
+import type { EliteDestinations } from '../domain/elite-destination.js'
 import type { Commands } from '../domain/commands.js'
 import type { HealthCheck } from '../application/health-service.js'
 import type { EngineeringDataReader } from '../application/engineering-data-service.js'
@@ -100,6 +102,7 @@ export interface PhoenixHttpServerOptions {
   commands: Commands
   gameActions: GameActions
   eliteInventoryDiagnostics: { getDiagnostics(): EliteInventorySourceDiagnostics }
+  eliteDestinations: EliteDestinations
   eliteJournalDiagnostics: EliteJournalDiagnosticsReader
   eliteNavigationRouteDiagnostics: { getDiagnostics(): EliteNavigationRouteSourceDiagnostics }
   eliteStatusDiagnostics: EliteStatusDiagnosticsReader
@@ -306,6 +309,30 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/navigation/route') {
       this.writeJson(response, 200, this.options.navigationData.getRoute())
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/navigation/destination') {
+      try {
+        const input = PlotEliteDestinationRequestSchema.parse(await readJsonBody(request))
+        const controller = new AbortController()
+        const abort = (): void => {
+          if (!response.writableEnded) controller.abort(new DOMException('Client disconnected.', 'AbortError'))
+        }
+        response.once('close', abort)
+        try {
+          this.writeJson(response, 200, await this.options.eliteDestinations.plot(input.systemName, controller.signal))
+        } finally {
+          response.off('close', abort)
+        }
+      } catch (cause) {
+        this.writeJson(response, 400, {
+          error: {
+            code: 'invalid_destination_request',
+            message: cause instanceof Error ? cause.message : 'Invalid Elite destination request.'
+          }
+        })
+      }
       return
     }
 

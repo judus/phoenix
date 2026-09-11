@@ -59,14 +59,28 @@
     }
   }
 
-  .system-schematic__zoom {
+  .system-schematic__controls {
     grid-area: 1 / 1;
     align-self: start;
     justify-self: end;
     z-index: 2;
     display: flex;
+    align-items: flex-start;
     gap: var(--spacing-xxs);
     margin: var(--spacing-md);
+  }
+
+  .system-schematic__destination {
+    display: grid;
+    justify-items: end;
+    gap: var(--spacing-xxs);
+    max-inline-size: min(28rem, 60vw);
+    text-align: end;
+  }
+
+  .system-schematic__zoom {
+    display: flex;
+    gap: var(--spacing-xxs);
   }
 
   .system-schematic__empty {

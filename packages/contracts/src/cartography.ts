@@ -194,6 +194,29 @@ export const NavigationRouteSchema = z.object({
   route: z.array(NavigationRouteHopSchema)
 })
 
+export const EliteDestinationPhaseSchema = z.enum([
+  'preflight',
+  'open_map',
+  'focus_search',
+  'enter_destination',
+  'select_result',
+  'plot_route',
+  'confirm_route',
+  'close_map'
+])
+
+export const PlotEliteDestinationRequestSchema = z.object({
+  systemName: z.string().trim().min(1).max(128)
+})
+
+export const PlotEliteDestinationResultSchema = z.object({
+  requestedSystem: z.string().min(1),
+  confirmedSystem: z.string().min(1).nullable(),
+  status: z.enum(['confirmed', 'rejected', 'failed', 'timed_out']),
+  phase: EliteDestinationPhaseSchema,
+  message: z.string().min(1)
+})
+
 export const CartographyLookupResponseSchema = z.object({
   cache: z.enum(['fresh', 'refreshed', 'stale', 'local']),
   system: CartographicSystemSchema
@@ -212,3 +235,6 @@ export type CartographyLookupResponse = z.infer<typeof CartographyLookupResponse
 export type CartographyUpdate = z.infer<typeof CartographyUpdateSchema>
 export type NavigationRoute = z.infer<typeof NavigationRouteSchema>
 export type NavigationRouteHop = z.infer<typeof NavigationRouteHopSchema>
+export type EliteDestinationPhase = z.infer<typeof EliteDestinationPhaseSchema>
+export type PlotEliteDestinationRequest = z.infer<typeof PlotEliteDestinationRequestSchema>
+export type PlotEliteDestinationResult = z.infer<typeof PlotEliteDestinationResultSchema>
