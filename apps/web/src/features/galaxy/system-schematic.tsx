@@ -1,4 +1,4 @@
-import type { MouseEvent, ReactNode } from 'react'
+import type { CSSProperties, MouseEvent, ReactNode } from 'react'
 import type {
   CartographicBody,
   CartographicStation,
@@ -9,6 +9,11 @@ import {
   type AttachedInstallation,
   type BodyHierarchyNode
 } from './system-hierarchy.js'
+import {
+  layoutSystemHierarchy,
+  type OrbitalLayoutPoint,
+  type SystemOrbitalLayout
+} from './system-orbital-layout.js'
 
 export type CartographicSelection = CartographicBody | CartographicStation
 
@@ -21,6 +26,7 @@ export interface SystemSchematicProps {
 
 export function SystemSchematic ({ commanderName, onSelect, selected, system }: SystemSchematicProps) {
   const hierarchy = buildSystemHierarchy(system)
+  const layout = layoutSystemHierarchy(hierarchy.roots)
 
   return (
     <div className={selected ? 'system-cartography has-selection' : 'system-cartography'}>
@@ -31,20 +37,20 @@ export function SystemSchematic ({ commanderName, onSelect, selected, system }: 
             if (!(event.target instanceof Element) || !event.target.closest('button')) onSelect()
           }}
         >
-          {hierarchy.roots.map(root => (
-            <OrbitalGroupView
-              key={bodyKey(root.body)}
+          {layout.nodes.length > 0 && (
+            <OrbitalMap
+              layout={layout}
               onSelect={onSelect}
-              root={root}
               selectedName={selected?.name}
+              systemName={system.name}
             />
-          ))}
+          )}
           {hierarchy.roots.length === 0 && hierarchy.unassignedInstallations.length === 0 && (
             <p className="system-schematic__empty">No body catalogue is available for this system.</p>
           )}
           {hierarchy.unassignedInstallations.length > 0 && (
-            <section className="system-orbit-group system-orbit-group--ungrouped">
-              <div className="system-orbit-group__title">
+            <section className="system-unassigned-group">
+              <div className="system-unassigned-group__title">
                 <span>Unresolved installations</span>
                 <strong>{hierarchy.unassignedInstallations.length} objects</strong>
               </div>
@@ -70,61 +76,85 @@ export function SystemSchematic ({ commanderName, onSelect, selected, system }: 
   )
 }
 
-function OrbitalGroupView ({
+function OrbitalMap ({
+  layout,
   onSelect,
-  root,
-  selectedName
+  selectedName,
+  systemName
 }: {
-  root: BodyHierarchyNode
+  layout: SystemOrbitalLayout
   onSelect(name: string): void
   selectedName?: string
+  systemName: string
 }) {
+  const canvasStyle: CSSProperties = {
+    blockSize: `${layout.height * 9}rem`,
+    inlineSize: `${layout.width * 9}rem`
+  }
   return (
-    <section className="system-orbit-group">
-      <div className="system-orbit-group__title">
-        <span>{root.body.name}</span>
-        <strong>{root.body.subType ?? root.body.type ?? 'Celestial body'}</strong>
-      </div>
-      <div className="system-orbit-row">
-        <BodyNode node={root} onSelect={onSelect} selectedName={selectedName} star />
-        <div className="system-orbit-row__line" aria-hidden="true" />
-        {root.children.map(child => (
-          <BodyBranchView key={bodyKey(child.body)} node={child} onSelect={onSelect} selectedName={selectedName} />
+    <div className="system-orbital-layout" style={canvasStyle}>
+      <svg
+        aria-hidden="true"
+        className="system-orbital-layout__connections"
+        preserveAspectRatio="none"
+        viewBox={`0 0 ${layout.width} ${layout.height}`}
+      >
+        {layout.edges.map(edge => (
+          <polyline
+            key={edge.key}
+            points={edge.points.map(point => `${point.x},${point.y}`).join(' ')}
+            vectorEffect="non-scaling-stroke"
+          />
         ))}
-      </div>
-    </section>
+      </svg>
+      {layout.nodes.map(item => (
+        <div
+          className={[
+            'system-orbital-layout__node',
+            item.compact ? 'is-compact' : '',
+            item.node.kind === 'unresolved-body' ? 'is-structural' : ''
+          ].filter(Boolean).join(' ')}
+          key={item.node.key}
+          style={layoutPosition(item, layout)}
+        >
+          {item.node.kind === 'body'
+            ? <BodyNode
+                child={item.compact}
+                node={item.node}
+                onSelect={onSelect}
+                selectedName={selectedName}
+                systemName={systemName}
+              />
+            : <UnresolvedBodyNode bodyId={item.node.bodyId} bodyType={item.node.bodyType} />}
+        </div>
+      ))}
+      {layout.installations.map(item => (
+        <div className="system-orbital-layout__installation" key={item.key} style={layoutPosition(item, layout)}>
+          <InstallationNode
+            installation={item.installation}
+            onSelect={onSelect}
+            selected={selectedName === item.installation.station.name}
+          />
+        </div>
+      ))}
+    </div>
   )
 }
 
-function BodyBranchView ({
-  child = false,
-  node,
-  onSelect,
-  selectedName
-}: {
-  child?: boolean
-  node: BodyHierarchyNode
-  onSelect(name: string): void
-  selectedName?: string
-}) {
+function UnresolvedBodyNode ({ bodyId, bodyType }: { bodyId: number, bodyType: 'Star' | 'Planet' }) {
   return (
-    <div className="system-body-branch">
-      <BodyNode child={child} node={node} onSelect={onSelect} selectedName={selectedName} />
-      {node.children.length > 0 && (
-        <div className="system-body-branch__children">
-          {node.children.map(descendant => (
-            <BodyBranchView
-              child
-              key={bodyKey(descendant.body)}
-              node={descendant}
-              onSelect={onSelect}
-              selectedName={selectedName}
-            />
-          ))}
-        </div>
-      )}
+    <div className="system-unresolved-body" title={`${bodyType} ${bodyId} has not been reported yet`}>
+      <span>?</span>
+      <small>{bodyType} {bodyId}</small>
     </div>
   )
+}
+
+function layoutPosition (point: OrbitalLayoutPoint, layout: SystemOrbitalLayout): CSSProperties {
+  return {
+    insetBlockStart: `${point.y / layout.height * 100}%`,
+    insetInlineStart: `${point.x / layout.width * 100}%`
+  }
 }
 
 function BodyNode ({
@@ -132,15 +162,15 @@ function BodyNode ({
   node,
   onSelect,
   selectedName,
-  star = false
+  systemName
 }: {
   child?: boolean
   node: BodyHierarchyNode
   onSelect(name: string): void
   selectedName?: string
-  star?: boolean
+  systemName: string
 }) {
-  const { body, installations } = node
+  const { body } = node
   const kind = bodyKind(body)
   const signals = body.local?.signals
   return (
@@ -150,7 +180,7 @@ function BodyNode ({
         className={[
           'system-body',
           `system-body--${kind}`,
-          star ? 'system-body--star' : '',
+          kind === 'star' ? 'system-body--star' : '',
           child ? 'system-body--child' : '',
           selectedName === body.name ? 'is-selected' : ''
         ].filter(Boolean).join(' ')}
@@ -159,7 +189,7 @@ function BodyNode ({
       >
         <span className="system-body__distance">{formatDistance(body.distanceToArrival)}</span>
         <BodyGlyph kind={kind} ringed={isRinged(body)} />
-        <strong>{shortBodyName(body.name)}</strong>
+        <strong>{shortBodyName(body.name, systemName)}</strong>
         <small>{shortType(body)}</small>
         <span className="system-body__badges">
           {body.local?.mapped && <i title="Mapped">M</i>}
@@ -168,18 +198,6 @@ function BodyNode ({
           {signals && signals.geological > 0 && <i className="is-signal" title="Geological signals">G{signals.geological}</i>}
         </span>
       </button>
-      {installations.length > 0 && (
-        <div className="system-body-installations">
-          {installations.map(installation => (
-            <InstallationNode
-              installation={installation}
-              key={stationKey(installation.station)}
-              onSelect={onSelect}
-              selected={selectedName === installation.station.name}
-            />
-          ))}
-        </div>
-      )}
     </div>
   )
 }
@@ -460,7 +478,13 @@ function stationKey (station: CartographicStation): string | number {
   return station.marketId ?? station.id ?? station.name
 }
 
-function shortBodyName (name: string): string {
+function shortBodyName (name: string, systemName?: string): string {
+  if (systemName) {
+    const prefix = `${systemName} `
+    if (name.toLocaleLowerCase().startsWith(prefix.toLocaleLowerCase())) {
+      return name.slice(prefix.length).trim()
+    }
+  }
   const segments = name.trim().split(/\s+/u)
   return segments.length > 2 ? segments.slice(-2).join(' ') : name
 }

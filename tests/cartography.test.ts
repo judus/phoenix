@@ -222,6 +222,7 @@ test('local journal scans and signals overlay cached EDSM cartography', async ()
   const system = fixtureSystem()
   database.putExternalSystem(system)
   ingestion.ingest({ timestamp: '2026-08-11T12:01:00Z', event: 'FSSDiscoveryScan', SystemName: 'Sol', SystemAddress: 10477373803, BodyCount: 2 })
+  ingestion.ingest({ timestamp: '2026-08-11T12:01:30Z', event: 'Disembark', StarSystem: 'Sol', Body: 'Galileo', BodyID: 36, OnPlanet: false })
   ingestion.ingest({
     timestamp: '2026-08-11T12:02:00Z',
     event: 'Scan',
@@ -280,6 +281,7 @@ test('local journal scans and signals overlay cached EDSM cartography', async ()
     expect(result.cache).toBe('fresh')
     expect(source.fetchSystem).not.toHaveBeenCalled()
     expect(result.system.scanProgress).toEqual({ knownBodies: 1, reportedBodies: 2, percent: 50 })
+    expect(result.system.bodies.map(body => body.name)).toEqual(['Sol A 1'])
     expect(result.system.bodies[0]).toMatchObject({
       name: 'Sol A 1',
       type: 'Planet',
@@ -328,6 +330,35 @@ test('local journal scans and signals overlay cached EDSM cartography', async ()
   } finally {
     database.close()
   }
+})
+
+test('cartography projection ignores legacy observations without body evidence', async () => {
+  const repository = new MemoryRepository()
+  const system = fixtureSystem()
+  repository.putExternalSystem(system)
+  repository.putLocalObservation({
+    ...fixtureObservation('Sol'),
+    bodies: [{
+      bodyId: 36,
+      bodyName: 'Galileo',
+      bodySignals: null,
+      footfallCompleted: false,
+      previouslyDiscovered: null,
+      previouslyFootfalled: null,
+      previouslyMapped: null,
+      observedAt: '2026-08-11T12:00:00.000Z',
+      organicSamples: [],
+      scan: null,
+      surfaceScanCompleted: false,
+      surfaceSignals: null
+    }]
+  })
+  const runtime = new InMemoryRuntimeStateStore()
+  const source: ExternalCartographySource = { fetchSystem: vi.fn(async () => system) }
+
+  const result = await new SystemCartographyService(source, repository, runtime).getSystem('Sol')
+
+  expect(result.system.bodies.map(body => body.name)).toEqual(system.bodies.map(body => body.name))
 })
 
 test('local journal cartography remains readable when EDSM has no system record', async () => {

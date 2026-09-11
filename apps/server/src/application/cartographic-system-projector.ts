@@ -1,8 +1,9 @@
 import type { CartographicBody, CartographicSystem, CurrentSystem } from '@phoenix/contracts'
-import type {
-  CartographyRecord,
-  LocalBodyCartographyObservation,
-  LocalSystemCartographyObservation
+import {
+  hasCartographicBodyEvidence,
+  type CartographyRecord,
+  type LocalBodyCartographyObservation,
+  type LocalSystemCartographyObservation
 } from '../domain/cartography.js'
 
 export function projectCartographicSystem (record: CartographyRecord, current: CurrentSystem): CartographicSystem {
@@ -26,7 +27,7 @@ export function projectCartographicSystem (record: CartographyRecord, current: C
 
 function systemFromObservation (observation: LocalSystemCartographyObservation | null): CartographicSystem {
   if (!observation) throw new Error('Cartography record contains no source data.')
-  const bodies = observation.bodies.map(bodyFromObservation)
+  const bodies = observation.bodies.filter(hasCartographicBodyEvidence).map(bodyFromObservation)
   return {
     schemaVersion: 5,
     name: observation.systemName,
@@ -50,7 +51,7 @@ function mergeObservation (
   observation: LocalSystemCartographyObservation
 ): CartographicSystem {
   const bodies = [...system.bodies]
-  for (const local of observation.bodies) {
+  for (const local of observation.bodies.filter(hasCartographicBodyEvidence)) {
     const index = bodies.findIndex(body => (
       sameName(body.name, local.bodyName) ||
       (body.bodyId !== null && local.bodyId !== null && body.bodyId === local.bodyId)

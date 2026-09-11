@@ -1,10 +1,11 @@
 import type { EliteJournalEvent } from '@phoenix/elite'
 import type { CartographyUpdate } from '@phoenix/contracts'
-import type {
-  CartographyRepository,
-  LocalBodyCartographyObservation,
-  LocalOrganicSampleObservation,
-  LocalSystemCartographyObservation
+import {
+  hasCartographicBodyEvidence,
+  type CartographyRepository,
+  type LocalBodyCartographyObservation,
+  type LocalOrganicSampleObservation,
+  type LocalSystemCartographyObservation
 } from '../domain/cartography.js'
 import type { Publisher } from '../domain/publisher.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
@@ -22,6 +23,7 @@ export class CartographyObservationIngestionService {
 
   public ingest (event: EliteJournalEvent): void {
     if (!BODY_EVENTS.has(event.event) && !SYSTEM_EVENTS.has(event.event)) return
+    if (event.event === 'Disembark' && event.OnPlanet !== true) return
     const systemName = stringValue(event.SystemName) ?? stringValue(event.StarSystem) ?? this.runtimeState.getCurrent().system.name
     if (!systemName) return
     const current = this.repository.findRecord(systemName)?.local ?? emptyObservation(systemName, event)
@@ -34,7 +36,8 @@ export class CartographyObservationIngestionService {
     const bodyName = stringValue(event.BodyName) ?? stringValue(event.Body)
       ?? current.bodies.find(body => bodyId !== null && body.bodyId === bodyId)?.bodyName
       ?? (runtimePlace?.kind === 'body' && (bodyId === null || runtimePlace.id === bodyId) ? runtimePlace.name : null)
-    const bodies = bodyName ? mergeBody(current.bodies, bodyName, bodyId, event) : current.bodies
+    const currentBodies = current.bodies.filter(hasCartographicBodyEvidence)
+    const bodies = bodyName ? mergeBody(currentBodies, bodyName, bodyId, event) : currentBodies
     const observation = {
       ...current,
       allBodiesFound: event.event === 'FSSAllBodiesFound' || current.allBodiesFound === true,

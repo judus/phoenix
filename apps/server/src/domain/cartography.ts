@@ -26,6 +26,15 @@ export interface LocalBodyCartographyObservation {
   surfaceSignals: Record<string, unknown> | null
 }
 
+export function hasCartographicBodyEvidence (observation: LocalBodyCartographyObservation): boolean {
+  return observation.scan !== null ||
+    observation.bodySignals !== null ||
+    observation.surfaceSignals !== null ||
+    observation.surfaceScanCompleted ||
+    observation.footfallCompleted ||
+    observation.organicSamples.length > 0
+}
+
 export interface LocalOrganicSampleObservation {
   completed: boolean
   genus: string

@@ -62,89 +62,100 @@
     color: var(--color-text-muted);
   }
 
-  .system-orbit-group {
-    min-inline-size: max-content;
-    padding-block-end: var(--spacing-xl);
-
-    & + & {
-      padding-block-start: var(--spacing-md);
-      border-block-start: 1px solid rgb(255 157 0 / 28%);
-    }
+  .system-unassigned-group {
+    inline-size: fit-content;
+    padding: var(--spacing-md);
+    border: 1px solid var(--color-border);
   }
 
-  .system-orbit-group__title {
-    position: sticky;
-    inset-inline-start: 0;
-    z-index: 2;
-    inline-size: fit-content;
+  .system-unassigned-group__title {
     display: flex;
     align-items: baseline;
     gap: var(--spacing-xs);
     margin-block-end: var(--spacing-sm);
-    padding-inline-end: var(--spacing-sm);
-    background: var(--color-canvas);
 
     span {
       color: var(--color-text);
-      font-size: 1rem;
-      letter-spacing: 0.05em;
       text-transform: uppercase;
     }
 
     strong {
       color: var(--color-action);
-      font-size: 0.72rem;
+      font-size: var(--font-size-xs);
       font-weight: 400;
       text-transform: uppercase;
     }
   }
 
-  .system-orbit-row {
+  .system-orbital-layout {
     position: relative;
-    min-block-size: 10rem;
-    display: flex;
-    align-items: start;
-    gap: clamp(1.25rem, 2.5vw, 3rem);
-    padding-inline: var(--spacing-xs) var(--spacing-xl);
+    min-inline-size: 13.5rem;
+    min-block-size: 13.5rem;
   }
 
-  .system-orbit-row__line {
+  .system-orbital-layout__connections {
     position: absolute;
-    z-index: 0;
-    inset-block-start: 4.1rem;
-    inset-inline: 4rem 1rem;
-    block-size: 1px;
-    background: linear-gradient(90deg, var(--color-action), rgb(94 234 255 / 38%));
-    box-shadow: 0 0 0.5rem rgb(94 234 255 / 25%);
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    overflow: visible;
+    fill: none;
+    stroke: var(--color-information);
+    stroke-width: 1;
+    opacity: 0.48;
+    filter: drop-shadow(0 0 0.35rem rgb(94 234 255 / 18%));
+    pointer-events: none;
   }
 
-  .system-body-branch {
-    position: relative;
+  .system-orbital-layout__node,
+  .system-orbital-layout__installation {
+    position: absolute;
     z-index: 1;
+  }
+
+  .system-orbital-layout__node {
+    transform: translate(-50%, -4.1rem);
+
+    &.is-compact {
+      transform: translate(-50%, -2.05rem);
+    }
+
+    &.is-structural {
+      transform: translate(-50%, -50%);
+    }
+  }
+
+  .system-orbital-layout__installation {
+    transform: translateY(-50%);
+  }
+
+  .system-unresolved-body {
+    inline-size: 2.8rem;
+    block-size: 2.8rem;
     display: grid;
-    justify-items: center;
+    place-items: center;
+    color: var(--color-action);
+
+  }
+
+  .system-unresolved-body {
+    border: 1px dashed var(--color-text-muted);
+    color: var(--color-text-muted);
+
+    span {
+      font-size: 1rem;
+    }
+
+    small {
+      position: absolute;
+      inset-block-start: 100%;
+      white-space: nowrap;
+    }
   }
 
   .system-body-node {
     display: grid;
     justify-items: center;
-  }
-
-  .system-body-branch__children {
-    position: relative;
-    display: flex;
-    gap: var(--spacing-xs);
-    margin-block-start: var(--spacing-sm);
-    padding-block-start: var(--spacing-md);
-
-    &::before {
-      content: '';
-      position: absolute;
-      inset-block-start: -0.9rem;
-      inset-inline-start: 50%;
-      block-size: 1.8rem;
-      border-inline-start: 1px solid rgb(94 234 255 / 45%);
-    }
   }
 
   .system-body {
@@ -207,7 +218,7 @@
   .system-body--child {
     inline-size: 5.4rem;
     min-block-size: 6.8rem;
-    grid-template-rows: auto 3.5rem auto auto auto;
+    grid-template-rows: 3.5rem auto auto auto;
 
     .system-body__distance {
       display: none;
@@ -296,7 +307,6 @@
     }
   }
 
-  .system-body-installations,
   .system-unassigned-installations {
     min-inline-size: 0;
     display: grid;
