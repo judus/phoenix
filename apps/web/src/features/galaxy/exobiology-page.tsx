@@ -16,6 +16,7 @@ import {
   type ExobiologySampleViewModel,
   type ExobiologySystemViewModel
 } from './exobiology-view-model.js'
+import { SystemSchematicLink } from '../../components/system-location-link.js'
 
 export function ExobiologyPage({ controller }: { controller: GalaxyControllerSnapshot }) {
   const [selectedSystemId, setSelectedSystemId] = useState<string>()
@@ -104,7 +105,7 @@ function ExobiologySystems({ completed, onSelect, selectedId, systems, total }: 
         <thead><tr><th>System</th><th className="numeric">Progress</th></tr></thead>
         <tbody>{systems.map(system => (
           <SelectableRow active={system.id === selectedId} id={system.id} key={system.id} onSelect={onSelect}>
-            <td><strong>{system.name}</strong><small>{formatDateTime(system.updatedAt)}</small></td>
+            <td><SystemSchematicLink label={system.name} systemName={system.name} /><small>{formatDateTime(system.updatedAt)}</small></td>
             <td className="numeric">{system.completed}/{system.total}</td>
           </SelectableRow>
         ))}</tbody>
@@ -124,7 +125,7 @@ function ExobiologyBodies({ bodies, onSelect, selectedId }: {
         <thead><tr><th>Body</th><th className="numeric">Progress</th></tr></thead>
         <tbody>{bodies.map(body => (
           <SelectableRow active={body.id === selectedId} id={body.id} key={body.id} onSelect={onSelect}>
-            <td><strong>{body.name}</strong><small>{formatDateTime(body.observedAt)}</small></td>
+            <td><SystemSchematicLink label={body.name} selectedName={body.name} systemName={body.systemName} /><small>{formatDateTime(body.observedAt)}</small></td>
             <td className="numeric">{body.completed}/{body.total}</td>
           </SelectableRow>
         ))}</tbody>
@@ -166,8 +167,12 @@ function SelectableRow({ active, children, id, onSelect }: {
     <tr
       aria-selected={active || undefined}
       className={active ? 'active' : undefined}
-      onClick={() => onSelect(id)}
+      onClick={event => {
+        if (isInteractiveTarget(event.target)) return
+        onSelect(id)
+      }}
       onKeyDown={event => {
+        if (isInteractiveTarget(event.target)) return
         if (event.key !== 'Enter' && event.key !== ' ') return
         event.preventDefault()
         onSelect(id)
@@ -175,6 +180,10 @@ function SelectableRow({ active, children, id, onSelect }: {
       tabIndex={0}
     >{children}</tr>
   )
+}
+
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest('a, button') !== null
 }
 
 function formatDateTime(value: string): string {

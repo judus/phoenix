@@ -38,6 +38,9 @@ import {
   GalaxyShipyardsResponseSchema,
   GalaxyStationLookupResponseSchema,
   GalaxyTradeOpportunitiesResponseSchema,
+  GalaxyBookmarkSchema,
+  GalaxyBookmarksResponseSchema,
+  GalaxyBookmarkWriteRequestSchema,
   InstallationSettingsSchema,
   InstallationSettingsUpdateSchema,
   MacroDefinitionSchema,
@@ -100,6 +103,9 @@ import type {
   GalaxyShipyardsResponse,
   GalaxyStationLookupResponse,
   GalaxyTradeOpportunitiesResponse,
+  GalaxyBookmark,
+  GalaxyBookmarksResponse,
+  GalaxyBookmarkWriteRequest,
   HealthResponse,
   InstallationSettings,
   InstallationSettingsUpdate,
@@ -220,6 +226,24 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getFleet(signal?: AbortSignal): Promise<FleetResponse> {
     return this.#get('/api/fleet', FleetResponseSchema, signal)
+  }
+
+  async getGalaxyBookmarks(signal?: AbortSignal): Promise<GalaxyBookmarksResponse> {
+    return this.#get('/api/galaxy/bookmarks', GalaxyBookmarksResponseSchema, signal)
+  }
+
+  async saveGalaxyBookmark(input: GalaxyBookmarkWriteRequest, id?: string, signal?: AbortSignal): Promise<GalaxyBookmark> {
+    return this.#json(
+      id ? `/api/galaxy/bookmarks/${encodeURIComponent(id)}` : '/api/galaxy/bookmarks',
+      id ? 'PUT' : 'POST',
+      GalaxyBookmarkWriteRequestSchema.parse(input),
+      GalaxyBookmarkSchema,
+      signal
+    )
+  }
+
+  async deleteGalaxyBookmark(id: string, signal?: AbortSignal): Promise<void> {
+    await this.#empty(`/api/galaxy/bookmarks/${encodeURIComponent(id)}`, 'DELETE', undefined, signal)
   }
 
   async getMissions(signal?: AbortSignal): Promise<MissionsResponse> {

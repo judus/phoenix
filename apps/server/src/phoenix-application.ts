@@ -62,6 +62,8 @@ import { GalnetNewsService } from './application/galnet-news-service.js'
 import { MissionDataService } from './application/mission-data-service.js'
 import { CommunicationDataService } from './application/communication-data-service.js'
 import { FleetDataService } from './application/fleet-data-service.js'
+import { CachedCartographyStationResolver } from './application/cached-cartography-station-resolver.js'
+import { GalaxyBookmarkService } from './application/galaxy-bookmark-service.js'
 import { DefaultExplorationBodyQuery } from './application/default-exploration-body-query.js'
 import { DefaultExplorationTargetQuery } from './application/default-exploration-target-query.js'
 import type { CopilotText } from './application/copilot-text-service.js'
@@ -181,6 +183,7 @@ export class PhoenixApplication {
     const activityLog = new ActivityLogService(this.database)
     const missions = new MissionDataService(this.database)
     const communications = new CommunicationDataService(this.database)
+    const bookmarks = new GalaxyBookmarkService(this.database)
     const runtimeCatalogueDirectory = resolve(paths.user.data, 'runtime/catalogue')
     const engineeringCatalogueDirectory = resolveProjectPath(projectRoot,
       options.engineeringCatalogueDirectory ?? process.env.PHOENIX_ENGINEERING_CATALOGUE_PATH ?? resolve(runtimeCatalogueDirectory, 'engineering'))
@@ -195,7 +198,8 @@ export class PhoenixApplication {
     const engineeringCatalogue = catalogues.engineering
     const fleet = new FleetDataService(
       this.database,
-      identifier => gameCatalogue.resolveShip(identifier)?.displayName ?? null
+      identifier => gameCatalogue.resolveShip(identifier)?.displayName ?? null,
+      new CachedCartographyStationResolver(this.database)
     )
     const projector = new DefaultRuntimeStateProjector(
       this.stateStore,
@@ -458,6 +462,7 @@ export class PhoenixApplication {
       mcpServer,
       macros,
       missions,
+      bookmarks,
       communications,
       port,
       runtimeState: this.stateStore,

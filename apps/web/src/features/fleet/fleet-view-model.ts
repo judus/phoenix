@@ -4,8 +4,7 @@ import type {
   RuntimeState,
   ShipDefinition,
   ShipModule,
-  ShipSlotDefinition,
-  StoredModule
+  ShipSlotDefinition
 } from '@phoenix/contracts'
 
 const moduleGroups: Array<{
@@ -53,35 +52,37 @@ export interface CurrentShipModel {
 }
 
 export interface FleetOverviewModel {
-  summary: Array<{ label: string, value: number }>
+  summary: Array<{ label: string, value: string }>
   ships: Array<{
     id: number
     name: string
     detail: string
     state: string
-    location: string
+    location: {
+      locationName: string | null
+      systemName: string | null
+    }
     value: string
     transfer: string
     observed: string
     active: boolean
   }>
-  assets: Array<{ label: string, value: number, detail: string }>
 }
 
 export interface StoredModulesModel {
-  groups: Array<{
-    system: string
-    items: Array<{
-      key: string
-      name: string
-      identifier: string
-      engineering: string
-      slot: number
-      transfer: string
-      value: string
-      observed: string
-    }>
+  items: Array<{
+    key: string
+    name: string
+    identifier: string
+    engineering: string
+    location: {
+      locationName: string | null
+      systemName: string
+    }
+    transfer: string
+    value: string
   }>
+  meta: string
   authority: string
   details: string
 }
@@ -144,52 +145,47 @@ export function createCurrentShipModel(state: RuntimeState, locale = 'en-CH'): C
 }
 
 export function createFleetOverviewModel(fleet: FleetResponse, locale = 'en-CH'): FleetOverviewModel {
+  const knownValue = fleet.ships.reduce((total, ship) => total + (ship.value ?? 0), 0)
+  const locations = new Set(
+    fleet.ships
+      .map(ship => ship.system?.trim().toLocaleLowerCase())
+      .filter((system): system is string => Boolean(system))
+  )
   return {
     summary: [
-      { label: 'Active', value: fleet.summary.active },
-      { label: 'Owned', value: fleet.summary.owned },
-      { label: 'Stored', value: fleet.summary.stored },
-      { label: 'Transferring', value: fleet.summary.transferring },
-      { label: 'Unknown', value: fleet.summary.unknown }
+      { label: 'Owned', value: String(fleet.summary.owned) },
+      { label: 'Locations', value: String(locations.size) },
+      { label: 'Transferring', value: String(fleet.summary.transferring) },
+      { label: 'Fleet value', value: knownValue > 0 ? credits(knownValue, locale) : '—' }
     ],
-    ships: fleet.ships.map(ship => fleetShipModel(ship, fleet.activeShipId, locale)),
-    assets: [
-      {
-        label: 'Stored equipment',
-        value: fleet.storedModules.items.length,
-        detail: fleet.storedModules.snapshotAt ? `${title(fleet.storedModules.details)} snapshot` : 'No snapshot observed'
-      },
-      {
-        label: 'Fleet carriers',
-        value: fleet.carriers.items.length,
-        detail: fleet.carriers.observed ? 'Observed locally' : 'No authoritative record observed'
-      }
-    ]
+    ships: fleet.ships.map(ship => fleetShipModel(ship, fleet.activeShipId, locale))
   }
 }
 
 export function createStoredModulesModel(fleet: FleetResponse, locale = 'en-CH'): StoredModulesModel {
-  const groups = new Map<string, StoredModule[]>()
-  for (const module of fleet.storedModules.items) {
-    const system = module.system || 'Unknown system'
-    groups.set(system, [...(groups.get(system) ?? []), module])
-  }
+  const modules = [...fleet.storedModules.items].sort((left, right) =>
+    left.system.localeCompare(right.system) ||
+    (left.station ?? '').localeCompare(right.station ?? '') ||
+    (left.displayName ?? left.rawName).localeCompare(right.displayName ?? right.rawName) ||
+    left.storageSlot - right.storageSlot
+  )
+  const locations = new Set(modules.map(module => `${module.system}\u0000${module.marketId}`))
   return {
-    groups: [...groups].map(([system, modules]) => ({
-      system,
-      items: modules.map(module => ({
-        key: `${module.marketId}:${module.storageSlot}`,
-        name: module.displayName ?? module.rawName,
-        identifier: `${module.rawName}${module.hot ? ' · Hot' : ''}`,
-        engineering: module.engineering
-          ? `${module.engineering.blueprint}${module.engineering.level === null ? '' : ` G${module.engineering.level}`}`
-          : '—',
-        slot: module.storageSlot,
-        transfer: `${duration(module.transferSeconds)} · ${credits(module.transferCost, locale)}`,
-        value: credits(module.buyPrice, locale),
-        observed: dateTime(module.updatedAt, locale)
-      }))
+    items: modules.map(module => ({
+      key: `${module.marketId}:${module.storageSlot}`,
+      name: module.displayName ?? module.rawName,
+      identifier: `${module.rawName}${module.hot ? ' · Hot' : ''}`,
+      engineering: module.engineering
+        ? `${module.engineering.blueprint}${module.engineering.level === null ? '' : ` G${module.engineering.level}`}`
+        : '—',
+      location: {
+        locationName: module.station,
+        systemName: module.system
+      },
+      transfer: `${duration(module.transferSeconds)} · ${credits(module.transferCost, locale)}`,
+      value: credits(module.buyPrice, locale)
     })),
+    meta: `${modules.length} ${modules.length === 1 ? 'module' : 'modules'} · ${locations.size} ${locations.size === 1 ? 'location' : 'locations'}`,
     details: `${title(fleet.storedModules.details)} snapshot`,
     authority: storedModuleAuthority(fleet, locale)
   }
@@ -201,12 +197,23 @@ function fleetShipModel(ship: FleetShip, activeShipId: number | null, locale: st
     name: ship.name ?? ship.displayName ?? ship.typeId ?? `Ship ${ship.id}`,
     detail: [ship.displayName, ship.identifier].filter(Boolean).join(' · ') || `Ship ID ${ship.id}`,
     state: `${title(ship.state.replaceAll('-', ' '))}${ship.hot ? ' · Hot' : ''}`,
-    location: [ship.station, ship.system].filter(Boolean).join(' · ') || '—',
+    location: {
+      locationName: ship.station,
+      systemName: ship.system
+    },
     value: credits(ship.value, locale),
-    transfer: ship.state === 'transfer' ? `${duration(ship.transferSeconds)} · ${credits(ship.transferPrice, locale)}` : '—',
+    transfer: shipTransfer(ship, locale),
     observed: dateTime(ship.updatedAt, locale),
     active: ship.id === activeShipId || ship.state === 'active'
   }
+}
+
+function shipTransfer(ship: FleetShip, locale: string): string {
+  const details = [
+    ship.transferSeconds === null ? null : duration(ship.transferSeconds),
+    ship.transferPrice === null ? null : credits(ship.transferPrice, locale)
+  ].filter((detail): detail is string => detail !== null)
+  return details.join(' · ') || '—'
 }
 
 function moduleGroupModel(

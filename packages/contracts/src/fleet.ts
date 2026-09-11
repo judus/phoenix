@@ -39,6 +39,10 @@ export const StoredModuleSchema = z.object({
   updatedAt: z.string().datetime({ offset: true })
 }).strict()
 
+export const LocatedStoredModuleSchema = StoredModuleSchema.extend({
+  station: z.string().nullable()
+}).strict()
+
 export const FleetResponseSchema = z.object({
   activeShipId: z.number().int().nonnegative().nullable(),
   carriers: z.object({
@@ -49,7 +53,7 @@ export const FleetResponseSchema = z.object({
   shipsSnapshotAt: z.string().datetime({ offset: true }).nullable(),
   storedModules: z.object({
     details: z.enum(['complete', 'partial', 'unknown']),
-    items: z.array(StoredModuleSchema),
+    items: z.array(LocatedStoredModuleSchema),
     latestMutationAt: z.string().datetime({ offset: true }).nullable(),
     snapshotAt: z.string().datetime({ offset: true }).nullable()
   }).strict(),
@@ -64,4 +68,5 @@ export const FleetResponseSchema = z.object({
 
 export type FleetResponse = z.infer<typeof FleetResponseSchema>
 export type FleetShip = z.infer<typeof FleetShipSchema>
+export type LocatedStoredModule = z.infer<typeof LocatedStoredModuleSchema>
 export type StoredModule = z.infer<typeof StoredModuleSchema>

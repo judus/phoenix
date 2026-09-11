@@ -20,6 +20,7 @@ import {
   CopilotRealtimeToolRequestSchema,
   CopilotRealtimeTurnRequestSchema,
   ExplorationManualCompletionRequestSchema,
+  GalaxyBookmarkWriteRequestSchema,
   InstallationSettingsSchema,
   InstallationSettingsUpdateSchema,
   MacroDefinitionSchema,
@@ -69,6 +70,7 @@ import type { Macros } from '../domain/macros.js'
 import type { MissionDataReader } from '../domain/missions.js'
 import type { CommunicationDataReader, CommunicationQueryView } from '../domain/communications.js'
 import type { FleetDataReader } from '../domain/fleet.js'
+import type { GalaxyBookmarks } from '../domain/galaxy-bookmarks.js'
 import type { PhoenixMcpServer } from './phoenix-mcp-server.js'
 import type { PairingAccessController } from './pairing-access-controller.js'
 import { activeRouteIPv4Address, serverAccessUrls } from './server-access-urls.js'
@@ -110,6 +112,7 @@ export interface PhoenixHttpServerOptions {
   explorationData: ExplorationDataReader
   explorationTargets: ExplorationTargetReader
   fleet: FleetDataReader
+  bookmarks: GalaxyBookmarks
   galaxyData: GalaxyDataReader
   galnet: GalnetNewsReader
   healthCheck: HealthCheck
@@ -288,6 +291,31 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/fleet') {
       this.writeJson(response, 200, this.options.fleet.getFleet())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/bookmarks') {
+      this.writeJson(response, 200, this.options.bookmarks.getAll())
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/galaxy/bookmarks') {
+      const input = await readValidatedJsonBody(request, GalaxyBookmarkWriteRequestSchema)
+      this.writeJson(response, 201, this.options.bookmarks.create(input))
+      return
+    }
+
+    const galaxyBookmarkMatch = url.pathname.match(/^\/api\/galaxy\/bookmarks\/([^/]+)$/u)
+    if (galaxyBookmarkMatch && request.method === 'PUT') {
+      const input = await readValidatedJsonBody(request, GalaxyBookmarkWriteRequestSchema)
+      this.writeJson(response, 200, this.options.bookmarks.update(decodeURIComponent(galaxyBookmarkMatch[1]!), input))
+      return
+    }
+
+    if (galaxyBookmarkMatch && request.method === 'DELETE') {
+      this.options.bookmarks.delete(decodeURIComponent(galaxyBookmarkMatch[1]!))
+      response.writeHead(204)
+      response.end()
       return
     }
 
@@ -1500,6 +1528,17 @@ async function readJsonBody (request: IncomingMessage): Promise<unknown> {
 
   if (chunks.length === 0) throw new Error('Request body is empty.')
   return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown
+}
+
+async function readValidatedJsonBody<T> (
+  request: IncomingMessage,
+  schema: { parse(value: unknown): T }
+): Promise<T> {
+  try {
+    return schema.parse(await readJsonBody(request))
+  } catch (cause) {
+    throw new HttpRequestValidationError(cause instanceof Error ? cause.message : 'Invalid request body.')
+  }
 }
 
 function writeCopilotStreamEvent (response: ServerResponse, event: AiStreamEvent): void {

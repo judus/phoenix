@@ -6,7 +6,11 @@ test('fleet projection combines the active loadout with authoritative stored shi
   const database = new SqliteDatabase(':memory:')
   database.initialize()
   try {
-    const fleet = new FleetDataService(database, identifier => identifier === 'lakonminer' ? 'Type-11 Prospector' : null)
+    const fleet = new FleetDataService(
+      database,
+      identifier => identifier === 'lakonminer' ? 'Type-11 Prospector' : null,
+      { resolve: (systemName, marketId) => systemName === 'Atata' && marketId === 200 ? 'Shajn Market' : null }
+    )
     fleet.ingest({
       timestamp: '2026-08-15T08:00:00Z', event: 'Loadout', Ship: 'lakonminer', ShipID: 13,
       ShipIdent: 'EL-06L', HullValue: 60_000_000, ModulesValue: 40_000_000
@@ -26,7 +30,16 @@ test('fleet projection combines the active loadout with authoritative stored shi
       summary: { active: 1, owned: 2, stored: 1, transferring: 0, unknown: 0 },
       ships: [
         { id: 13, displayName: 'Type-11 Prospector', identifier: 'EL-06L', state: 'active', system: 'Test System', station: 'Locke Terminal', typeId: 'lakonminer', value: 100_000_000 },
-        { id: 3, marketId: 200, state: 'stored-remote', system: 'Atata', typeId: 'SideWinder' }
+        {
+          id: 3,
+          marketId: 200,
+          state: 'stored-remote',
+          station: 'Shajn Market',
+          system: 'Atata',
+          transferPrice: 1395,
+          transferSeconds: 2425,
+          typeId: 'SideWinder'
+        }
       ]
     })
   } finally {
@@ -57,7 +70,11 @@ test('stored module snapshot reports later mutations as partial without guessing
   const database = new SqliteDatabase(':memory:')
   database.initialize()
   try {
-    const fleet = new FleetDataService(database)
+    const fleet = new FleetDataService(
+      database,
+      () => null,
+      { resolve: (systemName, marketId) => systemName === 'Atata' && marketId === 200 ? 'Shajn Market' : null }
+    )
     fleet.ingest({
       timestamp: '2026-08-15T08:00:00Z', event: 'StoredModules', Items: [{
         Name: '$hpt_beamlaser_gimbal_large_name;', Name_Localised: 'Beam Laser', StorageSlot: 81,
@@ -71,7 +88,7 @@ test('stored module snapshot reports later mutations as partial without guessing
       details: 'partial',
       snapshotAt: '2026-08-15T08:00:00Z',
       latestMutationAt: '2026-08-15T08:05:00Z',
-      items: [{ storageSlot: 81, displayName: 'Beam Laser', engineering: { blueprint: 'Weapon_Efficient', level: 2 } }]
+      items: [{ storageSlot: 81, displayName: 'Beam Laser', station: 'Shajn Market', engineering: { blueprint: 'Weapon_Efficient', level: 2 } }]
     })
   } finally {
     database.close()

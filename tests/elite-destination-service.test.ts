@@ -81,7 +81,7 @@ describe('Elite destination automation', () => {
     await expect(service.plot('Sol')).resolves.toMatchObject({
       status: 'rejected',
       phase: 'preflight',
-      message: 'Elite status is stale. No keyboard input was sent.'
+      message: 'Elite status is stale.'
     })
     expect(input.events).toEqual([])
   })

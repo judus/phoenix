@@ -1,7 +1,7 @@
   .fleet-overview {
     container: fleet-overview / size;
     display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto minmax(0, 1fr);
     gap: var(--spacing-sm);
     inline-size: 100%;
     block-size: 100%;
@@ -9,34 +9,7 @@
     min-block-size: 0;
     overflow: hidden;
 
-    dl { margin: 0; }
-
-    .asset-summary {
-      display: grid;
-      border-block: 1px solid var(--color-border-subtle);
-
-      > div {
-        display: grid;
-        align-content: center;
-        min-inline-size: 0;
-        padding: var(--spacing-sm);
-
-        &:not(:last-child) { border-inline-end: 1px solid var(--color-border-subtle); }
-      }
-
-      dt {
-        color: var(--color-action);
-        font-size: var(--font-size-sm);
-        text-transform: uppercase;
-      }
-
-      dd {
-        margin: 0;
-        color: var(--color-text);
-        font-size: var(--font-size-xl);
-        line-height: var(--line-height-tight);
-      }
-    }
+    &.has-notices { grid-template-rows: auto auto auto minmax(0, 1fr); }
 
     .vessels {
       grid-template-rows: auto minmax(0, 1fr);
@@ -50,32 +23,11 @@
       }
     }
 
-    .asset-summary {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-
-      > div { padding-block: var(--spacing-xs); }
-
-      small {
-        color: var(--color-text-muted);
-        font-size: var(--font-size-xs);
-      }
-    }
   }
 
   @container fleet-overview (height < 44rem) {
     .fleet-overview {
       gap: var(--spacing-xs);
 
-      .asset-summary {
-        > div { padding-block: var(--spacing-xs); }
-      }
-
-      .asset-summary dd { font-size: var(--font-size-lg); }
-    }
-  }
-
-  @container fleet-overview (width < 44rem) {
-    .fleet-overview {
-      .asset-summary small { display: none; }
     }
   }

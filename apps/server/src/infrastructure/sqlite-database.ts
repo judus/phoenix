@@ -9,6 +9,7 @@ import {
   CartographicSystemSchema,
   CommunicationMessageSchema,
   FleetShipSchema,
+  GalaxyBookmarkSchema,
   MissionSchema,
   StoredModuleSchema,
   type ActivityLogEntry,
@@ -16,6 +17,7 @@ import {
   type CommunicationMessage,
   type DatabaseHealth,
   type FleetShip,
+  type GalaxyBookmark,
   type Mission,
   type StoredModule
 } from '@phoenix/contracts'
@@ -34,11 +36,12 @@ import type { ProviderCacheEntry, ProviderResponseCache } from '../domain/statio
 import type { MissionRepository } from '../domain/missions.js'
 import type { CommunicationQueryView, CommunicationRepository } from '../domain/communications.js'
 import type { FleetRepository } from '../domain/fleet.js'
+import { galaxyBookmarkTargetKey, type GalaxyBookmarkRepository } from '../domain/galaxy-bookmarks.js'
 import { edsmBodyDetails } from './edsm-cartography-source.js'
 import { ensurePrivateDirectorySync, restrictPrivateFileSync } from './private-user-state.js'
 import { parseStoredCartographyObservation, upgradeStoredCartographyObservation } from './stored-cartography-observation.js'
 
-export class SqliteDatabase implements Database, CartographyRepository, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository, CommunicationRepository, FleetRepository {
+export class SqliteDatabase implements Database, CartographyRepository, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository, CommunicationRepository, FleetRepository, GalaxyBookmarkRepository {
   private readonly connection: DatabaseSync
   private readonly path: string
 
@@ -222,6 +225,7 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     this.migrateCartographyObservationMeaning()
     this.migrateCartographicBodyAttribution()
     this.migrateCartographicBodyDetails()
+    this.migrateGalaxyBookmarks()
   }
 
   public findRecord (systemName: string): CartographyRecord | null {
@@ -551,6 +555,48 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     }
   }
 
+  public deleteGalaxyBookmark (id: string): void {
+    this.connection.prepare('DELETE FROM galaxy_bookmarks WHERE bookmark_id = ?').run(id)
+  }
+
+  public findGalaxyBookmarkByTarget (target: GalaxyBookmark['target']): GalaxyBookmark | null {
+    const row = this.connection.prepare(`
+      SELECT document FROM galaxy_bookmarks WHERE target_key = ?
+    `).get(galaxyBookmarkTargetKey(target)) as { document: string } | undefined
+    return row ? GalaxyBookmarkSchema.parse(JSON.parse(row.document)) : null
+  }
+
+  public getGalaxyBookmark (id: string): GalaxyBookmark | null {
+    const row = this.connection.prepare(`
+      SELECT document FROM galaxy_bookmarks WHERE bookmark_id = ?
+    `).get(id) as { document: string } | undefined
+    return row ? GalaxyBookmarkSchema.parse(JSON.parse(row.document)) : null
+  }
+
+  public listGalaxyBookmarks (): GalaxyBookmark[] {
+    const rows = this.connection.prepare(`
+      SELECT document FROM galaxy_bookmarks ORDER BY updated_at DESC, bookmark_id ASC
+    `).all() as Array<{ document: string }>
+    return rows.map(row => GalaxyBookmarkSchema.parse(JSON.parse(row.document)))
+  }
+
+  public putGalaxyBookmark (bookmark: GalaxyBookmark): void {
+    const validated = GalaxyBookmarkSchema.parse(bookmark)
+    this.connection.prepare(`
+      INSERT INTO galaxy_bookmarks (bookmark_id, target_key, updated_at, document)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(bookmark_id) DO UPDATE SET
+        target_key = excluded.target_key,
+        updated_at = excluded.updated_at,
+        document = excluded.document
+    `).run(
+      validated.id,
+      galaxyBookmarkTargetKey(validated.target),
+      validated.updatedAt,
+      JSON.stringify(validated)
+    )
+  }
+
   public getProviderResponse (namespace: string, key: string): ProviderCacheEntry | null {
     const row = this.connection.prepare(`
       SELECT fetched_at, document
@@ -700,6 +746,29 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
       }
       this.connection.exec(`
         INSERT INTO schema_migrations (version, applied_at) VALUES (15, datetime('now'));
+        COMMIT;
+      `)
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
+    }
+  }
+
+  private migrateGalaxyBookmarks (): void {
+    const applied = this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = 16').get()
+    if (applied) return
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      this.connection.exec(`
+        CREATE TABLE galaxy_bookmarks (
+          bookmark_id TEXT PRIMARY KEY,
+          target_key TEXT NOT NULL UNIQUE,
+          updated_at TEXT NOT NULL,
+          document TEXT NOT NULL
+        ) STRICT;
+        CREATE INDEX galaxy_bookmarks_updated_at
+        ON galaxy_bookmarks (updated_at DESC);
+        INSERT INTO schema_migrations (version, applied_at) VALUES (16, datetime('now'));
         COMMIT;
       `)
     } catch (cause) {

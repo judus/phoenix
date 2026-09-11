@@ -70,14 +70,6 @@
     margin: var(--spacing-md);
   }
 
-  .system-schematic__destination {
-    display: grid;
-    justify-items: end;
-    gap: var(--spacing-xxs);
-    max-inline-size: min(28rem, 60vw);
-    text-align: end;
-  }
-
   .system-schematic__zoom {
     display: flex;
     gap: var(--spacing-xxs);
@@ -85,6 +77,13 @@
 
   .system-schematic__empty {
     color: var(--color-text-muted);
+  }
+
+  .system-schematic__state {
+    min-block-size: 0;
+    display: grid;
+    place-items: center;
+    text-align: center;
   }
 
   .system-unassigned-group {
@@ -537,6 +536,10 @@
       inline-size: 3rem;
       block-size: 3rem;
     }
+  }
+
+  .cartography-detail__actions {
+    padding-block-start: var(--spacing-md);
   }
 
   .cartography-tags {

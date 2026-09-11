@@ -50,11 +50,11 @@ export class EliteDestinationService implements EliteDestinations {
     if (!status.available) return result(systemName, 'rejected', 'preflight', status.detail)
     const gameStatus = this.runtimeState.getCurrent().gameStatus
     if (!gameStatus) {
-      return result(systemName, 'rejected', 'preflight', 'Elite is not reporting live status. No keyboard input was sent.')
+      return result(systemName, 'rejected', 'preflight', 'Elite is not reporting live status.')
     }
     const statusAge = this.timing.now() - Date.parse(gameStatus.timestamp)
     if (!Number.isFinite(statusAge) || statusAge > this.timing.statusFreshnessMs) {
-      return result(systemName, 'rejected', 'preflight', 'Elite status is stale. No keyboard input was sent.')
+      return result(systemName, 'rejected', 'preflight', 'Elite status is stale.')
     }
 
     this.active = true

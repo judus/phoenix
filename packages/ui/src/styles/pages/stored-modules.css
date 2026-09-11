@@ -9,29 +9,19 @@
     min-block-size: 0;
     overflow: hidden;
 
-    .module-groups {
-      display: grid;
-      align-content: start;
-      gap: var(--spacing-xl);
+    .module-manifest {
       min-inline-size: 0;
       min-block-size: 0;
-      padding-inline-end: var(--spacing-xs);
-      overflow: auto;
-      overscroll-behavior: contain;
-
-      &:focus-visible {
-        outline: 2px solid var(--color-focus);
-        outline-offset: -2px;
-      }
+      overflow: hidden;
     }
 
     .module-storage {
       min-inline-size: 0;
+      min-block-size: 0;
     }
 
   }
 
   @container stored-modules (height < 44rem) {
-    .stored-modules,
-    .stored-modules .module-groups { gap: var(--spacing-xs); }
+    .stored-modules { gap: var(--spacing-xs); }
   }

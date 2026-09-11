@@ -92,6 +92,19 @@ test('selecting a body does not pin a schematic that is following the current sy
     kind: 'information', section: 'galaxy', view: 'system', selectedName: 'Sol'
   })
 
+  await act(async () => renderer.update(<GalaxyPage
+    api={{} as PhoenixApi}
+    controller={{ lookup: { cache: 'local', system }, status: 'ready' }}
+    onNavigate={onNavigate}
+    route={{ kind: 'information', section: 'galaxy', view: 'system', selectedName: 'Sol' }}
+    runtime={{ state: runtimeState, status: 'ready' }}
+  />))
+  const bookmarkBody = renderer.root.findAllByType('button').find(button => button.props.children === 'Bookmark body')
+  await act(async () => bookmarkBody!.props.onClick())
+  expect(onNavigate).toHaveBeenLastCalledWith({
+    bodyName: 'Sol', kind: 'information', section: 'galaxy', systemName: 'Sol', view: 'bookmarks'
+  })
+
   await act(async () => renderer.unmount())
 })
 
@@ -103,24 +116,55 @@ test('system schematic submits its displayed system to Elite and shows confirmed
     phase: 'confirm_route',
     message: 'Route to Achenar was confirmed.'
   })
+  const onNavigate = vi.fn()
   let renderer: ReturnType<typeof create>
 
   await act(async () => {
     renderer = create(<GalaxyPage
       api={{ plotEliteDestination } as unknown as PhoenixApi}
       controller={{ lookup: { cache: 'local', system: emptySystem('Achenar') }, status: 'ready' }}
-      onNavigate={vi.fn()}
+      onNavigate={onNavigate}
       route={{ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Achenar' }}
       runtime={{ state: createEmptyRuntimeState(), status: 'ready' }}
     />)
   })
-  const plotButton = renderer.root.findAllByType('button').find(button => button.props.children === 'Plot in Elite')
+  const plotButton = renderer.root.findAllByType('button').find(button => button.props.children === 'Plot Route')
   expect(plotButton).toBeDefined()
 
   await act(async () => plotButton!.props.onClick())
 
   expect(plotEliteDestination).toHaveBeenCalledWith('Achenar', expect.any(AbortSignal))
+  expect(onNavigate).toHaveBeenCalledWith({ kind: 'information', section: 'galaxy', view: 'route' })
   expect(renderer.root.findAll(node => node.children.includes('Route to Achenar was confirmed.'))).not.toHaveLength(0)
+  await act(async () => renderer.unmount())
+})
+
+test('system schematic keeps its navigation controls when cartography is unavailable', async () => {
+  const onNavigate = vi.fn<(route: PhoenixRoute) => void>()
+  let renderer: ReturnType<typeof create>
+
+  await act(async () => {
+    renderer = create(<GalaxyPage
+      api={{} as PhoenixApi}
+      controller={{ error: 'No cartography record found.', status: 'error' }}
+      onNavigate={onNavigate}
+      route={{ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Unreported System' }}
+      runtime={{ state: createEmptyRuntimeState(), status: 'ready' }}
+    />)
+  })
+
+  expect(renderer.root.findByProps({ id: 'system-query-name' }).props.value).toBe('Unreported System')
+  expect(renderer.root.findByProps({ 'aria-pressed': false }).props.children).toEqual(['Follow ', 'off'])
+  const plotButton = renderer.root.findAllByType('button').find(button => button.props.children === 'Plot Route')
+  expect(plotButton?.props.disabled).toBe(true)
+  const bookmarkButton = renderer.root.findAllByType('button').find(button => button.props.children === 'Bookmark')
+  expect(bookmarkButton?.props.disabled).toBe(false)
+  await act(async () => bookmarkButton!.props.onClick())
+  expect(onNavigate).toHaveBeenLastCalledWith({
+    kind: 'information', section: 'galaxy', view: 'bookmarks', systemName: 'Unreported System'
+  })
+  expect(renderer.root.findAll(node => node.children.includes('No cartography record found.'))).not.toHaveLength(0)
+
   await act(async () => renderer.unmount())
 })
 

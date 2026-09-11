@@ -112,6 +112,21 @@ describe('PHOENIX route parsing and generation', () => {
     expect(phoenixRouteHash(route)).toBe('#/galaxy/exobiology')
   })
 
+  test('Galaxy bookmark routes preserve editor and target context', () => {
+    const target = parsePhoenixRoute('#/galaxy/bookmarks?system=Sol&body=Earth')
+    expect(target).toEqual({
+      bodyName: 'Earth',
+      kind: 'information',
+      section: 'galaxy',
+      systemName: 'Sol',
+      view: 'bookmarks'
+    })
+    expect(phoenixRouteHash(target)).toBe('#/galaxy/bookmarks?system=Sol&body=Earth')
+
+    const editor = parsePhoenixRoute('#/galaxy/bookmarks?edit=00000000-0000-4000-8000-000000000001')
+    expect(phoenixRouteHash(editor)).toBe('#/galaxy/bookmarks?edit=00000000-0000-4000-8000-000000000001')
+  })
+
   test('Fleet promotes catalogue selection and drops arbitrary query fields', () => {
     const catalogue = parsePhoenixRoute('#/fleet/catalogue?ship=python&layout=cards')
     const overview = parsePhoenixRoute('#/fleet/overview?selected=42')

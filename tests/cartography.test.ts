@@ -37,6 +37,16 @@ test('EDSM cartography loads system, bodies, and stations concurrently into one 
   })
 })
 
+test('missing external cartography is reported without exposing the provider', async () => {
+  const source = new EdsmCartographySource({
+    fetch: vi.fn(async () => response({})) as typeof fetch
+  })
+
+  await expect(source.fetchSystem('Unreported System')).rejects.toThrow(
+    'No cartography record for "Unreported System".'
+  )
+})
+
 test('cartography repository preserves external and local source data in one system record', () => {
   const database = new SqliteDatabase(':memory:')
   database.initialize()

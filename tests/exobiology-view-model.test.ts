@@ -1,5 +1,8 @@
 import { expect, test } from 'vitest'
 import type { ExplorationLedgerResponse } from '@phoenix/contracts'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { ExobiologyPage } from '../apps/web/src/features/galaxy/exobiology-page.js'
 import { createExobiologyViewModel } from '../apps/web/src/features/galaxy/exobiology-view-model.js'
 
 test('builds journal-backed biological progress and excludes unrelated bodies', () => {
@@ -9,6 +12,7 @@ test('builds journal-backed biological progress and excludes unrelated bodies', 
   expect(model.systems).toHaveLength(1)
   expect(model.systems[0]).toMatchObject({ completed: 1, name: 'Test System', total: 2 })
   expect(model.systems[0]?.bodies).toHaveLength(1)
+  expect(model.systems[0]?.bodies[0]).toMatchObject({ systemName: 'Test System' })
   expect(model.systems[0]?.bodies[0]?.samples).toEqual([
     {
       completed: false,
@@ -27,6 +31,13 @@ test('builds journal-backed biological progress and excludes unrelated bodies', 
       variant: 'Unknown'
     }
   ])
+})
+
+test('links systems and bodies to their system schematic', () => {
+  const markup = renderToStaticMarkup(createElement(ExobiologyPage, { controller: { exploration: fixture(), status: 'ready' } }))
+
+  expect(markup).toContain('href="#/galaxy/system?name=Test+System"')
+  expect(markup).toContain('href="#/galaxy/system?name=Test+System&amp;selected=Test+System+1"')
 })
 
 function fixture(): ExplorationLedgerResponse {

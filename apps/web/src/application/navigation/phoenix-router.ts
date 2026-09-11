@@ -124,6 +124,11 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
   if (route.kind === 'information' && route.section === 'galaxy' && route.view === 'database' && route.selectedQueryId) {
     parameters.set('query', route.selectedQueryId)
   }
+  if (route.kind === 'information' && route.section === 'galaxy' && route.view === 'bookmarks') {
+    if (route.bookmarkId) parameters.set('edit', route.bookmarkId)
+    if (route.systemName) parameters.set('system', route.systemName)
+    if (route.bodyName) parameters.set('body', route.bodyName)
+  }
   if (route.kind === 'information' && route.section === 'fleet' && route.view === 'catalogue' && route.selectedShipId) {
     parameters.set('ship', route.selectedShipId)
   }
@@ -171,7 +176,7 @@ function parseFleetRoute(rest: string[], query: RawRouteQuery): InformationRoute
 }
 
 function parseGalaxyRoute(rest: string[], query: RawRouteQuery): InformationRoute {
-  const view = oneOf(rest[0], ['system', 'route', 'database', 'exobiology'] as const) ?? 'system'
+  const view = oneOf(rest[0], ['system', 'route', 'database', 'exobiology', 'bookmarks'] as const) ?? 'system'
   if (view === 'system') {
     const { name, selected } = query
     return {
@@ -189,6 +194,16 @@ function parseGalaxyRoute(rest: string[], query: RawRouteQuery): InformationRout
       section: 'galaxy',
       view,
       ...(selectedQueryId ? { selectedQueryId } : {})
+    }
+  }
+  if (view === 'bookmarks') {
+    return {
+      kind: 'information',
+      section: 'galaxy',
+      view,
+      ...(query.edit?.trim() ? { bookmarkId: query.edit.trim() } : {}),
+      ...(query.system?.trim() ? { systemName: query.system.trim() } : {}),
+      ...(query.body?.trim() ? { bodyName: query.body.trim() } : {})
     }
   }
   return { kind: 'information', section: 'galaxy', view }

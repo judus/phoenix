@@ -45,7 +45,7 @@ export class EdsmCartographySource implements ExternalCartographySource {
     const bodiesResponse = record(bodiesRaw)
     const stationsResponse = record(stationsRaw)
     const resolvedName = stringValue(system.name) ?? stringValue(bodiesResponse.name) ?? stringValue(stationsResponse.name)
-    if (!resolvedName) throw new Error(`EDSM has no cartography record for "${name}".`)
+    if (!resolvedName) throw new Error(`No cartography record for "${name}".`)
     const information = record(system.information)
 
     return CartographicSystemSchema.parse({
