@@ -5,7 +5,7 @@ export type CommunicationQueryView = 'all' | 'inbox' | 'traffic'
 export interface CommunicationRepository {
   listCommunicationMessages(view: CommunicationQueryView, limit: number): CommunicationMessage[]
   putCommunicationMessage(message: CommunicationMessage): void
-  summarizeCommunications(): CommunicationsResponse['summary']
+  summarizeCommunications(view: CommunicationQueryView): CommunicationsResponse['summary']
 }
 
 export interface CommunicationDataReader {

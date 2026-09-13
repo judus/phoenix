@@ -72,7 +72,7 @@ describe('pairing transport', () => {
   })
 })
 
-test('filtered Galaxy search serializes typed parameters and validates the response', async () => {
+test('Galaxy system search serializes typed parameters and validates the response', async () => {
   const request = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({
     cache: 'fresh',
     filters: {
@@ -89,7 +89,7 @@ test('filtered Galaxy search serializes typed parameters and validates the respo
     systems: []
   }))
 
-  await expect(new PhoenixApiClient('', request).getFilteredSystems({
+  await expect(new PhoenixApiClient('', request).findGalaxySystems({
     economy: 'High Tech',
     maxDistance: 75,
     minPopulation: 1,

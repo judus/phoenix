@@ -1,51 +1,55 @@
-import { ActionTile } from '@phoenix/ui'
-import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
+import { ActionTile, Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
 
 const queries = [
   {
-    eyebrow: 'Cartography',
-    label: 'Nearby systems',
-    description: 'Inspect known systems around a reference system.',
+    status: 'Cartography',
+    label: 'System search',
+    description: 'Find nearby systems, optionally narrowed by demographic, economic, and political characteristics.',
   },
   {
-    eyebrow: 'Facilities',
+    status: 'Cartography',
+    label: 'Exploration targets',
+    description: 'Locate reported bodies by physical characteristics and surface signals.',
+  },
+  {
+    status: 'Facilities',
     label: 'Shipyards selling a hull',
     description: 'Locate shipyards reporting a particular hull in stock.',
   },
   {
-    eyebrow: 'Facilities',
+    status: 'Facilities',
     label: 'Nearest facility',
     description: 'Find the nearest station providing an operational service.',
   },
   {
-    eyebrow: 'Markets',
+    status: 'Markets',
     label: 'Commodity markets',
     description: 'Find markets buying or selling a specific commodity.',
   },
   {
-    eyebrow: 'Facilities',
+    status: 'Facilities',
     label: 'Outfitting stock',
     description: 'Locate stations reporting a named module in stock.',
   },
   {
-    eyebrow: 'Facilities',
+    status: 'Facilities',
     label: 'Station lookup',
     description: 'Locate a known or partially remembered station.',
   },
   {
-    eyebrow: 'Cartography',
-    label: 'Filtered system search',
-    description: 'Find systems matching operational, political, and economic criteria.',
-  },
-  {
-    eyebrow: 'Politics',
+    status: 'Politics',
     label: 'Faction and BGS presence',
     description: 'Locate faction presence and matching BGS conditions.',
   },
   {
-    eyebrow: 'Markets',
+    status: 'Markets',
     label: 'Trade opportunities',
     description: 'Compare reported buy and sell markets for profitable cargo movement.',
+  },
+  {
+    status: 'Query library',
+    label: 'Saved queries',
+    description: 'Run and manage reusable galaxy queries.',
   }
 ]
 

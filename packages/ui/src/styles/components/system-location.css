@@ -1,7 +1,10 @@
 .system-location {
   gap: 0;
-  padding-block: var(--spacing-xxs);
+  font-family: var(--font-family-display);
+  font-size: 0.9em;
+  letter-spacing: calc(0.04em + var(--font-tracking-display));
   line-height: var(--line-height-tight);
+  text-transform: uppercase;
 
   .system-location-row {
     min-block-size: 1.25rem;
@@ -10,21 +13,31 @@
     > span { color: var(--color-text-muted); }
 
     > a {
+      min-inline-size: 0;
+      overflow: hidden;
       line-height: inherit;
+      text-overflow: ellipsis;
       white-space: nowrap;
     }
   }
 
   .btn-icon {
+    position: relative;
+    align-self: flex-start;
+    inset-block-start: -2px;
     inline-size: 1.25rem;
     min-block-size: 1.25rem;
+    flex: 0 0 1.25rem;
+    margin-inline-start: -2px;
+    padding: 0;
     border: 0;
 
     &::after { display: none; }
 
     svg {
-      inline-size: 0.75rem;
-      block-size: 0.75rem;
+      display: block;
+      inline-size: 1rem;
+      block-size: 1rem;
     }
   }
 }

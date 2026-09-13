@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes } from 'react'
+import { compactBindingLabel } from '../formatters/compact-binding-label'
 import { TileButton } from './tile'
 
 type CommandTileProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> & {
@@ -28,10 +29,7 @@ export function CommandTile({
   ...props
 }: CommandTileProps) {
   const bindingLabel = kind === 'macro' ? 'Macro' : (binding ?? 'Unbound')
-  const displayedBinding = bindingLabel
-    .replaceAll('Numpad_', 'NP_')
-    .replaceAll('LeftShift', 'LS')
-    .replaceAll('RightShift', 'RS')
+  const displayedBinding = compactBindingLabel(bindingLabel)
 
   return (
     <TileButton

@@ -131,6 +131,14 @@
     color: var(--color-text);
     background: var(--color-canvas);
 
+    :where(h1, h2, h3, h4, h5, h6) {
+      text-shadow: var(--text-bloom-subtle);
+    }
+
+    :where(a, button, .text-information, .text-warning, .text-danger) {
+      text-shadow: var(--text-bloom-emphasis);
+    }
+
     > .topbar {
       flex: 0 0 var(--application-shell-chrome-size);
       display: grid;
@@ -243,15 +251,17 @@
 
   strong {
     color: var(--color-text);
+    font-family: var(--font-family-display);
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-normal);
-    letter-spacing: 0.16em;
+    letter-spacing: calc(0.16em + var(--font-tracking-display));
   }
 
   small {
     color: var(--color-action);
     font-size: var(--font-size-xs);
-    letter-spacing: 0.08em;
+    letter-spacing: calc(0.08em + var(--font-tracking-display));
+    font-family: var(--font-family-display);
     text-transform: uppercase;
   }
 }

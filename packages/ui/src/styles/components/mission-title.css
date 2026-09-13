@@ -7,14 +7,20 @@
       color: var(--color-action);
       font-size: var(--font-size-xs);
       line-height: var(--line-height-compact);
+      font-family: var(--font-family-display);
+      letter-spacing: var(--font-tracking-display);
       text-transform: uppercase;
     }
 
     > strong {
       color: var(--color-text);
+      font-family: var(--font-family-display);
       font-size: var(--font-size-sm);
       font-weight: var(--font-weight-normal);
+      letter-spacing: calc(0.04em + var(--font-tracking-display));
       line-height: var(--line-height-compact);
+      text-transform: uppercase;
+      white-space: normal;
     }
 
     &.detail > strong {

@@ -131,14 +131,6 @@ const GALAXY_QUERY_DEFINITIONS: GalaxyQueryDefinition[] = [
     title: 'Exploration targets'
   },
   {
-    defaults: { origin: '', radius: '50' },
-    domain: 'Cartography',
-    fields: [ORIGIN, RADIUS],
-    id: 'nearby-systems',
-    purpose: 'Inspect known systems around a reference system.',
-    title: 'Nearby systems'
-  },
-  {
     defaults: { hull: '', origin: '' },
     domain: 'Facilities',
     fields: [ORIGIN, { id: 'hull', label: 'Ship hull', placeholder: 'Type-11 Prospector', required: true, type: 'text' }],
@@ -205,9 +197,9 @@ const GALAXY_QUERY_DEFINITIONS: GalaxyQueryDefinition[] = [
       { id: 'government', label: 'Government', options: commonAnyOptions(['Anarchy', 'Communism', 'Confederacy', 'Cooperative', 'Corporate', 'Democracy', 'Dictatorship', 'Feudal', 'None', 'Patronage', 'Prison', 'Prison Colony', 'Theocracy']), type: 'select' },
       { id: 'security', label: 'Security', options: commonAnyOptions(['Anarchy', 'Low', 'Medium', 'High']), type: 'select' },
     ],
-    id: 'filtered-systems',
-    purpose: 'Find systems matching demographic, economic, and political characteristics.',
-    title: 'Filtered system search'
+    id: 'system-search',
+    purpose: 'Find nearby systems, optionally narrowed by demographic, economic, and political characteristics.',
+    title: 'System search'
   },
   {
     defaults: { allegiance: 'any', controlling: 'any', faction: '', government: 'any', maxDistance: '100', minInfluence: '0', origin: '', state: 'any' },
@@ -244,8 +236,7 @@ const GALAXY_QUERY_DEFINITIONS: GalaxyQueryDefinition[] = [
 ]
 
 const GALAXY_QUERY_ORDER: GalaxyQueryId[] = [
-  'nearby-systems',
-  'filtered-systems',
+  'system-search',
   'exploration-targets',
   'facilities',
   'station-lookup',

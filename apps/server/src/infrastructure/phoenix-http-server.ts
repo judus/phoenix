@@ -28,6 +28,7 @@ import {
   PlotEliteDestinationRequestSchema,
   PhoenixModulesSchema,
   RecordMacroActionRequestSchema,
+  SavedGalaxyQueryWriteRequestSchema,
   StartMacroRecordingRequestSchema,
   type CopilotConversationEvent,
   type CartographyUpdate,
@@ -56,7 +57,7 @@ import type { HealthCheck } from '../application/health-service.js'
 import type { EngineeringDataReader } from '../application/engineering-data-service.js'
 import type { ExplorationDataReader } from '../application/exploration-data-service.js'
 import type { ExplorationTargetReader } from '../application/default-exploration-target-query.js'
-import type { GalaxyDataReader } from '../application/galaxy-data-service.js'
+import { DEFAULT_GALAXY_RESULT_LIMIT, type GalaxyDataReader } from '../application/galaxy-data-service.js'
 import type { GalnetNewsReader } from '../domain/galnet.js'
 import type { NavigationDataReader } from '../application/navigation-data-service.js'
 import type { ActivityLogReader, EliteJournalDiagnosticsReader } from '../domain/elite-journal.js'
@@ -71,6 +72,7 @@ import type { MissionDataReader } from '../domain/missions.js'
 import type { CommunicationDataReader, CommunicationQueryView } from '../domain/communications.js'
 import type { FleetDataReader } from '../domain/fleet.js'
 import type { GalaxyBookmarks } from '../domain/galaxy-bookmarks.js'
+import type { SavedGalaxyQueries } from '../domain/saved-galaxy-queries.js'
 import type { PhoenixMcpServer } from './phoenix-mcp-server.js'
 import type { PairingAccessController } from './pairing-access-controller.js'
 import { activeRouteIPv4Address, serverAccessUrls } from './server-access-urls.js'
@@ -113,6 +115,7 @@ export interface PhoenixHttpServerOptions {
   explorationTargets: ExplorationTargetReader
   fleet: FleetDataReader
   bookmarks: GalaxyBookmarks
+  savedGalaxyQueries: SavedGalaxyQueries
   galaxyData: GalaxyDataReader
   galnet: GalnetNewsReader
   healthCheck: HealthCheck
@@ -319,6 +322,31 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/saved-queries') {
+      this.writeJson(response, 200, this.options.savedGalaxyQueries.getAll())
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/galaxy/saved-queries') {
+      const input = await readValidatedJsonBody(request, SavedGalaxyQueryWriteRequestSchema)
+      this.writeJson(response, 201, this.options.savedGalaxyQueries.create(input))
+      return
+    }
+
+    const savedGalaxyQueryMatch = url.pathname.match(/^\/api\/galaxy\/saved-queries\/([^/]+)$/u)
+    if (savedGalaxyQueryMatch && request.method === 'PUT') {
+      const input = await readValidatedJsonBody(request, SavedGalaxyQueryWriteRequestSchema)
+      this.writeJson(response, 200, this.options.savedGalaxyQueries.update(decodeURIComponent(savedGalaxyQueryMatch[1]!), input))
+      return
+    }
+
+    if (savedGalaxyQueryMatch && request.method === 'DELETE') {
+      this.options.savedGalaxyQueries.delete(decodeURIComponent(savedGalaxyQueryMatch[1]!))
+      response.writeHead(204)
+      response.end()
+      return
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/comms/messages') {
       const requestedLimit = Number.parseInt(url.searchParams.get('limit') ?? '250', 10)
       const requestedView = url.searchParams.get('view')
@@ -391,21 +419,13 @@ export class PhoenixHttpServer {
         minimumPadSize: minimumPadSize ? padSizes[minimumPadSize] : null,
         service,
         systemName
-      }, boundedQueryInteger(url, 'limit', 20, 1, 100), minimumPadSize))
-      return
-    }
-
-    if (request.method === 'GET' && url.pathname === '/api/galaxy/systems') {
-      this.writeJson(response, 200, await this.options.galaxyData.searchNearbySystems({
-        maxDistance: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
-        systemName: requiredQuery(url, 'system')
-      }, boundedQueryInteger(url, 'limit', 100, 1, 1000)))
+      }, boundedQueryInteger(url, 'limit', DEFAULT_GALAXY_RESULT_LIMIT, 1, DEFAULT_GALAXY_RESULT_LIMIT), minimumPadSize))
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/galaxy/systems/search') {
       const population = optionalQueryChoice(url, 'population', ['any', 'inhabited', 'uninhabited'] as const) ?? 'any'
-      this.writeJson(response, 200, await this.options.galaxyData.searchFilteredSystems({
+      this.writeJson(response, 200, await this.options.galaxyData.findSystems({
         allegiance: optionalQuery(url, 'allegiance'),
         economy: optionalQuery(url, 'economy'),
         government: optionalQuery(url, 'government'),
@@ -415,7 +435,7 @@ export class PhoenixHttpServer {
         population,
         security: optionalQuery(url, 'security'),
         systemName: requiredQuery(url, 'system')
-      }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
+      }, boundedQueryInteger(url, 'limit', DEFAULT_GALAXY_RESULT_LIMIT, 1, DEFAULT_GALAXY_RESULT_LIMIT)))
       return
     }
 
@@ -430,7 +450,7 @@ export class PhoenixHttpServer {
         minInfluencePercent: boundedQueryInteger(url, 'minInfluence', 0, 0, 100),
         state: optionalQuery(url, 'state'),
         systemName: requiredQuery(url, 'system')
-      }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
+      }, boundedQueryInteger(url, 'limit', DEFAULT_GALAXY_RESULT_LIMIT, 1, DEFAULT_GALAXY_RESULT_LIMIT)))
       return
     }
 
@@ -438,7 +458,7 @@ export class PhoenixHttpServer {
       this.writeJson(response, 200, await this.options.galaxyData.searchShipyards(
         requiredQuery(url, 'hull'),
         requiredQuery(url, 'system'),
-        boundedQueryInteger(url, 'limit', 20, 1, 100)
+        boundedQueryInteger(url, 'limit', DEFAULT_GALAXY_RESULT_LIMIT, 1, DEFAULT_GALAXY_RESULT_LIMIT)
       ))
       return
     }
@@ -452,7 +472,7 @@ export class PhoenixHttpServer {
         minimumPadSize: minimumPadSize ? padSizes[minimumPadSize] : null,
         query: requiredQuery(url, 'module'),
         systemName: requiredQuery(url, 'system')
-      }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
+      }, boundedQueryInteger(url, 'limit', DEFAULT_GALAXY_RESULT_LIMIT, 1, DEFAULT_GALAXY_RESULT_LIMIT)))
       return
     }
 
@@ -469,7 +489,7 @@ export class PhoenixHttpServer {
         name: requiredQuery(url, 'name'),
         stationType,
         systemName: requiredQuery(url, 'system')
-      }, boundedQueryInteger(url, 'limit', 20, 1, 100), minimumPadSize))
+      }, boundedQueryInteger(url, 'limit', DEFAULT_GALAXY_RESULT_LIMIT, 1, DEFAULT_GALAXY_RESULT_LIMIT), minimumPadSize))
       return
     }
 
@@ -484,7 +504,7 @@ export class PhoenixHttpServer {
         maxDistance: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
         minVolume: boundedQueryInteger(url, 'minVolume', 1, 1, Number.MAX_SAFE_INTEGER),
         systemName: requiredQuery(url, 'system')
-      }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
+      }, boundedQueryInteger(url, 'limit', DEFAULT_GALAXY_RESULT_LIMIT, 1, DEFAULT_GALAXY_RESULT_LIMIT)))
       return
     }
 
@@ -497,7 +517,7 @@ export class PhoenixHttpServer {
         maxDistance: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
         minVolume: boundedQueryInteger(url, 'minVolume', 100, 1, Number.MAX_SAFE_INTEGER),
         systemName: requiredQuery(url, 'system')
-      }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
+      }, boundedQueryInteger(url, 'limit', DEFAULT_GALAXY_RESULT_LIMIT, 1, DEFAULT_GALAXY_RESULT_LIMIT)))
       return
     }
 
@@ -517,7 +537,7 @@ export class PhoenixHttpServer {
         minTemperatureK: optionalQueryNumber(url, 'minTemperatureK', 0),
         systemName: requiredQuery(url, 'system'),
         volcanismTypes: repeatedQuery(url, 'volcanism')
-      }, boundedQueryInteger(url, 'limit', 20, 1, 100)))
+      }, boundedQueryInteger(url, 'limit', DEFAULT_GALAXY_RESULT_LIMIT, 1, DEFAULT_GALAXY_RESULT_LIMIT)))
       return
     }
 

@@ -103,8 +103,10 @@ function LocationRow({ child = false, copied, href, label, onCopy }: {
 function CopyIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24">
-      <rect x="8" y="8" width="11" height="11" />
-      <path d="M16 8V5H5v11h3" />
+      <g transform="rotate(-90 12 12)">
+        <rect x="8" y="8" width="11" height="11" />
+        <path d="M16 8V5H5v11h3" />
+      </g>
     </svg>
   )
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { MacroDefinition, MacroStep } from '@phoenix/contracts'
 import {
   Button,
+  ControlContext,
   DataTable,
   DataTableGroup,
   Field,
@@ -147,14 +148,14 @@ function MacroEditor({ macro, onSave }: {
     title="Macro steps"
   >
     <Stack className="macro-editor-content" fill gap="sm">
-      <div className="macro-fields">
+      <ControlContext className="macro-fields" density="compact">
         <Field htmlFor="macro-name" label="Name" required>
           <TextInput id="macro-name" value={draft.name} onChange={event => setDraft({ ...draft, name: event.target.value })} />
         </Field>
         <Field htmlFor="macro-description" label="Description">
           <TextInput id="macro-description" placeholder="Optional" value={draft.description} onChange={event => setDraft({ ...draft, description: event.target.value })} />
         </Field>
-      </div>
+      </ControlContext>
       <DataTable className="macro-step-table" density="compact" label={`${draft.name} steps`} narrow="priority" scheme="surface" stickyHeader>
         <thead><tr><th className="col-fit">Step</th><th className="col-fill">Action</th><th className="col-fit">Operation</th><th className="col-fit">Status</th><th className="col-fit">Duration ms</th><th className="col-fit" aria-label="Step actions" /></tr></thead>
         <tbody>{steps.map((step, index) => <tr className={step.usable ? undefined : 'disabled'} key={`${index}:${editorStepKey(step)}`}>

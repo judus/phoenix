@@ -63,6 +63,7 @@ test('Realtime composition shares profiles, telemetry, tools, and conversation p
       }
     })
     expect(JSON.stringify(gateway.session)).toContain('gruff, mildly annoyed tone')
+    expect(JSON.stringify(gateway.session)).not.toContain('## Runtime Context')
 
     await expect(service.executeTool({
       arguments: {},
@@ -79,7 +80,7 @@ test('Realtime composition shares profiles, telemetry, tools, and conversation p
     await service.persistTurn(turn)
     await service.persistTurn(turn)
     expect((await conversations.snapshot('realtime-test'))?.messages).toHaveLength(2)
-    expect(service.context()).toMatchObject({ updatedAt: null })
+    expect(service.context()).toMatchObject({ text: expect.stringContaining('## Runtime Context'), updatedAt: null })
   } finally {
     rmSync(directory, { recursive: true, force: true })
   }

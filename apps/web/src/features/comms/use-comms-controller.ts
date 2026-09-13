@@ -5,7 +5,7 @@ import { readControllerSnapshot, storeControllerSnapshot } from '../../applicati
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
 import { LatestRequest } from '../../application/requests/latest-request.js'
 
-export type CommsView = 'overview' | 'inbox' | 'traffic' | 'contacts' | 'galnet' | 'radio'
+export type CommsView = 'inbox' | 'traffic' | 'contacts' | 'galnet' | 'radio'
 
 export interface CommsControllerSnapshot {
   actions?: GameActionCatalogResponse
@@ -44,7 +44,7 @@ export function useCommsController(api: PhoenixApi, events: PhoenixEventHub, vie
     }
 
     load(true)
-    const unsubscribe = view === 'overview' || view === 'inbox' || view === 'traffic' || view === 'contacts'
+    const unsubscribe = view === 'inbox' || view === 'traffic' || view === 'contacts'
       ? events.subscribe('activity-entry', entry => {
           if (entry.source === 'journal' && (entry.event === 'ReceiveText' || entry.event === 'SendText')) load()
         })

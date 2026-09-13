@@ -6,6 +6,8 @@ import type {
   ShipModule,
   ShipSlotDefinition
 } from '@phoenix/contracts'
+import { formatPhoenixCredits } from '../../components/phoenix-credits.js'
+import { formatPhoenixDateTime } from '../../components/phoenix-date-time.js'
 
 const moduleGroups: Array<{
   definitionKey: keyof ShipDefinition['slots']
@@ -52,19 +54,22 @@ export interface CurrentShipModel {
 }
 
 export interface FleetOverviewModel {
+  updatedAt: string | null
   summary: Array<{ label: string, value: string }>
   ships: Array<{
     id: number
     name: string
     detail: string
-    state: string
     location: {
       locationName: string | null
       systemName: string | null
     }
     value: string
-    transfer: string
-    observed: string
+    valueAmount: number | null
+    transferTime: string
+    transferSeconds: number | null
+    transferCost: string
+    transferPrice: number | null
     active: boolean
   }>
 }
@@ -152,6 +157,7 @@ export function createFleetOverviewModel(fleet: FleetResponse, locale = 'en-CH')
       .filter((system): system is string => Boolean(system))
   )
   return {
+    updatedAt: latestTimestamp(fleet.shipsSnapshotAt, ...fleet.ships.map(ship => ship.updatedAt)),
     summary: [
       { label: 'Owned', value: String(fleet.summary.owned) },
       { label: 'Locations', value: String(locations.size) },
@@ -196,24 +202,18 @@ function fleetShipModel(ship: FleetShip, activeShipId: number | null, locale: st
     id: ship.id,
     name: ship.name ?? ship.displayName ?? ship.typeId ?? `Ship ${ship.id}`,
     detail: [ship.displayName, ship.identifier].filter(Boolean).join(' · ') || `Ship ID ${ship.id}`,
-    state: `${title(ship.state.replaceAll('-', ' '))}${ship.hot ? ' · Hot' : ''}`,
     location: {
       locationName: ship.station,
       systemName: ship.system
     },
     value: credits(ship.value, locale),
-    transfer: shipTransfer(ship, locale),
-    observed: dateTime(ship.updatedAt, locale),
+    valueAmount: ship.value,
+    transferTime: duration(ship.transferSeconds),
+    transferSeconds: ship.transferSeconds,
+    transferCost: credits(ship.transferPrice, locale),
+    transferPrice: ship.transferPrice,
     active: ship.id === activeShipId || ship.state === 'active'
   }
-}
-
-function shipTransfer(ship: FleetShip, locale: string): string {
-  const details = [
-    ship.transferSeconds === null ? null : duration(ship.transferSeconds),
-    ship.transferPrice === null ? null : credits(ship.transferPrice, locale)
-  ].filter((detail): detail is string => detail !== null)
-  return details.join(' · ') || '—'
 }
 
 function moduleGroupModel(
@@ -334,7 +334,7 @@ function percentage(value: number | null | undefined, maximum: number | null | u
 }
 
 function credits(value: number | null | undefined, locale: string): string {
-  return value === null || value === undefined ? '—' : `${new Intl.NumberFormat(locale).format(value)} CR`
+  return formatPhoenixCredits(value, locale)
 }
 
 function unit(value: number | null | undefined, suffix: string, locale: string, digits = 0): string {
@@ -347,17 +347,22 @@ function duration(seconds: number | null | undefined): string {
   if (seconds === null || seconds === undefined) return '—'
   if (seconds < 60) return `${seconds}s`
   const minutes = Math.floor(seconds / 60)
+  if (minutes >= 60) {
+    const hours = Math.floor(minutes / 60)
+    const remainingMinutes = minutes % 60
+    return remainingMinutes === 0 ? `${hours}h` : `${hours}h ${remainingMinutes}m`
+  }
   return seconds % 60 === 0 ? `${minutes}m` : `${minutes}m ${seconds % 60}s`
 }
 
-function dateTime(value: string, locale: string): string {
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+function latestTimestamp(...timestamps: Array<string | null | undefined>): string | null {
+  return timestamps.filter((timestamp): timestamp is string => Boolean(timestamp)).sort().at(-1) ?? null
 }
 
 function storedModuleAuthority(fleet: FleetResponse, locale: string): string {
-  const snapshot = fleet.storedModules.snapshotAt ? `Snapshot ${dateTime(fleet.storedModules.snapshotAt, locale)}` : 'No snapshot observed'
+  const snapshot = fleet.storedModules.snapshotAt ? `Snapshot ${formatPhoenixDateTime(fleet.storedModules.snapshotAt)}` : 'No snapshot observed'
   return fleet.storedModules.latestMutationAt
-    ? `${snapshot} · Latest storage change ${dateTime(fleet.storedModules.latestMutationAt, locale)}`
+    ? `${snapshot} · Latest storage change ${formatPhoenixDateTime(fleet.storedModules.latestMutationAt)}`
     : snapshot
 }
 

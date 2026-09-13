@@ -19,6 +19,7 @@ import {
   ThirdsGrid
 } from '@phoenix/ui'
 import { SystemLocationLink } from '../../components/system-location-link.js'
+import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import type { EngineeringControllerSnapshot, EngineeringView } from './use-engineering-controller.js'
 
 export function EngineeringPage({ controller, selectedBlueprintSymbol, view }: {
@@ -42,7 +43,7 @@ export function EngineeringPage({ controller, selectedBlueprintSymbol, view }: {
 function EngineeringState({ error, title }: { error?: string, title: string }) {
   return (
     <PageFrame aria-busy={!error}>
-      <Stack gap="xl">
+      <Stack gap="sm">
         <EngineeringHeader title={title} />
         <Status tone={error ? 'danger' : 'muted'}>{error ?? 'Loading engineering records…'}</Status>
       </Stack>
@@ -53,7 +54,7 @@ function EngineeringState({ error, title }: { error?: string, title: string }) {
 function Engineers({ engineers }: { engineers: EngineeringEngineer[] }) {
   return (
     <PageFrame>
-      <Stack gap="xl">
+      <Stack gap="sm">
         <EngineeringHeader title="Engineers" />
         <EngineerGroup engineers={engineers.filter(engineer => engineer.state === 'unlocked')} title="Unlocked engineers" />
         <EngineerGroup engineers={engineers.filter(engineer => engineer.state === 'known')} title="Known / invited engineers" />
@@ -73,12 +74,18 @@ function EngineerGroup({ engineers, title }: { engineers: EngineeringEngineer[],
 
 function EngineerTable({ engineers }: { engineers: EngineeringEngineer[] }) {
   return (
-    <DataTable density="compact" label="Engineers" minimum="wide" narrow="priority" scheme="surface">
+    <DataTable className="engineer-table" density="compact" label="Engineers" minimum="wide" narrow="priority" scheme="surface">
+      <colgroup>
+        <col className="engineer-column" />
+        <col className="specialisation-column" />
+        <col className="status-column" />
+        <col className="location-column" />
+      </colgroup>
       <thead><tr><th>Engineer</th><th>Specialisation</th><th>Status</th><th>Location</th></tr></thead>
       <tbody>{engineers.map(engineer => (
         <tr className={engineer.state === 'locked' ? 'disabled' : undefined} key={engineer.id}>
-          <td><strong>{engineer.name}</strong></td>
-          <td>{engineer.description}</td>
+          <td className="wrap"><strong>{engineer.name}</strong></td>
+          <td className="wrap">{engineer.description}</td>
           <td>{engineer.progress.rank > 0
             ? <>Grade {engineer.progress.rank}<small>{formatProgress(engineer.progress.rankProgress)}</small></>
             : engineer.progress.status ?? 'Locked'}</td>
@@ -93,8 +100,8 @@ function Materials({ materials, updatedAt, view }: { materials: EngineeringMater
   const groups = useMemo(() => groupBy(materials, material => material.group), [materials])
   return (
     <PageFrame>
-      <Stack gap="xl">
-        <EngineeringHeader status={updatedAt ? `Observed ${formatDateTime(updatedAt)}` : undefined} title={pageTitle(view)} />
+      <Stack gap="sm">
+        <EngineeringHeader status={updatedAt ? <UpdatedDateTime value={updatedAt} /> : undefined} title={pageTitle(view)} />
         {materials.length === 0
           ? <Status tone="muted">No materials found.</Status>
           : [...groups.entries()].map(([group, entries]) => <MaterialGroup entries={entries} group={group} key={group} />)}
@@ -106,14 +113,20 @@ function Materials({ materials, updatedAt, view }: { materials: EngineeringMater
 function MaterialGroup({ entries, group }: { entries: EngineeringMaterial[], group: string }) {
   return (
     <DataTableGroup meta={`${entries.length} materials`} title={group}>
-      <DataTable density="compact" label={`${group} materials`} minimum="wide" narrow="priority" scheme="surface">
-        <thead><tr><th>Material</th><th>Inventory</th><th>Applications</th><th>Grade</th></tr></thead>
+      <DataTable className="material-table" density="compact" label={`${group} materials`} minimum="wide" narrow="priority" scheme="surface">
+        <colgroup>
+          <col className="material-column" />
+          <col className="inventory-column" />
+          <col className="applications-column" />
+          <col className="grade-column" />
+        </colgroup>
+        <thead><tr><th>Material</th><th className="numeric">Inventory</th><th>Applications</th><th>Grade</th></tr></thead>
         <tbody>{entries.map(material => (
           <tr className={material.count === 0 ? 'disabled' : material.count === material.maxCount ? 'engineered-max' : undefined} key={material.id}>
             <td><strong>{material.name}</strong><small>{material.rarity}</small></td>
-            <td><Meter label={`${material.name} inventory`} layout="compact" max={material.maxCount} value={material.count} valueLabel={`${material.count} / ${material.maxCount}`} /></td>
-            <td>{material.blueprintUses.length > 0 ? unique(material.blueprintUses.map(use => use.name)).join(', ') : material.category === 'xeno' ? 'Classified' : '—'}</td>
-            <td>G{material.grade}</td>
+            <td className="data-value"><Meter label={`${material.name} inventory`} layout="compact" max={material.maxCount} value={material.count} valueLabel={`${material.count} / ${material.maxCount}`} /></td>
+            <td className="wrap">{material.blueprintUses.length > 0 ? unique(material.blueprintUses.map(use => use.name)).join(', ') : material.category === 'xeno' ? 'Classified' : '—'}</td>
+            <td className="data-value">G{material.grade}</td>
           </tr>
         ))}</tbody>
       </DataTable>
@@ -124,7 +137,7 @@ function MaterialGroup({ entries, group }: { entries: EngineeringMaterial[], gro
 function Blueprints({ blueprints }: { blueprints: EngineeringBlueprintSummary[] }) {
   return (
     <PageFrame>
-      <Stack gap="xl">
+      <Stack gap="sm">
         <EngineeringHeader title="Blueprints" />
         <BlueprintGroup blueprints={blueprints} title="Blueprints" />
       </Stack>
@@ -141,7 +154,7 @@ function BlueprintGroup({ blueprints, title }: { blueprints: EngineeringBlueprin
             <tbody>{blueprints.map(blueprint => (
               <tr key={blueprint.symbol}>
                 <td><a href={`#/engineering/blueprints?symbol=${encodeURIComponent(blueprint.symbol)}`}><strong>{blueprint.name}</strong></a><small>{blueprint.originalName}</small></td>
-                <td>{blueprint.moduleNames.join(', ')}</td>
+                <td className="wrap">{blueprint.moduleNames.join(', ')}</td>
               </tr>
             ))}</tbody>
           </DataTable>
@@ -153,9 +166,8 @@ function BlueprintGroup({ blueprints, title }: { blueprints: EngineeringBlueprin
 function BlueprintDetail({ blueprint }: { blueprint: EngineeringBlueprintDetail }) {
   return (
     <PageFrame>
-      <Stack gap="xl">
+      <Stack gap="sm">
         <EngineeringHeader blueprint={blueprint} title={blueprint.name} />
-        <a href="#/engineering/blueprints">← All blueprints</a>
         <DataTableGroup title="Engineered equipment">
           {blueprint.appliedModules.length > 0
             ? <DataTable density="compact" label="Engineered equipment" narrow="priority" scheme="surface"><tbody>{blueprint.appliedModules.map(module => (
@@ -168,7 +180,14 @@ function BlueprintDetail({ blueprint }: { blueprint: EngineeringBlueprintDetail 
           <DataTableGroup key={grade.grade} title={`Grade ${grade.grade}`}>
             <ThirdsGrid gap="lg">
               <DescriptionList columns="one" density="compact">
-                {grade.features.map(feature => <DescriptionItem key={feature.name} label={`${feature.improvement ? '▲' : '▼'} ${feature.name}`} value={formatFeatureValues(feature.values)} />)}
+                {grade.features.map(feature => (
+                  <DescriptionItem
+                    className={`blueprint-feature ${feature.improvement ? 'positive' : 'negative'}`}
+                    key={feature.name}
+                    label={<span className="blueprint-feature-label"><span aria-hidden="true">{feature.improvement ? '▲' : '▼'}</span>{feature.name}</span>}
+                    value={formatFeatureValues(feature.values)}
+                  />
+                ))}
               </DescriptionList>
               <div className="span-two">
                 <DataTable density="compact" label={`Grade ${grade.grade} components`} narrow="priority" scheme="surface">
@@ -227,7 +246,10 @@ function groupBy<T>(values: T[], key: (value: T) => string): Map<string, T[]> {
 
 function unique<T>(values: T[]): T[] { return [...new Set(values)] }
 function capitalize(value: string): string { return value.charAt(0).toLocaleUpperCase() + value.slice(1) }
-function formatProgress(progress: number): string { return progress > 0 ? `${progress.toFixed(0)}%` : 'Rank progress not observed' }
+function formatProgress(progress: number): string { return progress > 0 ? `${progress.toFixed(0)}%` : 'Rank unknown' }
 function gradeRange(grades: number[]): string { const minimum = Math.min(...grades); const maximum = Math.max(...grades); return minimum === maximum ? `Grade ${minimum}` : `Grades ${minimum}–${maximum}` }
-function formatFeatureValues(values: number[]): string { return values.length === 0 ? '—' : values.map(value => `${value >= 0 ? '+' : ''}${value}`).join(' — ') }
-function formatDateTime(value: string): string { return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) }
+function formatFeatureValues(values: number[]): string {
+  return values.length === 0
+    ? '—'
+    : values.map(value => `${value >= 0 ? '+' : ''}${value.toFixed(2)}`).join(' — ')
+}

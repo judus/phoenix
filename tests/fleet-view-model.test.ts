@@ -71,7 +71,8 @@ test('fleet models preserve authority distinctions and stored-module provenance'
     name: 'MURDOCK',
     detail: 'Viper Mk IV · VI-04',
     location: { locationName: 'Atata Hub', systemName: 'Atata' },
-    transfer: '—'
+    transferTime: '—',
+    transferCost: '—'
   })
   expect(overview.summary).toEqual([
     { label: 'Owned', value: '1' },
@@ -102,7 +103,25 @@ test('fleet overview shows the available cost and time for retrieving a remote s
 
   expect(overview.ships[1]).toMatchObject({
     location: { locationName: 'Shajn Market', systemName: 'Shinrarta Dezhra' },
-    transfer: "40m 25s · 1'395 CR"
+    transferTime: '40m 25s',
+    transferCost: "1'395 CR"
+  })
+})
+
+test('fleet overview presents long ship transfers in hours and minutes', () => {
+  const fleet = fleetFixture()
+  fleet.ships.push({
+    displayName: 'Sidewinder', hot: false, id: 9, identifier: null, marketId: 2,
+    name: null, state: 'stored-remote', station: 'Shajn Market', system: 'Shinrarta Dezhra',
+    transferPrice: 29_400_438, transferSeconds: 45_033, typeId: 'sidewinder',
+    updatedAt: '2026-08-16T12:00:00.000Z', value: 27_450
+  })
+
+  const overview = createFleetOverviewModel(fleet)
+
+  expect(overview.ships[1]).toMatchObject({
+    transferTime: '12h 30m',
+    transferCost: "29'400'438 CR"
   })
 })
 

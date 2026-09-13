@@ -4,8 +4,213 @@ import { beforeAll, expect, test, vi } from 'vitest'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
 import type { PhoenixRoute } from '../apps/web/src/application/navigation/phoenix-route.js'
 import { GalaxyPage } from '../apps/web/src/features/galaxy/galaxy-page.js'
+import { GalaxyQuerySessionStore } from '../apps/web/src/features/galaxy/galaxy-query-session-store.js'
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
+
+test('system search uses one query form for nearby and filtered searches', async () => {
+  const findGalaxySystems = vi.fn().mockResolvedValue({
+    cache: 'fresh',
+    filters: {
+      allegiance: null,
+      economy: null,
+      government: null,
+      maxDistanceLy: 100,
+      maxPopulation: null,
+      minPopulation: null,
+      population: 'inhabited',
+      security: null
+    },
+    originSystem: 'Sol',
+    systems: [{
+      allegiance: 'Federation',
+      controllingFaction: 'Mother Gaia',
+      distanceLy: 4.37,
+      economy: 'High Tech',
+      government: 'Democracy',
+      inhabited: true,
+      permitRequired: false,
+      population: 230000,
+      position: [3.03125, -0.09375, 3.15625],
+      primaryStarClass: 'G (White-Yellow) Star',
+      secondaryEconomy: 'Service',
+      security: 'High',
+      systemAddress: 1178707802194,
+      systemName: 'Alpha Centauri',
+      updatedAt: '2026-08-15T08:00:00.000Z'
+    }]
+  })
+  const runtimeState = createEmptyRuntimeState()
+  runtimeState.system.name = 'Sol'
+  const querySessions = new GalaxyQuerySessionStore()
+  let renderer: ReturnType<typeof create>
+
+  await act(async () => {
+    renderer = create(<GalaxyPage
+      api={{ findGalaxySystems } as unknown as PhoenixApi}
+      controller={{ status: 'idle' }}
+      onNavigate={vi.fn()}
+      querySessions={querySessions}
+      route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'system-search' }}
+      runtime={{ state: runtimeState, status: 'ready' }}
+    />)
+  })
+
+  expect(renderer.root.findByProps({ id: 'query-origin' }).props.value).toBe('Sol')
+  await act(async () => renderer.root.findByProps({ id: 'query-population' }).props.onChange({ target: { value: 'inhabited' } }))
+  await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault: vi.fn() }))
+
+  expect(findGalaxySystems).toHaveBeenCalledWith(expect.objectContaining({
+    maxDistance: 100,
+    population: 'inhabited',
+    system: 'Sol'
+  }))
+  const sortableHeaders = renderer.root.findAll(node => node.type === 'th' && node.props.className?.includes('sortable'))
+  expect(sortableHeaders.map(header => header.findByProps({ className: 'sort-heading' }).children.join(''))).toEqual([
+    'System',
+    'Distance',
+    'Economy',
+    'Government',
+    'Security',
+    'Population',
+    'Reported'
+  ])
+  expect(renderer.root.findAll(node => node.children.includes('Alpha Centauri'))).not.toHaveLength(0)
+  await act(async () => renderer.unmount())
+
+  await act(async () => {
+    renderer = create(<GalaxyPage
+      api={{ findGalaxySystems } as unknown as PhoenixApi}
+      controller={{ status: 'idle' }}
+      onNavigate={vi.fn()}
+      querySessions={querySessions}
+      route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'system-search' }}
+      runtime={{ state: runtimeState, status: 'ready' }}
+    />)
+  })
+  expect(renderer.root.findAll(node => node.children.includes('Alpha Centauri'))).not.toHaveLength(0)
+  expect(renderer.root.findAllByType('form')).toHaveLength(0)
+  expect(findGalaxySystems).toHaveBeenCalledTimes(1)
+  await act(async () => renderer.unmount())
+})
+
+test('saved queries open from the console and run fresh with their stored parameters', async () => {
+  const savedQuery = {
+    createdAt: '2026-09-11T10:00:00.000Z',
+    id: '00000000-0000-4000-8000-000000000001',
+    name: 'Nearby inhabited systems',
+    parameters: { origin: 'Sol', population: 'inhabited', radius: '50' },
+    queryId: 'system-search' as const,
+    schemaVersion: 1 as const,
+    updatedAt: '2026-09-11T10:00:00.000Z'
+  }
+  const getSavedGalaxyQueries = vi.fn().mockResolvedValue({ queries: [savedQuery] })
+  const findGalaxySystems = vi.fn().mockResolvedValue({
+    cache: 'fresh',
+    filters: { allegiance: null, economy: null, government: null, maxDistanceLy: 50, maxPopulation: null, minPopulation: null, population: 'inhabited', security: null },
+    originSystem: 'Sol',
+    systems: []
+  })
+  const api = { findGalaxySystems, getSavedGalaxyQueries } as unknown as PhoenixApi
+  const onNavigate = vi.fn<(route: PhoenixRoute) => void>()
+  const common = {
+    api,
+    controller: { status: 'idle' as const },
+    onNavigate,
+    querySessions: new GalaxyQuerySessionStore(),
+    runtime: { state: createEmptyRuntimeState(), status: 'ready' as const }
+  }
+  let renderer: ReturnType<typeof create>
+
+  await act(async () => {
+    renderer = create(<GalaxyPage {...common} route={{ kind: 'information', section: 'galaxy', view: 'database' }} />)
+  })
+  const savedQueriesTile = renderer.root.findAll(node => node.type === 'button' && node.props.className?.includes('tile'))
+    .find(tile => tile.findAll(node => node.props.className === 'label' && node.children.includes('Saved queries')).length > 0)!
+  await act(async () => savedQueriesTile.props.onClick())
+  expect(onNavigate).toHaveBeenLastCalledWith({ kind: 'information', section: 'galaxy', view: 'saved-queries' })
+
+  await act(async () => renderer.update(<GalaxyPage {...common} route={{ kind: 'information', section: 'galaxy', view: 'saved-queries' }} />))
+  expect(renderer.root.findAll(node => node.children.includes('Nearby inhabited systems'))).not.toHaveLength(0)
+  await act(async () => renderer.root.findAllByType('button').find(button => button.props.children === 'Run')!.props.onClick())
+  expect(onNavigate).toHaveBeenLastCalledWith({
+    kind: 'information',
+    savedQueryId: savedQuery.id,
+    savedQueryRunId: expect.any(String),
+    section: 'galaxy',
+    selectedQueryId: 'system-search',
+    view: 'database'
+  })
+
+  const runRoute = onNavigate.mock.calls.at(-1)![0]
+  await act(async () => renderer.update(<GalaxyPage
+    {...common}
+    route={runRoute as Extract<PhoenixRoute, { kind: 'information', section: 'galaxy' }>}
+  />))
+  expect(findGalaxySystems).toHaveBeenCalledWith(expect.objectContaining({ maxDistance: 50, population: 'inhabited', system: 'Sol' }))
+  expect(renderer.root.findAll(node => node.children.includes('Query results'))).not.toHaveLength(0)
+  expect(renderer.root.findAllByType('form')).toHaveLength(0)
+
+  await act(async () => renderer.update(<GalaxyPage {...common} route={{ kind: 'information', section: 'galaxy', view: 'database' }} />))
+  await act(async () => renderer.update(<GalaxyPage
+    {...common}
+    route={runRoute as Extract<PhoenixRoute, { kind: 'information', section: 'galaxy' }>}
+  />))
+  expect(findGalaxySystems).toHaveBeenCalledTimes(1)
+
+  await act(async () => renderer.update(<GalaxyPage {...common} route={{ kind: 'information', section: 'galaxy', view: 'saved-queries' }} />))
+  await act(async () => renderer.root.findAllByType('button').find(button => button.props.children === 'Run')!.props.onClick())
+  const nextRunRoute = onNavigate.mock.calls.at(-1)![0]
+  expect(nextRunRoute).not.toEqual(runRoute)
+  await act(async () => renderer.update(<GalaxyPage
+    {...common}
+    route={nextRunRoute as Extract<PhoenixRoute, { kind: 'information', section: 'galaxy' }>}
+  />))
+  expect(findGalaxySystems).toHaveBeenCalledTimes(2)
+  await act(async () => renderer.unmount())
+})
+
+test('a configured query can be saved as a durable definition', async () => {
+  const saved = {
+    createdAt: '2026-09-11T10:00:00.000Z',
+    id: '00000000-0000-4000-8000-000000000001',
+    name: 'Systems near Sol',
+    parameters: { origin: 'Sol', radius: '100' },
+    queryId: 'system-search' as const,
+    schemaVersion: 1 as const,
+    updatedAt: '2026-09-11T10:00:00.000Z'
+  }
+  const saveGalaxyQuery = vi.fn().mockResolvedValue(saved)
+  const onNavigate = vi.fn<(route: PhoenixRoute) => void>()
+  let renderer: ReturnType<typeof create>
+
+  await act(async () => {
+    renderer = create(<GalaxyPage
+      api={{ saveGalaxyQuery } as unknown as PhoenixApi}
+      controller={{ status: 'idle' }}
+      onNavigate={onNavigate}
+      querySessions={new GalaxyQuerySessionStore()}
+      route={{ kind: 'information', section: 'galaxy', selectedQueryId: 'system-search', view: 'database' }}
+      runtime={{ state: createEmptyRuntimeState(), status: 'ready' }}
+    />)
+  })
+  await act(async () => renderer.root.findAllByType('button').find(button => button.props.children === 'Save query')!.props.onClick())
+  await act(async () => renderer.root.findByProps({ id: 'saved-query-name' }).props.onChange({ target: { value: 'Systems near Sol' } }))
+  await act(async () => renderer.root.findAllByType('button').find(button => button.props.children === 'Save')!.props.onClick())
+
+  expect(saveGalaxyQuery).toHaveBeenCalledWith(expect.objectContaining({
+    name: 'Systems near Sol',
+    queryId: 'system-search'
+  }), undefined)
+  expect(onNavigate).toHaveBeenLastCalledWith({
+    kind: 'information',
+    savedQueryId: saved.id,
+    section: 'galaxy',
+    selectedQueryId: 'system-search',
+    view: 'database'
+  })
+  await act(async () => renderer.unmount())
+})
 
 test('system schematic follow control pins the displayed system and resumes the current system', async () => {
   const onNavigate = vi.fn<(route: PhoenixRoute) => void>()
@@ -13,9 +218,10 @@ test('system schematic follow control pins the displayed system and resumes the 
   const runtimeState = createEmptyRuntimeState()
   runtimeState.system.name = 'Sol'
   const common = {
-    api: {} as PhoenixApi,
+    api: galaxyApi(),
     controller: { lookup: { cache: 'local' as const, system }, status: 'ready' as const },
     onNavigate,
+    querySessions: new GalaxyQuerySessionStore(),
     runtime: { state: runtimeState, status: 'ready' as const }
   }
   let renderer: ReturnType<typeof create>
@@ -23,8 +229,8 @@ test('system schematic follow control pins the displayed system and resumes the 
   await act(async () => {
     renderer = create(<GalaxyPage {...common} route={{ kind: 'information', section: 'galaxy', view: 'system' }} />)
   })
-  const following = renderer.root.findByProps({ 'aria-pressed': true })
-  expect(following.props.children).toEqual(['Follow ', 'on'])
+  const following = renderer.root.findByProps({ 'aria-label': 'Stop following current system' })
+  expect(following.props['aria-pressed']).toBe(true)
   await act(async () => following.props.onClick())
   expect(onNavigate).toHaveBeenLastCalledWith({
     kind: 'information', section: 'galaxy', view: 'system', systemName: 'Sol'
@@ -36,8 +242,8 @@ test('system schematic follow control pins the displayed system and resumes the 
       route={{ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Achenar' }}
     />)
   })
-  const pinned = renderer.root.findByProps({ 'aria-pressed': false })
-  expect(pinned.props.children).toEqual(['Follow ', 'off'])
+  const pinned = renderer.root.findByProps({ 'aria-label': 'Follow current system' })
+  expect(pinned.props['aria-pressed']).toBe(false)
   await act(async () => pinned.props.onClick())
   expect(onNavigate).toHaveBeenLastCalledWith({ kind: 'information', section: 'galaxy', view: 'system' })
 
@@ -80,9 +286,10 @@ test('selecting a body does not pin a schematic that is following the current sy
 
   await act(async () => {
     renderer = create(<GalaxyPage
-      api={{} as PhoenixApi}
+      api={galaxyApi()}
       controller={{ lookup: { cache: 'local', system }, status: 'ready' }}
       onNavigate={onNavigate}
+      querySessions={new GalaxyQuerySessionStore()}
       route={{ kind: 'information', section: 'galaxy', view: 'system' }}
       runtime={{ state: runtimeState, status: 'ready' }}
     />)
@@ -93,9 +300,10 @@ test('selecting a body does not pin a schematic that is following the current sy
   })
 
   await act(async () => renderer.update(<GalaxyPage
-    api={{} as PhoenixApi}
+    api={galaxyApi()}
     controller={{ lookup: { cache: 'local', system }, status: 'ready' }}
     onNavigate={onNavigate}
+    querySessions={new GalaxyQuerySessionStore()}
     route={{ kind: 'information', section: 'galaxy', view: 'system', selectedName: 'Sol' }}
     runtime={{ state: runtimeState, status: 'ready' }}
   />))
@@ -121,14 +329,15 @@ test('system schematic submits its displayed system to Elite and shows confirmed
 
   await act(async () => {
     renderer = create(<GalaxyPage
-      api={{ plotEliteDestination } as unknown as PhoenixApi}
+      api={galaxyApi({ plotEliteDestination })}
       controller={{ lookup: { cache: 'local', system: emptySystem('Achenar') }, status: 'ready' }}
       onNavigate={onNavigate}
+      querySessions={new GalaxyQuerySessionStore()}
       route={{ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Achenar' }}
       runtime={{ state: createEmptyRuntimeState(), status: 'ready' }}
     />)
   })
-  const plotButton = renderer.root.findAllByType('button').find(button => button.props.children === 'Plot Route')
+  const plotButton = renderer.root.findAllByType('button').find(button => button.props['aria-label'] === 'Plot route')
   expect(plotButton).toBeDefined()
 
   await act(async () => plotButton!.props.onClick())
@@ -145,19 +354,20 @@ test('system schematic keeps its navigation controls when cartography is unavail
 
   await act(async () => {
     renderer = create(<GalaxyPage
-      api={{} as PhoenixApi}
+      api={galaxyApi()}
       controller={{ error: 'No cartography record found.', status: 'error' }}
       onNavigate={onNavigate}
+      querySessions={new GalaxyQuerySessionStore()}
       route={{ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Unreported System' }}
       runtime={{ state: createEmptyRuntimeState(), status: 'ready' }}
     />)
   })
 
   expect(renderer.root.findByProps({ id: 'system-query-name' }).props.value).toBe('Unreported System')
-  expect(renderer.root.findByProps({ 'aria-pressed': false }).props.children).toEqual(['Follow ', 'off'])
-  const plotButton = renderer.root.findAllByType('button').find(button => button.props.children === 'Plot Route')
+  expect(renderer.root.findByProps({ 'aria-label': 'Follow current system' }).props['aria-pressed']).toBe(false)
+  const plotButton = renderer.root.findAllByType('button').find(button => button.props['aria-label'] === 'Plot route')
   expect(plotButton?.props.disabled).toBe(true)
-  const bookmarkButton = renderer.root.findAllByType('button').find(button => button.props.children === 'Bookmark')
+  const bookmarkButton = renderer.root.findAllByType('button').find(button => button.props['aria-label'] === 'Bookmark Unreported System')
   expect(bookmarkButton?.props.disabled).toBe(false)
   await act(async () => bookmarkButton!.props.onClick())
   expect(onNavigate).toHaveBeenLastCalledWith({
@@ -188,4 +398,11 @@ function emptySystem(name: string): CartographicSystem {
     schemaVersion: 5,
     stations: []
   }
+}
+
+function galaxyApi(overrides: Partial<PhoenixApi> = {}): PhoenixApi {
+  return {
+    getGalaxyBookmarks: vi.fn().mockResolvedValue({ bookmarks: [] }),
+    ...overrides
+  } as unknown as PhoenixApi
 }

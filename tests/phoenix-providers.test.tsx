@@ -8,6 +8,7 @@ import type {
 } from '../apps/web/src/application/events/phoenix-event-hub.js'
 import type { RuntimeStateStore } from '../apps/web/src/application/runtime/runtime-state-store.js'
 import type { PhoenixApplicationServices } from '../apps/web/src/bootstrap/create-application.js'
+import { GalaxyQuerySessionStore } from '../apps/web/src/features/galaxy/galaxy-query-session-store.js'
 import { PhoenixProviders } from '../apps/web/src/bootstrap/providers.js'
 import { BrowserPhoenixRouter } from '../apps/web/src/platform/routing/browser-phoenix-router.js'
 import { BrowserDevicePreferences } from '../apps/web/src/platform/storage/browser-device-preferences.js'
@@ -29,6 +30,7 @@ test('providers start global services and route allowed display commands through
     clientIdentity: { forScope: scope => `${scope}-client` },
     devicePreferences,
     events,
+    galaxyQueries: new GalaxyQuerySessionStore(),
     numpadRouteSession: {
       acknowledge() {},
       arm() {},

@@ -2,6 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import {
   CommandTile,
   CommandTileGroup,
+  ControlContext,
   DashboardColumns,
   DescribedCommandTile,
   DescriptionItem,
@@ -125,14 +126,16 @@ function CopilotSettings ({ api, settings, onChange }: {
   }
 
   return <div className="widget-command-row">
-    <Widget title="Copilot · OpenAI" meta={status.restartRequired ? 'Restart required' : status.configured ? `Configured · ${status.source}` : 'Not configured'}>
-      <Form id="openai-settings-form" onSubmit={event => { event.preventDefault(); void save() }}>
-        <Field htmlFor="openai-key" label={status.stored ? 'Replace API key' : 'API key'}>
-          <TextInput id="openai-key" type="password" autoComplete="off" value={apiKey} onChange={event => setApiKey(event.target.value)} />
-        </Field>
-        {status.restartRequired && <Status marker={false} tone="warning" wrap>OpenAI configuration changed. Restart PHOENIX to apply it.</Status>}
-        {error && <Status tone="danger">{error}</Status>}
-      </Form>
+    <Widget heading="Copilot · OpenAI" meta={status.restartRequired ? 'Restart required' : status.configured ? `Configured · ${status.source}` : 'Not configured'}>
+      <ControlContext density="compact">
+        <Form id="openai-settings-form" onSubmit={event => { event.preventDefault(); void save() }}>
+          <Field htmlFor="openai-key" label={status.stored ? 'Replace API key' : 'API key'}>
+            <TextInput id="openai-key" type="password" autoComplete="off" value={apiKey} onChange={event => setApiKey(event.target.value)} />
+          </Field>
+          {status.restartRequired && <Status tone="warning" wrap>OpenAI configuration changed. Restart PHOENIX to apply it.</Status>}
+          {error && <Status tone="danger">{error}</Status>}
+        </Form>
+      </ControlContext>
     </Widget>
     <CommandTile
       binding={busy ? 'Working' : 'Store'}
@@ -151,22 +154,24 @@ function CopilotSettings ({ api, settings, onChange }: {
 }
 
 function AudioSettings ({ audio }: { audio: AudioSettingsController }) {
-  return <Widget title="Voice audio" meta="This device">
-    <Stack gap="sm">
-      <Field htmlFor="audio-input" label="Microphone">
-        <Select id="audio-input" value={audio.inputId} onChange={event => audio.setInputId(event.target.value)}>
-          <option value="">System default</option>
-          {audio.devices.inputs.map(device => <option key={device.id} value={device.id}>{device.label || 'Microphone'}</option>)}
-        </Select>
-      </Field>
-      <Field htmlFor="audio-output" label="Output">
-        <Select id="audio-output" value={audio.outputId} onChange={event => audio.setOutputId(event.target.value)}>
-          <option value="">System default</option>
-          {audio.devices.outputs.map(device => <option key={device.id} value={device.id}>{device.label || 'Audio output'}</option>)}
-        </Select>
-      </Field>
-      <Status marker={false} tone="muted" wrap>Device names may remain hidden until microphone access is granted.</Status>
-    </Stack>
+  return <Widget heading="Voice audio" meta="This device">
+    <ControlContext density="compact">
+      <Stack gap="sm">
+        <Field htmlFor="audio-input" label="Microphone">
+          <Select id="audio-input" value={audio.inputId} onChange={event => audio.setInputId(event.target.value)}>
+            <option value="">System default</option>
+            {audio.devices.inputs.map(device => <option key={device.id} value={device.id}>{device.label || 'Microphone'}</option>)}
+          </Select>
+        </Field>
+        <Field htmlFor="audio-output" label="Output">
+          <Select id="audio-output" value={audio.outputId} onChange={event => audio.setOutputId(event.target.value)}>
+            <option value="">System default</option>
+            {audio.devices.outputs.map(device => <option key={device.id} value={device.id}>{device.label || 'Audio output'}</option>)}
+          </Select>
+        </Field>
+        <Status tone="muted" wrap>Device names may remain hidden until microphone access is granted.</Status>
+      </Stack>
+    </ControlContext>
   </Widget>
 }
 
@@ -279,7 +284,7 @@ function PairingSettings ({ api, pairing }: { api: PhoenixApi, pairing: PairingS
   return <div className="pairing-settings">
     {info && <PairingAccess info={info} />}
     {error && <Status tone="danger">{error}</Status>}
-    {!info && <Widget title="Device pairing" meta={pairing.authenticated ? 'Paired' : 'Not paired'}>
+    {!info && <Widget heading="Device pairing" meta={pairing.authenticated ? 'Paired' : 'Not paired'}>
       <DescriptionList columns="one" density="compact">
         <DescriptionItem label="Installation" value={pairing.installationId} />
         <DescriptionItem label="This browser" value={pairing.authenticated ? 'Paired' : 'Not paired'} />

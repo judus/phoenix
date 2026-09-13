@@ -13,12 +13,14 @@ import {
 import { BrowserPhoenixRouter } from '../platform/routing/browser-phoenix-router.js'
 import { BrowserDevicePreferences } from '../platform/storage/browser-device-preferences.js'
 import { BrowserClientIdentity } from '../platform/storage/browser-client-identity.js'
+import { GalaxyQuerySessionStore } from '../features/galaxy/galaxy-query-session-store.js'
 
 export interface PhoenixApplicationServices {
   api: PhoenixApi
   clientIdentity: ClientIdentity
   devicePreferences: DevicePreferences
   events: PhoenixEventHub
+  galaxyQueries: GalaxyQuerySessionStore
   numpadRouteSession: NumpadRouteSession
   router: PhoenixRouter
   runtime: RuntimeStateStore
@@ -55,6 +57,7 @@ export function createPhoenixApplication(
     clientIdentity: new BrowserClientIdentity(sessionStorage),
     devicePreferences: new BrowserDevicePreferences(localStorage),
     events,
+    galaxyQueries: new GalaxyQuerySessionStore(),
     numpadRouteSession: new RouterNumpadRouteSession(router, sessionStorage),
     router,
     runtime: new RuntimeStateStore(api, events)

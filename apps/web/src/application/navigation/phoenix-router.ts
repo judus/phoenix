@@ -97,7 +97,9 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
   if (section === 'engineering') return parseEngineeringRoute(rest, query)
 
   if (section === 'comms') {
-    const view = oneOf(rest[0], ['overview', 'inbox', 'traffic', 'contacts', 'galnet', 'radio'] as const) ?? 'overview'
+    const view = rest[0] === 'overview'
+      ? 'inbox'
+      : oneOf(rest[0], ['inbox', 'traffic', 'contacts', 'galnet', 'radio'] as const) ?? 'inbox'
     return { kind: 'information', section, view }
   }
 
@@ -123,6 +125,8 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
   }
   if (route.kind === 'information' && route.section === 'galaxy' && route.view === 'database' && route.selectedQueryId) {
     parameters.set('query', route.selectedQueryId)
+    if (route.savedQueryId) parameters.set('saved', route.savedQueryId)
+    if (route.savedQueryRunId) parameters.set('run', route.savedQueryRunId)
   }
   if (route.kind === 'information' && route.section === 'galaxy' && route.view === 'bookmarks') {
     if (route.bookmarkId) parameters.set('edit', route.bookmarkId)
@@ -176,7 +180,7 @@ function parseFleetRoute(rest: string[], query: RawRouteQuery): InformationRoute
 }
 
 function parseGalaxyRoute(rest: string[], query: RawRouteQuery): InformationRoute {
-  const view = oneOf(rest[0], ['system', 'route', 'database', 'exobiology', 'bookmarks'] as const) ?? 'system'
+  const view = oneOf(rest[0], ['system', 'route', 'database', 'saved-queries', 'exobiology', 'bookmarks'] as const) ?? 'system'
   if (view === 'system') {
     const { name, selected } = query
     return {
@@ -189,11 +193,14 @@ function parseGalaxyRoute(rest: string[], query: RawRouteQuery): InformationRout
   }
   if (view === 'database') {
     const selectedQueryId = GALAXY_QUERY_IDS.find(candidate => candidate === query.query?.trim())
+    const savedQueryId = query.saved?.trim()
     return {
       kind: 'information',
       section: 'galaxy',
       view,
-      ...(selectedQueryId ? { selectedQueryId } : {})
+      ...(selectedQueryId ? { selectedQueryId } : {}),
+      ...(selectedQueryId && savedQueryId ? { savedQueryId } : {}),
+      ...(selectedQueryId && savedQueryId && query.run?.trim() ? { savedQueryRunId: query.run.trim() } : {})
     }
   }
   if (view === 'bookmarks') {

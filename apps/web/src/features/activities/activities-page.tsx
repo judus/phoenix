@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   Breadcrumbs,
   DataTable,
@@ -7,15 +7,19 @@ import {
   DescriptionList,
   PageFrame,
   PageHeader,
+  SortableDataTable,
   Stack,
   Status,
-  ThirdsGrid
+  ThirdsGrid,
+  type SortableDataTableColumn
 } from '@phoenix/ui'
 import type { ActivitiesControllerSnapshot, ActivitiesView } from './use-activities-controller.js'
 import { createActivitiesViewModel, type ActivitiesViewModel, type MissionViewModel } from './activities-view-model.js'
 import { MissionTitle } from './mission-title.js'
+import { PhoenixCredits } from '../../components/phoenix-credits.js'
 import { SystemLocationLink } from '../../components/system-location-link.js'
 import { DataSyncNotice } from '../../components/data-sync-notice.js'
+import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
 
 type RetainedActivityView = Exclude<ActivitiesView, 'missions'>
 
@@ -74,7 +78,7 @@ function Missions({ model }: { model: ActivitiesViewModel }) {
   return (
     <PageFrame layout="fit">
       <Stack fill gap="sm">
-        <ActivitiesHeader title="Missions" />
+        <ActivitiesHeader status={model.updatedAt ? <UpdatedDateTime value={model.updatedAt} /> : undefined} title="Missions" />
         {model.all.length === 0
           ? model.snapshotAt === null
               ? <DataSyncNotice>Awaiting Elite mission manifest. Re-enter the commander session to publish current missions.</DataSyncNotice>
@@ -101,38 +105,77 @@ function MissionTable({ missions, onSelect, selectedId }: {
 }) {
   if (missions.length === 0) return <Status tone="muted">No active missions retained.</Status>
   return (
-    <DataTable density="compact" label="Mission records" minimum="wide" narrow="priority" scheme="surface" stickyHeader>
-      <thead><tr><th>Mission</th><th>Destination</th><th>Status</th></tr></thead>
-      <tbody>
-        {missions.map(mission => (
-          <tr
-            aria-selected={mission.id === selectedId || undefined}
-            className={mission.id === selectedId ? 'active' : undefined}
-            key={mission.id}
-            onClick={onSelect ? () => onSelect(mission.id) : undefined}
-            onKeyDown={onSelect
-              ? event => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault()
-                    onSelect(mission.id)
-                  }
-                }
-              : undefined}
-            tabIndex={onSelect ? 0 : undefined}
-          >
-            <td>
-              <strong>{mission.title}</strong>
-              <small>{mission.faction} · {mission.reward}</small>
-              <small>Expiry: {mission.expiry}</small>
-            </td>
-            <td><SystemLocationLink locationName={mission.destinationLocation} systemName={mission.destinationSystem} /></td>
-            <td><Status tone={mission.statusTone}>{mission.status}</Status>{mission.incomplete ? <small>Incomplete acceptance details</small> : null}</td>
-          </tr>
-        ))}
-      </tbody>
-    </DataTable>
+    <SortableDataTable
+      columns={MISSION_COLUMNS}
+      density="compact"
+      label="Mission records"
+      minimum="wide"
+      narrow="priority"
+      rowKey={mission => mission.id}
+      rowProps={mission => ({
+        'aria-selected': mission.id === selectedId || undefined,
+        className: mission.id === selectedId ? 'active' : undefined,
+        onClick: onSelect ? () => onSelect(mission.id) : undefined,
+        onKeyDown: onSelect
+          ? event => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onSelect(mission.id)
+              }
+            }
+          : undefined,
+        tabIndex: onSelect ? 0 : undefined
+      })}
+      rows={missions}
+      scheme="surface"
+      stickyHeader
+    />
   )
 }
+
+const MISSION_COLUMNS: readonly SortableDataTableColumn<MissionViewModel>[] = [
+  {
+    cell: mission => <>
+      <MissionTitle value={mission.title} />
+      <small>
+        Status: <Status tone={mission.statusTone}>{mission.status}</Status>
+        {mission.incomplete ? ' · Incomplete acceptance details' : null}
+      </small>
+      <small className="table-compact-only">{mission.faction} · <PhoenixCredits value={mission.rewardCredits} /></small>
+      <small className="table-compact-only">Expiry: {mission.expiry}</small>
+    </>,
+    heading: 'Mission',
+    id: 'mission',
+    sortValue: mission => mission.title
+  },
+  {
+    cell: mission => <SystemLocationLink locationName={mission.destinationLocation} systemName={mission.destinationSystem} />,
+    heading: 'Destination',
+    id: 'destination',
+    sortValue: mission => mission.destination
+  },
+  {
+    cell: mission => mission.faction,
+    className: 'table-expanded-only',
+    heading: 'Faction',
+    id: 'faction',
+    sortValue: mission => mission.faction
+  },
+  {
+    cell: mission => <PhoenixCredits value={mission.rewardCredits} />,
+    className: 'numeric table-expanded-only',
+    heading: 'Reward',
+    id: 'reward',
+    sortValue: mission => mission.rewardCredits
+  },
+  {
+    cell: mission => mission.expiry,
+    className: 'table-expanded-only',
+    heading: 'Expiry',
+    id: 'expiry',
+    sortValue: mission => mission.expiryAt
+  },
+]
 
 function MissionDetail({ mission }: { mission: MissionViewModel }) {
   return (
@@ -148,10 +191,9 @@ function MissionDetail({ mission }: { mission: MissionViewModel }) {
           <DescriptionItem label="Target" value={mission.target} />
           <DescriptionItem label="Cargo" value={mission.cargo} />
           <DescriptionItem label="Delivery progress" value={mission.progress} />
-          <DescriptionItem label="Reward" value={mission.reward} />
+          <DescriptionItem label="Reward" value={<PhoenixCredits value={mission.rewardCredits} />} />
           <DescriptionItem label="Accepted" value={mission.accepted} />
           <DescriptionItem label="Expiry" value={mission.expiry} />
-          <DescriptionItem label="Evidence" value={mission.provenance} />
           <DescriptionItem label="Status" value={<Status tone={mission.statusTone}>{mission.status}</Status>} />
         </DescriptionList>
       </Stack>
@@ -181,11 +223,12 @@ function ActivityLedger({ view }: { view: RetainedActivityView }) {
   )
 }
 
-function ActivitiesHeader({ title }: { title: string }) {
+function ActivitiesHeader({ status, title }: { status?: ReactNode, title: string }) {
   return (
     <PageHeader
       variant="cockpit"
       context={<Breadcrumbs items={[{ label: 'Activities', href: '#/activities/missions' }, { label: title }]} />}
+      status={status}
       title={title}
     />
   )

@@ -37,6 +37,7 @@ test('bookmark list searches notes and filters reusable tags', async () => {
     />)
   })
 
+  expect(renderer.root.findAllByType('a').map(node => node.props.href)).toContain('#/galaxy/system')
   expect(renderer.root.findAllByType('a').map(node => node.props.href)).toContain('#/galaxy/system?name=Sol')
   await act(async () => renderer.root.findByProps({ id: 'bookmark-search' }).props.onChange({ target: { value: 'voyager' } }))
   expect(renderer.root.findAllByType('strong').map(node => node.children.join(''))).toContain('Sol')

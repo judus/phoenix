@@ -7,14 +7,33 @@ describe('BrowserPhoenixRouter', () => {
     expect(parsePhoenixRoute('#/galaxy/system?name=Sol&selected=Earth&arbitrary=leak')).toEqual({
       kind: 'information', section: 'galaxy', view: 'system', systemName: 'Sol', selectedName: 'Earth'
     })
-    expect(parsePhoenixRoute('#/galaxy/database?query=filtered-systems&field=value')).toEqual({
-      kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'filtered-systems'
+    expect(parsePhoenixRoute('#/galaxy/database?query=system-search&field=value')).toEqual({
+      kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'system-search'
     })
     expect(parsePhoenixRoute('#/galaxy/database?query=unknown')).toEqual({
       kind: 'information', section: 'galaxy', view: 'database'
     })
-    expect(phoenixRouteHash({ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'filtered-systems' }))
-      .toBe('#/galaxy/database?query=filtered-systems')
+    expect(phoenixRouteHash({ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'system-search' }))
+      .toBe('#/galaxy/database?query=system-search')
+    expect(parsePhoenixRoute('#/galaxy/saved-queries')).toEqual({
+      kind: 'information', section: 'galaxy', view: 'saved-queries'
+    })
+    expect(parsePhoenixRoute('#/galaxy/database?query=system-search&saved=00000000-0000-4000-8000-000000000001&run=run-1')).toEqual({
+      kind: 'information',
+      savedQueryId: '00000000-0000-4000-8000-000000000001',
+      savedQueryRunId: 'run-1',
+      section: 'galaxy',
+      selectedQueryId: 'system-search',
+      view: 'database'
+    })
+    expect(phoenixRouteHash({
+      kind: 'information',
+      savedQueryId: '00000000-0000-4000-8000-000000000001',
+      savedQueryRunId: 'run-1',
+      section: 'galaxy',
+      selectedQueryId: 'system-search',
+      view: 'database'
+    })).toBe('#/galaxy/database?query=system-search&saved=00000000-0000-4000-8000-000000000001&run=run-1')
   })
 
   test('push and replace update history and notify subscribers once', () => {

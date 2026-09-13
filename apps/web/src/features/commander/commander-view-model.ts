@@ -1,4 +1,5 @@
 import { COMMANDER_RANK_NAMES, type MicroResourceInventory, type RuntimeState } from '@phoenix/contracts'
+import { formatPhoenixDateTime } from '../../components/phoenix-date-time.js'
 
 const ranks = [
   ['combat', 'Combat', 'pilot'],
@@ -81,7 +82,7 @@ export interface CommanderStoreModel {
 
 export interface CommanderViewModel {
   legal: {
-    credits: string | null
+    credits: number | null
     state: string | null
     notoriety: {
       label: string
@@ -106,7 +107,7 @@ export function createCommanderViewModel(
 
   return {
     legal: {
-      credits: formatCredits(state.gameStatus?.balance, locale),
+      credits: state.gameStatus?.balance ?? null,
       state: state.gameStatus?.legalState ? humanize(state.gameStatus.legalState) : null,
       notoriety: notoriety === undefined ? null : {
         label: new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(notoriety),
@@ -140,8 +141,7 @@ export function createCommanderViewModel(
     statistics: state.commander.statistics
       ? {
           groups: createStatisticGroups(state.commander.statistics.groups, locale),
-          updatedAt: new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' })
-            .format(new Date(state.commander.statistics.updatedAt))
+          updatedAt: state.commander.statistics.updatedAt
         }
       : null,
     stores: [
@@ -157,10 +157,6 @@ function formatPercentage(value: number, locale: string, showPositiveSign = fals
     signDisplay: showPositiveSign ? 'exceptZero' : 'auto',
     style: 'percent'
   }).format(value / 100)
-}
-
-function formatCredits(value: number | null | undefined, locale: string): string | null {
-  return value == null ? null : `${new Intl.NumberFormat(locale).format(Math.round(value))} CR`
 }
 
 function createStatisticGroups(
@@ -258,7 +254,7 @@ function createStore(title: string, inventory: MicroResourceInventory | null, lo
   }))
   const total = categories.reduce((sum, category) => sum + category.count, 0)
   const timestamp = inventory
-    ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(inventory.updatedAt))
+    ? formatPhoenixDateTime(inventory.updatedAt)
     : 'No snapshot'
 
   return { title, categories, meta: `${total} units · ${timestamp}` }

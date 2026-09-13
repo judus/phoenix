@@ -28,11 +28,10 @@ import {
   EngineeringEngineersResponseSchema,
   EngineeringMaterialsResponseSchema,
   ExplorationLedgerResponseSchema,
-  GalaxyFilteredSystemsResponseSchema,
+  GalaxySystemSearchResponseSchema,
   GalaxyCommodityMarketsResponseSchema,
   GalaxyExplorationTargetsResponseSchema,
   GalaxyFactionPresencesResponseSchema,
-  GalaxyNearbySystemsResponseSchema,
   GalaxyNearestStationsResponseSchema,
   GalaxyOutfittingResponseSchema,
   GalaxyShipyardsResponseSchema,
@@ -59,6 +58,9 @@ import {
   OpenAiConfigurationStatusSchema,
   PhoenixModulesSchema,
   RuntimeStateSchema,
+  SavedGalaxyQueriesResponseSchema,
+  SavedGalaxyQuerySchema,
+  SavedGalaxyQueryWriteRequestSchema,
   ShipCatalogueResponseSchema
 } from '@phoenix/contracts'
 import { ControlDeckCommandCatalogueSchema, type ControlDeckCommandCatalogue } from 'control-deck/core'
@@ -93,11 +95,10 @@ import type {
   EngineeringMaterial,
   EngineeringMaterialsResponse,
   ExplorationLedgerResponse,
-  GalaxyFilteredSystemsResponse,
+  GalaxySystemSearchResponse,
   GalaxyCommodityMarketsResponse,
   GalaxyExplorationTargetsResponse,
   GalaxyFactionPresencesResponse,
-  GalaxyNearbySystemsResponse,
   GalaxyNearestStationsResponse,
   GalaxyOutfittingResponse,
   GalaxyShipyardsResponse,
@@ -123,14 +124,16 @@ import type {
   OpenAiConfigurationStatus,
   PhoenixModules,
   RuntimeState,
+  SavedGalaxyQueriesResponse,
+  SavedGalaxyQuery,
+  SavedGalaxyQueryWriteRequest,
   ShipCatalogueResponse
 } from '@phoenix/contracts'
 import type {
-  FilteredSystemsQuery,
+  GalaxySystemSearch,
   GalaxyCommodityMarketSearch,
   GalaxyExplorationTargetSearch,
   GalaxyFactionPresenceSearch,
-  GalaxyNearbySystemSearch,
   GalaxyNearestStationSearch,
   GalaxyOutfittingSearch,
   GalaxyShipyardSearch,
@@ -246,6 +249,24 @@ export class PhoenixApiClient implements PhoenixApi {
     await this.#empty(`/api/galaxy/bookmarks/${encodeURIComponent(id)}`, 'DELETE', undefined, signal)
   }
 
+  async getSavedGalaxyQueries(signal?: AbortSignal): Promise<SavedGalaxyQueriesResponse> {
+    return this.#get('/api/galaxy/saved-queries', SavedGalaxyQueriesResponseSchema, signal)
+  }
+
+  async saveGalaxyQuery(input: SavedGalaxyQueryWriteRequest, id?: string, signal?: AbortSignal): Promise<SavedGalaxyQuery> {
+    return this.#json(
+      id ? `/api/galaxy/saved-queries/${encodeURIComponent(id)}` : '/api/galaxy/saved-queries',
+      id ? 'PUT' : 'POST',
+      SavedGalaxyQueryWriteRequestSchema.parse(input),
+      SavedGalaxyQuerySchema,
+      signal
+    )
+  }
+
+  async deleteGalaxyQuery(id: string, signal?: AbortSignal): Promise<void> {
+    await this.#empty(`/api/galaxy/saved-queries/${encodeURIComponent(id)}`, 'DELETE', undefined, signal)
+  }
+
   async getMissions(signal?: AbortSignal): Promise<MissionsResponse> {
     return this.#get('/api/operations/missions', MissionsResponseSchema, signal)
   }
@@ -356,7 +377,7 @@ export class PhoenixApiClient implements PhoenixApi {
     return this.#get(`/api/navigation/system${query}`, CartographyLookupResponseSchema, signal)
   }
 
-  async getFilteredSystems(input: FilteredSystemsQuery, signal?: AbortSignal): Promise<GalaxyFilteredSystemsResponse> {
+  async findGalaxySystems(input: GalaxySystemSearch, signal?: AbortSignal): Promise<GalaxySystemSearchResponse> {
     const query = new URLSearchParams({
       maxDistance: String(input.maxDistance),
       population: input.population,
@@ -367,17 +388,12 @@ export class PhoenixApiClient implements PhoenixApi {
     }
     if (input.minPopulation !== undefined) query.set('minPopulation', String(input.minPopulation))
     if (input.maxPopulation !== undefined) query.set('maxPopulation', String(input.maxPopulation))
-    return this.#get(`/api/galaxy/systems/search?${query}`, GalaxyFilteredSystemsResponseSchema, signal)
+    return this.#get(`/api/galaxy/systems/search?${query}`, GalaxySystemSearchResponseSchema, signal)
   }
 
   async findGalaxyNearestStations(input: GalaxyNearestStationSearch, signal?: AbortSignal): Promise<GalaxyNearestStationsResponse> {
     const query = parameters({ pad: input.minimumPadSize, service: input.service, system: input.systemName })
     return this.#get(`/api/galaxy/nearest?${query}`, GalaxyNearestStationsResponseSchema, signal)
-  }
-
-  async findGalaxyNearbySystems(input: GalaxyNearbySystemSearch, signal?: AbortSignal): Promise<GalaxyNearbySystemsResponse> {
-    const query = parameters({ limit: input.limit, maxDistance: input.maxDistance, system: input.systemName })
-    return this.#get(`/api/galaxy/systems?${query}`, GalaxyNearbySystemsResponseSchema, signal)
   }
 
   async findGalaxyExplorationTargets(input: GalaxyExplorationTargetSearch, signal?: AbortSignal): Promise<GalaxyExplorationTargetsResponse> {

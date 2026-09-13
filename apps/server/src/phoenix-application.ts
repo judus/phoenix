@@ -64,6 +64,7 @@ import { CommunicationDataService } from './application/communication-data-servi
 import { FleetDataService } from './application/fleet-data-service.js'
 import { CachedCartographyStationResolver } from './application/cached-cartography-station-resolver.js'
 import { GalaxyBookmarkService } from './application/galaxy-bookmark-service.js'
+import { SavedGalaxyQueryService } from './application/saved-galaxy-query-service.js'
 import { DefaultExplorationBodyQuery } from './application/default-exploration-body-query.js'
 import { DefaultExplorationTargetQuery } from './application/default-exploration-target-query.js'
 import type { CopilotText } from './application/copilot-text-service.js'
@@ -98,6 +99,7 @@ import { EdsmStationStockSource } from './infrastructure/edsm-station-stock-sour
 import { SpanshShipyardSearchSource } from './infrastructure/spansh-shipyard-search-source.js'
 import { SpanshOutfittingSearchSource } from './infrastructure/spansh-outfitting-search-source.js'
 import { SpanshStationLookupSource } from './infrastructure/spansh-station-lookup-source.js'
+import { SpanshSearchClient } from './infrastructure/spansh-search-client.js'
 import { SpanshSystemSearchSource } from './infrastructure/spansh-system-search-source.js'
 import { SpanshFactionPresenceSource } from './infrastructure/spansh-faction-presence-source.js'
 import { SpanshExplorationTargetSource } from './infrastructure/spansh-exploration-target-source.js'
@@ -184,6 +186,7 @@ export class PhoenixApplication {
     const missions = new MissionDataService(this.database)
     const communications = new CommunicationDataService(this.database)
     const bookmarks = new GalaxyBookmarkService(this.database)
+    const savedGalaxyQueries = new SavedGalaxyQueryService(this.database)
     const runtimeCatalogueDirectory = resolve(paths.user.data, 'runtime/catalogue')
     const engineeringCatalogueDirectory = resolveProjectPath(projectRoot,
       options.engineeringCatalogueDirectory ?? process.env.PHOENIX_ENGINEERING_CATALOGUE_PATH ?? resolve(runtimeCatalogueDirectory, 'engineering'))
@@ -362,14 +365,15 @@ export class PhoenixApplication {
     )
     const navigation = new DefaultNavigationQuery(navigationRoutes, cartography, this.stateStore)
     const systems = new DefaultSystemDetailsQuery(cartography, this.stateStore)
+    const spansh = new SpanshSearchClient()
     const stationMarkets = new DefaultStationMarketQuery(
       options.stationSearchSource ?? new ArdentStationSearchSource(),
       options.stationStockSource ?? new EdsmStationStockSource(),
-      options.shipyardSearchSource ?? new SpanshShipyardSearchSource(),
-      options.outfittingSearchSource ?? new SpanshOutfittingSearchSource(),
-      options.stationLookupSource ?? new SpanshStationLookupSource(),
-      options.systemSearchSource ?? new SpanshSystemSearchSource(),
-      options.factionPresenceSource ?? new SpanshFactionPresenceSource(),
+      options.shipyardSearchSource ?? new SpanshShipyardSearchSource(spansh),
+      options.outfittingSearchSource ?? new SpanshOutfittingSearchSource(spansh),
+      options.stationLookupSource ?? new SpanshStationLookupSource(spansh),
+      options.systemSearchSource ?? new SpanshSystemSearchSource(spansh),
+      options.factionPresenceSource ?? new SpanshFactionPresenceSource(spansh),
       cartography,
       this.stateStore,
       this.database
@@ -386,7 +390,7 @@ export class PhoenixApplication {
     const exploration = new DefaultExplorationBodyQuery(this.database, cartography, this.stateStore)
     const explorationData = new ExplorationDataService(this.database, this.database)
     const explorationTargets = new DefaultExplorationTargetQuery(
-      options.explorationTargetSource ?? new SpanshExplorationTargetSource(),
+      options.explorationTargetSource ?? new SpanshExplorationTargetSource(spansh),
       cartography,
       this.stateStore,
       this.database
@@ -463,6 +467,7 @@ export class PhoenixApplication {
       macros,
       missions,
       bookmarks,
+      savedGalaxyQueries,
       communications,
       port,
       runtimeState: this.stateStore,

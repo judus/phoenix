@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { TileButton } from '@phoenix/ui'
+import { compactBindingLabel, TileButton } from '@phoenix/ui'
 
 export interface NumpadGridNode {
   available: boolean
@@ -59,21 +59,4 @@ export function NumpadGrid({ columns, nodes, onSelect, pendingDigits, rows, show
 
 export function balancedNumpadColumns(count: number): number {
   return count <= 3 ? Math.max(1, count) : Math.min(10, Math.ceil(Math.sqrt(count)))
-}
-
-function compactBindingLabel(binding: string): string {
-  const modifiers: Record<string, string> = {
-    leftalt: 'LA',
-    leftcontrol: 'LC',
-    leftmeta: 'LM',
-    leftshift: 'LS',
-    rightalt: 'RA',
-    rightcontrol: 'RC',
-    rightmeta: 'RM',
-    rightshift: 'RS'
-  }
-  return binding.split('+').map(part => {
-    const token = part.trim()
-    return modifiers[token.toLowerCase()] ?? token.replace(/^Numpad_/iu, 'NP')
-  }).join('+')
 }

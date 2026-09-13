@@ -28,7 +28,6 @@ export const DISPLAY_PAGE_IDS = [
   'engineering.materials-manufactured',
   'engineering.materials-encoded',
   'engineering.materials-xeno',
-  'comms.overview',
   'comms.inbox',
   'comms.traffic',
   'comms.contacts',

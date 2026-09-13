@@ -29,7 +29,6 @@ const DISPLAY_PAGE_ROUTES = {
   'engineering.materials-manufactured': { kind: 'information', section: 'engineering', view: 'materials-manufactured' },
   'engineering.materials-encoded': { kind: 'information', section: 'engineering', view: 'materials-encoded' },
   'engineering.materials-xeno': { kind: 'information', section: 'engineering', view: 'materials-xeno' },
-  'comms.overview': { kind: 'information', section: 'comms', view: 'overview' },
   'comms.inbox': { kind: 'information', section: 'comms', view: 'inbox' },
   'comms.traffic': { kind: 'information', section: 'comms', view: 'traffic' },
   'comms.contacts': { kind: 'information', section: 'comms', view: 'contacts' },

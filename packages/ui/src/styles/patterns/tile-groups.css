@@ -22,6 +22,8 @@
         font-size: var(--font-size-md);
         font-weight: var(--font-weight-semibold);
         line-height: var(--line-height-compact);
+        font-family: var(--font-family-display);
+        letter-spacing: var(--font-tracking-display);
         text-transform: uppercase;
       }
 
@@ -29,6 +31,8 @@
         color: var(--color-text-muted);
         font-size: var(--font-size-xs);
         line-height: var(--line-height-compact);
+        font-family: var(--font-family-display);
+        letter-spacing: var(--font-tracking-display);
         text-transform: uppercase;
       }
     }

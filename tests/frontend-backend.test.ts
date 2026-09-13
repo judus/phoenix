@@ -24,13 +24,6 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       government: null, marketId: 42, maxLandingPadSize: 3, primaryEconomy: 'Industrial',
       secondaryEconomy: null, stationName: 'Test Exchange', stationType: 'Orbis',
       systemName: 'Nearby', updatedAt: '2026-08-13T08:00:00.000Z'
-    }],
-    findNearbySystems: async () => [{
-      distanceLy: 4.37,
-      position: [3.03125, -0.09375, 3.15625],
-      systemAddress: 1178707802194,
-      systemName: 'Alpha Centauri',
-      updatedAt: '2026-08-13T08:00:00.000Z'
     }]
   }
   const shipyardSearchSource: ShipyardSearchSource = {
@@ -108,15 +101,13 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
         opportunities: [{ commodityName: 'gold', projectedProfit: 10_000, units: 20 }],
         originSystem: 'Sol'
       })
-    await expect(client.findGalaxyNearbySystems({ maxDistance: 25, systemName: 'Sol' }))
-      .resolves.toMatchObject({ maxDistanceLy: 25, systems: [{ systemName: 'Alpha Centauri' }] })
     await expect(client.findGalaxyShipyards({ hullName: 'Type-11 Prospector', systemName: 'Sol' }))
       .resolves.toMatchObject({ hullName: 'Type-11 Prospector', shipyards: [{ stationName: 'Test Exchange' }] })
     await expect(client.findGalaxyOutfitting({ maxDaysAgo: 30, maxDistance: 100, minimumPadSize: 'large', module: '6A Power Plant', systemName: 'Sol' }))
       .resolves.toMatchObject({ moduleClass: 6, moduleName: 'Power Plant', moduleRating: 'A', matches: [{ stationName: 'Test Exchange' }] })
     await expect(client.findGalaxyStations({ maxDistance: 100, minimumPadSize: 'large', name: 'Test', stationType: 'orbital', systemName: 'Sol' }))
       .resolves.toMatchObject({ name: 'Test', stationType: 'orbital', matches: [{ stationName: 'Test Exchange', services: ['Dock', 'Repair'] }] })
-    await expect(client.getFilteredSystems({ allegiance: 'Federation', maxDistance: 100, population: 'inhabited', system: 'Sol' }))
+    await expect(client.findGalaxySystems({ allegiance: 'Federation', maxDistance: 100, population: 'inhabited', system: 'Sol' }))
       .resolves.toMatchObject({ filters: { allegiance: 'Federation', population: 'inhabited' }, systems: [{ systemName: 'Alpha Centauri' }] })
     await expect(client.findGalaxyFactionPresences({ controlling: 'yes', factionName: 'Mother Gaia', maxDistance: 100, minInfluence: 25, systemName: 'Sol' }))
       .resolves.toMatchObject({ filters: { controlling: 'yes', factionName: 'Mother Gaia', minInfluencePercent: 25 }, presences: [{ controlling: true, influencePercent: 42.15, systemName: 'Alpha Centauri' }], provenance: 'Spansh community-reported system data' })

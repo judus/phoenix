@@ -17,6 +17,7 @@ const CatalogueSourceSchema = z.object({
 
 const ShipCatalogueSchema = z.object({
   schemaVersion: z.literal(1),
+  generatedAt: z.iso.datetime(),
   source: CatalogueSourceSchema,
   aliases: z.record(z.string(), z.string().min(1)),
   ships: z.array(ShipDefinitionSchema.omit({ source: true }))
@@ -29,6 +30,7 @@ const ModuleCatalogueSchema = z.object({
 })
 
 export interface GameCatalogue {
+  getShipCatalogueUpdatedAt(): string
   listShips(): ShipDefinition[]
   resolveShip(identifier: string): ShipDefinition | null
   resolveModule(journalId: string): ModuleDefinition
@@ -40,12 +42,14 @@ export class JsonGameCatalogue implements GameCatalogue {
   private readonly ships: Map<string, ShipDefinition>
   private readonly modules: Map<string, ModuleDefinition>
   private readonly diagnostics: CatalogueInventoryDiagnostics
+  private readonly shipCatalogueUpdatedAt: string
 
   public constructor (shipCataloguePath: string, moduleCataloguePath: string) {
     const shipCatalogue = ShipCatalogueSchema.parse(readJson(shipCataloguePath))
     const moduleCatalogue = ModuleCatalogueSchema.parse(readJson(moduleCataloguePath))
     const shipSource = provenance(shipCatalogue.source)
     const moduleSource = provenance(moduleCatalogue.source)
+    this.shipCatalogueUpdatedAt = shipCatalogue.generatedAt
     this.aliases = new Map(
       Object.entries(shipCatalogue.aliases).map(([alias, id]) => [normalizeIdentifier(alias), id])
     )
@@ -70,6 +74,10 @@ export class JsonGameCatalogue implements GameCatalogue {
     const normalized = normalizeIdentifier(identifier)
     const id = this.aliases.get(normalized) ?? normalized
     return this.ships.get(id) ?? null
+  }
+
+  public getShipCatalogueUpdatedAt (): string {
+    return this.shipCatalogueUpdatedAt
   }
 
   public listShips (): ShipDefinition[] {

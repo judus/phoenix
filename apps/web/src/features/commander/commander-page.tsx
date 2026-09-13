@@ -14,6 +14,7 @@ import {
   Widget
 } from '@phoenix/ui'
 import { CommanderSummaryWidget } from '../../components/commander-summary-widget.js'
+import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
 import type { CommanderViewModel } from './commander-view-model.js'
 
@@ -67,7 +68,7 @@ function CommanderHeader({ model, view }: { model?: CommanderViewModel, view: Co
       variant="cockpit"
       context={<Breadcrumbs items={[{ label: 'Commander', href: '#/commander/career' }, { label: section }]} />}
       title={contextualPage ? section : `CMDR ${model?.name ?? 'Unknown'}`}
-      status={view === 'statistics' && model?.statistics ? `Reported ${model.statistics.updatedAt}` : undefined}
+      status={view === 'statistics' && model?.statistics ? <UpdatedDateTime value={model.statistics.updatedAt} /> : undefined}
     />
   )
 }
@@ -113,9 +114,13 @@ function CommanderCareer({ model }: { model: CommanderViewModel }) {
 
 function RankCard({ rank }: { rank: CommanderViewModel['ranks'][number] }) {
   return (
-    <Widget className="commander-rank-card" density="compact" title={rank.label}>
+    <Widget
+      className="commander-rank-card"
+      density="compact"
+      eyebrow={rank.label}
+      heading={rank.level.toUpperCase()}
+    >
       <Stack gap="sm">
-        <Metric value={rank.level.toUpperCase()} />
         <Meter
           label={`${rank.label} progress`}
           layout="compact"
@@ -132,7 +137,13 @@ function StandingCard({ reputation }: {
   reputation: CommanderViewModel['reputation'][number]
 }) {
   return (
-    <Widget className="commander-reputation-card" density="compact" meta={reputation.status} title={reputation.label}>
+    <Widget
+      aria-label={`${reputation.label} reputation`}
+      className="commander-reputation-card"
+      density="compact"
+      eyebrow={reputation.label}
+      meta={reputation.status}
+    >
       <Stack gap="sm">
         <Meter
           label={`${reputation.label} reputation`}
@@ -169,7 +180,7 @@ function CommanderStatistics({ statistics }: { statistics: CommanderViewModel['s
           {groups.map(group => (
             <DataTableGroup key={group.id} meta={`${group.metrics.length} records`} title={group.label}>
               <DataTable density="compact" label={`${group.label} lifetime statistics`} narrow="priority" scheme="surface">
-                <thead><tr><th>Record</th><th>Value</th></tr></thead>
+                <thead><tr><th>Record</th><th className="numeric">Value</th></tr></thead>
                 <tbody>
                   {group.metrics.map(metric => (
                     <tr key={metric.id}>

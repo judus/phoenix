@@ -72,6 +72,7 @@ export const CatalogueDiagnosticsSchema = CatalogueInventoryDiagnosticsSchema.ex
 })
 
 export const ShipCatalogueResponseSchema = z.object({
+  updatedAt: z.iso.datetime(),
   ships: z.array(ShipDefinitionSchema)
 })
 

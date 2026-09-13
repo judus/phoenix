@@ -1,7 +1,7 @@
-  .filtered-system-search {
+  .galaxy-query-editor {
     --query-envelope-width: minmax(15rem, 22%);
 
-    container: filtered-system-search / size;
+    container: galaxy-query-editor / size;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
     gap: var(--spacing-sm);
@@ -17,7 +17,7 @@
 
     > .query-results {
       display: grid;
-      grid-template-rows: auto minmax(0, 1fr) auto;
+      grid-template-rows: auto minmax(0, 1fr) auto auto;
       align-content: start;
       min-block-size: 0;
       overflow: hidden;
@@ -26,6 +26,12 @@
         min-block-size: 0;
         overflow: auto;
         overscroll-behavior: contain;
+      }
+
+      > .query-result-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--spacing-xs);
       }
     }
 
@@ -67,7 +73,8 @@
       small {
         color: var(--color-information);
         font-size: var(--font-size-xs);
-        letter-spacing: 0.08em;
+        letter-spacing: calc(0.08em + var(--font-tracking-display));
+        font-family: var(--font-family-display);
         text-transform: uppercase;
       }
 
@@ -106,7 +113,8 @@
         dt {
           color: var(--color-text-muted);
           font-size: var(--font-size-xxs);
-          letter-spacing: 0.06em;
+          letter-spacing: calc(0.06em + var(--font-tracking-display));
+          font-family: var(--font-family-display);
           text-transform: uppercase;
         }
 
@@ -145,10 +153,27 @@
 
       .query-actions { flex: 0 0 auto; }
     }
+
+    .save-query-panel {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: var(--spacing-sm);
+      padding: var(--spacing-sm);
+      border: 1px solid var(--color-border-subtle);
+      background: var(--color-surface-subtle);
+
+      > div {
+        display: flex;
+        gap: var(--spacing-xs);
+      }
+
+      > .status { grid-column: 1 / -1; }
+    }
   }
 
-  @container filtered-system-search (width < 52rem) {
-    .filtered-system-search {
+  @container galaxy-query-editor (width < 52rem) {
+    .galaxy-query-editor {
       .query-workspace {
         grid-template-columns: minmax(0, 1fr);
         overflow: auto;
@@ -179,11 +204,12 @@
     }
   }
 
-  @container filtered-system-search (width < 32rem) {
-    .filtered-system-search {
+  @container galaxy-query-editor (width < 32rem) {
+    .galaxy-query-editor {
       .query-envelope { grid-template-columns: minmax(0, 1fr); }
       .query-envelope dl { display: none; }
       .query-parameters { padding: var(--spacing-md); }
       .query-parameters .form-grid { grid-template-columns: minmax(0, 1fr); }
+      .save-query-panel { grid-template-columns: minmax(0, 1fr); }
     }
   }

@@ -1,3 +1,4 @@
+@import './base/fonts.css';
 @import './variable.css';
 @import './base/typo.css';
 @import './base/links.css';
@@ -26,8 +27,10 @@
 @import './pages/dashboard.css';
 @import './pages/commander.css';
 @import './pages/credits.css';
+@import './pages/exobiology.css';
+@import './pages/engineering.css';
 @import './pages/settings.css';
-@import './pages/filtered-system-search.css';
+@import './pages/galaxy-query-editor.css';
 @import './pages/fleet.css';
 @import './pages/fleet-runtime.css';
 @import './pages/galnet.css';
@@ -38,6 +41,7 @@
 @import './pages/pairing.css';
 @import './pages/plotted-route.css';
 @import './pages/query-console.css';
+@import './pages/saved-galaxy-queries.css';
 @import './pages/ship-catalogue.css';
 @import './pages/stored-modules.css';
 @import './pages/system-schematic.css';

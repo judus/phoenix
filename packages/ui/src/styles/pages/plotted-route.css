@@ -16,6 +16,11 @@
       min-inline-size: 0;
       padding-block: var(--spacing-xs) var(--spacing-sm);
       border-block-end: 1px solid var(--color-border-subtle);
+
+      .metric > strong {
+        font-family: var(--font-family-display);
+        letter-spacing: var(--font-tracking-display);
+      }
     }
 
     .route-path {
@@ -67,6 +72,19 @@
       margin-block-start: auto;
     }
 
+    .route-preview-system {
+      overflow: hidden;
+
+      > strong {
+        min-inline-size: 0;
+        overflow: hidden;
+      }
+
+      .system-location {
+        inline-size: 100%;
+      }
+    }
+
     .route-table-scroll {
       min-inline-size: 0;
       min-block-size: 0;
@@ -78,6 +96,12 @@
         outline: 2px solid var(--color-focus);
         outline-offset: -2px;
       }
+    }
+
+    .route-table tbody {
+      font-family: var(--font-family-display);
+      letter-spacing: calc(0.04em + var(--font-tracking-display));
+      text-transform: uppercase;
     }
   }
 

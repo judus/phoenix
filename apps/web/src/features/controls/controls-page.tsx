@@ -11,7 +11,7 @@ import {
   type ControlDeckDeckGroup
 } from 'control-deck/core'
 import { PHOENIX_CONTROL_LAYOUT_PRESETS, PhoenixControlDeckThemeSchema, controlDeckTargetToPhoenixTarget, phoenixControlLayoutPreset, type CommandTarget, type GameActionAvailability, type GameActionOperation, type PhoenixControlDeckConfiguration, type PhoenixControlDeckTheme, type RuntimeState } from '@phoenix/contracts'
-import { Breadcrumbs, Button, CommandTile, ControlContext, DataTable, NumberInput, PageFrame, PageHeader, Select, Status, TileButton, Widget } from '@phoenix/ui'
+import { Breadcrumbs, Button, CommandTile, compactBindingLabel, ControlContext, DataTable, NumberInput, PageFrame, PageHeader, Select, Status, TileButton, Widget } from '@phoenix/ui'
 import { createClientId } from '../../application/identity/client-identity.js'
 import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
 import type { ControlCategory } from '../../application/navigation/phoenix-route.js'
@@ -419,6 +419,7 @@ function ControlDeckCommandTile({ binding, interaction, kind = 'action', label, 
   tone?: 'normal' | 'danger'
   unavailable?: boolean
 }) {
+  const displayedBinding = binding === undefined ? undefined : compactBindingLabel(binding)
   return <TileButton
     aria-label={binding ? `${label}, ${binding}` : label}
     aria-pressed={selected || undefined}
@@ -431,7 +432,8 @@ function ControlDeckCommandTile({ binding, interaction, kind = 'action', label, 
     ].filter(Boolean).join(' ')}
     disabled={disabled}
     label={label}
-    meta={binding}
+    meta={displayedBinding}
+    metaTitle={binding}
     note={interaction}
     {...props}
   />

@@ -21,20 +21,7 @@ export type InformationPrimarySection =
   | 'engineering'
   | 'comms'
 
-export const GALAXY_QUERY_IDS = [
-  'commodity-markets',
-  'facilities',
-  'exploration-targets',
-  'faction-presence',
-  'filtered-systems',
-  'nearby-systems',
-  'outfitting-stock',
-  'shipyards',
-  'station-lookup',
-  'trade-opportunities'
-] as const
-
-export type GalaxyQueryId = typeof GALAXY_QUERY_IDS[number]
+export { GALAXY_QUERY_IDS, type GalaxyQueryId } from '@phoenix/contracts'
 
 export type InformationRoute =
   | { kind: 'information', section: 'home', view: 'overview' }
@@ -45,11 +32,12 @@ export type InformationRoute =
   | { kind: 'information', section: 'galaxy', view: 'route' }
   | { kind: 'information', section: 'galaxy', view: 'exobiology' }
   | { kind: 'information', section: 'galaxy', view: 'bookmarks', bookmarkId?: string, systemName?: string, bodyName?: string }
-  | { kind: 'information', section: 'galaxy', view: 'database', selectedQueryId?: GalaxyQueryId }
+  | { kind: 'information', section: 'galaxy', view: 'database', savedQueryId?: string, savedQueryRunId?: string, selectedQueryId?: GalaxyQueryId }
+  | { kind: 'information', section: 'galaxy', view: 'saved-queries' }
   | { kind: 'information', section: 'activities', view: 'missions' | 'objectives' | 'community-goals' | 'powerplay' | 'colonisation' }
   | { kind: 'information', section: 'engineering', view: 'blueprints', selectedBlueprintSymbol?: string }
   | { kind: 'information', section: 'engineering', view: 'engineers' | 'materials-raw' | 'materials-manufactured' | 'materials-encoded' | 'materials-xeno' }
-  | { kind: 'information', section: 'comms', view: 'overview' | 'inbox' | 'traffic' | 'contacts' | 'galnet' | 'radio' }
+  | { kind: 'information', section: 'comms', view: 'inbox' | 'traffic' | 'contacts' | 'galnet' | 'radio' }
 
 export type PhoenixRoute =
   | InformationRoute
@@ -107,7 +95,7 @@ export function defaultRouteForInformationSection(section: InformationPrimarySec
     case 'galaxy': return { kind: 'information', section, view: 'system' }
     case 'activities': return { kind: 'information', section, view: 'missions' }
     case 'engineering': return { kind: 'information', section, view: 'blueprints' }
-    case 'comms': return { kind: 'information', section, view: 'overview' }
+    case 'comms': return { kind: 'information', section, view: 'inbox' }
   }
 }
 
@@ -125,3 +113,4 @@ export function defaultRouteForWorkspace(
     case 'settings': return { kind: 'settings', view: 'dashboard' }
   }
 }
+import type { GalaxyQueryId } from '@phoenix/contracts'

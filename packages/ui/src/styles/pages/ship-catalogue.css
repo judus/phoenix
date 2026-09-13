@@ -79,6 +79,8 @@
         > span {
           color: var(--color-action);
           font-size: var(--font-size-sm);
+          font-family: var(--font-family-display);
+          letter-spacing: var(--font-tracking-display);
           text-transform: uppercase;
         }
       }
@@ -86,7 +88,7 @@
 
     .flight-profile {
       display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: var(--spacing-lg);
       margin: 0;
       padding: var(--spacing-sm) 0;
@@ -100,13 +102,18 @@
       dt {
         color: var(--color-text-muted);
         font-size: var(--font-size-xs);
+        font-family: var(--font-family-display);
+        letter-spacing: var(--font-tracking-display);
         text-transform: uppercase;
       }
 
       dd {
         margin: 0;
         color: var(--color-text);
+        font-family: var(--font-family-display);
+        letter-spacing: var(--font-tracking-display);
         font-size: var(--font-size-md);
+        font-variant-numeric: tabular-nums;
       }
     }
 
@@ -127,12 +134,16 @@
           color: var(--color-text-muted);
           font-size: var(--font-size-sm);
           font-weight: var(--font-weight-normal);
+          font-family: var(--font-family-display);
+          letter-spacing: var(--font-tracking-display);
           text-transform: uppercase;
         }
 
         small {
           color: var(--color-text-muted);
           font-size: var(--font-size-xs);
+          font-family: var(--font-family-display);
+          letter-spacing: var(--font-tracking-display);
           text-transform: uppercase;
         }
       }
@@ -159,12 +170,17 @@
             color: var(--color-text-muted);
             font-size: var(--font-size-xs);
             font-weight: var(--font-weight-normal);
+            font-family: var(--font-family-display);
+            letter-spacing: var(--font-tracking-display);
             text-transform: uppercase;
           }
 
           small {
             color: var(--color-action);
+            font-family: var(--font-family-display);
+            letter-spacing: var(--font-tracking-display);
             font-size: var(--font-size-xs);
+            font-variant-numeric: tabular-nums;
           }
         }
 
@@ -184,7 +200,10 @@
           min-block-size: 2.75rem;
           color: var(--color-information);
           background: var(--color-surface);
+          font-family: var(--font-family-display);
+          letter-spacing: var(--font-tracking-display);
           font-size: var(--font-size-sm);
+          font-variant-numeric: tabular-nums;
         }
       }
     }
@@ -196,6 +215,7 @@
       grid-template-rows: minmax(0, 1fr);
       min-inline-size: 0;
       min-block-size: 0;
+      border-block-start: 1px solid var(--color-border-subtle);
       overflow: auto;
 
       .table-region {

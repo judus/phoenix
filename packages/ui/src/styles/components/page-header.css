@@ -18,6 +18,8 @@
         font-size: var(--page-title-size);
         font-weight: var(--font-weight-normal);
         line-height: var(--line-height-tight);
+        font-family: var(--font-family-display);
+        letter-spacing: var(--font-tracking-display);
         text-transform: uppercase;
       }
 
@@ -34,7 +36,8 @@
         color: var(--color-information);
         font-size: var(--font-size-xs);
         font-weight: var(--font-weight-medium);
-        letter-spacing: 0.08em;
+        letter-spacing: calc(0.08em + var(--font-tracking-display));
+        font-family: var(--font-family-display);
         text-transform: uppercase;
       }
     }
@@ -54,9 +57,10 @@
       max-inline-size: 52ch;
       color: var(--color-text-muted);
       font-size: var(--font-size-xxs);
-      letter-spacing: 0.04em;
+      letter-spacing: calc(0.04em + var(--font-tracking-display));
       line-height: var(--line-height-normal);
       text-align: end;
+      font-family: var(--font-family-display);
       text-transform: uppercase;
     }
 

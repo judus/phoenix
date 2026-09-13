@@ -1,5 +1,7 @@
 import type { Mission, MissionStatus, MissionsResponse } from '@phoenix/contracts'
 import type { StatusTone } from '@phoenix/ui'
+import { formatPhoenixCredits } from '../../components/phoenix-credits.js'
+import { formatPhoenixDateTime } from '../../components/phoenix-date-time.js'
 
 export interface MissionViewModel {
   accepted: string
@@ -8,12 +10,14 @@ export interface MissionViewModel {
   destinationLocation: string | null
   destinationSystem: string | null
   expiry: string
+  expiryAt: string | null
   faction: string
   id: number
   incomplete: boolean
   progress: string
   provenance: string
   reward: string
+  rewardCredits: number | null
   status: MissionStatus
   statusTone: StatusTone
   target: string
@@ -25,6 +29,7 @@ export interface ActivitiesViewModel {
   all: MissionViewModel[]
   snapshotAt: string | null
   summary: MissionsResponse['summary']
+  updatedAt: string | null
 }
 
 export function createActivitiesViewModel(response: MissionsResponse): ActivitiesViewModel {
@@ -33,26 +38,33 @@ export function createActivitiesViewModel(response: MissionsResponse): Activitie
     active: all.filter(mission => mission.status === 'active'),
     all,
     snapshotAt: response.snapshotAt,
-    summary: response.summary
+    summary: response.summary,
+    updatedAt: latestTimestamp(response.snapshotAt, ...response.missions.map(mission => mission.updatedAt))
   }
+}
+
+function latestTimestamp(...timestamps: Array<string | null | undefined>): string | null {
+  return timestamps.filter((timestamp): timestamp is string => Boolean(timestamp)).sort().at(-1) ?? null
 }
 
 export function createMissionViewModel(mission: Mission): MissionViewModel {
   return {
-    accepted: mission.acceptedAt ? formatDateTime(mission.acceptedAt) : 'Not observed',
+    accepted: mission.acceptedAt ? formatPhoenixDateTime(mission.acceptedAt) : 'Not observed',
     cargo: mission.commodity
       ? `${mission.commodity}${mission.commodityCount === null ? '' : ` × ${mission.commodityCount}`}`
       : '—',
     destination: [mission.destinationSystem, mission.destinationStation ?? mission.destinationSettlement].filter(Boolean).join(' / ') || '—',
     destinationLocation: mission.destinationStation ?? mission.destinationSettlement,
     destinationSystem: mission.destinationSystem,
-    expiry: mission.expiry ? formatDateTime(mission.expiry) : '—',
+    expiry: mission.expiry ? formatPhoenixDateTime(mission.expiry) : '—',
+    expiryAt: mission.expiry,
     faction: mission.faction ?? '—',
     id: mission.id,
     incomplete: mission.provenance.details === 'partial',
     progress: mission.progress.required === null ? '—' : `${mission.progress.delivered ?? 0} / ${mission.progress.required}`,
     provenance: mission.provenance.sources.join(' · ') || 'No source recorded',
-    reward: mission.reward === null ? '—' : `${mission.reward.toLocaleString()} CR`,
+    reward: formatPhoenixCredits(mission.reward),
+    rewardCredits: mission.reward,
     status: mission.status,
     statusTone: toneForStatus(mission.status),
     target: [mission.target, mission.targetType, mission.targetFaction].filter(Boolean).join(' / ') || '—',
@@ -62,16 +74,6 @@ export function createMissionViewModel(mission: Mission): MissionViewModel {
 
 function readableMissionName(name: string | null): string | undefined {
   return name?.replace(/^Mission_/u, '').replace(/_name$/u, '').replaceAll('_', ' ')
-}
-
-function formatDateTime(value: string): string {
-  return new Intl.DateTimeFormat(undefined, {
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  }).format(new Date(value))
 }
 
 function toneForStatus(status: MissionStatus): StatusTone {

@@ -1,41 +1,18 @@
 import type { ExplorationTargetSearchRequest, ExplorationTargetSearchResult, ExplorationTargetSearchSource } from '../domain/exploration-target.js'
+import type { SpanshSearchGateway } from './spansh-search-client.js'
 
-const DEFAULT_BASE_URL = 'https://spansh.co.uk/api/'
-const DEFAULT_TIMEOUT_MS = 30_000
-const DEFAULT_RESULT_SIZE = 100
 const ELITE_RELEASED_AT = '2014-12-16T00:00:00.000Z'
 const MAX_SIGNAL_COUNT = 100
 
-export interface SpanshExplorationTargetSourceOptions { baseUrl?: string, fetch?: typeof fetch, timeoutMs?: number }
-
 export class SpanshExplorationTargetSource implements ExplorationTargetSearchSource {
-  private readonly baseUrl: URL
-  private readonly fetcher: typeof fetch
-  private readonly timeoutMs: number
-
-  public constructor (options: SpanshExplorationTargetSourceOptions = {}) {
-    this.baseUrl = new URL(options.baseUrl ?? DEFAULT_BASE_URL)
-    this.fetcher = options.fetch ?? globalThis.fetch
-    this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
-  }
+  public constructor (private readonly spansh: SpanshSearchGateway) {}
 
   public async findTargets (request: ExplorationTargetSearchRequest): Promise<ExplorationTargetSearchResult[]> {
-    const response = await this.fetcher(new URL('bodies/search', this.baseUrl), {
-      body: JSON.stringify({
-        filters: providerFilters(request),
-        page: 0,
-        reference_coords: { x: request.referencePosition[0], y: request.referencePosition[1], z: request.referencePosition[2] },
-        size: DEFAULT_RESULT_SIZE,
-        sort: [{ distance: { direction: 'asc' } }]
-      }),
-      headers: { accept: 'application/json', 'content-type': 'application/json', 'user-agent': 'phoenix-terminal/0.1' },
-      method: 'POST',
-      signal: AbortSignal.timeout(this.timeoutMs)
+    const candidates = await this.spansh.search('bodies', {
+      filters: providerFilters(request),
+      referencePosition: request.referencePosition
     })
-    if (!response.ok) throw new Error(`Spansh request failed with HTTP ${response.status}.`)
-    const payload = record(await response.json())
-    if (!payload || !Array.isArray(payload.results)) throw new Error('Spansh returned an unexpected body-search response.')
-    return payload.results.map(mapTarget).filter(isPresent)
+    return candidates.map(mapTarget).filter(isPresent)
   }
 }
 

@@ -5,7 +5,7 @@ import { boundedLimit, json, optionalIntegerArgument, optionalStringArgument, ou
 export class CommsListMessagesTool implements LocalTool {
   public readonly definition = {
     annotations: { readOnly: true },
-    description: 'Read retained Elite communications. Use inbox for private and group messages, traffic for public system chat plus NPC and station chatter, or all for both. Contacts are observation history, not online-presence claims.',
+    description: 'Read retained Elite communications. Use inbox for direct and group messages, traffic for public system chat plus NPC and station chatter, or all for both. Correspondents are derived from message history and never claim online presence.',
     inputSchema: {
       additionalProperties: false,
       properties: {

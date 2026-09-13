@@ -27,6 +27,7 @@ describe('PHOENIX route parsing and generation', () => {
     ['#/fleet/ships/current/loadout', { kind: 'information', section: 'fleet', view: 'current-loadout' }, 'info'],
     ['#/fleet/ships/current/engineering', { kind: 'information', section: 'fleet', view: 'current-engineering' }, 'info'],
     ['#/galaxy/database', { kind: 'information', section: 'galaxy', view: 'database' }, 'info'],
+    ['#/galaxy/saved-queries', { kind: 'information', section: 'galaxy', view: 'saved-queries' }, 'info'],
     ['#/activities/missions', { kind: 'information', section: 'activities', view: 'missions' }, 'info'],
     ['#/engineering/materials/encoded', { kind: 'information', section: 'engineering', view: 'materials-encoded' }, 'info'],
     ['#/comms/radio', { kind: 'information', section: 'comms', view: 'radio' }, 'info'],
@@ -100,6 +101,12 @@ describe('PHOENIX route parsing and generation', () => {
     expect(defaultRouteForInformationSection('activities')).toEqual({ kind: 'information', section: 'activities', view: 'missions' })
     expect(phoenixRouteHash(parsePhoenixRoute('#/activities/overview'))).toBe('#/activities/missions')
     expect(phoenixRouteHash(parsePhoenixRoute('#/operations/overview'))).toBe('#/activities/missions')
+  })
+
+  test('Comms lands on Inbox and normalizes the retired overview route', () => {
+    expect(defaultRouteForInformationSection('comms')).toEqual({ kind: 'information', section: 'comms', view: 'inbox' })
+    expect(phoenixRouteHash(parsePhoenixRoute('#/comms'))).toBe('#/comms/inbox')
+    expect(phoenixRouteHash(parsePhoenixRoute('#/comms/overview'))).toBe('#/comms/inbox')
   })
 
   test('Fleet lands on the current ship dashboard', () => {

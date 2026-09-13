@@ -21,7 +21,8 @@ export const galaxyNavigationItems: GalaxyNavigationItem[] = [
 ]
 
 export function galaxyContextForRoute(route: InformationRoute): string {
-  return route.section === 'galaxy' ? route.view : 'system'
+  if (route.section !== 'galaxy') return 'system'
+  return route.view === 'saved-queries' ? 'database' : route.view
 }
 
 function item(id: keyof typeof routes, label: string, shortLabel: string): GalaxyNavigationItem {

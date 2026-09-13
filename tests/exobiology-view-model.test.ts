@@ -8,7 +8,7 @@ import { createExobiologyViewModel } from '../apps/web/src/features/galaxy/exobi
 test('builds journal-backed biological progress and excludes unrelated bodies', () => {
   const model = createExobiologyViewModel(fixture())
 
-  expect(model).toMatchObject({ completed: 1, total: 2 })
+  expect(model).toMatchObject({ completed: 1, total: 2, updatedAt: '2026-08-25T12:04:00.000Z' })
   expect(model.systems).toHaveLength(1)
   expect(model.systems[0]).toMatchObject({ completed: 1, name: 'Test System', total: 2 })
   expect(model.systems[0]?.bodies).toHaveLength(1)
@@ -38,6 +38,7 @@ test('links systems and bodies to their system schematic', () => {
 
   expect(markup).toContain('href="#/galaxy/system?name=Test+System"')
   expect(markup).toContain('href="#/galaxy/system?name=Test+System&amp;selected=Test+System+1"')
+  expect(markup).toContain('<small class="page-status">Updated ')
 })
 
 function fixture(): ExplorationLedgerResponse {

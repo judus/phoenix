@@ -3,6 +3,12 @@
     align-content: start;
     gap: var(--spacing-md);
     min-inline-size: 0;
+
+    .btn {
+      font-family: var(--font-family-display);
+      letter-spacing: calc(0.04em + var(--font-tracking-display));
+      text-transform: uppercase;
+    }
   }
 
   .form-grid {
@@ -37,8 +43,9 @@
         color: var(--color-action);
         font-size: var(--font-size-sm);
         font-weight: var(--font-weight-medium);
-        letter-spacing: 0.06em;
+        letter-spacing: calc(0.06em + var(--font-tracking-display));
         line-height: var(--line-height-compact);
+        font-family: var(--font-family-display);
         text-transform: uppercase;
       }
 
@@ -139,7 +146,8 @@
       color: var(--color-action);
       font-size: var(--font-size-xs);
       font-weight: var(--font-weight-medium);
-      letter-spacing: 0.04em;
+      letter-spacing: calc(0.04em + var(--font-tracking-display));
+      font-family: var(--font-family-display);
       text-transform: uppercase;
     }
 

@@ -39,6 +39,9 @@ test('Material tables retain groups, inventory, applications, and grade', () => 
   expect(markup).toContain('10 / 300')
   expect(markup).toContain('Lightweight armour')
   expect(markup).toContain('G1')
+  expect(markup).toContain('class="data-table compact surface material-table"')
+  expect(markup).toContain('<th class="numeric">Inventory</th>')
+  expect(markup).toContain('<col class="applications-column"/>')
 })
 
 test('Blueprint detail retains fitted modules, engineers, effects, and material stock', () => {

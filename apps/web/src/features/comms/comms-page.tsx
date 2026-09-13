@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import type {
   CommunicationContact,
   CommunicationMessage,
@@ -14,7 +14,6 @@ import {
   DescriptionList,
   ItemList,
   ItemListItem,
-  Metric,
   MetricStrip,
   MetricStripItem,
   PageFrame,
@@ -25,6 +24,7 @@ import {
   Widget
 } from '@phoenix/ui'
 import { GalnetRadioControls } from '../../components/galnet-radio-controls.js'
+import { PhoenixDateTime, UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import type { CommsControllerSnapshot, CommsView } from './use-comms-controller.js'
 
 export function CommsPage({ controller, onExecuteAction, view }: {
@@ -37,8 +37,7 @@ export function CommsPage({ controller, onExecuteAction, view }: {
   if (view === 'galnet') return controller.galnet ? <Galnet news={controller.galnet} /> : <CommsState error="GalNet unavailable." title="GalNet" />
   if (view === 'radio') return <Radio actions={controller.actions} onExecuteAction={onExecuteAction} />
   if (!controller.communications) return <CommsState error="Retained communications unavailable." title={titleFor(view)} />
-  if (view === 'overview') return <Overview response={controller.communications} />
-  if (view === 'contacts') return <Contacts response={controller.communications} />
+  if (view === 'contacts') return <Correspondents response={controller.communications} />
   return <Messages response={controller.communications} view={view} />
 }
 
@@ -53,41 +52,20 @@ function CommsState({ error, title }: { error?: string, title: string }) {
   )
 }
 
-function Overview({ response }: { response: CommunicationsResponse }) {
-  return (
-    <PageFrame layout="fit">
-      <Stack fill gap="sm">
-        <CommsHeader title="Comms" />
-        <MetricStrip columns={5}>
-          <MetricStripItem label="Retained" value={response.summary.total} />
-          <MetricStripItem label="Inbox" value={response.summary.inbox} />
-          <MetricStripItem label="Traffic" value={response.summary.traffic} />
-          <MetricStripItem label="Inbound" value={response.summary.inbound} />
-          <MetricStripItem label="Outbound" value={response.summary.outbound} />
-        </MetricStrip>
-        <DataTableGroup fill meta={`${response.messages.length} retained`} title="Recent communications">
-          {response.messages.length > 0 ? <MessageTable messages={response.messages} /> : <div><Status tone="muted">No communications retained.</Status></div>}
-        </DataTableGroup>
-      </Stack>
-    </PageFrame>
-  )
-}
-
 function Messages({ response, view }: { response: CommunicationsResponse, view: 'inbox' | 'traffic' }) {
   const [selectedId, setSelectedId] = useState<string>()
   const selected = response.messages.find(message => message.id === selectedId) ?? response.messages[0]
-  const count = view === 'inbox' ? response.summary.inbox : response.summary.traffic
   return (
     <PageFrame className="traffic-page" layout="fit">
       <CommsHeader title={titleFor(view)} />
       <MetricStrip columns={3}>
-        <MetricStripItem label={titleFor(view)} value={count} />
+        <MetricStripItem label="Retained" value={response.summary.total} />
         <MetricStripItem label="Inbound" value={response.summary.inbound} />
         <MetricStripItem label="Outbound" value={response.summary.outbound} />
       </MetricStrip>
       <ThirdsGrid fill gap="lg">
         <div className="span-two">
-          <DataTableGroup fill meta={`${response.messages.length} retained`} title={view === 'inbox' ? 'Direct communications' : 'Local traffic'}>
+          <DataTableGroup fill meta={`${response.messages.length} retained`} title={view === 'inbox' ? 'Direct and group messages' : 'Public and local traffic'}>
             {response.messages.length > 0
               ? <MessageTable messages={response.messages} onSelect={setSelectedId} selectedId={selected?.id} />
               : <div><Status tone="muted">No retained {view} messages.</Status></div>}
@@ -108,7 +86,7 @@ function MessageTable({ messages, onSelect, selectedId }: {
 }) {
   return (
     <DataTable className="traffic-table" density="compact" label="Retained communications" minimum="wide" narrow="priority" scheme="surface" stickyHeader>
-      <thead><tr><th>Correspondent</th><th>Message</th><th>Received</th></tr></thead>
+      <thead><tr><th>Correspondent</th><th>Message</th><th>Recorded</th></tr></thead>
       <tbody>{messages.map(message => (
         <tr
           aria-selected={message.id === selectedId || undefined}
@@ -122,7 +100,7 @@ function MessageTable({ messages, onSelect, selectedId }: {
         >
           <th scope="row"><strong>{correspondent(message)}</strong><small>{message.channel} · {message.direction}</small></th>
           <td title={message.message}>{message.message}</td>
-          <td><time dateTime={message.timestamp}>{shortDateTime(message.timestamp)}</time></td>
+          <td><PhoenixDateTime value={message.timestamp} /></td>
         </tr>
       ))}</tbody>
     </DataTable>
@@ -132,7 +110,7 @@ function MessageTable({ messages, onSelect, selectedId }: {
 function MessageDetail({ message }: { message: CommunicationMessage }) {
   return (
     <article className="traffic-detail">
-      <header><small>{message.channel} · {message.direction}</small><h2>{correspondent(message)}</h2><time dateTime={message.timestamp}>{longDateTime(message.timestamp)}</time></header>
+      <header><small>{message.channel} · {message.direction}</small><h2>{correspondent(message)}</h2><PhoenixDateTime value={message.timestamp} /></header>
       <p>{message.message}</p>
       <DescriptionList columns="one" density="compact">
         <DescriptionItem label="Source" value={message.sourceEvent} />
@@ -146,16 +124,18 @@ function MessageDetail({ message }: { message: CommunicationMessage }) {
   )
 }
 
-function Contacts({ response }: { response: CommunicationsResponse }) {
+function Correspondents({ response }: { response: CommunicationsResponse }) {
   const [selectedId, setSelectedId] = useState<string>()
   const selected = response.contacts.find(contact => contact.id === selectedId) ?? response.contacts[0]
+  const messageCount = response.contacts.reduce((total, contact) => total + contact.inboundCount + contact.outboundCount, 0)
+  const channelCount = new Set(response.contacts.flatMap(contact => contact.channels)).size
   return (
     <PageFrame className="traffic-page" layout="fit">
-      <CommsHeader status="Last-seen evidence only" title="Contacts" />
+      <CommsHeader status="Message history, not online presence" title="Correspondents" />
       <MetricStrip columns={3}>
-        <MetricStripItem label="Observed commanders" value={response.contacts.length} />
-        <MetricStripItem label="Inbound" value={response.summary.inbound} />
-        <MetricStripItem label="Outbound" value={response.summary.outbound} />
+        <MetricStripItem label="Correspondents" value={response.contacts.length} />
+        <MetricStripItem label="Messages" value={messageCount} />
+        <MetricStripItem label="Channels" value={channelCount} />
       </MetricStrip>
       <ThirdsGrid fill gap="lg">
         <div className="span-two">
@@ -165,8 +145,8 @@ function Contacts({ response }: { response: CommunicationsResponse }) {
               : <div><Status tone="muted">No commander correspondents observed yet.</Status></div>}
           </DataTableGroup>
         </div>
-        <DataTableGroup contentGap="sm" title="Contact details">
-          {selected ? <ContactDetail contact={selected} /> : <Status tone="muted">Select an observed contact to inspect its evidence.</Status>}
+        <DataTableGroup contentGap="sm" title="Correspondent details">
+          {selected ? <CorrespondentDetail contact={selected} /> : <Status tone="muted">Select an observed correspondent to inspect its evidence.</Status>}
         </DataTableGroup>
       </ThirdsGrid>
     </PageFrame>
@@ -175,32 +155,40 @@ function Contacts({ response }: { response: CommunicationsResponse }) {
 
 function ContactTable({ contacts, onSelect, selectedId }: { contacts: CommunicationContact[], onSelect(id: string): void, selectedId?: string }) {
   return (
-    <DataTable density="compact" label="Observed contacts" minimum="wide" narrow="priority" scheme="surface" stickyHeader>
-      <thead><tr><th>Commander</th><th>Channels</th><th>Last observed</th></tr></thead>
+    <DataTable className="traffic-table" density="compact" label="Observed correspondents" minimum="wide" narrow="priority" scheme="surface" stickyHeader>
+      <thead><tr><th>Correspondent</th><th>Channels</th><th>Last observed</th></tr></thead>
       <tbody>{contacts.map(contact => (
-        <tr className={contact.id === selectedId ? 'active' : undefined} key={contact.id} onClick={() => onSelect(contact.id)} tabIndex={0}>
+        <tr
+          aria-selected={contact.id === selectedId || undefined}
+          className={contact.id === selectedId ? 'active' : undefined}
+          key={contact.id}
+          onClick={() => onSelect(contact.id)}
+          onKeyDown={event => {
+            if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(contact.id) }
+          }}
+          tabIndex={0}
+        >
           <th scope="row"><strong>{contact.name}</strong><small>{contact.inboundCount + contact.outboundCount} retained messages</small></th>
           <td>{contact.channels.join(', ')}</td>
-          <td><time dateTime={contact.lastSeenAt}>{shortDateTime(contact.lastSeenAt)}</time></td>
+          <td><PhoenixDateTime value={contact.lastSeenAt} /></td>
         </tr>
       ))}</tbody>
     </DataTable>
   )
 }
 
-function ContactDetail({ contact }: { contact: CommunicationContact }) {
+function CorrespondentDetail({ contact }: { contact: CommunicationContact }) {
   return (
-    <Stack gap="lg">
-      <Metric label="Observed contact" value={contact.name} />
+    <article className="traffic-detail">
+      <header><small>Observed correspondent</small><h2>{contact.name}</h2><PhoenixDateTime value={contact.lastSeenAt} /></header>
       <p>{contact.lastMessage ?? 'No retained message text.'}</p>
       <DescriptionList columns="one" density="compact">
         <DescriptionItem label="Channels" value={contact.channels.join(', ')} />
         <DescriptionItem label="Inbound" value={contact.inboundCount} />
         <DescriptionItem label="Outbound" value={contact.outboundCount} />
-        <DescriptionItem label="Last observed" value={longDateTime(contact.lastSeenAt)} />
         <DescriptionItem label="Presence" value="Unknown" />
       </DescriptionList>
-    </Stack>
+    </article>
   )
 }
 
@@ -210,14 +198,14 @@ function Galnet({ news }: { news: NonNullable<CommsControllerSnapshot['galnet']>
   return (
     <PageFrame layout="fit">
       <div className="galnet-page">
-        <CommsHeader status={`${news.cache} feed · received ${longDateTime(news.fetchedAt)}`} title="GalNet" />
+        <CommsHeader status={<>{news.cache} feed · <UpdatedDateTime value={news.fetchedAt} /></>} title="GalNet" />
         <div className="galnet-layout">
           <DataTableGroup className="galnet-index" meta={`${news.articles.length} articles`} title="Latest news">
             <div className="galnet-index-scroll" tabIndex={0}>
               <ItemList className="surface" density="compact" aria-label="GalNet articles">
                 {news.articles.map(article => (
                   <ItemListItem
-                    eyebrow={<time className="text-information" dateTime={article.publishedAt}>{shortDate(article.publishedAt)}</time>}
+                    eyebrow={<PhoenixDateTime precision="date" value={article.publishedAt} />}
                     key={article.id}
                     onClick={() => setSelectedId(article.id)}
                     onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedId(article.id) } }}
@@ -229,7 +217,7 @@ function Galnet({ news }: { news: NonNullable<CommsControllerSnapshot['galnet']>
               </ItemList>
             </div>
           </DataTableGroup>
-          <DataTableGroup className="galnet-reader-group" meta={selected ? shortDate(selected.publishedAt) : undefined} title="GalNet article">
+          <DataTableGroup className="galnet-reader-group" meta={selected ? <PhoenixDateTime precision="date" value={selected.publishedAt} /> : undefined} title="GalNet article">
             {selected ? <GalnetArticleDetail article={selected} /> : <Status tone="muted">Frontier returned no GalNet articles.</Status>}
           </DataTableGroup>
         </div>
@@ -250,21 +238,23 @@ function GalnetArticleDetail({ article }: { article: GalnetArticle }) {
 function Radio({ actions, onExecuteAction }: { actions?: CommsControllerSnapshot['actions'], onExecuteAction(actionId: string): Promise<GameActionResult> }) {
   return (
     <PageFrame className="galnet-radio-page" layout="fit">
-      <Widget className="galnet-radio-display" title="GalNet Radio" />
+      <Widget className="galnet-radio-display" heading="GalNet Radio" />
       <GalnetRadioControls actionCatalog={actions} className="galnet-radio-controls" onExecute={onExecuteAction} />
     </PageFrame>
   )
 }
 
-function CommsHeader({ status, title }: { status?: string, title: string }) {
-  const items = title === 'Comms'
-    ? [{ label: 'Comms' }]
-    : [{ label: 'Comms', href: '#/comms/overview' }, { label: title }]
+function CommsHeader({ status, title }: { status?: ReactNode, title: string }) {
+  const items = title === 'Inbox'
+    ? [{ label: 'Comms' }, { label: title }]
+    : [{ label: 'Comms', href: '#/comms/inbox' }, { label: title }]
   return <PageHeader variant="cockpit" context={<Breadcrumbs items={items} />} status={status} title={title} />
 }
 
 function correspondent(message: CommunicationMessage): string { return message.sender ?? message.recipient ?? message.senderKind }
-function shortDate(value: string): string { return new Intl.DateTimeFormat(undefined, { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value)) }
-function shortDateTime(value: string): string { return new Intl.DateTimeFormat(undefined, { day: '2-digit', hour: '2-digit', minute: '2-digit', month: 'short' }).format(new Date(value)) }
-function longDateTime(value: string): string { return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) }
-function titleFor(view: CommsView): string { return view === 'galnet' ? 'GalNet' : view === 'radio' ? 'GalNet Radio' : `${view[0]?.toUpperCase()}${view.slice(1)}` }
+function titleFor(view: CommsView): string {
+  if (view === 'galnet') return 'GalNet'
+  if (view === 'radio') return 'GalNet Radio'
+  if (view === 'contacts') return 'Correspondents'
+  return `${view[0]?.toUpperCase()}${view.slice(1)}`
+}

@@ -36,6 +36,7 @@ export interface ExobiologyViewModel {
   completed: number
   systems: ExobiologySystemViewModel[]
   total: number
+  updatedAt: string | null
 }
 
 export function createExobiologyViewModel(ledger: ExplorationLedgerResponse): ExobiologyViewModel {
@@ -59,7 +60,8 @@ export function createExobiologyViewModel(ledger: ExplorationLedgerResponse): Ex
   return {
     completed: systems.reduce((sum, system) => sum + system.completed, 0),
     systems,
-    total: systems.reduce((sum, system) => sum + system.total, 0)
+    total: systems.reduce((sum, system) => sum + system.total, 0),
+    updatedAt: systems[0]?.updatedAt ?? null
   }
 }
 

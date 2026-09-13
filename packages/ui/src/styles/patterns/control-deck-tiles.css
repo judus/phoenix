@@ -95,19 +95,25 @@
       font-size: var(--font-size-sm);
       font-weight: var(--font-weight-normal);
       line-height: var(--line-height-compact);
+      font-family: var(--font-family-display);
+      letter-spacing: var(--font-tracking-display);
       text-transform: uppercase;
     }
 
     .meta {
       grid-row: 2;
       color: var(--command-meta);
-      font-size: var(--font-size-sm);
+      font-size: var(--font-size-xs);
+      font-family: var(--font-family-display);
+      letter-spacing: var(--font-tracking-display);
       text-transform: uppercase;
     }
 
     .note {
       color: var(--color-text-muted);
       font-size: var(--font-size-xxs);
+      font-family: var(--font-family-display);
+      letter-spacing: var(--font-tracking-display);
       text-transform: uppercase;
     }
 
@@ -261,7 +267,7 @@
     .label[data-text-length='medium'] { font-size: clamp(.68rem, 9cqi, var(--font-size-sm)); }
     .label[data-text-length='long'] { font-size: clamp(.6rem, 7.5cqi, var(--font-size-sm)); }
     .label[data-text-length='extra-long'] { font-size: clamp(.5rem, 6cqi, var(--font-size-sm)); }
-    .meta { font-size: clamp(.64rem, 8cqi, var(--font-size-sm)); }
+    .meta { font-size: clamp(.64rem, 8cqi, var(--font-size-xs)); }
   }
   :where(.header > .corner, .meta) { color: var(--command-meta); }
   .header > .corner { font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); }

@@ -40,8 +40,15 @@ test('mission detail titles promote a colon prefix to an eyebrow', () => {
   expect(markup).toContain('<small>Kill Known Pirate</small><strong>Choochy Greer</strong>')
 })
 
+test('mission titles promote known action prefixes without requiring punctuation', () => {
+  expect(splitMissionTitle('Donate 300,000 Cr to the cause')).toEqual({ eyebrow: 'Donate', title: '300,000 Cr to the cause' })
+  expect(splitMissionTitle('Kill Posse of Mals faction Pirates')).toEqual({ eyebrow: 'Kill Posse', title: 'of Mals faction Pirates' })
+  expect(splitMissionTitle('Kill Atata Natural Interstellar ships')).toEqual({ eyebrow: 'Kill', title: 'Atata Natural Interstellar ships' })
+})
+
 test('mission detail titles without a usable colon remain unchanged', () => {
   expect(splitMissionTitle('Deliver emergency power cells')).toEqual({ title: 'Deliver emergency power cells' })
+  expect(splitMissionTitle('Pull the Encrypted Memory Chip from wreckage')).toEqual({ title: 'Pull the Encrypted Memory Chip from wreckage' })
   expect(splitMissionTitle('Mission:')).toEqual({ title: 'Mission:' })
 })
 
@@ -50,7 +57,13 @@ test('Missions composes existing list, status, counter, and detail elements', ()
   const markup = renderToStaticMarkup(<ActivitiesPage controller={{ missions: response, status: 'ready' }} view="missions" />)
 
   expect(markup).toContain('1 retained')
-  expect(markup).toContain('Rescue Wing · —')
+  expect(markup).toContain('<small class="page-status">Updated ')
+  expect(markup).toContain('<span class="sort-heading">Faction</span>')
+  expect(markup).toContain('<span class="sort-heading">Reward</span>')
+  expect(markup).toContain('<span class="sort-heading">Expiry</span>')
+  expect(markup).not.toContain('<span class="sort-heading">Status</span>')
+  expect(markup).toContain('Status: <span class="status status-information"')
+  expect(markup).toContain('Rescue Wing · <span class="currency">—</span>')
   expect(markup).toContain('Expiry:')
   expect(markup).not.toContain('Mission 42')
   expect(markup).toContain('#/galaxy/system?name=Sol')
@@ -59,7 +72,7 @@ test('Missions composes existing list, status, counter, and detail elements', ()
   expect(markup).toContain('Copy Galileo')
   expect(markup).toContain('Incomplete acceptance details')
   expect(markup).toContain('This record is intentionally incomplete')
-  expect(markup).toContain('startup-snapshot')
+  expect(markup).not.toContain('<dt>Evidence</dt>')
   expect(markup).toContain('<dt>Status</dt><dd><span class="status status-information"')
 })
 

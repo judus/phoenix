@@ -36,6 +36,9 @@ export class CatalogueDiagnosticsService implements CatalogueDiagnosticsReader {
   }
 
   public getShips (): ShipCatalogueResponse {
-    return ShipCatalogueResponseSchema.parse({ ships: this.catalogue.listShips() })
+    return ShipCatalogueResponseSchema.parse({
+      updatedAt: this.catalogue.getShipCatalogueUpdatedAt(),
+      ships: this.catalogue.listShips()
+    })
   }
 }

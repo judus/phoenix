@@ -11,6 +11,7 @@ import {
   FleetShipSchema,
   GalaxyBookmarkSchema,
   MissionSchema,
+  SavedGalaxyQuerySchema,
   StoredModuleSchema,
   type ActivityLogEntry,
   type CartographicSystem,
@@ -19,6 +20,7 @@ import {
   type FleetShip,
   type GalaxyBookmark,
   type Mission,
+  type SavedGalaxyQuery,
   type StoredModule
 } from '@phoenix/contracts'
 import type {
@@ -37,11 +39,12 @@ import type { MissionRepository } from '../domain/missions.js'
 import type { CommunicationQueryView, CommunicationRepository } from '../domain/communications.js'
 import type { FleetRepository } from '../domain/fleet.js'
 import { galaxyBookmarkTargetKey, type GalaxyBookmarkRepository } from '../domain/galaxy-bookmarks.js'
+import type { SavedGalaxyQueryRepository } from '../domain/saved-galaxy-queries.js'
 import { edsmBodyDetails } from './edsm-cartography-source.js'
 import { ensurePrivateDirectorySync, restrictPrivateFileSync } from './private-user-state.js'
 import { parseStoredCartographyObservation, upgradeStoredCartographyObservation } from './stored-cartography-observation.js'
 
-export class SqliteDatabase implements Database, CartographyRepository, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository, CommunicationRepository, FleetRepository, GalaxyBookmarkRepository {
+export class SqliteDatabase implements Database, CartographyRepository, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository, CommunicationRepository, FleetRepository, GalaxyBookmarkRepository, SavedGalaxyQueryRepository {
   private readonly connection: DatabaseSync
   private readonly path: string
 
@@ -226,6 +229,7 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     this.migrateCartographicBodyAttribution()
     this.migrateCartographicBodyDetails()
     this.migrateGalaxyBookmarks()
+    this.migrateSavedGalaxyQueries()
   }
 
   public findRecord (systemName: string): CartographyRecord | null {
@@ -469,7 +473,7 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     )
   }
 
-  public summarizeCommunications (): {
+  public summarizeCommunications (view: CommunicationQueryView): {
     inbound: number
     inbox: number
     outbound: number
@@ -478,13 +482,13 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
   } {
     const row = this.connection.prepare(`
       SELECT
-        COUNT(*) AS total,
+        SUM(CASE WHEN ? = 'all' OR view = ? THEN 1 ELSE 0 END) AS total,
         SUM(CASE WHEN view = 'inbox' THEN 1 ELSE 0 END) AS inbox,
         SUM(CASE WHEN view = 'traffic' THEN 1 ELSE 0 END) AS traffic,
-        SUM(CASE WHEN direction = 'inbound' THEN 1 ELSE 0 END) AS inbound,
-        SUM(CASE WHEN direction = 'outbound' THEN 1 ELSE 0 END) AS outbound
+        SUM(CASE WHEN (? = 'all' OR view = ?) AND direction = 'inbound' THEN 1 ELSE 0 END) AS inbound,
+        SUM(CASE WHEN (? = 'all' OR view = ?) AND direction = 'outbound' THEN 1 ELSE 0 END) AS outbound
       FROM communications
-    `).get() as Record<'inbound' | 'inbox' | 'outbound' | 'total' | 'traffic', number | null>
+    `).get(view, view, view, view, view, view) as Record<'inbound' | 'inbox' | 'outbound' | 'total' | 'traffic', number | null>
     return {
       inbound: row.inbound ?? 0,
       inbox: row.inbox ?? 0,
@@ -595,6 +599,35 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
       validated.updatedAt,
       JSON.stringify(validated)
     )
+  }
+
+  public deleteSavedGalaxyQuery (id: string): void {
+    this.connection.prepare('DELETE FROM saved_galaxy_queries WHERE query_id = ?').run(id)
+  }
+
+  public getSavedGalaxyQuery (id: string): SavedGalaxyQuery | null {
+    const row = this.connection.prepare(`
+      SELECT document FROM saved_galaxy_queries WHERE query_id = ?
+    `).get(id) as { document: string } | undefined
+    return row ? SavedGalaxyQuerySchema.parse(JSON.parse(row.document)) : null
+  }
+
+  public listSavedGalaxyQueries (): SavedGalaxyQuery[] {
+    const rows = this.connection.prepare(`
+      SELECT document FROM saved_galaxy_queries ORDER BY updated_at DESC, query_id ASC
+    `).all() as Array<{ document: string }>
+    return rows.map(row => SavedGalaxyQuerySchema.parse(JSON.parse(row.document)))
+  }
+
+  public putSavedGalaxyQuery (query: SavedGalaxyQuery): void {
+    const validated = SavedGalaxyQuerySchema.parse(query)
+    this.connection.prepare(`
+      INSERT INTO saved_galaxy_queries (query_id, updated_at, document)
+      VALUES (?, ?, ?)
+      ON CONFLICT(query_id) DO UPDATE SET
+        updated_at = excluded.updated_at,
+        document = excluded.document
+    `).run(validated.id, validated.updatedAt, JSON.stringify(validated))
   }
 
   public getProviderResponse (namespace: string, key: string): ProviderCacheEntry | null {
@@ -769,6 +802,28 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
         CREATE INDEX galaxy_bookmarks_updated_at
         ON galaxy_bookmarks (updated_at DESC);
         INSERT INTO schema_migrations (version, applied_at) VALUES (16, datetime('now'));
+        COMMIT;
+      `)
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
+    }
+  }
+
+  private migrateSavedGalaxyQueries (): void {
+    const applied = this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = 17').get()
+    if (applied) return
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      this.connection.exec(`
+        CREATE TABLE saved_galaxy_queries (
+          query_id TEXT PRIMARY KEY,
+          updated_at TEXT NOT NULL,
+          document TEXT NOT NULL
+        ) STRICT;
+        CREATE INDEX saved_galaxy_queries_updated_at
+        ON saved_galaxy_queries (updated_at DESC);
+        INSERT INTO schema_migrations (version, applied_at) VALUES (17, datetime('now'));
         COMMIT;
       `)
     } catch (cause) {

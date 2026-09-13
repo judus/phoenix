@@ -4,7 +4,7 @@ import type {
   CartographicStation,
   CartographicSystem
 } from '@phoenix/contracts'
-import { Button } from '@phoenix/ui'
+import { Button, IconButton } from '@phoenix/ui'
 import {
   buildSystemHierarchy,
   type AttachedInstallation,
@@ -98,14 +98,15 @@ export function SystemSchematic ({ actions, commanderName, onBookmarkBody, onSel
         <div className="system-schematic__controls">
           {actions}
           <div className="system-schematic__zoom" aria-label="Schematic zoom controls">
-            <Button
-              aria-label="Zoom out"
+            <IconButton
+              className="system-schematic__zoom-step"
               disabled={zoomPercent === 50}
+              label="Zoom out"
               size="sm"
               type="button"
               variant="outline"
               onClick={() => changeZoom(zoomPercent - 25)}
-            >−</Button>
+            >−</IconButton>
             <Button
               aria-label="Reset zoom to 100%"
               size="sm"
@@ -114,14 +115,15 @@ export function SystemSchematic ({ actions, commanderName, onBookmarkBody, onSel
               variant="quiet"
               onClick={() => changeZoom(100)}
             >{zoomPercent}%</Button>
-            <Button
-              aria-label="Zoom in"
+            <IconButton
+              className="system-schematic__zoom-step"
               disabled={zoomPercent === 200}
+              label="Zoom in"
               size="sm"
               type="button"
               variant="outline"
               onClick={() => changeZoom(zoomPercent + 25)}
-            >+</Button>
+            >+</IconButton>
           </div>
         </div>
 

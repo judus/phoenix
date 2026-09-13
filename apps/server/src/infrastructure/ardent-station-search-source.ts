@@ -2,8 +2,6 @@ import type {
   CommodityMarket,
   CommodityMarketRequest,
   CommodityReport,
-  NearbySystem,
-  NearbySystemRequest,
   NearbyStation,
   NearestStationRequest,
   StationSearchSource,
@@ -71,14 +69,6 @@ export class ArdentStationSearchSource implements StationSearchSource {
     return payload.map(mapCommodityReport).filter(isPresent)
   }
 
-  public async findNearbySystems (request: NearbySystemRequest): Promise<NearbySystem[]> {
-    const payload = await this.get(
-      `system/name/${encodeURIComponent(request.systemName)}/nearby`,
-      { maxDistance: request.maxDistance }
-    )
-    return payload.map(mapNearbySystem).filter(isPresent)
-  }
-
   private async get (path: string, query: Record<string, boolean | number | null>): Promise<unknown[]> {
     const url = new URL(path, this.baseUrl)
     for (const [key, value] of Object.entries(query)) {
@@ -112,23 +102,6 @@ function mapNearbyStation (candidate: unknown): NearbyStation | null {
     secondaryEconomy: stringValue(raw.secondaryEconomy),
     stationName,
     stationType: stringValue(raw.stationType),
-    systemName,
-    updatedAt: isoString(raw.updatedAt)
-  }
-}
-
-function mapNearbySystem (candidate: unknown): NearbySystem | null {
-  const raw = record(candidate)
-  const systemName = stringValue(raw?.systemName)
-  const x = finiteNumber(raw?.systemX)
-  const y = finiteNumber(raw?.systemY)
-  const z = finiteNumber(raw?.systemZ)
-  const distanceLy = nonnegativeNumber(raw?.distance)
-  if (!raw || !systemName || x === null || y === null || z === null || distanceLy === null) return null
-  return {
-    distanceLy,
-    position: [x, y, z],
-    systemAddress: integerValue(raw.systemAddress),
     systemName,
     updatedAt: isoString(raw.updatedAt)
   }

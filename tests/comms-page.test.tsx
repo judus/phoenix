@@ -8,24 +8,25 @@ const execute = async () => ({ actionId: 'test', message: 'accepted', operation:
 
 test('Comms exposes its typed section navigation', () => {
   expect(commsNavigationItems.map(item => [item.label, item.href])).toEqual([
-    ['Overview', '#/comms/overview'], ['Inbox', '#/comms/inbox'], ['Traffic', '#/comms/traffic'],
-    ['Contacts', '#/comms/contacts'], ['GalNet', '#/comms/galnet'], ['Radio', '#/comms/radio']
+    ['Inbox', '#/comms/inbox'], ['Traffic', '#/comms/traffic'],
+    ['Correspondents', '#/comms/contacts'], ['GalNet', '#/comms/galnet'], ['Radio', '#/comms/radio']
   ])
 })
 
 test('Traffic renders retained provenance and selected message detail', () => {
   const markup = renderToStaticMarkup(<CommsPage controller={{ communications: communications(), status: 'ready' }} onExecuteAction={execute} view="traffic" />)
-  expect(markup).toContain('Local traffic')
+  expect(markup).toContain('Public and local traffic')
   expect(markup).toContain('Locke Terminal')
   expect(markup).toContain('Docking request granted')
   expect(markup).toContain('ReceiveText')
   expect(markup).toContain('Raw Frontier message')
 })
 
-test('Contacts explicitly describe observation rather than presence', () => {
+test('Correspondents explicitly describe observation rather than presence', () => {
   const markup = renderToStaticMarkup(<CommsPage controller={{ communications: communications(), status: 'ready' }} onExecuteAction={execute} view="contacts" />)
-  expect(markup).toContain('Observed commanders')
-  expect(markup).toContain('Last-seen evidence only')
+  expect(markup).toContain('Correspondents')
+  expect(markup).toContain('Message history, not online presence')
+  expect(markup).toContain('Observed correspondent')
   expect(markup).toContain('<dt>Presence</dt><dd>Unknown</dd>')
 })
 

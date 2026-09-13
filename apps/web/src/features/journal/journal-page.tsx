@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ActivityLogEntry } from '@phoenix/contracts'
-import { Breadcrumbs, Button, DataTable, DataTableGroup, Field, PageFrame, PageHeader, Select, Status, TextInput } from '@phoenix/ui'
+import { Breadcrumbs, Button, ControlContext, DataTable, DataTableGroup, Field, PageFrame, PageHeader, Select, Status, TextInput } from '@phoenix/ui'
+import { PhoenixDateTime } from '../../components/phoenix-date-time.js'
 import type { JournalControllerSnapshot } from './use-journal-controller.js'
 
 const sources: Array<{ label: string, value: ActivityLogEntry['source'] }> = [
@@ -49,14 +50,14 @@ export function JournalPage({ controller }: { controller: JournalControllerSnaps
       : controller.status === 'loading'
         ? <Status tone="muted">Loading journal…</Status>
         : <>
-            <div className="journal-toolbar">
+            <ControlContext className="journal-toolbar" density="compact">
               <Field htmlFor="journal-search" label="Search payload"><TextInput id="journal-search" placeholder="System, station, body, commodity…" value={query} onChange={event => setQuery(event.target.value)} /></Field>
               <Field htmlFor="journal-event" label="Event type"><Select id="journal-event" value={eventType} onChange={event => setEventType(event.target.value)}><option value="">All events</option>{eventTypes.map(type => <option key={type} value={type}>{humanize(type)}</option>)}</Select></Field>
               <Field htmlFor="journal-source" label="Source"><Select id="journal-source" value={source} onChange={event => setSource(event.target.value)}><option value="">All sources</option>{sources.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</Select></Field>
               <Field htmlFor="journal-importance" label="Importance"><Select id="journal-importance" value={importance} onChange={event => setImportance(event.target.value)}><option value="">All levels</option>{importanceLevels.map(level => <option key={level} value={level}>{humanize(level)}</option>)}</Select></Field>
               <label className="journal-actionable"><input type="checkbox" checked={actionableOnly} onChange={event => setActionableOnly(event.target.checked)} /><span>Actionable only</span></label>
               <Button aria-pressed={following} variant={following ? 'primary' : 'outline'} onClick={() => setFollowing(current => { followingRef.current = !current; return !current })}>{following ? 'Following live' : 'Resume follow'}</Button>
-            </div>
+            </ControlContext>
             <div className="journal-workspace">
               <DataTableGroup className="journal-panel" fill meta={`${visibleEntries.length} retained`} title="Event ledger">
                 {visibleEntries.length === 0
@@ -81,14 +82,14 @@ export function JournalPage({ controller }: { controller: JournalControllerSnaps
                       >
                         <td><strong>{humanize(entry.event)}</strong><small>{summarize(entry)}</small></td>
                         <td>{entry.source}{entry.actionable ? <small>Actionable</small> : null}</td>
-                        <td><time dateTime={entry.timestamp}>{formatTime(entry.timestamp)}</time></td>
+                        <td><PhoenixDateTime precision="time-seconds" value={entry.timestamp} /></td>
                       </tr>)}</tbody>
                     </DataTable>}
               </DataTableGroup>
               <DataTableGroup className="journal-panel" contentGap="sm" fill title="Event payload">
                 <section className="journal-inspector" aria-label="Selected journal event">
                   {selected
-                    ? <><header><div><small>{selected.source} · {selected.importance}</small><h2>{humanize(selected.event)}</h2></div><time dateTime={selected.timestamp}>{new Date(selected.timestamp).toLocaleString()}</time></header><pre>{JSON.stringify(selected.data, null, 2)}</pre></>
+                    ? <><header><div><small>{selected.source} · {selected.importance}</small><h2>{humanize(selected.event)}</h2></div><PhoenixDateTime value={selected.timestamp} /></header><pre>{JSON.stringify(selected.data, null, 2)}</pre></>
                     : <Status tone="muted">Select an event to inspect its payload.</Status>}
                 </section>
               </DataTableGroup>
@@ -99,10 +100,6 @@ export function JournalPage({ controller }: { controller: JournalControllerSnaps
 
 function humanize(value: string): string {
   return value.replace(/([a-z0-9])([A-Z])/gu, '$1 $2')
-}
-
-function formatTime(timestamp: string): string {
-  return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
 function summarize(entry: ActivityLogEntry): string {

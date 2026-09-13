@@ -26,6 +26,8 @@
     color: var(--color-text);
     background: var(--color-surface);
     font-size: var(--font-size-xs);
+    font-family: var(--font-family-display);
+    letter-spacing: var(--font-tracking-display);
     text-transform: uppercase;
 
     input { accent-color: var(--color-action); }
@@ -62,7 +64,12 @@
     .source-column { inline-size: 9rem; }
     .time-column { inline-size: 8rem; }
 
-    td:nth-child(2) { color: var(--color-text-muted); text-transform: uppercase; }
+    td:nth-child(2) {
+      color: var(--color-text-muted);
+      font-family: var(--font-family-display);
+      letter-spacing: var(--font-tracking-display);
+      text-transform: uppercase;
+    }
     time { color: var(--color-text-muted); font-size: var(--font-size-xs); white-space: nowrap; }
 
     tr[data-importance='notable'] td:nth-child(2),
@@ -84,8 +91,21 @@
       border-block-end: 1px solid var(--color-border);
 
       small,
-      time { color: var(--color-action); font-size: var(--font-size-xs); text-transform: uppercase; }
-      h2 { margin: 0; font-weight: var(--font-weight-normal); text-transform: uppercase; }
+      time {
+        color: var(--color-action);
+        font-family: var(--font-family-display);
+        letter-spacing: var(--font-tracking-display);
+        font-size: var(--font-size-xs);
+        text-transform: uppercase;
+      }
+
+      h2 {
+        margin: 0;
+        font-family: var(--font-family-display);
+        letter-spacing: var(--font-tracking-display);
+        font-weight: var(--font-weight-normal);
+        text-transform: uppercase;
+      }
     }
 
     pre {

@@ -109,7 +109,7 @@ export function HelpPage() {
           </ManualSection>
 
           <ManualSection id="control-deck" title="Control Deck and application focus">
-            <Status marker={false} tone="warning" wrap>PHOENIX cannot know which application currently has keyboard focus. A Control Deck button intended for Elite can affect another focused application, including triggering destructive shortcuts.</Status>
+            <Status tone="warning" wrap>PHOENIX cannot know which application currently has keyboard focus. A Control Deck button intended for Elite can affect another focused application, including triggering destructive shortcuts.</Status>
             <h3>Bindings define availability</h3>
             <p>PHOENIX reads the active Elite Dangerous keyboard bindings. A control is unavailable when no compatible keyboard binding can be resolved.</p>
             <h3>Keep Elite focused</h3>

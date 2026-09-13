@@ -71,8 +71,9 @@ export function DashboardPage({
         lastRow={(
           <>
             <Widget
+              aria-label="Recent activity"
               className="span-two"
-              title="Recent activity"
+              eyebrow="Recent activity"
               link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'journal', view: 'journal' }}>Open journal</RouteLink>}
             >
               {model.activity.length === 0
@@ -91,7 +92,7 @@ export function DashboardPage({
                   )}
             </Widget>
 
-            <Widget title="Attention">
+            <Widget aria-label="Attention" eyebrow="Attention">
               {attention.length === 0
                 ? <Status tone="muted">No immediate telemetry warnings.</Status>
                 : (
@@ -107,11 +108,12 @@ export function DashboardPage({
 
         <Widget
           className="span-two"
-          title="Situation"
+          detail={model.situation.place}
+          eyebrow="Situation"
+          heading={model.situation.system.toUpperCase()}
           link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'information', section: 'galaxy', view: 'system' }}>Open galaxy</RouteLink>}
         >
           <Stack gap="sm">
-            <Metric value={model.situation.system.toUpperCase()} detail={model.situation.place} />
             <DescriptionList columns="two" density="compact">
               <DescriptionItem label="Security" value={model.situation.security} />
               <DescriptionItem label="Economy" value={model.situation.economy} />
@@ -122,7 +124,8 @@ export function DashboardPage({
         </Widget>
 
         <Widget
-          title="Copilot"
+          aria-label="Copilot"
+          eyebrow="Copilot"
           link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'copilot', view: 'chat' }}>Open channel</RouteLink>}
         >
           <Stack fill justify="center">
@@ -146,11 +149,12 @@ export function DashboardPage({
         </Widget>
 
         <Widget
-          title="Current ship"
+          detail={model.ship.identifier}
+          eyebrow="Current ship"
+          heading={model.ship.name.toUpperCase()}
           link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'controls', category: 'ship' }}>Ship controls</RouteLink>}
         >
           <Stack gap="sm">
-            <Metric value={model.ship.name.toUpperCase()} detail={model.ship.identifier} />
             <EqualGrid columns={3} gap="xs">
               <Metric density="compact" label="Hull" value={model.ship.hull} />
               <Metric density="compact" label="Cargo" value={model.ship.cargo} />
@@ -161,11 +165,12 @@ export function DashboardPage({
 
         <Widget
           className="dashboard-route"
-          title="Route"
+          detail={model.route.detail}
+          eyebrow="Route"
+          heading={model.route.destination.toUpperCase()}
           link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'information', section: 'galaxy', view: 'route' }}>Open route</RouteLink>}
         >
           <Stack gap="sm">
-            <Metric title={model.route.destination} value={model.route.destination.toUpperCase()} detail={model.route.detail} />
             <DescriptionList columns="one" density="compact">
               <DescriptionItem label="Current" title={model.route.current} value={model.route.current} />
               <DescriptionItem label="Destination" title={model.route.destination} value={model.route.destination} />
@@ -174,7 +179,7 @@ export function DashboardPage({
         </Widget>
 
         <Widget
-          title="GalNet radio"
+          eyebrow="GalNet radio"
           link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'information', section: 'comms', view: 'radio' }}>Open remote</RouteLink>}
         >
           <DashboardRadioControls actionCatalog={actions} onExecute={onExecuteAction} />

@@ -28,11 +28,10 @@ import type {
   EngineeringMaterial,
   EngineeringMaterialsResponse,
   ExplorationLedgerResponse,
-  GalaxyFilteredSystemsResponse,
+  GalaxySystemSearchResponse,
   GalaxyCommodityMarketsResponse,
   GalaxyExplorationTargetsResponse,
   GalaxyFactionPresencesResponse,
-  GalaxyNearbySystemsResponse,
   GalaxyNearestStationsResponse,
   GalaxyOutfittingResponse,
   GalaxyShipyardsResponse,
@@ -59,6 +58,9 @@ import type {
   PhoenixModules,
   PhoenixControlDeckConfiguration,
   RuntimeState,
+  SavedGalaxyQueriesResponse,
+  SavedGalaxyQuery,
+  SavedGalaxyQueryWriteRequest,
   ShipCatalogueResponse
 } from '@phoenix/contracts'
 import type { ControlDeckCommandCatalogue } from 'control-deck/core'
@@ -71,7 +73,7 @@ export type CopilotStreamEvent =
   | { type: 'tool', callId: string, name?: string, status: string }
   | { type: 'completed', conversationId: string, text: string }
 
-export interface FilteredSystemsQuery {
+export interface GalaxySystemSearch {
   allegiance?: string
   economy?: string
   government?: string
@@ -83,7 +85,6 @@ export interface FilteredSystemsQuery {
   system: string
 }
 
-export interface GalaxyNearbySystemSearch { limit?: number, maxDistance?: number, systemName: string }
 export interface GalaxyNearestStationSearch { minimumPadSize?: PadSize, service: string, systemName: string }
 export interface GalaxyShipyardSearch { hullName: string, limit?: number, systemName: string }
 export interface GalaxyOutfittingSearch { limit?: number, maxDaysAgo?: number, maxDistance?: number, minimumPadSize?: PadSize, module: string, systemName: string }
@@ -124,11 +125,10 @@ export interface PhoenixApi {
   getFleet(signal?: AbortSignal): Promise<FleetResponse>
   getGalaxyBookmarks(signal?: AbortSignal): Promise<GalaxyBookmarksResponse>
   getGalnetNews(limit?: number, signal?: AbortSignal): Promise<GalnetNewsResponse>
-  getFilteredSystems(input: FilteredSystemsQuery, signal?: AbortSignal): Promise<GalaxyFilteredSystemsResponse>
+  findGalaxySystems(input: GalaxySystemSearch, signal?: AbortSignal): Promise<GalaxySystemSearchResponse>
   findGalaxyCommodityMarkets(input: GalaxyCommodityMarketSearch, signal?: AbortSignal): Promise<GalaxyCommodityMarketsResponse>
   findGalaxyExplorationTargets(input: GalaxyExplorationTargetSearch, signal?: AbortSignal): Promise<GalaxyExplorationTargetsResponse>
   findGalaxyFactionPresences(input: GalaxyFactionPresenceSearch, signal?: AbortSignal): Promise<GalaxyFactionPresencesResponse>
-  findGalaxyNearbySystems(input: GalaxyNearbySystemSearch, signal?: AbortSignal): Promise<GalaxyNearbySystemsResponse>
   findGalaxyNearestStations(input: GalaxyNearestStationSearch, signal?: AbortSignal): Promise<GalaxyNearestStationsResponse>
   findGalaxyOutfitting(input: GalaxyOutfittingSearch, signal?: AbortSignal): Promise<GalaxyOutfittingResponse>
   findGalaxyShipyards(input: GalaxyShipyardSearch, signal?: AbortSignal): Promise<GalaxyShipyardsResponse>
@@ -145,6 +145,7 @@ export interface PhoenixApi {
   getPairingInfo(signal?: AbortSignal): Promise<PairingInfo>
   getPairingStatus(signal?: AbortSignal): Promise<PairingStatus>
   getRuntimeState(signal?: AbortSignal): Promise<RuntimeState>
+  getSavedGalaxyQueries(signal?: AbortSignal): Promise<SavedGalaxyQueriesResponse>
   getShipCatalogue(signal?: AbortSignal): Promise<ShipCatalogueResponse>
   getSystemCartography(systemName?: string, signal?: AbortSignal): Promise<CartographyLookupResponse>
   persistCopilotRealtimeTurn(input: CopilotRealtimeTurnRequest, signal?: AbortSignal): Promise<void>
@@ -166,6 +167,7 @@ export interface PhoenixApi {
   saveModuleSettings(settings: PhoenixModules, signal?: AbortSignal): Promise<PhoenixModules>
   saveInstallationSettings(settings: InstallationSettingsUpdate, signal?: AbortSignal): Promise<InstallationSettings>
   saveOpenAiApiKey(apiKey: string, signal?: AbortSignal): Promise<OpenAiConfigurationStatus>
+  saveGalaxyQuery(input: SavedGalaxyQueryWriteRequest, id?: string, signal?: AbortSignal): Promise<SavedGalaxyQuery>
   removeOpenAiApiKey(signal?: AbortSignal): Promise<OpenAiConfigurationStatus>
   selectCopilotProfile(profileId: string, signal?: AbortSignal): Promise<CopilotProfilesResponse>
   startMacroRecording(clientId: string, signal?: AbortSignal): Promise<MacroRecording>
@@ -174,5 +176,6 @@ export interface PhoenixApi {
   updateCopilotProfile(profileId: string, input: CopilotProfileWriteRequest, signal?: AbortSignal): Promise<CopilotProfileDocument>
   updateCopilotVoiceHost(input: CopilotVoiceHostHeartbeat, signal?: AbortSignal): Promise<CopilotVoiceHostSnapshot>
   deleteGalaxyBookmark(id: string, signal?: AbortSignal): Promise<void>
+  deleteGalaxyQuery(id: string, signal?: AbortSignal): Promise<void>
   eventStreamUrl(): string
 }

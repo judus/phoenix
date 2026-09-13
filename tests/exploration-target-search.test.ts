@@ -6,6 +6,7 @@ import type { ExplorationTargetSearchSource } from '../apps/server/src/domain/ex
 import type { ProviderCacheEntry, ProviderResponseCache } from '../apps/server/src/domain/station-market.js'
 import { InMemoryRuntimeStateStore } from '../apps/server/src/infrastructure/in-memory-runtime-state-store.js'
 import { SpanshExplorationTargetSource } from '../apps/server/src/infrastructure/spansh-exploration-target-source.js'
+import { SpanshSearchClient } from '../apps/server/src/infrastructure/spansh-search-client.js'
 
 describe('exploration target search', () => {
   it('sends supported physical, signal, and report-date filters and maps returned evidence', async () => {
@@ -15,7 +16,7 @@ describe('exploration target search', () => {
       signals_updated_at: '2026-08-15T12:00:00Z', subtype: 'Rocky body', surface_temperature: 210,
       system_id64: 42, system_name: 'Test', type: 'Planet', updated_at: '2026-08-15T11:00:00Z', volcanism_type: 'Minor Silicate Vapour Geysers'
     }] }))
-    const source = new SpanshExplorationTargetSource({ fetch: fetcher as typeof fetch })
+    const source = new SpanshExplorationTargetSource(new SpanshSearchClient({ fetch: fetcher as typeof fetch }))
 
     const result = await source.findTargets({
       atmospheres: ['Thin Carbon dioxide', 'Thin Ammonia'], bodySubtypes: ['Rocky body', 'High metal content world'], landable: 'yes', lastReportedBefore: '2021-05-19', maxDistanceLy: 50,
@@ -50,6 +51,26 @@ describe('exploration target search', () => {
     expect(result.targets).toHaveLength(1)
     expect(result.targets[0]).toMatchObject({ bodyName: 'Test 2' })
     expect(result.caveat).toContain('no result proves')
+  })
+
+  it('returns up to 100 interactive results while keeping Copilot output bounded', async () => {
+    const source: ExplorationTargetSearchSource = {
+      findTargets: vi.fn(async () => Array.from({ length: 100 }, (_, index) => target({
+        bodyId: index + 1,
+        bodyName: `Test ${index + 1}`
+      })))
+    }
+    const service = new DefaultExplorationTargetQuery(source, cartography(), new InMemoryRuntimeStateStore(), cache())
+
+    const result = await service.searchExplorationTargets({
+      atmospheres: [], bodySubtypes: [], landable: 'any', lastReportedBefore: null, maxDistanceLy: 100, maxGravityG: null, maxTemperatureK: null,
+      minBiologicalSignals: 0, minGeologicalSignals: 0, minGravityG: null, minTemperatureK: null, systemName: 'Sol', volcanismTypes: []
+    })
+
+    expect(result.targets).toHaveLength(100)
+
+    const copilotResult = await service.searchTargets({ limit: 100, systemName: 'Sol' })
+    expect((copilotResult.structuredContent as { targets: unknown[] }).targets).toHaveLength(20)
   })
 
   it('uses current journal coordinates without requiring an EDSM record', async () => {

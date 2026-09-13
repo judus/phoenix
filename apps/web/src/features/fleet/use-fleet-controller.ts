@@ -10,6 +10,7 @@ export type FleetView = 'overview' | 'current-overview' | 'current-loadout' | 'c
 export interface FleetControllerSnapshot {
   actions?: GameActionCatalogResponse
   catalogue?: readonly ShipDefinition[]
+  catalogueUpdatedAt?: string
   error?: string
   fleet?: FleetResponse
   status: 'idle' | 'loading' | 'ready' | 'error'
@@ -54,7 +55,11 @@ export function useFleetController(api: PhoenixApi, events: PhoenixEventHub, vie
         return
       }
       void api.getShipCatalogue(signal).then(catalogue => {
-        if (latest.isCurrent(signal)) publish({ catalogue: catalogue.ships, status: 'ready' })
+        if (latest.isCurrent(signal)) publish({
+          catalogue: catalogue.ships,
+          catalogueUpdatedAt: catalogue.updatedAt,
+          status: 'ready'
+        })
       }).catch(fail)
     }
 

@@ -82,12 +82,11 @@ export class CopilotRealtimeService implements CopilotRealtime {
     request: CopilotRealtimeTokenRequest
   ): Promise<CopilotRealtimeTokenResponse> {
     const profileId = request.profileId ?? this.activeProfileId()
-    const runtimeContext = this.options.runtimeContext.render(this.options.runtimeState.getCurrent())
     const recentConversation = request.conversationId === undefined
       ? ''
       : await this.recentConversation(request.conversationId)
     const instructions = [
-      this.options.prompts.compose({ mode: 'speech', profileId, runtimeContext }),
+      this.options.prompts.compose({ mode: 'speech', profileId }),
       TOOL_INSTRUCTIONS,
       recentConversation
     ].filter(Boolean).join('\n\n')

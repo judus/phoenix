@@ -7,7 +7,6 @@ import type {
   CommodityMarketRequest,
   CommodityReport,
   FactionPresenceSearchSource,
-  NearbySystem,
   NearbyStation,
   NearestStationRequest,
   OutfittingSearchSource,
@@ -27,6 +26,7 @@ import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-databas
 import { SpanshShipyardSearchSource } from '../apps/server/src/infrastructure/spansh-shipyard-search-source.js'
 import { SpanshOutfittingSearchSource } from '../apps/server/src/infrastructure/spansh-outfitting-search-source.js'
 import { SpanshStationLookupSource } from '../apps/server/src/infrastructure/spansh-station-lookup-source.js'
+import { SpanshSearchClient } from '../apps/server/src/infrastructure/spansh-search-client.js'
 import { SpanshSystemSearchSource } from '../apps/server/src/infrastructure/spansh-system-search-source.js'
 import { SpanshFactionPresenceSource } from '../apps/server/src/infrastructure/spansh-faction-presence-source.js'
 
@@ -42,28 +42,22 @@ test('Ardent source maps current station and commodity response contracts', asyn
     if (url.pathname.includes('/commodity/')) {
       return response([{ commodityName: 'gold', stationName: 'Galileo', systemName: 'Sol', marketId: 128016640, buyPrice: 4000, sellPrice: 3900, meanPrice: 50000, stock: 25, demand: 3, distance: 0, distanceToArrival: 495.3, updatedAt: '2026-08-11T02:38:22.982Z' }])
     }
-    if (url.pathname.endsWith('/nearby')) {
-      return response([{ systemName: 'Sol', systemAddress: 10477373803, systemX: 0, systemY: 0, systemZ: 0, distance: 0, updatedAt: '2026-08-11T02:38:22.982Z' }])
-    }
     return response([{ stationName: 'Galileo', systemName: 'Sol', marketId: 128016640, stationType: 'Ocellus', maxLandingPadSize: 3, distance: 0, distanceToArrival: 495.3, updatedAt: '2026-08-11T02:38:22.982Z' }])
   })
   const source = new ArdentStationSearchSource({ fetch: fetcher as typeof fetch })
 
   const stations = await source.findNearestStations({ minimumPadSize: 2, service: 'repair', systemName: 'Sol' })
   const markets = await source.findCommodityMarkets({ commodity: 'Gold', includeFleetCarriers: false, intent: 'buy', maxDaysAgo: 30, maxDistance: 100, minVolume: 1, systemName: 'Sol' })
-  const systems = await source.findNearbySystems({ maxDistance: 25, systemName: 'Sol' })
   const exports = await source.findSystemExports({ includeFleetCarriers: false, maxDaysAgo: 3, minVolume: 1, systemName: 'Sol' })
   const reports = await source.getCommodityReports()
 
   expect(stations[0]).toMatchObject({ stationName: 'Galileo', marketId: 128016640, maxLandingPadSize: 3 })
   expect(markets[0]).toMatchObject({ commodityName: 'gold', buyPrice: 4000, meanPrice: 50000, stock: 25 })
-  expect(systems[0]).toMatchObject({ systemName: 'Sol', distanceLy: 0, position: [0, 0, 0] })
   expect(exports[0]).toMatchObject({ commodityName: 'gold', buyPrice: 4000, stock: 25 })
   expect(reports).toEqual([{ commodityName: 'gold', maxSellPrice: 60000 }])
   expect(fetcher.mock.calls.map(call => new URL(String(call[0])).pathname)).toEqual([
     '/v2/system/name/Sol/nearest/repair',
     '/v2/system/name/Sol/commodity/name/Gold/nearby/exports',
-    '/v2/system/name/Sol/nearby',
     '/v2/system/name/Sol/commodities/exports',
     '/v2/commodities'
   ])
@@ -93,8 +87,7 @@ test('trade opportunity search bounds provider fan-out and ranks feasible profit
     })]),
     findSystemExports: vi.fn(async (_request: Omit<TradeOpportunityRequest, 'availableCredits' | 'cargoCapacity' | 'maxDistance'>) => exports),
     getCommodityReports: vi.fn(async () => reports),
-    findNearestStations: vi.fn(async () => []),
-    findNearbySystems: vi.fn(async () => [])
+    findNearestStations: vi.fn(async () => [])
   }
   const service = stationMarketQuery(search)
   const request: TradeOpportunityRequest = {
@@ -152,7 +145,7 @@ test('Spansh source searches and normalizes stations selling a requested hull', 
       type: 'Orbis Starport'
     }]
   }))
-  const source = new SpanshShipyardSearchSource({ fetch: fetcher as typeof fetch })
+  const source = new SpanshShipyardSearchSource(new SpanshSearchClient({ fetch: fetcher as typeof fetch }))
 
   await expect(source.findShipyards({ hullName: 'Type-11 Prospector', referencePosition: [1, 2, 3] })).resolves.toEqual([{
     distanceLy: 4.2,
@@ -186,7 +179,7 @@ test('Spansh source searches and normalizes stations stocking a requested module
       type: 'Orbis Starport'
     }]
   }))
-  const source = new SpanshOutfittingSearchSource({ fetch: fetcher as typeof fetch })
+  const source = new SpanshOutfittingSearchSource(new SpanshSearchClient({ fetch: fetcher as typeof fetch }))
 
   await expect(source.findOutfitting({
     maxDistanceLy: 100,
@@ -236,7 +229,7 @@ test('Spansh source resolves partial station names and normalizes station metada
       }]
     })
   })
-  const source = new SpanshStationLookupSource({ fetch: fetcher as typeof fetch })
+  const source = new SpanshStationLookupSource(new SpanshSearchClient({ fetch: fetcher as typeof fetch }))
 
   await expect(source.findStations({
     maxDistanceLy: 100,
@@ -271,7 +264,7 @@ test('Spansh source filters systems and reports the actual main-star subtype', a
       secondary_economy: 'Service', security: 'High', updated_at: '2026-08-15 17:20:23+00', x: 3.03125, y: -0.09375, z: 3.15625
     }]
   }))
-  const source = new SpanshSystemSearchSource({ fetch: fetcher as typeof fetch })
+  const source = new SpanshSystemSearchSource(new SpanshSearchClient({ fetch: fetcher as typeof fetch }))
 
   await expect(source.findSystems({
     allegiance: 'Federation', economy: 'High Tech', government: 'Democracy', maxDistanceLy: 100,
@@ -316,7 +309,7 @@ test('Spansh source searches one faction presence and preserves BGS provenance',
       z: 3.15625
     }]
   }))
-  const source = new SpanshFactionPresenceSource({ fetch: fetcher as typeof fetch })
+  const source = new SpanshFactionPresenceSource(new SpanshSearchClient({ fetch: fetcher as typeof fetch }))
 
   await expect(source.findFactionPresences({
     allegiance: 'Federation', controlling: 'yes', factionName: 'Mother Gaia', government: 'Democracy',
@@ -359,8 +352,7 @@ test('station and market query resolves current location, formats trade directio
     findCommodityMarkets: vi.fn(async () => [market()]),
     findSystemExports: vi.fn(async () => [market()]),
     getCommodityReports: vi.fn(async () => [{ commodityName: 'Gold', maxSellPrice: 60_000 }]),
-    findNearestStations: vi.fn(async () => [nearbyStation()]),
-    findNearbySystems: vi.fn(async () => [nearbySystem()])
+    findNearestStations: vi.fn(async () => [nearbyStation()])
   }
   const stock: StationStockSource = {
     getOutfitting: vi.fn(async () => [{ id: 'rack', name: '6E Cargo Rack' }, { id: 'laser', name: '2D Mining Laser' }]),
@@ -388,7 +380,7 @@ test('station and market query resolves current location, formats trade directio
       services: ['Dock', 'Repair']
     }])
   }
-  const systems: SystemSearchSource = { findSystems: vi.fn(async () => [filteredSystem()]) }
+  const systems: SystemSearchSource = { findSystems: vi.fn(async () => [systemSearchResult()]) }
   const factions: FactionPresenceSearchSource = { findFactionPresences: vi.fn(async () => [factionPresence()]) }
   const service = new DefaultStationMarketQuery(search, stock, shipyards, outfittingMarkets, stations, systems, factions, cartography(), runtime, new MemoryProviderCache(), () => new Date('2026-08-11T12:00:00Z'))
 
@@ -400,20 +392,18 @@ test('station and market query resolves current location, formats trade directio
   const nearest = await service.findNearest({ service: 'repair' })
   const galaxyMarkets = await service.searchCommodityMarkets({ commodity: 'Gold', includeFleetCarriers: false, intent: 'sell', maxDaysAgo: 30, maxDistance: 100, minVolume: 1, systemName: 'Sol' })
   const galaxyStations = await service.searchNearestStations({ minimumPadSize: 2, service: 'repair', systemName: 'Sol' }, 20, 'medium')
-  const galaxySystems = await service.searchNearbySystems({ maxDistance: 25, systemName: 'Sol' })
   const galaxyShipyards = await service.searchShipyards('Type-11 Prospector', 'Sol')
   const galaxyOutfitting = await service.searchOutfittingMarkets({ maxDaysAgo: 30, maxDistanceLy: 100, minimumPadSize: 3, query: '6A Power Plant', systemName: 'Sol' })
   const toolOutfitting = await service.findOutfitting({ query: '6A Power Plant', systemName: 'Sol' })
   const galaxyStationLookup = await service.searchStations({ maxDistanceLy: 100, minimumPadSize: 2, name: 'Gal', stationType: 'orbital', systemName: 'Sol' }, 20, 'medium')
   const toolStationLookup = await service.lookup({ minimumPadSize: 'medium', name: 'Gal', stationType: 'orbital' })
-  const galaxyFilteredSystems = await service.searchFilteredSystems({ allegiance: 'Federation', maxDistanceLy: 100, population: 'inhabited', systemName: 'Sol' })
-  const toolFilteredSystems = await service.searchSystems({ allegiance: 'Federation', maxDistance: 100, population: 'inhabited' })
+  const galaxySystemSearch = await service.findSystems({ allegiance: 'Federation', maxDistanceLy: 100, population: 'inhabited', systemName: 'Sol' })
+  const toolSystemSearch = await service.searchSystems({ allegiance: 'Federation', maxDistance: 100, population: 'inhabited' })
   const galaxyFactions = await service.findFactionPresences({ allegiance: 'Federation', controlling: 'yes', factionName: 'Mother Gaia', government: 'Democracy', maxDistanceLy: 100, minInfluencePercent: 25, state: 'Boom', systemName: 'Sol' })
   const toolFactions = await service.searchFactionPresences({ controlling: 'yes', factionName: 'Mother Gaia', minInfluencePercent: 25 })
 
   expect(search.findCommodityMarkets).toHaveBeenCalledTimes(2)
   expect(search.findNearestStations).toHaveBeenCalledTimes(2)
-  expect(search.findNearbySystems).toHaveBeenCalledTimes(1)
   expect(firstTrade.structuredContent).toMatchObject({ cache: 'refreshed', intent: 'buy', originSystem: 'Sol' })
   expect(firstTrade.content[0]).toMatchObject({ text: expect.stringContaining('91.5% below average') })
   expect(details.structuredContent).toMatchObject({ station: { name: 'Galileo' }, systemName: 'Sol' })
@@ -422,18 +412,17 @@ test('station and market query resolves current location, formats trade directio
   expect(nearest.structuredContent).toMatchObject({ service: 'repair', stations: [{ stationName: 'Galileo' }] })
   expect(galaxyMarkets).toMatchObject({ cache: 'refreshed', commodity: 'Gold', intent: 'sell', markets: [{ stationName: 'Galileo' }] })
   expect(galaxyStations).toMatchObject({ cache: 'refreshed', minimumPadSize: 'medium', service: 'repair', stations: [{ stationName: 'Galileo' }] })
-  expect(galaxySystems).toMatchObject({ cache: 'refreshed', maxDistanceLy: 25, systems: [{ systemName: 'Alpha Centauri' }] })
   expect(galaxyShipyards).toMatchObject({ cache: 'refreshed', hullName: 'Type-11 Prospector', shipyards: [{ stationName: 'Test Exchange' }] })
   expect(galaxyOutfitting).toMatchObject({ cache: 'refreshed', moduleClass: 6, moduleName: 'Power Plant', moduleRating: 'A', matches: [{ stationName: 'Test Exchange' }] })
   expect(toolOutfitting.structuredContent).toMatchObject({ moduleClass: 6, moduleName: 'Power Plant', moduleRating: 'A', matches: [{ stationName: 'Test Exchange' }] })
   expect(galaxyStationLookup).toMatchObject({ cache: 'refreshed', name: 'Gal', stationType: 'orbital', matches: [{ stationName: 'Galileo', services: ['Dock', 'Repair'] }] })
   expect(toolStationLookup.structuredContent).toMatchObject({ minimumPadSize: 'medium', name: 'Gal', matches: [{ stationName: 'Galileo' }] })
-  expect(galaxyFilteredSystems).toMatchObject({ cache: 'refreshed', filters: { allegiance: 'Federation', population: 'inhabited' }, systems: [{ systemName: 'Alpha Centauri' }] })
-  expect(toolFilteredSystems.structuredContent).toMatchObject({ originSystem: 'Sol', systems: [{ primaryStarClass: 'G (White-Yellow) Star' }] })
+  expect(galaxySystemSearch).toMatchObject({ cache: 'refreshed', filters: { allegiance: 'Federation', population: 'inhabited' }, systems: [{ systemName: 'Alpha Centauri' }] })
+  expect(toolSystemSearch.structuredContent).toMatchObject({ originSystem: 'Sol', systems: [{ primaryStarClass: 'G (White-Yellow) Star' }] })
   expect(galaxyFactions).toMatchObject({ cache: 'refreshed', filters: { controlling: 'yes', factionName: 'Mother Gaia', minInfluencePercent: 25 }, presences: [{ controlling: true, influencePercent: 42.15 }], provenance: 'Spansh community-reported system data' })
   expect(toolFactions.structuredContent).toMatchObject({ originSystem: 'Sol', presences: [{ factionName: 'Mother Gaia', systemName: 'Alpha Centauri' }] })
   expect(factions.findFactionPresences).toHaveBeenCalledTimes(2)
-  await expect(service.searchFilteredSystems({ maxDistanceLy: 100, maxPopulation: null, minPopulation: 1, population: 'uninhabited', systemName: 'Sol', allegiance: null, economy: null, government: null, security: null }))
+  await expect(service.findSystems({ maxDistanceLy: 100, maxPopulation: null, minPopulation: 1, population: 'uninhabited', systemName: 'Sol', allegiance: null, economy: null, government: null, security: null }))
     .rejects.toThrow('Uninhabited systems cannot have a positive minimum population.')
 })
 
@@ -539,17 +528,7 @@ function nearbyStation (): NearbyStation {
   }
 }
 
-function nearbySystem (): NearbySystem {
-  return {
-    distanceLy: 4.37,
-    position: [3.03125, -0.09375, 3.15625],
-    systemAddress: 1178707802194,
-    systemName: 'Alpha Centauri',
-    updatedAt: '2026-08-11T02:38:22.982Z'
-  }
-}
-
-function filteredSystem () {
+function systemSearchResult () {
   return {
     allegiance: 'Federation', controllingFaction: 'Mother Gaia', distanceLy: 4.37, economy: 'High Tech',
     government: 'Democracy', inhabited: true, permitRequired: false, population: 230000,

@@ -11,7 +11,7 @@ function WidgetAnatomy() {
   return (
     <PageFrame>
       <AutoGrid minimum="md">
-        <Widget title="Widget title" link={<a href="#details">Open details</a>}>
+        <Widget heading="Widget title" link={<a href="#details">Open details</a>}>
           <span className="text-muted">Widget content</span>
         </Widget>
       </AutoGrid>
@@ -23,7 +23,7 @@ function WidgetWithDescriptionList() {
   return (
     <PageFrame>
       <AutoGrid minimum="md">
-        <Widget title="Vessel">
+        <Widget heading="Vessel">
           <DescriptionList columns="one" density="compact">
             <DescriptionItem label="Name" value="Unnamed vessel" />
             <DescriptionItem label="Identifier" value="EL-06L" />
@@ -42,7 +42,7 @@ function WidgetWithMetricBar() {
   return (
     <PageFrame>
       <AutoGrid minimum="md">
-        <Widget title="Integrity">
+        <Widget heading="Integrity">
           <Stack gap="sm">
             <Meter label="Hull" layout="inline" tone="action" value={100} valueLabel="100%" />
             <Meter label="Shields" layout="inline" tone="action" value={100} valueLabel="100%" />

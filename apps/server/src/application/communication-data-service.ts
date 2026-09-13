@@ -10,6 +10,7 @@ import type { EliteJournalEvent } from '@phoenix/elite'
 import type { CommunicationDataReader, CommunicationQueryView, CommunicationRepository } from '../domain/communications.js'
 
 const inboxChannels = new Set(['player', 'friend', 'wing', 'team', 'squadron', 'crew'])
+const namedChannels = new Set([...inboxChannels, 'local', 'starsystem', 'npc', 'system', 'voicechat'])
 
 export class CommunicationDataService implements CommunicationDataReader {
   public constructor (private readonly repository: CommunicationRepository) {}
@@ -24,11 +25,11 @@ export class CommunicationDataService implements CommunicationDataReader {
     const boundedLimit = Math.min(Math.max(limit, 1), 1000)
     const messages = this.repository.listCommunicationMessages(view, boundedLimit)
     const contactEvidence = this.repository.listCommunicationMessages('all', 5000)
-      .filter(message => message.senderKind === 'commander' && message.sender)
+      .filter(message => correspondentName(message) !== null)
     return CommunicationsResponseSchema.parse({
       contacts: contactsFrom(contactEvidence),
       messages,
-      summary: this.repository.summarizeCommunications(),
+      summary: this.repository.summarizeCommunications(view),
       view
     })
   }
@@ -39,10 +40,14 @@ function normalizeMessage (event: EliteJournalEvent): CommunicationMessage | nul
   const rawMessage = text(event.Message)
   const message = text(event.Message_Localised) ?? rawMessage
   if (!message) return null
-  const channel = (text(event.Channel) ?? text(event.To) ?? 'unknown').toLowerCase()
+  const explicitChannel = text(event.Channel)?.toLowerCase()
   const rawSender = direction === 'inbound' ? text(event.From) : null
   const sender = direction === 'inbound' ? text(event.From_Localised) ?? rawSender : null
   const recipient = direction === 'outbound' ? text(event.To_Localised) ?? text(event.To) : null
+  const recipientKey = recipient?.toLowerCase()
+  const channel = explicitChannel ?? (direction === 'outbound' && recipientKey
+    ? namedChannels.has(recipientKey) ? recipientKey : 'player'
+    : 'unknown')
   const view = inboxChannels.has(channel) ? 'inbox' : 'traffic'
   const senderKind = direction === 'outbound'
     ? 'commander'
@@ -73,8 +78,9 @@ function normalizeMessage (event: EliteJournalEvent): CommunicationMessage | nul
 function contactsFrom (messages: CommunicationMessage[]): CommunicationContact[] {
   const contacts = new Map<string, CommunicationContact>()
   for (const message of messages) {
-    if (!message.sender) continue
-    const id = message.sender.toLocaleLowerCase()
+    const name = correspondentName(message)
+    if (!name) continue
+    const id = name.toLocaleLowerCase()
     const existing = contacts.get(id)
     const channels = [...new Set([...(existing?.channels ?? []), message.channel])].sort()
     contacts.set(id, {
@@ -83,11 +89,18 @@ function contactsFrom (messages: CommunicationMessage[]): CommunicationContact[]
       inboundCount: (existing?.inboundCount ?? 0) + Number(message.direction === 'inbound'),
       lastMessage: !existing || message.timestamp > existing.lastSeenAt ? message.message : existing.lastMessage,
       lastSeenAt: !existing || message.timestamp > existing.lastSeenAt ? message.timestamp : existing.lastSeenAt,
-      name: message.sender,
+      name,
       outboundCount: (existing?.outboundCount ?? 0) + Number(message.direction === 'outbound')
     })
   }
   return [...contacts.values()].sort((left, right) => right.lastSeenAt.localeCompare(left.lastSeenAt))
+}
+
+function correspondentName (message: CommunicationMessage): string | null {
+  if (message.direction === 'inbound') {
+    return message.senderKind === 'commander' ? message.sender : null
+  }
+  return message.channel === 'player' ? message.recipient : null
 }
 
 function text (value: unknown): string | null {

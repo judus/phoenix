@@ -6,6 +6,11 @@ body {
   font-synthesis: none;
 }
 
+:where(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-family-display);
+  letter-spacing: var(--font-tracking-display);
+}
+
 .text-xxs { font-size: var(--font-size-xxs); }
 .text-xs { font-size: var(--font-size-xs); }
 .text-sm { font-size: var(--font-size-sm); }
@@ -14,6 +19,14 @@ body {
 .text-information { color: var(--color-information); }
 .text-warning { color: var(--color-warning); }
 .text-danger { color: var(--color-danger); }
+
+.numeric,
+.currency,
+.data-value {
+  font-family: var(--font-family-display);
+  letter-spacing: var(--font-tracking-display);
+  font-variant-numeric: tabular-nums;
+}
 
 .sr-only {
   position: absolute;

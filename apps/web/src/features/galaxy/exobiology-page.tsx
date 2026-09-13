@@ -17,6 +17,7 @@ import {
   type ExobiologySystemViewModel
 } from './exobiology-view-model.js'
 import { SystemSchematicLink } from '../../components/system-location-link.js'
+import { PhoenixDateTime, UpdatedDateTime } from '../../components/phoenix-date-time.js'
 
 export function ExobiologyPage({ controller }: { controller: GalaxyControllerSnapshot }) {
   const [selectedSystemId, setSelectedSystemId] = useState<string>()
@@ -35,12 +36,12 @@ export function ExobiologyPage({ controller }: { controller: GalaxyControllerSna
 
   return (
     <PageFrame layout="fit">
-      <Stack fill gap="sm">
-        <ExobiologyHeader />
+      <Stack className="exobiology-page" fill gap="sm">
+        <ExobiologyHeader updatedAt={model.updatedAt} />
         {model.systems.length === 0
           ? <Status tone="muted">No biological signals or organic samples have been recorded in the local journal.</Status>
           : (
-              <ThirdsGrid fill gap="lg">
+              <ThirdsGrid fill gap="sm">
                 <ExobiologySystems
                   completed={model.completed}
                   onSelect={id => {
@@ -83,11 +84,11 @@ function ExobiologyState({ error }: { error?: string }) {
   )
 }
 
-function ExobiologyHeader() {
+function ExobiologyHeader({ updatedAt }: { updatedAt?: string | null }) {
   return <PageHeader
     variant="cockpit"
     context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Exobiology' }]} />}
-    status="Reconstructed from local journal events · Limited to retained history"
+    status={updatedAt ? <UpdatedDateTime value={updatedAt} /> : undefined}
     title="Exobiology"
   />
 }
@@ -101,11 +102,11 @@ function ExobiologySystems({ completed, onSelect, selectedId, systems, total }: 
 }) {
   return (
     <DataTableGroup fill meta={`${completed}/${total} complete`} title="Systems">
-      <DataTable density="compact" label="Systems with biological records" narrow="priority" scheme="surface" stickyHeader>
+      <DataTable className="exobiology-index-table" density="compact" label="Systems with biological records" narrow="priority" scheme="surface" stickyHeader>
         <thead><tr><th>System</th><th className="numeric">Progress</th></tr></thead>
         <tbody>{systems.map(system => (
           <SelectableRow active={system.id === selectedId} id={system.id} key={system.id} onSelect={onSelect}>
-            <td><SystemSchematicLink label={system.name} systemName={system.name} /><small>{formatDateTime(system.updatedAt)}</small></td>
+            <td className="exobiology-name exobiology-name-end"><SystemSchematicLink label={system.name} systemName={system.name} /><small><PhoenixDateTime value={system.updatedAt} /></small></td>
             <td className="numeric">{system.completed}/{system.total}</td>
           </SelectableRow>
         ))}</tbody>
@@ -121,11 +122,11 @@ function ExobiologyBodies({ bodies, onSelect, selectedId }: {
 }) {
   return (
     <DataTableGroup fill meta={`${bodies.length} recorded`} title="Bodies">
-      <DataTable density="compact" label="Bodies with biological records" narrow="priority" scheme="surface" stickyHeader>
+      <DataTable className="exobiology-index-table" density="compact" label="Bodies with biological records" narrow="priority" scheme="surface" stickyHeader>
         <thead><tr><th>Body</th><th className="numeric">Progress</th></tr></thead>
         <tbody>{bodies.map(body => (
           <SelectableRow active={body.id === selectedId} id={body.id} key={body.id} onSelect={onSelect}>
-            <td><SystemSchematicLink label={body.name} selectedName={body.name} systemName={body.systemName} /><small>{formatDateTime(body.observedAt)}</small></td>
+            <td className="exobiology-name exobiology-name-start"><SystemSchematicLink label={body.name} selectedName={body.name} systemName={body.systemName} /><small><PhoenixDateTime value={body.observedAt} /></small></td>
             <td className="numeric">{body.completed}/{body.total}</td>
           </SelectableRow>
         ))}</tbody>
@@ -141,7 +142,7 @@ function ExobiologySamples({ onSelect, samples, selectedId }: {
 }) {
   return (
     <DataTableGroup fill meta={`${samples.filter(sample => sample.completed).length}/${samples.length} complete`} title="Samples">
-      <DataTable density="compact" label="Organic sample progress" narrow="priority" scheme="surface" stickyHeader>
+      <DataTable className="exobiology-index-table" density="compact" label="Organic sample progress" narrow="priority" scheme="surface" stickyHeader>
         <thead><tr><th>Organism</th><th className="numeric">Scans</th></tr></thead>
         <tbody>{samples.map(sample => (
           <SelectableRow active={sample.id === selectedId} id={sample.id} key={sample.id} onSelect={onSelect}>
@@ -149,7 +150,7 @@ function ExobiologySamples({ onSelect, samples, selectedId }: {
               <strong>{sample.species === 'Unknown' ? sample.genus : sample.species}</strong>
               <small>{sample.variant === 'Unknown' ? sample.genus : `${sample.genus} · ${sample.variant}`}</small>
             </td>
-            <td className="numeric"><Status marker tone={sample.completed ? 'positive' : 'information'}>{sample.progress}/3</Status></td>
+            <td className="numeric">{sample.progress}/3</td>
           </SelectableRow>
         ))}</tbody>
       </DataTable>
@@ -184,8 +185,4 @@ function SelectableRow({ active, children, id, onSelect }: {
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest('a, button') !== null
-}
-
-function formatDateTime(value: string): string {
-  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 }

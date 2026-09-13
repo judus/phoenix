@@ -1,0 +1,43 @@
+  .engineer-table {
+    table-layout: fixed;
+
+    .engineer-column { inline-size: 22%; }
+    .specialisation-column { inline-size: 42%; }
+    .status-column { inline-size: 16%; }
+    .location-column { inline-size: 20%; }
+  }
+
+  .material-table {
+    table-layout: fixed;
+
+    .material-column { inline-size: 36%; }
+    .inventory-column { inline-size: 13%; }
+    .applications-column { inline-size: 43%; }
+    .grade-column { inline-size: 8%; }
+  }
+
+  .blueprint-feature {
+    --color-text: var(--blueprint-feature-color);
+    --color-text-muted: var(--blueprint-feature-color);
+
+    color: var(--blueprint-feature-color);
+
+    &.positive { --blueprint-feature-color: var(--color-information); }
+    &.negative { --blueprint-feature-color: var(--color-danger); }
+
+    dt,
+    dd { color: inherit; }
+
+    dd {
+      font-family: var(--font-family-display);
+      letter-spacing: var(--font-tracking-display);
+      text-align: end;
+      white-space: nowrap;
+    }
+  }
+
+  .blueprint-feature-label {
+    display: inline-flex;
+    gap: var(--spacing-xxs);
+    white-space: nowrap;
+  }

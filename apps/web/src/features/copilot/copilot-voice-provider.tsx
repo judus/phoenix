@@ -23,6 +23,7 @@ import {
   type AudioProcessingSession
 } from './realtime-audio.js'
 import { CopilotVoiceConnectionState } from './copilot-voice-connection-state.js'
+import { RealtimeRuntimeContextSync } from './realtime-runtime-context-sync.js'
 
 const CONVERSATION_ID = 'phoenix-copilot'
 
@@ -123,7 +124,7 @@ export function CopilotVoiceProvider ({
   const monitorRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
   const runtimeStreamRef = useRef<(() => void) | undefined>(undefined)
   const runtimeSyncTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  const contextFingerprintRef = useRef<string | undefined>(undefined)
+  const runtimeContextSyncRef = useRef(new RealtimeRuntimeContextSync())
   const contextSyncRef = useRef(Promise.resolve())
   const eventPublishRef = useRef(Promise.resolve())
   const turnRef = useRef<MutableTurn | undefined>(undefined)
@@ -262,7 +263,7 @@ export function CopilotVoiceProvider ({
     runtimeSyncTimerRef.current = undefined
     if (transcriptBroadcastTimerRef.current) clearTimeout(transcriptBroadcastTimerRef.current)
     transcriptBroadcastTimerRef.current = undefined
-    contextFingerprintRef.current = undefined
+    runtimeContextSyncRef.current.reset()
     contextSyncRef.current = Promise.resolve()
     processedCallsRef.current.clear()
     if (updateState) {
@@ -468,16 +469,7 @@ export function CopilotVoiceProvider ({
 
   const syncRuntimeContext = async (socket: WebSocket): Promise<void> => {
     const context = await api.getCopilotRealtimeContext()
-    if (context.fingerprint === contextFingerprintRef.current) return
-    sendEvent(socket, {
-      item: {
-        content: [{ text: context.text, type: 'input_text' }],
-        role: 'system',
-        type: 'message'
-      },
-      type: 'conversation.item.create'
-    })
-    contextFingerprintRef.current = context.fingerprint
+    runtimeContextSyncRef.current.sync(context, event => sendEvent(socket, event))
   }
 
   const startRuntimeSync = (): void => {

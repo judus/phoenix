@@ -17,7 +17,7 @@ type CurrentShipConsolidatedPageProps = {
 function VesselPanels() {
   return (
     <>
-      <Widget className="fixed-data" title="Vessel">
+      <Widget aria-label="Vessel" className="fixed-data" eyebrow="Vessel">
         <DescriptionList className="adaptive-columns" columns="two" density="compact">
           <DescriptionItem label="Name" value="Unnamed vessel" />
           <DescriptionItem label="Identifier" value="EL-06L" />
@@ -28,7 +28,7 @@ function VesselPanels() {
         </DescriptionList>
       </Widget>
 
-      <Widget className="fixed-data" title="Operational status">
+      <Widget aria-label="Operational status" className="fixed-data" eyebrow="Operational status">
         <DescriptionList className="adaptive-columns" columns="two" density="compact">
           <DescriptionItem label="Unladen mass" value="599.8 t" />
           <DescriptionItem label="Jump range" value="22.4 ly" />
@@ -44,7 +44,7 @@ function VesselPanels() {
 
 function IntegrityPanel({ meterLayout }: { meterLayout: 'stacked' | 'inline' }) {
   return (
-    <Widget title="Integrity">
+    <Widget aria-label="Integrity" eyebrow="Integrity">
       <div className="meter-stack">
         <Meter label="Hull" layout={meterLayout} tone="action" value={100} valueLabel="100%" />
         <Meter label="Shields" layout={meterLayout} tone="action" value={100} valueLabel="100%" />
@@ -55,7 +55,7 @@ function IntegrityPanel({ meterLayout }: { meterLayout: 'stacked' | 'inline' }) 
 
 function FuelPanel({ meterLayout }: { meterLayout: 'stacked' | 'inline' }) {
   return (
-    <Widget title="Fuel">
+    <Widget aria-label="Fuel" eyebrow="Fuel">
       <div className="meter-stack">
         <Meter label="Main fuel" layout={meterLayout} tone="action" value={78} valueLabel="78%" />
         <Meter label="Reservoir" layout={meterLayout} tone="action" value={42} valueLabel="42%" />
@@ -66,7 +66,7 @@ function FuelPanel({ meterLayout }: { meterLayout: 'stacked' | 'inline' }) {
 
 function CargoPanel({ meterLayout }: { meterLayout: 'stacked' | 'inline' }) {
   return (
-    <Widget title="Cargo">
+    <Widget aria-label="Cargo" eyebrow="Cargo">
       <div className="cargo-content">
         <Meter layout={meterLayout} max={196} tone="action" value={45} valueLabel="45 / 196 t" label="Capacity" />
         <DescriptionList aria-label="Cargo manifest" columns="one" density="compact" inset tabIndex={0}>

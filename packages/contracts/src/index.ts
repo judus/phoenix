@@ -21,6 +21,7 @@ export * from './missions.js'
 export * from './numpad.js'
 export * from './pairing.js'
 export * from './runtime.js'
+export * from './saved-galaxy-queries.js'
 export * from './settings.js'
 
 export const PHOENIX_API_VERSION = '1' as const

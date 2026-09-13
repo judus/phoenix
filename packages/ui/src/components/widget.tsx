@@ -1,15 +1,19 @@
 import { useId, type HTMLAttributes, type ReactNode } from 'react'
 
-type WidgetProps = HTMLAttributes<HTMLElement> & {
+type WidgetProps = Omit<HTMLAttributes<HTMLElement>, 'title'> & {
+  aside?: ReactNode
+  detail?: ReactNode
   density?: 'standard' | 'compact'
+  eyebrow?: ReactNode
+  heading?: ReactNode
   link?: ReactNode
   meta?: ReactNode
-  title?: string
 }
 
-export function Widget({ children, className, density = 'standard', link, meta, title, ...props }: WidgetProps) {
+export function Widget({ aside, children, className, detail, density = 'standard', eyebrow, heading, link, meta, ...props }: WidgetProps) {
   const generatedId = useId()
-  const headingId = title ? (props['aria-labelledby'] ?? generatedId) : undefined
+  const headingId = heading ? (props['aria-labelledby'] ?? generatedId) : undefined
+  const hasBody = children !== undefined && children !== null
 
   return (
     <article
@@ -17,11 +21,17 @@ export function Widget({ children, className, density = 'standard', link, meta, 
       aria-labelledby={headingId}
       {...props}
     >
-      {(title || link || meta) && <header>
-        {title && <h3 id={headingId}>{title}</h3>}
-        {link ?? (meta && <span>{meta}</span>)}
+      {(eyebrow || heading || detail || link || meta || aside) && <header>
+        {(eyebrow || heading || detail) && (
+          <div className={['widget-heading', eyebrow && heading && 'prominent'].filter(Boolean).join(' ')}>
+            {eyebrow && <span>{eyebrow}</span>}
+            {heading && <h3 id={headingId}>{heading}</h3>}
+            {detail && <small>{detail}</small>}
+          </div>
+        )}
+        {link ?? (aside ? <div className="widget-aside">{aside}</div> : (meta && <span>{meta}</span>))}
       </header>}
-      <div>{children}</div>
+      {hasBody && <div className="widget-body">{children}</div>}
     </article>
   )
 }

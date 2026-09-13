@@ -16,6 +16,7 @@ import {
 } from '@phoenix/ui'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { LatestRequest } from '../../application/requests/latest-request.js'
+import { formatPhoenixDateTime } from '../../components/phoenix-date-time.js'
 import { SystemSchematicLink } from '../../components/system-location-link.js'
 
 export interface PlottedRouteProps {
@@ -117,7 +118,7 @@ export function PlottedRoute({ actions, api, route, runtimeState }: PlottedRoute
       <div className="plotted-route" aria-label="Plotted navigation route">
         <PageHeader
           variant="cockpit"
-          context={<Breadcrumbs items={[{ label: 'Galaxy' }, { label: 'Plotted route' }]} />}
+          context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Plotted route' }]} />}
           status={route.timestamp ? `Route plotted ${formatTimestamp(route.timestamp)}` : 'Route timestamp unknown'}
           title="Plotted route"
         />
@@ -142,19 +143,17 @@ export function PlottedRoute({ actions, api, route, runtimeState }: PlottedRoute
                   className="route-preview"
                   contentGap="sm"
                   fill
-                  meta={preview.status === 'ready' ? `${preview.lookup.cache} · ${provenanceLabel(preview.lookup)}` : undefined}
                   title={previewTitle(previewIndex, currentIndex, progressKnown)}
                 >
                   <Stack fill gap="lg">
                     {previewHop
                       ? <>
                           <Metric
-                            className="text-information"
+                            className="route-preview-system text-information"
                             value={<SystemSchematicLink label={previewHop.system} systemName={previewHop.system} />}
                           />
                           <DescriptionList columns="one" density="compact">
                             <DescriptionItem label="Star class" value={previewHop.starClass ?? 'Unknown'} />
-                            <DescriptionItem label="Leg distance" value={formatDistance(legs[previewIndex]?.distance ?? null)} />
                             {preview.status === 'ready' && <>
                               <DescriptionItem label="Bodies" value={bodyCount(preview.lookup)} />
                               <DescriptionItem label="Installations" value={`${preview.lookup.system.stations.length} known`} />
@@ -177,7 +176,7 @@ export function PlottedRoute({ actions, api, route, runtimeState }: PlottedRoute
                         binding={targetNextRouteAction?.binding?.display}
                         compact
                         disabled={executingActionId !== undefined || !targetNextRouteAction?.available}
-                        label={executingActionId === 'elite.TargetNextRouteSystem' ? 'Targeting…' : 'Target next jump'}
+                        label={executingActionId === 'elite.TargetNextRouteSystem' ? 'Targeting…' : 'Target next'}
                         meta="Tap"
                         onClick={() => void executeRouteAction('elite.TargetNextRouteSystem', 'Unable to send the next-route-system command.')}
                         unavailable={targetNextRouteAction !== undefined && !targetNextRouteAction.available}
@@ -197,7 +196,7 @@ export function PlottedRoute({ actions, api, route, runtimeState }: PlottedRoute
 
                 <DataTableGroup className="route-sequence" title="Jump sequence">
                   <div className="route-table-scroll" ref={routeTableScroll} tabIndex={0}>
-                    <DataTable density="compact" label="Plotted route jump sequence" narrow="priority" scheme="surface" stickyHeader>
+                    <DataTable className="route-table" density="compact" label="Plotted route jump sequence" narrow="priority" scheme="surface" stickyHeader>
                       <thead><tr><th>Jump</th><th>System</th><th>Star</th><th className="numeric">Leg</th><th className="numeric">Route distance</th></tr></thead>
                       <tbody>
                         {legs.map(leg => {
@@ -265,14 +264,6 @@ function bodyCount(lookup: CartographyLookupResponse): string {
     : `${knownBodies} known`
 }
 
-function provenanceLabel (lookup: CartographyLookupResponse): string {
-  const sources = [
-    lookup.system.provenance.edsm ? 'EDSM' : null,
-    lookup.system.provenance.journal ? 'JOURNAL' : null
-  ].filter((source): source is string => source !== null)
-  return sources.join(' + ') || 'UNKNOWN'
-}
-
 function population(value: number | null): string {
   return value === null ? 'Unknown' : value.toLocaleString()
 }
@@ -309,5 +300,5 @@ function formatDistance(distance: number | null): string {
 }
 
 function formatTimestamp(timestamp: string): string {
-  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(timestamp))
+  return formatPhoenixDateTime(timestamp)
 }

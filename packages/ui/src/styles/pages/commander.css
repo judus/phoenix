@@ -40,10 +40,29 @@
     min-inline-size: 0;
   }
 
+  .commander-total-credits {
+    gap: var(--spacing-xxs);
+
+    > strong { font-family: var(--font-family-display); letter-spacing: var(--font-tracking-display); }
+  }
+
   dl.dl-list.compact.commander-legal-status-list {
-    > div { padding-block: 0; }
+    > div {
+      align-items: center;
+      padding-block: 0;
+    }
     > div:not(:last-child) { padding-block-end: var(--spacing-xxs); }
     > div:not(:first-child) { padding-block-start: var(--spacing-xxs); }
+
+    dt {
+      font-family: var(--font-family-display);
+      font-size: var(--font-size-xs);
+      letter-spacing: calc(0.04em + var(--font-tracking-display));
+      line-height: var(--line-height-compact);
+      text-transform: uppercase;
+    }
+
+    dd { line-height: 1; }
   }
 
   .commander-career-rows {

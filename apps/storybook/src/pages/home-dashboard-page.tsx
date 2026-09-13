@@ -39,7 +39,7 @@ export function HomeDashboardContent() {
     <DashboardGrid
       lastRow={
         <>
-          <Widget className="span-two" title="Recent activity" link={<a href="#journal">Open journal</a>}>
+          <Widget aria-label="Recent activity" className="span-two" eyebrow="Recent activity" link={<a href="#journal">Open journal</a>}>
             <ItemList density="compact">
               <ItemListItem title="Inventory cargo changed" leading={<time>18:28</time>} trailing="Runtime" />
               <ItemListItem title="Ship loadout changed" leading={<time>18:28</time>} trailing="Runtime" />
@@ -47,22 +47,27 @@ export function HomeDashboardContent() {
             </ItemList>
           </Widget>
 
-          <Widget title="Attention">
+          <Widget aria-label="Attention" eyebrow="Attention">
             <Status tone="muted">No immediate telemetry warnings.</Status>
           </Widget>
         </>
       }
     >
-      <Widget className="span-full" title="Commander" meta="Total credits">
-        <EqualGrid columns={2}>
-          <Metric value="ELLAN MURDOCK" />
-          <Metric className="text-end" value="2,438,917,604 CR" />
-        </EqualGrid>
-      </Widget>
+      <Widget
+        aside={<Metric className="commander-total-credits text-end" label="Total credits" value="2,438,917,604 CR" />}
+        className="span-full"
+        eyebrow="Commander"
+        heading="ELLAN MURDOCK"
+      />
 
-      <Widget className="span-two" title="Situation" link={<a href="#galaxy">Open galaxy</a>}>
+      <Widget
+        className="span-two"
+        detail="Locke Terminal"
+        eyebrow="Situation"
+        heading="COL 285 SECTOR OK-C B14-5"
+        link={<a href="#galaxy">Open galaxy</a>}
+      >
         <Stack gap="sm">
-          <Metric value="COL 285 SECTOR OK-C B14-5" detail="Locke Terminal" />
           <DescriptionList columns="two" density="compact">
             <DescriptionItem label="Security" value="Low security" />
             <DescriptionItem label="Economy" value="High tech" />
@@ -72,7 +77,7 @@ export function HomeDashboardContent() {
         </Stack>
       </Widget>
 
-      <Widget title="Copilot" link={<a href="#channel">Open channel</a>}>
+      <Widget aria-label="Copilot" eyebrow="Copilot" link={<a href="#channel">Open channel</a>}>
         <Stack fill justify="center">
           <Inline align="center" justify="space-between">
             <Identity
@@ -85,9 +90,8 @@ export function HomeDashboardContent() {
         </Stack>
       </Widget>
 
-      <Widget title="Current ship" link={<a href="#controls">Ship controls</a>}>
+      <Widget detail="EL-06L" eyebrow="Current ship" heading="TYPE-11 PROSPECTOR" link={<a href="#controls">Ship controls</a>}>
         <Stack gap="sm">
-          <Metric value="TYPE-11 PROSPECTOR" detail="EL-06L" />
           <EqualGrid columns={3} gap="xs">
             <Metric density="compact" label="Hull" value="100%" />
             <Metric density="compact" label="Cargo" value="3 / 196" />
@@ -96,9 +100,8 @@ export function HomeDashboardContent() {
         </Stack>
       </Widget>
 
-      <Widget title="Route" link={<a href="#route">Open route</a>}>
+      <Widget detail="19 jumps remaining" eyebrow="Route" heading="WREDGUIA UK-V B30-1" link={<a href="#route">Open route</a>}>
         <Stack gap="sm">
-          <Metric value="WREDGUIA UK-V B30-1" detail="19 jumps remaining" />
           <DescriptionList columns="one" density="compact">
             <DescriptionItem label="Current" value="Col 285 Sector OK-C b14-5" />
             <DescriptionItem label="Destination" value="HIP 115894" />
@@ -106,9 +109,8 @@ export function HomeDashboardContent() {
         </Stack>
       </Widget>
 
-      <Widget title="Galnet radio" link={<a href="#remote">Open remote</a>}>
-        <Stack gap="sm" fill justify="space-between">
-          <Metric value="GALNET AUDIO" />
+      <Widget eyebrow="Galnet radio" heading="GALNET AUDIO" link={<a href="#remote">Open remote</a>}>
+        <Stack gap="sm" fill justify="end">
           <EqualGrid columns={4} gap="xs">
             <IconButton label="Previous" shape="landscape" size="md"><PreviousIcon /></IconButton>
             <IconButton label="Stop" shape="landscape" size="md"><StopIcon /></IconButton>

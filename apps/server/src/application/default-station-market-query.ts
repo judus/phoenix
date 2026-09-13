@@ -3,8 +3,7 @@ import type {
   CartographicStation,
   GalaxyCommodityMarketsResponse,
   GalaxyFactionPresencesResponse,
-  GalaxyFilteredSystemsResponse,
-  GalaxyNearbySystemsResponse,
+  GalaxySystemSearchResponse,
   GalaxyNearestStationsResponse,
   GalaxyOutfittingResponse,
   GalaxyStationLookupResponse,
@@ -21,10 +20,8 @@ import type {
   FactionPresenceRequest,
   FactionPresenceResult,
   FactionPresenceSearchSource,
-  FilteredSystemRequest,
-  FilteredSystemResult,
-  NearbySystem,
-  NearbySystemRequest,
+  SystemSearchRequest,
+  SystemSearchResult,
   NearbyStation,
   NearestStationRequest,
   OutfittingSearchResult,
@@ -43,6 +40,7 @@ import type {
   TradeOpportunityRequest
 } from '../domain/station-market.js'
 import type { FactionPresenceQuery, StationQuery, TradeMarketQuery } from './mcp-tools/tool-gateways.js'
+import { DEFAULT_GALAXY_RESULT_LIMIT } from './galaxy-data-service.js'
 import {
   boundedLimit,
   json,
@@ -56,7 +54,6 @@ import {
 const MARKET_CACHE_MS = 5 * 60 * 1000
 const TRADE_OPPORTUNITY_CACHE_MS = 5 * 60 * 1000
 const TRADE_CANDIDATE_LIMIT = 12
-const NEARBY_SYSTEM_CACHE_MS = 30 * 60 * 1000
 const NEAREST_CACHE_MS = 30 * 60 * 1000
 const STOCK_CACHE_MS = 6 * 60 * 60 * 1000
 const SHIPYARD_SEARCH_CACHE_MS = 30 * 60 * 1000
@@ -240,7 +237,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
 
   public async searchSystems (arguments_: JsonObject) {
     const systemName = this.originSystem(optionalStringArgument(arguments_, 'systemName'))
-    const result = await this.searchFilteredSystems({
+    const result = await this.findSystems({
       allegiance: optionalFilter(arguments_, 'allegiance'),
       economy: optionalFilter(arguments_, 'economy'),
       government: optionalFilter(arguments_, 'government'),
@@ -253,7 +250,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     }, boundedLimit(optionalIntegerArgument(arguments_, 'limit'), 10, 20))
     return output(
       result.systems.length > 0
-        ? [`Systems matching the requested characteristics near ${result.originSystem}:`, ...result.systems.map(formatFilteredSystem)].join('\n')
+        ? [`Systems matching the requested characteristics near ${result.originSystem}:`, ...result.systems.map(formatSystemSearchResult)].join('\n')
         : `No reported systems matched the requested characteristics within ${result.filters.maxDistanceLy} ly of ${result.originSystem}.`,
       json(result)
     )
@@ -282,7 +279,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
 
   public async searchCommodityMarkets (
     request: CommodityMarketRequest,
-    limit = 20
+    limit = DEFAULT_GALAXY_RESULT_LIMIT
   ): Promise<GalaxyCommodityMarketsResponse> {
     const cached = await this.cached(
       'ardent-market',
@@ -295,14 +292,14 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
       cache: cached.cache,
       commodity: request.commodity,
       intent: request.intent,
-      markets: cached.value.slice(0, boundedLimit(limit, 20, 100)),
+      markets: cached.value.slice(0, boundedLimit(limit, DEFAULT_GALAXY_RESULT_LIMIT, DEFAULT_GALAXY_RESULT_LIMIT)),
       originSystem: request.systemName
     }
   }
 
   public async searchTradeOpportunities (
     request: TradeOpportunityRequest,
-    limit = 20
+    limit = DEFAULT_GALAXY_RESULT_LIMIT
   ): Promise<GalaxyTradeOpportunitiesResponse> {
     const cached = await this.cached(
       'ardent-trade-opportunities',
@@ -346,14 +343,14 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
       candidateCommoditiesChecked: cached.value.candidateCommoditiesChecked,
       caveat: `Best-effort comparison of ${cached.value.candidateCommoditiesChecked} promising exports from ${request.systemName}; community market reports can be stale and other commodities may be more profitable.`,
       exportCommoditiesFound: cached.value.exportCommoditiesFound,
-      opportunities: cached.value.opportunities.slice(0, boundedLimit(limit, 20, 100)),
+      opportunities: cached.value.opportunities.slice(0, boundedLimit(limit, DEFAULT_GALAXY_RESULT_LIMIT, DEFAULT_GALAXY_RESULT_LIMIT)),
       originSystem: request.systemName
     }
   }
 
   public async searchNearestStations (
     request: NearestStationRequest,
-    limit = 20,
+    limit = DEFAULT_GALAXY_RESULT_LIMIT,
     minimumPadSize: 'small' | 'medium' | 'large' | null = null
   ): Promise<GalaxyNearestStationsResponse> {
     const cached = await this.cached(
@@ -368,33 +365,14 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
       minimumPadSize,
       originSystem: request.systemName,
       service: request.service,
-      stations: cached.value.slice(0, boundedLimit(limit, 20, 100))
+      stations: cached.value.slice(0, boundedLimit(limit, DEFAULT_GALAXY_RESULT_LIMIT, DEFAULT_GALAXY_RESULT_LIMIT))
     }
   }
 
-  public async searchNearbySystems (
-    request: NearbySystemRequest,
-    limit = 100
-  ): Promise<GalaxyNearbySystemsResponse> {
-    const cached = await this.cached(
-      'ardent-nearby-systems',
-      stableKey(request),
-      NEARBY_SYSTEM_CACHE_MS,
-      () => this.searchSource.findNearbySystems(request),
-      isNearbySystems
-    )
-    return {
-      cache: cached.cache,
-      maxDistanceLy: request.maxDistance,
-      originSystem: request.systemName,
-      systems: cached.value.slice(0, boundedLimit(limit, 100, 1000))
-    }
-  }
-
-  public async searchFilteredSystems (
-    input: Omit<FilteredSystemRequest, 'referencePosition'> & { systemName: string },
-    limit = 20
-  ): Promise<GalaxyFilteredSystemsResponse> {
+  public async findSystems (
+    input: Omit<SystemSearchRequest, 'referencePosition'> & { systemName: string },
+    limit = DEFAULT_GALAXY_RESULT_LIMIT
+  ): Promise<GalaxySystemSearchResponse> {
     if (input.minPopulation !== null && input.maxPopulation !== null && input.minPopulation > input.maxPopulation) {
       throw new Error('minPopulation must not exceed maxPopulation.')
     }
@@ -407,25 +385,25 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     const origin = await this.cartography.getSystem(input.systemName)
     if (!origin.system.position) throw new Error(`Coordinates for ${input.systemName} are unavailable.`)
     const { systemName: _systemName, ...filters } = input
-    const request: FilteredSystemRequest = { ...filters, referencePosition: origin.system.position }
+    const request: SystemSearchRequest = { ...filters, referencePosition: origin.system.position }
     const cached = await this.cached(
-      'spansh-filtered-systems',
+      'spansh-system-search',
       stableKey({ ...request, systemName: origin.system.name }),
       FILTERED_SYSTEM_CACHE_MS,
       () => this.systemSearchSource.findSystems(request),
-      isFilteredSystemResults
+      isSystemSearchResults
     )
     return {
       cache: cached.cache,
       filters,
       originSystem: origin.system.name,
-      systems: cached.value.slice(0, boundedLimit(limit, 20, 100))
+      systems: cached.value.slice(0, boundedLimit(limit, DEFAULT_GALAXY_RESULT_LIMIT, DEFAULT_GALAXY_RESULT_LIMIT))
     }
   }
 
   public async findFactionPresences (
     input: Omit<FactionPresenceRequest, 'referencePosition'> & { systemName: string },
-    limit = 20
+    limit = DEFAULT_GALAXY_RESULT_LIMIT
   ): Promise<GalaxyFactionPresencesResponse> {
     const origin = await this.cartography.getSystem(input.systemName)
     if (!origin.system.position) throw new Error(`Coordinates for ${input.systemName} are unavailable.`)
@@ -442,7 +420,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
       cache: cached.cache,
       filters,
       originSystem: origin.system.name,
-      presences: cached.value.slice(0, boundedLimit(limit, 20, 100)),
+      presences: cached.value.slice(0, boundedLimit(limit, DEFAULT_GALAXY_RESULT_LIMIT, DEFAULT_GALAXY_RESULT_LIMIT)),
       provenance: 'Spansh community-reported system data'
     }
   }
@@ -450,7 +428,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
   public async searchShipyards (
     hullName: string,
     systemName: string,
-    limit = 20
+    limit = DEFAULT_GALAXY_RESULT_LIMIT
   ): Promise<GalaxyShipyardsResponse> {
     const origin = await this.cartography.getSystem(systemName)
     if (!origin.system.position) throw new Error(`Coordinates for ${systemName} are unavailable.`)
@@ -466,7 +444,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
       cache: cached.cache,
       hullName,
       originSystem: origin.system.name,
-      shipyards: cached.value.slice(0, boundedLimit(limit, 20, 100))
+      shipyards: cached.value.slice(0, boundedLimit(limit, DEFAULT_GALAXY_RESULT_LIMIT, DEFAULT_GALAXY_RESULT_LIMIT))
     }
   }
 
@@ -478,7 +456,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
       query: string
       systemName: string
     },
-    limit = 20
+    limit = DEFAULT_GALAXY_RESULT_LIMIT
   ): Promise<GalaxyOutfittingResponse> {
     const origin = await this.cartography.getSystem(input.systemName)
     if (!origin.system.position) throw new Error(`Coordinates for ${input.systemName} are unavailable.`)
@@ -499,7 +477,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     const newestAllowed = this.now().getTime() - input.maxDaysAgo * 24 * 60 * 60 * 1000
     const matches = cached.value
       .filter(match => match.updatedAt !== null && Date.parse(match.updatedAt) >= newestAllowed)
-      .slice(0, boundedLimit(limit, 20, 100))
+      .slice(0, boundedLimit(limit, DEFAULT_GALAXY_RESULT_LIMIT, DEFAULT_GALAXY_RESULT_LIMIT))
     return {
       cache: cached.cache,
       matches,
@@ -516,7 +494,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
       stationType: StationLocationType
       systemName: string
     },
-    limit = 20,
+    limit = DEFAULT_GALAXY_RESULT_LIMIT,
     minimumPadSize: 'small' | 'medium' | 'large' | null = null
   ): Promise<GalaxyStationLookupResponse> {
     const origin = await this.cartography.getSystem(input.systemName)
@@ -537,7 +515,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     )
     return {
       cache: cached.cache,
-      matches: cached.value.slice(0, boundedLimit(limit, 20, 100)),
+      matches: cached.value.slice(0, boundedLimit(limit, DEFAULT_GALAXY_RESULT_LIMIT, DEFAULT_GALAXY_RESULT_LIMIT)),
       maxDistanceLy: input.maxDistanceLy,
       minimumPadSize,
       name: request.name,
@@ -752,7 +730,7 @@ function formatStationLookup (station: StationLookupResult): string {
   return `- ${station.stationName} (${station.systemName}) - ${formatDistance(station.distanceLy, 'ly')}, ${formatDistance(station.distanceToArrivalLs, 'ls')}${details ? `; ${details}` : ''}`
 }
 
-function formatFilteredSystem (system: FilteredSystemResult): string {
+function formatSystemSearchResult (system: SystemSearchResult): string {
   const details = [
     system.inhabited ? `population ${formatNumber(system.population)}` : 'uninhabited',
     system.economy,
@@ -897,16 +875,6 @@ function isNearbyStations (candidate: unknown): candidate is NearbyStation[] {
   return Array.isArray(candidate) && candidate.every(item => isRecord(item) && typeof item.stationName === 'string' && typeof item.systemName === 'string')
 }
 
-function isNearbySystems (candidate: unknown): candidate is NearbySystem[] {
-  return Array.isArray(candidate) && candidate.every(item => (
-    isRecord(item) &&
-    typeof item.systemName === 'string' &&
-    typeof item.distanceLy === 'number' &&
-    Array.isArray(item.position) &&
-    item.position.length === 3
-  ))
-}
-
 function isCommodityMarkets (candidate: unknown): candidate is CommodityMarket[] {
   return Array.isArray(candidate) && candidate.every(item => isRecord(item) && typeof item.commodityName === 'string' && typeof item.stationName === 'string')
 }
@@ -958,7 +926,7 @@ function isStationLookupResults (candidate: unknown): candidate is StationLookup
   ))
 }
 
-function isFilteredSystemResults (candidate: unknown): candidate is FilteredSystemResult[] {
+function isSystemSearchResults (candidate: unknown): candidate is SystemSearchResult[] {
   return Array.isArray(candidate) && candidate.every(item => (
     isRecord(item) &&
     typeof item.systemName === 'string' &&

@@ -5,22 +5,7 @@ const nullableString = z.string().min(1).nullable()
 
 export const GalaxyCacheStateSchema = z.enum(['fresh', 'refreshed', 'stale', 'local'])
 
-export const GalaxyNearbySystemSchema = z.object({
-  distanceLy: z.number().finite().nonnegative(),
-  position: z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]),
-  systemAddress: z.number().int().nonnegative().nullable(),
-  systemName: z.string().min(1),
-  updatedAt: z.string().datetime().nullable()
-})
-
-export const GalaxyNearbySystemsResponseSchema = z.object({
-  cache: GalaxyCacheStateSchema,
-  maxDistanceLy: z.number().int().min(1).max(500),
-  originSystem: z.string().min(1),
-  systems: z.array(GalaxyNearbySystemSchema)
-})
-
-export const GalaxyFilteredSystemSchema = z.object({
+export const GalaxySystemSearchResultSchema = z.object({
   allegiance: nullableString,
   controllingFaction: nullableString,
   distanceLy: z.number().finite().nonnegative(),
@@ -38,7 +23,7 @@ export const GalaxyFilteredSystemSchema = z.object({
   updatedAt: z.string().datetime().nullable()
 })
 
-export const GalaxyFilteredSystemsResponseSchema = z.object({
+export const GalaxySystemSearchResponseSchema = z.object({
   cache: GalaxyCacheStateSchema,
   filters: z.object({
     allegiance: nullableString,
@@ -51,7 +36,7 @@ export const GalaxyFilteredSystemsResponseSchema = z.object({
     security: nullableString
   }),
   originSystem: z.string().min(1),
-  systems: z.array(GalaxyFilteredSystemSchema)
+  systems: z.array(GalaxySystemSearchResultSchema)
 })
 
 export const GalaxyFactionPresenceSchema = z.object({
@@ -265,12 +250,10 @@ export type GalaxyTradeOpportunity = z.infer<typeof GalaxyTradeOpportunitySchema
 export type GalaxyTradeOpportunitiesResponse = z.infer<typeof GalaxyTradeOpportunitiesResponseSchema>
 export type GalaxyExplorationTarget = z.infer<typeof GalaxyExplorationTargetSchema>
 export type GalaxyExplorationTargetsResponse = z.infer<typeof GalaxyExplorationTargetsResponseSchema>
-export type GalaxyFilteredSystem = z.infer<typeof GalaxyFilteredSystemSchema>
-export type GalaxyFilteredSystemsResponse = z.infer<typeof GalaxyFilteredSystemsResponseSchema>
+export type GalaxySystemSearchResult = z.infer<typeof GalaxySystemSearchResultSchema>
+export type GalaxySystemSearchResponse = z.infer<typeof GalaxySystemSearchResponseSchema>
 export type GalaxyFactionPresence = z.infer<typeof GalaxyFactionPresenceSchema>
 export type GalaxyFactionPresencesResponse = z.infer<typeof GalaxyFactionPresencesResponseSchema>
-export type GalaxyNearbySystem = z.infer<typeof GalaxyNearbySystemSchema>
-export type GalaxyNearbySystemsResponse = z.infer<typeof GalaxyNearbySystemsResponseSchema>
 export type GalaxyOutfittingMatch = z.infer<typeof GalaxyOutfittingMatchSchema>
 export type GalaxyOutfittingResponse = z.infer<typeof GalaxyOutfittingResponseSchema>
 export type GalaxyShipyard = z.infer<typeof GalaxyShipyardSchema>

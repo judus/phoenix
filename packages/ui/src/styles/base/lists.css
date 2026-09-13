@@ -85,11 +85,16 @@
     list-style: none;
 
     &.surface > li {
+      border-inline-start: 0;
       background: var(--color-surface);
+
+      &:not(:last-child)::after {
+        inset-inline: var(--list-row-padding-inline);
+      }
 
       &:hover { background: var(--color-interactive-surface); }
 
-      &.active { background: var(--color-danger-surface); }
+      &.active { background: var(--selection-background); }
     }
 
     > li {
@@ -115,8 +120,15 @@
       }
 
       &.active {
+        --button-quiet-text: var(--selection-text);
+        --color-action: var(--selection-text);
+        --color-information: var(--selection-text);
+        --color-text: var(--selection-text);
+        --color-text-muted: var(--selection-text);
+
         border-inline-start-color: var(--color-action);
-        background: var(--color-selected-surface);
+        color: var(--selection-text);
+        background: var(--selection-background);
       }
 
       &.disabled {
@@ -131,7 +143,7 @@
         gap: var(--spacing-sm);
         min-inline-size: 0;
         padding: var(--list-row-padding-block) var(--list-row-padding-inline);
-        color: inherit;
+        color: var(--color-text);
         text-decoration: none;
 
         > article:only-child {
@@ -140,6 +152,8 @@
       }
 
       > a {
+        color: var(--color-information);
+
         &:hover { background: var(--color-interactive-surface); }
 
         &:active {
@@ -177,8 +191,12 @@
 
           strong {
             min-inline-size: 0;
+            color: inherit;
+            font-family: var(--font-family-display);
             font-size: var(--font-size-sm);
-            font-weight: var(--font-weight-medium);
+            font-weight: var(--font-weight-normal);
+            letter-spacing: calc(0.04em + var(--font-tracking-display));
+            text-transform: uppercase;
           }
 
           span {
@@ -206,6 +224,12 @@
         gap: var(--spacing-xs);
         padding-inline-end: var(--list-row-padding-inline);
       }
+    }
+
+    > li.active {
+      > a,
+      > div,
+      :is(a, strong, small, p, span) { color: inherit; }
     }
 
     &.compact { --list-row-padding-block: var(--spacing-xs); }

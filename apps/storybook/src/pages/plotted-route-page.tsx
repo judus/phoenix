@@ -60,10 +60,9 @@ export function PlottedRoutePage() {
         <div className="route-body">
           <DataTableGroup title="Next jump">
             <Stack className="route-next-content" gap="lg">
-              <Metric className="text-information" value="HIP 115894" />
+              <Metric className="route-preview-system text-information" value="HIP 115894" />
               <DescriptionList columns="one" density="compact">
                 <DescriptionItem label="Star class" value="G" />
-                <DescriptionItem label="Leg distance" value="20.6 ly" />
                 <DescriptionItem label="Bodies" value="8" />
                 <DescriptionItem label="Installations" value="2" />
                 <DescriptionItem label="Economy" value="Extraction" />

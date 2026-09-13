@@ -6,7 +6,6 @@ type CommsRoute = Extract<InformationRoute, { section: 'comms' }>
 type CommsNavigationItem = NavigationItem & { route: CommsRoute }
 
 const routes = {
-  overview: { kind: 'information', section: 'comms', view: 'overview' },
   inbox: { kind: 'information', section: 'comms', view: 'inbox' },
   traffic: { kind: 'information', section: 'comms', view: 'traffic' },
   contacts: { kind: 'information', section: 'comms', view: 'contacts' },
@@ -15,16 +14,15 @@ const routes = {
 } as const satisfies Record<string, CommsRoute>
 
 export const commsNavigationItems: CommsNavigationItem[] = [
-  item('overview', 'Overview', 'COM'),
   item('inbox', 'Inbox', 'IBX'),
   item('traffic', 'Traffic', 'TRF'),
-  item('contacts', 'Contacts', 'CON'),
+  item('contacts', 'Correspondents', 'COR'),
   item('galnet', 'GalNet', 'GLN'),
   item('radio', 'Radio', 'RAD')
 ]
 
 export function commsContextForRoute(route: InformationRoute): string {
-  return route.section === 'comms' ? route.view : 'overview'
+  return route.section === 'comms' ? route.view : 'inbox'
 }
 
 function item(id: keyof typeof routes, label: string, shortLabel: string): CommsNavigationItem {

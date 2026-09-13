@@ -1,0 +1,15 @@
+  .saved-galaxy-queries {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--spacing-sm);
+    inline-size: 100%;
+    block-size: 100%;
+    min-inline-size: 0;
+    min-block-size: 0;
+    overflow: hidden;
+
+    .saved-query-actions {
+      display: flex;
+      gap: var(--spacing-xs);
+    }
+  }

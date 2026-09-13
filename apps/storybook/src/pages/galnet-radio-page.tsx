@@ -21,7 +21,7 @@ function StopIcon() {
 export function GalnetRadioPage() {
   return (
     <PageFrame className="galnet-radio-page" layout="fit">
-      <Widget className="galnet-radio-display" title="GalNet Radio" />
+      <Widget className="galnet-radio-display" heading="GalNet Radio" />
 
       <div className="galnet-radio-controls" role="group" aria-label="GalNet Radio controls">
         <IconButton label="Previous"><PreviousIcon /></IconButton>

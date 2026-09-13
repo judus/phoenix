@@ -176,6 +176,8 @@
   .presentation-elite {
     .btn {
       font-weight: var(--font-weight-normal);
+      font-family: var(--font-family-display);
+      letter-spacing: var(--font-tracking-display);
       text-transform: uppercase;
     }
   }

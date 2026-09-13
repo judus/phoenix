@@ -11,7 +11,7 @@ test('invalid galaxy query parameters are reported as client errors', async () =
   const address = await application.start()
 
   try {
-    const missing = await fetch(`http://${address.host}:${address.port}/api/galaxy/systems`)
+    const missing = await fetch(`http://${address.host}:${address.port}/api/galaxy/systems/search`)
     expect(missing.status).toBe(400)
     await expect(missing.json()).resolves.toEqual({
       error: { code: 'invalid_request', message: 'system is required.' }
@@ -23,7 +23,7 @@ test('invalid galaxy query parameters are reported as client errors', async () =
       error: { code: 'invalid_request', message: 'population must be one of any, inhabited, uninhabited.' }
     })
 
-    const partialInteger = await fetch(`http://${address.host}:${address.port}/api/galaxy/systems?system=Sol&limit=20items`)
+    const partialInteger = await fetch(`http://${address.host}:${address.port}/api/galaxy/systems/search?system=Sol&limit=20items`)
     expect(partialInteger.status).toBe(400)
     await expect(partialInteger.json()).resolves.toEqual({
       error: { code: 'invalid_request', message: 'limit must be an integer.' }

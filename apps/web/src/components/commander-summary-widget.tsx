@@ -1,8 +1,9 @@
-import { DescriptionItem, DescriptionList, EqualGrid, Meter, Metric, ThirdsGrid, Widget } from '@phoenix/ui'
+import { DescriptionItem, DescriptionList, Meter, Metric, ThirdsGrid, Widget } from '@phoenix/ui'
+import { PhoenixCredits } from './phoenix-credits.js'
 
 export interface CommanderSummaryWidgetProps {
   className?: string
-  credits: string | null
+  credits: number | null
   legalState: string | null
   name: string
   notoriety: {
@@ -15,12 +16,13 @@ export function CommanderSummaryWidget({ className, credits, legalState, name, n
   return (
     <div className={className}>
       <ThirdsGrid gap="sm">
-        <Widget className="span-two" density="compact">
-          <EqualGrid columns={2} gap="xs">
-            <Metric label="Commander" labelTone="action" value={name.toUpperCase()} />
-            <Metric className="text-end" label="Total credits" value={credits ?? '—'} />
-          </EqualGrid>
-        </Widget>
+        <Widget
+          className="span-two"
+          density="compact"
+          eyebrow="Commander"
+          heading={name.toUpperCase()}
+          aside={<Metric className="commander-total-credits text-end" label="Total credits" value={<PhoenixCredits value={credits} />} />}
+        />
         <Widget density="compact">
         <DescriptionList className="commander-legal-status-list" columns="one" density="compact">
           <DescriptionItem label="Legal status" labelTone="action" value={legalState ?? '—'} />

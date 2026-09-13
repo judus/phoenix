@@ -18,7 +18,7 @@ import type { NavigationItem } from '@phoenix/ui'
 import { CurrentShipConsolidatedPage } from '../src/pages/current-ship-consolidated-page'
 import { CurrentShipLoadoutPage } from '../src/pages/current-ship-loadout-page'
 import { FleetPage } from '../src/pages/fleet-page'
-import { FilteredSystemSearchPage } from '../src/pages/filtered-system-search-page'
+import { SystemSearchPage } from '../src/pages/system-search-page'
 import { GalnetPage } from '../src/pages/galnet-page'
 import { GalnetRadioPage } from '../src/pages/galnet-radio-page'
 import { HomeDashboardPage } from '../src/pages/home-dashboard-page'
@@ -54,10 +54,9 @@ const contextItems: NavigationItem[] = [
 ]
 
 const commsItems: NavigationItem[] = [
-  { id: 'overview', label: 'Overview', shortLabel: '◇', href: '#comms-overview' },
   { id: 'inbox', label: 'Inbox', shortLabel: '▤', href: '#inbox' },
   { id: 'traffic', label: 'Traffic', shortLabel: '⌁', href: '#traffic' },
-  { id: 'contacts', label: 'Contacts', shortLabel: '◎', href: '#contacts' },
+  { id: 'contacts', label: 'Correspondents', shortLabel: 'COR', href: '#contacts' },
   { id: 'galnet', label: 'GalNet', shortLabel: 'N', href: '#galnet' },
   { id: 'radio', label: 'Radio', shortLabel: 'RAD', href: '#radio' }
 ]
@@ -217,11 +216,11 @@ function QueryConsoleShell() {
   )
 }
 
-function FilteredSystemSearchShell() {
+function SystemSearchShell() {
   return (
     <div className="tablet-shell-story">
       <BaselineShell context="overview" primary="galaxy">
-        <FilteredSystemSearchPage />
+        <SystemSearchPage />
       </BaselineShell>
     </div>
   )
@@ -443,7 +442,7 @@ export const StoredModules: Story = { render: () => <StoredModulesShell /> }
 export const PersonalStores: Story = { render: () => <PersonalStoresShell /> }
 export const PlottedRoute: Story = { render: () => <PlottedRouteShell /> }
 export const QueryConsole: Story = { render: () => <QueryConsoleShell /> }
-export const FilteredSystemSearch: Story = { render: () => <FilteredSystemSearchShell /> }
+export const SystemSearch: Story = { render: () => <SystemSearchShell /> }
 export const Traffic: Story = { render: () => <TrafficShell /> }
 export const Galnet: Story = { render: () => <GalnetShell /> }
 export const GalnetRadio: Story = { render: () => <GalnetRadioShell /> }

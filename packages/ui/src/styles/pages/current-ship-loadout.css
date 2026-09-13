@@ -49,12 +49,16 @@
           font-size: var(--font-size-md);
           font-weight: var(--font-weight-normal);
           line-height: var(--line-height-compact);
+          font-family: var(--font-family-display);
+          letter-spacing: var(--font-tracking-display);
           text-transform: uppercase;
         }
 
         small {
           color: var(--color-text-muted);
           font-size: var(--font-size-xs);
+          font-family: var(--font-family-display);
+          letter-spacing: var(--font-tracking-display);
           text-transform: uppercase;
         }
       }
@@ -101,6 +105,8 @@
       > header strong,
       > header small {
         color: var(--color-action);
+        font-family: var(--font-family-display);
+        letter-spacing: var(--font-tracking-display);
         text-transform: uppercase;
       }
 
@@ -207,6 +213,8 @@
           inset-block-start: -0.2em;
           inset-inline-end: 0.05em;
           color: var(--color-action);
+          font-family: var(--font-family-display);
+          letter-spacing: var(--font-tracking-display);
           font-size: clamp(3.5rem, 7cqi, 5.5rem);
           font-weight: var(--font-weight-semibold);
           line-height: 1;

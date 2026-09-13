@@ -9,6 +9,7 @@ import type { ProviderResponseCache } from '../domain/station-market.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type { ExplorationTargetQuery } from './mcp-tools/tool-gateways.js'
 import { boundedLimit, json, optionalIntegerArgument, optionalStringArgument, output } from './mcp-tools/tool-support.js'
+import { DEFAULT_GALAXY_RESULT_LIMIT } from './galaxy-data-service.js'
 
 const CACHE_MS = 30 * 60 * 1000
 const CANDIDATE_LIMIT = 100
@@ -68,7 +69,7 @@ export class DefaultExplorationTargetQuery implements ExplorationTargetReader, E
     )
   }
 
-  public async searchExplorationTargets (input: ExplorationTargetSearchInput, limit = 20): Promise<GalaxyExplorationTargetsResponse> {
+  public async searchExplorationTargets (input: ExplorationTargetSearchInput, limit = DEFAULT_GALAXY_RESULT_LIMIT): Promise<GalaxyExplorationTargetsResponse> {
     validateRanges(input)
     const origin = await this.resolveOrigin(input.systemName)
     const { systemName: _systemName, ...providerFilters } = input
@@ -77,7 +78,7 @@ export class DefaultExplorationTargetQuery implements ExplorationTargetReader, E
     const targets = cached.value
       .filter(target => target.biologicalSignals >= input.minBiologicalSignals && target.geologicalSignals >= input.minGeologicalSignals)
       .map(target => GalaxyExplorationTargetSchema.parse(target))
-      .slice(0, boundedLimit(limit, 20, 100))
+      .slice(0, boundedLimit(limit, DEFAULT_GALAXY_RESULT_LIMIT, DEFAULT_GALAXY_RESULT_LIMIT))
     return {
       cache: cached.cache,
       candidatesExamined: Math.min(cached.value.length, CANDIDATE_LIMIT),

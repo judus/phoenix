@@ -29,8 +29,20 @@
         border-block-end: 1px solid var(--color-border);
 
         > div { display: grid; gap: var(--spacing-xxs); }
-        small { color: var(--color-action); text-transform: uppercase; }
-        strong { font-size: var(--font-size-lg); font-weight: var(--font-weight-normal); text-transform: uppercase; }
+        small {
+          color: var(--color-action);
+          font-family: var(--font-family-display);
+          letter-spacing: var(--font-tracking-display);
+          text-transform: uppercase;
+        }
+
+        strong {
+          font-family: var(--font-family-display);
+          letter-spacing: var(--font-tracking-display);
+          font-size: var(--font-size-lg);
+          font-weight: var(--font-weight-normal);
+          text-transform: uppercase;
+        }
       }
     }
 
@@ -40,7 +52,13 @@
       > button {
         min-block-size: 0;
 
-        &::before { color: var(--color-action); opacity: 0.09; }
+        &::before {
+          color: var(--color-action);
+          font-family: var(--font-family-display);
+          letter-spacing: var(--font-tracking-display);
+          opacity: 0.09;
+        }
+        .header > .corner { font-family: var(--font-family-display); letter-spacing: var(--font-tracking-display); }
         &.matching { border-color: var(--color-information); }
       }
 

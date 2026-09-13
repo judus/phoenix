@@ -102,12 +102,14 @@ test('plotted route renders route progress and begins loading the next jump prev
   const markup = renderToStaticMarkup(<PlottedRoute actions={actions} api={api} route={route} runtimeState={runtimeState} />)
 
   expect(markup).toContain('Plotted navigation route')
+  expect(markup).toContain('<a href="#/galaxy/system">Galaxy</a>')
   expect(markup).toContain('Next jump')
   expect(markup).toContain('Sirius')
   expect(markup).toContain('12.0 ly')
   expect(markup).toContain('17.0 ly')
   expect(markup).toContain('class="active"')
   expect(markup).toContain('Loading system cartography')
+  expect(markup).not.toContain('Leg distance')
   expect(markup).not.toContain('#TODO')
   expect(markup).toContain('#/galaxy/system?name=Sirius')
 })
@@ -142,7 +144,7 @@ test('plotted route previews only current and forward systems through existing A
   expect(api.getSystemCartography).toHaveBeenLastCalledWith('Lave', expect.any(AbortSignal))
   expect(JSON.stringify(renderer!.toJSON())).toContain('2 jumps ahead')
 
-  const targetButton = renderer!.root.findAllByType('button').find(button => button.findAllByType('strong').some(label => label.children.includes('Target next jump')))
+  const targetButton = renderer!.root.findAllByType('button').find(button => button.findAllByType('strong').some(label => label.children.includes('Target next')))
   await act(async () => targetButton!.props.onClick())
   expect(api.executeAction).toHaveBeenCalledWith('elite.TargetNextRouteSystem', 'tap')
   expect(JSON.stringify(renderer!.toJSON())).toContain('Next Route System input accepted.')

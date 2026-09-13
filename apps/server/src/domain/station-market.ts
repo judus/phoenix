@@ -46,19 +46,6 @@ export interface TradeOpportunityRequest {
   systemName: string
 }
 
-export interface NearbySystem {
-  distanceLy: number
-  position: [number, number, number]
-  systemAddress: number | null
-  systemName: string
-  updatedAt: string | null
-}
-
-export interface NearbySystemRequest {
-  maxDistance: number
-  systemName: string
-}
-
 export interface ShipyardSearchResult {
   distanceLy: number
   distanceToArrivalLs: number | null
@@ -125,7 +112,6 @@ export interface StationSearchSource {
   findSystemExports(request: Omit<TradeOpportunityRequest, 'availableCredits' | 'cargoCapacity' | 'maxDistance'>): Promise<CommodityMarket[]>
   getCommodityReports(): Promise<CommodityReport[]>
   findNearestStations(request: NearestStationRequest): Promise<NearbyStation[]>
-  findNearbySystems(request: NearbySystemRequest): Promise<NearbySystem[]>
 }
 
 export interface StockItem {
@@ -166,7 +152,7 @@ export interface StationLookupSource {
 
 export type SystemPopulationFilter = 'any' | 'inhabited' | 'uninhabited'
 
-export interface FilteredSystemRequest {
+export interface SystemSearchRequest {
   allegiance: string | null
   economy: string | null
   government: string | null
@@ -178,7 +164,7 @@ export interface FilteredSystemRequest {
   security: string | null
 }
 
-export interface FilteredSystemResult {
+export interface SystemSearchResult {
   allegiance: string | null
   controllingFaction: string | null
   distanceLy: number
@@ -197,7 +183,7 @@ export interface FilteredSystemResult {
 }
 
 export interface SystemSearchSource {
-  findSystems(request: FilteredSystemRequest): Promise<FilteredSystemResult[]>
+  findSystems(request: SystemSearchRequest): Promise<SystemSearchResult[]>
 }
 
 export type FactionControllingFilter = 'any' | 'yes' | 'no'

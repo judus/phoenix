@@ -18,8 +18,7 @@ describe('Galaxy query catalogue', () => {
 
   it('groups queries by operational domain in a useful default order', () => {
     expect(GALAXY_QUERY_CATALOGUE.map(query => query.id)).toEqual([
-      'nearby-systems',
-      'filtered-systems',
+      'system-search',
       'exploration-targets',
       'facilities',
       'station-lookup',
@@ -28,6 +27,9 @@ describe('Galaxy query catalogue', () => {
       'commodity-markets',
       'trade-opportunities',
       'faction-presence'
+    ])
+    expect(GALAXY_QUERY_CATALOGUE.filter(query => query.id === 'system-search')).toEqual([
+      expect.objectContaining({ title: 'System search' })
     ])
   })
 

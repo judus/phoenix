@@ -21,6 +21,8 @@
         min-block-size: 0;
         overflow: auto;
       }
+
+      tbody .vessel-column { color: var(--color-text); }
     }
 
   }

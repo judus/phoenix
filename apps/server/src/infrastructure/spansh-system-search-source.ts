@@ -1,60 +1,23 @@
 import type {
-  FilteredSystemRequest,
-  FilteredSystemResult,
+  SystemSearchRequest,
+  SystemSearchResult,
   SystemSearchSource
 } from '../domain/station-market.js'
-
-const DEFAULT_BASE_URL = 'https://spansh.co.uk/api/'
-const DEFAULT_TIMEOUT_MS = 30_000
-const DEFAULT_RESULT_SIZE = 100
-
-export interface SpanshSystemSearchSourceOptions {
-  baseUrl?: string
-  fetch?: typeof fetch
-  timeoutMs?: number
-}
+import type { SpanshSearchGateway } from './spansh-search-client.js'
 
 export class SpanshSystemSearchSource implements SystemSearchSource {
-  private readonly baseUrl: URL
-  private readonly fetcher: typeof fetch
-  private readonly timeoutMs: number
+  public constructor (private readonly spansh: SpanshSearchGateway) {}
 
-  public constructor (options: SpanshSystemSearchSourceOptions = {}) {
-    this.baseUrl = new URL(options.baseUrl ?? DEFAULT_BASE_URL)
-    this.fetcher = options.fetch ?? globalThis.fetch
-    this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
-  }
-
-  public async findSystems (request: FilteredSystemRequest): Promise<FilteredSystemResult[]> {
-    const response = await this.fetcher(new URL('systems/search', this.baseUrl), {
-      body: JSON.stringify({
-        filters: providerFilters(request),
-        page: 0,
-        reference_coords: {
-          x: request.referencePosition[0],
-          y: request.referencePosition[1],
-          z: request.referencePosition[2]
-        },
-        size: DEFAULT_RESULT_SIZE,
-        sort: [{ distance: { direction: 'asc' } }]
-      }),
-      headers: {
-        accept: 'application/json',
-        'content-type': 'application/json',
-        'user-agent': 'phoenix-terminal/0.1'
-      },
-      method: 'POST',
-      signal: AbortSignal.timeout(this.timeoutMs)
+  public async findSystems (request: SystemSearchRequest): Promise<SystemSearchResult[]> {
+    const candidates = await this.spansh.search('systems', {
+      filters: providerFilters(request),
+      referencePosition: request.referencePosition
     })
-    if (!response.ok) throw new Error(`Spansh request failed with HTTP ${response.status}.`)
-    const payload: unknown = await response.json()
-    const raw = record(payload)
-    if (!raw || !Array.isArray(raw.results)) throw new Error('Spansh returned an unexpected system-search response.')
-    return raw.results.map(mapSystem).filter(isPresent)
+    return candidates.map(mapSystem).filter(isPresent)
   }
 }
 
-function providerFilters (request: FilteredSystemRequest): Record<string, unknown> {
+function providerFilters (request: SystemSearchRequest): Record<string, unknown> {
   const filters: Record<string, unknown> = {
     distance: { max: String(request.maxDistanceLy), min: '0' }
   }
@@ -72,7 +35,7 @@ function providerFilters (request: FilteredSystemRequest): Record<string, unknow
   return filters
 }
 
-function mapSystem (candidate: unknown): FilteredSystemResult | null {
+function mapSystem (candidate: unknown): SystemSearchResult | null {
   const raw = record(candidate)
   const systemName = stringValue(raw?.name)
   const distanceLy = nonnegativeNumber(raw?.distance)

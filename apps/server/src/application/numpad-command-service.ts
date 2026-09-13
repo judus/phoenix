@@ -67,8 +67,8 @@ const INFORMATION_MENUS: readonly MenuDefinition[] = [
     destination('engineering.materials-encoded', '5'), destination('engineering.materials-xeno', '6')
   ]),
   menu('info.comms', 'Comms', '6', [
-    destination('comms.overview', '1'), destination('comms.inbox', '2'), destination('comms.traffic', '3'),
-    destination('comms.contacts', '4'), destination('comms.galnet', '5'), destination('comms.radio', '6')
+    destination('comms.inbox', '1'), destination('comms.traffic', '2'), destination('comms.contacts', '3'),
+    destination('comms.galnet', '4'), destination('comms.radio', '5')
   ]),
   menu('info.records', 'Records', '7', [
     destination('records.journal', '1'), destination('records.exploration-ledger', '2'),

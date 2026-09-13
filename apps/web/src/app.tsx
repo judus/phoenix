@@ -279,7 +279,14 @@ const GalaxyFeature = memo(function GalaxyFeature({ application, route }: {
     ? route.systemName ?? (runtime.status === 'ready' ? runtime.state.system.name ?? undefined : undefined)
     : undefined
   const controller = useGalaxyController(application.api, application.events, route.view, systemName)
-  return <GalaxyPage api={application.api} controller={controller} onNavigate={application.router.push} route={route} runtime={runtime} />
+  return <GalaxyPage
+    api={application.api}
+    controller={controller}
+    onNavigate={application.router.push}
+    querySessions={application.galaxyQueries}
+    route={route}
+    runtime={runtime}
+  />
 })
 
 const FleetFeature = memo(function FleetFeature({ application, route }: {

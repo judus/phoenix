@@ -1,4 +1,5 @@
 import type { ActivityLogEntry, NavigationRoute, RuntimeState } from '@phoenix/contracts'
+import { formatPhoenixTime } from '../../components/phoenix-date-time.js'
 
 export interface DashboardViewModel {
   activity: readonly {
@@ -9,7 +10,7 @@ export interface DashboardViewModel {
     time: string
   }[]
   commander: {
-    credits: string | null
+    credits: number | null
     legalState: string | null
     name: string
     notoriety: {
@@ -62,10 +63,10 @@ export function createDashboardViewModel(
         id: entry.id,
         source: humanize(entry.source),
         timestamp: entry.timestamp,
-        time: formatTime(entry.timestamp, locale)
+        time: formatPhoenixTime(entry.timestamp)
       })),
     commander: {
-      credits: formatCredits(runtime?.gameStatus?.balance, locale),
+      credits: runtime?.gameStatus?.balance ?? null,
       legalState: runtime?.gameStatus?.legalState ? humanize(runtime.gameStatus.legalState) : null,
       name: runtime?.commander.name ?? 'Identity pending',
       notoriety: notoriety === null ? null : {
@@ -135,14 +136,6 @@ function formatPercent(value?: number | null): string {
 
 function formatNumber(value?: number | null, locale?: string): string | undefined {
   return value == null ? undefined : new Intl.NumberFormat(locale).format(value)
-}
-
-function formatCredits(value?: number | null, locale?: string): string | null {
-  return value == null ? null : `${new Intl.NumberFormat(locale).format(Math.round(value))} CR`
-}
-
-function formatTime(timestamp: string, locale?: string): string {
-  return new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(new Date(timestamp))
 }
 
 function humanize(value: string): string {

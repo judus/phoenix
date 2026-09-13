@@ -1,4 +1,12 @@
-# Third-party data notices
+# Third-party notices
+
+## Sintony font
+
+PHOENIX bundles the Sintony Regular and Bold fonts by Eduardo Tunni. Sintony is licensed under the SIL Open Font License, Version 1.1. The copyright notice and complete license are included in `licenses/Sintony-OFL.txt`.
+
+## Euro Caps font
+
+PHOENIX bundles the Euro Caps font by Tom Oetken, published as Ash Pikachu Font. The original font file is distributed by DaFont as “100% Free”: <https://www.dafont.com/euro-caps.font>.
 
 ## Elite Dangerous game data
 

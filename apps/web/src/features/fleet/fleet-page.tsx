@@ -14,21 +14,25 @@ import {
   MetricStripItem,
   PageFrame,
   PageHeader,
+  SortableDataTable,
   Stack,
   Status,
   ViewSwitcher,
-  Widget
+  Widget,
+  type SortableDataTableColumn
 } from '@phoenix/ui'
 import type { InformationRoute, PhoenixRoute } from '../../application/navigation/phoenix-route.js'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
 import { DataSyncNotice } from '../../components/data-sync-notice.js'
 import { SystemLocationLink } from '../../components/system-location-link.js'
+import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import type { FleetControllerSnapshot, FleetView } from './use-fleet-controller.js'
 import {
   createCurrentShipModel,
   createFleetOverviewModel,
   createStoredModulesModel,
-  type CurrentShipModel
+  type CurrentShipModel,
+  type FleetOverviewModel
 } from './fleet-view-model.js'
 type FleetRoute = Extract<InformationRoute, { section: 'fleet' }>
 type LoadoutView = 'list' | 'grid'
@@ -68,7 +72,7 @@ export function FleetPage({ controller, onExecuteAction, onNavigate, route, runt
   if (controller.status === 'error') return <FleetState title={titleFor(route.view)} status="error" error={controller.error} />
 
   if (route.view === 'catalogue') {
-    return <ShipCatalogue ships={controller.catalogue ?? []} route={route} onNavigate={onNavigate} />
+    return <ShipCatalogue updatedAt={controller.catalogueUpdatedAt} ships={controller.catalogue ?? []} route={route} onNavigate={onNavigate} />
   }
   if (!controller.fleet) return <FleetState title={titleFor(route.view)} status="error" error="Fleet records unavailable." />
   if (route.view === 'stored-modules') return <StoredModules fleet={controller.fleet} />
@@ -94,6 +98,7 @@ function FleetOverview({ fleet }: { fleet: NonNullable<FleetControllerSnapshot['
         <PageHeader
           variant="cockpit"
           context={<Breadcrumbs items={[{ label: 'Fleet' }]} />}
+          status={model.updatedAt ? <UpdatedDateTime value={model.updatedAt} /> : undefined}
           title="Fleet"
         />
         <MetricStrip columns={4}>
@@ -110,33 +115,64 @@ function FleetOverview({ fleet }: { fleet: NonNullable<FleetControllerSnapshot['
             </div>
           : null}
         <DataTableGroup className="vessels" title="Owned vessels">
-          <DataTable density="compact" label="Owned vessels" minimum="wide" narrow="priority" scheme="surface">
-            <thead><tr><th>Vessel</th><th>State</th><th className="priority-secondary">Location</th><th className="numeric">Value</th><th className="priority-tertiary">Transfer</th><th className="priority-tertiary">Observed</th></tr></thead>
-            <tbody>
-              {model.ships.length === 0
-                ? <tr><td colSpan={6} className="text-muted">No owned vessels have been observed.</td></tr>
-                : model.ships.map(ship => (
-                    <tr className={ship.active ? 'active' : undefined} key={ship.id}>
-                      <td><strong>{ship.name}</strong><small>{ship.detail}</small></td>
-                      <td>{ship.state}</td>
-                      <td className="priority-secondary">
-                        <SystemLocationLink
-                          locationName={ship.location.locationName}
-                          systemName={ship.location.systemName}
-                        />
-                      </td>
-                      <td className="numeric">{ship.value}</td>
-                      <td className="priority-tertiary">{ship.transfer}</td>
-                      <td className="priority-tertiary">{ship.observed}</td>
-                    </tr>
-                  ))}
-            </tbody>
-          </DataTable>
+          <SortableDataTable
+            columns={FLEET_COLUMNS}
+            density="compact"
+            empty={<span className="text-muted">No owned vessels have been observed.</span>}
+            label="Owned vessels"
+            minimum="wide"
+            narrow="priority"
+            rowKey={ship => ship.id}
+            rowProps={ship => ({ className: ship.active ? 'active' : undefined })}
+            rows={model.ships}
+            scheme="surface"
+          />
         </DataTableGroup>
       </div>
     </PageFrame>
   )
 }
+
+type FleetShipModel = FleetOverviewModel['ships'][number]
+
+const FLEET_COLUMNS: readonly SortableDataTableColumn<FleetShipModel>[] = [
+  {
+    cell: ship => <><strong>{ship.name}</strong><small>{ship.detail}</small></>,
+    className: 'vessel-column',
+    heading: 'Vessel',
+    id: 'vessel',
+    rowHeader: true,
+    sortValue: ship => ship.name
+  },
+  {
+    cell: ship => <SystemLocationLink locationName={ship.location.locationName} systemName={ship.location.systemName} />,
+    className: 'priority-secondary',
+    heading: 'Location',
+    id: 'location',
+    sortValue: ship => [ship.location.systemName, ship.location.locationName].filter(Boolean).join(' ')
+  },
+  {
+    cell: ship => ship.value,
+    className: 'numeric',
+    heading: 'Value',
+    id: 'value',
+    sortValue: ship => ship.valueAmount
+  },
+  {
+    cell: ship => ship.transferTime,
+    className: 'numeric priority-tertiary',
+    heading: 'Transfer time',
+    id: 'transfer-time',
+    sortValue: ship => ship.transferSeconds
+  },
+  {
+    cell: ship => ship.transferCost,
+    className: 'numeric priority-tertiary',
+    heading: 'Transfer cost',
+    id: 'transfer-cost',
+    sortValue: ship => ship.transferPrice
+  }
+]
 
 function CurrentShipOverview({ actions, model, onExecuteAction, onNavigate }: {
   actions: FleetControllerSnapshot['actions']
@@ -149,8 +185,8 @@ function CurrentShipOverview({ actions, model, onExecuteAction, onNavigate }: {
       <div className="current-ship consolidated">
         <div className="ship-grid">
           <div className="vessel-column">
-            <FactsWidget title="Current Vessel" items={model.vessel} />
-            <FactsWidget title="Operational status" items={model.operation} />
+            <FactsWidget label="Current Vessel" items={model.vessel} />
+            <FactsWidget label="Operational status" items={model.operation} />
             <ControlContext className="command-grid" context="command" aria-label="Ship controls">
               {model.controls.map(control => {
                 const action = actions?.actions.find(candidate => candidate.definition.id === control.actionId)
@@ -171,9 +207,9 @@ function CurrentShipOverview({ actions, model, onExecuteAction, onNavigate }: {
             </ControlContext>
           </div>
           <div className="instrument-column">
-            <MeterWidget title="Integrity" meters={model.integrity} />
-            <MeterWidget title="Fuel" meters={model.fuel} />
-            <Widget title="Cargo">
+            <MeterWidget label="Integrity" meters={model.integrity} />
+            <MeterWidget label="Fuel" meters={model.fuel} />
+            <Widget aria-label="Cargo" eyebrow="Cargo">
               <div className="cargo-content">
                 <Meter
                   label="Capacity"
@@ -295,12 +331,12 @@ function CurrentShipHeader({ actions, current, model }: {
   )
 }
 
-function FactsWidget({ items, title }: { items: CurrentShipModel['vessel'], title: string }) {
-  return <Widget className="fixed-data" title={title}><DescriptionList className="adaptive-columns" columns="two" density="compact">{items.map(item => <DescriptionItem key={item.label} label={item.label} value={item.value} />)}</DescriptionList></Widget>
+function FactsWidget({ items, label }: { items: CurrentShipModel['vessel'], label: string }) {
+  return <Widget aria-label={label} className="fixed-data" eyebrow={label}><DescriptionList className="adaptive-columns" columns="two" density="compact">{items.map(item => <DescriptionItem key={item.label} label={item.label} value={item.value} />)}</DescriptionList></Widget>
 }
 
-function MeterWidget({ meters, title }: { meters: CurrentShipModel['integrity'], title: string }) {
-  return <Widget title={title}><div className="meter-stack">{meters.map(meter => <Meter key={meter.label} label={meter.label} layout="inline" tone="action" value={meter.value} valueLabel={meter.valueLabel} />)}</div></Widget>
+function MeterWidget({ meters, label }: { meters: CurrentShipModel['integrity'], label: string }) {
+  return <Widget aria-label={label} eyebrow={label}><div className="meter-stack">{meters.map(meter => <Meter key={meter.label} label={meter.label} layout="inline" tone="action" value={meter.value} valueLabel={meter.valueLabel} />)}</div></Widget>
 }
 
 function ModuleTable({ group }: { group: CurrentShipModel['modules'][number] }) {
@@ -359,7 +395,7 @@ function StoredModules({ fleet }: { fleet: NonNullable<FleetControllerSnapshot['
             : <DataTableGroup className="module-storage fill" meta={model.meta} title="Module manifest">
                 <DataTable density="compact" label="Stored module manifest" minimum="wide" narrow="priority" scheme="surface" stickyHeader>
                   <thead><tr><th>Module</th><th className="priority-secondary">Engineering</th><th>Location</th><th>Transfer</th><th className="numeric priority-tertiary">Purchase value</th></tr></thead>
-                  <tbody>{model.items.map(item => <tr key={item.key}><td><strong>{item.name}</strong><small>{item.identifier}</small></td><td className={`priority-secondary${item.engineering !== '—' ? ' text-information' : ''}`}>{item.engineering}</td><td><SystemLocationLink locationName={item.location.locationName} systemName={item.location.systemName} /></td><td>{item.transfer}</td><td className="numeric priority-tertiary">{item.value}</td></tr>)}</tbody>
+                  <tbody>{model.items.map(item => <tr key={item.key}><td><strong>{item.name}</strong><small>{item.identifier}</small></td><td className={`priority-secondary${item.engineering !== '—' ? ' text-information' : ''}`}>{item.engineering}</td><td><SystemLocationLink locationName={item.location.locationName} systemName={item.location.systemName} /></td><td className="data-value">{item.transfer}</td><td className="numeric priority-tertiary">{item.value}</td></tr>)}</tbody>
                 </DataTable>
               </DataTableGroup>}
       </div>
@@ -369,35 +405,71 @@ function StoredModules({ fleet }: { fleet: NonNullable<FleetControllerSnapshot['
 
 function FleetCarriers({ observed }: { observed: boolean }) {
   return (
-    <PageFrame layout="fit"><div className="fleet-scroll-page"><PageHeader variant="cockpit" context={<Breadcrumbs items={[{ label: 'Fleet', href: '#/fleet/overview' }, { label: 'Carriers' }]} />} title="Fleet carriers" /><Stack className="fleet-scroll-content" gap="lg"><Widget title="Carrier authority"><Status tone={observed ? 'information' : 'muted'}>{observed ? 'Carrier records observed locally.' : 'No authoritative carrier record observed.'}</Status><p>Zero observed carriers means unknown or none observed—not a claim that the commander owns no carrier.</p></Widget></Stack></div></PageFrame>
+    <PageFrame layout="fit"><div className="fleet-scroll-page"><PageHeader variant="cockpit" context={<Breadcrumbs items={[{ label: 'Fleet', href: '#/fleet/overview' }, { label: 'Carriers' }]} />} title="Fleet carriers" /><Stack className="fleet-scroll-content" gap="lg"><Widget heading="Carrier authority"><Status tone={observed ? 'information' : 'muted'}>{observed ? 'Carrier records observed locally.' : 'No authoritative carrier record observed.'}</Status><p>Zero observed carriers means unknown or none observed—not a claim that the commander owns no carrier.</p></Widget></Stack></div></PageFrame>
   )
 }
 
-function ShipCatalogue({ onNavigate, route, ships }: { onNavigate(route: PhoenixRoute): void, route: Extract<FleetRoute, { view: 'catalogue' }>, ships: readonly ShipDefinition[] }) {
+function ShipCatalogue({ onNavigate, route, ships, updatedAt }: { onNavigate(route: PhoenixRoute): void, route: Extract<FleetRoute, { view: 'catalogue' }>, ships: readonly ShipDefinition[], updatedAt?: string }) {
   const sorted = useMemo(() => [...ships].sort((left, right) => left.displayName.localeCompare(right.displayName)), [ships])
   const selected = sorted.find(ship => ship.id === route.selectedShipId) ?? sorted[0]
   const [view, setView] = useState<CatalogueView>('dossier')
   const select = (ship: ShipDefinition) => onNavigate({ kind: 'information', section: 'fleet', view: 'catalogue', selectedShipId: ship.id })
   return (
     <PageFrame layout="fit"><div className="ship-catalogue schematic">
-      <PageHeader actions={<ViewSwitcher startLabel="Dossier" startIcon={<DossierIcon />} endLabel="Table" endIcon={<GridIcon />} position={view === 'dossier' ? 'start' : 'end'} onPositionChange={position => setView(position === 'start' ? 'dossier' : 'table')} />} variant="cockpit" context={<Breadcrumbs items={[{ label: 'Fleet', href: '#/fleet/overview' }, { label: 'Ship catalogue' }]} />} status={selected ? `Source: ${selected.source.name}${selected.source.revision ? ` · ${selected.source.revision}` : ''}` : undefined} title="Ship catalogue" />
+      <PageHeader actions={<ViewSwitcher startLabel="Dossier" startIcon={<DossierIcon />} endLabel="Table" endIcon={<GridIcon />} position={view === 'dossier' ? 'start' : 'end'} onPositionChange={position => setView(position === 'start' ? 'dossier' : 'table')} />} variant="cockpit" context={<Breadcrumbs items={[{ label: 'Fleet', href: '#/fleet/overview' }, { label: 'Ship catalogue' }]} />} status={updatedAt ? <UpdatedDateTime value={updatedAt} /> : undefined} title="Ship catalogue" />
       {sorted.length === 0 ? <Status tone="muted">No ship catalogue records are available.</Status> : view === 'dossier' ? <div className="catalogue-deck"><HullRoster current={selected?.id} ships={sorted} onSelect={select} />{selected && <HullSchematic ship={selected} />}</div> : <CatalogueTable current={selected?.id} ships={sorted} onSelect={ship => { select(ship); setView('dossier') }} />}
     </div></PageFrame>
   )
 }
 
 function HullRoster({ current, onSelect, ships }: { current?: string, onSelect(ship: ShipDefinition): void, ships: readonly ShipDefinition[] }) {
-  return <section className="hull-roster"><DataTable density="compact" label="Known ship hulls" narrow="priority"><tbody>{ships.map(ship => <tr className={ship.id === current ? 'active' : undefined} aria-selected={ship.id === current} tabIndex={0} key={ship.id} onClick={() => onSelect(ship)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(ship) } }}><td><strong>{ship.displayName}</strong><small>{ship.manufacturer ?? 'Unknown manufacturer'}</small></td></tr>)}</tbody></DataTable></section>
+  return <section className="hull-roster"><DataTable density="compact" label="Known ship hulls" narrow="priority" scheme="surface"><tbody>{ships.map(ship => <tr className={ship.id === current ? 'active' : undefined} aria-selected={ship.id === current} tabIndex={0} key={ship.id} onClick={() => onSelect(ship)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(ship) } }}><th scope="row"><strong>{ship.displayName}</strong><small>{ship.manufacturer ?? 'Unknown manufacturer'}</small></th></tr>)}</tbody></DataTable></section>
 }
 
 function HullSchematic({ ship }: { ship: ShipDefinition }) {
   const slotCount = Object.values(ship.slots).reduce((count, slots) => count + slots.length, 0)
-  return <article className="hull-schematic"><header><div><h2>{ship.displayName}</h2><p>{ship.manufacturer ?? 'Unknown manufacturer'}</p></div><span>{ship.landingPadSize ?? 'unknown'} pad</span></header><dl className="flight-profile"><Profile label="Armour" value={ship.performance.baseArmour} /><Profile label="Shield" value={ship.performance.baseShieldStrength} /><Profile label="Speed" value={ship.performance.speed} suffix=" m/s" /><Profile label="Boost" value={ship.performance.boost} suffix=" m/s" /><Profile label="Mass" value={ship.performance.hullMass} suffix=" t" /><Profile label="Frontier ID" value={ship.identifiers.frontierEdId} /></dl><section className="capacity-matrix"><header><h3>Frame capacity</h3><small>{slotCount} positions</small></header><div><CapacityRow label="Core" slots={ship.slots.core} /><CapacityRow label="Optional" slots={ship.slots.optional} /><CapacityRow label="Hardpoints" slots={ship.slots.hardpoints} /><CapacityRow label="Utility" slots={ship.slots.utilities} /></div></section></article>
+  return <article className="hull-schematic"><header><div><h2>{ship.displayName}</h2><p>{ship.manufacturer ?? 'Unknown manufacturer'}</p></div><span>{ship.landingPadSize ?? 'unknown'} pad</span></header><dl className="flight-profile"><Profile label="Armour" value={ship.performance.baseArmour} /><Profile label="Shield" value={ship.performance.baseShieldStrength} /><Profile label="Speed" value={ship.performance.speed} suffix=" m/s" /><Profile label="Boost" value={ship.performance.boost} suffix=" m/s" /><Profile label="Mass" value={ship.performance.hullMass} suffix=" t" /></dl><section className="capacity-matrix"><header><h3>Frame capacity</h3><small>{slotCount} positions</small></header><div><CapacityRow label="Core" slots={ship.slots.core} /><CapacityRow label="Optional" slots={ship.slots.optional} /><CapacityRow label="Hardpoints" slots={ship.slots.hardpoints} /><CapacityRow label="Utility" slots={ship.slots.utilities} /></div></section></article>
 }
 
 function Profile({ label, suffix = '', value }: { label: string, suffix?: string, value: number | null }) { return <div><dt>{label}</dt><dd>{value === null ? '—' : `${value.toLocaleString()}${suffix}`}</dd></div> }
 function CapacityRow({ label, slots }: { label: string, slots: Array<{ size: number }> }) { return <section><header><h4>{label}</h4><small>{slots.length}</small></header><ol>{slots.map((slot, index) => <li key={`${label}-${index}`}>S{slot.size}</li>)}</ol></section> }
-function CatalogueTable({ current, onSelect, ships }: { current?: string, onSelect(ship: ShipDefinition): void, ships: readonly ShipDefinition[] }) { return <div className="catalogue-table-view"><DataTable density="compact" label="Known ship hulls" minimum="wide" scheme="information" stickyHeader><thead><tr><th>Hull</th><th>Manufacturer</th><th>Pad</th><th className="numeric">Armour</th><th className="numeric">Shield</th><th className="numeric">Speed</th><th className="numeric">Boost</th><th className="numeric">Mass</th></tr></thead><tbody>{ships.map(ship => <tr className={ship.id === current ? 'active' : undefined} aria-selected={ship.id === current} tabIndex={0} key={ship.id} onClick={() => onSelect(ship)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(ship) } }}><th scope="row">{ship.displayName}</th><td>{ship.manufacturer ?? '—'}</td><td>{ship.landingPadSize ?? '—'}</td><td className="numeric">{ship.performance.baseArmour ?? '—'}</td><td className="numeric">{ship.performance.baseShieldStrength ?? '—'}</td><td className="numeric">{ship.performance.speed ?? '—'}</td><td className="numeric">{ship.performance.boost ?? '—'}</td><td className="numeric">{ship.performance.hullMass ?? '—'}</td></tr>)}</tbody></DataTable></div> }
+
+const PAD_ORDER = { small: 1, medium: 2, large: 3 } as const
+const SHIP_CATALOGUE_COLUMNS: readonly SortableDataTableColumn<ShipDefinition>[] = [
+  { cell: ship => ship.displayName, heading: 'Hull', id: 'hull', rowHeader: true, sortValue: ship => ship.displayName },
+  { cell: ship => ship.manufacturer ?? '—', heading: 'Manufacturer', id: 'manufacturer', sortValue: ship => ship.manufacturer },
+  { cell: ship => ship.landingPadSize ?? '—', heading: 'Pad', id: 'pad', sortValue: ship => ship.landingPadSize === null ? null : PAD_ORDER[ship.landingPadSize] },
+  { cell: ship => ship.performance.baseArmour ?? '—', className: 'numeric', heading: 'Armour', id: 'armour', sortValue: ship => ship.performance.baseArmour },
+  { cell: ship => ship.performance.baseShieldStrength ?? '—', className: 'numeric', heading: 'Shield', id: 'shield', sortValue: ship => ship.performance.baseShieldStrength },
+  { cell: ship => ship.performance.speed ?? '—', className: 'numeric', heading: 'Speed', id: 'speed', sortValue: ship => ship.performance.speed },
+  { cell: ship => ship.performance.boost ?? '—', className: 'numeric', heading: 'Boost', id: 'boost', sortValue: ship => ship.performance.boost },
+  { cell: ship => ship.performance.hullMass ?? '—', className: 'numeric', heading: 'Mass', id: 'mass', sortValue: ship => ship.performance.hullMass }
+]
+
+function CatalogueTable({ current, onSelect, ships }: { current?: string, onSelect(ship: ShipDefinition): void, ships: readonly ShipDefinition[] }) {
+  return <div className="catalogue-table-view"><SortableDataTable
+    columns={SHIP_CATALOGUE_COLUMNS}
+    density="compact"
+    label="Known ship hulls"
+    minimum="wide"
+    rowKey={ship => ship.id}
+    rowProps={ship => ({
+      'aria-selected': ship.id === current,
+      className: ship.id === current ? 'active' : undefined,
+      onClick: () => onSelect(ship),
+      onKeyDown: event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onSelect(ship)
+        }
+      },
+      tabIndex: 0
+    })}
+    rows={ships}
+    scheme="surface"
+    stickyHeader
+  /></div>
+}
 
 function titleFor(view: FleetView): string {
   if (view === 'overview') return 'Fleet'

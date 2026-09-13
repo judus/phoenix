@@ -27,10 +27,10 @@ export function GalnetPage() {
         <div className="galnet-layout">
           <DataTableGroup className="galnet-index" meta="8 articles" title="Latest news">
             <div className="galnet-index-scroll" tabIndex={0}>
-              <ItemList density="compact" aria-label="GalNet articles">
+              <ItemList className="surface" density="compact" aria-label="GalNet articles">
                 {articles.map(([date, title], index) => (
                   <ItemListItem
-                    eyebrow={<time className="text-information">{date}</time>}
+                    eyebrow={<time>{date}</time>}
                     href={`#article-${index + 1}`}
                     key={title}
                     selected={index === 0}

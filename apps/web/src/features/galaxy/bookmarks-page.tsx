@@ -105,7 +105,7 @@ function BookmarkList ({ bookmarks, onNavigate }: {
       <Stack gap="sm">
         <PageHeader
           variant="cockpit"
-          context={<Breadcrumbs items={[{ label: 'Galaxy' }, { label: 'Bookmarks' }]} />}
+          context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Bookmarks' }]} />}
           title="Bookmarks"
         />
         <ControlContext context="panel" density="compact">
@@ -193,7 +193,7 @@ function BookmarkEditor ({ bookmark, onCancel, onDelete, onSave, target }: {
       <Stack gap="sm">
         <PageHeader
           variant="cockpit"
-          context={<Breadcrumbs items={[{ label: 'Galaxy' }, { label: 'Bookmarks' }]} />}
+          context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Bookmarks' }]} />}
           title={bookmark ? 'Edit bookmark' : 'Add bookmark'}
         />
         <ControlContext context="panel" density="compact">
@@ -223,7 +223,7 @@ function BookmarksState ({ error }: { error?: string }) {
   return (
     <PageFrame aria-busy={!error}>
       <Stack gap="xl">
-        <PageHeader variant="cockpit" context={<Breadcrumbs items={[{ label: 'Galaxy' }, { label: 'Bookmarks' }]} />} title="Bookmarks" />
+        <PageHeader variant="cockpit" context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Bookmarks' }]} />} title="Bookmarks" />
         <Status tone={error ? 'danger' : 'muted'}>{error ?? 'Loading bookmarks…'}</Status>
       </Stack>
     </PageFrame>
