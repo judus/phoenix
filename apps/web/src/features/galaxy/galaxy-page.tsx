@@ -16,7 +16,8 @@ import {
   PageHeader,
   Select,
   Status,
-  TextInput
+  TextInput,
+  ToggleButton
 } from '@phoenix/ui'
 import type { PlotEliteDestinationResult, SavedGalaxyQuery } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
@@ -393,12 +394,6 @@ function QueryConsole({ api, onNavigate, querySessions, route, runtime }: {
               onClick={() => onNavigate({ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: query.id })}
             />
           ))}
-          <ActionTile
-            description="Run and manage reusable galaxy queries."
-            label="Saved queries"
-            status="Query library"
-            onClick={() => onNavigate({ kind: 'information', section: 'galaxy', view: 'saved-queries' })}
-          />
         </div>
       </div>
     </PageFrame>
@@ -428,6 +423,7 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, executionId, onBack
   const [saveOpen, setSaveOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savedName, setSavedName] = useState(savedQuery?.name ?? '')
+  const [useOnDashboard, setUseOnDashboard] = useState(savedQuery?.useOnDashboard ?? false)
   const automaticExecutionStarted = useRef(false)
   const runQuery = async (nextValues: Record<string, GalaxyQueryValue>) => {
     setLoading(true)
@@ -457,7 +453,7 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, executionId, onBack
     setSaving(true)
     setError(undefined)
     try {
-      const saved = await api.saveGalaxyQuery({ name, parameters: values, queryId: definition.id }, savedQuery?.id)
+      const saved = await api.saveGalaxyQuery({ name, parameters: values, queryId: definition.id, useOnDashboard }, savedQuery?.id)
       querySessions.set(saved.id, { ...(result ? { result } : {}), values })
       setSaveOpen(false)
       setSaving(false)
@@ -481,7 +477,7 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, executionId, onBack
               querySessions.set(sessionId, { values })
               setResult(undefined)
             }} result={result}>
-              {saveOpen && <SaveQueryPanel error={error} name={savedName} saving={saving} onCancel={() => setSaveOpen(false)} onChange={setSavedName} onSave={() => void save()} />}
+              {saveOpen && <SaveQueryPanel dashboardEligible={definition.id === 'market-signals'} error={error} name={savedName} saving={saving} useOnDashboard={useOnDashboard} onCancel={() => setSaveOpen(false)} onChange={setSavedName} onDashboardChange={setUseOnDashboard} onSave={() => void save()} />}
             </GalaxyQueryResults>
           : <ControlContext context="panel" density="compact">
               <Form onSubmit={execute}>
@@ -499,7 +495,7 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, executionId, onBack
                         return next
                       })} />)}</FormGrid>
                     </div>
-                    {saveOpen && <SaveQueryPanel name={savedName} saving={saving} onCancel={() => setSaveOpen(false)} onChange={setSavedName} onSave={() => void save()} />}
+                    {saveOpen && <SaveQueryPanel dashboardEligible={definition.id === 'market-signals'} name={savedName} saving={saving} useOnDashboard={useOnDashboard} onCancel={() => setSaveOpen(false)} onChange={setSavedName} onDashboardChange={setUseOnDashboard} onSave={() => void save()} />}
                     <FormActions className="query-actions" layout="columns" message={error ? <Status tone="danger" wrap>{error}</Status> : undefined}>
                       <FormActionGroup columns="two"><Button alignment="start" variant="outline" size="lg" type="button" onClick={onBack}>Back</Button><Button alignment="start" variant="outline" size="lg" type="button" onClick={() => {
                         const reset = { ...definition.defaults, origin: defaultOrigin || scalar(definition.defaults.origin) }
@@ -517,19 +513,22 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, executionId, onBack
   )
 }
 
-function SaveQueryPanel ({ error, name, onCancel, onChange, onSave, saving }: {
+function SaveQueryPanel ({ dashboardEligible, error, name, onCancel, onChange, onDashboardChange, onSave, saving, useOnDashboard }: {
+  dashboardEligible: boolean
   error?: string
   name: string
   onCancel(): void
   onChange(value: string): void
+  onDashboardChange(value: boolean): void
   onSave(): void
   saving: boolean
+  useOnDashboard: boolean
 }) {
   return <section className="save-query-panel">
     <Field htmlFor="saved-query-name" label="Saved query name" required>
       <TextInput autoFocus id="saved-query-name" maxLength={80} value={name} onChange={event => onChange(event.target.value)} />
     </Field>
-    <div><Button type="button" variant="outline" onClick={onCancel}>Cancel</Button><Button busy={saving} disabled={!name.trim()} type="button" variant="primary" onClick={onSave}>Save</Button></div>
+    <div>{dashboardEligible && <ToggleButton pressed={useOnDashboard} type="button" onClick={() => onDashboardChange(!useOnDashboard)}>Use on dashboard</ToggleButton>}<Button type="button" variant="outline" onClick={onCancel}>Cancel</Button><Button busy={saving} disabled={!name.trim()} type="button" variant="primary" onClick={onSave}>Save</Button></div>
     {error && <Status tone="danger" wrap>{error}</Status>}
   </section>
 }
@@ -581,6 +580,7 @@ async function executeGalaxyQuery(api: PhoenixApi, id: GalaxyQueryDefinition['id
     }) }
     case 'shipyards': return { id, value: await api.findGalaxyShipyards({ hullName: scalar(values.hull), systemName: scalar(values.origin) }) }
     case 'facilities': return { id, value: await api.findGalaxyNearestStations({ minimumPadSize: pad(values.pad), service: scalar(values.service), systemName: scalar(values.origin) }) }
+    case 'market-signals': return { id, value: await api.findGalaxyMarketSignals({ fleetCarriers: scalar(values.fleetCarriers) === 'yes', maxDaysAgo: numeric(values.maxDaysAgo), minDeviationPercent: decimal(values.minDeviationPercent), minimumPadSize: pad(values.pad), minVolume: numeric(values.minVolume), sides: signalSides(values.sides), systemName: scalar(values.origin) }) }
     case 'commodity-markets': return { id, value: await api.findGalaxyCommodityMarkets({ commodity: scalar(values.commodity), intent: scalar(values.intent) === 'buy' ? 'buy' : 'sell', maxDaysAgo: numeric(values.maxDaysAgo), maxDistance: numeric(values.maxDistance), minVolume: numeric(values.minVolume), systemName: scalar(values.origin) }) }
     case 'outfitting-stock': return { id, value: await api.findGalaxyOutfitting({ maxDaysAgo: numeric(values.maxDaysAgo), maxDistance: numeric(values.maxDistance), minimumPadSize: pad(values.pad), module: scalar(values.module), systemName: scalar(values.origin) }) }
     case 'station-lookup': return { id, value: await api.findGalaxyStations({ maxDistance: numeric(values.radius), minimumPadSize: pad(values.pad), name: scalar(values.name), stationType: stationType(values.stationType), systemName: scalar(values.origin) }) }
@@ -593,6 +593,7 @@ async function executeGalaxyQuery(api: PhoenixApi, id: GalaxyQueryDefinition['id
 function resultStatus(result: GalaxyQueryResult): string { return `${result.value.cache} · ${galaxyQueryResultCount(result)} results` }
 function scalar(value?: GalaxyQueryValue): string { return typeof value === 'string' ? value : '' }
 function multiple(value?: GalaxyQueryValue): string[] { return Array.isArray(value) ? value : [] }
+function signalSides(value?: GalaxyQueryValue): Array<'buy' | 'sell'> { return multiple(value).filter((side): side is 'buy' | 'sell' => side === 'buy' || side === 'sell') }
 function numeric(value?: GalaxyQueryValue): number | undefined { const candidate = scalar(value); return candidate.trim() ? Number.parseInt(candidate, 10) : undefined }
 function decimal(value?: GalaxyQueryValue): number | undefined { const candidate = scalar(value); return candidate.trim() ? Number(candidate) : undefined }
 function text(value?: GalaxyQueryValue): string | undefined { return scalar(value).trim() || undefined }

@@ -24,6 +24,7 @@ describe('Galaxy query catalogue', () => {
       'station-lookup',
       'shipyards',
       'outfitting-stock',
+      'market-signals',
       'commodity-markets',
       'trade-opportunities',
       'faction-presence'

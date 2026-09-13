@@ -160,6 +160,7 @@ export const GalaxyStationLookupResponseSchema = z.object({
 export const GalaxyCommodityMarketSchema = z.object({
   buyPrice: nullableNumber,
   commodityName: z.string().min(1),
+  commoditySymbol: z.string().min(1),
   demand: nullableNumber,
   distanceLy: nullableNumber,
   distanceToArrivalLs: nullableNumber,
@@ -182,9 +183,58 @@ export const GalaxyCommodityMarketsResponseSchema = z.object({
   markets: z.array(GalaxyCommodityMarketSchema)
 })
 
+export const GalaxyMarketSignalSideSchema = z.enum(['buy', 'sell'])
+
+export const GalaxyMarketSignalSchema = z.object({
+  baselinePrice: z.number().positive(),
+  baselineUpdatedAt: z.string().datetime(),
+  commodityName: z.string().min(1),
+  commoditySymbol: z.string().min(1),
+  deviationPercent: z.number().positive(),
+  distanceLy: z.number().nonnegative(),
+  distanceToArrivalLs: nullableNumber,
+  marketId: z.number().int().nonnegative().nullable(),
+  maxLandingPadSize: z.number().int().min(1).max(3).nullable(),
+  price: z.number().positive(),
+  provider: z.literal('Ardent Insight'),
+  side: GalaxyMarketSignalSideSchema,
+  stationName: z.string().min(1),
+  stationType: nullableString,
+  systemName: z.string().min(1),
+  unlimitedVolume: z.boolean(),
+  updatedAt: z.string().datetime(),
+  volume: z.number().nonnegative()
+})
+
+export const GalaxyMarketSignalsResponseSchema = z.object({
+  cache: GalaxyCacheStateSchema,
+  caveat: z.string().min(1),
+  filters: z.object({
+    includeFleetCarriers: z.boolean(),
+    maxDaysAgo: z.number().int().min(1).max(365),
+    minDeviationPercent: z.number().positive().max(1_000),
+    minimumPadSize: z.enum(['small', 'medium', 'large']).nullable(),
+    minVolume: z.number().int().positive(),
+    sides: z.array(GalaxyMarketSignalSideSchema).min(1)
+  }),
+  originSystem: z.string().min(1),
+  provenance: z.literal('Ardent Insight community market reports'),
+  schemaVersion: z.literal(1),
+  scope: z.literal('current-system'),
+  signals: z.array(GalaxyMarketSignalSchema)
+})
+
+export const DashboardMarketSignalsResponseSchema = z.object({
+  configuration: z.object({ id: z.string().uuid(), name: z.string().min(1) }).nullable(),
+  result: GalaxyMarketSignalsResponseSchema.nullable(),
+  schemaVersion: z.literal(1),
+  state: z.enum(['location-unknown', 'not-configured', 'ready'])
+})
+
 export const GalaxyTradeOpportunitySchema = z.object({
   buyMarket: GalaxyCommodityMarketSchema,
   commodityName: z.string().min(1),
+  commoditySymbol: z.string().min(1),
   projectedProfit: z.number().nonnegative(),
   sellMarket: GalaxyCommodityMarketSchema,
   travelDistanceLy: nullableNumber,
@@ -246,6 +296,10 @@ export const GalaxyExplorationTargetsResponseSchema = z.object({
 
 export type GalaxyCommodityMarket = z.infer<typeof GalaxyCommodityMarketSchema>
 export type GalaxyCommodityMarketsResponse = z.infer<typeof GalaxyCommodityMarketsResponseSchema>
+export type GalaxyMarketSignalSide = z.infer<typeof GalaxyMarketSignalSideSchema>
+export type GalaxyMarketSignal = z.infer<typeof GalaxyMarketSignalSchema>
+export type GalaxyMarketSignalsResponse = z.infer<typeof GalaxyMarketSignalsResponseSchema>
+export type DashboardMarketSignalsResponse = z.infer<typeof DashboardMarketSignalsResponseSchema>
 export type GalaxyTradeOpportunity = z.infer<typeof GalaxyTradeOpportunitySchema>
 export type GalaxyTradeOpportunitiesResponse = z.infer<typeof GalaxyTradeOpportunitiesResponseSchema>
 export type GalaxyExplorationTarget = z.infer<typeof GalaxyExplorationTargetSchema>

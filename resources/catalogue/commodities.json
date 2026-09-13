@@ -1,0 +1,2484 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "name": "EDCD FDevIDs",
+    "repository": "https://github.com/EDCD/FDevIDs",
+    "revision": "c35612952dd6a547d1a7ac4cffab9c7051e86579",
+    "path": "commodity.csv and rare_commodity.csv",
+    "retrievedAt": "2026-09-13T21:05:57.288Z"
+  },
+  "commodities": [
+    {
+      "frontierId": 128049231,
+      "symbol": "AdvancedCatalysers",
+      "displayName": "Advanced Catalysers",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 128682046,
+      "symbol": "AdvancedMedicines",
+      "displayName": "Advanced Medicines",
+      "category": "Medicines"
+    },
+    {
+      "frontierId": 128667670,
+      "symbol": "CetiAepyornisEgg",
+      "displayName": "Aepyornis Egg",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667068,
+      "symbol": "AganippeRush",
+      "displayName": "Aganippe Rush",
+      "category": "Medicines"
+    },
+    {
+      "frontierId": 128049208,
+      "symbol": "AgriculturalMedicines",
+      "displayName": "Agri-Medicines",
+      "category": "Medicines"
+    },
+    {
+      "frontierId": 128924334,
+      "symbol": "AgronomicTreatment",
+      "displayName": "Agronomic Treatment",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 128668548,
+      "symbol": "AiRelics",
+      "displayName": "AI Relics",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128667036,
+      "symbol": "AlacarakmoSkinArt",
+      "displayName": "Alacarakmo Skin Art",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128667020,
+      "symbol": "AlbinoQuechuaMammoth",
+      "displayName": "Albino Quechua Mammoth Meat",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128924331,
+      "symbol": "Alexandrite",
+      "displayName": "Alexandrite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128049177,
+      "symbol": "Algae",
+      "displayName": "Algae",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667700,
+      "symbol": "AltairianSkin",
+      "displayName": "Altairian Skin",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128049176,
+      "symbol": "Aluminium",
+      "displayName": "Aluminium",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128667718,
+      "symbol": "AlyaBodilySoap",
+      "displayName": "Alya Body Soap",
+      "category": "Medicines"
+    },
+    {
+      "frontierId": 128666756,
+      "symbol": "USSCargoAncientArtefact",
+      "displayName": "Ancient Artefact",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128888499,
+      "symbol": "AncientKey",
+      "displayName": "Ancient Key",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128667673,
+      "symbol": "AnduligaFireWorks",
+      "displayName": "Anduliga Fire Works",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128049182,
+      "symbol": "Animalmeat",
+      "displayName": "Animal Meat",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128049229,
+      "symbol": "AnimalMonitors",
+      "displayName": "Animal Monitors",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 128922523,
+      "symbol": "P_ParticulateSample",
+      "displayName": "Anomaly Particles",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128682053,
+      "symbol": "AntimatterContainmentUnit",
+      "displayName": "Antimatter Containment Unit",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128672159,
+      "symbol": "AntiqueJewellery",
+      "displayName": "Antique Jewellery",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128668551,
+      "symbol": "Antiquities",
+      "displayName": "Antiquities",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128667041,
+      "symbol": "AnyNaCoffee",
+      "displayName": "Any Na Coffee",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128958679,
+      "symbol": "ApaVietii",
+      "displayName": "Apa Vietii",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128049230,
+      "symbol": "AquaponicSystems",
+      "displayName": "Aquaponic Systems",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 128667705,
+      "symbol": "AroucaConventualSweets",
+      "displayName": "Arouca Conventual Sweets",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128673859,
+      "symbol": "ArticulationMotors",
+      "displayName": "Articulation Motors",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128672129,
+      "symbol": "AssaultPlans",
+      "displayName": "Assault Plans",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128064028,
+      "symbol": "AtmosphericExtractors",
+      "displayName": "Atmospheric Processors",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128049228,
+      "symbol": "AutoFabricators",
+      "displayName": "Auto-Fabricators",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 128667080,
+      "symbol": "AZCancriFormula42",
+      "displayName": "AZ Cancri Formula 42",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 128667716,
+      "symbol": "BlueMilk",
+      "displayName": "Azure Milk",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667669,
+      "symbol": "BakedGreebles",
+      "displayName": "Baked Greebles",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667025,
+      "symbol": "BaltahSineVacuumKrill",
+      "displayName": "Baltah'sine Vacuum Krill",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667674,
+      "symbol": "BankiAmphibiousLeather",
+      "displayName": "Banki Amphibious Leather",
+      "category": "Textiles"
+    },
+    {
+      "frontierId": 128049210,
+      "symbol": "BasicMedicines",
+      "displayName": "Basic Medicines",
+      "category": "Medicines"
+    },
+    {
+      "frontierId": 128667065,
+      "symbol": "BastSnakeGin",
+      "displayName": "Bast Snake Gin",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 129046168,
+      "symbol": "Bastnasite",
+      "displayName": "Bastnasite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128049234,
+      "symbol": "BattleWeapons",
+      "displayName": "Battle Weapons",
+      "category": "Weapons"
+    },
+    {
+      "frontierId": 128049165,
+      "symbol": "Bauxite",
+      "displayName": "Bauxite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128049214,
+      "symbol": "Beer",
+      "displayName": "Beer",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128667061,
+      "symbol": "BelalansRayLeather",
+      "displayName": "Belalans Ray Leather",
+      "category": "Textiles"
+    },
+    {
+      "frontierId": 128924329,
+      "symbol": "Benitoite",
+      "displayName": "Benitoite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128049156,
+      "symbol": "Bertrandite",
+      "displayName": "Bertrandite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128049168,
+      "symbol": "Beryllium",
+      "displayName": "Beryllium",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128049672,
+      "symbol": "BioReducingLichen",
+      "displayName": "Bioreducing Lichen",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 128049244,
+      "symbol": "Biowaste",
+      "displayName": "Biowaste",
+      "category": "Waste"
+    },
+    {
+      "frontierId": 128672300,
+      "symbol": "Bismuth",
+      "displayName": "Bismuth",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128666752,
+      "symbol": "USSCargoBlackBox",
+      "displayName": "Black Box",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 129030461,
+      "symbol": "ThargoidBoneFragments",
+      "displayName": "Bone Fragments",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128672306,
+      "symbol": "BootlegLiquor",
+      "displayName": "Bootleg Liquor",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128667032,
+      "symbol": "BorasetaniPathogenetics",
+      "displayName": "Borasetani Pathogenetics",
+      "category": "Weapons"
+    },
+    {
+      "frontierId": 128673846,
+      "symbol": "Bromellite",
+      "displayName": "Bromellite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128748428,
+      "symbol": "BuckyballBeerMats",
+      "displayName": "Buckyball Beer Mats",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128672309,
+      "symbol": "BuildingFabricators",
+      "displayName": "Building Fabricators",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128667681,
+      "symbol": "BurnhamBileDistillate",
+      "displayName": "Burnham Bile Distillate",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 129019259,
+      "symbol": "ThargoidGeneratorTissueSample",
+      "displayName": "Caustic Tissue Sample",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128667042,
+      "symbol": "CD75CatCoffee",
+      "displayName": "CD-75 Kitten Brand Coffee",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667672,
+      "symbol": "CentauriMegaGin",
+      "displayName": "Centauri Mega Gin",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128672302,
+      "symbol": "CeramicComposites",
+      "displayName": "Ceramic Composites",
+      "category": "Industrial Materials"
+    },
+    {
+      "frontierId": 128667078,
+      "symbol": "CeremonialHeikeTea",
+      "displayName": "Ceremonial Heike Tea",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667026,
+      "symbol": "CetiRabbits",
+      "displayName": "Ceti Rabbits",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667710,
+      "symbol": "ChameleonCloth",
+      "displayName": "Chameleon Cloth",
+      "category": "Textiles"
+    },
+    {
+      "frontierId": 128667084,
+      "symbol": "ChateauDeAegaeon",
+      "displayName": "Chateau De Aegaeon",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128049246,
+      "symbol": "ChemicalWaste",
+      "displayName": "Chemical Waste",
+      "category": "Waste"
+    },
+    {
+      "frontierId": 128667675,
+      "symbol": "CherbonesBloodCrystals",
+      "displayName": "Cherbones Blood Crystals",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128667049,
+      "symbol": "ChiEridaniMarinePaste",
+      "displayName": "Chi Eridani Marine Paste",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 129002574,
+      "symbol": "ClassifiedExperimentalEquipment",
+      "displayName": "Classified Experimental Equipment",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 128049241,
+      "symbol": "Clothing",
+      "displayName": "Clothing",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128673856,
+      "symbol": "CMMComposite",
+      "displayName": "CMM Composite",
+      "category": "Industrial Materials"
+    },
+    {
+      "frontierId": 128049162,
+      "symbol": "Cobalt",
+      "displayName": "Cobalt",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128049189,
+      "symbol": "Coffee",
+      "displayName": "Coffee",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128049159,
+      "symbol": "Coltan",
+      "displayName": "Coltan",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128049670,
+      "symbol": "CombatStabilisers",
+      "displayName": "Combat Stabilisers",
+      "category": "Medicines"
+    },
+    {
+      "frontierId": 128672127,
+      "symbol": "ComercialSamples",
+      "displayName": "Commercial Samples",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128049225,
+      "symbol": "ComputerComponents",
+      "displayName": "Computer Components",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 128682044,
+      "symbol": "ConductiveFabrics",
+      "displayName": "Conductive Fabrics",
+      "category": "Textiles"
+    },
+    {
+      "frontierId": 128049240,
+      "symbol": "ConsumerTechnology",
+      "displayName": "Consumer Technology",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128049175,
+      "symbol": "Copper",
+      "displayName": "Copper",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128667054,
+      "symbol": "CoquimSpongiformVictuals",
+      "displayName": "Coquim Spongiform Victuals",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 129022407,
+      "symbol": "CoralSap",
+      "displayName": "Coral Sap",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128727921,
+      "symbol": "AnimalEffigies",
+      "displayName": "Crom Silver Fesh",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128049222,
+      "symbol": "CropHarvesters",
+      "displayName": "Crop Harvesters",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128672294,
+      "symbol": "Cryolite",
+      "displayName": "Cryolite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128672432,
+      "symbol": "CrystallineSpheres",
+      "displayName": "Crystalline Spheres",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 129045961,
+      "symbol": "CuratedCommodity",
+      "displayName": "Curated Commodity Package",
+      "category": "Industrial Materials"
+    },
+    {
+      "frontierId": 129030460,
+      "symbol": "ThargoidCystSpecimen",
+      "displayName": "Cyst Specimen",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128672811,
+      "symbol": "DamagedEscapePod",
+      "displayName": "Damaged Escape Pod",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128667062,
+      "symbol": "DamnaCarapaces",
+      "displayName": "Damna Carapaces",
+      "category": "Textiles"
+    },
+    {
+      "frontierId": 128682049,
+      "symbol": "DataCore",
+      "displayName": "Data Core",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128667073,
+      "symbol": "DeltaPhoenicisPalms",
+      "displayName": "Delta Phoenicis Palms",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 128667058,
+      "symbol": "DeuringasTruffles",
+      "displayName": "Deuringas Truffles",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 129046169,
+      "symbol": "Deuterium",
+      "displayName": "Deuterium",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 129046175,
+      "symbol": "Diamond",
+      "displayName": "Diamond",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128672131,
+      "symbol": "DiplomaticBag",
+      "displayName": "Diplomatic Bag",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128667714,
+      "symbol": "DisoMaCorn",
+      "displayName": "Diso Ma Corn",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128049238,
+      "symbol": "DomesticAppliances",
+      "displayName": "Domestic Appliances",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128922524,
+      "symbol": "Duradrives",
+      "displayName": "Duradrives",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128672161,
+      "symbol": "EarthRelics",
+      "displayName": "Earth Relics",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128667055,
+      "symbol": "AerialEdenApple",
+      "displayName": "Eden Apples of Aerial",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667037,
+      "symbol": "EleuThermals",
+      "displayName": "Eleu Thermals",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128673861,
+      "symbol": "EmergencyPowerCells",
+      "displayName": "Emergency Power Cells",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128672130,
+      "symbol": "EncryptedCorrespondence",
+      "displayName": "Encrypted Correspondence",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128672124,
+      "symbol": "EncriptedDataStorage",
+      "displayName": "Encrypted Data Storage",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128673863,
+      "symbol": "PowerGridAssembly",
+      "displayName": "Energy Grid Assembly",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128666746,
+      "symbol": "EraninPearlWhisky",
+      "displayName": "Eranin Pearl Whisky",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128667038,
+      "symbol": "EshuUmbrellas",
+      "displayName": "Eshu Umbrellas",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128667050,
+      "symbol": "EsusekuCaviar",
+      "displayName": "Esuseku Caviar",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667077,
+      "symbol": "EthgrezeTeaBuds",
+      "displayName": "Ethgreze Tea Buds",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128672314,
+      "symbol": "EvacuationShelter",
+      "displayName": "Evacuation Shelter",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128673866,
+      "symbol": "ExhaustManifold",
+      "displayName": "Exhaust Manifold",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128666758,
+      "symbol": "USSCargoExperimentalChemicals",
+      "displayName": "Experimental Chemicals",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128049204,
+      "symbol": "Explosives",
+      "displayName": "Explosives",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 128672431,
+      "symbol": "PersonalGifts",
+      "displayName": "Festive Gifts",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128049183,
+      "symbol": "Fish",
+      "displayName": "Fish",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128049184,
+      "symbol": "FoodCartridges",
+      "displayName": "Food Cartridges",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128682055,
+      "symbol": "FossilRemnants",
+      "displayName": "Fossil Remnants",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128049178,
+      "symbol": "FruitAndVegetables",
+      "displayName": "Fruit and Vegetables",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667709,
+      "symbol": "FujinTea",
+      "displayName": "Fujin Tea",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128682050,
+      "symbol": "GalacticTravelGuide",
+      "displayName": "Galactic Travel Guide",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128049158,
+      "symbol": "Gallite",
+      "displayName": "Gallite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128049170,
+      "symbol": "Gallium",
+      "displayName": "Gallium",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128667677,
+      "symbol": "GeawenDanceDust",
+      "displayName": "Geawen Dance Dust",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128672162,
+      "symbol": "GeneBank",
+      "displayName": "Gene Bank",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128672307,
+      "symbol": "GeologicalEquipment",
+      "displayName": "Geological Equipment",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128672315,
+      "symbol": "GeologicalSamples",
+      "displayName": "Geological Samples",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128667678,
+      "symbol": "GerasianGueuzeBeer",
+      "displayName": "Gerasian Gueuze Beer",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128667024,
+      "symbol": "GiantIrukamaSnails",
+      "displayName": "Giant Irukama Snails",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667703,
+      "symbol": "GiantVerrix",
+      "displayName": "Giant Verrix",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128667072,
+      "symbol": "GilyaSignatureWeapons",
+      "displayName": "Gilya Signature Weapons",
+      "category": "Weapons"
+    },
+    {
+      "frontierId": 128049154,
+      "symbol": "Gold",
+      "displayName": "Gold",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128667043,
+      "symbol": "GomanYauponCoffee",
+      "displayName": "Goman Yaupon Coffee",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128672295,
+      "symbol": "Goslarite",
+      "displayName": "Goslarite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128049180,
+      "symbol": "Grain",
+      "displayName": "Grain",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128924330,
+      "symbol": "Grandidierite",
+      "displayName": "Grandidierite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128732185,
+      "symbol": "AncientCasket",
+      "displayName": "Guardian Casket",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128732184,
+      "symbol": "AncientOrb",
+      "displayName": "Guardian Orb",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128732183,
+      "symbol": "AncientRelic",
+      "displayName": "Guardian Relic",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128732186,
+      "symbol": "AncientTablet",
+      "displayName": "Guardian Tablet",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128732188,
+      "symbol": "AncientTotem",
+      "displayName": "Guardian Totem",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128732187,
+      "symbol": "AncientUrn",
+      "displayName": "Guardian Urn",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128049226,
+      "symbol": "HazardousEnvironmentSuits",
+      "displayName": "H.E. Suits",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 129031327,
+      "symbol": "Haematite",
+      "displayName": "Haematite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128668549,
+      "symbol": "Hafnium178",
+      "displayName": "Hafnium 178",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128667679,
+      "symbol": "HaidneBlackBrew",
+      "displayName": "Haiden Black Brew",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128673875,
+      "symbol": "DiagnosticSensor",
+      "displayName": "Hardware Diagnostic Sensor",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 128793113,
+      "symbol": "HarmaSilverSeaRum",
+      "displayName": "Harma Silver Sea Rum",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128667680,
+      "symbol": "HavasupaiDreamCatcher",
+      "displayName": "Havasupai Dream Catcher",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128673868,
+      "symbol": "HeatsinkInterlink",
+      "displayName": "Heatsink Interlink",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 129046166,
+      "symbol": "Helium",
+      "displayName": "Helium",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 129046167,
+      "symbol": "Helium3",
+      "displayName": "Helium-3",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 128667052,
+      "symbol": "HelvetitjPearls",
+      "displayName": "Helvetitj Pearls",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128667019,
+      "symbol": "HIP10175BushMeat",
+      "displayName": "HIP 10175 Bush Meat",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667033,
+      "symbol": "HIP118311Swarm",
+      "displayName": "HIP 118311 Swarm",
+      "category": "Weapons"
+    },
+    {
+      "frontierId": 128667682,
+      "symbol": "HIPOrganophosphates",
+      "displayName": "HIP Organophosphates",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 128667053,
+      "symbol": "HIP41181Squid",
+      "displayName": "HIP Proto-Squid",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128673860,
+      "symbol": "HNShockMount",
+      "displayName": "HN Shock Mount",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128667070,
+      "symbol": "HolvaDuellingBlades",
+      "displayName": "Holva Duelling Blades",
+      "category": "Weapons"
+    },
+    {
+      "frontierId": 128667686,
+      "symbol": "HonestyPills",
+      "displayName": "Honesty Pills",
+      "category": "Medicines"
+    },
+    {
+      "frontierId": 128672135,
+      "symbol": "Hostage",
+      "displayName": "Hostages",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128667059,
+      "symbol": "HR7221Wheat",
+      "displayName": "HR 7221 Wheat",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128049202,
+      "symbol": "HydrogenFuel",
+      "displayName": "Hydrogen Fuel",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 128673850,
+      "symbol": "HydrogenPeroxide",
+      "displayName": "Hydrogen Peroxide",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 128667728,
+      "symbol": "ImperialSlaves",
+      "displayName": "Imperial Slaves",
+      "category": "Slavery"
+    },
+    {
+      "frontierId": 129022408,
+      "symbol": "UnknownMineral",
+      "displayName": "Impure Spire Mineral",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128667704,
+      "symbol": "IndiBourbon",
+      "displayName": "Indi Bourbon",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128049157,
+      "symbol": "Indite",
+      "displayName": "Indite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128049169,
+      "symbol": "Indium",
+      "displayName": "Indium",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128673855,
+      "symbol": "InsulatingMembrane",
+      "displayName": "Insulating Membrane",
+      "category": "Industrial Materials"
+    },
+    {
+      "frontierId": 128673874,
+      "symbol": "IonDistributor",
+      "displayName": "Ion Distributor",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 129046165,
+      "symbol": "Iridium",
+      "displayName": "Iridium",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128672776,
+      "symbol": "Jadeite",
+      "displayName": "Jadeite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128668017,
+      "symbol": "JaquesQuinentianStill",
+      "displayName": "Jaques Quinentian Still",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128667683,
+      "symbol": "JaradharrePuzzlebox",
+      "displayName": "Jaradharre Puzzle Box",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128667060,
+      "symbol": "JarouaRice",
+      "displayName": "Jaroua Rice",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667702,
+      "symbol": "JotunMookah",
+      "displayName": "Jotun Mookah",
+      "category": "Textiles"
+    },
+    {
+      "frontierId": 128667027,
+      "symbol": "KachiriginLeaches",
+      "displayName": "Kachirigin Filter Leeches",
+      "category": "Medicines"
+    },
+    {
+      "frontierId": 128667081,
+      "symbol": "KamitraCigars",
+      "displayName": "Kamitra Cigars",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128667071,
+      "symbol": "KamorinHistoricWeapons",
+      "displayName": "Kamorin Historic Weapons",
+      "category": "Weapons"
+    },
+    {
+      "frontierId": 128667039,
+      "symbol": "KaretiiCouture",
+      "displayName": "Karetii Couture",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128667023,
+      "symbol": "KarsukiLocusts",
+      "displayName": "Karsuki Locusts",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667045,
+      "symbol": "KinagoInstruments",
+      "displayName": "Kinago Violins",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128667034,
+      "symbol": "KonggaAle",
+      "displayName": "Kongga Ale",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128667684,
+      "symbol": "KorroKungPellets",
+      "displayName": "Koro Kung Pellets",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 128049232,
+      "symbol": "TerrainEnrichmentSystems",
+      "displayName": "Land Enrichment Systems",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 128672312,
+      "symbol": "Landmines",
+      "displayName": "Landmines",
+      "category": "Weapons"
+    },
+    {
+      "frontierId": 128672298,
+      "symbol": "Lanthanum",
+      "displayName": "Lanthanum",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128672136,
+      "symbol": "LargeExplorationDataCash",
+      "displayName": "Large Survey Data Cache",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128666747,
+      "symbol": "LavianBrandy",
+      "displayName": "Lavian Brandy",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128049190,
+      "symbol": "Leather",
+      "displayName": "Leather",
+      "category": "Textiles"
+    },
+    {
+      "frontierId": 128667717,
+      "symbol": "AlienEggs",
+      "displayName": "Leathery Eggs",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128667715,
+      "symbol": "LeestianEvilJuice",
+      "displayName": "Leestian Evil Juice",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128049161,
+      "symbol": "Lepidolite",
+      "displayName": "Lepidolite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128066403,
+      "symbol": "Drones",
+      "displayName": "Limpets",
+      "category": "NonMarketable"
+    },
+    {
+      "frontierId": 128673851,
+      "symbol": "LiquidOxygen",
+      "displayName": "Liquid oxygen",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 128049216,
+      "symbol": "Liquor",
+      "displayName": "Liquor",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128049173,
+      "symbol": "Lithium",
+      "displayName": "Lithium",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128673853,
+      "symbol": "LithiumHydroxide",
+      "displayName": "Lithium Hydroxide",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128667051,
+      "symbol": "LiveHecateSeaWorms",
+      "displayName": "Live Hecate Sea Worms",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128673848,
+      "symbol": "LowTemperatureDiamond",
+      "displayName": "Low Temperature Diamonds",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128667688,
+      "symbol": "LTTHyperSweet",
+      "displayName": "LTT Hyper Sweet",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667760,
+      "symbol": "TransgenicOnionHead",
+      "displayName": "Lucan Onionhead",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128667028,
+      "symbol": "LyraeWeed",
+      "displayName": "Lyrae Weed",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 129046177,
+      "symbol": "Magnesite",
+      "displayName": "Magnesite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128673869,
+      "symbol": "MagneticEmitterCoil",
+      "displayName": "Magnetic Emitter Coil",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128049223,
+      "symbol": "MarineSupplies",
+      "displayName": "Marine Equipment",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128672316,
+      "symbol": "MasterChefs",
+      "displayName": "Master Chefs",
+      "category": "Slavery"
+    },
+    {
+      "frontierId": 128667689,
+      "symbol": "MechucosHighTea",
+      "displayName": "Mechucos High Tea",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667690,
+      "symbol": "MedbStarlube",
+      "displayName": "Medb Starlube",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 128682047,
+      "symbol": "MedicalDiagnosticEquipment",
+      "displayName": "Medical Diagnostic Equipment",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 128672701,
+      "symbol": "MetaAlloys",
+      "displayName": "Meta-Alloys",
+      "category": "Industrial Materials"
+    },
+    {
+      "frontierId": 128673854,
+      "symbol": "MethaneClathrate",
+      "displayName": "Methane Clathrate",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128673852,
+      "symbol": "MethanolMonohydrateCrystals",
+      "displayName": "Methanol Monohydrate Crystals",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128673873,
+      "symbol": "MicroControllers",
+      "displayName": "Micro Controllers",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 128673857,
+      "symbol": "CoolingHoses",
+      "displayName": "Micro-weave Cooling Hoses",
+      "category": "Industrial Materials"
+    },
+    {
+      "frontierId": 128049220,
+      "symbol": "HeliostaticFurnaces",
+      "displayName": "Microbial Furnaces",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128682045,
+      "symbol": "MilitaryGradeFabrics",
+      "displayName": "Military Grade Fabrics",
+      "category": "Textiles"
+    },
+    {
+      "frontierId": 128668552,
+      "symbol": "MilitaryIntelligence",
+      "displayName": "Military Intelligence",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128666755,
+      "symbol": "USSCargoMilitaryPlans",
+      "displayName": "Military Plans",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128049221,
+      "symbol": "MineralExtractors",
+      "displayName": "Mineral Extractors",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128049203,
+      "symbol": "MineralOil",
+      "displayName": "Mineral Oil",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 128673870,
+      "symbol": "ModularTerminals",
+      "displayName": "Modular Terminals",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128672296,
+      "symbol": "Moissanite",
+      "displayName": "Moissanite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128667691,
+      "symbol": "MokojingBeastFeast",
+      "displayName": "Mokojing Beast Feast",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128922519,
+      "symbol": "M_TissueSample_Nerves",
+      "displayName": "Mollusc Brain Tissue",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128922517,
+      "symbol": "M_TissueSample_Fluid",
+      "displayName": "Mollusc Fluid",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128922782,
+      "symbol": "M3_TissueSample_Membrane",
+      "displayName": "Mollusc Membrane",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128922783,
+      "symbol": "M3_TissueSample_Mycelium",
+      "displayName": "Mollusc Mycelium",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128922518,
+      "symbol": "M_TissueSample_Soft",
+      "displayName": "Mollusc Soft Tissue",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128922784,
+      "symbol": "M3_TissueSample_Spores",
+      "displayName": "Mollusc Spores",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128667713,
+      "symbol": "MomusBogSpaniel",
+      "displayName": "Momus Bog Spaniel",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128924327,
+      "symbol": "Monazite",
+      "displayName": "Monazite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128667676,
+      "symbol": "MotronaExperienceJelly",
+      "displayName": "Motrona Experience Jelly",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128667692,
+      "symbol": "MukusubiiChitinOs",
+      "displayName": "Mukusubii Chitin-os",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667693,
+      "symbol": "MulachiGiantFungus",
+      "displayName": "Mulachi Giant Fungus",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128672310,
+      "symbol": "MuTomImager",
+      "displayName": "Muon Imager",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 128924328,
+      "symbol": "Musgravite",
+      "displayName": "Musgravite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128682051,
+      "symbol": "MysteriousIdol",
+      "displayName": "Mysterious Idol",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128673871,
+      "symbol": "Nanobreakers",
+      "displayName": "Nanobreakers",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 128913661,
+      "symbol": "Nanomedicines",
+      "displayName": "Nanomedicines",
+      "category": "Medicines"
+    },
+    {
+      "frontierId": 128049212,
+      "symbol": "BasicNarcotics",
+      "displayName": "Narcotics",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128049191,
+      "symbol": "NaturalFabrics",
+      "displayName": "Natural Fabrics",
+      "category": "Textiles"
+    },
+    {
+      "frontierId": 128673858,
+      "symbol": "NeofabricInsulation",
+      "displayName": "Neofabric Insulation",
+      "category": "Industrial Materials"
+    },
+    {
+      "frontierId": 128667056,
+      "symbol": "NeritusBerries",
+      "displayName": "Neritus Berries",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128672304,
+      "symbol": "NerveAgents",
+      "displayName": "Nerve Agents",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 128667694,
+      "symbol": "NgadandariFireOpals",
+      "displayName": "Ngadandari Fire Opals",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128667046,
+      "symbol": "NgunaModernAntiques",
+      "displayName": "Nguna Modern Antiques",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128667040,
+      "symbol": "NjangariSaddles",
+      "displayName": "Njangari Saddles",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128667687,
+      "symbol": "NonEuclidianExotanks",
+      "displayName": "Non Euclidian Exotanks",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128049236,
+      "symbol": "NonLethalWeapons",
+      "displayName": "Non-Lethal Weapons",
+      "category": "Weapons"
+    },
+    {
+      "frontierId": 128672125,
+      "symbol": "OccupiedCryoPod",
+      "displayName": "Occupied Escape Pod",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128667057,
+      "symbol": "OchoengChillies",
+      "displayName": "Ochoeng Chillies",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 129046172,
+      "symbol": "Olivine",
+      "displayName": "Olivine",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128667029,
+      "symbol": "OnionHead",
+      "displayName": "Onionhead",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128672812,
+      "symbol": "OnionHeadA",
+      "displayName": "Onionhead Alpha Strain",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128673069,
+      "symbol": "OnionHeadB",
+      "displayName": "Onionhead Beta Strain",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128983059,
+      "symbol": "OnionHeadC",
+      "displayName": "Onionhead Gamma Strain",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128667668,
+      "symbol": "OphiuchiExinoArtefacts",
+      "displayName": "Ophiuch Exino Artefacts",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 129030462,
+      "symbol": "ThargoidOrganSample",
+      "displayName": "Organ Sample",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128667711,
+      "symbol": "OrrerianViciousBrew",
+      "displayName": "Orrerian Vicious Brew",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128671118,
+      "symbol": "Osmium",
+      "displayName": "Osmium",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128668550,
+      "symbol": "Painite",
+      "displayName": "Painite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128049153,
+      "symbol": "Palladium",
+      "displayName": "Palladium",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128667708,
+      "symbol": "PantaaPrayerSticks",
+      "displayName": "Pantaa Prayer Sticks",
+      "category": "Medicines"
+    },
+    {
+      "frontierId": 128667701,
+      "symbol": "PavonisEarGrubs",
+      "displayName": "Pavonis Ear Grubs",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128049209,
+      "symbol": "PerformanceEnhancers",
+      "displayName": "Performance Enhancers",
+      "category": "Medicines"
+    },
+    {
+      "frontierId": 129046173,
+      "symbol": "PericlaseDunite",
+      "displayName": "Periclase Dunite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128672126,
+      "symbol": "PersonalEffects",
+      "displayName": "Personal Effects",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128049233,
+      "symbol": "PersonalWeapons",
+      "displayName": "Personal Weapons",
+      "category": "Weapons"
+    },
+    {
+      "frontierId": 128049205,
+      "symbol": "Pesticides",
+      "displayName": "Pesticides",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 128049152,
+      "symbol": "Platinum",
+      "displayName": "Platinum",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128793114,
+      "symbol": "PlatinumAloy",
+      "displayName": "Platinum Alloy",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128922520,
+      "symbol": "S_TissueSample_Cells",
+      "displayName": "Pod Core Tissue",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128922521,
+      "symbol": "S_TissueSample_Surface",
+      "displayName": "Pod Dead Tissue",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128922785,
+      "symbol": "S6_TissueSample_Mesoglea",
+      "displayName": "Pod Mesoglea",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128922786,
+      "symbol": "S6_TissueSample_Cells",
+      "displayName": "Pod Outer Tissue",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128922787,
+      "symbol": "S6_TissueSample_Coenosarc",
+      "displayName": "Pod Shell Tissue",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128922522,
+      "symbol": "S_TissueSample_Core",
+      "displayName": "Pod Surface Tissue",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128922781,
+      "symbol": "S9_TissueSample_Shell",
+      "displayName": "Pod Tissue",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128672134,
+      "symbol": "PoliticalPrisoner",
+      "displayName": "Political Prisoners",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128049197,
+      "symbol": "Polymers",
+      "displayName": "Polymers",
+      "category": "Industrial Materials"
+    },
+    {
+      "frontierId": 128673862,
+      "symbol": "PowerConverter",
+      "displayName": "Power Converter",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128049217,
+      "symbol": "PowerGenerators",
+      "displayName": "Power Generators",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128673864,
+      "symbol": "PowerTransferConduits",
+      "displayName": "Power Transfer Bus",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128673845,
+      "symbol": "Praseodymium",
+      "displayName": "Praseodymium",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128672160,
+      "symbol": "PreciousGems",
+      "displayName": "Precious Gems",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128049669,
+      "symbol": "ProgenitorCells",
+      "displayName": "Progenitor Cells",
+      "category": "Medicines"
+    },
+    {
+      "frontierId": 128682052,
+      "symbol": "ProhibitedResearchMaterials",
+      "displayName": "Prohibited Research Materials",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 129022405,
+      "symbol": "UnknownSack",
+      "displayName": "Protective Membrane Scrap",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128666760,
+      "symbol": "USSCargoPrototypeTech",
+      "displayName": "Prototype Tech",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128672297,
+      "symbol": "Pyrophyllite",
+      "displayName": "Pyrophyllite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 129046171,
+      "symbol": "QuartzPyroxenite",
+      "displayName": "Quartz Pyroxenite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128673865,
+      "symbol": "RadiationBaffle",
+      "displayName": "Radiation Baffle",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128667047,
+      "symbol": "RajukruStoves",
+      "displayName": "Rajukru Multi-Stoves",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128667063,
+      "symbol": "RapaBaoSnakeSkins",
+      "displayName": "Rapa Bao Snake Skins",
+      "category": "Textiles"
+    },
+    {
+      "frontierId": 128666757,
+      "symbol": "USSCargoRareArtwork",
+      "displayName": "Rare Artwork",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128049235,
+      "symbol": "ReactiveArmour",
+      "displayName": "Reactive Armour",
+      "category": "Weapons"
+    },
+    {
+      "frontierId": 128666759,
+      "symbol": "USSCargoRebelTransmissions",
+      "displayName": "Rebel Transmissions",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128673867,
+      "symbol": "ReinforcedMountingPlate",
+      "displayName": "Reinforced Mounting Plate",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128049671,
+      "symbol": "ResonatingSeparators",
+      "displayName": "Resonating Separators",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 128924325,
+      "symbol": "Rhodplumsite",
+      "displayName": "Rhodplumsite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128049227,
+      "symbol": "Robotics",
+      "displayName": "Robotics",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 128924333,
+      "symbol": "RockforthFertiliser",
+      "displayName": "Rockforth Fertiliser",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 129046176,
+      "symbol": "Ruby",
+      "displayName": "Ruby",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128667082,
+      "symbol": "RusaniOldSmokey",
+      "displayName": "Rusani Old Smokey",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128049163,
+      "symbol": "Rutile",
+      "displayName": "Rutile",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128673847,
+      "symbol": "Samarium",
+      "displayName": "Samarium",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128667076,
+      "symbol": "SanumaMEAT",
+      "displayName": "Sanuma Decorative Meat",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128671443,
+      "symbol": "SAP8CoreContainer",
+      "displayName": "SAP 8 Core Container",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 129046174,
+      "symbol": "Sapphire",
+      "displayName": "Sapphire",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128667671,
+      "symbol": "SaxonWine",
+      "displayName": "Saxon Wine",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128672132,
+      "symbol": "ScientificResearch",
+      "displayName": "Scientific Research",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128672133,
+      "symbol": "ScientificSamples",
+      "displayName": "Scientific Samples",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128049248,
+      "symbol": "Scrap",
+      "displayName": "Scrap",
+      "category": "Waste"
+    },
+    {
+      "frontierId": 129022409,
+      "symbol": "UnknownRefinedMineral",
+      "displayName": "Semi-Refined Spire Mineral",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128049199,
+      "symbol": "Semiconductors",
+      "displayName": "Semiconductors",
+      "category": "Industrial Materials"
+    },
+    {
+      "frontierId": 128924326,
+      "symbol": "Serendibite",
+      "displayName": "Serendibite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128732551,
+      "symbol": "ShansCharisOrchid",
+      "displayName": "Shan's Charis Orchid",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128049155,
+      "symbol": "Silver",
+      "displayName": "Silver",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128672313,
+      "symbol": "SkimerComponents",
+      "displayName": "Skimmer Components",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128049243,
+      "symbol": "Slaves",
+      "displayName": "Slaves",
+      "category": "Slavery"
+    },
+    {
+      "frontierId": 128672137,
+      "symbol": "SmallExplorationDataCash",
+      "displayName": "Small Survey Data Cache",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128668018,
+      "symbol": "SoontillRelics",
+      "displayName": "Soontill Relics",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128672122,
+      "symbol": "SothisCrystallineGold",
+      "displayName": "Sothis Crystalline Gold",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128682054,
+      "symbol": "SpacePioneerRelics",
+      "displayName": "Space Pioneer Relics",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 129031238,
+      "symbol": "Steel",
+      "displayName": "Steel",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128672311,
+      "symbol": "StructuralRegulators",
+      "displayName": "Structural Regulators",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 128049200,
+      "symbol": "Superconductors",
+      "displayName": "Superconductors",
+      "category": "Industrial Materials"
+    },
+    {
+      "frontierId": 128672305,
+      "symbol": "SurfaceStabilisers",
+      "displayName": "Surface Stabilisers",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 128682048,
+      "symbol": "SurvivalEquipment",
+      "displayName": "Survival Equipment",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128049193,
+      "symbol": "SyntheticFabrics",
+      "displayName": "Synthetic Fabrics",
+      "category": "Textiles"
+    },
+    {
+      "frontierId": 128049185,
+      "symbol": "SyntheticMeat",
+      "displayName": "Synthetic Meat",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128672303,
+      "symbol": "SyntheticReagents",
+      "displayName": "Synthetic Reagents",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 128672775,
+      "symbol": "Taaffeite",
+      "displayName": "Taaffeite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128672128,
+      "symbol": "TacticalData",
+      "displayName": "Tactical Data",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128667079,
+      "symbol": "TanmarkTranquilTea",
+      "displayName": "Tanmark Tranquil Tea",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128049171,
+      "symbol": "Tantalum",
+      "displayName": "Tantalum",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128667030,
+      "symbol": "TarachTorSpice",
+      "displayName": "Tarach Spice",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128667706,
+      "symbol": "TauriChimes",
+      "displayName": "Tauri Chimes",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128049188,
+      "symbol": "Tea",
+      "displayName": "Tea",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128666761,
+      "symbol": "USSCargoTechnicalBlueprints",
+      "displayName": "Technical Blueprints",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128673872,
+      "symbol": "TelemetrySuite",
+      "displayName": "Telemetry Suite",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 128667069,
+      "symbol": "TerraMaterBloodBores",
+      "displayName": "Terra Mater Blood Bores",
+      "category": "Medicines"
+    },
+    {
+      "frontierId": 128672299,
+      "symbol": "Thallium",
+      "displayName": "Thallium",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128793129,
+      "symbol": "ThargoidTissueSampleType2",
+      "displayName": "Thargoid Basilisk Tissue Sample",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128737288,
+      "symbol": "UnknownBiologicalMatter",
+      "displayName": "Thargoid Biological Matter",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128793128,
+      "symbol": "ThargoidTissueSampleType1",
+      "displayName": "Thargoid Cyclops Tissue Sample",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 129022395,
+      "symbol": "ThargoidTissueSampleType6",
+      "displayName": "Thargoid Glaive Tissue Sample",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128793127,
+      "symbol": "ThargoidHeart",
+      "displayName": "Thargoid Heart",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128902652,
+      "symbol": "ThargoidTissueSampleType4",
+      "displayName": "Thargoid Hydra Tissue Sample",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128740752,
+      "symbol": "UnknownArtifact3",
+      "displayName": "Thargoid Link",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128793130,
+      "symbol": "ThargoidTissueSampleType3",
+      "displayName": "Thargoid Medusa Tissue Sample",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 129019258,
+      "symbol": "ThargoidTissueSampleType5",
+      "displayName": "Thargoid Orthrus Tissue Sample",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128673876,
+      "symbol": "UnknownArtifact2",
+      "displayName": "Thargoid Probe",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128737287,
+      "symbol": "UnknownResin",
+      "displayName": "Thargoid Resin",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128824468,
+      "symbol": "ThargoidScoutTissueSample",
+      "displayName": "Thargoid Scout Tissue Sample",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 129022396,
+      "symbol": "ThargoidTissueSampleType7",
+      "displayName": "Thargoid Scythe Tissue Sample",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128668547,
+      "symbol": "UnknownArtifact",
+      "displayName": "Thargoid Sensor",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128737289,
+      "symbol": "UnknownTechnologySamples",
+      "displayName": "Thargoid Technology Samples",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128672121,
+      "symbol": "TheHuttonMug",
+      "displayName": "The Hutton Mug",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128667085,
+      "symbol": "WatersOfShintara",
+      "displayName": "The Waters of Shintara",
+      "category": "Medicines"
+    },
+    {
+      "frontierId": 128672308,
+      "symbol": "ThermalCoolingUnits",
+      "displayName": "Thermal Cooling Units",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128672301,
+      "symbol": "Thorium",
+      "displayName": "Thorium",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 129046170,
+      "symbol": "Thortveitite",
+      "displayName": "Thortveitite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128667066,
+      "symbol": "ThrutisCream",
+      "displayName": "Thrutis Cream",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128667695,
+      "symbol": "TiegfriesSynthSilk",
+      "displayName": "Tiegfries Synth Silk",
+      "category": "Textiles"
+    },
+    {
+      "frontierId": 128672163,
+      "symbol": "TimeCapsule",
+      "displayName": "Time Capsule",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128667048,
+      "symbol": "TiolceWaste2PasteUnits",
+      "displayName": "Tiolce Waste2Paste Units",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 129022398,
+      "symbol": "ThargoidTissueSampleType9a",
+      "displayName": "Titan Deep Tissue Sample",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 129030459,
+      "symbol": "ThargoidTitanDriveComponent",
+      "displayName": "Titan Drive Component",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 129022402,
+      "symbol": "ThargoidTissueSampleType10a",
+      "displayName": "Titan Maw Deep Tissue Sample",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 129022404,
+      "symbol": "ThargoidTissueSampleType10c",
+      "displayName": "Titan Maw Partial Tissue Sample",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 129022403,
+      "symbol": "ThargoidTissueSampleType10b",
+      "displayName": "Titan Maw Tissue Sample",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 129022400,
+      "symbol": "ThargoidTissueSampleType9c",
+      "displayName": "Titan Partial Tissue Sample",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 129022399,
+      "symbol": "ThargoidTissueSampleType9b",
+      "displayName": "Titan Tissue Sample",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128049174,
+      "symbol": "Titanium",
+      "displayName": "Titanium",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128049213,
+      "symbol": "Tobacco",
+      "displayName": "Tobacco",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128667074,
+      "symbol": "ToxandjiVirocide",
+      "displayName": "Toxandji Virocide",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 128049245,
+      "symbol": "ToxicWaste",
+      "displayName": "Toxic Waste",
+      "category": "Waste"
+    },
+    {
+      "frontierId": 128666754,
+      "symbol": "USSCargoTradeData",
+      "displayName": "Trade Data",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128671444,
+      "symbol": "TrinketsOfFortune",
+      "displayName": "Trinkets of Hidden Fortune",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128961249,
+      "symbol": "Tritium",
+      "displayName": "Tritium",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 128671119,
+      "symbol": "Advert1",
+      "displayName": "Ultra-Compact Processor Prototypes",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 129015433,
+      "symbol": "AncientRelicTG",
+      "displayName": "Unclassified Relic",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 129022087,
+      "symbol": "UnocuppiedEscapePod",
+      "displayName": "Unoccupied Escape Pod",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128672810,
+      "symbol": "UnstableDataCore",
+      "displayName": "Unstable Data Core",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128049160,
+      "symbol": "Uraninite",
+      "displayName": "Uraninite",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128049172,
+      "symbol": "Uranium",
+      "displayName": "Uranium",
+      "category": "Metals"
+    },
+    {
+      "frontierId": 128667712,
+      "symbol": "UszaianTreeGrub",
+      "displayName": "Uszaian Tree Grub",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667021,
+      "symbol": "UtgaroarMillenialEggs",
+      "displayName": "Utgaroar Millennial Eggs",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667696,
+      "symbol": "UzumokuLowGWings",
+      "displayName": "Uzumoku Low-G Wings",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128667697,
+      "symbol": "VHerculisBodyRub",
+      "displayName": "V Herculis Body Rub",
+      "category": "Medicines"
+    },
+    {
+      "frontierId": 128667064,
+      "symbol": "VanayequiRhinoFur",
+      "displayName": "Vanayequi Ceratomorpha Fur",
+      "category": "Textiles"
+    },
+    {
+      "frontierId": 128667699,
+      "symbol": "VegaSlimWeed",
+      "displayName": "Vega Slimweed",
+      "category": "Medicines"
+    },
+    {
+      "frontierId": 128667719,
+      "symbol": "VidavantianLace",
+      "displayName": "Vidavantian Lace",
+      "category": "Consumer Items"
+    },
+    {
+      "frontierId": 128667685,
+      "symbol": "LFTVoidExtractCoffee",
+      "displayName": "Void Extract Coffee",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128924332,
+      "symbol": "Opal",
+      "displayName": "Void Opal",
+      "category": "Minerals"
+    },
+    {
+      "frontierId": 128667044,
+      "symbol": "VolkhabBeeDrones",
+      "displayName": "Volkhab Bee Drones",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128049166,
+      "symbol": "Water",
+      "displayName": "Water",
+      "category": "Chemicals"
+    },
+    {
+      "frontierId": 128049218,
+      "symbol": "WaterPurifiers",
+      "displayName": "Water Purifiers",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128667698,
+      "symbol": "WheemeteWheatCakes",
+      "displayName": "Wheemete Wheat Cakes",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128049215,
+      "symbol": "Wine",
+      "displayName": "Wine",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128667022,
+      "symbol": "WitchhaulKobeBeef",
+      "displayName": "Witchhaul Kobe Beef",
+      "category": "Foods"
+    },
+    {
+      "frontierId": 128667031,
+      "symbol": "Wolf1301Fesh",
+      "displayName": "Wolf Fesh",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128672123,
+      "symbol": "WreckageComponents",
+      "displayName": "Wreckage Components",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128667067,
+      "symbol": "WulpaHyperboreSystems",
+      "displayName": "Wulpa Hyperbore Systems",
+      "category": "Machinery"
+    },
+    {
+      "frontierId": 128667035,
+      "symbol": "WuthieloKuFroth",
+      "displayName": "Wuthielo Ku Froth",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 129022406,
+      "symbol": "ThargoidPod",
+      "displayName": "Xenobiological Prison Pod",
+      "category": "Salvage"
+    },
+    {
+      "frontierId": 128667075,
+      "symbol": "XiheCompanions",
+      "displayName": "Xihe Biomorphic Companions",
+      "category": "Technology"
+    },
+    {
+      "frontierId": 128667083,
+      "symbol": "YasoKondiLeaf",
+      "displayName": "Yaso Kondi Leaf",
+      "category": "Legal Drugs"
+    },
+    {
+      "frontierId": 128667707,
+      "symbol": "ZeesszeAntGlue",
+      "displayName": "Zeessze Ant Grub Glue",
+      "category": "Consumer Items"
+    }
+  ]
+}

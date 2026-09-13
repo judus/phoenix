@@ -5,6 +5,7 @@ import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
 import type { PhoenixRoute } from '../apps/web/src/application/navigation/phoenix-route.js'
 import { GalaxyPage } from '../apps/web/src/features/galaxy/galaxy-page.js'
 import { GalaxyQuerySessionStore } from '../apps/web/src/features/galaxy/galaxy-query-session-store.js'
+import { galaxyContextForRoute, galaxyNavigationItems } from '../apps/web/src/features/galaxy/galaxy-navigation.js'
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
 
@@ -94,15 +95,16 @@ test('system search uses one query form for nearby and filtered searches', async
   await act(async () => renderer.unmount())
 })
 
-test('saved queries open from the console and run fresh with their stored parameters', async () => {
+test('saved queries run fresh with their stored parameters', async () => {
   const savedQuery = {
     createdAt: '2026-09-11T10:00:00.000Z',
     id: '00000000-0000-4000-8000-000000000001',
     name: 'Nearby inhabited systems',
     parameters: { origin: 'Sol', population: 'inhabited', radius: '50' },
     queryId: 'system-search' as const,
-    schemaVersion: 1 as const,
-    updatedAt: '2026-09-11T10:00:00.000Z'
+    schemaVersion: 2 as const,
+    updatedAt: '2026-09-11T10:00:00.000Z',
+    useOnDashboard: false
   }
   const getSavedGalaxyQueries = vi.fn().mockResolvedValue({ queries: [savedQuery] })
   const findGalaxySystems = vi.fn().mockResolvedValue({
@@ -123,14 +125,8 @@ test('saved queries open from the console and run fresh with their stored parame
   let renderer: ReturnType<typeof create>
 
   await act(async () => {
-    renderer = create(<GalaxyPage {...common} route={{ kind: 'information', section: 'galaxy', view: 'database' }} />)
+    renderer = create(<GalaxyPage {...common} route={{ kind: 'information', section: 'galaxy', view: 'saved-queries' }} />)
   })
-  const savedQueriesTile = renderer.root.findAll(node => node.type === 'button' && node.props.className?.includes('tile'))
-    .find(tile => tile.findAll(node => node.props.className === 'label' && node.children.includes('Saved queries')).length > 0)!
-  await act(async () => savedQueriesTile.props.onClick())
-  expect(onNavigate).toHaveBeenLastCalledWith({ kind: 'information', section: 'galaxy', view: 'saved-queries' })
-
-  await act(async () => renderer.update(<GalaxyPage {...common} route={{ kind: 'information', section: 'galaxy', view: 'saved-queries' }} />))
   expect(renderer.root.findAll(node => node.children.includes('Nearby inhabited systems'))).not.toHaveLength(0)
   await act(async () => renderer.root.findAllByType('button').find(button => button.props.children === 'Run')!.props.onClick())
   expect(onNavigate).toHaveBeenLastCalledWith({
@@ -170,6 +166,16 @@ test('saved queries open from the console and run fresh with their stored parame
   await act(async () => renderer.unmount())
 })
 
+test('Saved Queries owns a dedicated Galaxy rail destination', () => {
+  expect(galaxyNavigationItems.at(-1)).toMatchObject({
+    href: '#/galaxy/saved-queries',
+    id: 'saved-queries',
+    label: 'Saved queries',
+    shortLabel: 'SVQ'
+  })
+  expect(galaxyContextForRoute({ kind: 'information', section: 'galaxy', view: 'saved-queries' })).toBe('saved-queries')
+})
+
 test('a configured query can be saved as a durable definition', async () => {
   const saved = {
     createdAt: '2026-09-11T10:00:00.000Z',
@@ -177,8 +183,9 @@ test('a configured query can be saved as a durable definition', async () => {
     name: 'Systems near Sol',
     parameters: { origin: 'Sol', radius: '100' },
     queryId: 'system-search' as const,
-    schemaVersion: 1 as const,
-    updatedAt: '2026-09-11T10:00:00.000Z'
+    schemaVersion: 2 as const,
+    updatedAt: '2026-09-11T10:00:00.000Z',
+    useOnDashboard: false
   }
   const saveGalaxyQuery = vi.fn().mockResolvedValue(saved)
   const onNavigate = vi.fn<(route: PhoenixRoute) => void>()

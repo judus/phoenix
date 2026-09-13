@@ -338,6 +338,17 @@ const DashboardFeature = memo(function DashboardFeature({ application }: { appli
       hrefFor={application.router.href}
       model={model}
       onExecuteAction={actionId => application.api.executeAction(actionId, 'tap')}
+      onInspectMarketSignal={signal => {
+        application.galaxyQueries.set('commodity-markets', { values: {
+          commodity: signal.commoditySymbol,
+          intent: signal.side,
+          maxDaysAgo: '30',
+          maxDistance: '100',
+          minVolume: '1',
+          origin: signal.systemName
+        } })
+        application.router.push({ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'commodity-markets' })
+      }}
       onNavigate={application.router.push}
       runtime={runtime}
       voice={{

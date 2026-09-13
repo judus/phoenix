@@ -52,6 +52,14 @@ export const ModuleDefinitionSchema = z.object({
   source: CatalogueProvenanceSchema
 })
 
+export const CommodityDefinitionSchema = z.object({
+  frontierId: z.number().int().nonnegative().nullable(),
+  symbol: z.string().min(1),
+  displayName: z.string().min(1),
+  category: z.string().min(1).nullable(),
+  source: CatalogueProvenanceSchema
+})
+
 export const CatalogueInventoryDiagnosticsSchema = z.object({
   shipCount: z.number().int().nonnegative(),
   shipAliasCount: z.number().int().nonnegative(),
@@ -78,6 +86,7 @@ export const ShipCatalogueResponseSchema = z.object({
 
 export type CatalogueDiagnostics = z.infer<typeof CatalogueDiagnosticsSchema>
 export type CatalogueInventoryDiagnostics = z.infer<typeof CatalogueInventoryDiagnosticsSchema>
+export type CommodityDefinition = z.infer<typeof CommodityDefinitionSchema>
 export type ModuleDefinition = z.infer<typeof ModuleDefinitionSchema>
 export type ShipDefinition = z.infer<typeof ShipDefinitionSchema>
 export type ShipCatalogueResponse = z.infer<typeof ShipCatalogueResponseSchema>

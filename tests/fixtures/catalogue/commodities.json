@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "name": "PHOENIX synthetic test catalogue",
+    "repository": "https://example.invalid/phoenix-test-catalogue",
+    "revision": "synthetic-1"
+  },
+  "commodities": [
+    {
+      "frontierId": 128049231,
+      "symbol": "AdvancedCatalysers",
+      "displayName": "Advanced Catalysers",
+      "category": "Technology"
+    }
+  ]
+}

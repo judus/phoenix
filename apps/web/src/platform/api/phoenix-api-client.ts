@@ -20,6 +20,7 @@ import {
   PhoenixControlDeckConfigurationSchema,
   CommandCatalogResponseSchema,
   CommanderLogResponseSchema,
+  DashboardMarketSignalsResponseSchema,
   GameActionCatalogResponseSchema,
   GameActionResultSchema,
   GalnetNewsResponseSchema,
@@ -37,6 +38,7 @@ import {
   ExplorationLedgerResponseSchema,
   GalaxySystemSearchResponseSchema,
   GalaxyCommodityMarketsResponseSchema,
+  GalaxyMarketSignalsResponseSchema,
   GalaxyExplorationTargetsResponseSchema,
   GalaxyFactionPresencesResponseSchema,
   GalaxyNearestStationsResponseSchema,
@@ -93,6 +95,7 @@ import type {
   PhoenixControlDeckConfiguration,
   CommandCatalogResponse,
   CommanderLogResponse,
+  DashboardMarketSignalsResponse,
   GameActionCatalogResponse,
   GameActionOperation,
   GameActionResult,
@@ -112,6 +115,7 @@ import type {
   ExplorationLedgerResponse,
   GalaxySystemSearchResponse,
   GalaxyCommodityMarketsResponse,
+  GalaxyMarketSignalsResponse,
   GalaxyExplorationTargetsResponse,
   GalaxyFactionPresencesResponse,
   GalaxyNearestStationsResponse,
@@ -148,6 +152,7 @@ import type {
 import type {
   GalaxySystemSearch,
   GalaxyCommodityMarketSearch,
+  GalaxyMarketSignalSearch,
   GalaxyExplorationTargetSearch,
   GalaxyFactionPresenceSearch,
   GalaxyNearestStationSearch,
@@ -475,6 +480,15 @@ export class PhoenixApiClient implements PhoenixApi {
   async findGalaxyCommodityMarkets(input: GalaxyCommodityMarketSearch, signal?: AbortSignal): Promise<GalaxyCommodityMarketsResponse> {
     const query = parameters({ commodity: input.commodity, fleetCarriers: input.fleetCarriers, intent: input.intent, maxDaysAgo: input.maxDaysAgo, maxDistance: input.maxDistance, minVolume: input.minVolume, system: input.systemName })
     return this.#get(`/api/galaxy/markets?${query}`, GalaxyCommodityMarketsResponseSchema, signal)
+  }
+
+  async findGalaxyMarketSignals(input: GalaxyMarketSignalSearch, signal?: AbortSignal): Promise<GalaxyMarketSignalsResponse> {
+    const query = parameters({ fleetCarriers: input.fleetCarriers, limit: input.limit, maxDaysAgo: input.maxDaysAgo, minDeviationPercent: input.minDeviationPercent, minVolume: input.minVolume, pad: input.minimumPadSize, side: input.sides, system: input.systemName })
+    return this.#get(`/api/galaxy/market-signals?${query}`, GalaxyMarketSignalsResponseSchema, signal)
+  }
+
+  async getDashboardMarketSignals(signal?: AbortSignal): Promise<DashboardMarketSignalsResponse> {
+    return this.#get('/api/dashboard/market-signals', DashboardMarketSignalsResponseSchema, signal)
   }
 
   async findGalaxyTradeOpportunities(input: GalaxyTradeOpportunitySearch, signal?: AbortSignal): Promise<GalaxyTradeOpportunitiesResponse> {

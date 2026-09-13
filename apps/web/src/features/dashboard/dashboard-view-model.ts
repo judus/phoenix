@@ -15,9 +15,10 @@ export interface DashboardViewModel {
     } | null
   }
   route: {
-    current: string
     destination: string
     detail: string
+    nextStarClass: string
+    nextSystem: string
   }
   ship: {
     cargo: string
@@ -65,9 +66,10 @@ export function createDashboardViewModel(
       }
     },
     route: {
-      current: runtime?.system.name ?? 'Current system unknown',
       destination: routeSummary.destination,
-      detail: routeSummary.detail
+      detail: routeSummary.detail,
+      nextStarClass: routeSummary.nextStarClass,
+      nextSystem: routeSummary.nextSystem
     },
     ship: {
       cargo: cargo === undefined ? '—' : `${cargo} / ${formatNumber(runtime?.ship.cargoCapacity, locale) ?? '—'}`,
@@ -106,12 +108,15 @@ function situationWarnings(state?: RuntimeState): string[] {
 
 function summarizeRoute(route: NavigationRoute | undefined, currentSystem?: string | null) {
   const hops = route?.route ?? []
-  if (hops.length === 0) return { destination: 'No route plotted', detail: 'Navigation computer idle' }
+  if (hops.length === 0) return { destination: 'No route plotted', detail: 'Navigation computer idle', nextStarClass: '—', nextSystem: '—' }
   const currentIndex = currentSystem ? hops.findIndex(hop => hop.system === currentSystem) : -1
   const remaining = Math.max(0, hops.length - Math.max(currentIndex, 0) - 1)
+  const nextHop = currentIndex >= 0 ? hops[currentIndex + 1] : undefined
   return {
     destination: hops.at(-1)?.system ?? 'Unknown destination',
-    detail: `${remaining} ${remaining === 1 ? 'jump' : 'jumps'} remaining`
+    detail: `${remaining} ${remaining === 1 ? 'jump' : 'jumps'} remaining`,
+    nextStarClass: nextHop?.starClass ?? '—',
+    nextSystem: nextHop?.system ?? '—'
   }
 }
 

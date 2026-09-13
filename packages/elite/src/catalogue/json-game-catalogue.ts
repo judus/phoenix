@@ -1,9 +1,11 @@
 import { readFileSync } from 'node:fs'
 import { z } from 'zod'
 import {
+  CommodityDefinitionSchema,
   ModuleDefinitionSchema,
   ShipDefinitionSchema,
   type CatalogueInventoryDiagnostics,
+  type CommodityDefinition,
   type ModuleDefinition,
   type ShipDefinition
 } from '@phoenix/contracts'
@@ -29,9 +31,16 @@ const ModuleCatalogueSchema = z.object({
   modules: z.array(ModuleDefinitionSchema.omit({ source: true }))
 })
 
+const CommodityCatalogueSchema = z.object({
+  schemaVersion: z.literal(1),
+  source: CatalogueSourceSchema,
+  commodities: z.array(CommodityDefinitionSchema.omit({ source: true }))
+})
+
 export interface GameCatalogue {
   getShipCatalogueUpdatedAt(): string
   listShips(): ShipDefinition[]
+  resolveCommodity(identifier: string): CommodityDefinition | null
   resolveShip(identifier: string): ShipDefinition | null
   resolveModule(journalId: string): ModuleDefinition
   getDiagnostics(): CatalogueInventoryDiagnostics
@@ -39,16 +48,19 @@ export interface GameCatalogue {
 
 export class JsonGameCatalogue implements GameCatalogue {
   private readonly aliases: Map<string, string>
+  private readonly commodities: Map<string, CommodityDefinition>
   private readonly ships: Map<string, ShipDefinition>
   private readonly modules: Map<string, ModuleDefinition>
   private readonly diagnostics: CatalogueInventoryDiagnostics
   private readonly shipCatalogueUpdatedAt: string
 
-  public constructor (shipCataloguePath: string, moduleCataloguePath: string) {
+  public constructor (shipCataloguePath: string, moduleCataloguePath: string, commodityCataloguePath: string) {
     const shipCatalogue = ShipCatalogueSchema.parse(readJson(shipCataloguePath))
     const moduleCatalogue = ModuleCatalogueSchema.parse(readJson(moduleCataloguePath))
+    const commodityCatalogue = CommodityCatalogueSchema.parse(readJson(commodityCataloguePath))
     const shipSource = provenance(shipCatalogue.source)
     const moduleSource = provenance(moduleCatalogue.source)
+    const commoditySource = provenance(commodityCatalogue.source)
     this.shipCatalogueUpdatedAt = shipCatalogue.generatedAt
     this.aliases = new Map(
       Object.entries(shipCatalogue.aliases).map(([alias, id]) => [normalizeIdentifier(alias), id])
@@ -61,6 +73,10 @@ export class JsonGameCatalogue implements GameCatalogue {
       ...module,
       source: moduleSource
     }]))
+    this.commodities = commodityMap(commodityCatalogue.commodities.map(commodity => ({
+      ...commodity,
+      source: commoditySource
+    })))
     this.diagnostics = {
       shipCount: this.ships.size,
       shipAliasCount: this.aliases.size,
@@ -68,6 +84,10 @@ export class JsonGameCatalogue implements GameCatalogue {
       shipSource: shipSource.name,
       moduleSource: moduleSource.name
     }
+  }
+
+  public resolveCommodity (identifier: string): CommodityDefinition | null {
+    return this.commodities.get(normalizeCommodityId(identifier)) ?? null
   }
 
   public resolveShip (identifier: string): ShipDefinition | null {
@@ -185,6 +205,25 @@ function normalizeIdentifier (value: string): string {
 
 function normalizeModuleId (value: string): string {
   return value.trim().toLowerCase()
+}
+
+function normalizeCommodityId (value: string): string {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '')
+}
+
+function commodityMap (commodities: CommodityDefinition[]): Map<string, CommodityDefinition> {
+  const result = new Map<string, CommodityDefinition>()
+  for (const commodity of commodities) {
+    for (const identifier of [commodity.symbol, commodity.displayName]) {
+      const key = normalizeCommodityId(identifier)
+      const existing = result.get(key)
+      if (existing && existing.symbol !== commodity.symbol) {
+        throw new Error(`Ambiguous commodity catalogue identifier: ${identifier}.`)
+      }
+      result.set(key, commodity)
+    }
+  }
+  return result
 }
 
 function journalIdFallback (identifier: string): string {

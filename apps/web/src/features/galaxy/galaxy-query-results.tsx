@@ -12,6 +12,8 @@ import type {
   GalaxyExplorationTargetsResponse,
   GalaxyFactionPresence,
   GalaxyFactionPresencesResponse,
+  GalaxyMarketSignal,
+  GalaxyMarketSignalsResponse,
   GalaxyNearbyStation,
   GalaxyNearestStationsResponse,
   GalaxyOutfittingMatch,
@@ -34,6 +36,7 @@ export type GalaxyQueryResult =
   | { id: 'exploration-targets', value: GalaxyExplorationTargetsResponse }
   | { id: 'facilities', value: GalaxyNearestStationsResponse }
   | { id: 'faction-presence', value: GalaxyFactionPresencesResponse }
+  | { id: 'market-signals', value: GalaxyMarketSignalsResponse }
   | { id: 'outfitting-stock', value: GalaxyOutfittingResponse }
   | { id: 'shipyards', value: GalaxyShipyardsResponse }
   | { id: 'station-lookup', value: GalaxyStationLookupResponse }
@@ -59,6 +62,7 @@ export function galaxyQueryResultCount(result: GalaxyQueryResult): number {
     case 'outfitting-stock': return result.value.matches.length
     case 'station-lookup': return result.value.matches.length
     case 'faction-presence': return result.value.presences.length
+    case 'market-signals': return result.value.signals.length
     case 'trade-opportunities': return result.value.opportunities.length
     case 'exploration-targets': return result.value.targets.length
   }
@@ -73,6 +77,7 @@ function GalaxyResultTable({ result }: { result: GalaxyQueryResult }) {
     case 'outfitting-stock': return <QueryResultTable columns={OUTFITTING_COLUMNS} rowKey={(row, index) => stationKey(row, index)} rows={result.value.matches} />
     case 'station-lookup': return <QueryResultTable columns={STATION_COLUMNS} rowKey={(row, index) => stationKey(row, index)} rows={result.value.matches} />
     case 'faction-presence': return <QueryResultTable columns={FACTION_COLUMNS} rowKey={(row, index) => `${row.systemName}:${row.factionName}:${index}`} rows={result.value.presences} />
+    case 'market-signals': return <QueryResultTable columns={MARKET_SIGNAL_COLUMNS} rowKey={(row, index) => `${row.side}:${row.commodityName}:${row.marketId ?? row.stationName}:${index}`} rows={result.value.signals} />
     case 'trade-opportunities': return <QueryResultTable columns={TRADE_COLUMNS} rowKey={(row, index) => `${row.commodityName}:${row.sellMarket.systemName}:${row.sellMarket.stationName}:${index}`} rows={result.value.opportunities} />
     case 'exploration-targets': return <QueryResultTable columns={EXPLORATION_COLUMNS} rowKey={(row, index) => `${row.systemName}:${row.bodyName}:${index}`} rows={result.value.targets} />
   }
@@ -223,6 +228,35 @@ const TRADE_COLUMNS: readonly SortableDataTableColumn<GalaxyTradeOpportunity>[] 
     id: 'reported',
     sortValue: row => timestampValue(row.sellMarket.updatedAt)
   }
+]
+
+const MARKET_SIGNAL_COLUMNS: readonly SortableDataTableColumn<GalaxyMarketSignal>[] = [
+  textColumn('commodity', 'Commodity', row => row.commodityName, true),
+  {
+    cell: row => row.side === 'buy' ? 'Buy' : 'Sell',
+    heading: 'Action',
+    id: 'action',
+    sortValue: row => row.side
+  },
+  stationColumn<GalaxyMarketSignal>(),
+  creditColumn('price', 'Price', row => row.price),
+  {
+    cell: row => `${row.side === 'buy' ? '−' : '+'}${formatDecimal(row.deviationPercent)}%`,
+    className: 'numeric',
+    heading: 'Difference',
+    id: 'difference',
+    sortValue: row => row.deviationPercent
+  },
+  {
+    cell: row => row.unlimitedVolume ? 'Unlimited' : `${row.volume.toLocaleString()} t`,
+    className: 'numeric',
+    heading: 'Volume',
+    id: 'volume',
+    sortValue: row => row.unlimitedVolume ? Number.MAX_SAFE_INTEGER : row.volume
+  },
+  arrivalColumn<GalaxyMarketSignal>(),
+  padColumn<GalaxyMarketSignal>(),
+  reportedColumn<GalaxyMarketSignal>()
 ]
 
 const EXPLORATION_COLUMNS: readonly SortableDataTableColumn<GalaxyExplorationTarget>[] = [

@@ -147,6 +147,34 @@ const GALAXY_QUERY_DEFINITIONS: GalaxyQueryDefinition[] = [
     title: 'Nearest facility'
   },
   {
+    defaults: { fleetCarriers: 'no', maxDaysAgo: '3', minDeviationPercent: '20', minVolume: '100', origin: '', pad: 'medium', sides: ['buy', 'sell'] },
+    domain: 'Markets',
+    fields: [
+      ORIGIN,
+      {
+        id: 'sides',
+        label: 'Signals',
+        options: [{ label: 'Cheap to buy', value: 'buy' }, { label: 'Valuable to sell', value: 'sell' }],
+        required: true,
+        type: 'multi-select'
+      },
+      { id: 'minDeviationPercent', label: 'Minimum price difference (%)', min: 1, max: 1000, required: true, type: 'number' },
+      { id: 'minVolume', label: 'Minimum stock or demand', min: 1, required: true, type: 'number' },
+      {
+        id: 'pad',
+        label: 'Minimum landing pad',
+        options: [{ label: 'Any', value: 'any' }, ...(PAD.options ?? [])],
+        required: true,
+        type: 'select'
+      },
+      { id: 'fleetCarriers', label: 'Include fleet carriers', options: [{ label: 'No', value: 'no' }, { label: 'Yes', value: 'yes' }], required: true, type: 'select' },
+      MAX_AGE
+    ],
+    id: 'market-signals',
+    purpose: 'Spot unusually cheap purchases and unusually valuable sales in the current system.',
+    title: 'Market signals'
+  },
+  {
     defaults: { commodity: 'gold', intent: 'sell', maxDaysAgo: '30', maxDistance: '100', minVolume: '1', origin: '' },
     domain: 'Markets',
     fields: [
@@ -242,6 +270,7 @@ const GALAXY_QUERY_ORDER: GalaxyQueryId[] = [
   'station-lookup',
   'shipyards',
   'outfitting-stock',
+  'market-signals',
   'commodity-markets',
   'trade-opportunities',
   'faction-presence'

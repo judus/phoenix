@@ -14,6 +14,7 @@ test('loads one complete catalogue snapshot without an implicit fallback', () =>
 
 function paths (directory: string) {
   return {
+    commodities: join(directory, 'commodities.json'),
     engineeringDirectory: join(directory, 'engineering'),
     ships: join(directory, 'ships.json'),
     modules: join(directory, 'modules.json')

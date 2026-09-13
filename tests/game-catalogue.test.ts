@@ -7,7 +7,8 @@ import { CatalogueShipLoadoutEnricher } from '../apps/server/src/application/cat
 const projectRoot = fileURLToPath(new URL('../', import.meta.url))
 const catalogue = new JsonGameCatalogue(
   `${projectRoot}tests/fixtures/catalogue/ships.json`,
-  `${projectRoot}tests/fixtures/catalogue/modules.json`
+  `${projectRoot}tests/fixtures/catalogue/modules.json`,
+  `${projectRoot}tests/fixtures/catalogue/commodities.json`
 )
 
 test('catalogue resolves journal aliases and ship definitions', () => {
@@ -46,6 +47,18 @@ test('catalogue resolves known modules and labels unknown new modules as inferre
     mount: 'Fixed',
     source: { kind: 'catalogue' }
   })
+})
+
+test('catalogue resolves commodity symbols to canonical game names', () => {
+  expect(catalogue.resolveCommodity('advancedcatalysers')).toMatchObject({
+    symbol: 'AdvancedCatalysers',
+    displayName: 'Advanced Catalysers',
+    category: 'Technology',
+    source: { kind: 'catalogue', name: 'PHOENIX synthetic test catalogue' }
+  })
+  expect(catalogue.resolveCommodity('Advanced Catalysers')?.symbol).toBe('AdvancedCatalysers')
+  expect(catalogue.resolveCommodity('advanced-catalysers')?.symbol).toBe('AdvancedCatalysers')
+  expect(catalogue.resolveCommodity('unknowncommodity')).toBeNull()
 })
 
 test('loadout enrichment keeps observed fields separate from expected hull slots', () => {

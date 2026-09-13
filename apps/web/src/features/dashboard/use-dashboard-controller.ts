@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import type {
   CommanderLogEntry,
+  DashboardMarketSignalsResponse,
   EngineeringMaterialWatchlistResponse,
   GameActionCatalogResponse,
   LocalTrafficResponse,
@@ -16,6 +17,8 @@ export interface DashboardControllerSnapshot {
   error?: string
   localTraffic?: LocalTrafficResponse
   materialWatchlist?: EngineeringMaterialWatchlistResponse
+  marketSignals?: DashboardMarketSignalsResponse
+  marketSignalsError?: string
   route?: NavigationRoute
   status: 'loading' | 'ready' | 'error'
 }
@@ -36,7 +39,9 @@ export function useDashboardController(
     let commanderLogRevision = 0
     let localTrafficRevision = 0
     let materialWatchlistRevision = 0
+    let marketSignalsRevision = 0
     let observedMaterialsAt: string | null | undefined
+    let observedSystemName: string | null | undefined
     let routeRevision = 0
     let actionsRevision = 0
 
@@ -72,10 +77,26 @@ export function useDashboardController(
         })
     }
     const unsubscribeEngineeringProjects = events.subscribe('engineering-projects-changed', loadMaterialWatchlist)
+    const loadMarketSignals = (): void => {
+      const revision = ++marketSignalsRevision
+      setSnapshot(current => ({ ...current, marketSignalsError: undefined }))
+      void api.getDashboardMarketSignals(abort.signal)
+        .then(marketSignals => {
+          if (abort.signal.aborted || revision !== marketSignalsRevision) return
+          setSnapshot(current => ({ ...current, marketSignals, marketSignalsError: undefined }))
+        })
+        .catch(cause => {
+          if (abort.signal.aborted || revision !== marketSignalsRevision) return
+          setSnapshot(current => ({ ...current, marketSignalsError: errorMessage(cause) }))
+        })
+    }
     const unsubscribeRuntime = events.subscribe('runtime-state', state => {
       const nextObservedAt = state.inventory.materials?.updatedAt ?? null
       if (observedMaterialsAt !== undefined && nextObservedAt !== observedMaterialsAt) loadMaterialWatchlist()
       observedMaterialsAt = nextObservedAt
+      const nextSystemName = state.system.name?.trim() || null
+      if (observedSystemName !== undefined && nextSystemName !== observedSystemName) loadMarketSignals()
+      observedSystemName = nextSystemName
     })
     const unsubscribeRoute = events.subscribe('navigation-route', route => {
       routeRevision += 1
@@ -98,6 +119,7 @@ export function useDashboardController(
     const routeAtRequest = routeRevision
     const materialWatchlistAtRequest = materialWatchlistRevision
     const actionsAtRequest = ++actionsRevision
+    loadMarketSignals()
     void Promise.allSettled([
       api.getCommanderLog(24, abort.signal).then(log => {
         if (commanderLogAtRequest === commanderLogRevision) {

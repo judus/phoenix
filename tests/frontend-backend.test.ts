@@ -7,18 +7,19 @@ import type { FactionPresenceSearchSource, OutfittingSearchSource, ShipyardSearc
 test('the frontend API client communicates with the PHOENIX backend', async () => {
   const stationSearchSource: StationSearchSource = {
     findCommodityMarkets: async request => [{
-      buyPrice: 1000, commodityName: request.commodity, demand: 50, distanceLy: 4.2,
+      buyPrice: 1000, commodityName: request.commodity, commoditySymbol: request.commodity, demand: 50, distanceLy: 4.2,
       distanceToArrivalLs: 300, marketId: 42, maxLandingPadSize: 3, meanPrice: 1200,
       sellPrice: 1500, stationName: 'Test Exchange', stationType: 'Orbis', stock: 100,
       systemName: 'Nearby', updatedAt: '2026-08-13T08:00:00.000Z'
     }],
     findSystemExports: async () => [{
-      buyPrice: 1000, commodityName: 'gold', demand: null, distanceLy: 0,
+      buyPrice: 1000, commodityName: 'gold', commoditySymbol: 'gold', demand: null, distanceLy: 0,
       distanceToArrivalLs: 300, marketId: 41, maxLandingPadSize: 3, meanPrice: 1200,
       sellPrice: null, stationName: 'Origin Exchange', stationType: 'Orbis', stock: 100,
       systemName: 'Sol', updatedAt: '2026-08-13T08:00:00.000Z'
     }],
-    getCommodityReports: async () => [{ commodityName: 'gold', maxSellPrice: 1500 }],
+    findSystemImports: async () => [],
+    getCommodityReports: async () => [{ avgBuyPrice: 1200, avgSellPrice: 1200, commodityName: 'gold', commoditySymbol: 'gold', maxSellPrice: 1500, updatedAt: '2026-08-13T00:00:00.000Z' }],
     findNearestStations: async request => [{
       allegiance: null, controllingFaction: null, distanceLy: 4.2, distanceToArrivalLs: 300,
       government: null, marketId: 42, maxLandingPadSize: 3, primaryEconomy: 'Industrial',

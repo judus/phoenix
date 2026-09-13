@@ -62,6 +62,12 @@ export function SavedGalaxyQueriesPage({ api, onNavigate }: {
       sortValue: query => scalar(query.parameters.origin) || null
     },
     {
+      cell: query => query.useOnDashboard ? 'Active' : '—',
+      heading: 'Dashboard',
+      id: 'dashboard',
+      sortValue: query => query.useOnDashboard ? 1 : 0
+    },
+    {
       cell: query => formatPhoenixDateTime(query.updatedAt),
       heading: 'Updated',
       id: 'updated',

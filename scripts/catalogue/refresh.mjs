@@ -24,15 +24,17 @@ const revisions = {
   coriolis: await latestRevision(repositories.coriolis)
 }
 const currentManifest = await readJsonIfPresent(manifestPath)
-if (!options.force && currentManifest?.sources?.fdevids === revisions.fdevids && currentManifest?.sources?.coriolis === revisions.coriolis) {
+if (!options.force && currentManifest?.schemaVersion === 2 && currentManifest?.sources?.fdevids === revisions.fdevids && currentManifest?.sources?.coriolis === revisions.coriolis) {
   await writeJsonAtomic(manifestPath, { ...currentManifest, checkedAt: new Date().toISOString() })
   console.log('Catalogue sources are already current.')
   process.exit(0)
 }
 
 console.log(`Refreshing catalogues from FDevIDs ${short(revisions.fdevids)} and Coriolis ${short(revisions.coriolis)}…`)
-const [outfittingCsv, materialsCsv, engineersCsv, shipyardCsv, blueprintsSource, modifications, blueprintModules, shipPaths] = await Promise.all([
+const [outfittingCsv, commodityCsv, rareCommodityCsv, materialsCsv, engineersCsv, shipyardCsv, blueprintsSource, modifications, blueprintModules, shipPaths] = await Promise.all([
   rawText(repositories.fdevids, revisions.fdevids, 'outfitting.csv'),
+  rawText(repositories.fdevids, revisions.fdevids, 'commodity.csv'),
+  rawText(repositories.fdevids, revisions.fdevids, 'rare_commodity.csv'),
   rawText(repositories.fdevids, revisions.fdevids, 'material.csv'),
   rawText(repositories.fdevids, revisions.fdevids, 'engineers.csv'),
   rawText(repositories.fdevids, revisions.fdevids, 'shipyard.csv'),
@@ -44,6 +46,7 @@ const [outfittingCsv, materialsCsv, engineersCsv, shipyardCsv, blueprintsSource,
 const shipFiles = await mapConcurrent(shipPaths, 8, async path => [path, await rawJson(repositories.coriolis, revisions.coriolis, path)])
 
 const outfitting = parseCsv(outfittingCsv)
+const commodities = [...parseCsv(commodityCsv), ...parseCsv(rareCommodityCsv)]
 const materials = parseCsv(materialsCsv)
 const engineerRows = parseCsv(engineersCsv)
 const shipyard = parseCsv(shipyardCsv)
@@ -52,6 +55,7 @@ const blueprints = buildBlueprints(blueprintsSource, modifications, blueprintMod
 const engineers = await buildEngineers(engineerRows, blueprints)
 const modules = buildModules(outfitting, revisions.fdevids, generatedAt)
 const files = {
+  'commodities.json': buildCommodities(commodities, revisions.fdevids, generatedAt),
   'modules.json': modules,
   'ships.json': buildShips(shipFiles, shipyard, revisions.coriolis, generatedAt),
   'engineering/blueprints.json': blueprints,
@@ -59,13 +63,14 @@ const files = {
   'engineering/materials.json': materials,
   'engineering/material-uses.json': buildMaterialUses(materials, blueprints),
   'manifest.json': {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt,
     checkedAt: generatedAt,
     sources: revisions,
     counts: {
       ships: shipFiles.length,
       modules: modules.modules.length,
+      commodities: commodities.length,
       blueprints: blueprints.length,
       engineers: engineers.length,
       materials: materials.length
@@ -99,7 +104,7 @@ function requiredValue (arguments_, index, option) {
 async function isFresh (path, maxAgeHours) {
   const manifest = await readJsonIfPresent(path)
   const checkedAt = Date.parse(manifest?.checkedAt ?? '')
-  return Number.isFinite(checkedAt) && Date.now() - checkedAt < maxAgeHours * 3_600_000
+  return manifest?.schemaVersion === 2 && Number.isFinite(checkedAt) && Date.now() - checkedAt < maxAgeHours * 3_600_000
 }
 
 async function latestRevision (repository) {
@@ -181,6 +186,19 @@ function buildModules (rows, revision, generatedAt) {
       guidance: nullable(row.guidance),
       ship: nullable(row.ship)
     }))
+  }
+}
+
+function buildCommodities (rows, revision, generatedAt) {
+  return {
+    schemaVersion: 1,
+    source: { name: 'EDCD FDevIDs', repository: 'https://github.com/EDCD/FDevIDs', revision, path: 'commodity.csv and rare_commodity.csv', retrievedAt: generatedAt },
+    commodities: rows.map(row => ({
+      frontierId: numberOrNull(row.id),
+      symbol: row.symbol,
+      displayName: row.name,
+      category: nullable(row.category)
+    })).sort((left, right) => left.displayName.localeCompare(right.displayName))
   }
 }
 
@@ -315,15 +333,17 @@ function buildMaterialUses (materials, blueprints) {
 }
 
 function validate (files) {
-  const required = ['modules.json', 'ships.json', 'engineering/blueprints.json', 'engineering/engineers.json', 'engineering/materials.json', 'engineering/material-uses.json']
+  const required = ['commodities.json', 'modules.json', 'ships.json', 'engineering/blueprints.json', 'engineering/engineers.json', 'engineering/materials.json', 'engineering/material-uses.json']
   for (const path of required) if (!files[path]) throw new Error(`Catalogue output missing ${path}.`)
   if (files['ships.json'].ships.length < 40) throw new Error('Ship catalogue is unexpectedly small.')
   if (files['modules.json'].modules.length < 500) throw new Error('Module catalogue is unexpectedly small.')
+  if (files['commodities.json'].commodities.length < 200) throw new Error('Commodity catalogue is unexpectedly small.')
   if (files['engineering/blueprints.json'].length < 50) throw new Error('Blueprint catalogue is unexpectedly small.')
   if (files['engineering/materials.json'].length < 100) throw new Error('Material catalogue is unexpectedly small.')
   const unique = (items, key) => new Set(items.map(item => item[key])).size === items.length
   if (!unique(files['ships.json'].ships, 'id')) throw new Error('Duplicate ship IDs detected.')
   if (!unique(files['modules.json'].modules, 'journalId')) throw new Error('Duplicate module IDs detected.')
+  if (!unique(files['commodities.json'].commodities, 'symbol')) throw new Error('Duplicate commodity symbols detected.')
 }
 
 async function replaceSnapshot (target, files) {

@@ -23,6 +23,7 @@ for (const required of [
   'agents/marin/agent.md',
   'LICENSE',
   'resources/catalogue/manifest.json',
+  'resources/catalogue/commodities.json',
   'resources/phoenix.svg',
   'scripts/catalogue/refresh.mjs',
   'scripts/package/launcher.mjs'

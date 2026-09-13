@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, renameSync, rmSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import type { ApplicationPaths } from './application-paths.js'
 
@@ -9,7 +9,7 @@ export async function ensureCatalogueSnapshot (paths: ApplicationPaths): Promise
   seedBundledSnapshot(paths, directory, manifest)
 
   if (process.env.PHOENIX_CATALOGUE_REFRESH === 'false') {
-    if (!existsSync(manifest)) {
+    if (!isCurrentSnapshot(directory, manifest)) {
       throw new Error(
         'PHOENIX catalogue data is unavailable. Enable catalogue refresh or run npm run catalogue:refresh before starting PHOENIX.'
       )
@@ -17,7 +17,7 @@ export async function ensureCatalogueSnapshot (paths: ApplicationPaths): Promise
     return directory
   }
 
-  if (existsSync(manifest)) {
+  if (isCurrentSnapshot(directory, manifest)) {
     void runRefresh(paths, directory).catch(error => {
       console.warn('PHOENIX catalogue refresh failed; using the existing local snapshot.', error)
     })
@@ -25,8 +25,18 @@ export async function ensureCatalogueSnapshot (paths: ApplicationPaths): Promise
   }
 
   await runRefresh(paths, directory)
-  if (!existsSync(manifest)) throw new Error('PHOENIX catalogue refresh completed without creating a manifest.')
+  if (!isCurrentSnapshot(directory, manifest)) throw new Error('PHOENIX catalogue refresh completed without creating a current snapshot.')
   return directory
+}
+
+function isCurrentSnapshot (directory: string, manifest: string): boolean {
+  if (!existsSync(manifest) || !existsSync(resolve(directory, 'commodities.json'))) return false
+  try {
+    const value = JSON.parse(readFileSync(manifest, 'utf8')) as { schemaVersion?: unknown }
+    return value.schemaVersion === 2
+  } catch {
+    return false
+  }
 }
 
 function seedBundledSnapshot (paths: ApplicationPaths, directory: string, manifest: string): void {

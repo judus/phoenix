@@ -69,6 +69,8 @@ import { FleetDataService } from './application/fleet-data-service.js'
 import { CachedCartographyStationResolver } from './application/cached-cartography-station-resolver.js'
 import { GalaxyBookmarkService } from './application/galaxy-bookmark-service.js'
 import { SavedGalaxyQueryService } from './application/saved-galaxy-query-service.js'
+import { DashboardMarketSignalService } from './application/dashboard-market-signal-service.js'
+import { MarketSignalService } from './application/market-signal-service.js'
 import { DefaultExplorationBodyQuery } from './application/default-exploration-body-query.js'
 import { DefaultExplorationTargetQuery } from './application/default-exploration-target-query.js'
 import type { CopilotText } from './application/copilot-text-service.js'
@@ -125,6 +127,7 @@ export interface PhoenixApplicationOptions {
   copilot?: CopilotText | null
   copilotRealtime?: CopilotRealtime | null
   copilotProfiles?: CopilotProfiles | null
+  commodityCataloguePath?: string
   databasePath?: string
   eliteDirectory?: string | null
   engineeringCatalogueDirectory?: string
@@ -193,11 +196,13 @@ export class PhoenixApplication {
     const communications = new CommunicationDataService(this.database, communicationUpdates)
     const localTraffic = new LocalTrafficService(this.database)
     const bookmarks = new GalaxyBookmarkService(this.database)
-    const savedGalaxyQueries = new SavedGalaxyQueryService(this.database)
+    const savedGalaxyQueries = new SavedGalaxyQueryService(this.database.savedGalaxyQueries)
     const runtimeCatalogueDirectory = resolve(paths.user.data, 'runtime/catalogue')
     const engineeringCatalogueDirectory = resolveProjectPath(projectRoot,
       options.engineeringCatalogueDirectory ?? process.env.PHOENIX_ENGINEERING_CATALOGUE_PATH ?? resolve(runtimeCatalogueDirectory, 'engineering'))
     const catalogues = new CatalogueSnapshotLoader().load({
+      commodities: resolveProjectPath(projectRoot,
+        options.commodityCataloguePath ?? process.env.PHOENIX_COMMODITY_CATALOGUE_PATH ?? resolve(runtimeCatalogueDirectory, 'commodities.json')),
       engineeringDirectory: engineeringCatalogueDirectory,
       ships: resolveProjectPath(projectRoot,
         options.shipCataloguePath ?? process.env.PHOENIX_SHIP_CATALOGUE_PATH ?? resolve(runtimeCatalogueDirectory, 'ships.json')),
@@ -382,8 +387,11 @@ export class PhoenixApplication {
     const navigation = new DefaultNavigationQuery(navigationRoutes, cartography, this.stateStore)
     const systems = new DefaultSystemDetailsQuery(cartography, this.stateStore)
     const spansh = new SpanshSearchClient()
+    const stationSearchSource = options.stationSearchSource ?? new ArdentStationSearchSource({
+      resolveCommodity: identifier => gameCatalogue.resolveCommodity(identifier)
+    })
     const stationMarkets = new DefaultStationMarketQuery(
-      options.stationSearchSource ?? new ArdentStationSearchSource(),
+      stationSearchSource,
       options.stationStockSource ?? new EdsmStationStockSource(),
       options.shipyardSearchSource ?? new SpanshShipyardSearchSource(spansh),
       options.outfittingSearchSource ?? new SpanshOutfittingSearchSource(spansh),
@@ -394,6 +402,8 @@ export class PhoenixApplication {
       this.stateStore,
       this.database
     )
+    const marketSignals = new MarketSignalService(stationSearchSource, this.database)
+    const dashboardMarketSignals = new DashboardMarketSignalService(savedGalaxyQueries, marketSignals, this.stateStore)
     const galnet = new GalnetNewsService(options.galnetSource ?? new FrontierGalnetSource(), this.database)
     const navigationData = new NavigationDataService(cartography, navigationRoutes, this.stateStore)
     const eliteDestinations = new EliteDestinationService(
@@ -468,6 +478,7 @@ export class PhoenixApplication {
       commandCatalogue,
       communicationUpdates,
       commanderLog,
+      dashboardMarketSignals,
       controlDeckHttp: this.controlDeck.http,
       copilot,
       copilotProfiles,
@@ -505,6 +516,7 @@ export class PhoenixApplication {
       explorationTargets,
       fleet,
       galaxyData: stationMarkets,
+      marketSignals,
       galnet,
       navigationData,
       navigationRouteUpdates,

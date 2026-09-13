@@ -20,15 +20,17 @@ test('the saved Galaxy query API creates, updates, lists, and removes definition
     const created = await client.saveGalaxyQuery({
       name: 'Nearby high-tech systems',
       parameters: { economy: 'High Tech', origin: 'Sol', radius: '100' },
-      queryId: 'system-search'
+      queryId: 'system-search',
+      useOnDashboard: false
     })
     const updated = await client.saveGalaxyQuery({
       name: 'Nearby industrial systems',
       parameters: { economy: 'Industrial', origin: 'Sol', radius: '100' },
-      queryId: 'system-search'
+      queryId: 'system-search',
+      useOnDashboard: false
     }, created.id)
 
-    expect(updated).toMatchObject({ id: created.id, name: 'Nearby industrial systems', schemaVersion: 1 })
+    expect(updated).toMatchObject({ id: created.id, name: 'Nearby industrial systems', schemaVersion: 2, useOnDashboard: false })
     await expect(client.getSavedGalaxyQueries()).resolves.toEqual({ queries: [updated] })
 
     await client.deleteGalaxyQuery(created.id)

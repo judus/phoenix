@@ -1,4 +1,5 @@
 import type {
+  GalaxyQueryId,
   SavedGalaxyQueriesResponse,
   SavedGalaxyQuery,
   SavedGalaxyQueryWriteRequest
@@ -14,6 +15,7 @@ export interface SavedGalaxyQueryRepository {
 export interface SavedGalaxyQueries {
   create(input: SavedGalaxyQueryWriteRequest): SavedGalaxyQuery
   delete(id: string): void
+  getDashboardQuery(queryId: GalaxyQueryId): SavedGalaxyQuery | null
   getAll(): SavedGalaxyQueriesResponse
   update(id: string, input: SavedGalaxyQueryWriteRequest): SavedGalaxyQuery
 }

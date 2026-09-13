@@ -5,6 +5,7 @@ export const GALAXY_QUERY_IDS = [
   'facilities',
   'exploration-targets',
   'faction-presence',
+  'market-signals',
   'outfitting-stock',
   'shipyards',
   'station-lookup',
@@ -25,13 +26,14 @@ export const GalaxyQueryParametersSchema = z.record(
 export const SavedGalaxyQueryWriteRequestSchema = z.object({
   name: z.string().trim().min(1).max(80),
   parameters: GalaxyQueryParametersSchema,
-  queryId: GalaxyQueryIdSchema
+  queryId: GalaxyQueryIdSchema,
+  useOnDashboard: z.boolean()
 }).strict()
 
 export const SavedGalaxyQuerySchema = SavedGalaxyQueryWriteRequestSchema.extend({
   createdAt: z.string().datetime({ offset: true }),
   id: z.string().uuid(),
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   updatedAt: z.string().datetime({ offset: true })
 }).strict()
 

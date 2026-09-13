@@ -14,17 +14,20 @@ const DEFAULT_TIMEOUT_MS = 10_000
 export interface ArdentStationSearchSourceOptions {
   baseUrl?: string
   fetch?: typeof fetch
+  resolveCommodity: (identifier: string) => { displayName: string, symbol: string } | null
   timeoutMs?: number
 }
 
 export class ArdentStationSearchSource implements StationSearchSource {
   private readonly baseUrl: URL
   private readonly fetcher: typeof fetch
+  private readonly resolveCommodity: NonNullable<ArdentStationSearchSourceOptions['resolveCommodity']>
   private readonly timeoutMs: number
 
-  public constructor (options: ArdentStationSearchSourceOptions = {}) {
+  public constructor (options: ArdentStationSearchSourceOptions) {
     this.baseUrl = new URL(options.baseUrl ?? DEFAULT_BASE_URL)
     this.fetcher = options.fetch ?? globalThis.fetch
+    this.resolveCommodity = options.resolveCommodity
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
   }
 
@@ -47,7 +50,7 @@ export class ArdentStationSearchSource implements StationSearchSource {
         minVolume: request.minVolume
       }
     )
-    return payload.map(mapCommodityMarket).filter(isPresent)
+    return payload.map(candidate => mapCommodityMarket(candidate, this.resolveCommodity)).filter(isPresent)
   }
 
   public async findSystemExports (
@@ -61,12 +64,26 @@ export class ArdentStationSearchSource implements StationSearchSource {
         minVolume: request.minVolume
       }
     )
-    return payload.map(mapCommodityMarket).filter(isPresent)
+    return payload.map(candidate => mapCommodityMarket(candidate, this.resolveCommodity)).filter(isPresent)
+  }
+
+  public async findSystemImports (
+    request: Omit<TradeOpportunityRequest, 'availableCredits' | 'cargoCapacity' | 'maxDistance'>
+  ): Promise<CommodityMarket[]> {
+    const payload = await this.get(
+      `system/name/${encodeURIComponent(request.systemName)}/commodities/imports`,
+      {
+        fleetCarriers: request.includeFleetCarriers,
+        maxDaysAgo: request.maxDaysAgo,
+        minVolume: request.minVolume
+      }
+    )
+    return payload.map(candidate => mapCommodityMarket(candidate, this.resolveCommodity)).filter(isPresent)
   }
 
   public async getCommodityReports (): Promise<CommodityReport[]> {
     const payload = await this.get('commodities', {})
-    return payload.map(mapCommodityReport).filter(isPresent)
+    return payload.map(candidate => mapCommodityReport(candidate, this.resolveCommodity)).filter(isPresent)
   }
 
   private async get (path: string, query: Record<string, boolean | number | null>): Promise<unknown[]> {
@@ -107,15 +124,20 @@ function mapNearbyStation (candidate: unknown): NearbyStation | null {
   }
 }
 
-function mapCommodityMarket (candidate: unknown): CommodityMarket | null {
+function mapCommodityMarket (
+  candidate: unknown,
+  resolveCommodity: NonNullable<ArdentStationSearchSourceOptions['resolveCommodity']>
+): CommodityMarket | null {
   const raw = record(candidate)
-  const commodityName = stringValue(raw?.commodityName)
+  const providerSymbol = stringValue(raw?.commodityName)
   const stationName = stringValue(raw?.stationName)
   const systemName = stringValue(raw?.systemName)
-  if (!raw || !commodityName || !stationName || !systemName) return null
+  if (!raw || !providerSymbol || !stationName || !systemName) return null
+  const commodity = resolveCommodity(providerSymbol)
   return {
     buyPrice: nonnegativeNumber(raw.buyPrice),
-    commodityName,
+    commodityName: commodity?.displayName ?? providerSymbol,
+    commoditySymbol: commodity?.symbol ?? providerSymbol,
     demand: nonnegativeNumber(raw.demand),
     distanceLy: nonnegativeNumber(raw.distance),
     distanceToArrivalLs: nonnegativeNumber(raw.distanceToArrival),
@@ -131,13 +153,21 @@ function mapCommodityMarket (candidate: unknown): CommodityMarket | null {
   }
 }
 
-function mapCommodityReport (candidate: unknown): CommodityReport | null {
+function mapCommodityReport (
+  candidate: unknown,
+  resolveCommodity: NonNullable<ArdentStationSearchSourceOptions['resolveCommodity']>
+): CommodityReport | null {
   const raw = record(candidate)
-  const commodityName = stringValue(raw?.commodityName)
-  if (!raw || !commodityName) return null
+  const providerSymbol = stringValue(raw?.commodityName)
+  if (!raw || !providerSymbol) return null
+  const commodity = resolveCommodity(providerSymbol)
   return {
-    commodityName,
-    maxSellPrice: nonnegativeNumber(raw.maxSellPrice)
+    avgBuyPrice: nonnegativeNumber(raw.avgBuyPrice),
+    avgSellPrice: nonnegativeNumber(raw.avgSellPrice),
+    commodityName: commodity?.displayName ?? providerSymbol,
+    commoditySymbol: commodity?.symbol ?? providerSymbol,
+    maxSellPrice: nonnegativeNumber(raw.maxSellPrice),
+    updatedAt: isoString(raw.timestamp)
   }
 }
 

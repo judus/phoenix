@@ -41,6 +41,7 @@ import type {
 } from '../domain/station-market.js'
 import type { FactionPresenceQuery, StationQuery, TradeMarketQuery } from './mcp-tools/tool-gateways.js'
 import { DEFAULT_GALAXY_RESULT_LIMIT } from './galaxy-data-service.js'
+import { ProviderQueryCache } from './provider-query-cache.js'
 import {
   boundedLimit,
   json,
@@ -63,11 +64,6 @@ const FILTERED_SYSTEM_CACHE_MS = 30 * 60 * 1000
 const FACTION_PRESENCE_CACHE_MS = 30 * 60 * 1000
 const PAD_SIZES: Record<string, number> = { small: 1, medium: 2, large: 3 }
 
-interface CachedResult<T> {
-  cache: 'fresh' | 'refreshed' | 'stale'
-  value: T
-}
-
 interface ResolvedStation {
   station: CartographicStation
   systemName: string
@@ -81,7 +77,7 @@ interface TradeOpportunitySearchResult {
 }
 
 export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQuery, TradeMarketQuery {
-  private readonly inFlight = new Map<string, Promise<unknown>>()
+  private readonly providerQueries: ProviderQueryCache
 
   public constructor (
     private readonly searchSource: StationSearchSource,
@@ -93,9 +89,11 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     private readonly factionPresenceSource: FactionPresenceSearchSource,
     private readonly cartography: SystemCartography,
     private readonly runtimeState: RuntimeStateReader,
-    private readonly cache: ProviderResponseCache,
+    cache: ProviderResponseCache,
     private readonly now: () => Date = () => new Date()
-  ) {}
+  ) {
+    this.providerQueries = new ProviderQueryCache(cache, now)
+  }
 
   public async findBestTrade (arguments_: JsonObject) {
     const commodity = stringArgument(arguments_, 'commodity')
@@ -281,7 +279,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     request: CommodityMarketRequest,
     limit = DEFAULT_GALAXY_RESULT_LIMIT
   ): Promise<GalaxyCommodityMarketsResponse> {
-    const cached = await this.cached(
+    const cached = await this.providerQueries.get(
       'ardent-market',
       stableKey(request),
       MARKET_CACHE_MS,
@@ -301,7 +299,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     request: TradeOpportunityRequest,
     limit = DEFAULT_GALAXY_RESULT_LIMIT
   ): Promise<GalaxyTradeOpportunitiesResponse> {
-    const cached = await this.cached(
+    const cached = await this.providerQueries.get(
       'ardent-trade-opportunities',
       stableKey(request),
       TRADE_OPPORTUNITY_CACHE_MS,
@@ -310,16 +308,16 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
           this.searchSource.findSystemExports(request),
           this.searchSource.getCommodityReports()
         ])
-        const maxSellPrices = new Map(reports.map(report => [normalizeName(report.commodityName), report.maxSellPrice]))
+        const maxSellPrices = new Map(reports.map(report => [normalizeName(report.commoditySymbol), report.maxSellPrice]))
         const bestExports = bestExportByCommodity(exports, maxSellPrices, request)
         const candidates = [...bestExports.values()]
-          .map(market => ({ market, upperBound: opportunityUpperBound(market, maxSellPrices.get(normalizeName(market.commodityName)) ?? null, request) }))
+          .map(market => ({ market, upperBound: opportunityUpperBound(market, maxSellPrices.get(normalizeName(market.commoditySymbol)) ?? null, request) }))
           .filter(candidate => candidate.upperBound > 0)
           .sort((left, right) => right.upperBound - left.upperBound)
           .slice(0, TRADE_CANDIDATE_LIMIT)
         const resolved = await Promise.all(candidates.map(async candidate => {
           const destinations = await this.searchSource.findCommodityMarkets({
-            commodity: candidate.market.commodityName,
+            commodity: candidate.market.commoditySymbol,
             includeFleetCarriers: request.includeFleetCarriers,
             intent: 'sell',
             maxDaysAgo: request.maxDaysAgo,
@@ -353,7 +351,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     limit = DEFAULT_GALAXY_RESULT_LIMIT,
     minimumPadSize: 'small' | 'medium' | 'large' | null = null
   ): Promise<GalaxyNearestStationsResponse> {
-    const cached = await this.cached(
+    const cached = await this.providerQueries.get(
       'ardent-nearest',
       stableKey(request),
       NEAREST_CACHE_MS,
@@ -386,7 +384,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     if (!origin.system.position) throw new Error(`Coordinates for ${input.systemName} are unavailable.`)
     const { systemName: _systemName, ...filters } = input
     const request: SystemSearchRequest = { ...filters, referencePosition: origin.system.position }
-    const cached = await this.cached(
+    const cached = await this.providerQueries.get(
       'spansh-system-search',
       stableKey({ ...request, systemName: origin.system.name }),
       FILTERED_SYSTEM_CACHE_MS,
@@ -409,7 +407,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     if (!origin.system.position) throw new Error(`Coordinates for ${input.systemName} are unavailable.`)
     const { systemName: _systemName, ...filters } = input
     const request: FactionPresenceRequest = { ...filters, referencePosition: origin.system.position }
-    const cached = await this.cached(
+    const cached = await this.providerQueries.get(
       'spansh-faction-presence',
       stableKey({ ...request, systemName: origin.system.name }),
       FACTION_PRESENCE_CACHE_MS,
@@ -433,7 +431,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     const origin = await this.cartography.getSystem(systemName)
     if (!origin.system.position) throw new Error(`Coordinates for ${systemName} are unavailable.`)
     const request = { hullName, referencePosition: origin.system.position }
-    const cached = await this.cached(
+    const cached = await this.providerQueries.get(
       'spansh-shipyards',
       stableKey({ hullName, systemName }),
       SHIPYARD_SEARCH_CACHE_MS,
@@ -467,7 +465,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
       minimumPadSize: input.minimumPadSize,
       referencePosition: origin.system.position
     }
-    const cached = await this.cached(
+    const cached = await this.providerQueries.get(
       'spansh-outfitting',
       stableKey({ ...request, systemName: origin.system.name }),
       OUTFITTING_SEARCH_CACHE_MS,
@@ -506,7 +504,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
       referencePosition: origin.system.position,
       stationType: input.stationType
     }
-    const cached = await this.cached(
+    const cached = await this.providerQueries.get(
       'spansh-stations',
       stableKey({ ...request, systemName: origin.system.name }),
       STATION_LOOKUP_CACHE_MS,
@@ -545,7 +543,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
       })
     }
     const marketId = requiredMarketId(resolved.station)
-    const cached = await this.cached(
+    const cached = await this.providerQueries.get(
       'edsm-shipyard',
       String(marketId),
       STOCK_CACHE_MS,
@@ -569,7 +567,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
       })
     }
     const marketId = requiredMarketId(resolved.station)
-    const cached = await this.cached(
+    const cached = await this.providerQueries.get(
       'edsm-outfitting',
       String(marketId),
       STOCK_CACHE_MS,
@@ -617,38 +615,6 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     return { cache: cartography.cache, station, systemName: cartography.system.name }
   }
 
-  private async cached<T> (
-    namespace: string,
-    key: string,
-    maxAgeMs: number,
-    load: () => Promise<T>,
-    validate: (candidate: unknown) => candidate is T
-  ): Promise<CachedResult<T>> {
-    const existing = this.cache.getProviderResponse(namespace, key)
-    if (existing && validate(existing.value) && this.now().getTime() - Date.parse(existing.fetchedAt) <= maxAgeMs) {
-      return { cache: 'fresh', value: existing.value }
-    }
-    const inFlightKey = `${namespace}:${key}`
-    const active = this.inFlight.get(inFlightKey)
-    try {
-      const value = active ? await active : await this.refresh(inFlightKey, load)
-      if (!validate(value)) throw new Error(`Invalid cached provider response for ${namespace}.`)
-      return { cache: 'refreshed', value }
-    } catch (cause) {
-      if (existing && validate(existing.value)) return { cache: 'stale', value: existing.value }
-      throw cause
-    }
-  }
-
-  private refresh<T> (key: string, load: () => Promise<T>): Promise<T> {
-    const request = load().then(value => {
-      const [namespace, ...parts] = key.split(':')
-      this.cache.putProviderResponse(namespace!, parts.join(':'), this.now().toISOString(), value)
-      return value
-    }).finally(() => this.inFlight.delete(key))
-    this.inFlight.set(key, request)
-    return request
-  }
 }
 
 function localStation (
@@ -773,7 +739,7 @@ function bestExportByCommodity (
   const best = new Map<string, CommodityMarket>()
   for (const market of exports) {
     if (!validExport(market, request)) continue
-    const key = normalizeName(market.commodityName)
+    const key = normalizeName(market.commoditySymbol)
     const current = best.get(key)
     const maxSellPrice = maxSellPrices.get(key) ?? null
     if (!current || opportunityUpperBound(market, maxSellPrice, request) > opportunityUpperBound(current, maxSellPrice, request)) {
@@ -807,6 +773,7 @@ function bestOpportunity (
     return [{
       buyMarket,
       commodityName: buyMarket.commodityName,
+      commoditySymbol: buyMarket.commoditySymbol,
       projectedProfit: unitMargin * units,
       sellMarket,
       travelDistanceLy: sellMarket.distanceLy,
@@ -876,7 +843,7 @@ function isNearbyStations (candidate: unknown): candidate is NearbyStation[] {
 }
 
 function isCommodityMarkets (candidate: unknown): candidate is CommodityMarket[] {
-  return Array.isArray(candidate) && candidate.every(item => isRecord(item) && typeof item.commodityName === 'string' && typeof item.stationName === 'string')
+  return Array.isArray(candidate) && candidate.every(item => isRecord(item) && typeof item.commodityName === 'string' && typeof item.commoditySymbol === 'string' && typeof item.stationName === 'string')
 }
 
 function isTradeOpportunitySearchResult (candidate: unknown): candidate is TradeOpportunitySearchResult {
@@ -887,6 +854,7 @@ function isTradeOpportunitySearchResult (candidate: unknown): candidate is Trade
     candidate.opportunities.every(item => (
       isRecord(item) &&
       typeof item.commodityName === 'string' &&
+      typeof item.commoditySymbol === 'string' &&
       typeof item.projectedProfit === 'number' &&
       isRecord(item.buyMarket) &&
       isRecord(item.sellMarket)

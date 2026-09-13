@@ -15,6 +15,7 @@ import type {
   CopilotVoiceHostSnapshot,
   CommandCatalogResponse,
   CommanderLogResponse,
+  DashboardMarketSignalsResponse,
   ActivityLogResponse,
   CartographyLookupResponse,
   CommunicationsResponse,
@@ -37,6 +38,7 @@ import type {
   ExplorationLedgerResponse,
   GalaxySystemSearchResponse,
   GalaxyCommodityMarketsResponse,
+  GalaxyMarketSignalsResponse,
   GalaxyExplorationTargetsResponse,
   GalaxyFactionPresencesResponse,
   GalaxyNearestStationsResponse,
@@ -98,6 +100,7 @@ export interface GalaxyShipyardSearch { hullName: string, limit?: number, system
 export interface GalaxyOutfittingSearch { limit?: number, maxDaysAgo?: number, maxDistance?: number, minimumPadSize?: PadSize, module: string, systemName: string }
 export interface GalaxyStationLookupSearch { limit?: number, maxDistance?: number, minimumPadSize?: PadSize, name: string, stationType?: 'any' | 'carrier' | 'orbital' | 'surface', systemName: string }
 export interface GalaxyCommodityMarketSearch { commodity: string, fleetCarriers?: boolean, intent: 'buy' | 'sell', maxDaysAgo?: number, maxDistance?: number, minVolume?: number, systemName: string }
+export interface GalaxyMarketSignalSearch { fleetCarriers?: boolean, limit?: number, maxDaysAgo?: number, minDeviationPercent?: number, minimumPadSize?: PadSize, minVolume?: number, sides: Array<'buy' | 'sell'>, systemName: string }
 export interface GalaxyTradeOpportunitySearch { availableCredits: number, cargoCapacity: number, fleetCarriers?: boolean, limit?: number, maxDaysAgo?: number, maxDistance?: number, minVolume?: number, systemName: string }
 export interface GalaxyFactionPresenceSearch { allegiance?: string, controlling?: 'any' | 'yes' | 'no', factionName: string, government?: string, limit?: number, maxDistance?: number, minInfluence?: number, state?: string, systemName: string }
 export interface GalaxyExplorationTargetSearch { atmospheres?: string[], bodySubtypes?: string[], landable?: 'any' | 'yes' | 'no', lastReportedBefore?: string, limit?: number, maxDistance?: number, maxGravityG?: number, maxTemperatureK?: number, minBiologicalSignals?: number, minGeologicalSignals?: number, minGravityG?: number, minTemperatureK?: number, systemName: string, volcanismTypes?: string[] }
@@ -139,11 +142,13 @@ export interface PhoenixApi {
   getControlDeckCommands(signal?: AbortSignal): Promise<ControlDeckCommandCatalogue>
   getCommands(signal?: AbortSignal): Promise<CommandCatalogResponse>
   getCommanderLog(limit?: number, signal?: AbortSignal): Promise<CommanderLogResponse>
+  getDashboardMarketSignals(signal?: AbortSignal): Promise<DashboardMarketSignalsResponse>
   getFleet(signal?: AbortSignal): Promise<FleetResponse>
   getGalaxyBookmarks(signal?: AbortSignal): Promise<GalaxyBookmarksResponse>
   getGalnetNews(limit?: number, signal?: AbortSignal): Promise<GalnetNewsResponse>
   findGalaxySystems(input: GalaxySystemSearch, signal?: AbortSignal): Promise<GalaxySystemSearchResponse>
   findGalaxyCommodityMarkets(input: GalaxyCommodityMarketSearch, signal?: AbortSignal): Promise<GalaxyCommodityMarketsResponse>
+  findGalaxyMarketSignals(input: GalaxyMarketSignalSearch, signal?: AbortSignal): Promise<GalaxyMarketSignalsResponse>
   findGalaxyExplorationTargets(input: GalaxyExplorationTargetSearch, signal?: AbortSignal): Promise<GalaxyExplorationTargetsResponse>
   findGalaxyFactionPresences(input: GalaxyFactionPresenceSearch, signal?: AbortSignal): Promise<GalaxyFactionPresencesResponse>
   findGalaxyNearestStations(input: GalaxyNearestStationSearch, signal?: AbortSignal): Promise<GalaxyNearestStationsResponse>

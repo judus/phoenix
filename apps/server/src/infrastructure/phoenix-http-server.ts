@@ -79,6 +79,8 @@ import type { CommunicationDataReader, CommunicationQueryView, LocalTrafficReade
 import type { FleetDataReader } from '../domain/fleet.js'
 import type { GalaxyBookmarks } from '../domain/galaxy-bookmarks.js'
 import type { SavedGalaxyQueries } from '../domain/saved-galaxy-queries.js'
+import type { DashboardMarketSignalReader } from '../application/dashboard-market-signal-service.js'
+import type { MarketSignalReader } from '../application/market-signal-service.js'
 import type { PhoenixMcpServer } from './phoenix-mcp-server.js'
 import type { PairingAccessController } from './pairing-access-controller.js'
 import { activeRouteIPv4Address, serverAccessUrls } from './server-access-urls.js'
@@ -104,6 +106,7 @@ export interface PhoenixHttpServerOptions {
   cartographyUpdates: Subscribable<CartographyUpdate>
   commandCatalogue: CommandCatalogueSnapshots
   commanderLog: CommanderLogReader
+  dashboardMarketSignals: DashboardMarketSignalReader
   controlDeckHttp?: ControlDeckHttpHandler
   copilot?: CopilotText
   copilotProfiles?: CopilotProfiles
@@ -125,6 +128,7 @@ export interface PhoenixHttpServerOptions {
   bookmarks: GalaxyBookmarks
   savedGalaxyQueries: SavedGalaxyQueries
   galaxyData: GalaxyDataReader
+  marketSignals: MarketSignalReader
   galnet: GalnetNewsReader
   healthCheck: HealthCheck
   host: string
@@ -384,6 +388,11 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/dashboard/market-signals') {
+      this.writeJson(response, 200, await this.options.dashboardMarketSignals.getDashboardMarketSignals())
+      return
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/log/stream') {
       this.openActivityStream(request, response)
       return
@@ -529,6 +538,26 @@ export class PhoenixHttpServer {
         maxDaysAgo: boundedQueryInteger(url, 'maxDaysAgo', 30, 1, 365),
         maxDistance: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
         minVolume: boundedQueryInteger(url, 'minVolume', 1, 1, Number.MAX_SAFE_INTEGER),
+        systemName: requiredQuery(url, 'system')
+      }, boundedQueryInteger(url, 'limit', DEFAULT_GALAXY_RESULT_LIMIT, 1, DEFAULT_GALAXY_RESULT_LIMIT)))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/market-signals') {
+      const requestedSides = repeatedQuery(url, 'side')
+      const sides: Array<'buy' | 'sell'> = requestedSides.length === 0 ? ['buy', 'sell'] : requestedSides.map(side => {
+        if (side !== 'buy' && side !== 'sell') throw new HttpRequestValidationError('side must be buy or sell.')
+        return side
+      })
+      const minimumPadSize = optionalPadSize(url.searchParams.get('pad'))
+      const padSizes = { small: 1, medium: 2, large: 3 } as const
+      this.writeJson(response, 200, await this.options.marketSignals.searchMarketSignals({
+        includeFleetCarriers: url.searchParams.get('fleetCarriers') === 'true',
+        maxDaysAgo: boundedQueryInteger(url, 'maxDaysAgo', 3, 1, 365),
+        minDeviationPercent: boundedQueryInteger(url, 'minDeviationPercent', 20, 1, 1_000),
+        minimumPadSize: minimumPadSize ? padSizes[minimumPadSize] : null,
+        minVolume: boundedQueryInteger(url, 'minVolume', 100, 1, Number.MAX_SAFE_INTEGER),
+        sides,
         systemName: requiredQuery(url, 'system')
       }, boundedQueryInteger(url, 'limit', DEFAULT_GALAXY_RESULT_LIMIT, 1, DEFAULT_GALAXY_RESULT_LIMIT)))
       return

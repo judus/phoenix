@@ -50,6 +50,7 @@ try {
     keyboardOutput: controls.output,
     keyboardOutputId: controls.id,
     engineeringCatalogueDirectory: resolve(catalogueDirectory, 'engineering'),
+    commodityCataloguePath: resolve(catalogueDirectory, 'commodities.json'),
     moduleCataloguePath: resolve(catalogueDirectory, 'modules.json'),
     shipCataloguePath: resolve(catalogueDirectory, 'ships.json')
   })

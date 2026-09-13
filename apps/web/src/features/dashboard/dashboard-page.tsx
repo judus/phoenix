@@ -17,7 +17,8 @@ import {
   Widget
 } from '@phoenix/ui'
 import { CommanderSummaryWidget } from '../../components/commander-summary-widget.js'
-import type { GameActionCatalogResponse, GameActionResult } from '@phoenix/contracts'
+import { formatPhoenixCredits } from '../../components/phoenix-credits.js'
+import type { GalaxyMarketSignal, GameActionCatalogResponse, GameActionResult } from '@phoenix/contracts'
 import type { PhoenixEventConnectionSnapshot } from '../../application/events/phoenix-event-hub.js'
 import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
@@ -43,6 +44,7 @@ export function DashboardPage({
   hrefFor,
   model,
   onExecuteAction,
+  onInspectMarketSignal,
   onNavigate,
   runtime,
   voice
@@ -53,6 +55,7 @@ export function DashboardPage({
   hrefFor(route: PhoenixRoute): string
   model: DashboardViewModel
   onExecuteAction(actionId: string): Promise<GameActionResult>
+  onInspectMarketSignal(signal: GalaxyMarketSignal): void
   onNavigate(route: PhoenixRoute): void
   runtime: RuntimeStateSnapshot
   voice: DashboardVoiceModel
@@ -153,6 +156,39 @@ export function DashboardPage({
                     </ItemList>
                   )}
             </Widget>
+
+            <Widget
+              aria-label="Copilot"
+              eyebrow="Copilot"
+              link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'copilot', view: 'chat' }}>Open channel</RouteLink>}
+            >
+              <Stack fill justify="center">
+                <Inline align="center" justify="space-between">
+                  <Identity
+                    title={voice.name}
+                    detail={<Status tone={voice.connected ? 'positive' : 'muted'}>{voice.status}</Status>}
+                    leading={<Avatar aria-hidden="true">{voice.mark}</Avatar>}
+                  />
+                  <IconButton
+                    aria-pressed={voice.connected}
+                    busy={voice.transitioning}
+                    label={voice.connected ? 'Disconnect voice' : 'Connect voice'}
+                    size="lg"
+                    onClick={() => voice.connected ? voice.disconnect() : void voice.connect()}
+                  >
+                    <MicrophoneIcon />
+                  </IconButton>
+                </Inline>
+              </Stack>
+            </Widget>
+
+            <Widget
+              className="span-two"
+              eyebrow="GalNet radio"
+              link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'information', section: 'comms', view: 'radio' }}>Open remote</RouteLink>}
+            >
+              <DashboardRadioControls actionCatalog={actions} onExecute={onExecuteAction} />
+            </Widget>
           </>
         )}
       >
@@ -161,7 +197,7 @@ export function DashboardPage({
         <Widget
           className="span-two"
           detail={model.situation.place}
-          eyebrow="Situation"
+          eyebrow="Current location"
           heading={model.situation.system.toUpperCase()}
           link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'information', section: 'galaxy', view: 'system' }}>Open galaxy</RouteLink>}
         >
@@ -176,28 +212,48 @@ export function DashboardPage({
         </Widget>
 
         <Widget
-          aria-label="Copilot"
-          eyebrow="Copilot"
-          link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'copilot', view: 'chat' }}>Open channel</RouteLink>}
+          aria-label="Market signals"
+          className="dashboard-market-signals-widget"
+          eyebrow="Market signals"
+          link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{
+            kind: 'information',
+            section: 'galaxy',
+            view: 'database',
+            ...(controller.marketSignals?.configuration
+              ? { savedQueryId: controller.marketSignals.configuration.id, selectedQueryId: 'market-signals' as const }
+              : { selectedQueryId: 'market-signals' as const })
+          }}>{controller.marketSignals?.configuration ? 'Open signals' : 'Configure'}</RouteLink>}
+          scrollable
         >
-          <Stack fill justify="center">
-            <Inline align="center" justify="space-between">
-              <Identity
-                title={voice.name}
-                detail={<Status tone={voice.connected ? 'positive' : 'muted'}>{voice.status}</Status>}
-                leading={<Avatar aria-hidden="true">{voice.mark}</Avatar>}
-              />
-              <IconButton
-                aria-pressed={voice.connected}
-                busy={voice.transitioning}
-                label={voice.connected ? 'Disconnect voice' : 'Connect voice'}
-                size="lg"
-                onClick={() => voice.connected ? voice.disconnect() : void voice.connect()}
-              >
-                <MicrophoneIcon />
-              </IconButton>
-            </Inline>
-          </Stack>
+          {controller.marketSignalsError
+            ? <Status tone="muted">Market intelligence unavailable.</Status>
+            : !controller.marketSignals
+              ? <Status tone="muted">Scanning local markets…</Status>
+              : controller.marketSignals.state === 'not-configured'
+                ? <Status tone="muted">Save a Market Signals query and select it for the dashboard.</Status>
+                : controller.marketSignals.state === 'location-unknown'
+                  ? <Status tone="muted">Current system unknown.</Status>
+                  : controller.marketSignals.result!.signals.length === 0
+                    ? <Status tone="muted">No notable local prices match your filters.</Status>
+                    : (
+                        <ul className="dashboard-market-signals">
+                          {controller.marketSignals.result!.signals.map(signal => (
+                            <li key={`${signal.side}:${signal.commodityName}:${signal.marketId ?? signal.stationName}`}>
+                              <a
+                                href={hrefFor({ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'commodity-markets' })}
+                                onClick={event => {
+                                  event.preventDefault()
+                                  onInspectMarketSignal(signal)
+                                }}
+                              ><span>{signal.commodityName}</span><small>{signal.side === 'buy' ? 'Buy' : 'Sell'} {formatPhoenixCredits(signal.price)} · {signal.stationName}</small></a>
+                              <span className="dashboard-market-signal-summary">
+                                <span>{signal.side === 'buy' ? '−' : '+'}{Math.round(signal.deviationPercent)}%</span>
+                                <small>{signal.unlimitedVolume ? '∞ t' : `${signal.volume.toLocaleString('en-CH')} t`}</small>
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
         </Widget>
 
         <Widget
@@ -224,17 +280,10 @@ export function DashboardPage({
         >
           <Stack gap="sm">
             <DescriptionList columns="one" density="compact">
-              <DescriptionItem label="Current" title={model.route.current} value={model.route.current} />
-              <DescriptionItem label="Destination" title={model.route.destination} value={model.route.destination} />
+              <DescriptionItem label="Next jump" title={model.route.nextSystem} value={model.route.nextSystem} />
+              <DescriptionItem label="Star class" value={model.route.nextStarClass} />
             </DescriptionList>
           </Stack>
-        </Widget>
-
-        <Widget
-          eyebrow="GalNet radio"
-          link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'information', section: 'comms', view: 'radio' }}>Open remote</RouteLink>}
-        >
-          <DashboardRadioControls actionCatalog={actions} onExecute={onExecuteAction} />
         </Widget>
       </DashboardGrid>
     </PageFrame>

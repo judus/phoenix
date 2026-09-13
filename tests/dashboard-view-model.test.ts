@@ -17,7 +17,7 @@ test('dashboard view model derives commander, situation, ship, route, and notabl
       timestamp: '2026-08-16T12:00:00.000Z',
       route: [
         { system: 'Sol', address: null, position: null, starClass: null },
-        { system: 'Achenar', address: null, position: null, starClass: null }
+        { system: 'Achenar', address: null, position: null, starClass: 'G' }
       ]
     },
     [{
@@ -53,7 +53,7 @@ test('dashboard view model derives commander, situation, ship, route, and notabl
   expect(model.commander.name).toBe('Ellan Murdock')
   expect(model.situation).toMatchObject({ system: 'Sol', place: 'Locke Terminal', population: "1'000" })
   expect(model.ship).toMatchObject({ name: 'Type-11 Prospector', identifier: 'EL-06L', hull: '86%', jumpRange: '22.4 ly' })
-  expect(model.route).toEqual({ current: 'Sol', destination: 'Achenar', detail: '1 jump remaining' })
+  expect(model.route).toEqual({ destination: 'Achenar', detail: '1 jump remaining', nextStarClass: 'G', nextSystem: 'Achenar' })
   expect(model.commanderLog[0]).toMatchObject({
     category: 'Mission',
     detail: 'Deliver medicines · Galileo, Sol',

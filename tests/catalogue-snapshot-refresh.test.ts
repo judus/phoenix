@@ -11,7 +11,7 @@ test('accepts an existing runtime snapshot when automatic refresh is disabled', 
   const root = mkdtempSync(join(tmpdir(), 'phoenix-catalogue-present-'))
   const directory = join(root, 'runtime/catalogue')
   mkdirSync(directory, { recursive: true })
-  writeFileSync(join(directory, 'manifest.json'), '{}')
+  writeCurrentSnapshotMarker(directory)
   vi.stubEnv('PHOENIX_CATALOGUE_REFRESH', 'false')
 
   try {
@@ -38,7 +38,7 @@ test('seeds first-launch user data from the bundled catalogue without network ac
   const userRoot = join(root, 'user')
   const bundled = join(installRoot, 'resources/catalogue')
   mkdirSync(bundled, { recursive: true })
-  writeFileSync(join(bundled, 'manifest.json'), '{"source":"bundled"}')
+  writeCurrentSnapshotMarker(bundled, { source: 'bundled' })
   vi.stubEnv('PHOENIX_CATALOGUE_REFRESH', 'false')
 
   try {
@@ -54,7 +54,7 @@ test('retains an existing local snapshot when an online refresh fails', async ()
   const root = mkdtempSync(join(tmpdir(), 'phoenix-catalogue-stale-'))
   const directory = join(root, 'runtime/catalogue')
   mkdirSync(directory, { recursive: true })
-  writeFileSync(join(directory, 'manifest.json'), '{}')
+  writeCurrentSnapshotMarker(directory)
   vi.stubEnv('PHOENIX_CATALOGUE_REFRESH', 'true')
   const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
@@ -69,4 +69,9 @@ test('retains an existing local snapshot when an online refresh fails', async ()
 
 function paths (userRoot: string, installRoot = '/opt/phoenix-test'): ApplicationPaths {
   return new ApplicationPaths({ installRoot, userRoot })
+}
+
+function writeCurrentSnapshotMarker (directory: string, extra: Record<string, unknown> = {}): void {
+  writeFileSync(join(directory, 'manifest.json'), JSON.stringify({ schemaVersion: 2, ...extra }))
+  writeFileSync(join(directory, 'commodities.json'), '{}')
 }

@@ -25,6 +25,7 @@ test('live dashboard evidence is not overwritten by stale initial queries', asyn
     getCommanderLog: vi.fn().mockReturnValue(new Promise(resolve => { resolveCommanderLog = resolve })),
     getLocalTraffic: vi.fn().mockResolvedValue(localTraffic()),
     getEngineeringMaterialWatchlist: vi.fn().mockResolvedValue(materialWatchlist()),
+    getDashboardMarketSignals: vi.fn().mockResolvedValue(marketSignals()),
     getNavigationRoute: vi.fn().mockReturnValue(new Promise(resolve => { resolveRoute = resolve }))
   } as unknown as PhoenixApi
   let snapshot: DashboardControllerSnapshot | undefined
@@ -72,6 +73,7 @@ test('an obsolete catalogue failure cannot taint a newer successful refresh', as
     getCommanderLog: vi.fn().mockResolvedValue({ schemaVersion: 1, entries: [], retained: 0 }),
     getLocalTraffic: vi.fn().mockResolvedValue(localTraffic()),
     getEngineeringMaterialWatchlist: vi.fn().mockResolvedValue(materialWatchlist()),
+    getDashboardMarketSignals: vi.fn().mockResolvedValue(marketSignals()),
     getNavigationRoute: vi.fn().mockResolvedValue(route('Sol'))
   } as unknown as PhoenixApi
   let snapshot: DashboardControllerSnapshot | undefined
@@ -119,6 +121,10 @@ function localTraffic() {
 
 function materialWatchlist() {
   return { activeProjectCount: 0, materials: [], observedAt: null, schemaVersion: 1 as const }
+}
+
+function marketSignals() {
+  return { configuration: null, result: null, schemaVersion: 1 as const, state: 'not-configured' as const }
 }
 
 function communicationMessage() {
