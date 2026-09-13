@@ -15,10 +15,12 @@ describe('BrowserPhoenixEventHub', () => {
     const revisions: number[] = []
     const commanderEvents: string[] = []
     const messages: string[] = []
+    const projectChanges: string[] = []
     hub.subscribeConnection(() => states.push(hub.getConnectionSnapshot().state))
     hub.subscribe('runtime-state', state => revisions.push(state.revision))
     hub.subscribe('commander-log-entry', entry => commanderEvents.push(entry.kind))
     hub.subscribe('communication-message', message => messages.push(message.message))
+    hub.subscribe('engineering-projects-changed', update => projectChanges.push(update.changedAt))
 
     hub.start()
     hub.start()
@@ -50,6 +52,7 @@ describe('BrowserPhoenixEventHub', () => {
       timestamp: '2026-09-13T12:00:00Z',
       view: 'traffic'
     })
+    source.emit('engineering-projects-changed', { schemaVersion: 1, changedAt: '2026-09-13T12:05:00Z' })
 
     expect(factory).toHaveBeenCalledTimes(1)
     expect(factory).toHaveBeenCalledWith('/api/events?conversationId=phoenix-copilot')
@@ -57,6 +60,7 @@ describe('BrowserPhoenixEventHub', () => {
     expect(revisions).toEqual([4])
     expect(commanderEvents).toEqual(['mission.completed'])
     expect(messages).toEqual(['o7'])
+    expect(projectChanges).toEqual(['2026-09-13T12:05:00Z'])
 
     hub.stop()
     expect(source.closed).toBe(true)

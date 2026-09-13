@@ -23,6 +23,7 @@ export const DISPLAY_PAGE_IDS = [
   'activities.powerplay',
   'activities.colonisation',
   'engineering.blueprints',
+  'engineering.projects',
   'engineering.engineers',
   'engineering.materials-raw',
   'engineering.materials-manufactured',

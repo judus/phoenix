@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import type {
   CommanderLogEntry,
+  EngineeringMaterialWatchlistResponse,
   GameActionCatalogResponse,
   LocalTrafficResponse,
   NavigationRoute
@@ -14,6 +15,7 @@ export interface DashboardControllerSnapshot {
   commanderLog: readonly CommanderLogEntry[]
   error?: string
   localTraffic?: LocalTrafficResponse
+  materialWatchlist?: EngineeringMaterialWatchlistResponse
   route?: NavigationRoute
   status: 'loading' | 'ready' | 'error'
 }
@@ -33,6 +35,8 @@ export function useDashboardController(
     const abort = new AbortController()
     let commanderLogRevision = 0
     let localTrafficRevision = 0
+    let materialWatchlistRevision = 0
+    let observedMaterialsAt: string | null | undefined
     let routeRevision = 0
     let actionsRevision = 0
 
@@ -56,6 +60,23 @@ export function useDashboardController(
         })
     }
     const unsubscribeCommunications = events.subscribe('communication-message', loadLocalTraffic)
+    const loadMaterialWatchlist = (): void => {
+      const revision = ++materialWatchlistRevision
+      void api.getEngineeringMaterialWatchlist(abort.signal)
+        .then(materialWatchlist => {
+          if (abort.signal.aborted || revision !== materialWatchlistRevision) return
+          setSnapshot(current => ({ ...current, materialWatchlist, status: 'ready' }))
+        })
+        .catch(cause => {
+          if (!abort.signal.aborted && revision === materialWatchlistRevision) setError(setSnapshot, cause)
+        })
+    }
+    const unsubscribeEngineeringProjects = events.subscribe('engineering-projects-changed', loadMaterialWatchlist)
+    const unsubscribeRuntime = events.subscribe('runtime-state', state => {
+      const nextObservedAt = state.inventory.materials?.updatedAt ?? null
+      if (observedMaterialsAt !== undefined && nextObservedAt !== observedMaterialsAt) loadMaterialWatchlist()
+      observedMaterialsAt = nextObservedAt
+    })
     const unsubscribeRoute = events.subscribe('navigation-route', route => {
       routeRevision += 1
       setSnapshot(current => ({ ...current, route, status: 'ready' }))
@@ -75,6 +96,7 @@ export function useDashboardController(
     const commanderLogAtRequest = commanderLogRevision
     const localTrafficAtRequest = localTrafficRevision
     const routeAtRequest = routeRevision
+    const materialWatchlistAtRequest = materialWatchlistRevision
     const actionsAtRequest = ++actionsRevision
     void Promise.allSettled([
       api.getCommanderLog(24, abort.signal).then(log => {
@@ -87,6 +109,11 @@ export function useDashboardController(
           setSnapshot(current => ({ ...current, localTraffic }))
         }
       }),
+      api.getEngineeringMaterialWatchlist(abort.signal).then(materialWatchlist => {
+        if (materialWatchlistAtRequest === materialWatchlistRevision) {
+          setSnapshot(current => ({ ...current, materialWatchlist }))
+        }
+      }),
       api.getNavigationRoute(abort.signal).then(route => {
         if (routeAtRequest === routeRevision) setSnapshot(current => ({ ...current, route }))
       }),
@@ -95,8 +122,8 @@ export function useDashboardController(
       })
     ]).then(results => {
       if (abort.signal.aborted) return
-      const requestRevisions = [commanderLogAtRequest, localTrafficAtRequest, routeAtRequest, actionsAtRequest]
-      const currentRevisions = [commanderLogRevision, localTrafficRevision, routeRevision, actionsRevision]
+      const requestRevisions = [commanderLogAtRequest, localTrafficAtRequest, materialWatchlistAtRequest, routeAtRequest, actionsAtRequest]
+      const currentRevisions = [commanderLogRevision, localTrafficRevision, materialWatchlistRevision, routeRevision, actionsRevision]
       const failures: unknown[] = []
       results.forEach((result, index) => {
         if (result.status === 'rejected' && requestRevisions[index] === currentRevisions[index]) {
@@ -114,6 +141,8 @@ export function useDashboardController(
       abort.abort()
       unsubscribeCommanderLog()
       unsubscribeCommunications()
+      unsubscribeEngineeringProjects()
+      unsubscribeRuntime()
       unsubscribeRoute()
       unsubscribeCatalogue()
     }

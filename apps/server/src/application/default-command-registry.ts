@@ -34,6 +34,7 @@ export const PHOENIX_NAVIGATION_DESTINATIONS: readonly NavigationCommandDestinat
   destination('operations.powerplay', 'Powerplay', '#/operations/powerplay', 'Operations', 'Open Powerplay operations.'),
   destination('operations.colonisation', 'Colonisation', '#/operations/colonisation', 'Operations', 'Open colonisation operations.'),
   destination('engineering.blueprints', 'Engineering', '#/engineering/blueprints', 'Engineering', 'Open engineering blueprints.'),
+  destination('engineering.projects', 'Engineering projects', '#/engineering/projects', 'Engineering', 'Open engineering projects and material plans.'),
   destination('engineering.engineers', 'Engineers', '#/engineering/engineers', 'Engineering', 'Open engineers.'),
   destination('engineering.materials-raw', 'Raw materials', '#/engineering/materials/raw', 'Engineering', 'Open raw materials.'),
   destination('engineering.materials-manufactured', 'Manufactured materials', '#/engineering/materials/manufactured', 'Engineering', 'Open manufactured materials.'),

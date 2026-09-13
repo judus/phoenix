@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { CartographyUpdate, CommunicationMessage, DisplayCommand, GameEventEnvelope, NavigationRoute, PhoenixControlDeckConfiguration, RuntimeState } from '@phoenix/contracts'
+import type { CartographyUpdate, CommunicationMessage, DisplayCommand, EngineeringProjectsChanged, GameEventEnvelope, NavigationRoute, PhoenixControlDeckConfiguration, RuntimeState } from '@phoenix/contracts'
 import { ToolRegistry } from '@jdu/llm-client'
 import { ControlDeckCommandService, type ControlDeckConfigurationRepository } from 'control-deck/core'
 import { ControlDeckIntegration } from 'control-deck/host'
@@ -57,6 +57,7 @@ import { DisplayCommandService } from './application/display-command-service.js'
 import { NavigationDataService } from './application/navigation-data-service.js'
 import { EliteDestinationService } from './application/elite-destination-service.js'
 import { EngineeringDataService } from './application/engineering-data-service.js'
+import { EngineeringProjectService } from './application/engineering-project-service.js'
 import { ExplorationDataService } from './application/exploration-data-service.js'
 import { DefaultCommanderEngineersQuery } from './application/default-commander-engineers-query.js'
 import { DefaultStationMarketQuery } from './application/default-station-market-query.js'
@@ -179,6 +180,7 @@ export class PhoenixApplication {
     const displayCommandUpdates = new InProcessPublisher<DisplayCommand>()
     const commandCatalogueChanges = new InProcessPublisher<CommandCatalogueChange>()
     const communicationUpdates = new InProcessPublisher<CommunicationMessage>()
+    const engineeringProjectUpdates = new InProcessPublisher<EngineeringProjectsChanged>()
     this.stateStore = new InMemoryRuntimeStateStore()
     this.database = new SqliteDatabase(
       resolveProjectPath(
@@ -401,6 +403,12 @@ export class PhoenixApplication {
     )
     const display = new DisplayCommandService(displayCommandUpdates, this.stateStore)
     const engineering = new EngineeringDataService(engineeringCatalogue, this.stateStore)
+    const engineeringProjects = new EngineeringProjectService(
+      this.database.engineeringProjects,
+      engineeringCatalogue,
+      engineering,
+      engineeringProjectUpdates
+    )
     const exploration = new DefaultExplorationBodyQuery(this.database, cartography, this.stateStore)
     const explorationData = new ExplorationDataService(this.database, this.database)
     const explorationTargets = new DefaultExplorationTargetQuery(
@@ -492,6 +500,7 @@ export class PhoenixApplication {
       systemSettings,
       displayCommands: display,
       engineering,
+      engineeringProjects,
       explorationData,
       explorationTargets,
       fleet,

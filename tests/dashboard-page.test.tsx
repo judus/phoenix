@@ -6,7 +6,7 @@ import type { DashboardViewModel } from '../apps/web/src/features/dashboard/dash
 test('dashboard exposes degraded evidence and preserves radio control order', () => {
   const markup = renderToStaticMarkup(
     <DashboardPage
-      controller={{ commanderLog: [], error: 'Dashboard query unavailable.', localTraffic: localTraffic(), status: 'error' }}
+      controller={{ commanderLog: [], error: 'Dashboard query unavailable.', localTraffic: localTraffic(), materialWatchlist: materialWatchlist(), status: 'error' }}
       eventConnection={{ state: 'error', error: 'Live events disconnected.' }}
       hrefFor={() => '#/typed'}
       model={model()}
@@ -36,6 +36,12 @@ test('dashboard exposes degraded evidence and preserves radio control order', ()
   expect(markup).toContain('aria-label="Commander log"')
   expect(markup).toContain('<span>Commander log</span>')
   expect(markup).toContain('Local traffic')
+  expect(markup).toContain('Material watchlist')
+  expect(markup).toContain('<ul class="dashboard-material-watchlist"><li><span>Arsenic</span><span>0/1</span></li></ul>')
+  expect(markup).not.toContain('0 owned')
+  expect(markup).not.toContain('1 planned')
+  expect(markup).not.toContain('1 missing')
+  expect(markup).not.toContain('raw · G2')
   expect(markup).toContain('No recent local communications observed.')
   expect(markup).toContain('panel panel-danger dashboard-alerts')
   expect(markup).not.toContain('<h3>Commander log</h3>')
@@ -73,6 +79,7 @@ test('dashboard identifies its loading state without replacing the shell', () =>
   expect(markup).toContain('Loading commander history…')
   expect(markup).toContain('Listening for local traffic…')
   expect(markup).not.toContain('application-shell')
+  expect(markup).toContain('class="page-frame page-flow dashboard-page"')
 })
 
 function model(): DashboardViewModel {
@@ -89,4 +96,25 @@ function model(): DashboardViewModel {
 
 function localTraffic() {
   return { generatedAt: '2026-08-16T12:00:00.000Z', messages: [], schemaVersion: 1 as const, windowMinutes: 90 }
+}
+
+function materialWatchlist() {
+  return {
+    activeProjectCount: 1,
+    materials: [{
+      category: 'raw',
+      grade: 2,
+      highestPriority: 'normal' as const,
+      materialId: 'Arsenic',
+      materialName: 'Arsenic',
+      missing: 1,
+      owned: 0,
+      projectCount: 1,
+      projects: [{ id: 'project-1', name: 'Explorer refit' }],
+      required: 1,
+      stepCount: 1
+    }],
+    observedAt: '2026-09-13T12:00:00.000Z',
+    schemaVersion: 1 as const
+  }
 }

@@ -221,7 +221,7 @@ function parseEngineeringRoute(rest: string[], query: RawRouteQuery): Informatio
     const material = oneOf(rest[1], ['raw', 'manufactured', 'encoded', 'xeno'] as const) ?? 'raw'
     return { kind: 'information', section: 'engineering', view: `materials-${material}` }
   }
-  const view = oneOf(rest[0], ['blueprints', 'engineers'] as const) ?? 'blueprints'
+  const view = oneOf(rest[0], ['projects', 'blueprints', 'engineers'] as const) ?? 'blueprints'
   if (view === 'blueprints') {
     return {
       kind: 'information',

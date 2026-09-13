@@ -9,6 +9,7 @@ import type {
   CopilotVoiceHostCommand,
   CopilotVoiceHostSnapshot,
   DisplayCommand,
+  EngineeringProjectsChanged,
   NavigationRoute,
   RuntimeState
 } from '@phoenix/contracts'
@@ -22,6 +23,7 @@ export interface PhoenixEventMap {
   'conversation-event': CopilotConversationEvent
   'copilot-profiles': CopilotProfilesResponse
   'display-command': DisplayCommand
+  'engineering-projects-changed': EngineeringProjectsChanged
   'navigation-route': NavigationRoute
   'runtime-state': RuntimeState
   'voice-host': CopilotVoiceHostSnapshot

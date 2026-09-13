@@ -245,7 +245,8 @@ const EngineeringFeature = memo(function EngineeringFeature({ application, route
     application.api,
     route.view,
     selectedBlueprintSymbol,
-    runtime.status === 'ready' ? runtime.state.revision : undefined
+    runtime.status === 'ready' ? runtime.state.revision : undefined,
+    application.events
   )
   return <EngineeringPage controller={controller} selectedBlueprintSymbol={selectedBlueprintSymbol} view={route.view} />
 })

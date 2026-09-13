@@ -6,6 +6,7 @@ type EngineeringRoute = Extract<InformationRoute, { section: 'engineering' }>
 type EngineeringNavigationItem = NavigationItem & { route: EngineeringRoute }
 
 const routes = {
+  projects: { kind: 'information', section: 'engineering', view: 'projects' },
   blueprints: { kind: 'information', section: 'engineering', view: 'blueprints' },
   engineers: { kind: 'information', section: 'engineering', view: 'engineers' },
   'materials-raw': { kind: 'information', section: 'engineering', view: 'materials-raw' },
@@ -15,6 +16,7 @@ const routes = {
 } as const satisfies Record<string, EngineeringRoute>
 
 export const engineeringNavigationItems: EngineeringNavigationItem[] = [
+  item('projects', 'Projects', 'PRJ'),
   item('blueprints', 'Blueprints', 'BLP'),
   item('engineers', 'Engineers', 'ENG'),
   item('materials-raw', 'Raw materials', 'RAW'),

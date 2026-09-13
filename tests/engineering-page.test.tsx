@@ -4,9 +4,9 @@ import type { EngineeringBlueprintDetail, EngineeringEngineer, EngineeringMateri
 import { EngineeringPage } from '../apps/web/src/features/engineering/engineering-page.js'
 import { engineeringNavigationItems } from '../apps/web/src/features/engineering/engineering-navigation.js'
 
-test('Engineering exposes the archived six-view information architecture through typed routes', () => {
+test('Engineering exposes project planning and catalogue views through typed routes', () => {
   expect(engineeringNavigationItems.map(item => [item.label, item.href])).toEqual([
-    ['Blueprints', '#/engineering/blueprints'], ['Engineers', '#/engineering/engineers'],
+    ['Projects', '#/engineering/projects'], ['Blueprints', '#/engineering/blueprints'], ['Engineers', '#/engineering/engineers'],
     ['Raw materials', '#/engineering/materials/raw'], ['Manufactured materials', '#/engineering/materials/manufactured'],
     ['Encoded materials', '#/engineering/materials/encoded'], ['Xeno materials', '#/engineering/materials/xeno']
   ])
@@ -21,6 +21,27 @@ test('Blueprint catalogue is independent from current-ship application and keeps
   expect(markup).not.toContain('Current ship')
   expect(markup).toContain('#/engineering/blueprints?symbol=dirty-drive')
   expect(markup).not.toContain('1 fitted')
+})
+
+test('Engineering projects expose plan management and inventory-aware missing materials', () => {
+  const projectId = '00000000-0000-4000-8000-000000000001'
+  const markup = renderToStaticMarkup(<EngineeringPage controller={{
+    projects: { schemaVersion: 1, projects: [{
+      createdAt: '2026-09-13T12:00:00Z', id: projectId, name: 'Explorer refit', note: null, priority: 'high', schemaVersion: 1,
+      status: 'active', updatedAt: '2026-09-13T12:00:00Z', steps: [{
+        blueprintName: 'Long Range FSD', blueprintSymbol: 'FSD_LongRange', createdAt: '2026-09-13T12:00:00Z', id: '00000000-0000-4000-8000-000000000002',
+        kind: 'blueprint', moduleNames: ['Frame shift drive'], note: null, plannedRolls: 6, targetGrade: 5,
+        requirements: [{ category: 'raw', grade: 2, materialId: 'Arsenic', materialName: 'Arsenic', required: 6, unitCost: 1 }]
+      }]
+    }] },
+    status: 'ready',
+    watchlist: { activeProjectCount: 1, materials: [{ category: 'raw', grade: 2, highestPriority: 'high', materialId: 'Arsenic', materialName: 'Arsenic', missing: 4, owned: 2, projectCount: 1, projects: [{ id: projectId, name: 'Explorer refit' }], required: 6, stepCount: 1 }], observedAt: '2026-09-13T12:00:00Z', schemaVersion: 1
+  }}} view="projects" />)
+  expect(markup).toContain('Explorer refit')
+  expect(markup).toContain('Long Range FSD')
+  expect(markup).toContain('Active material plan')
+  expect(markup).toContain('<td>2</td><td>6</td><td class="text-danger">4</td>')
+  expect(markup).toContain('New project')
 })
 
 test('Engineer tables retain access grouping and system navigation', () => {

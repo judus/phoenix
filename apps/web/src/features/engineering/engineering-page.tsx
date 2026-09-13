@@ -21,6 +21,8 @@ import {
 import { SystemLocationLink } from '../../components/system-location-link.js'
 import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import type { EngineeringControllerSnapshot, EngineeringView } from './use-engineering-controller.js'
+import { BlueprintProjectForm } from './blueprint-project-form.js'
+import { EngineeringProjectsPage } from './engineering-projects-page.js'
 
 export function EngineeringPage({ controller, selectedBlueprintSymbol, view }: {
   controller: EngineeringControllerSnapshot
@@ -30,11 +32,12 @@ export function EngineeringPage({ controller, selectedBlueprintSymbol, view }: {
   const title = pageTitle(view)
   if (controller.status === 'idle' || controller.status === 'loading') return <EngineeringState title={title} />
   if (controller.status === 'error') return <EngineeringState error={controller.error ?? 'Engineering data unavailable.'} title={title} />
+  if (view === 'projects') return <EngineeringProjectsPage actions={controller.actions} projects={controller.projects?.projects ?? []} watchlist={controller.watchlist} />
   if (view === 'engineers') return <Engineers engineers={controller.engineers?.engineers ?? []} />
   if (view.startsWith('materials-')) return <Materials materials={controller.materials?.materials ?? []} updatedAt={controller.materials?.updatedAt} view={view} />
   if (selectedBlueprintSymbol) {
     return controller.blueprint
-      ? <BlueprintDetail blueprint={controller.blueprint} />
+      ? <BlueprintDetail actions={controller.actions} blueprint={controller.blueprint} projects={controller.projects?.projects ?? []} />
       : <EngineeringState error="Engineering blueprint unavailable." title="Blueprint" />
   }
   return <Blueprints blueprints={controller.blueprints?.blueprints ?? []} />
@@ -163,11 +166,18 @@ function BlueprintGroup({ blueprints, title }: { blueprints: EngineeringBlueprin
   )
 }
 
-function BlueprintDetail({ blueprint }: { blueprint: EngineeringBlueprintDetail }) {
+function BlueprintDetail({ actions, blueprint, projects }: {
+  actions?: EngineeringControllerSnapshot['actions']
+  blueprint: EngineeringBlueprintDetail
+  projects: NonNullable<EngineeringControllerSnapshot['projects']>['projects']
+}) {
   return (
     <PageFrame>
       <Stack gap="sm">
         <EngineeringHeader blueprint={blueprint} title={blueprint.name} />
+        <DataTableGroup title="Project plan">
+          <BlueprintProjectForm actions={actions} blueprint={blueprint} projects={projects} />
+        </DataTableGroup>
         <DataTableGroup title="Engineered equipment">
           {blueprint.appliedModules.length > 0
             ? <DataTable density="compact" label="Engineered equipment" narrow="priority" scheme="surface"><tbody>{blueprint.appliedModules.map(module => (
@@ -233,6 +243,7 @@ function EngineeringHeader({ blueprint, status, title }: { blueprint?: Engineeri
 }
 
 function pageTitle(view: EngineeringView): string {
+  if (view === 'projects') return 'Engineering projects'
   if (view === 'blueprints') return 'Blueprints'
   if (view === 'engineers') return 'Engineers'
   return `${capitalize(view.slice('materials-'.length))} materials`

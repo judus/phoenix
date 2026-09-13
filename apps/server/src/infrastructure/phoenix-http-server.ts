@@ -20,6 +20,9 @@ import {
   CopilotRealtimeToolRequestSchema,
   CopilotRealtimeTurnRequestSchema,
   ExplorationManualCompletionRequestSchema,
+  EngineeringProjectCreateRequestSchema,
+  EngineeringProjectStepCreateRequestSchema,
+  EngineeringProjectUpdateRequestSchema,
   GalaxyBookmarkWriteRequestSchema,
   InstallationSettingsSchema,
   InstallationSettingsUpdateSchema,
@@ -56,6 +59,7 @@ import type { EliteDestinations } from '../domain/elite-destination.js'
 import type { Commands } from '../domain/commands.js'
 import type { HealthCheck } from '../application/health-service.js'
 import type { EngineeringDataReader } from '../application/engineering-data-service.js'
+import type { EngineeringProjects } from '../domain/engineering-projects.js'
 import type { ExplorationDataReader } from '../application/exploration-data-service.js'
 import type { ExplorationTargetReader } from '../application/default-exploration-target-query.js'
 import { DEFAULT_GALAXY_RESULT_LIMIT, type GalaxyDataReader } from '../application/galaxy-data-service.js'
@@ -114,6 +118,7 @@ export interface PhoenixHttpServerOptions {
   eliteNavigationRouteDiagnostics: { getDiagnostics(): EliteNavigationRouteSourceDiagnostics }
   eliteStatusDiagnostics: EliteStatusDiagnosticsReader
   engineering: EngineeringDataReader
+  engineeringProjects: EngineeringProjects
   explorationData: ExplorationDataReader
   explorationTargets: ExplorationTargetReader
   fleet: FleetDataReader
@@ -607,6 +612,52 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/engineering/blueprints') {
       this.writeJson(response, 200, this.options.engineering.getBlueprints())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/engineering/projects') {
+      this.writeJson(response, 200, this.options.engineeringProjects.getAll())
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/engineering/projects') {
+      const input = await readValidatedJsonBody(request, EngineeringProjectCreateRequestSchema)
+      this.writeJson(response, 201, this.options.engineeringProjects.create(input))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/engineering/material-watchlist') {
+      this.writeJson(response, 200, this.options.engineeringProjects.getMaterialWatchlist())
+      return
+    }
+
+    const engineeringProjectMatch = url.pathname.match(/^\/api\/engineering\/projects\/([^/]+)$/u)
+    if (engineeringProjectMatch && request.method === 'PUT') {
+      const input = await readValidatedJsonBody(request, EngineeringProjectUpdateRequestSchema)
+      this.writeJson(response, 200, this.options.engineeringProjects.update(decodeURIComponent(engineeringProjectMatch[1]!), input))
+      return
+    }
+
+    if (engineeringProjectMatch && request.method === 'DELETE') {
+      this.options.engineeringProjects.delete(decodeURIComponent(engineeringProjectMatch[1]!))
+      response.writeHead(204)
+      response.end()
+      return
+    }
+
+    const engineeringProjectStepsMatch = url.pathname.match(/^\/api\/engineering\/projects\/([^/]+)\/steps$/u)
+    if (engineeringProjectStepsMatch && request.method === 'POST') {
+      const input = await readValidatedJsonBody(request, EngineeringProjectStepCreateRequestSchema)
+      this.writeJson(response, 201, this.options.engineeringProjects.addStep(decodeURIComponent(engineeringProjectStepsMatch[1]!), input))
+      return
+    }
+
+    const engineeringProjectStepMatch = url.pathname.match(/^\/api\/engineering\/projects\/([^/]+)\/steps\/([^/]+)$/u)
+    if (engineeringProjectStepMatch && request.method === 'DELETE') {
+      this.writeJson(response, 200, this.options.engineeringProjects.deleteStep(
+        decodeURIComponent(engineeringProjectStepMatch[1]!),
+        decodeURIComponent(engineeringProjectStepMatch[2]!)
+      ))
       return
     }
 
@@ -1175,6 +1226,7 @@ export class PhoenixHttpServer {
       this.options.activityLog.subscribe(entry => send('activity-entry', entry)),
       this.options.communicationUpdates.subscribe(message => send('communication-message', message)),
       this.options.commanderLog.subscribe(entry => send('commander-log-entry', entry)),
+      this.options.engineeringProjects.subscribe(update => send('engineering-projects-changed', update)),
       this.options.displayCommands.subscribe(command => send('display-command', command)),
       this.options.navigationRouteUpdates.subscribe(route => send('navigation-route', route)),
       this.options.commandCatalogue.subscribe(snapshot => send('command-catalogue', {

@@ -66,7 +66,7 @@ export function DashboardPage({
   ]
 
   return (
-    <PageFrame className="dashboard-page" layout="fit" aria-busy={controller.status === 'loading'}>
+    <PageFrame className="dashboard-page" aria-busy={controller.status === 'loading'}>
       {attention.length > 0
         ? (
             <Panel className="dashboard-alerts" title="Attention" variant="danger">
@@ -81,8 +81,31 @@ export function DashboardPage({
         lastRow={(
           <>
             <Widget
+              aria-label="Material watchlist"
+              eyebrow="Material watchlist"
+              link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'information', section: 'engineering', view: 'projects' }}>Open projects</RouteLink>}
+              scrollable
+            >
+              {!controller.materialWatchlist
+                ? <Status tone="muted">Loading engineering plans…</Status>
+                : controller.materialWatchlist.activeProjectCount === 0
+                  ? <Status tone="muted">No active engineering projects. Choose a blueprint to start planning.</Status>
+                  : controller.materialWatchlist.materials.length === 0
+                    ? <Status tone="positive">All planned blueprint materials are currently in inventory.</Status>
+                    : (
+                        <ul className="dashboard-material-watchlist">
+                          {controller.materialWatchlist.materials.slice(0, 8).map(material => (
+                            <li key={material.materialId}>
+                              <span>{material.materialName}</span>
+                              <span>{material.owned}/{material.required}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+            </Widget>
+
+            <Widget
               aria-label="Commander log"
-              className="span-two"
               eyebrow="Commander log"
               link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'journal', view: 'journal' }}>Open journal</RouteLink>}
               scrollable

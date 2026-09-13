@@ -28,6 +28,7 @@ export const DISPLAY_PAGE_CATALOGUE = {
   'activities.powerplay': page('Powerplay'),
   'activities.colonisation': page('Colonisation'),
   'engineering.blueprints': page('Engineering blueprints', 'blueprints'),
+  'engineering.projects': page('Engineering projects', 'material watchlist', 'engineering plans'),
   'engineering.engineers': page('Engineers'),
   'engineering.materials-raw': page('Raw materials', 'raw engineering materials'),
   'engineering.materials-manufactured': page('Manufactured materials', 'manufactured engineering materials'),

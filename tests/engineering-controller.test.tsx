@@ -10,7 +10,9 @@ test('Engineering selects one focused API query for each view', async () => {
     getEngineeringBlueprints: vi.fn().mockResolvedValue({ blueprints: [] }),
     getEngineeringBlueprint: vi.fn().mockResolvedValue({ name: 'Dirty drive tuning' }),
     getEngineeringEngineers: vi.fn().mockResolvedValue({ engineers: [] }),
-    getEngineeringMaterials: vi.fn().mockResolvedValue({ materials: [], updatedAt: null })
+    getEngineeringMaterials: vi.fn().mockResolvedValue({ materials: [], updatedAt: null }),
+    getEngineeringProjects: vi.fn().mockResolvedValue({ schemaVersion: 1, projects: [] }),
+    getEngineeringMaterialWatchlist: vi.fn().mockResolvedValue({ activeProjectCount: 0, materials: [], observedAt: null, schemaVersion: 1 })
   } as unknown as PhoenixApi
   let snapshot: EngineeringControllerSnapshot | undefined
   let view: EngineeringView = 'blueprints'
@@ -33,6 +35,11 @@ test('Engineering selects one focused API query for each view', async () => {
   view = 'engineers'
   await act(async () => renderer.update(<Probe />))
   expect(api.getEngineeringEngineers).toHaveBeenCalledWith(expect.any(AbortSignal))
+
+  view = 'projects'
+  await act(async () => renderer.update(<Probe />))
+  expect(api.getEngineeringProjects).toHaveBeenCalledWith(expect.any(AbortSignal))
+  expect(api.getEngineeringMaterialWatchlist).toHaveBeenCalledWith(expect.any(AbortSignal))
   await act(async () => renderer.unmount())
 })
 

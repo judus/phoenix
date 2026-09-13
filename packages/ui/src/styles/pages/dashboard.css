@@ -4,10 +4,20 @@
     gap: var(--spacing-xs);
 
     > .dashboard-grid {
-      flex: 1 1 0;
+      flex: none;
+      block-size: auto;
+      grid-template-rows: auto auto;
+
+      > .thirds-layout:last-child,
+      > .thirds-layout:last-child > .thirds-grid {
+        block-size: auto;
+      }
     }
 
-    .widget { gap: var(--spacing-xs); }
+    .widget {
+      block-size: auto;
+      gap: var(--spacing-xs);
+    }
 
     .dashboard-route {
       .metric > strong,
@@ -15,6 +25,38 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+    }
+
+    .dashboard-material-watchlist {
+      display: grid;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+
+      > li {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: var(--spacing-xs);
+        padding-block: var(--spacing-xxs);
+        font-size: var(--font-size-sm);
+
+        &:not(:last-child)::after {
+          position: absolute;
+          inset-inline: 0;
+          inset-block-end: 0;
+          block-size: 1px;
+          background: var(--color-border-subtle);
+          content: '';
+        }
+
+        > :first-child {
+          color: var(--color-text-muted);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
       }
     }
   }

@@ -24,6 +24,7 @@ const DISPLAY_PAGE_ROUTES = {
   'activities.powerplay': { kind: 'information', section: 'activities', view: 'powerplay' },
   'activities.colonisation': { kind: 'information', section: 'activities', view: 'colonisation' },
   'engineering.blueprints': { kind: 'information', section: 'engineering', view: 'blueprints' },
+  'engineering.projects': { kind: 'information', section: 'engineering', view: 'projects' },
   'engineering.engineers': { kind: 'information', section: 'engineering', view: 'engineers' },
   'engineering.materials-raw': { kind: 'information', section: 'engineering', view: 'materials-raw' },
   'engineering.materials-manufactured': { kind: 'information', section: 'engineering', view: 'materials-manufactured' },

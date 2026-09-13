@@ -62,9 +62,10 @@ const INFORMATION_MENUS: readonly MenuDefinition[] = [
     destination('operations.powerplay', '5'), destination('operations.colonisation', '6')
   ]),
   menu('info.engineering', 'Engineering', '5', [
-    destination('engineering.blueprints', '1'), destination('engineering.engineers', '2'),
-    destination('engineering.materials-raw', '3'), destination('engineering.materials-manufactured', '4'),
-    destination('engineering.materials-encoded', '5'), destination('engineering.materials-xeno', '6')
+    destination('engineering.projects', '1'), destination('engineering.blueprints', '2'),
+    destination('engineering.engineers', '3'), destination('engineering.materials-raw', '4'),
+    destination('engineering.materials-manufactured', '5'), destination('engineering.materials-encoded', '6'),
+    destination('engineering.materials-xeno', '7')
   ]),
   menu('info.comms', 'Comms', '6', [
     destination('comms.inbox', '1'), destination('comms.traffic', '2'), destination('comms.contacts', '3'),

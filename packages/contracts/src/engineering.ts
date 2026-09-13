@@ -106,6 +106,97 @@ export const EngineeringBlueprintsResponseSchema = z.object({
   blueprints: z.array(EngineeringBlueprintSummarySchema)
 })
 
+export const EngineeringProjectStatusSchema = z.enum(['active', 'paused', 'completed', 'archived'])
+export const EngineeringProjectPrioritySchema = z.enum(['high', 'normal', 'low'])
+
+export const EngineeringProjectRequirementSchema = z.object({
+  materialId: z.string().min(1),
+  materialName: z.string().min(1),
+  category: z.enum(['raw', 'manufactured', 'encoded', 'xeno']).nullable(),
+  grade: z.number().int().min(1).max(5).nullable(),
+  unitCost: z.number().int().positive(),
+  required: z.number().int().positive()
+}).strict()
+
+export const EngineeringProjectStepSchema = z.object({
+  id: z.string().uuid(),
+  kind: z.literal('blueprint'),
+  blueprintSymbol: z.string().min(1),
+  blueprintName: z.string().min(1),
+  moduleNames: z.array(z.string().min(1)),
+  targetGrade: z.number().int().min(1).max(5),
+  plannedRolls: z.number().int().min(1).max(100),
+  note: z.string().trim().max(500).nullable(),
+  requirements: z.array(EngineeringProjectRequirementSchema),
+  createdAt: z.iso.datetime()
+}).strict()
+
+export const EngineeringProjectSchema = z.object({
+  schemaVersion: z.literal(1),
+  id: z.string().uuid(),
+  name: z.string().trim().min(1).max(120),
+  status: EngineeringProjectStatusSchema,
+  priority: EngineeringProjectPrioritySchema,
+  note: z.string().trim().max(1000).nullable(),
+  steps: z.array(EngineeringProjectStepSchema),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime()
+}).strict()
+
+export const EngineeringProjectCreateRequestSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  priority: EngineeringProjectPrioritySchema.default('normal'),
+  note: z.string().trim().max(1000).nullable().default(null)
+}).strict()
+
+export const EngineeringProjectUpdateRequestSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  status: EngineeringProjectStatusSchema,
+  priority: EngineeringProjectPrioritySchema,
+  note: z.string().trim().max(1000).nullable()
+}).strict()
+
+export const EngineeringProjectStepCreateRequestSchema = z.object({
+  blueprintSymbol: z.string().trim().min(1),
+  targetGrade: z.number().int().min(1).max(5),
+  plannedRolls: z.number().int().min(1).max(100),
+  note: z.string().trim().max(500).nullable().default(null)
+}).strict()
+
+export const EngineeringProjectsResponseSchema = z.object({
+  schemaVersion: z.literal(1),
+  projects: z.array(EngineeringProjectSchema)
+}).strict()
+
+export const EngineeringMaterialWatchItemSchema = z.object({
+  materialId: z.string().min(1),
+  materialName: z.string().min(1),
+  category: z.enum(['raw', 'manufactured', 'encoded', 'xeno']).nullable(),
+  grade: z.number().int().min(1).max(5).nullable(),
+  owned: z.number().int().nonnegative(),
+  required: z.number().int().positive(),
+  missing: z.number().int().positive(),
+  projectCount: z.number().int().positive(),
+  stepCount: z.number().int().positive(),
+  highestPriority: EngineeringProjectPrioritySchema,
+  projects: z.array(z.object({
+    id: z.string().uuid(),
+    name: z.string().min(1)
+  }).strict())
+}).strict()
+
+export const EngineeringMaterialWatchlistResponseSchema = z.object({
+  schemaVersion: z.literal(1),
+  observedAt: z.iso.datetime().nullable(),
+  activeProjectCount: z.number().int().nonnegative(),
+  materials: z.array(EngineeringMaterialWatchItemSchema)
+}).strict()
+
+export const EngineeringProjectsChangedSchema = z.object({
+  schemaVersion: z.literal(1),
+  changedAt: z.iso.datetime()
+}).strict()
+
 export type CommanderEngineerProgress = z.infer<typeof CommanderEngineerProgressSchema>
 export type EngineeringEngineer = z.infer<typeof EngineeringEngineerSchema>
 export type EngineeringMaterial = z.infer<typeof EngineeringMaterialViewSchema>
@@ -114,3 +205,11 @@ export type EngineeringBlueprintDetail = z.infer<typeof EngineeringBlueprintDeta
 export type EngineeringEngineersResponse = z.infer<typeof EngineeringEngineersResponseSchema>
 export type EngineeringMaterialsResponse = z.infer<typeof EngineeringMaterialsResponseSchema>
 export type EngineeringBlueprintsResponse = z.infer<typeof EngineeringBlueprintsResponseSchema>
+export type EngineeringProject = z.infer<typeof EngineeringProjectSchema>
+export type EngineeringProjectCreateRequest = z.infer<typeof EngineeringProjectCreateRequestSchema>
+export type EngineeringProjectUpdateRequest = z.infer<typeof EngineeringProjectUpdateRequestSchema>
+export type EngineeringProjectStepCreateRequest = z.infer<typeof EngineeringProjectStepCreateRequestSchema>
+export type EngineeringProjectsResponse = z.infer<typeof EngineeringProjectsResponseSchema>
+export type EngineeringMaterialWatchItem = z.infer<typeof EngineeringMaterialWatchItemSchema>
+export type EngineeringMaterialWatchlistResponse = z.infer<typeof EngineeringMaterialWatchlistResponseSchema>
+export type EngineeringProjectsChanged = z.infer<typeof EngineeringProjectsChangedSchema>

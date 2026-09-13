@@ -9,6 +9,7 @@ import {
   CopilotVoiceHostCommandSchema,
   CopilotVoiceHostSnapshotSchema,
   DisplayCommandSchema,
+  EngineeringProjectsChangedSchema,
   NavigationRouteSchema,
   RuntimeStateSchema
 } from '@phoenix/contracts'
@@ -29,6 +30,7 @@ const EVENT_NAMES: readonly PhoenixEventName[] = [
   'conversation-event',
   'copilot-profiles',
   'display-command',
+  'engineering-projects-changed',
   'navigation-route',
   'runtime-state',
   'voice-host',
@@ -44,6 +46,7 @@ const EVENT_SCHEMAS: Record<PhoenixEventName, { parse(value: unknown): unknown }
   'conversation-event': CopilotConversationEventSchema,
   'copilot-profiles': CopilotProfilesResponseSchema,
   'display-command': DisplayCommandSchema,
+  'engineering-projects-changed': EngineeringProjectsChangedSchema,
   'navigation-route': NavigationRouteSchema,
   'runtime-state': RuntimeStateSchema,
   'voice-host': CopilotVoiceHostSnapshotSchema,

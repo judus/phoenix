@@ -28,6 +28,12 @@ import type {
   EngineeringEngineersResponse,
   EngineeringMaterial,
   EngineeringMaterialsResponse,
+  EngineeringMaterialWatchlistResponse,
+  EngineeringProject,
+  EngineeringProjectCreateRequest,
+  EngineeringProjectsResponse,
+  EngineeringProjectStepCreateRequest,
+  EngineeringProjectUpdateRequest,
   ExplorationLedgerResponse,
   GalaxySystemSearchResponse,
   GalaxyCommodityMarketsResponse,
@@ -111,6 +117,13 @@ export interface PhoenixApi {
   getEngineeringBlueprints(signal?: AbortSignal): Promise<EngineeringBlueprintsResponse>
   getEngineeringEngineers(signal?: AbortSignal): Promise<EngineeringEngineersResponse>
   getEngineeringMaterials(category: EngineeringMaterial['category'], signal?: AbortSignal): Promise<EngineeringMaterialsResponse>
+  getEngineeringProjects(signal?: AbortSignal): Promise<EngineeringProjectsResponse>
+  getEngineeringMaterialWatchlist(signal?: AbortSignal): Promise<EngineeringMaterialWatchlistResponse>
+  createEngineeringProject(input: EngineeringProjectCreateRequest, signal?: AbortSignal): Promise<EngineeringProject>
+  updateEngineeringProject(id: string, input: EngineeringProjectUpdateRequest, signal?: AbortSignal): Promise<EngineeringProject>
+  deleteEngineeringProject(id: string, signal?: AbortSignal): Promise<void>
+  addEngineeringProjectStep(projectId: string, input: EngineeringProjectStepCreateRequest, signal?: AbortSignal): Promise<EngineeringProject>
+  deleteEngineeringProjectStep(projectId: string, stepId: string, signal?: AbortSignal): Promise<EngineeringProject>
   getExplorationLedger(signal?: AbortSignal): Promise<ExplorationLedgerResponse>
   getActions(signal?: AbortSignal): Promise<GameActionCatalogResponse>
   getActivityLog(limit?: number, signal?: AbortSignal): Promise<ActivityLogResponse>

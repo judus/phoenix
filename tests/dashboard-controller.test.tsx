@@ -24,6 +24,7 @@ test('live dashboard evidence is not overwritten by stale initial queries', asyn
     getActions: vi.fn().mockResolvedValue({ actions: [], backend: { id: 'none', available: false, simulated: true, detail: 'Unavailable' }, bindingSource: { directory: null, filePath: null, presetNames: [], available: false, bindingCount: 0, keyboardBindingCount: 0, loadedAt: null, error: null } }),
     getCommanderLog: vi.fn().mockReturnValue(new Promise(resolve => { resolveCommanderLog = resolve })),
     getLocalTraffic: vi.fn().mockResolvedValue(localTraffic()),
+    getEngineeringMaterialWatchlist: vi.fn().mockResolvedValue(materialWatchlist()),
     getNavigationRoute: vi.fn().mockReturnValue(new Promise(resolve => { resolveRoute = resolve }))
   } as unknown as PhoenixApi
   let snapshot: DashboardControllerSnapshot | undefined
@@ -52,6 +53,11 @@ test('live dashboard evidence is not overwritten by stale initial queries', asyn
     await Promise.resolve()
   })
   expect(api.getLocalTraffic).toHaveBeenCalledTimes(2)
+  await act(async () => {
+    events.emit('engineering-projects-changed', { changedAt: '2026-09-13T12:01:00Z', schemaVersion: 1 })
+    await Promise.resolve()
+  })
+  expect(api.getEngineeringMaterialWatchlist).toHaveBeenCalledTimes(2)
   await act(async () => renderer.unmount())
 })
 
@@ -65,6 +71,7 @@ test('an obsolete catalogue failure cannot taint a newer successful refresh', as
       .mockResolvedValueOnce(currentActions),
     getCommanderLog: vi.fn().mockResolvedValue({ schemaVersion: 1, entries: [], retained: 0 }),
     getLocalTraffic: vi.fn().mockResolvedValue(localTraffic()),
+    getEngineeringMaterialWatchlist: vi.fn().mockResolvedValue(materialWatchlist()),
     getNavigationRoute: vi.fn().mockResolvedValue(route('Sol'))
   } as unknown as PhoenixApi
   let snapshot: DashboardControllerSnapshot | undefined
@@ -108,6 +115,10 @@ function route(destination: string): NavigationRoute {
 
 function localTraffic() {
   return { generatedAt: '2026-08-16T12:00:00.000Z', messages: [], schemaVersion: 1 as const, windowMinutes: 90 }
+}
+
+function materialWatchlist() {
+  return { activeProjectCount: 0, materials: [], observedAt: null, schemaVersion: 1 as const }
 }
 
 function communicationMessage() {

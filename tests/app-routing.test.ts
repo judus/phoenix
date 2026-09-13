@@ -29,6 +29,7 @@ describe('PHOENIX route parsing and generation', () => {
     ['#/galaxy/database', { kind: 'information', section: 'galaxy', view: 'database' }, 'info'],
     ['#/galaxy/saved-queries', { kind: 'information', section: 'galaxy', view: 'saved-queries' }, 'info'],
     ['#/activities/missions', { kind: 'information', section: 'activities', view: 'missions' }, 'info'],
+    ['#/engineering/projects', { kind: 'information', section: 'engineering', view: 'projects' }, 'info'],
     ['#/engineering/materials/encoded', { kind: 'information', section: 'engineering', view: 'materials-encoded' }, 'info'],
     ['#/comms/radio', { kind: 'information', section: 'comms', view: 'radio' }, 'info'],
     ['#/copilot/profiles', { kind: 'copilot', view: 'profiles' }, 'copilot'],

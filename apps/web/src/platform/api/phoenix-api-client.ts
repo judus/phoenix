@@ -28,6 +28,12 @@ import {
   EngineeringBlueprintsResponseSchema,
   EngineeringEngineersResponseSchema,
   EngineeringMaterialsResponseSchema,
+  EngineeringMaterialWatchlistResponseSchema,
+  EngineeringProjectCreateRequestSchema,
+  EngineeringProjectSchema,
+  EngineeringProjectsResponseSchema,
+  EngineeringProjectStepCreateRequestSchema,
+  EngineeringProjectUpdateRequestSchema,
   ExplorationLedgerResponseSchema,
   GalaxySystemSearchResponseSchema,
   GalaxyCommodityMarketsResponseSchema,
@@ -97,6 +103,12 @@ import type {
   EngineeringEngineersResponse,
   EngineeringMaterial,
   EngineeringMaterialsResponse,
+  EngineeringMaterialWatchlistResponse,
+  EngineeringProject,
+  EngineeringProjectCreateRequest,
+  EngineeringProjectsResponse,
+  EngineeringProjectStepCreateRequest,
+  EngineeringProjectUpdateRequest,
   ExplorationLedgerResponse,
   GalaxySystemSearchResponse,
   GalaxyCommodityMarketsResponse,
@@ -293,6 +305,34 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getEngineeringBlueprint(symbol: string, signal?: AbortSignal): Promise<EngineeringBlueprintDetail> {
     return this.#get(`/api/engineering/blueprints/${encodeURIComponent(symbol)}`, EngineeringBlueprintDetailSchema, signal)
+  }
+
+  async getEngineeringProjects(signal?: AbortSignal): Promise<EngineeringProjectsResponse> {
+    return this.#get('/api/engineering/projects', EngineeringProjectsResponseSchema, signal)
+  }
+
+  async getEngineeringMaterialWatchlist(signal?: AbortSignal): Promise<EngineeringMaterialWatchlistResponse> {
+    return this.#get('/api/engineering/material-watchlist', EngineeringMaterialWatchlistResponseSchema, signal)
+  }
+
+  async createEngineeringProject(input: EngineeringProjectCreateRequest, signal?: AbortSignal): Promise<EngineeringProject> {
+    return this.#json('/api/engineering/projects', 'POST', EngineeringProjectCreateRequestSchema.parse(input), EngineeringProjectSchema, signal)
+  }
+
+  async updateEngineeringProject(id: string, input: EngineeringProjectUpdateRequest, signal?: AbortSignal): Promise<EngineeringProject> {
+    return this.#json(`/api/engineering/projects/${encodeURIComponent(id)}`, 'PUT', EngineeringProjectUpdateRequestSchema.parse(input), EngineeringProjectSchema, signal)
+  }
+
+  async deleteEngineeringProject(id: string, signal?: AbortSignal): Promise<void> {
+    await this.#empty(`/api/engineering/projects/${encodeURIComponent(id)}`, 'DELETE', undefined, signal)
+  }
+
+  async addEngineeringProjectStep(projectId: string, input: EngineeringProjectStepCreateRequest, signal?: AbortSignal): Promise<EngineeringProject> {
+    return this.#json(`/api/engineering/projects/${encodeURIComponent(projectId)}/steps`, 'POST', EngineeringProjectStepCreateRequestSchema.parse(input), EngineeringProjectSchema, signal)
+  }
+
+  async deleteEngineeringProjectStep(projectId: string, stepId: string, signal?: AbortSignal): Promise<EngineeringProject> {
+    return this.#json(`/api/engineering/projects/${encodeURIComponent(projectId)}/steps/${encodeURIComponent(stepId)}`, 'DELETE', undefined, EngineeringProjectSchema, signal)
   }
 
   async getCommunications(

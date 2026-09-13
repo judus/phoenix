@@ -1,4 +1,7 @@
 import { expect, test } from 'vitest'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { createEmptyRuntimeState, type GameEventEnvelope } from '@phoenix/contracts'
 import { EliteJournalIngestionService } from '../apps/server/src/application/elite-journal-ingestion-service.js'
 import type { GameEventIngestor } from '../apps/server/src/domain/runtime-state.js'
@@ -100,6 +103,80 @@ test('EngineerProgress journal events become typed commander state events', () =
       payload: expect.objectContaining({ id: 'WornShieldEmitters', label: 'Worn Shield Emitters', count: 2 })
     })
   ])
+})
+
+test('engineering projects persist blueprint plans and derive missing materials from observed inventory', async () => {
+  const application = new PhoenixApplication({ databasePath: ':memory:', eliteDirectory: null, host: '127.0.0.1', port: 0 })
+  const address = await application.start()
+  try {
+    application.ingestGameEvent(envelope('inventory.materials_changed', {
+      updatedAt: '2026-08-11T20:00:00.000Z',
+      raw: [],
+      manufactured: [{ id: 'TestWidgets', label: 'Test Widgets', count: 5 }],
+      encoded: []
+    }))
+    const api = new PhoenixApiClient(`http://${address.host}:${address.port}`)
+    const project = await api.createEngineeringProject({ name: 'Explorer refit', note: 'FSD first', priority: 'high' })
+    const planned = await api.addEngineeringProjectStep(project.id, {
+      blueprintSymbol: 'TestModule_Reinforced',
+      targetGrade: 1,
+      plannedRolls: 8,
+      note: null
+    })
+
+    expect(planned.steps[0]).toMatchObject({
+      blueprintName: 'Reinforced Test Module',
+      plannedRolls: 8,
+      requirements: [{ materialId: 'TestWidgets', required: 8, unitCost: 1 }],
+      targetGrade: 1
+    })
+    expect(await api.getEngineeringMaterialWatchlist()).toEqual({
+      activeProjectCount: 1,
+      materials: [expect.objectContaining({
+        highestPriority: 'high',
+        materialId: 'TestWidgets',
+        missing: 3,
+        owned: 5,
+        projectCount: 1,
+        required: 8,
+        stepCount: 1
+      })],
+      observedAt: '2026-08-11T20:00:00.000Z',
+      schemaVersion: 1
+    })
+
+    await api.updateEngineeringProject(project.id, {
+      name: project.name,
+      note: project.note,
+      priority: project.priority,
+      status: 'paused'
+    })
+    expect(await api.getEngineeringMaterialWatchlist()).toMatchObject({ activeProjectCount: 0, materials: [] })
+  } finally {
+    await application.stop()
+  }
+})
+
+test('engineering projects survive an application restart', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-engineering-projects-'))
+  const databasePath = join(directory, 'phoenix.sqlite')
+  let application = new PhoenixApplication({ databasePath, eliteDirectory: null, host: '127.0.0.1', port: 0 })
+  try {
+    let address = await application.start()
+    const api = new PhoenixApiClient(`http://${address.host}:${address.port}`)
+    await api.createEngineeringProject({ name: 'Persistent refit', note: null, priority: 'normal' })
+    await application.stop()
+
+    application = new PhoenixApplication({ databasePath, eliteDirectory: null, host: '127.0.0.1', port: 0 })
+    address = await application.start()
+    const restarted = new PhoenixApiClient(`http://${address.host}:${address.port}`)
+    expect((await restarted.getEngineeringProjects()).projects).toEqual([
+      expect.objectContaining({ name: 'Persistent refit', schemaVersion: 1, status: 'active' })
+    ])
+  } finally {
+    await application.stop().catch(() => undefined)
+    rmSync(directory, { force: true, recursive: true })
+  }
 })
 
 function envelope<T extends GameEventEnvelope['type']> (
