@@ -21,14 +21,16 @@ test('dashboard view model derives commander, situation, ship, route, and notabl
       ]
     },
     [{
-      actionable: false,
-      data: {},
-      event: 'ship.loadout_changed',
-      id: 'activity-1',
-      importance: 'notable',
-      ingestedAt: '2026-08-16T12:00:00.000Z',
-      source: 'runtime',
-      timestamp: '2026-08-16T12:00:00.000Z'
+      category: 'mission',
+      creditDelta: 125000,
+      detail: 'Deliver medicines · Galileo, Sol',
+      id: 'commander-log-1',
+      kind: 'mission.completed',
+      schemaVersion: 1,
+      sourceEvent: 'MissionCompleted',
+      timestamp: '2026-08-16T12:00:00.000Z',
+      title: 'Mission completed',
+      tone: 'positive'
     }],
     'en-CH'
   )
@@ -37,5 +39,10 @@ test('dashboard view model derives commander, situation, ship, route, and notabl
   expect(model.situation).toMatchObject({ system: 'Sol', place: 'Locke Terminal', population: "1'000" })
   expect(model.ship).toMatchObject({ name: 'Type-11 Prospector', identifier: 'EL-06L', hull: '86%', jumpRange: '22.4 ly' })
   expect(model.route).toEqual({ current: 'Sol', destination: 'Achenar', detail: '1 jump remaining' })
-  expect(model.activity[0]).toMatchObject({ event: 'Ship Loadout Changed', source: 'Runtime' })
+  expect(model.commanderLog[0]).toMatchObject({
+    category: 'Mission',
+    detail: 'Deliver medicines · Galileo, Sol',
+    title: 'Mission completed',
+    value: "+125'000 CR"
+  })
 })

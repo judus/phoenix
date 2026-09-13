@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import type {
-  ActivityLogEntry,
+  CommanderLogEntry,
   GameActionCatalogResponse,
   NavigationRoute
 } from '@phoenix/contracts'
@@ -10,14 +10,14 @@ import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub
 
 export interface DashboardControllerSnapshot {
   actions?: GameActionCatalogResponse
-  activity: readonly ActivityLogEntry[]
+  commanderLog: readonly CommanderLogEntry[]
   error?: string
   route?: NavigationRoute
   status: 'loading' | 'ready' | 'error'
 }
 
 const INITIAL_SNAPSHOT: DashboardControllerSnapshot = {
-  activity: [],
+  commanderLog: [],
   status: 'loading'
 }
 
@@ -29,15 +29,15 @@ export function useDashboardController(
 
   useEffect(() => {
     const abort = new AbortController()
-    let activityRevision = 0
+    let commanderLogRevision = 0
     let routeRevision = 0
     let actionsRevision = 0
 
-    const unsubscribeActivity = events.subscribe('activity-entry', entry => {
-      activityRevision += 1
+    const unsubscribeCommanderLog = events.subscribe('commander-log-entry', entry => {
+      commanderLogRevision += 1
       setSnapshot(current => ({
         ...current,
-        activity: mergeActivityEntry(current.activity, entry),
+        commanderLog: mergeCommanderLogEntry(current.commanderLog, entry),
         status: 'ready'
       }))
     })
@@ -57,13 +57,13 @@ export function useDashboardController(
         })
     })
 
-    const activityAtRequest = activityRevision
+    const commanderLogAtRequest = commanderLogRevision
     const routeAtRequest = routeRevision
     const actionsAtRequest = ++actionsRevision
     void Promise.allSettled([
-      api.getActivityLog(24, abort.signal).then(log => {
-        if (activityAtRequest === activityRevision) {
-          setSnapshot(current => ({ ...current, activity: log.entries }))
+      api.getCommanderLog(24, abort.signal).then(log => {
+        if (commanderLogAtRequest === commanderLogRevision) {
+          setSnapshot(current => ({ ...current, commanderLog: log.entries }))
         }
       }),
       api.getNavigationRoute(abort.signal).then(route => {
@@ -74,8 +74,8 @@ export function useDashboardController(
       })
     ]).then(results => {
       if (abort.signal.aborted) return
-      const requestRevisions = [activityAtRequest, routeAtRequest, actionsAtRequest]
-      const currentRevisions = [activityRevision, routeRevision, actionsRevision]
+      const requestRevisions = [commanderLogAtRequest, routeAtRequest, actionsAtRequest]
+      const currentRevisions = [commanderLogRevision, routeRevision, actionsRevision]
       const failures: unknown[] = []
       results.forEach((result, index) => {
         if (result.status === 'rejected' && requestRevisions[index] === currentRevisions[index]) {
@@ -91,7 +91,7 @@ export function useDashboardController(
 
     return () => {
       abort.abort()
-      unsubscribeActivity()
+      unsubscribeCommanderLog()
       unsubscribeRoute()
       unsubscribeCatalogue()
     }
@@ -100,11 +100,11 @@ export function useDashboardController(
   return snapshot
 }
 
-export function mergeActivityEntry(
-  entries: readonly ActivityLogEntry[],
-  entry: ActivityLogEntry,
+export function mergeCommanderLogEntry(
+  entries: readonly CommanderLogEntry[],
+  entry: CommanderLogEntry,
   limit = 24
-): readonly ActivityLogEntry[] {
+): readonly CommanderLogEntry[] {
   return [entry, ...entries.filter(candidate => candidate.id !== entry.id)].slice(0, limit)
 }
 

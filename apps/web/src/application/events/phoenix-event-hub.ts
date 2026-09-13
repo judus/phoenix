@@ -2,6 +2,7 @@ import type {
   ActivityLogEntry,
   CartographyUpdate,
   CommandCatalogueRevision,
+  CommanderLogEntry,
   CopilotConversationEvent,
   CopilotProfilesResponse,
   CopilotVoiceHostCommand,
@@ -15,6 +16,7 @@ export interface PhoenixEventMap {
   'activity-entry': ActivityLogEntry
   'cartography-updated': CartographyUpdate
   'command-catalogue': CommandCatalogueRevision
+  'commander-log-entry': CommanderLogEntry
   'conversation-event': CopilotConversationEvent
   'copilot-profiles': CopilotProfilesResponse
   'display-command': DisplayCommand

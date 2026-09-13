@@ -6,11 +6,11 @@ import {
   type MissionsResponse
 } from '@phoenix/contracts'
 import type { EliteJournalEvent } from '@phoenix/elite'
-import type { MissionDataReader, MissionRepository } from '../domain/missions.js'
+import type { MissionDataReader, MissionLookup, MissionRepository } from '../domain/missions.js'
 
 export type MissionJournalSource = 'historical-journal' | 'live-journal'
 
-export class MissionDataService implements MissionDataReader {
+export class MissionDataService implements MissionDataReader, MissionLookup {
   private latestSnapshot: { active: Set<number>, timestamp: string } | null = null
 
   public constructor (private readonly repository: MissionRepository) {}
@@ -43,6 +43,10 @@ export class MissionDataService implements MissionDataReader {
         unknown: count('unknown')
       }
     })
+  }
+
+  public getMission (id: number): Mission | null {
+    return this.repository.getMission(id)
   }
 
   private ingestAccepted (event: EliteJournalEvent, source: MissionJournalSource): void {

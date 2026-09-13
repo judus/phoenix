@@ -39,11 +39,11 @@ export function HomeDashboardContent() {
     <DashboardGrid
       lastRow={
         <>
-          <Widget aria-label="Recent activity" className="span-two" eyebrow="Recent activity" link={<a href="#journal">Open journal</a>}>
+          <Widget aria-label="Commander log" className="span-two" eyebrow="Commander log" link={<a href="#journal">Open journal</a>}>
             <ItemList density="compact">
-              <ItemListItem title="Inventory cargo changed" leading={<time>18:28</time>} trailing="Runtime" />
-              <ItemListItem title="Ship loadout changed" leading={<time>18:28</time>} trailing="Runtime" />
-              <ItemListItem title="Location changed" leading={<time>18:28</time>} trailing="Runtime" />
+              <ItemListItem eyebrow="Mission" title="Mission completed" description="Deliver medicines · Galileo, Sol" leading={<time>18:28</time>} trailing="+125,000 CR" />
+              <ItemListItem eyebrow="Trade" title="Commodity sold" description="32 units · Advanced Catalysers" leading={<time>18:11</time>} trailing="+186,000 CR" />
+              <ItemListItem eyebrow="Career" title="Exploration rank advanced" description="Ranger" leading={<time>17:42</time>} />
             </ItemList>
           </Widget>
 

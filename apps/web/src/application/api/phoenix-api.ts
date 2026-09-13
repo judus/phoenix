@@ -14,6 +14,7 @@ import type {
   CopilotVoiceHostHeartbeat,
   CopilotVoiceHostSnapshot,
   CommandCatalogResponse,
+  CommanderLogResponse,
   ActivityLogResponse,
   CartographyLookupResponse,
   CommunicationsResponse,
@@ -122,6 +123,7 @@ export interface PhoenixApi {
   getControlDeckConfiguration(signal?: AbortSignal): Promise<PhoenixControlDeckConfiguration>
   getControlDeckCommands(signal?: AbortSignal): Promise<ControlDeckCommandCatalogue>
   getCommands(signal?: AbortSignal): Promise<CommandCatalogResponse>
+  getCommanderLog(limit?: number, signal?: AbortSignal): Promise<CommanderLogResponse>
   getFleet(signal?: AbortSignal): Promise<FleetResponse>
   getGalaxyBookmarks(signal?: AbortSignal): Promise<GalaxyBookmarksResponse>
   getGalnetNews(limit?: number, signal?: AbortSignal): Promise<GalnetNewsResponse>

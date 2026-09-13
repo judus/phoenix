@@ -1,6 +1,6 @@
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
-import type { ActivityLogEntry, NavigationRoute } from '@phoenix/contracts'
+import type { CommanderLogEntry, NavigationRoute } from '@phoenix/contracts'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
 import type {
   PhoenixEventHub,
@@ -17,12 +17,12 @@ beforeAll(() => {
 })
 
 test('live dashboard evidence is not overwritten by stale initial queries', async () => {
-  let resolveActivity: ((value: { entries: ActivityLogEntry[], retained: number }) => void) | undefined
+  let resolveCommanderLog: ((value: { schemaVersion: 1, entries: CommanderLogEntry[], retained: number }) => void) | undefined
   let resolveRoute: ((value: NavigationRoute) => void) | undefined
   const events = new FakeEventHub()
   const api = {
     getActions: vi.fn().mockResolvedValue({ actions: [], backend: { id: 'none', available: false, simulated: true, detail: 'Unavailable' }, bindingSource: { directory: null, filePath: null, presetNames: [], available: false, bindingCount: 0, keyboardBindingCount: 0, loadedAt: null, error: null } }),
-    getActivityLog: vi.fn().mockReturnValue(new Promise(resolve => { resolveActivity = resolve })),
+    getCommanderLog: vi.fn().mockReturnValue(new Promise(resolve => { resolveCommanderLog = resolve })),
     getNavigationRoute: vi.fn().mockReturnValue(new Promise(resolve => { resolveRoute = resolve }))
   } as unknown as PhoenixApi
   let snapshot: DashboardControllerSnapshot | undefined
@@ -33,17 +33,17 @@ test('live dashboard evidence is not overwritten by stale initial queries', asyn
   }
 
   const renderer = await act(async () => create(<Probe />))
-  const liveActivity = activity('live')
+  const liveEntry = commanderLogEntry('live')
   const liveRoute = route('Live destination')
   await act(async () => {
-    events.emit('activity-entry', liveActivity)
+    events.emit('commander-log-entry', liveEntry)
     events.emit('navigation-route', liveRoute)
-    resolveActivity?.({ entries: [activity('stale')], retained: 1 })
+    resolveCommanderLog?.({ schemaVersion: 1, entries: [commanderLogEntry('stale')], retained: 1 })
     resolveRoute?.(route('Stale destination'))
     await Promise.resolve()
   })
 
-  expect(snapshot?.activity).toEqual([liveActivity])
+  expect(snapshot?.commanderLog).toEqual([liveEntry])
   expect(snapshot?.route).toEqual(liveRoute)
   expect(snapshot?.status).toBe('ready')
   await act(async () => renderer.unmount())
@@ -57,7 +57,7 @@ test('an obsolete catalogue failure cannot taint a newer successful refresh', as
     getActions: vi.fn()
       .mockReturnValueOnce(new Promise((_resolve, reject) => { rejectInitial = reject }))
       .mockResolvedValueOnce(currentActions),
-    getActivityLog: vi.fn().mockResolvedValue({ entries: [], retained: 0 }),
+    getCommanderLog: vi.fn().mockResolvedValue({ schemaVersion: 1, entries: [], retained: 0 }),
     getNavigationRoute: vi.fn().mockResolvedValue(route('Sol'))
   } as unknown as PhoenixApi
   let snapshot: DashboardControllerSnapshot | undefined
@@ -77,15 +77,17 @@ test('an obsolete catalogue failure cannot taint a newer successful refresh', as
   await act(async () => renderer.unmount())
 })
 
-function activity(id: string): ActivityLogEntry {
+function commanderLogEntry(id: string): CommanderLogEntry {
   return {
-    actionable: false,
-    data: {},
-    event: `event.${id}`,
+    category: 'mission',
+    creditDelta: null,
+    detail: id,
     id,
-    importance: 'notable',
-    ingestedAt: '2026-08-16T12:00:00.000Z',
-    source: 'runtime',
+    kind: 'mission.accepted',
+    schemaVersion: 1,
+    sourceEvent: 'MissionAccepted',
+    title: 'Mission accepted',
+    tone: 'neutral',
     timestamp: '2026-08-16T12:00:00.000Z'
   }
 }

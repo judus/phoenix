@@ -19,6 +19,7 @@ import {
   CopilotVoiceHostSnapshotSchema,
   PhoenixControlDeckConfigurationSchema,
   CommandCatalogResponseSchema,
+  CommanderLogResponseSchema,
   GameActionCatalogResponseSchema,
   GameActionResultSchema,
   GalnetNewsResponseSchema,
@@ -84,6 +85,7 @@ import type {
   CopilotVoiceHostSnapshot,
   PhoenixControlDeckConfiguration,
   CommandCatalogResponse,
+  CommanderLogResponse,
   GameActionCatalogResponse,
   GameActionOperation,
   GameActionResult,
@@ -356,6 +358,10 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getActivityLog(limit = 250, signal?: AbortSignal): Promise<ActivityLogResponse> {
     return this.#get(`/api/log?limit=${encodeURIComponent(String(limit))}`, ActivityLogResponseSchema, signal)
+  }
+
+  async getCommanderLog(limit = 24, signal?: AbortSignal): Promise<CommanderLogResponse> {
+    return this.#get(`/api/commander/log?limit=${encodeURIComponent(String(limit))}`, CommanderLogResponseSchema, signal)
   }
 
   async getNavigationRoute(signal?: AbortSignal): Promise<NavigationRoute> {

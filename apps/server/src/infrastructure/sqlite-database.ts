@@ -43,8 +43,10 @@ import type { SavedGalaxyQueryRepository } from '../domain/saved-galaxy-queries.
 import { edsmBodyDetails } from './edsm-cartography-source.js'
 import { ensurePrivateDirectorySync, restrictPrivateFileSync } from './private-user-state.js'
 import { parseStoredCartographyObservation, upgradeStoredCartographyObservation } from './stored-cartography-observation.js'
+import { SqliteCommanderLogRepository } from './sqlite-commander-log-repository.js'
 
 export class SqliteDatabase implements Database, CartographyRepository, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository, CommunicationRepository, FleetRepository, GalaxyBookmarkRepository, SavedGalaxyQueryRepository {
+  public readonly commanderLog: SqliteCommanderLogRepository
   private readonly connection: DatabaseSync
   private readonly path: string
 
@@ -52,6 +54,7 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     this.path = path
     if (path !== ':memory:') ensurePrivateDirectorySync(dirname(path))
     this.connection = new DatabaseSync(path)
+    this.commanderLog = new SqliteCommanderLogRepository(this.connection)
     this.restrictFiles()
   }
 
@@ -230,6 +233,7 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     this.migrateCartographicBodyDetails()
     this.migrateGalaxyBookmarks()
     this.migrateSavedGalaxyQueries()
+    this.commanderLog.initialize()
   }
 
   public findRecord (systemName: string): CartographyRecord | null {

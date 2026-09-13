@@ -6,7 +6,7 @@ import type { DashboardViewModel } from '../apps/web/src/features/dashboard/dash
 test('dashboard exposes degraded evidence and preserves radio control order', () => {
   const markup = renderToStaticMarkup(
     <DashboardPage
-      controller={{ activity: [], error: 'Dashboard query unavailable.', status: 'error' }}
+      controller={{ commanderLog: [], error: 'Dashboard query unavailable.', status: 'error' }}
       eventConnection={{ state: 'error', error: 'Live events disconnected.' }}
       hrefFor={() => '#/typed'}
       model={model()}
@@ -30,13 +30,13 @@ test('dashboard exposes degraded evidence and preserves radio control order', ()
   expect(markup).toContain('Live events disconnected.')
   expect(markup).toContain('Runtime unavailable.')
   expect(markup).toContain('Voice unavailable.')
-  expect(markup).toContain('No recent activity retained.')
+  expect(markup).toContain('No notable commander events retained.')
   expect(markup).toMatch(/<span>Commander<\/span><h3[^>]*>IDENTITY PENDING<\/h3>/)
   expect(markup).toMatch(/<span>Situation<\/span><h3[^>]*>UNKNOWN SYSTEM<\/h3>/)
-  expect(markup).toContain('aria-label="Recent activity"')
-  expect(markup).toContain('<span>Recent activity</span>')
+  expect(markup).toContain('aria-label="Commander log"')
+  expect(markup).toContain('<span>Commander log</span>')
   expect(markup).toContain('aria-label="Attention"')
-  expect(markup).not.toContain('<h3>Recent activity</h3>')
+  expect(markup).not.toContain('<h3>Commander log</h3>')
   expect(markup).not.toContain('<h3>Attention</h3>')
   expect(markup).toContain('<span>Total credits</span><strong><span class="currency">—</span></strong>')
   expect(markup).toContain('<dt>Legal status</dt><dd>—</dd>')
@@ -48,7 +48,7 @@ test('dashboard exposes degraded evidence and preserves radio control order', ()
 test('dashboard identifies its loading state without replacing the shell', () => {
   const markup = renderToStaticMarkup(
     <DashboardPage
-      controller={{ activity: [], status: 'loading' }}
+      controller={{ commanderLog: [], status: 'loading' }}
       eventConnection={{ state: 'connecting' }}
       hrefFor={() => '#/typed'}
       model={model()}
@@ -68,13 +68,13 @@ test('dashboard identifies its loading state without replacing the shell', () =>
   )
 
   expect(markup).toContain('aria-busy="true"')
-  expect(markup).toContain('Loading retained activity…')
+  expect(markup).toContain('Loading commander history…')
   expect(markup).not.toContain('application-shell')
 })
 
 function model(): DashboardViewModel {
   return {
-    activity: [],
+    commanderLog: [],
     commander: { credits: null, legalState: null, name: 'Identity pending', notoriety: null },
     route: { current: 'Current system unknown', destination: 'No route plotted', detail: 'Navigation computer idle' },
     ship: { cargo: '—', hull: '—', identifier: 'Loadout pending', jumpRange: '—', name: 'No ship identified' },

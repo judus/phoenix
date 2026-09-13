@@ -50,6 +50,8 @@ import { EliteStatusIngestionService } from './application/elite-status-ingestio
 import { GameEventIngestionService } from './application/game-event-ingestion-service.js'
 import { HealthService } from './application/health-service.js'
 import { ActivityLogService } from './application/activity-log-service.js'
+import { CommanderLogService } from './application/commander-log/commander-log-service.js'
+import { DefaultCommanderLogProjector } from './application/commander-log/commander-log-projector.js'
 import { LoggedGameActions } from './application/logged-game-actions.js'
 import { DisplayCommandService } from './application/display-command-service.js'
 import { NavigationDataService } from './application/navigation-data-service.js'
@@ -204,6 +206,13 @@ export class PhoenixApplication {
       identifier => gameCatalogue.resolveShip(identifier)?.displayName ?? null,
       new CachedCartographyStationResolver(this.database)
     )
+    const commanderLog = new CommanderLogService(
+      this.database.commanderLog,
+      new DefaultCommanderLogProjector(
+        missions,
+        identifier => gameCatalogue.resolveShip(identifier)?.displayName ?? null
+      )
+    )
     const projector = new DefaultRuntimeStateProjector(
       this.stateStore,
       runtimeStateUpdates,
@@ -247,6 +256,7 @@ export class PhoenixApplication {
       event => missions.ingest(event, 'live-journal'),
       event => communications.ingest(event),
       event => fleet.ingest(event),
+      event => commanderLog.ingest(event),
       event => activityLog.ingestJournal(event)
     ])
     this.journalSource = new EliteJournalFileSource(
@@ -261,6 +271,7 @@ export class PhoenixApplication {
         missions.ingest(event, 'historical-journal')
         communications.ingest(event)
         fleet.ingest(event)
+        commanderLog.ingest(event, 'historical')
         activityLog.ingestJournal(event, 'historical')
       },
       this.database
@@ -444,6 +455,7 @@ export class PhoenixApplication {
       catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
       cartographyUpdates,
       commandCatalogue,
+      commanderLog,
       controlDeckHttp: this.controlDeck.http,
       copilot,
       copilotProfiles,

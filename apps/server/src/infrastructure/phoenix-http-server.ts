@@ -61,6 +61,7 @@ import { DEFAULT_GALAXY_RESULT_LIMIT, type GalaxyDataReader } from '../applicati
 import type { GalnetNewsReader } from '../domain/galnet.js'
 import type { NavigationDataReader } from '../application/navigation-data-service.js'
 import type { ActivityLogReader, EliteJournalDiagnosticsReader } from '../domain/elite-journal.js'
+import type { CommanderLogReader } from '../domain/commander-log.js'
 import type { EliteStatusDiagnosticsReader } from '../domain/elite-status.js'
 import type { Subscribable } from '../domain/publisher.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
@@ -97,6 +98,7 @@ export interface PhoenixHttpServerOptions {
   catalogueDiagnostics: CatalogueDiagnosticsReader
   cartographyUpdates: Subscribable<CartographyUpdate>
   commandCatalogue: CommandCatalogueSnapshots
+  commanderLog: CommanderLogReader
   controlDeckHttp?: ControlDeckHttpHandler
   copilot?: CopilotText
   copilotProfiles?: CopilotProfiles
@@ -275,6 +277,14 @@ export class PhoenixHttpServer {
       const requestedLimit = Number.parseInt(url.searchParams.get('limit') ?? '250', 10)
       this.writeJson(response, 200, this.options.activityLog.getRecent(
         Number.isSafeInteger(requestedLimit) ? requestedLimit : 250
+      ))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/commander/log') {
+      const requestedLimit = Number.parseInt(url.searchParams.get('limit') ?? '24', 10)
+      this.writeJson(response, 200, this.options.commanderLog.getRecent(
+        Number.isSafeInteger(requestedLimit) ? requestedLimit : 24
       ))
       return
     }
@@ -1152,6 +1162,7 @@ export class PhoenixHttpServer {
       this.options.runtimeStateUpdates.subscribe(state => send('runtime-state', state)),
       this.options.cartographyUpdates.subscribe(update => send('cartography-updated', update)),
       this.options.activityLog.subscribe(entry => send('activity-entry', entry)),
+      this.options.commanderLog.subscribe(entry => send('commander-log-entry', entry)),
       this.options.displayCommands.subscribe(command => send('display-command', command)),
       this.options.navigationRouteUpdates.subscribe(route => send('navigation-route', route)),
       this.options.commandCatalogue.subscribe(snapshot => send('command-catalogue', {

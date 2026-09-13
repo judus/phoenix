@@ -1,14 +1,8 @@
-import type { ActivityLogEntry, NavigationRoute, RuntimeState } from '@phoenix/contracts'
-import { formatPhoenixTime } from '../../components/phoenix-date-time.js'
+import type { CommanderLogEntry, NavigationRoute, RuntimeState } from '@phoenix/contracts'
+import { createCommanderLogViewModel, type CommanderLogItemViewModel } from './commander-log-view-model.js'
 
 export interface DashboardViewModel {
-  activity: readonly {
-    event: string
-    id: string
-    source: string
-    timestamp: string
-    time: string
-  }[]
+  commanderLog: readonly CommanderLogItemViewModel[]
   commander: {
     credits: number | null
     legalState: string | null
@@ -44,7 +38,7 @@ export interface DashboardViewModel {
 export function createDashboardViewModel(
   runtime: RuntimeState | undefined,
   route: NavigationRoute | undefined,
-  activity: readonly ActivityLogEntry[],
+  commanderLog: readonly CommanderLogEntry[],
   locale?: string
 ): DashboardViewModel {
   const notoriety = runtime?.commander.statistics?.groups.Crime?.Notoriety ?? null
@@ -55,16 +49,7 @@ export function createDashboardViewModel(
   const routeSummary = summarizeRoute(route, runtime?.system.name)
 
   return {
-    activity: activity
-      .filter(entry => entry.importance !== 'trace')
-      .slice(0, 5)
-      .map(entry => ({
-        event: humanize(entry.event),
-        id: entry.id,
-        source: humanize(entry.source),
-        timestamp: entry.timestamp,
-        time: formatPhoenixTime(entry.timestamp)
-      })),
+    commanderLog: createCommanderLogViewModel(commanderLog, locale),
     commander: {
       credits: runtime?.gameStatus?.balance ?? null,
       legalState: runtime?.gameStatus?.legalState ? humanize(runtime.gameStatus.legalState) : null,

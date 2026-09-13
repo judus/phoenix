@@ -71,21 +71,24 @@ export function DashboardPage({
         lastRow={(
           <>
             <Widget
-              aria-label="Recent activity"
+              aria-label="Commander log"
               className="span-two"
-              eyebrow="Recent activity"
+              eyebrow="Commander log"
               link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'journal', view: 'journal' }}>Open journal</RouteLink>}
             >
-              {model.activity.length === 0
-                ? <Status tone="muted">{controller.status === 'loading' ? 'Loading retained activity…' : 'No recent activity retained.'}</Status>
+              {model.commanderLog.length === 0
+                ? <Status tone="muted">{controller.status === 'loading' ? 'Loading commander history…' : 'No notable commander events retained.'}</Status>
                 : (
                     <ItemList density="compact">
-                      {model.activity.map(entry => (
+                      {model.commanderLog.map(entry => (
                         <ItemListItem
+                          data-tone={entry.tone}
+                          description={entry.detail}
+                          eyebrow={entry.category}
                           key={entry.id}
                           leading={<time dateTime={entry.timestamp}>{entry.time}</time>}
-                          title={entry.event}
-                          trailing={entry.source}
+                          title={entry.title}
+                          trailing={entry.value}
                         />
                       ))}
                     </ItemList>

@@ -11,3 +11,7 @@ export interface MissionRepository {
 export interface MissionDataReader {
   getMissions(): MissionsResponse
 }
+
+export interface MissionLookup {
+  getMission(id: number): Mission | null
+}
