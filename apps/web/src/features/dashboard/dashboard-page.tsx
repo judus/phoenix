@@ -11,6 +11,7 @@ import {
   ItemListItem,
   Metric,
   PageFrame,
+  Panel,
   Stack,
   Status,
   Widget
@@ -66,6 +67,15 @@ export function DashboardPage({
 
   return (
     <PageFrame className="dashboard-page" layout="fit" aria-busy={controller.status === 'loading'}>
+      {attention.length > 0
+        ? (
+            <Panel className="dashboard-alerts" title="Attention" variant="danger">
+              <ItemList density="compact">
+                {attention.map(message => <ItemListItem key={message} title={message} />)}
+              </ItemList>
+            </Panel>
+          )
+        : null}
       <DashboardGrid
         gap="xs"
         lastRow={(
@@ -75,6 +85,7 @@ export function DashboardPage({
               className="span-two"
               eyebrow="Commander log"
               link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'journal', view: 'journal' }}>Open journal</RouteLink>}
+              scrollable
             >
               {model.commanderLog.length === 0
                 ? <Status tone="muted">{controller.status === 'loading' ? 'Loading commander history…' : 'No notable commander events retained.'}</Status>
@@ -95,12 +106,27 @@ export function DashboardPage({
                   )}
             </Widget>
 
-            <Widget aria-label="Attention" eyebrow="Attention">
-              {attention.length === 0
-                ? <Status tone="muted">No immediate telemetry warnings.</Status>
+            <Widget
+              aria-label="Local traffic"
+              eyebrow="Local traffic"
+              link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'information', section: 'comms', view: 'traffic' }}>Open traffic</RouteLink>}
+              scrollable
+            >
+              {!controller.localTraffic
+                ? <Status tone="muted">{controller.status === 'loading' ? 'Listening for local traffic…' : 'Local traffic unavailable.'}</Status>
+                : model.localTraffic.length === 0
+                  ? <Status tone="muted">No recent local communications observed.</Status>
                 : (
                     <ItemList density="compact">
-                      {attention.map(message => <ItemListItem key={message} title={message} />)}
+                      {model.localTraffic.map(entry => (
+                        <ItemListItem
+                          description={entry.message}
+                          eyebrow={`${entry.scope} · ${entry.channel}`}
+                          key={entry.id}
+                          title={entry.correspondent}
+                          trailing={<time dateTime={entry.timestamp}>{entry.relativeTime}</time>}
+                        />
+                      ))}
                     </ItemList>
                   )}
             </Widget>

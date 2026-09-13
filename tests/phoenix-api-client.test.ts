@@ -136,13 +136,18 @@ test('Comms transports validate retained messages and cached GalNet', async () =
       contacts: [], messages: [],
       summary: { inbound: 0, inbox: 0, outbound: 0, total: 0, traffic: 0 }, view: 'traffic'
     }))
+    .mockResolvedValueOnce(jsonResponse({
+      generatedAt: '2026-08-16T12:00:00.000Z', messages: [], schemaVersion: 1, windowMinutes: 90
+    }))
     .mockResolvedValueOnce(jsonResponse({ articles: [], cache: 'fresh', fetchedAt: '2026-08-16T12:00:00.000Z' }))
   const client = new PhoenixApiClient('', request)
 
   await expect(client.getCommunications('traffic', 25)).resolves.toMatchObject({ messages: [], view: 'traffic' })
+  await expect(client.getLocalTraffic(5)).resolves.toMatchObject({ messages: [], schemaVersion: 1 })
   await expect(client.getGalnetNews(10)).resolves.toMatchObject({ articles: [], cache: 'fresh' })
   expect(request.mock.calls[0]?.[0]).toBe('/api/comms/messages?limit=25&view=traffic')
-  expect(request.mock.calls[1]?.[0]).toBe('/api/galnet?limit=10')
+  expect(request.mock.calls[1]?.[0]).toBe('/api/comms/local-traffic?limit=5')
+  expect(request.mock.calls[2]?.[0]).toBe('/api/galnet?limit=10')
 })
 
 test('Engineering transports preserve the existing read API', async () => {

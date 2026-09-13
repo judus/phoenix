@@ -43,6 +43,7 @@ import {
   GalaxyBookmarkWriteRequestSchema,
   InstallationSettingsSchema,
   InstallationSettingsUpdateSchema,
+  LocalTrafficResponseSchema,
   MacroDefinitionSchema,
   MacroLibrarySchema,
   MacroPlaybackSchema,
@@ -112,6 +113,7 @@ import type {
   HealthResponse,
   InstallationSettings,
   InstallationSettingsUpdate,
+  LocalTrafficResponse,
   MacroDefinition,
   MacroLibrary,
   MacroPlayback,
@@ -299,6 +301,10 @@ export class PhoenixApiClient implements PhoenixApi {
     signal?: AbortSignal
   ): Promise<CommunicationsResponse> {
     return this.#get(`/api/comms/messages?${new URLSearchParams({ limit: String(limit), view })}`, CommunicationsResponseSchema, signal)
+  }
+
+  async getLocalTraffic(limit = 5, signal?: AbortSignal): Promise<LocalTrafficResponse> {
+    return this.#get(`/api/comms/local-traffic?limit=${encodeURIComponent(String(limit))}`, LocalTrafficResponseSchema, signal)
   }
 
   async getGalnetNews(limit = 40, signal?: AbortSignal): Promise<GalnetNewsResponse> {

@@ -1,8 +1,10 @@
-import type { CommanderLogEntry, NavigationRoute, RuntimeState } from '@phoenix/contracts'
+import type { CommanderLogEntry, CommunicationMessage, NavigationRoute, RuntimeState } from '@phoenix/contracts'
 import { createCommanderLogViewModel, type CommanderLogItemViewModel } from './commander-log-view-model.js'
+import { createLocalTrafficViewModel, type LocalTrafficItemViewModel } from './local-traffic-view-model.js'
 
 export interface DashboardViewModel {
   commanderLog: readonly CommanderLogItemViewModel[]
+  localTraffic: readonly LocalTrafficItemViewModel[]
   commander: {
     credits: number | null
     legalState: string | null
@@ -39,7 +41,9 @@ export function createDashboardViewModel(
   runtime: RuntimeState | undefined,
   route: NavigationRoute | undefined,
   commanderLog: readonly CommanderLogEntry[],
-  locale?: string
+  localTraffic: readonly CommunicationMessage[],
+  locale?: string,
+  now?: Date
 ): DashboardViewModel {
   const notoriety = runtime?.commander.statistics?.groups.Crime?.Notoriety ?? null
   const system = runtime?.system.name ?? 'Unknown system'
@@ -50,6 +54,7 @@ export function createDashboardViewModel(
 
   return {
     commanderLog: createCommanderLogViewModel(commanderLog, locale),
+    localTraffic: createLocalTrafficViewModel(localTraffic, now),
     commander: {
       credits: runtime?.gameStatus?.balance ?? null,
       legalState: runtime?.gameStatus?.legalState ? humanize(runtime.gameStatus.legalState) : null,

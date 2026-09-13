@@ -4,8 +4,10 @@ import { CommunicationDataService } from '../apps/server/src/application/communi
 import type { CommunicationQueryView, CommunicationRepository } from '../apps/server/src/domain/communications.js'
 import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
 
+const discardUpdates = { publish: (_message: CommunicationMessage): void => undefined }
+
 test('communications separate private inbox messages from public and NPC traffic', () => {
-  const service = new CommunicationDataService(new MemoryCommunicationRepository())
+  const service = new CommunicationDataService(new MemoryCommunicationRepository(), discardUpdates)
   service.ingest({ timestamp: '2026-08-15T08:00:00Z', event: 'ReceiveText', From: 'CMDR Ada', Message: 'Form up.', Channel: 'wing' })
   service.ingest({ timestamp: '2026-08-15T08:01:00Z', event: 'ReceiveText', From: 'CMDR Turing', Message: 'o7', Channel: 'starsystem' })
   service.ingest({ timestamp: '2026-08-15T08:02:00Z', event: 'ReceiveText', From: '$npc_name;', From_Localised: 'Pirate', Message: '$npc_line;', Message_Localised: 'Hand over your cargo.', Channel: 'npc' })
@@ -24,7 +26,7 @@ test('communications separate private inbox messages from public and NPC traffic
 })
 
 test('contacts are explicitly derived from observed commander correspondents', () => {
-  const service = new CommunicationDataService(new MemoryCommunicationRepository())
+  const service = new CommunicationDataService(new MemoryCommunicationRepository(), discardUpdates)
   service.ingest({ timestamp: '2026-08-15T08:00:00Z', event: 'ReceiveText', From: 'CMDR Ada', Message: 'First', Channel: 'friend' })
   service.ingest({ timestamp: '2026-08-15T08:05:00Z', event: 'ReceiveText', From: 'CMDR Ada', Message: 'Second', Channel: 'starsystem' })
   service.ingest({ timestamp: '2026-08-15T08:06:00Z', event: 'ReceiveText', From: 'Station Control', Message: 'Welcome', Channel: 'npc' })
@@ -41,7 +43,7 @@ test('contacts are explicitly derived from observed commander correspondents', (
 })
 
 test('direct outgoing messages belong to the inbox and contribute correspondent evidence', () => {
-  const service = new CommunicationDataService(new MemoryCommunicationRepository())
+  const service = new CommunicationDataService(new MemoryCommunicationRepository(), discardUpdates)
   service.ingest({ timestamp: '2026-08-15T08:00:00Z', event: 'ReceiveText', From: 'CMDR Ada', Message: 'Form up.', Channel: 'player' })
   service.ingest({ timestamp: '2026-08-15T08:01:00Z', event: 'SendText', To: 'CMDR Ada', Message: 'On my way.' })
   service.ingest({ timestamp: '2026-08-15T08:02:00Z', event: 'SendText', To: 'wing', Message: 'Ready.' })
@@ -69,7 +71,7 @@ test('SQLite communication projection is idempotent across replay', () => {
   const database = new SqliteDatabase(':memory:')
   database.initialize()
   try {
-    const service = new CommunicationDataService(database)
+    const service = new CommunicationDataService(database, discardUpdates)
     const traffic = { timestamp: '2026-08-15T08:00:00Z', event: 'ReceiveText', From: 'CMDR Ada', Message: 'o7', Channel: 'starsystem' }
     service.ingest(traffic)
     service.ingest(traffic)
@@ -85,6 +87,20 @@ test('SQLite communication projection is idempotent across replay', () => {
   } finally {
     database.close()
   }
+})
+
+test('communications publish live normalized messages without replaying historical traffic', () => {
+  const updates: CommunicationMessage[] = []
+  const service = new CommunicationDataService(new MemoryCommunicationRepository(), {
+    publish: message => updates.push(message)
+  })
+  const historical = { timestamp: '2026-08-15T08:00:00Z', event: 'ReceiveText', From: 'Station Control', Message: 'Welcome', Channel: 'npc' }
+  const live = { timestamp: '2026-08-15T08:01:00Z', event: 'ReceiveText', From: 'CMDR Ada', Message: 'o7', Channel: 'starsystem' }
+
+  service.ingest(historical, 'historical')
+  service.ingest(live)
+
+  expect(updates).toEqual([expect.objectContaining({ message: 'o7', sender: 'CMDR Ada' })])
 })
 
 class MemoryCommunicationRepository implements CommunicationRepository {

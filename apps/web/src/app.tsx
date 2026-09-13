@@ -325,8 +325,9 @@ const DashboardFeature = memo(function DashboardFeature({ application }: { appli
   const model = useMemo(() => createDashboardViewModel(
     runtime.status === 'ready' ? runtime.state : undefined,
     controller.route,
-    controller.commanderLog
-  ), [controller.commanderLog, controller.route, runtime])
+    controller.commanderLog,
+    controller.localTraffic?.messages ?? []
+  ), [controller.commanderLog, controller.localTraffic, controller.route, runtime])
 
   return (
     <DashboardPage

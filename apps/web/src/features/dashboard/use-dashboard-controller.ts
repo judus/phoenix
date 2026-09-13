@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import type {
   CommanderLogEntry,
   GameActionCatalogResponse,
+  LocalTrafficResponse,
   NavigationRoute
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
@@ -12,6 +13,7 @@ export interface DashboardControllerSnapshot {
   actions?: GameActionCatalogResponse
   commanderLog: readonly CommanderLogEntry[]
   error?: string
+  localTraffic?: LocalTrafficResponse
   route?: NavigationRoute
   status: 'loading' | 'ready' | 'error'
 }
@@ -30,6 +32,7 @@ export function useDashboardController(
   useEffect(() => {
     const abort = new AbortController()
     let commanderLogRevision = 0
+    let localTrafficRevision = 0
     let routeRevision = 0
     let actionsRevision = 0
 
@@ -41,6 +44,18 @@ export function useDashboardController(
         status: 'ready'
       }))
     })
+    const loadLocalTraffic = (): void => {
+      const revision = ++localTrafficRevision
+      void api.getLocalTraffic(5, abort.signal)
+        .then(localTraffic => {
+          if (abort.signal.aborted || revision !== localTrafficRevision) return
+          setSnapshot(current => ({ ...current, localTraffic, status: 'ready' }))
+        })
+        .catch(cause => {
+          if (!abort.signal.aborted && revision === localTrafficRevision) setError(setSnapshot, cause)
+        })
+    }
+    const unsubscribeCommunications = events.subscribe('communication-message', loadLocalTraffic)
     const unsubscribeRoute = events.subscribe('navigation-route', route => {
       routeRevision += 1
       setSnapshot(current => ({ ...current, route, status: 'ready' }))
@@ -58,12 +73,18 @@ export function useDashboardController(
     })
 
     const commanderLogAtRequest = commanderLogRevision
+    const localTrafficAtRequest = localTrafficRevision
     const routeAtRequest = routeRevision
     const actionsAtRequest = ++actionsRevision
     void Promise.allSettled([
       api.getCommanderLog(24, abort.signal).then(log => {
         if (commanderLogAtRequest === commanderLogRevision) {
           setSnapshot(current => ({ ...current, commanderLog: log.entries }))
+        }
+      }),
+      api.getLocalTraffic(5, abort.signal).then(localTraffic => {
+        if (localTrafficAtRequest === localTrafficRevision) {
+          setSnapshot(current => ({ ...current, localTraffic }))
         }
       }),
       api.getNavigationRoute(abort.signal).then(route => {
@@ -74,8 +95,8 @@ export function useDashboardController(
       })
     ]).then(results => {
       if (abort.signal.aborted) return
-      const requestRevisions = [commanderLogAtRequest, routeAtRequest, actionsAtRequest]
-      const currentRevisions = [commanderLogRevision, routeRevision, actionsRevision]
+      const requestRevisions = [commanderLogAtRequest, localTrafficAtRequest, routeAtRequest, actionsAtRequest]
+      const currentRevisions = [commanderLogRevision, localTrafficRevision, routeRevision, actionsRevision]
       const failures: unknown[] = []
       results.forEach((result, index) => {
         if (result.status === 'rejected' && requestRevisions[index] === currentRevisions[index]) {
@@ -92,6 +113,7 @@ export function useDashboardController(
     return () => {
       abort.abort()
       unsubscribeCommanderLog()
+      unsubscribeCommunications()
       unsubscribeRoute()
       unsubscribeCatalogue()
     }

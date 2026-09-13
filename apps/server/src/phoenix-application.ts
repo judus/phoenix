@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { CartographyUpdate, DisplayCommand, GameEventEnvelope, NavigationRoute, PhoenixControlDeckConfiguration, RuntimeState } from '@phoenix/contracts'
+import type { CartographyUpdate, CommunicationMessage, DisplayCommand, GameEventEnvelope, NavigationRoute, PhoenixControlDeckConfiguration, RuntimeState } from '@phoenix/contracts'
 import { ToolRegistry } from '@jdu/llm-client'
 import { ControlDeckCommandService, type ControlDeckConfigurationRepository } from 'control-deck/core'
 import { ControlDeckIntegration } from 'control-deck/host'
@@ -63,6 +63,7 @@ import { DefaultStationMarketQuery } from './application/default-station-market-
 import { GalnetNewsService } from './application/galnet-news-service.js'
 import { MissionDataService } from './application/mission-data-service.js'
 import { CommunicationDataService } from './application/communication-data-service.js'
+import { LocalTrafficService } from './application/local-traffic-service.js'
 import { FleetDataService } from './application/fleet-data-service.js'
 import { CachedCartographyStationResolver } from './application/cached-cartography-station-resolver.js'
 import { GalaxyBookmarkService } from './application/galaxy-bookmark-service.js'
@@ -177,6 +178,7 @@ export class PhoenixApplication {
     const cartographyUpdates = new InProcessPublisher<CartographyUpdate>()
     const displayCommandUpdates = new InProcessPublisher<DisplayCommand>()
     const commandCatalogueChanges = new InProcessPublisher<CommandCatalogueChange>()
+    const communicationUpdates = new InProcessPublisher<CommunicationMessage>()
     this.stateStore = new InMemoryRuntimeStateStore()
     this.database = new SqliteDatabase(
       resolveProjectPath(
@@ -186,7 +188,8 @@ export class PhoenixApplication {
     )
     const activityLog = new ActivityLogService(this.database)
     const missions = new MissionDataService(this.database)
-    const communications = new CommunicationDataService(this.database)
+    const communications = new CommunicationDataService(this.database, communicationUpdates)
+    const localTraffic = new LocalTrafficService(this.database)
     const bookmarks = new GalaxyBookmarkService(this.database)
     const savedGalaxyQueries = new SavedGalaxyQueryService(this.database)
     const runtimeCatalogueDirectory = resolve(paths.user.data, 'runtime/catalogue')
@@ -269,7 +272,7 @@ export class PhoenixApplication {
         historicalJournalIngestion.ingest(event)
         historicalCartographyIngestion.ingest(event)
         missions.ingest(event, 'historical-journal')
-        communications.ingest(event)
+        communications.ingest(event, 'historical')
         fleet.ingest(event)
         commanderLog.ingest(event, 'historical')
         activityLog.ingestJournal(event, 'historical')
@@ -455,6 +458,7 @@ export class PhoenixApplication {
       catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
       cartographyUpdates,
       commandCatalogue,
+      communicationUpdates,
       commanderLog,
       controlDeckHttp: this.controlDeck.http,
       copilot,
@@ -481,6 +485,7 @@ export class PhoenixApplication {
       bookmarks,
       savedGalaxyQueries,
       communications,
+      localTraffic,
       port,
       runtimeState: this.stateStore,
       runtimeStateUpdates,

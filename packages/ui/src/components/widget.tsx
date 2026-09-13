@@ -8,16 +8,17 @@ type WidgetProps = Omit<HTMLAttributes<HTMLElement>, 'title'> & {
   heading?: ReactNode
   link?: ReactNode
   meta?: ReactNode
+  scrollable?: boolean
 }
 
-export function Widget({ aside, children, className, detail, density = 'standard', eyebrow, heading, link, meta, ...props }: WidgetProps) {
+export function Widget({ aside, children, className, detail, density = 'standard', eyebrow, heading, link, meta, scrollable = false, ...props }: WidgetProps) {
   const generatedId = useId()
   const headingId = heading ? (props['aria-labelledby'] ?? generatedId) : undefined
   const hasBody = children !== undefined && children !== null
 
   return (
     <article
-      className={['widget', density === 'compact' && 'compact', className].filter(Boolean).join(' ')}
+      className={['widget', density === 'compact' && 'compact', scrollable && 'scrollable', className].filter(Boolean).join(' ')}
       aria-labelledby={headingId}
       {...props}
     >

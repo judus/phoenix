@@ -8,17 +8,24 @@ import {
 } from '@phoenix/contracts'
 import type { EliteJournalEvent } from '@phoenix/elite'
 import type { CommunicationDataReader, CommunicationQueryView, CommunicationRepository } from '../domain/communications.js'
+import type { Publisher } from '../domain/publisher.js'
 
 const inboxChannels = new Set(['player', 'friend', 'wing', 'team', 'squadron', 'crew'])
 const namedChannels = new Set([...inboxChannels, 'local', 'starsystem', 'npc', 'system', 'voicechat'])
 
 export class CommunicationDataService implements CommunicationDataReader {
-  public constructor (private readonly repository: CommunicationRepository) {}
+  public constructor (
+    private readonly repository: CommunicationRepository,
+    private readonly updates: Publisher<CommunicationMessage>
+  ) {}
 
-  public ingest (event: EliteJournalEvent): void {
-    if (event.event !== 'ReceiveText' && event.event !== 'SendText') return
+  public ingest (event: EliteJournalEvent, mode: 'historical' | 'live' = 'live'): CommunicationMessage | null {
+    if (event.event !== 'ReceiveText' && event.event !== 'SendText') return null
     const message = normalizeMessage(event)
-    if (message) this.repository.putCommunicationMessage(message)
+    if (!message) return null
+    this.repository.putCommunicationMessage(message)
+    if (mode === 'live') this.updates.publish(structuredClone(message))
+    return structuredClone(message)
   }
 
   public getCommunications (view: CommunicationQueryView = 'all', limit = 250): CommunicationsResponse {

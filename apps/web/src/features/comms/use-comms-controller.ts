@@ -45,9 +45,7 @@ export function useCommsController(api: PhoenixApi, events: PhoenixEventHub, vie
 
     load(true)
     const unsubscribe = view === 'inbox' || view === 'traffic' || view === 'contacts'
-      ? events.subscribe('activity-entry', entry => {
-          if (entry.source === 'journal' && (entry.event === 'ReceiveText' || entry.event === 'SendText')) load()
-        })
+      ? events.subscribe('communication-message', () => load())
       : () => undefined
     return () => {
       latest.cancel()

@@ -1,6 +1,6 @@
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
-import type { ActivityLogEntry, CommunicationsResponse } from '@phoenix/contracts'
+import type { CommunicationMessage, CommunicationsResponse } from '@phoenix/contracts'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
 import type { PhoenixEventHub, PhoenixEventMap, PhoenixEventName } from '../apps/web/src/application/events/phoenix-event-hub.js'
 import { useCommsController, type CommsControllerSnapshot, type CommsView } from '../apps/web/src/features/comms/use-comms-controller.js'
@@ -25,9 +25,7 @@ test('Comms selects a focused transport and refreshes journal-backed views for t
   const initialSignal = vi.mocked(api.getCommunications).mock.calls[0]?.[2]
   expect(snapshot).toEqual({ communications: response, status: 'ready' })
 
-  await act(async () => { events.emit('activity-entry', activity('Location')); await Promise.resolve() })
-  expect(api.getCommunications).toHaveBeenCalledTimes(1)
-  await act(async () => { events.emit('activity-entry', activity('ReceiveText')); await Promise.resolve() })
+  await act(async () => { events.emit('communication-message', message()); await Promise.resolve() })
   expect(api.getCommunications).toHaveBeenCalledTimes(2)
   expect(initialSignal?.aborted).toBe(true)
 
@@ -43,8 +41,8 @@ function communications(): CommunicationsResponse {
   return { contacts: [], messages: [], summary: { inbound: 0, inbox: 0, outbound: 0, total: 0, traffic: 0 }, view: 'traffic' }
 }
 
-function activity(event: string): ActivityLogEntry {
-  return { actionable: false, data: {}, event, id: event, importance: 'routine', ingestedAt: '2026-08-16T12:00:00.000Z', source: 'journal', timestamp: '2026-08-16T12:00:00.000Z' }
+function message(): CommunicationMessage {
+  return { channel: 'starsystem', direction: 'inbound', id: 'message-1', message: 'o7', rawMessage: null, rawSender: 'CMDR Ada', recipient: null, sender: 'CMDR Ada', senderKind: 'commander', sourceEvent: 'ReceiveText', timestamp: '2026-08-16T12:00:00.000Z', view: 'traffic' }
 }
 
 class FakeEventHub implements PhoenixEventHub {

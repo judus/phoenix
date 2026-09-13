@@ -32,7 +32,22 @@ test('dashboard view model derives commander, situation, ship, route, and notabl
       title: 'Mission completed',
       tone: 'positive'
     }],
-    'en-CH'
+    [{
+      channel: 'starsystem',
+      direction: 'inbound',
+      id: 'traffic-1',
+      message: 'o7',
+      rawMessage: null,
+      rawSender: 'CMDR Ada',
+      recipient: null,
+      sender: 'CMDR Ada',
+      senderKind: 'commander',
+      sourceEvent: 'ReceiveText',
+      timestamp: '2026-08-16T11:55:00.000Z',
+      view: 'traffic'
+    }],
+    'en-CH',
+    new Date('2026-08-16T12:00:00.000Z')
   )
 
   expect(model.commander.name).toBe('Ellan Murdock')
@@ -44,5 +59,14 @@ test('dashboard view model derives commander, situation, ship, route, and notabl
     detail: 'Deliver medicines · Galileo, Sol',
     title: 'Mission completed',
     value: "+125'000 CR"
+  })
+  expect(model.localTraffic[0]).toEqual({
+    channel: 'Star system',
+    correspondent: 'CMDR Ada',
+    id: 'traffic-1',
+    message: 'o7',
+    relativeTime: '5 min ago',
+    scope: 'Commander',
+    timestamp: '2026-08-16T11:55:00.000Z'
   })
 })

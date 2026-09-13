@@ -32,6 +32,7 @@ import {
   StartMacroRecordingRequestSchema,
   type CopilotConversationEvent,
   type CartographyUpdate,
+  type CommunicationMessage,
   type DisplayCommand,
   type EliteInventorySourceDiagnostics,
   type EliteNavigationRouteSourceDiagnostics,
@@ -70,7 +71,7 @@ import type { CommandCatalogueSnapshots } from '../domain/commands.js'
 import type { NumpadCommands } from '../domain/numpad.js'
 import type { Macros } from '../domain/macros.js'
 import type { MissionDataReader } from '../domain/missions.js'
-import type { CommunicationDataReader, CommunicationQueryView } from '../domain/communications.js'
+import type { CommunicationDataReader, CommunicationQueryView, LocalTrafficReader } from '../domain/communications.js'
 import type { FleetDataReader } from '../domain/fleet.js'
 import type { GalaxyBookmarks } from '../domain/galaxy-bookmarks.js'
 import type { SavedGalaxyQueries } from '../domain/saved-galaxy-queries.js'
@@ -128,6 +129,8 @@ export interface PhoenixHttpServerOptions {
   macros: Macros
   missions: MissionDataReader
   communications: CommunicationDataReader
+  communicationUpdates: Subscribable<CommunicationMessage>
+  localTraffic: LocalTrafficReader
   navigationData: NavigationDataReader
   navigationRouteUpdates: Subscribable<NavigationRoute>
   numpad: NumpadCommands
@@ -364,6 +367,14 @@ export class PhoenixHttpServer {
       this.writeJson(response, 200, this.options.communications.getCommunications(
         view,
         Number.isSafeInteger(requestedLimit) ? requestedLimit : 250
+      ))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/comms/local-traffic') {
+      const requestedLimit = Number.parseInt(url.searchParams.get('limit') ?? '5', 10)
+      this.writeJson(response, 200, this.options.localTraffic.getLocalTraffic(
+        Number.isSafeInteger(requestedLimit) ? requestedLimit : 5
       ))
       return
     }
@@ -1162,6 +1173,7 @@ export class PhoenixHttpServer {
       this.options.runtimeStateUpdates.subscribe(state => send('runtime-state', state)),
       this.options.cartographyUpdates.subscribe(update => send('cartography-updated', update)),
       this.options.activityLog.subscribe(entry => send('activity-entry', entry)),
+      this.options.communicationUpdates.subscribe(message => send('communication-message', message)),
       this.options.commanderLog.subscribe(entry => send('commander-log-entry', entry)),
       this.options.displayCommands.subscribe(command => send('display-command', command)),
       this.options.navigationRouteUpdates.subscribe(route => send('navigation-route', route)),

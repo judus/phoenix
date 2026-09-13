@@ -44,7 +44,15 @@ export const CommunicationsResponseSchema = z.object({
   view: z.enum(['all', 'inbox', 'traffic'])
 }).strict()
 
+export const LocalTrafficResponseSchema = z.object({
+  generatedAt: z.iso.datetime(),
+  messages: z.array(CommunicationMessageSchema),
+  schemaVersion: z.literal(1),
+  windowMinutes: z.number().int().positive()
+}).strict()
+
 export type CommunicationContact = z.infer<typeof CommunicationContactSchema>
 export type CommunicationMessage = z.infer<typeof CommunicationMessageSchema>
 export type CommunicationsResponse = z.infer<typeof CommunicationsResponseSchema>
 export type CommunicationView = z.infer<typeof CommunicationViewSchema>
+export type LocalTrafficResponse = z.infer<typeof LocalTrafficResponseSchema>

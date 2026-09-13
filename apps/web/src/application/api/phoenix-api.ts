@@ -44,6 +44,7 @@ import type {
   HealthResponse,
   InstallationSettings,
   InstallationSettingsUpdate,
+  LocalTrafficResponse,
   MacroDefinition,
   MacroLibrary,
   MacroPlayback,
@@ -120,6 +121,7 @@ export interface PhoenixApi {
   getCopilotRealtimeContext(signal?: AbortSignal): Promise<{ fingerprint: string, text: string, updatedAt: string | null }>
   getCopilotVoiceHost(signal?: AbortSignal): Promise<CopilotVoiceHostSnapshot>
   getCommunications(view?: 'all' | 'inbox' | 'traffic', limit?: number, signal?: AbortSignal): Promise<CommunicationsResponse>
+  getLocalTraffic(limit?: number, signal?: AbortSignal): Promise<LocalTrafficResponse>
   getControlDeckConfiguration(signal?: AbortSignal): Promise<PhoenixControlDeckConfiguration>
   getControlDeckCommands(signal?: AbortSignal): Promise<ControlDeckCommandCatalogue>
   getCommands(signal?: AbortSignal): Promise<CommandCatalogResponse>

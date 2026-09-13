@@ -14,9 +14,11 @@ describe('BrowserPhoenixEventHub', () => {
     const states: string[] = []
     const revisions: number[] = []
     const commanderEvents: string[] = []
+    const messages: string[] = []
     hub.subscribeConnection(() => states.push(hub.getConnectionSnapshot().state))
     hub.subscribe('runtime-state', state => revisions.push(state.revision))
     hub.subscribe('commander-log-entry', entry => commanderEvents.push(entry.kind))
+    hub.subscribe('communication-message', message => messages.push(message.message))
 
     hub.start()
     hub.start()
@@ -34,12 +36,27 @@ describe('BrowserPhoenixEventHub', () => {
       title: 'Mission completed',
       tone: 'positive'
     })
+    source.emit('communication-message', {
+      channel: 'starsystem',
+      direction: 'inbound',
+      id: 'message-1',
+      message: 'o7',
+      rawMessage: null,
+      rawSender: 'CMDR Ada',
+      recipient: null,
+      sender: 'CMDR Ada',
+      senderKind: 'commander',
+      sourceEvent: 'ReceiveText',
+      timestamp: '2026-09-13T12:00:00Z',
+      view: 'traffic'
+    })
 
     expect(factory).toHaveBeenCalledTimes(1)
     expect(factory).toHaveBeenCalledWith('/api/events?conversationId=phoenix-copilot')
     expect(states).toEqual(['connecting', 'open'])
     expect(revisions).toEqual([4])
     expect(commanderEvents).toEqual(['mission.completed'])
+    expect(messages).toEqual(['o7'])
 
     hub.stop()
     expect(source.closed).toBe(true)

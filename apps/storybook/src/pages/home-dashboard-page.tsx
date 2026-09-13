@@ -39,7 +39,7 @@ export function HomeDashboardContent() {
     <DashboardGrid
       lastRow={
         <>
-          <Widget aria-label="Commander log" className="span-two" eyebrow="Commander log" link={<a href="#journal">Open journal</a>}>
+          <Widget aria-label="Commander log" className="span-two" eyebrow="Commander log" link={<a href="#journal">Open journal</a>} scrollable>
             <ItemList density="compact">
               <ItemListItem eyebrow="Mission" title="Mission completed" description="Deliver medicines · Galileo, Sol" leading={<time>18:28</time>} trailing="+125,000 CR" />
               <ItemListItem eyebrow="Trade" title="Commodity sold" description="32 units · Advanced Catalysers" leading={<time>18:11</time>} trailing="+186,000 CR" />
@@ -47,8 +47,11 @@ export function HomeDashboardContent() {
             </ItemList>
           </Widget>
 
-          <Widget aria-label="Attention" eyebrow="Attention">
-            <Status tone="muted">No immediate telemetry warnings.</Status>
+          <Widget aria-label="Local traffic" eyebrow="Local traffic" link={<a href="#traffic">Open traffic</a>} scrollable>
+            <ItemList density="compact">
+              <ItemListItem eyebrow="Commander · Star system" title="CMDR LAKONMINER" description="o7" trailing={<time>2 min ago</time>} />
+              <ItemListItem eyebrow="NPC · Local" title="LOCKE TERMINAL" description="Docking request granted." trailing={<time>6 min ago</time>} />
+            </ItemList>
           </Widget>
         </>
       }

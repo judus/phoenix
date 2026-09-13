@@ -82,6 +82,11 @@
       min-block-size: 0;
       overflow: hidden;
     }
+
+    &.scrollable > .widget-body {
+      overflow: auto;
+      overscroll-behavior: contain;
+    }
   }
 
   .widget:not(:has(> header)) {

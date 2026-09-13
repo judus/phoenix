@@ -23,6 +23,7 @@ test('live dashboard evidence is not overwritten by stale initial queries', asyn
   const api = {
     getActions: vi.fn().mockResolvedValue({ actions: [], backend: { id: 'none', available: false, simulated: true, detail: 'Unavailable' }, bindingSource: { directory: null, filePath: null, presetNames: [], available: false, bindingCount: 0, keyboardBindingCount: 0, loadedAt: null, error: null } }),
     getCommanderLog: vi.fn().mockReturnValue(new Promise(resolve => { resolveCommanderLog = resolve })),
+    getLocalTraffic: vi.fn().mockResolvedValue(localTraffic()),
     getNavigationRoute: vi.fn().mockReturnValue(new Promise(resolve => { resolveRoute = resolve }))
   } as unknown as PhoenixApi
   let snapshot: DashboardControllerSnapshot | undefined
@@ -46,6 +47,11 @@ test('live dashboard evidence is not overwritten by stale initial queries', asyn
   expect(snapshot?.commanderLog).toEqual([liveEntry])
   expect(snapshot?.route).toEqual(liveRoute)
   expect(snapshot?.status).toBe('ready')
+  await act(async () => {
+    events.emit('communication-message', communicationMessage())
+    await Promise.resolve()
+  })
+  expect(api.getLocalTraffic).toHaveBeenCalledTimes(2)
   await act(async () => renderer.unmount())
 })
 
@@ -58,6 +64,7 @@ test('an obsolete catalogue failure cannot taint a newer successful refresh', as
       .mockReturnValueOnce(new Promise((_resolve, reject) => { rejectInitial = reject }))
       .mockResolvedValueOnce(currentActions),
     getCommanderLog: vi.fn().mockResolvedValue({ schemaVersion: 1, entries: [], retained: 0 }),
+    getLocalTraffic: vi.fn().mockResolvedValue(localTraffic()),
     getNavigationRoute: vi.fn().mockResolvedValue(route('Sol'))
   } as unknown as PhoenixApi
   let snapshot: DashboardControllerSnapshot | undefined
@@ -97,6 +104,14 @@ function route(destination: string): NavigationRoute {
     timestamp: '2026-08-16T12:00:00.000Z',
     route: [{ system: destination, address: null, position: null, starClass: null }]
   }
+}
+
+function localTraffic() {
+  return { generatedAt: '2026-08-16T12:00:00.000Z', messages: [], schemaVersion: 1 as const, windowMinutes: 90 }
+}
+
+function communicationMessage() {
+  return { channel: 'starsystem', direction: 'inbound' as const, id: 'message-1', message: 'o7', rawMessage: null, rawSender: 'CMDR Ada', recipient: null, sender: 'CMDR Ada', senderKind: 'commander' as const, sourceEvent: 'ReceiveText' as const, timestamp: '2026-08-16T12:00:00.000Z', view: 'traffic' as const }
 }
 
 class FakeEventHub implements PhoenixEventHub {
