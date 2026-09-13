@@ -10,7 +10,9 @@ const defaults: PhoenixDevicePreferencesSnapshot = {
   audioInputId: '',
   audioOutputId: '',
   captureNumpad: true,
+  currentShipLoadoutView: 'tiles',
   followCopilotNavigation: true,
+  shipCatalogueView: 'dossier',
   variableNumpadFontSizes: true
 }
 
@@ -50,7 +52,9 @@ export class BrowserDevicePreferences implements DevicePreferences {
           audioInputId: typeof candidate.audioInputId === 'string' ? candidate.audioInputId : '',
           audioOutputId: typeof candidate.audioOutputId === 'string' ? candidate.audioOutputId : '',
           captureNumpad: candidate.captureNumpad !== false,
+          currentShipLoadoutView: candidate.currentShipLoadoutView === 'table' ? 'table' : 'tiles',
           followCopilotNavigation: candidate.followCopilotNavigation !== false,
+          shipCatalogueView: candidate.shipCatalogueView === 'table' ? 'table' : 'dossier',
           variableNumpadFontSizes: candidate.variableNumpadFontSizes !== false
         }
       }

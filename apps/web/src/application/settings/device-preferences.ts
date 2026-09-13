@@ -2,7 +2,9 @@ export interface PhoenixDevicePreferencesSnapshot {
   audioInputId: string
   audioOutputId: string
   captureNumpad: boolean
+  currentShipLoadoutView: 'table' | 'tiles'
   followCopilotNavigation: boolean
+  shipCatalogueView: 'dossier' | 'table'
   variableNumpadFontSizes: boolean
 }
 

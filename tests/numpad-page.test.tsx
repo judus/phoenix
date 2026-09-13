@@ -24,7 +24,7 @@ const settings = {
 }
 
 const devicePreferences = (variableNumpadFontSizes = true) => ({
-  getSnapshot: () => ({ audioInputId: '', audioOutputId: '', captureNumpad: true, followCopilotNavigation: true, variableNumpadFontSizes }),
+  getSnapshot: () => ({ audioInputId: '', audioOutputId: '', captureNumpad: true, currentShipLoadoutView: 'tiles' as const, followCopilotNavigation: true, shipCatalogueView: 'dossier' as const, variableNumpadFontSizes }),
   subscribe: () => () => {},
   update: () => {}
 }) satisfies DevicePreferences

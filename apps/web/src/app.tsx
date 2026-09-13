@@ -297,6 +297,7 @@ const FleetFeature = memo(function FleetFeature({ application, route }: {
   const controller = useFleetController(application.api, application.events, route.view)
   return <FleetPage
     controller={controller}
+    devicePreferences={application.devicePreferences}
     onExecuteAction={actionId => application.api.executeAction(actionId, 'tap')}
     onNavigate={application.router.push}
     route={route}

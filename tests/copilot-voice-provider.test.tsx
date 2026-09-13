@@ -264,7 +264,9 @@ class FakeDevicePreferences implements DevicePreferences {
     audioInputId: '',
     audioOutputId: '',
     captureNumpad: true,
+    currentShipLoadoutView: 'tiles',
     followCopilotNavigation: true,
+    shipCatalogueView: 'dossier',
     variableNumpadFontSizes: true
   }
 

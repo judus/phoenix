@@ -9,13 +9,17 @@ test('browser device preferences default to following Copilot and capturing the 
     audioInputId: '',
     audioOutputId: '',
     captureNumpad: true,
+    currentShipLoadoutView: 'tiles',
     followCopilotNavigation: true,
+    shipCatalogueView: 'dossier',
     variableNumpadFontSizes: true
   })
-  preferences.update({ audioInputId: 'mic-1', captureNumpad: false, variableNumpadFontSizes: false })
+  preferences.update({ audioInputId: 'mic-1', captureNumpad: false, currentShipLoadoutView: 'table', shipCatalogueView: 'table', variableNumpadFontSizes: false })
   expect(new BrowserDevicePreferences(storage).getSnapshot()).toMatchObject({
     audioInputId: 'mic-1',
     captureNumpad: false,
+    currentShipLoadoutView: 'table',
+    shipCatalogueView: 'table',
     variableNumpadFontSizes: false
   })
 })

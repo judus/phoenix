@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useSyncExternalStore } from 'react'
 import type { ShipDefinition } from '@phoenix/contracts'
 import {
   AutoGrid,
@@ -23,6 +23,7 @@ import {
 } from '@phoenix/ui'
 import type { InformationRoute, PhoenixRoute } from '../../application/navigation/phoenix-route.js'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
+import type { DevicePreferences } from '../../application/settings/device-preferences.js'
 import { DataSyncNotice } from '../../components/data-sync-notice.js'
 import { SystemLocationLink } from '../../components/system-location-link.js'
 import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
@@ -35,9 +36,6 @@ import {
   type FleetOverviewModel
 } from './fleet-view-model.js'
 type FleetRoute = Extract<InformationRoute, { section: 'fleet' }>
-type LoadoutView = 'list' | 'grid'
-type CatalogueView = 'dossier' | 'table'
-
 const currentRoutes = {
   'current-overview': { kind: 'information', section: 'fleet', view: 'current-overview' },
   'current-loadout': { kind: 'information', section: 'fleet', view: 'current-loadout' },
@@ -45,19 +43,30 @@ const currentRoutes = {
   'current-engineering': { kind: 'information', section: 'fleet', view: 'current-engineering' }
 } as const satisfies Record<string, FleetRoute>
 
-export function FleetPage({ controller, onExecuteAction, onNavigate, route, runtime }: {
+export function FleetPage({ controller, devicePreferences, onExecuteAction, onNavigate, route, runtime }: {
   controller: FleetControllerSnapshot
+  devicePreferences: DevicePreferences
   onExecuteAction?(actionId: string): void
   onNavigate(route: PhoenixRoute): void
   route: FleetRoute
   runtime: RuntimeStateSnapshot
 }) {
+  const preferences = useSyncExternalStore(
+    devicePreferences.subscribe,
+    devicePreferences.getSnapshot,
+    devicePreferences.getSnapshot
+  )
+
   if (route.view.startsWith('current-')) {
     if (runtime.status !== 'ready') {
       return <FleetState title="Current ship" status={runtime.status} error={runtime.status === 'error' ? runtime.error : undefined} />
     }
     const model = createCurrentShipModel(runtime.state)
-    if (route.view === 'current-loadout') return <CurrentLoadout model={model} />
+    if (route.view === 'current-loadout') return <CurrentLoadout
+      layout={preferences.currentShipLoadoutView}
+      model={model}
+      onLayoutChange={layout => devicePreferences.update({ currentShipLoadoutView: layout })}
+    />
     if (route.view === 'current-cargo') return <CurrentCargo model={model} />
     if (route.view === 'current-engineering') return <CurrentEngineering model={model} />
     return <CurrentShipOverview
@@ -72,7 +81,14 @@ export function FleetPage({ controller, onExecuteAction, onNavigate, route, runt
   if (controller.status === 'error') return <FleetState title={titleFor(route.view)} status="error" error={controller.error} />
 
   if (route.view === 'catalogue') {
-    return <ShipCatalogue updatedAt={controller.catalogueUpdatedAt} ships={controller.catalogue ?? []} route={route} onNavigate={onNavigate} />
+    return <ShipCatalogue
+      updatedAt={controller.catalogueUpdatedAt}
+      ships={controller.catalogue ?? []}
+      route={route}
+      view={preferences.shipCatalogueView}
+      onNavigate={onNavigate}
+      onViewChange={view => devicePreferences.update({ shipCatalogueView: view })}
+    />
   }
   if (!controller.fleet) return <FleetState title={titleFor(route.view)} status="error" error="Fleet records unavailable." />
   if (route.view === 'stored-modules') return <StoredModules fleet={controller.fleet} />
@@ -237,20 +253,23 @@ function CurrentShipOverview({ actions, model, onExecuteAction, onNavigate }: {
   )
 }
 
-function CurrentLoadout({ model }: { model: CurrentShipModel }) {
-  const [layout, setLayout] = useState<LoadoutView>('list')
+function CurrentLoadout({ layout, model, onLayoutChange }: {
+  layout: 'table' | 'tiles'
+  model: CurrentShipModel
+  onLayoutChange(layout: 'table' | 'tiles'): void
+}) {
   return (
     <PageFrame layout="fit">
       <div className="current-ship-loadout">
         <CurrentShipHeader
-          actions={<ViewSwitcher startLabel="List" startIcon={<ListIcon />} endLabel="Grid" endIcon={<GridIcon />} position={layout === 'list' ? 'start' : 'end'} onPositionChange={position => setLayout(position === 'start' ? 'list' : 'grid')} />}
+          actions={<ViewSwitcher startLabel="Table" startIcon={<TableIcon />} endLabel="Tiles" endIcon={<TilesIcon />} position={layout === 'table' ? 'start' : 'end'} onPositionChange={position => onLayoutChange(position === 'start' ? 'table' : 'tiles')} />}
           current="Loadout"
           model={model}
         />
-        <div className={`loadout-inventory ${layout}`} tabIndex={0}>
+        <div className={`loadout-inventory ${layout === 'table' ? 'list' : 'grid'}`} tabIndex={0}>
           {model.modules.length === 0
             ? <Status tone="muted">No loadout telemetry available.</Status>
-            : model.modules.map(group => layout === 'list' ? <ModuleTable group={group} key={group.id} /> : <ModuleGrid group={group} key={group.id} />)}
+            : model.modules.map(group => layout === 'table' ? <ModuleTable group={group} key={group.id} /> : <ModuleGrid group={group} key={group.id} />)}
         </div>
       </div>
     </PageFrame>
@@ -409,15 +428,21 @@ function FleetCarriers({ observed }: { observed: boolean }) {
   )
 }
 
-function ShipCatalogue({ onNavigate, route, ships, updatedAt }: { onNavigate(route: PhoenixRoute): void, route: Extract<FleetRoute, { view: 'catalogue' }>, ships: readonly ShipDefinition[], updatedAt?: string }) {
+function ShipCatalogue({ onNavigate, onViewChange, route, ships, updatedAt, view }: {
+  onNavigate(route: PhoenixRoute): void
+  onViewChange(view: 'dossier' | 'table'): void
+  route: Extract<FleetRoute, { view: 'catalogue' }>
+  ships: readonly ShipDefinition[]
+  updatedAt?: string
+  view: 'dossier' | 'table'
+}) {
   const sorted = useMemo(() => [...ships].sort((left, right) => left.displayName.localeCompare(right.displayName)), [ships])
   const selected = sorted.find(ship => ship.id === route.selectedShipId) ?? sorted[0]
-  const [view, setView] = useState<CatalogueView>('dossier')
   const select = (ship: ShipDefinition) => onNavigate({ kind: 'information', section: 'fleet', view: 'catalogue', selectedShipId: ship.id })
   return (
     <PageFrame layout="fit"><div className="ship-catalogue schematic">
-      <PageHeader actions={<ViewSwitcher startLabel="Dossier" startIcon={<DossierIcon />} endLabel="Table" endIcon={<GridIcon />} position={view === 'dossier' ? 'start' : 'end'} onPositionChange={position => setView(position === 'start' ? 'dossier' : 'table')} />} variant="cockpit" context={<Breadcrumbs items={[{ label: 'Fleet', href: '#/fleet/overview' }, { label: 'Ship catalogue' }]} />} status={updatedAt ? <UpdatedDateTime value={updatedAt} /> : undefined} title="Ship catalogue" />
-      {sorted.length === 0 ? <Status tone="muted">No ship catalogue records are available.</Status> : view === 'dossier' ? <div className="catalogue-deck"><HullRoster current={selected?.id} ships={sorted} onSelect={select} />{selected && <HullSchematic ship={selected} />}</div> : <CatalogueTable current={selected?.id} ships={sorted} onSelect={ship => { select(ship); setView('dossier') }} />}
+      <PageHeader actions={<ViewSwitcher startLabel="Dossier" startIcon={<DossierIcon />} endLabel="Table" endIcon={<TableIcon />} position={view === 'dossier' ? 'start' : 'end'} onPositionChange={position => onViewChange(position === 'start' ? 'dossier' : 'table')} />} variant="cockpit" context={<Breadcrumbs items={[{ label: 'Fleet', href: '#/fleet/overview' }, { label: 'Ship catalogue' }]} />} status={updatedAt ? <UpdatedDateTime value={updatedAt} /> : undefined} title="Ship catalogue" />
+      {sorted.length === 0 ? <Status tone="muted">No ship catalogue records are available.</Status> : view === 'dossier' ? <div className="catalogue-deck"><HullRoster current={selected?.id} ships={sorted} onSelect={select} />{selected && <HullSchematic ship={selected} />}</div> : <CatalogueTable current={selected?.id} ships={sorted} onSelect={ship => { select(ship); onViewChange('dossier') }} />}
     </div></PageFrame>
   )
 }
@@ -451,7 +476,6 @@ function CatalogueTable({ current, onSelect, ships }: { current?: string, onSele
     columns={SHIP_CATALOGUE_COLUMNS}
     density="compact"
     label="Known ship hulls"
-    minimum="wide"
     rowKey={ship => ship.id}
     rowProps={ship => ({
       'aria-selected': ship.id === current,
@@ -479,6 +503,6 @@ function titleFor(view: FleetView): string {
   return 'Current ship'
 }
 
-function ListIcon() { return <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M2 3.5h12M2 8h12M2 12.5h12" /></svg> }
-function GridIcon() { return <svg aria-hidden="true" viewBox="0 0 16 16"><rect x="2" y="2" width="4" height="4" /><rect x="10" y="2" width="4" height="4" /><rect x="2" y="10" width="4" height="4" /><rect x="10" y="10" width="4" height="4" /></svg> }
-function DossierIcon() { return <svg aria-hidden="true" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" /><path d="M4 5h8M4 8h3M8 8h4M4 11h5M10 11h2" /></svg> }
+function TableIcon() { return <svg aria-hidden="true" viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="11" /><path d="M1.5 6h13M1.5 9.75h13M6 2.5v11" /></svg> }
+function TilesIcon() { return <svg aria-hidden="true" viewBox="0 0 16 16"><rect x="1.5" y="1.5" width="5" height="5" /><rect x="9.5" y="1.5" width="5" height="5" /><rect x="1.5" y="9.5" width="5" height="5" /><rect x="9.5" y="9.5" width="5" height="5" /></svg> }
+function DossierIcon() { return <svg aria-hidden="true" viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="11" /><path d="M6 2.5v11M3.25 5h1.25M3.25 8h1.25M3.25 11h1.25M8 5h4.25M8 8h4.25" /></svg> }
