@@ -5,33 +5,34 @@ import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-clien
 import type { FactionPresenceSearchSource, OutfittingSearchSource, ShipyardSearchSource, StationLookupSource, StationSearchSource, SystemSearchSource } from '../apps/server/src/domain/station-market.js'
 
 test('the frontend API client communicates with the PHOENIX backend', async () => {
+  const observedAt = new Date().toISOString()
   const stationSearchSource: StationSearchSource = {
     findCommodityMarkets: async request => [{
       buyPrice: 1000, commodityName: request.commodity, commoditySymbol: request.commodity, demand: 50, distanceLy: 4.2,
       distanceToArrivalLs: 300, marketId: 42, maxLandingPadSize: 3, meanPrice: 1200,
       sellPrice: 1500, stationName: 'Test Exchange', stationType: 'Orbis', stock: 100,
-      systemName: 'Nearby', updatedAt: '2026-08-13T08:00:00.000Z'
+      systemName: 'Nearby', updatedAt: observedAt
     }],
     findSystemExports: async () => [{
       buyPrice: 1000, commodityName: 'gold', commoditySymbol: 'gold', demand: null, distanceLy: 0,
       distanceToArrivalLs: 300, marketId: 41, maxLandingPadSize: 3, meanPrice: 1200,
       sellPrice: null, stationName: 'Origin Exchange', stationType: 'Orbis', stock: 100,
-      systemName: 'Sol', updatedAt: '2026-08-13T08:00:00.000Z'
+      systemName: 'Sol', updatedAt: observedAt
     }],
     findSystemImports: async () => [],
-    getCommodityReports: async () => [{ avgBuyPrice: 1200, avgSellPrice: 1200, commodityName: 'gold', commoditySymbol: 'gold', maxSellPrice: 1500, updatedAt: '2026-08-13T00:00:00.000Z' }],
+    getCommodityReports: async () => [{ avgBuyPrice: 1200, avgSellPrice: 1200, commodityName: 'gold', commoditySymbol: 'gold', maxSellPrice: 1500, updatedAt: observedAt }],
     findNearestStations: async request => [{
       allegiance: null, controllingFaction: null, distanceLy: 4.2, distanceToArrivalLs: 300,
       government: null, marketId: 42, maxLandingPadSize: 3, primaryEconomy: 'Industrial',
       secondaryEconomy: null, stationName: 'Test Exchange', stationType: 'Orbis',
-      systemName: 'Nearby', updatedAt: '2026-08-13T08:00:00.000Z'
+      systemName: 'Nearby', updatedAt: observedAt
     }]
   }
   const shipyardSearchSource: ShipyardSearchSource = {
     findShipyards: async () => [{
       distanceLy: 4.2, distanceToArrivalLs: 300, marketId: 42, maxLandingPadSize: 3,
       price: 67861851, shipSymbol: 'LakonMiner', stationName: 'Test Exchange', stationType: 'Orbis',
-      systemName: 'Nearby', updatedAt: '2026-08-13T08:00:00.000Z'
+      systemName: 'Nearby', updatedAt: observedAt
     }]
   }
   const outfittingSearchSource: OutfittingSearchSource = {
@@ -40,7 +41,7 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       maxLandingPadSize: 3, moduleClass: request.moduleClass, moduleName: request.moduleName,
       moduleRating: request.moduleRating, moduleSymbol: 'int_powerplant_size6_class5', price: 16257880,
       ship: null, stationName: 'Test Exchange', stationType: 'Orbis', systemName: 'Nearby',
-      updatedAt: '2026-08-15T08:00:00.000Z'
+      updatedAt: observedAt
     }]
   }
   const stationLookupSource: StationLookupSource = {
@@ -49,7 +50,7 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       distanceToArrivalLs: 300, government: 'Democracy', marketId: 42,
       maxLandingPadSize: 3, primaryEconomy: 'Industrial', secondaryEconomy: null,
       services: ['Dock', 'Repair'], stationName: 'Test Exchange', stationType: 'Orbis',
-      systemName: 'Nearby', updatedAt: '2026-08-15T08:00:00.000Z'
+      systemName: 'Nearby', updatedAt: observedAt
     }]
   }
   const systemSearchSource: SystemSearchSource = {
@@ -58,7 +59,7 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       government: 'Democracy', inhabited: true, permitRequired: false, population: 230000,
       position: [3.03125, -0.09375, 3.15625], primaryStarClass: 'G (White-Yellow) Star',
       secondaryEconomy: 'Service', security: 'High', systemAddress: 1178707802194,
-      systemName: 'Alpha Centauri', updatedAt: '2026-08-15T08:00:00.000Z'
+      systemName: 'Alpha Centauri', updatedAt: observedAt
     }]
   }
   const factionPresenceSource: FactionPresenceSearchSource = {
@@ -67,7 +68,7 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       factionName: request.factionName, government: 'Democracy', influencePercent: 42.15,
       pendingStates: ['Expansion'], position: [3.03125, -0.09375, 3.15625], recoveringStates: [],
       state: 'Boom', systemAddress: 1178707802194, systemName: 'Alpha Centauri',
-      updatedAt: '2026-08-15T08:00:00.000Z'
+      updatedAt: observedAt
     }]
   }
   const application = new PhoenixApplication({
