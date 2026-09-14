@@ -3,7 +3,7 @@
     font-size: clamp(15px, min(1.125vw, 2vmin), 24px);
 
     /* Typography */
-    --font-family-sans: 'Sintony', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-family-sans: 'Barlow', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     --font-family-display: 'Euro Caps', var(--font-family-sans);
     --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     --font-tracking-display: -0.01em;

@@ -15,6 +15,42 @@
 }
 
 @font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  size-adjust: 105%;
+  src: url('../../assets/fonts/Barlow-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  size-adjust: 105%;
+  src: url('../../assets/fonts/Barlow-Medium.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  size-adjust: 105%;
+  src: url('../../assets/fonts/Barlow-SemiBold.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  size-adjust: 105%;
+  src: url('../../assets/fonts/Barlow-Bold.ttf') format('truetype');
+}
+
+@font-face {
   font-family: 'Euro Caps';
   font-style: normal;
   font-weight: 400;

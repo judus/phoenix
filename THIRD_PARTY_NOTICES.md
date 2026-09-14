@@ -18,6 +18,10 @@ runtime package. Installed payloads expose copies under `licenses/`.
 
 PHOENIX bundles the Sintony Regular and Bold fonts by Eduardo Tunni. Sintony is licensed under the SIL Open Font License, Version 1.1. The copyright notice and complete license are included in `licenses/Sintony-OFL.txt`.
 
+## Barlow font
+
+PHOENIX bundles the Barlow Regular, Medium, SemiBold, and Bold fonts by the Barlow Project Authors. Barlow is licensed under the SIL Open Font License, Version 1.1. The copyright notice and complete license are included in `licenses/Barlow-OFL.txt`.
+
 ## Euro Caps font
 
 PHOENIX bundles the Euro Caps font by Tom Oetken, published as Ash Pikachu Font. The original font file is distributed by DaFont as “100% Free”: <https://www.dafont.com/euro-caps.font>.
