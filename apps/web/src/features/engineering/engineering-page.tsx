@@ -56,12 +56,14 @@ function EngineeringState({ error, title }: { error?: string, title: string }) {
 
 function Engineers({ engineers }: { engineers: EngineeringEngineer[] }) {
   return (
-    <PageFrame>
-      <Stack gap="sm">
+    <PageFrame layout="fit">
+      <Stack fill gap="sm">
         <EngineeringHeader title="Engineers" />
-        <EngineerGroup engineers={engineers.filter(engineer => engineer.state === 'unlocked')} title="Unlocked engineers" />
-        <EngineerGroup engineers={engineers.filter(engineer => engineer.state === 'known')} title="Known / invited engineers" />
-        <EngineerGroup engineers={engineers.filter(engineer => engineer.state === 'locked')} title="Locked engineers" />
+        <Stack className="engineering-scroll-content" gap="sm">
+          <EngineerGroup engineers={engineers.filter(engineer => engineer.state === 'unlocked')} title="Unlocked engineers" />
+          <EngineerGroup engineers={engineers.filter(engineer => engineer.state === 'known')} title="Known / invited engineers" />
+          <EngineerGroup engineers={engineers.filter(engineer => engineer.state === 'locked')} title="Locked engineers" />
+        </Stack>
       </Stack>
     </PageFrame>
   )
@@ -102,12 +104,14 @@ function EngineerTable({ engineers }: { engineers: EngineeringEngineer[] }) {
 function Materials({ materials, updatedAt, view }: { materials: EngineeringMaterial[], updatedAt?: string | null, view: EngineeringView }) {
   const groups = useMemo(() => groupBy(materials, material => material.group), [materials])
   return (
-    <PageFrame>
-      <Stack gap="sm">
+    <PageFrame layout="fit">
+      <Stack fill gap="sm">
         <EngineeringHeader status={updatedAt ? <UpdatedDateTime value={updatedAt} /> : undefined} title={pageTitle(view)} />
-        {materials.length === 0
-          ? <Status tone="muted">No materials found.</Status>
-          : [...groups.entries()].map(([group, entries]) => <MaterialGroup entries={entries} group={group} key={group} />)}
+        <Stack className="engineering-scroll-content" gap="sm">
+          {materials.length === 0
+            ? <Status tone="muted">No materials found.</Status>
+            : [...groups.entries()].map(([group, entries]) => <MaterialGroup entries={entries} group={group} key={group} />)}
+        </Stack>
       </Stack>
     </PageFrame>
   )
@@ -139,8 +143,8 @@ function MaterialGroup({ entries, group }: { entries: EngineeringMaterial[], gro
 
 function Blueprints({ blueprints }: { blueprints: EngineeringBlueprintSummary[] }) {
   return (
-    <PageFrame>
-      <Stack gap="sm">
+    <PageFrame layout="fit">
+      <Stack fill gap="sm">
         <EngineeringHeader title="Blueprints" />
         <BlueprintGroup blueprints={blueprints} title="Blueprints" />
       </Stack>
@@ -150,9 +154,9 @@ function Blueprints({ blueprints }: { blueprints: EngineeringBlueprintSummary[] 
 
 function BlueprintGroup({ blueprints, title }: { blueprints: EngineeringBlueprintSummary[], title: string }) {
   return (
-    <DataTableGroup meta={`${blueprints.length} modifications`} title={title}>
+    <DataTableGroup fill meta={`${blueprints.length} modifications`} title={title}>
       {blueprints.length > 0
-        ? <DataTable density="compact" label={title} minimum="wide" narrow="priority" scheme="surface">
+        ? <DataTable density="compact" label={title} minimum="wide" narrow="priority" scheme="surface" stickyHeader>
             <thead><tr><th>Modification</th><th>Modules</th></tr></thead>
             <tbody>{blueprints.map(blueprint => (
               <tr key={blueprint.symbol}>
@@ -172,47 +176,49 @@ function BlueprintDetail({ actions, blueprint, projects }: {
   projects: NonNullable<EngineeringControllerSnapshot['projects']>['projects']
 }) {
   return (
-    <PageFrame>
-      <Stack gap="sm">
+    <PageFrame layout="fit">
+      <Stack fill gap="sm">
         <EngineeringHeader blueprint={blueprint} title={blueprint.name} />
-        <DataTableGroup title="Project plan">
-          <BlueprintProjectForm actions={actions} blueprint={blueprint} projects={projects} />
-        </DataTableGroup>
-        <DataTableGroup title="Engineered equipment">
-          {blueprint.appliedModules.length > 0
-            ? <DataTable density="compact" label="Engineered equipment" narrow="priority" scheme="surface"><tbody>{blueprint.appliedModules.map(module => (
-                <tr key={module.slotId}><td><strong>{module.name}</strong><small>{module.slotId}</small></td><td>Grade {module.grade ?? '—'}</td><td>{module.experimentalEffect ?? '—'}</td></tr>
-              ))}</tbody></DataTable>
-            : <div><Status tone="muted">Not applied to equipment on the current ship.</Status></div>}
-        </DataTableGroup>
-        <BlueprintEngineers blueprint={blueprint} />
-        {blueprint.grades.map(grade => (
-          <DataTableGroup key={grade.grade} title={`Grade ${grade.grade}`}>
-            <ThirdsGrid gap="lg">
-              <DescriptionList columns="one" density="compact">
-                {grade.features.map(feature => (
-                  <DescriptionItem
-                    className={`blueprint-feature ${feature.improvement ? 'positive' : 'negative'}`}
-                    key={feature.name}
-                    label={<span className="blueprint-feature-label"><span aria-hidden="true">{feature.improvement ? '▲' : '▼'}</span>{feature.name}</span>}
-                    value={formatFeatureValues(feature.values)}
-                  />
-                ))}
-              </DescriptionList>
-              <div className="span-two">
-                <DataTable density="compact" label={`Grade ${grade.grade} components`} narrow="priority" scheme="surface">
-                  <thead><tr><th>Material</th><th>Cost</th><th>Inventory</th></tr></thead>
-                  <tbody>{grade.components.map(component => (
-                    <tr className={component.count < component.cost ? 'disabled' : undefined} key={component.id}>
-                      <td><strong>{component.name}</strong><small>{component.category ?? 'Unknown'}{component.grade ? ` · G${component.grade}` : ''}</small></td>
-                      <td>{component.cost}</td><td>{component.count}</td>
-                    </tr>
-                  ))}</tbody>
-                </DataTable>
-              </div>
-            </ThirdsGrid>
+        <Stack className="engineering-scroll-content" gap="sm">
+          <DataTableGroup title="Project plan">
+            <BlueprintProjectForm actions={actions} blueprint={blueprint} projects={projects} />
           </DataTableGroup>
-        ))}
+          <DataTableGroup title="Engineered equipment">
+            {blueprint.appliedModules.length > 0
+              ? <DataTable density="compact" label="Engineered equipment" narrow="priority" scheme="surface"><tbody>{blueprint.appliedModules.map(module => (
+                  <tr key={module.slotId}><td><strong>{module.name}</strong><small>{module.slotId}</small></td><td>Grade {module.grade ?? '—'}</td><td>{module.experimentalEffect ?? '—'}</td></tr>
+                ))}</tbody></DataTable>
+              : <div><Status tone="muted">Not applied to equipment on the current ship.</Status></div>}
+          </DataTableGroup>
+          <BlueprintEngineers blueprint={blueprint} />
+          {blueprint.grades.map(grade => (
+            <DataTableGroup key={grade.grade} title={`Grade ${grade.grade}`}>
+              <ThirdsGrid gap="lg">
+                <DescriptionList columns="one" density="compact">
+                  {grade.features.map(feature => (
+                    <DescriptionItem
+                      className={`blueprint-feature ${feature.improvement ? 'positive' : 'negative'}`}
+                      key={feature.name}
+                      label={<span className="blueprint-feature-label"><span aria-hidden="true">{feature.improvement ? '▲' : '▼'}</span>{feature.name}</span>}
+                      value={formatFeatureValues(feature.values)}
+                    />
+                  ))}
+                </DescriptionList>
+                <div className="span-two">
+                  <DataTable density="compact" label={`Grade ${grade.grade} components`} narrow="priority" scheme="surface">
+                    <thead><tr><th>Material</th><th>Cost</th><th>Inventory</th></tr></thead>
+                    <tbody>{grade.components.map(component => (
+                      <tr className={component.count < component.cost ? 'disabled' : undefined} key={component.id}>
+                        <td><strong>{component.name}</strong><small>{component.category ?? 'Unknown'}{component.grade ? ` · G${component.grade}` : ''}</small></td>
+                        <td>{component.cost}</td><td>{component.count}</td>
+                      </tr>
+                    ))}</tbody>
+                  </DataTable>
+                </div>
+              </ThirdsGrid>
+            </DataTableGroup>
+          ))}
+        </Stack>
       </Stack>
     </PageFrame>
   )

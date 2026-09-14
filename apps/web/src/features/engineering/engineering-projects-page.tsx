@@ -28,8 +28,8 @@ export function EngineeringProjectsPage({ actions, projects, watchlist }: {
   const active = projects.filter(project => project.status === 'active')
   const inactive = projects.filter(project => project.status !== 'active')
   return (
-    <PageFrame>
-      <Stack gap="sm">
+    <PageFrame layout="fit">
+      <Stack fill gap="sm">
         <PageHeader
           variant="cockpit"
           context="Engineering · Projects"
@@ -37,11 +37,13 @@ export function EngineeringProjectsPage({ actions, projects, watchlist }: {
           status={<Button size="sm" variant={creating ? 'quiet' : 'outline'} onClick={() => setCreating(value => !value)}>{creating ? 'Cancel' : 'New project'}</Button>}
           title="Engineering projects"
         />
-        {error ? <Status tone="danger">{error}</Status> : null}
-        {creating ? <CreateProjectForm actions={actions} onCreated={() => setCreating(false)} onError={setError} /> : null}
-        <ProjectGroup actions={actions} projects={active} title="Active projects" onError={setError} />
-        <MaterialPlan watchlist={watchlist} />
-        {inactive.length > 0 ? <ProjectGroup actions={actions} projects={inactive} title="Paused and archived" onError={setError} /> : null}
+        <Stack className="engineering-scroll-content" gap="sm">
+          {error ? <Status tone="danger">{error}</Status> : null}
+          {creating ? <CreateProjectForm actions={actions} onCreated={() => setCreating(false)} onError={setError} /> : null}
+          <ProjectGroup actions={actions} projects={active} title="Active projects" onError={setError} />
+          <MaterialPlan watchlist={watchlist} />
+          {inactive.length > 0 ? <ProjectGroup actions={actions} projects={inactive} title="Paused and archived" onError={setError} /> : null}
+        </Stack>
       </Stack>
     </PageFrame>
   )

@@ -103,7 +103,7 @@ function ExobiologySystems({ completed, onSelect, selectedId, systems, total }: 
   return (
     <DataTableGroup fill meta={`${completed}/${total} complete`} title="Systems">
       <DataTable className="exobiology-index-table" density="compact" label="Systems with biological records" narrow="priority" scheme="surface" stickyHeader>
-        <thead><tr><th>System</th><th className="numeric">Progress</th></tr></thead>
+        <thead><tr><th>System</th><th aria-label="Progress" className="numeric" /></tr></thead>
         <tbody>{systems.map(system => (
           <SelectableRow active={system.id === selectedId} id={system.id} key={system.id} onSelect={onSelect}>
             <td className="exobiology-name exobiology-name-end"><SystemSchematicLink label={system.name} systemName={system.name} /><small><PhoenixDateTime value={system.updatedAt} /></small></td>
@@ -123,7 +123,7 @@ function ExobiologyBodies({ bodies, onSelect, selectedId }: {
   return (
     <DataTableGroup fill meta={`${bodies.length} recorded`} title="Bodies">
       <DataTable className="exobiology-index-table" density="compact" label="Bodies with biological records" narrow="priority" scheme="surface" stickyHeader>
-        <thead><tr><th>Body</th><th className="numeric">Progress</th></tr></thead>
+        <thead><tr><th>Body</th><th aria-label="Progress" className="numeric" /></tr></thead>
         <tbody>{bodies.map(body => (
           <SelectableRow active={body.id === selectedId} id={body.id} key={body.id} onSelect={onSelect}>
             <td className="exobiology-name exobiology-name-start"><SystemSchematicLink label={body.name} selectedName={body.name} systemName={body.systemName} /><small><PhoenixDateTime value={body.observedAt} /></small></td>

@@ -7,7 +7,7 @@
     table-layout: fixed;
 
     :is(th, td):last-child {
-      inline-size: 3.75rem;
+      inline-size: 4rem;
       padding-inline-start: 0;
     }
   }

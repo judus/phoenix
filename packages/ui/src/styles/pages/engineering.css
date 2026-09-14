@@ -16,6 +16,14 @@
     .grade-column { inline-size: 8%; }
   }
 
+  .engineering-scroll-content {
+    flex: 1 1 0;
+    min-block-size: 0;
+    padding-inline-end: var(--spacing-xs);
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
   .blueprint-feature {
     --color-text: var(--blueprint-feature-color);
     --color-text-muted: var(--blueprint-feature-color);
