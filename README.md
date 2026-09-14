@@ -205,22 +205,20 @@ Bug reports, constructive criticism, and feature requests are very welcome. Feel
 issue—real-world use cases and detailed reports are especially useful. See
 [CONTRIB.md](CONTRIB.md) for the current contribution and licensing policy.
 
-PHOENIX is not accepting code contributions or pull requests before its first release. Keeping the
-implementation under one maintainer for now helps the code and architecture remain coherent while
-the foundations settle. It also leaves room to prioritize the features that matter to me during
-actual gameplay—even if considerably more time is currently spent building the cockpit than flying
-the ship.
+Code contributions are welcome. Please discuss substantial product or architectural changes before
+investing in an implementation, preserve the package boundaries described in the contribution
+guide, and include focused validation with behavioral changes.
 
 ## License
 
-PHOENIX is source-available under the [PolyForm Strict License 1.0.0](LICENSE). Personal and other
-noncommercial use is permitted while redistribution and modified versions are restricted; the
-license text itself is authoritative. This deliberately conservative prerelease license may be
-relaxed for future versions once the project's long-term distribution model is settled.
+PHOENIX source code and documentation are open source under the [Apache License 2.0](LICENSE).
+Copyright and attribution notices must be retained as required by the licence and [NOTICE](NOTICE).
 
-The development source remains available for manual installation without charge. Official packaged
-releases may later be offered separately as paid distributions through platforms such as Steam,
-with bundled installation, runtime, launching, and automatic updates.
+Official distributions include a purpose-built, separately licensed Control Deck runtime. That
+unmodified runtime may accompany PHOENIX and genuine PHOENIX derivatives distributed without
+charge; payment may not be required for access, features, or updates. Voluntary donations and
+sponsorship not tied to access remain permitted. See [Third-party notices](THIRD_PARTY_NOTICES.md)
+and the runtime licence included with the package for the complete boundary.
 
 ## Screenshots
 

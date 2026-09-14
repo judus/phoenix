@@ -1,5 +1,19 @@
 # Third-party notices
 
+## Control Deck PHOENIX runtime
+
+Official PHOENIX builds include a purpose-built compiled subset of Control Deck. It is not licensed
+under the Apache License 2.0 and it does not include the standalone Control Deck application. The
+runtime may be used and redistributed, without modification, only as an embedded component of
+PHOENIX or a genuine PHOENIX derivative under the conditions in its own licence.
+
+Redistributions containing the runtime must be available without charge. Voluntary donations or
+sponsorship are permitted when payment is not tied to access, use, features, or updates. Commercial
+redistribution requires separate written permission from the Control Deck copyright holder.
+
+Source checkouts carry the complete runtime licence and its third-party notices inside the vendored
+runtime package. Installed payloads expose copies under `licenses/`.
+
 ## Sintony font
 
 PHOENIX bundles the Sintony Regular and Bold fonts by Eduardo Tunni. Sintony is licensed under the SIL Open Font License, Version 1.1. The copyright notice and complete license are included in `licenses/Sintony-OFL.txt`.

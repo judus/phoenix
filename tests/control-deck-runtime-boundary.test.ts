@@ -23,4 +23,14 @@ describe('embedded Control Deck runtime', () => {
     expect(manifest.exports).not.toHaveProperty('./adapter-run-command')
     expect(manifest.exports).not.toHaveProperty('./adapter-sound')
   })
+
+  test('carries the separate free-PHOENIX redistribution licence', async () => {
+    const licensePath = fileURLToPath(new URL('../node_modules/control-deck/LICENSE', import.meta.url))
+    const license = await readFile(licensePath, 'utf8')
+
+    expect(license).toContain('available to every recipient without charge')
+    expect(license).toContain('voluntary donations or receive sponsorship')
+    expect(license).toContain('Commercial redistribution requires a separate written agreement')
+    expect(license).toContain('does not grant permission to use this package as a standalone product')
+  })
 })

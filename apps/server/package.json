@@ -2,6 +2,7 @@
   "name": "@phoenix/server",
   "version": "0.1.0",
   "private": true,
+  "license": "Apache-2.0",
   "type": "module",
   "exports": "./dist/main.js",
   "dependencies": {
@@ -9,7 +10,7 @@
     "@phoenix/contracts": "*",
     "@phoenix/copilot": "*",
     "@phoenix/elite": "*",
-    "control-deck": "file:../../vendor/control-deck/control-deck-phoenix-runtime-0.1.9.tgz",
+    "control-deck": "file:../../vendor/control-deck/control-deck-phoenix-runtime-0.1.10.tgz",
     "qrcode": "^1.5.4"
   },
   "scripts": {

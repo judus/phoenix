@@ -1,39 +1,47 @@
 # Contributing to PHOENIX
 
-Thank you for taking an interest in PHOENIX.
+Thank you for taking an interest in PHOENIX. Bug reports, criticism, product ideas, documentation,
+tests, and code contributions are welcome.
 
-## Code contributions
+## Before implementing
 
-PHOENIX is not accepting contributed code or pull requests before its first release. This is a
-temporary project-stage decision: keeping implementation with one maintainer helps the code and
-architecture remain coherent while the foundations are still changing.
+Please open or join an issue before investing substantial effort in a new feature, architectural
+change, dependency, migration, or visual direction. PHOENIX is still pre-release and its foundations
+may change; early discussion helps keep contributions aligned without promising that every proposal
+will be accepted.
 
-It also allows development priorities to emerge from using PHOENIX during actual Elite Dangerous
-gameplay. That flying time is rarer than intended, partly because building the ship computer keeps
-getting in the way of flying the ship.
+Small, clearly bounded fixes may be submitted directly. Keep each contribution focused and explain
+the user-visible problem it solves.
 
-Please do not interpret this as a lack of interest in collaboration forever. The policy can be
-revisited once the first release establishes a stable technical and product baseline.
+## Architecture and quality
 
-## Bugs, criticism, and feature requests
+- Understand the existing owner and flow before changing it. Do not add parallel implementations,
+  compatibility paths, or fallback models to avoid changing the appropriate layer.
+- Keep server read models authoritative and client rendering thin.
+- Put reusable UI behavior in the shared UI package and Elite normalization in the Elite package;
+  keep application composition and persistence in the server application.
+- Control Deck remains a separately owned product and dependency. Do not copy or recreate its source
+  inside PHOENIX.
+- Keep schemas explicitly versionable. PHOENIX does not preserve pre-release compatibility unless a
+  real retained-data migration requires it.
+- Add focused tests for behavior and contracts. Do not freeze incidental pixel values in tests.
+- Run `npm run check` before submitting a pull request and report any environment-dependent checks
+  that could not be completed.
 
-Bug reports, constructive criticism, and feature requests are welcome. Feel free to open an issue
-and describe what happened, what you expected, or what you would like PHOENIX to help you do.
-Practical use cases are especially valuable. Your reports and ideas help make the project better.
+## Privacy and third-party material
 
-Please check existing issues first and avoid including API keys, journal data, commander details,
-or other private information in reports and screenshots.
+Do not include API keys, private journal data, commander details, pairing credentials, or other user
+data in issues, fixtures, screenshots, or commits.
 
-## Current license status
+Do not submit copied game files, unlicensed artwork, fonts, sounds, datasets, or other third-party
+material without clear provenance and redistribution terms. Code contributions and external assets
+have separate licensing requirements.
 
-PHOENIX is source-available under the [PolyForm Strict License 1.0.0](LICENSE). It permits personal
-and other noncommercial use while placing restrictions on redistribution and modified versions.
-The license text itself is authoritative. PHOENIX is therefore source-available rather than open
-source.
+## Contribution licence
 
-This restrictive status is intentional during prerelease development and may be replaced by a more
-permissive license for future versions once the long-term distribution model is settled. The
-development source remains available for manual installation without charge, while official
-packaged releases may later be offered commercially through platforms such as Steam for convenient
-installation and automatic updates. No future distribution terms have been decided. Third-party
-software and assets remain subject to their respective licenses.
+PHOENIX source code and documentation are licensed under the [Apache License 2.0](LICENSE). Unless
+you explicitly state otherwise, a contribution intentionally submitted for inclusion in PHOENIX is
+provided under the same terms, as described by section 5 of that license.
+
+The separately licensed Control Deck runtime is not part of the Apache-licensed PHOENIX source and
+must remain within its own use and redistribution terms.
