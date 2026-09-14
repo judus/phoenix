@@ -14,31 +14,24 @@ type CurrentShipConsolidatedPageProps = {
   meterLayout?: 'stacked' | 'inline'
 }
 
-function VesselPanels() {
+function VesselPanel() {
   return (
-    <>
-      <Widget aria-label="Vessel" className="fixed-data" eyebrow="Vessel">
-        <DescriptionList className="adaptive-columns" columns="two" density="compact">
-          <DescriptionItem label="Name" value="Unnamed vessel" />
-          <DescriptionItem label="Identifier" value="EL-06L" />
-          <DescriptionItem label="Model" value="Type-11 Prospector" />
-          <DescriptionItem label="Manufacturer" value="Lakon Spaceways" />
-          <DescriptionItem label="Landing pad" value="Medium" />
-          <DescriptionItem label="Hull value" value="67,861,850 CR" />
-        </DescriptionList>
-      </Widget>
-
-      <Widget aria-label="Operational status" className="fixed-data" eyebrow="Operational status">
-        <DescriptionList className="adaptive-columns" columns="two" density="compact">
-          <DescriptionItem label="Unladen mass" value="599.8 t" />
-          <DescriptionItem label="Jump range" value="22.4 ly" />
-          <DescriptionItem label="Modules value" value="51,746,423 CR" />
-          <DescriptionItem label="Rebuy cost" value="5,980,416 CR" />
-          <DescriptionItem label="Modules" value="36" />
-          <DescriptionItem label="Legal state" value="Clean" />
-        </DescriptionList>
-      </Widget>
-    </>
+    <Widget aria-label="Current Vessel" className="fixed-data" eyebrow="Current Vessel">
+      <DescriptionList className="adaptive-columns" columns="two" density="compact">
+        <DescriptionItem label="Name" value="Unnamed vessel" />
+        <DescriptionItem label="Identifier" value="EL-06L" />
+        <DescriptionItem label="Model" value="Type-11 Prospector" />
+        <DescriptionItem label="Manufacturer" value="Lakon Spaceways" />
+        <DescriptionItem label="Landing pad" value="Medium" />
+        <DescriptionItem label="Hull value" value="67,861,850 CR" />
+        <DescriptionItem label="Unladen mass" value="599.8 t" />
+        <DescriptionItem label="Jump range" value="22.4 ly" />
+        <DescriptionItem label="Modules value" value="51,746,423 CR" />
+        <DescriptionItem label="Rebuy cost" value="5,980,416 CR" />
+        <DescriptionItem label="Modules" value="36" />
+        <DescriptionItem label="Legal state" value="Clean" />
+      </DescriptionList>
+    </Widget>
   )
 }
 
@@ -132,7 +125,7 @@ export function CurrentShipConsolidatedPage({
 
         <div className="ship-grid">
           <div className="vessel-column">
-            <VesselPanels />
+            <VesselPanel />
             {systemsLeft ? (
               <>
                 <div className="systems-row">

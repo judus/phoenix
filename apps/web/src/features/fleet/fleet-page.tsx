@@ -201,8 +201,7 @@ function CurrentShipOverview({ actions, model, onExecuteAction, onNavigate }: {
       <div className="current-ship consolidated">
         <div className="ship-grid">
           <div className="vessel-column">
-            <FactsWidget label="Current Vessel" items={model.vessel} />
-            <FactsWidget label="Operational status" items={model.operation} />
+            <FactsWidget label="Current Vessel" items={[...model.vessel, ...model.operation]} />
             <ControlContext className="command-grid" context="command" aria-label="Ship controls">
               {model.controls.map(control => {
                 const action = actions?.actions.find(candidate => candidate.definition.id === control.actionId)

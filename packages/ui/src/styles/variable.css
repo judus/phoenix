@@ -1,5 +1,6 @@
   :root {
     color-scheme: dark;
+    font-size: clamp(15px, min(1.125vw, 2vmin), 24px);
 
     /* Typography */
     --font-family-sans: 'Sintony', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -184,6 +185,12 @@
     --container-lg: 60rem;
     --container-xl: 70rem;
     --container-xxl: 90rem;
+  }
+
+  @media (min-width: 70rem) and (min-height: 52rem) {
+    :root {
+      font-size: clamp(18px, min(1.125vw, 2vmin), 24px);
+    }
   }
 
   .presentation-elite {
