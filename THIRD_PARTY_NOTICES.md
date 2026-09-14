@@ -14,13 +14,9 @@ redistribution requires separate written permission from the Control Deck copyri
 Source checkouts carry the complete runtime licence and its third-party notices inside the vendored
 runtime package. Installed payloads expose copies under `licenses/`.
 
-## Sintony font
+## IBM Plex Sans font
 
-PHOENIX bundles the Sintony Regular and Bold fonts by Eduardo Tunni. Sintony is licensed under the SIL Open Font License, Version 1.1. The copyright notice and complete license are included in `licenses/Sintony-OFL.txt`.
-
-## Barlow font
-
-PHOENIX bundles the Barlow Regular, Medium, SemiBold, and Bold fonts by the Barlow Project Authors. Barlow is licensed under the SIL Open Font License, Version 1.1. The copyright notice and complete license are included in `licenses/Barlow-OFL.txt`.
+PHOENIX bundles the IBM Plex Sans variable font by IBM Corp. IBM Plex Sans is licensed under the SIL Open Font License, Version 1.1. The copyright notice and complete license are included in `licenses/IBMPlexSans-OFL.txt`.
 
 ## Euro Caps font
 

@@ -1,53 +1,11 @@
 @font-face {
-  font-family: 'Sintony';
+  font-family: 'IBM Plex Sans';
   font-style: normal;
-  font-weight: 400;
+  font-weight: 100 700;
+  font-stretch: 75% 100%;
   font-display: swap;
-  src: url('../../assets/fonts/Sintony-Regular.ttf') format('truetype');
-}
-
-@font-face {
-  font-family: 'Sintony';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('../../assets/fonts/Sintony-Bold.ttf') format('truetype');
-}
-
-@font-face {
-  font-family: 'Barlow';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  size-adjust: 105%;
-  src: url('../../assets/fonts/Barlow-Regular.ttf') format('truetype');
-}
-
-@font-face {
-  font-family: 'Barlow';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  size-adjust: 105%;
-  src: url('../../assets/fonts/Barlow-Medium.ttf') format('truetype');
-}
-
-@font-face {
-  font-family: 'Barlow';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  size-adjust: 105%;
-  src: url('../../assets/fonts/Barlow-SemiBold.ttf') format('truetype');
-}
-
-@font-face {
-  font-family: 'Barlow';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  size-adjust: 105%;
-  src: url('../../assets/fonts/Barlow-Bold.ttf') format('truetype');
+  size-adjust: 104%;
+  src: url('../../assets/fonts/IBMPlexSans-Variable.ttf') format('truetype');
 }
 
 @font-face {
