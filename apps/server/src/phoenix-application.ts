@@ -213,14 +213,19 @@ export class PhoenixApplication {
     const engineeringCatalogue = catalogues.engineering
     const fleet = new FleetDataService(
       this.database,
-      identifier => gameCatalogue.resolveShip(identifier)?.displayName ?? null,
+      {
+        resolveBlueprintDisplayName: symbol => engineeringCatalogue.getBlueprint(symbol)?.displayName ?? null,
+        resolveModule: identifier => gameCatalogue.resolveModule(identifier),
+        resolveShipDisplayName: identifier => gameCatalogue.resolveShip(identifier)?.displayName ?? null
+      },
       new CachedCartographyStationResolver(this.database)
     )
     const commanderLog = new CommanderLogService(
       this.database.commanderLog,
       new DefaultCommanderLogProjector(
         missions,
-        identifier => gameCatalogue.resolveShip(identifier)?.displayName ?? null
+        identifier => gameCatalogue.resolveShip(identifier)?.displayName ?? null,
+        identifier => engineeringCatalogue.getBlueprint(identifier)?.displayName ?? null
       )
     )
     const projector = new DefaultRuntimeStateProjector(

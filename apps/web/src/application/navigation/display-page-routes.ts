@@ -2,7 +2,7 @@ import type { DisplayCommand, DisplayPageId } from '@phoenix/contracts'
 import type { PhoenixRoute } from './phoenix-route.js'
 
 const DISPLAY_PAGE_ROUTES = {
-  home: { kind: 'information', section: 'home', view: 'overview' },
+  'commander.dashboard': { kind: 'information', section: 'commander', view: 'dashboard' },
   'commander.career': { kind: 'information', section: 'commander', view: 'career' },
   'commander.statistics': { kind: 'information', section: 'commander', view: 'statistics' },
   'commander.inventory': { kind: 'information', section: 'commander', view: 'inventory' },

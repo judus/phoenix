@@ -12,7 +12,6 @@ test('dashboard exposes degraded evidence and preserves radio control order', ()
       hrefFor={() => '#/typed'}
       model={model()}
       onExecuteAction={vi.fn()}
-      onInspectMarketSignal={vi.fn()}
       onNavigate={vi.fn()}
       runtime={{ status: 'error', error: 'Runtime unavailable.' }}
       voice={{
@@ -20,9 +19,6 @@ test('dashboard exposes degraded evidence and preserves radio control order', ()
         connect: vi.fn(),
         disconnect: vi.fn(),
         error: 'Voice unavailable.',
-        mark: 'M',
-        name: 'Marin',
-        status: 'Offline',
         transitioning: false
       }}
     />
@@ -33,26 +29,42 @@ test('dashboard exposes degraded evidence and preserves radio control order', ()
   expect(markup).toContain('Runtime unavailable.')
   expect(markup).toContain('Voice unavailable.')
   expect(markup).toContain('No notable commander events retained.')
-  expect(markup).toMatch(/<span>Commander<\/span><h3[^>]*>IDENTITY PENDING<\/h3>/)
+  expect(markup).toContain('<dt>Commander</dt><dd><strong>IDENTITY PENDING</strong></dd>')
   expect(markup).toMatch(/<span>Current location<\/span><h3[^>]*>UNKNOWN SYSTEM<\/h3>/)
   expect(markup).toContain('aria-label="Commander log"')
   expect(markup).toContain('<span>Commander log</span>')
   expect(markup).toContain('Local traffic')
+  expect(markup).toContain('>Traffic log</a>')
   expect(markup).toContain('Material watchlist')
-  expect(markup).toContain('<ul class="dashboard-material-watchlist"><li><span>Arsenic</span><span>0/1</span></li></ul>')
+  expect(markup).toContain('<ul class="dashboard-material-watchlist"><li><span>Arsenic</span><span class="numeric text-xs">0/1</span></li></ul>')
+  expect(markup).toContain('<dt>Population</dt><dd><span class="numeric">—</span></dd>')
+  expect(markup).toContain('<span>Hull</span><strong><span class="numeric">—</span></strong>')
+  expect(markup).toContain('<span>Cargo</span><strong><span class="numeric">—</span></strong>')
+  expect(markup).toContain('<span>Jump</span><strong><span class="numeric">—</span></strong>')
+  expect(markup).toContain('>View ship</a>')
+  expect(markup).not.toContain('>Ship controls</a>')
+  expect(markup).toContain('>System schematic</a>')
+  expect(markup).toContain('>View route</a>')
   expect(markup).not.toContain('0 owned')
   expect(markup).not.toContain('1 planned')
   expect(markup).not.toContain('1 missing')
   expect(markup).not.toContain('raw · G2')
   expect(markup).toContain('No recent local communications observed.')
   expect(markup).toContain('panel panel-danger dashboard-alerts')
+  expect(markup).toContain('role="alert"')
+  expect(markup).toContain('aria-label="Dismiss dashboard alert"')
   expect(markup).not.toContain('<h3>Commander log</h3>')
   expect(markup).toContain('Attention</h3>')
-  expect(markup).toContain('<span>Total credits</span><strong><span class="currency">—</span></strong>')
+  expect(markup).toContain('<div class="label-action"><dt>Credits</dt><dd><span class="currency">—</span></dd></div>')
   expect(markup).toContain('<dt>Legal status</dt><dd>—</dd>')
-  expect(markup.indexOf('aria-label="Previous"')).toBeLessThan(markup.indexOf('aria-label="Stop"'))
-  expect(markup.indexOf('aria-label="Stop"')).toBeLessThan(markup.indexOf('aria-label="Play"'))
-  expect(markup.indexOf('aria-label="Play"')).toBeLessThan(markup.indexOf('aria-label="Next"'))
+  expect(markup).toContain('aria-label="Connect Copilot voice"')
+  expect(markup).toContain('>COPILOT<')
+  expect(markup).toContain('aria-label="Toggle GalNet Radio playback"')
+  expect(markup).toContain('aria-label="Target next route system"')
+  expect(markup).toContain('aria-label="Request docking unavailable"')
+  expect(markup).not.toContain('>Unbound<')
+  expect(markup).not.toContain('<span>GalNet radio</span>')
+  expect(markup).not.toContain('aria-label="Copilot"')
 })
 
 test('dashboard identifies its loading state without replacing the shell', () => {
@@ -63,16 +75,12 @@ test('dashboard identifies its loading state without replacing the shell', () =>
       hrefFor={() => '#/typed'}
       model={model()}
       onExecuteAction={vi.fn()}
-      onInspectMarketSignal={vi.fn()}
       onNavigate={vi.fn()}
       runtime={{ status: 'loading' }}
       voice={{
         connected: false,
         connect: vi.fn(),
         disconnect: vi.fn(),
-        mark: 'M',
-        name: 'Marin',
-        status: 'Offline',
         transitioning: false
       }}
     />
@@ -82,11 +90,10 @@ test('dashboard identifies its loading state without replacing the shell', () =>
   expect(markup).toContain('Loading commander history…')
   expect(markup).toContain('Listening for local traffic…')
   expect(markup).not.toContain('application-shell')
-  expect(markup).toContain('class="page-frame page-flow dashboard-page"')
+  expect(markup).toContain('class="page-frame page-fit dashboard-page"')
 })
 
-test('dashboard market signals open the targeted commodity query path', async () => {
-  const onInspectMarketSignal = vi.fn()
+test('dashboard market signal rows remain informational', async () => {
   const signals = marketSignals()
   let renderer: ReturnType<typeof create>
   await act(async () => {
@@ -96,17 +103,15 @@ test('dashboard market signals open the targeted commodity query path', async ()
       hrefFor={() => '#/galaxy/database?query=commodity-markets'}
       model={model()}
       onExecuteAction={vi.fn()}
-      onInspectMarketSignal={onInspectMarketSignal}
       onNavigate={vi.fn()}
       runtime={{ status: 'ready', state: undefined as never }}
-      voice={{ connected: false, connect: vi.fn(), disconnect: vi.fn(), mark: 'M', name: 'Marin', status: 'Offline', transitioning: false }}
+      voice={{ connected: false, connect: vi.fn(), disconnect: vi.fn(), transitioning: false }}
     />)
   })
-  const signalLink = renderer.root.findAllByType('a').find(link => link.findAll(node => node.children.includes('Gold')).length > 0)!
-  expect(signalLink.findByType('small').children.join('')).toBe("Buy 2'500 CR · Galileo")
+  const signalRow = renderer.root.findByProps({ className: 'dashboard-market-signals' }).findByType('li')
+  expect(signalRow.findAllByType('small')[0]?.children.join('')).toBe("Buy 2'500 CR · Galileo")
   expect(renderer.root.findByProps({ className: 'dashboard-market-signal-summary' }).children.at(-1)?.props.children).toBe("500 t")
-  await act(async () => signalLink.props.onClick({ preventDefault: vi.fn() }))
-  expect(onInspectMarketSignal).toHaveBeenCalledWith(signals.result!.signals[0])
+  expect(signalRow.findAllByType('a')).toEqual([])
   await act(async () => renderer.unmount())
 })
 

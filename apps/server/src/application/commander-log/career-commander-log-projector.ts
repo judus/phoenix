@@ -22,10 +22,15 @@ const promotionRanks = [
   ['Empire', 'Empire', 'empire']
 ] as const
 
-export function projectCareerCommanderLogEntry (event: EliteJournalEvent): CommanderLogEntry | null {
+export type EngineeringBlueprintDisplayNameResolver = (identifier: string) => string | null
+
+export function projectCareerCommanderLogEntry (
+  event: EliteJournalEvent,
+  resolveBlueprintDisplayName: EngineeringBlueprintDisplayNameResolver
+): CommanderLogEntry | null {
   if (event.event === 'Promotion') return promotion(event)
   if (event.event === 'EngineerProgress') return engineerProgress(event)
-  if (event.event === 'EngineerCraft') return engineerCraft(event)
+  if (event.event === 'EngineerCraft') return engineerCraft(event, resolveBlueprintDisplayName)
   return null
 }
 
@@ -64,9 +69,20 @@ function engineerProgress (event: EliteJournalEvent): CommanderLogEntry | null {
   })
 }
 
-function engineerCraft (event: EliteJournalEvent): CommanderLogEntry | null {
-  const blueprint = journalLabel(event, 'BlueprintName')
-  const effect = journalLabel(event, 'ApplyExperimentalEffect')
+function engineerCraft (
+  event: EliteJournalEvent,
+  resolveBlueprintDisplayName: EngineeringBlueprintDisplayNameResolver
+): CommanderLogEntry | null {
+  const blueprintIdentifier = journalText(event, 'BlueprintName')
+  const blueprint = journalText(event, 'BlueprintName_Localised') ?? (
+    blueprintIdentifier === null
+      ? null
+      : resolveBlueprintDisplayName(blueprintIdentifier) ?? blueprintIdentifier
+  )
+  const effectIdentifier = journalText(event, 'ApplyExperimentalEffect')
+  const effect = effectIdentifier === null
+    ? null
+    : journalLabel(event, 'ExperimentalEffect') ?? effectIdentifier
   if (!blueprint && !effect) return null
   const grade = journalInteger(event, 'Level')
   return commanderLogEntry(event, {

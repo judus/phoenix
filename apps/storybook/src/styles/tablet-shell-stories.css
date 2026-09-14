@@ -29,23 +29,40 @@
 
     > span {
       display: grid;
+      grid-template-rows: 1.25rem 0.75rem;
+      inline-size: 8.25rem;
       min-inline-size: 0;
       padding-inline-end: var(--spacing-sm);
-      line-height: var(--line-height-tight);
     }
 
-    strong {
-      color: var(--color-text);
-      font-size: var(--font-size-lg);
+    .product-brand-line {
+      display: block;
+      inline-size: 100%;
+      min-inline-size: 0;
+      max-inline-size: 100%;
+      block-size: 100%;
+      overflow: visible;
+      font-family: var(--font-family-display);
+    }
+
+    .product-brand-title {
+      fill: var(--color-text);
+      font-size: 30px;
       font-weight: var(--font-weight-normal);
       letter-spacing: 0.16em;
     }
 
-    small {
-      color: var(--color-action);
-      font-size: var(--font-size-xs);
+    .product-brand-subtitle {
+      fill: var(--color-action);
+      font-family: var(--font-family-display);
+      font-size: 16px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
+    }
+
+    .product-brand-subtitle-line {
+      transform: scaleX(0.9);
+      transform-origin: left center;
     }
   }
 
@@ -76,7 +93,11 @@
 
   @container application-shell (width < 42rem) {
     .product-brand {
-      strong { font-size: var(--font-size-sm); }
-      small { display: none; }
+      > span {
+        grid-template-rows: 0.875rem;
+        inline-size: 5.75rem;
+      }
+
+      .product-brand-subtitle-line { display: none; }
     }
   }

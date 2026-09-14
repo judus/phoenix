@@ -204,7 +204,12 @@ function normalizeIdentifier (value: string): string {
 }
 
 function normalizeModuleId (value: string): string {
-  return value.trim().toLowerCase()
+  return value
+    .trim()
+    .replace(/^\$/u, '')
+    .replace(/;$/u, '')
+    .replace(/_name$/iu, '')
+    .toLowerCase()
 }
 
 function normalizeCommodityId (value: string): string {

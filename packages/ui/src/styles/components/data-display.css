@@ -201,6 +201,12 @@
       white-space: nowrap;
     }
 
+    &.meter-compact.meter-value-hidden {
+      row-gap: 0;
+
+      progress { grid-row: 1; }
+    }
+
     > span,
     > output {
       grid-row: 1;
@@ -224,9 +230,9 @@
       border-radius: 0;
       overflow: hidden;
       appearance: none;
-      background: var(--color-surface-subtle);
+      background: var(--meter-track);
 
-      &::-webkit-progress-bar { background: var(--color-surface-subtle); }
+      &::-webkit-progress-bar { background: var(--meter-track); }
       &::-webkit-progress-value { background: var(--meter-color); }
       &::-moz-progress-bar { background: var(--meter-color); }
     }

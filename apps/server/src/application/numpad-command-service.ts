@@ -45,7 +45,8 @@ const CONTROL_SELECTORS: Readonly<Record<string, string>> = {
 
 const INFORMATION_MENUS: readonly MenuDefinition[] = [
   menu('info.commander', 'Commander', '1', [
-    destination('commander.overview', '1'), destination('commander.inventory', '2'), destination('commander.progress', '3')
+    destination('commander.dashboard', '1'), destination('commander.career', '2'),
+    destination('commander.inventory', '3'), destination('commander.statistics', '4')
   ]),
   menu('info.fleet', 'Fleet', '2', [
     destination('fleet.overview', '1'), destination('fleet.current', '2'), destination('fleet.current-loadout', '3'),
@@ -98,7 +99,6 @@ export class NumpadTreeProjector {
     appendDestination(nodes, descriptors, null, '6', 'settings.dashboard', diagnostics)
 
     this.appendControls(nodes, descriptors, controls, diagnostics)
-    appendDestination(nodes, descriptors, information.id, '0', 'information.home', diagnostics)
     for (const definition of INFORMATION_MENUS) {
       const parent = branch(nodes, information.id, definition.id, definition.selector, definition.label)
       for (const entry of definition.destinations) {

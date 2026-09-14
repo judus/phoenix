@@ -14,7 +14,13 @@ export function fleetFixture(): FleetResponse {
     storedModules: {
       details: 'complete',
       items: [{
-        buyPrice: 100_000, displayName: 'Thrusters', engineering: { blueprint: 'DirtyDrive', level: 2, quality: 0.5 },
+        buyPrice: 100_000,
+        definition: {
+          journalId: 'int_engine_size5_class5', displayName: 'Thrusters', category: 'core', size: 5, rating: 'A', mount: null,
+          guidance: null, ship: null,
+          source: { kind: 'catalogue', name: 'Test catalogue', repository: null, revision: 'test' }
+        },
+        displayName: 'Thrusters', engineering: { blueprint: 'DirtyDrive', displayName: 'Dirty Drives', level: 2, quality: 0.5 },
         hot: true, marketId: 1, rawName: '$int_engine_size5_class5_name;', storageSlot: 9,
         station: 'Atata Hub', system: 'Atata', transferCost: 100, transferSeconds: 60, updatedAt: '2026-08-16T12:00:00.000Z'
       }],

@@ -1,5 +1,7 @@
+import type { ModuleDefinition } from '@phoenix/contracts'
 import { expect, test } from 'vitest'
 import { FleetDataService } from '../apps/server/src/application/fleet-data-service.js'
+import type { FleetCatalogueResolver } from '../apps/server/src/domain/fleet.js'
 import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
 
 test('fleet projection combines the active loadout with authoritative stored ships', () => {
@@ -8,7 +10,7 @@ test('fleet projection combines the active loadout with authoritative stored shi
   try {
     const fleet = new FleetDataService(
       database,
-      identifier => identifier === 'lakonminer' ? 'Type-11 Prospector' : null,
+      catalogue({ resolveShipDisplayName: identifier => identifier === 'lakonminer' ? 'Type-11 Prospector' : null }),
       { resolve: (systemName, marketId) => systemName === 'Atata' && marketId === 200 ? 'Shajn Market' : null }
     )
     fleet.ingest({
@@ -51,7 +53,7 @@ test('newer fleet snapshots are not regressed by historical backfill', () => {
   const database = new SqliteDatabase(':memory:')
   database.initialize()
   try {
-    const fleet = new FleetDataService(database)
+    const fleet = new FleetDataService(database, catalogue())
     fleet.ingest({
       timestamp: '2026-08-15T08:00:00Z', event: 'StoredShips', StationName: 'New', MarketID: 100,
       StarSystem: 'New System', ShipsHere: [{ ShipID: 3, ShipType: 'SideWinder', Value: 30000, Hot: false }], ShipsRemote: []
@@ -72,7 +74,16 @@ test('stored module snapshot reports later mutations as partial without guessing
   try {
     const fleet = new FleetDataService(
       database,
-      () => null,
+      catalogue({
+        resolveBlueprintDisplayName: symbol => symbol === 'Weapon_Efficient' ? 'Efficient Weapon' : null,
+        resolveModule: identifier => moduleDefinition(identifier, {
+          displayName: 'Beam Laser',
+          category: 'hardpoint',
+          size: 3,
+          rating: 'C',
+          mount: 'Gimballed'
+        })
+      }),
       { resolve: (systemName, marketId) => systemName === 'Atata' && marketId === 200 ? 'Shajn Market' : null }
     )
     fleet.ingest({
@@ -88,9 +99,39 @@ test('stored module snapshot reports later mutations as partial without guessing
       details: 'partial',
       snapshotAt: '2026-08-15T08:00:00Z',
       latestMutationAt: '2026-08-15T08:05:00Z',
-      items: [{ storageSlot: 81, displayName: 'Beam Laser', station: 'Shajn Market', engineering: { blueprint: 'Weapon_Efficient', level: 2 } }]
+      items: [{
+        storageSlot: 81,
+        displayName: 'Beam Laser',
+        definition: { displayName: 'Beam Laser', size: 3, rating: 'C', mount: 'Gimballed' },
+        station: 'Shajn Market',
+        engineering: { blueprint: 'Weapon_Efficient', displayName: 'Efficient Weapon', level: 2 }
+      }]
     })
   } finally {
     database.close()
   }
 })
+
+function catalogue(overrides: Partial<FleetCatalogueResolver> = {}): FleetCatalogueResolver {
+  return {
+    resolveBlueprintDisplayName: () => null,
+    resolveModule: identifier => moduleDefinition(identifier),
+    resolveShipDisplayName: () => null,
+    ...overrides
+  }
+}
+
+function moduleDefinition(identifier: string, overrides: Partial<ModuleDefinition> = {}): ModuleDefinition {
+  return {
+    journalId: identifier,
+    displayName: 'Unknown module',
+    category: null,
+    size: null,
+    rating: null,
+    mount: null,
+    guidance: null,
+    ship: null,
+    source: { kind: 'inferred', name: 'Test resolver', repository: null, revision: null },
+    ...overrides
+  }
+}

@@ -72,7 +72,7 @@ export function createDashboardViewModel(
       nextSystem: routeSummary.nextSystem
     },
     ship: {
-      cargo: cargo === undefined ? '—' : `${cargo} / ${formatNumber(runtime?.ship.cargoCapacity, locale) ?? '—'}`,
+      cargo: cargo === undefined ? '—' : `${cargo}/${formatNumber(runtime?.ship.cargoCapacity, locale) ?? '—'}`,
       hull: formatPercent(runtime?.ship.hullHealth),
       identifier: runtime?.ship.identifier ?? runtime?.ship.definition?.displayName ?? 'Loadout pending',
       jumpRange: runtime?.ship.maxJumpRange == null ? '—' : `${runtime.ship.maxJumpRange.toFixed(1)} ly`,

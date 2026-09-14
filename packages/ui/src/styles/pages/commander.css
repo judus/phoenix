@@ -40,62 +40,62 @@
     min-inline-size: 0;
   }
 
-  .commander-total-credits {
-    gap: var(--spacing-xxs);
-
-    > strong { font-family: var(--font-family-display); letter-spacing: var(--font-tracking-display); }
+  .commander-summary-widget > .widget-body {
+    display: grid;
+    align-content: center;
   }
 
-  dl.dl-list.compact.commander-legal-status-list {
+  dl.dl-list.compact.commander-summary-list {
+    font-family: var(--font-family-display);
+    letter-spacing: var(--font-tracking-display);
+
     > div {
       align-items: center;
+      grid-template-columns: 7rem minmax(0, 1fr);
+      gap: var(--spacing-sm);
       padding-block: 0;
     }
-    > div:not(:last-child) { padding-block-end: var(--spacing-xxs); }
-    > div:not(:first-child) { padding-block-start: var(--spacing-xxs); }
+    > div:nth-child(-n + 2) { padding-block-end: var(--spacing-xxs); }
+    > div:nth-child(n + 3) { padding-block-start: var(--spacing-xxs); }
 
     dt {
       font-family: var(--font-family-display);
-      font-size: var(--font-size-xs);
+      font-size: var(--font-size-sm);
       letter-spacing: calc(0.04em + var(--font-tracking-display));
       line-height: var(--line-height-compact);
       text-transform: uppercase;
     }
 
-    dd { line-height: 1; }
-  }
-
-  .commander-career-rows {
-    display: grid;
-    grid-template-rows: repeat(4, minmax(0, 1fr));
-    min-block-size: 0;
-    block-size: 100%;
-
-    > .auto-grid { min-block-size: 0; }
-
-    .widget {
-      min-block-size: 0;
-      block-size: 100%;
+    dd {
+      min-inline-size: 0;
+      font-size: var(--font-size-sm);
+      line-height: var(--line-height-compact);
     }
-  }
 
-  @container page-frame (width < 48rem) {
-    .commander-career-page { overflow: auto; }
+    .commander-legal-state-negative dd { color: var(--color-danger); }
 
-    .commander-career-dashboard {
-      grid-template-rows: auto auto;
-      block-size: auto;
+    .commander-identity dd {
+      overflow: hidden;
 
-      > .thirds-layout:last-child,
-      > .thirds-layout:last-child > .thirds-grid {
-        block-size: auto;
+      > strong {
+        display: block;
+        overflow: hidden;
+        color: var(--color-text);
+        font-family: var(--font-family-display);
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-normal);
+        letter-spacing: var(--font-tracking-display);
+        line-height: var(--line-height-compact);
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
+  }
 
-    .commander-career-rows {
-      grid-template-rows: none;
-      block-size: auto;
-
-      .widget { block-size: auto; }
+  @container panel (width < 24rem) {
+    dl.dl-list.compact.commander-summary-list {
+      > div { padding-block: var(--spacing-xxs); }
+      > div:first-child { padding-block-start: 0; }
+      > div:last-child { padding-block-end: 0; }
     }
   }

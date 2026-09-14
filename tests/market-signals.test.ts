@@ -106,7 +106,7 @@ test('dashboard market signals use the selected saved query with the live system
     minVolume: 250,
     sides: ['sell'],
     systemName: 'Shinrarta Dezhra'
-  }, 5)
+  }, 10)
 })
 
 class MemoryProviderCache implements ProviderResponseCache {

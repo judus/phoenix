@@ -137,12 +137,12 @@ function ScrollTable() {
 }
 
 const storedModules = [
-  ['Frag Cannon', '$hpt_slushot_gimbal_small_name;', 'Weapon Efficient G1', '58', '41m · 808 CR', '54,720 CR'],
-  ['Frag Cannon', '$hpt_slugshot_gimbal_small_name;', 'Weapon Efficient G1', '59', '41m · 808 CR', '54,720 CR'],
-  ['Beam Laser', '$hpt_beamlaser_gimbal_small_name;', '—', '67', '41m · 970 CR', '67,185 CR'],
-  ['Beam Laser', '$hpt_beamlaser_gimbal_small_name;', '—', '68', '41m · 970 CR', '67,185 CR'],
-  ['Multi-Cannon', '$hpt_multicannon_gimbal_medium_name;', '—', '70', '41m · 764 CR', '51,300 CR'],
-  ['Plasma Accelerator', '$hpt_plasmaaccelerator_fixed_large_name;', '—', '72', '41m · 39,616 CR', '3,051,200 CR']
+  ['Frag Cannon', '1E · Gimballed', 'Efficient Weapon G1', '58', '41m · 808 CR', '54,720 CR'],
+  ['Frag Cannon', '1E · Gimballed', 'Efficient Weapon G1', '59', '41m · 808 CR', '54,720 CR'],
+  ['Beam Laser', '1E · Gimballed', '—', '67', '41m · 970 CR', '67,185 CR'],
+  ['Beam Laser', '1E · Gimballed', '—', '68', '41m · 970 CR', '67,185 CR'],
+  ['Multi-Cannon', '2F · Gimballed', '—', '70', '41m · 764 CR', '51,300 CR'],
+  ['Plasma Accelerator', '3B · Fixed', '—', '72', '41m · 39,616 CR', '3,051,200 CR']
 ]
 
 const catalogueRows = [

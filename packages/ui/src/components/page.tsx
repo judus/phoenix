@@ -77,10 +77,19 @@ export function Breadcrumbs({ className, items, ...props }: BreadcrumbsProps) {
             {item.href
               ? <a href={item.href}>{item.label}</a>
               : <span aria-current={index === items.length - 1 ? 'page' : undefined}>{item.label}</span>}
+            {index < items.length - 1 ? <BreadcrumbSeparatorIcon /> : null}
           </li>
         ))}
       </ol>
     </nav>
+  )
+}
+
+function BreadcrumbSeparatorIcon() {
+  return (
+    <svg aria-hidden="true" className="breadcrumb-separator" fill="none" viewBox="0 0 24 24">
+      <path d="m9 5 7 7-7 7" stroke="currentColor" strokeLinecap="square" strokeLinejoin="miter" strokeWidth="1.75" />
+    </svg>
   )
 }
 

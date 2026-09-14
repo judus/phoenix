@@ -7,12 +7,12 @@ import {
   type StoredModule
 } from '@phoenix/contracts'
 import type { EliteJournalEvent } from '@phoenix/elite'
-import type { FleetDataReader, FleetRepository, MarketStationResolver } from '../domain/fleet.js'
+import type { FleetCatalogueResolver, FleetDataReader, FleetRepository, MarketStationResolver } from '../domain/fleet.js'
 
 export class FleetDataService implements FleetDataReader {
   public constructor (
     private readonly repository: FleetRepository,
-    private readonly resolveShipDisplayName: (identifier: string) => string | null = () => null,
+    private readonly catalogue: FleetCatalogueResolver,
     private readonly stationResolver: MarketStationResolver = { resolve: () => null }
   ) {}
 
@@ -40,14 +40,22 @@ export class FleetDataService implements FleetDataReader {
       .filter(ship => ship.state !== 'sold')
       .map(ship => FleetShipSchema.parse({
         ...ship,
-        displayName: ship.displayName ?? (ship.typeId === null ? null : this.resolveShipDisplayName(ship.typeId)),
+        displayName: ship.displayName ?? (ship.typeId === null ? null : this.catalogue.resolveShipDisplayName(ship.typeId)),
         station: ship.station ?? this.resolveStoredStation(ship)
       }))
       .sort(compareShips)
-    const storedModules = this.repository.listStoredModules().map(module => ({
-      ...module,
-      station: this.stationResolver.resolve(module.system, module.marketId)
-    }))
+    const storedModules = this.repository.listStoredModules().map(module => {
+      const engineering = module.engineering === null ? null : {
+        ...module.engineering,
+        displayName: this.catalogue.resolveBlueprintDisplayName(module.engineering.blueprint)
+      }
+      return {
+        ...module,
+        definition: this.catalogue.resolveModule(module.rawName),
+        engineering,
+        station: this.stationResolver.resolve(module.system, module.marketId)
+      }
+    })
     const snapshotAt = this.repository.getFleetProjectionTimestamp('stored-modules-snapshot')
     const latestMutationAt = this.repository.getFleetProjectionTimestamp('stored-modules-mutation')
     const details = snapshotAt === null

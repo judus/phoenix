@@ -29,7 +29,7 @@ export class FleetListStoredModulesTool implements LocalTool {
     const caveat = response.details === 'complete' ? '' : ` Data quality: ${response.details}.`
     const text = modules.length === 0
       ? `No stored modules match.${caveat}`
-      : `${modules.map(module => `- ${module.displayName ?? module.rawName}: ${module.system}${module.engineering ? `; engineered ${module.engineering.blueprint} G${module.engineering.level ?? '?'}` : ''}${module.hot ? '; hot' : ''}`).join('\n')}${caveat}`
+      : `${modules.map(module => `- ${module.displayName ?? module.definition.displayName}: ${module.system}${module.engineering ? `; engineered ${module.engineering.displayName ?? 'unknown modification'} G${module.engineering.level ?? '?'}` : ''}${module.hot ? '; hot' : ''}`).join('\n')}${caveat}`
     return output(text, json({ ...response, items: modules }))
   }
 }

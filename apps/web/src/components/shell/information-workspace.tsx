@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Navigation, PrimaryBar } from '@phoenix/ui'
 import type { ApplicationNavigationItem, NavigationItem } from '@phoenix/ui'
 import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
-import { homeItem, isRouteNavigationItem, type RouteNavigationItem } from './navigation-model.js'
+import { isRouteNavigationItem, type RouteNavigationItem } from './navigation-model.js'
 import { WorkspacePage } from './workspace-page.js'
 
 export function InformationWorkspace({
@@ -24,18 +24,7 @@ export function InformationWorkspace({
 }) {
   return (
     <div className="deskplane-section">
-      <PrimaryBar launcher={(
-        <a
-          className={currentPrimary === 'home' ? 'active' : undefined}
-          href={homeItem.href}
-          aria-label="Home"
-          aria-current={currentPrimary === 'home' ? 'page' : undefined}
-          onClick={(event) => {
-            event.preventDefault()
-            onNavigate(homeItem.route)
-          }}
-        >⌂</a>
-      )}>
+      <PrimaryBar>
         <Navigation
           label="Primary"
           current={currentPrimary}

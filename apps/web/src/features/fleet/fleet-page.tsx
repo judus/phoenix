@@ -413,7 +413,7 @@ function StoredModules({ fleet }: { fleet: NonNullable<FleetControllerSnapshot['
             : <DataTableGroup className="module-storage fill" meta={model.meta} title="Module manifest">
                 <DataTable density="compact" label="Stored module manifest" minimum="wide" narrow="priority" scheme="surface" stickyHeader>
                   <thead><tr><th>Module</th><th className="priority-secondary">Engineering</th><th>Location</th><th>Transfer</th><th className="numeric priority-tertiary">Purchase value</th></tr></thead>
-                  <tbody>{model.items.map(item => <tr key={item.key}><td><strong>{item.name}</strong><small>{item.identifier}</small></td><td className={`priority-secondary${item.engineering !== '—' ? ' text-information' : ''}`}>{item.engineering}</td><td><SystemLocationLink locationName={item.location.locationName} systemName={item.location.systemName} /></td><td className="data-value">{item.transfer}</td><td className="numeric priority-tertiary">{item.value}</td></tr>)}</tbody>
+                  <tbody>{model.items.map(item => <tr key={item.key}><td><strong>{item.name}</strong>{item.detail && <small>{item.detail}</small>}</td><td className={`priority-secondary${item.engineering !== '—' ? ' text-information' : ''}`}>{item.engineering}</td><td><SystemLocationLink locationName={item.location.locationName} systemName={item.location.systemName} /></td><td className="data-value">{item.transfer}</td><td className="numeric priority-tertiary">{item.value}</td></tr>)}</tbody>
                 </DataTable>
               </DataTableGroup>}
       </div>

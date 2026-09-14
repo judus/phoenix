@@ -12,7 +12,7 @@ import type { CommandRegistry, NavigationCommandDestination } from '../domain/co
 import type { MacroRepository } from '../domain/macros.js'
 
 export const PHOENIX_NAVIGATION_DESTINATIONS: readonly NavigationCommandDestination[] = [
-  destination('information.home', 'Home', '#/', 'Information', 'Open the operational dashboard.'),
+  destination('commander.dashboard', 'Command dashboard', '#/commander/dashboard', 'Commander', 'Open the command dashboard.'),
   destination('commander.career', 'Career', '#/commander/career', 'Commander', 'Open commander career progression and reputation.'),
   destination('commander.statistics', 'Statistics', '#/commander/statistics', 'Commander', 'Open commander lifetime statistics.'),
   destination('commander.inventory', 'Inventory', '#/commander/inventory', 'Commander', 'Open commander inventory.'),

@@ -83,8 +83,8 @@ test('fleet models preserve authority distinctions and stored-module provenance'
   expect(storage.details).toBe('Complete snapshot')
   expect(storage.meta).toBe('1 module · 1 location')
   expect(storage.items[0]).toMatchObject({
-    identifier: '$int_engine_size5_class5_name; · Hot',
-    engineering: 'DirtyDrive G2',
+    detail: '5A · Hot',
+    engineering: 'Dirty Drives G2',
     location: { locationName: 'Atata Hub', systemName: 'Atata' }
   })
 })

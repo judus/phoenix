@@ -1,6 +1,6 @@
   :root {
     color-scheme: dark;
-    font-size: clamp(15px, min(1.125vw, 2vmin), 24px);
+    font-size: clamp(15px, min(1.125vw, 2vmin), 28px);
 
     /* Typography */
     --font-family-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -80,6 +80,7 @@
     --scrollbar-thumb-hover: var(--color-action);
 
     /* Data display roles. */
+    --meter-track: color-mix(in srgb, var(--palette-amber) 4%, var(--color-surface-subtle));
     --status-color: var(--color-text);
     --selection-background: var(--color-action);
     --selection-text: var(--color-canvas);
@@ -189,7 +190,7 @@
 
   @media (min-width: 70rem) and (min-height: 52rem) {
     :root {
-      font-size: clamp(18px, min(1.125vw, 2vmin), 24px);
+      font-size: clamp(18px, min(1.125vw, 2vmin), 28px);
     }
   }
 

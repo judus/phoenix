@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 export const DISPLAY_PAGE_IDS = [
-  'home',
+  'commander.dashboard',
   'commander.career',
   'commander.statistics',
   'commander.inventory',

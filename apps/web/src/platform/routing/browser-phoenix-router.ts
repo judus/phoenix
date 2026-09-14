@@ -1,5 +1,5 @@
 import {
-  HOME_ROUTE,
+  DEFAULT_ROUTE,
   defaultRouteForWorkspace,
   isInformationRoute,
   workspaceForRoute,
@@ -27,6 +27,10 @@ export class BrowserPhoenixRouter implements PhoenixRouter {
   constructor(browserWindow: BrowserWindow) {
     this.#window = browserWindow
     this.#route = parsePhoenixRoute(browserWindow.location.hash)
+    const canonicalHash = phoenixRouteHash(this.#route)
+    if (browserWindow.location.hash !== canonicalHash) {
+      browserWindow.history.replaceState(null, '', canonicalHash)
+    }
     this.#rememberedInformation = this.#readRememberedInformation(this.#route)
     if (isInformationRoute(this.#route)) this.#rememberInformation(this.#route)
   }
@@ -87,11 +91,11 @@ export class BrowserPhoenixRouter implements PhoenixRouter {
     try {
       stored = this.#window.sessionStorage.getItem(INFORMATION_ROUTE_STORAGE_KEY)
     } catch {
-      return HOME_ROUTE
+      return DEFAULT_ROUTE
     }
-    if (!stored) return HOME_ROUTE
+    if (!stored) return DEFAULT_ROUTE
     const route = parsePhoenixRoute(stored)
-    return isInformationRoute(route) ? route : HOME_ROUTE
+    return isInformationRoute(route) ? route : DEFAULT_ROUTE
   }
 
   #rememberInformation(route: InformationRoute): void {

@@ -1,4 +1,4 @@
-import { DescriptionItem, DescriptionList, Meter, Metric, ThirdsGrid, Widget } from '@phoenix/ui'
+import { DescriptionItem, DescriptionList, Meter, Widget } from '@phoenix/ui'
 import { PhoenixCredits } from './phoenix-credits.js'
 
 export interface CommanderSummaryWidgetProps {
@@ -13,38 +13,45 @@ export interface CommanderSummaryWidgetProps {
 }
 
 export function CommanderSummaryWidget({ className, credits, legalState, name, notoriety }: CommanderSummaryWidgetProps) {
+  const negativeLegalState = legalState !== null && legalState.toLocaleLowerCase() !== 'clean'
+
   return (
-    <div className={className}>
-      <ThirdsGrid gap="sm">
-        <Widget
-          className="span-two"
-          density="compact"
-          eyebrow="Commander"
-          heading={name.toUpperCase()}
-          aside={<Metric className="commander-total-credits text-end" label="Total credits" value={<PhoenixCredits value={credits} />} />}
+    <Widget
+      aria-label="Commander summary"
+      className={['commander-summary-widget', className].filter(Boolean).join(' ')}
+      density="compact"
+    >
+      <DescriptionList className="commander-summary-list" columns="two" density="compact">
+        <DescriptionItem
+          className="commander-identity"
+          label="Commander"
+          labelTone="action"
+          value={<strong>{name.toUpperCase()}</strong>}
         />
-        <Widget density="compact">
-        <DescriptionList className="commander-legal-status-list" columns="one" density="compact">
-          <DescriptionItem label="Legal status" labelTone="action" value={legalState ?? '—'} />
-          <DescriptionItem
-            label="Notoriety"
-            labelTone="action"
-            title="Commander-wide criminal notoriety. Zero is normal; higher values indicate escalating criminal attention."
-            value={notoriety ? (
-              <Meter
-                label="Commander notoriety"
-                layout="compact"
-                max={10}
-                showValue={false}
-                tone="action"
-                value={notoriety.value}
-                valueLabel={notoriety.label}
-              />
-            ) : '—'}
-          />
-        </DescriptionList>
-        </Widget>
-      </ThirdsGrid>
-    </div>
+        <DescriptionItem
+          className={negativeLegalState ? 'commander-legal-state-negative' : undefined}
+          label="Legal status"
+          labelTone="action"
+          value={legalState ?? '—'}
+        />
+        <DescriptionItem label="Credits" labelTone="action" value={<PhoenixCredits value={credits} />} />
+        <DescriptionItem
+          label="Notoriety"
+          labelTone="action"
+          title="Commander-wide criminal notoriety. Zero is normal; higher values indicate escalating criminal attention."
+          value={notoriety ? (
+            <Meter
+              label="Commander notoriety"
+              layout="compact"
+              max={10}
+              showValue={false}
+              tone={notoriety.value > 0 ? 'danger' : 'action'}
+              value={notoriety.value}
+              valueLabel={notoriety.label}
+            />
+          ) : '—'}
+        />
+      </DescriptionList>
+    </Widget>
   )
 }

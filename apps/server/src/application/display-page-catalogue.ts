@@ -6,7 +6,7 @@ interface DisplayPageDefinition {
 }
 
 export const DISPLAY_PAGE_CATALOGUE = {
-  home: page('Home', 'dashboard', 'home dashboard'),
+  'commander.dashboard': page('Command dashboard', 'dashboard', 'commander dashboard'),
   'commander.career': page('Commander career', 'career', 'ranks', 'commander ranks'),
   'commander.statistics': page('Lifetime statistics', 'statistics', 'commander statistics'),
   'commander.inventory': page('Personal stores', 'inventory', 'commander inventory', 'backpack', 'ship locker'),

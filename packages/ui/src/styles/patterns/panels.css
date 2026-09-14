@@ -83,9 +83,62 @@
       overflow: hidden;
     }
 
+    &.scrollable {
+      --scrollable-row-padding-inline-end: 0px;
+    }
+
     &.scrollable > .widget-body {
       overflow: auto;
       overscroll-behavior: contain;
+    }
+
+    &.scrollable.has-overflow {
+      --scrollable-row-padding-inline-end: var(--list-row-padding-inline);
+    }
+
+    &.scrollable.has-overflow > .widget-body {
+      padding-inline-end: var(--spacing-xs);
+      scrollbar-gutter: stable;
+    }
+
+    &.scrollable .item-list > li {
+      border-inline-start: 0;
+
+      &:not(:last-child)::after {
+        inset-inline: 0 var(--scrollable-row-padding-inline-end);
+      }
+
+      > div {
+        padding-inline: 0 var(--scrollable-row-padding-inline-end);
+      }
+
+      &:last-child > div {
+        padding-block-end: 0;
+      }
+    }
+
+    &.auto-hide-scrollbar.has-overflow > .widget-body {
+      --scrollbar-track: var(--meter-track);
+
+      background-image: linear-gradient(var(--meter-track), var(--meter-track));
+      background-position: right top;
+      background-repeat: no-repeat;
+      background-size: var(--scrollbar-size) 100%;
+    }
+
+    &.auto-hide-scrollbar.has-overflow > .widget-body[data-scroll-state='idle'] {
+      scrollbar-color: transparent var(--scrollbar-track);
+
+      &::-webkit-scrollbar-track,
+      &::-webkit-scrollbar-corner {
+        background: var(--scrollbar-track);
+      }
+
+      &::-webkit-scrollbar-thumb,
+      &::-webkit-scrollbar-thumb:hover {
+        border-color: var(--scrollbar-track);
+        background: transparent;
+      }
     }
   }
 

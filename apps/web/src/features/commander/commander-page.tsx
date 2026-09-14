@@ -1,19 +1,13 @@
 import {
   AutoGrid,
   Breadcrumbs,
-  DashboardGrid,
   DataTable,
   DataTableGroup,
-  Meter,
-  Metric,
   PageFrame,
   PageHeader,
-  Section,
   Stack,
-  Status,
-  Widget
+  Status
 } from '@phoenix/ui'
-import { CommanderSummaryWidget } from '../../components/commander-summary-widget.js'
 import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
 import type { CommanderViewModel } from './commander-view-model.js'
@@ -38,19 +32,12 @@ export function CommanderPage({ model, runtime, view }: {
     )
   }
 
-  if (view === 'career') {
-    return (
-      <PageFrame className="commander-page commander-career-page" layout="fit">
-        <CommanderCareer model={model} />
-      </PageFrame>
-    )
-  }
-
   return (
     <PageFrame className="commander-page" layout="fit">
       <div className="commander-layout">
         <CommanderHeader model={model} view={view} />
         <Stack className="commander-content" gap="xl" tabIndex={0}>
+          {view === 'career' && <CommanderCareer model={model} />}
           {view === 'statistics' && <CommanderStatistics statistics={model.statistics} />}
           {view === 'inventory' && <CommanderInventory stores={model.stores} />}
         </Stack>
@@ -61,13 +48,12 @@ export function CommanderPage({ model, runtime, view }: {
 
 function CommanderHeader({ model, view }: { model?: CommanderViewModel, view: CommanderView }) {
   const section = view === 'career' ? 'Career' : view === 'statistics' ? 'Lifetime Statistics' : 'Personal Stores'
-  const contextualPage = view !== 'career'
 
   return (
     <PageHeader
       variant="cockpit"
       context={<Breadcrumbs items={[{ label: 'Commander', href: '#/commander/career' }, { label: section }]} />}
-      title={contextualPage ? section : `CMDR ${model?.name ?? 'Unknown'}`}
+      title={section}
       status={view === 'statistics' && model?.statistics ? <UpdatedDateTime value={model.statistics.updatedAt} /> : undefined}
     />
   )
@@ -78,83 +64,38 @@ function CommanderCareer({ model }: { model: CommanderViewModel }) {
   const navalRanks = model.ranks.filter(rank => rank.group === 'superpower')
 
   return (
-    <DashboardGrid
-      className="commander-career-dashboard"
-      gap="xs"
-      aria-label={`Career dashboard for CMDR ${model.name}`}
-      lastRow={(
-        <div className="commander-career-rows span-full gap-xs">
-          <AutoGrid className="commander-naval-ranks" gap="xs" minimum="xl">
-            {navalRanks.map(rank => <RankCard key={rank.id} rank={rank} />)}
-          </AutoGrid>
-          <AutoGrid className="commander-ranks" gap="xs" minimum="lg">
-            {pilotRanks.slice(0, 3).map(rank => <RankCard key={rank.id} rank={rank} />)}
-          </AutoGrid>
-          <AutoGrid className="commander-ranks" gap="xs" minimum="lg">
-            {pilotRanks.slice(3).map(rank => <RankCard key={rank.id} rank={rank} />)}
-          </AutoGrid>
-          <AutoGrid className="commander-standing-grid" gap="xs" minimum="md">
-            {model.reputation.map(reputation => (
-              <StandingCard key={reputation.id} reputation={reputation} />
-            ))}
-          </AutoGrid>
-        </div>
-      )}
-    >
-      <CommanderSummaryWidget
-        className="span-full"
-        credits={model.legal.credits}
-        legalState={model.legal.state}
-        name={model.name}
-        notoriety={model.legal.notoriety}
-      />
-    </DashboardGrid>
-  )
-}
+    <>
+      <DataTableGroup title="Pilots Federation ranks">
+        <DataTable className="commander-career-table" density="compact" label="Pilots Federation ranks" narrow="priority" scheme="surface">
+          <thead><tr><th>Career</th><th>Rank</th><th className="numeric">Progress</th></tr></thead>
+          <tbody>{pilotRanks.map(rank => (
+            <tr key={rank.id}>
+              <th scope="row"><strong>{rank.label}</strong></th>
+              <td>{rank.level}</td>
+              <td className="numeric">{rank.progressLabel}</td>
+            </tr>
+          ))}</tbody>
+        </DataTable>
+      </DataTableGroup>
 
-function RankCard({ rank }: { rank: CommanderViewModel['ranks'][number] }) {
-  return (
-    <Widget
-      className="commander-rank-card"
-      density="compact"
-      eyebrow={rank.label}
-      heading={rank.level.toUpperCase()}
-    >
-      <Stack gap="sm">
-        <Meter
-          label={`${rank.label} progress`}
-          layout="compact"
-          tone="action"
-          value={rank.progress ?? 0}
-          valueLabel={rank.progressLabel}
-        />
-      </Stack>
-    </Widget>
-  )
-}
-
-function StandingCard({ reputation }: {
-  reputation: CommanderViewModel['reputation'][number]
-}) {
-  return (
-    <Widget
-      aria-label={`${reputation.label} reputation`}
-      className="commander-reputation-card"
-      density="compact"
-      eyebrow={reputation.label}
-      meta={reputation.status}
-    >
-      <Stack gap="sm">
-        <Meter
-          label={`${reputation.label} reputation`}
-          layout="compact"
-          max={200}
-          tone="action"
-          value={reputation.value === null ? 0 : reputation.value + 100}
-          valueLabel={reputation.valueLabel}
-        />
-      </Stack>
-    </Widget>
+      <DataTableGroup title="Superpowers">
+        <DataTable className="commander-superpower-table" density="compact" label="Superpower ranks and reputation" narrow="priority" scheme="surface">
+          <thead><tr><th>Power</th><th>Naval rank</th><th className="numeric priority-tertiary">Rank progress</th><th className="numeric">Reputation</th><th className="priority-secondary">Standing</th></tr></thead>
+          <tbody>{model.reputation.map(reputation => {
+            const navalRank = navalRanks.find(rank => rank.id === reputation.id)
+            return (
+              <tr key={reputation.id}>
+                <th scope="row"><strong>{reputation.label}</strong></th>
+                <td>{navalRank?.level ?? '—'}</td>
+                <td className="numeric priority-tertiary">{navalRank?.progressLabel ?? '—'}</td>
+                <td className="numeric">{reputation.valueLabel}</td>
+                <td className="priority-secondary">{reputation.status}</td>
+              </tr>
+            )
+          })}</tbody>
+        </DataTable>
+      </DataTableGroup>
+    </>
   )
 }
 
@@ -211,20 +152,19 @@ function StoreGroup({ store }: { store: CommanderViewModel['stores'][number] }) 
     <DataTableGroup className="commander-store" meta={store.meta} title={store.title}>
       <AutoGrid gap="md" minimum="xl">
         {store.categories.map(category => (
-          <DataTableGroup key={category.title} meta={category.count} title={category.title} tone="muted">
-            <DataTable density="compact" label={`${category.title} in ${store.title.toLowerCase()}`} narrow="priority" scheme="surface">
-              <tbody>
-                {category.items.length === 0
-                  ? <tr><td className="text-muted" colSpan={2}>None</td></tr>
-                  : category.items.map(item => (
-                      <tr key={item.key}>
-                        <td><strong>{item.name}</strong><small>{item.identifier} · {item.provenance}</small></td>
-                        <td className="numeric">{item.quantity}</td>
-                      </tr>
-                    ))}
-              </tbody>
-            </DataTable>
-          </DataTableGroup>
+          <DataTable density="compact" key={category.title} label={`${category.title} in ${store.title.toLowerCase()}`} narrow="priority" scheme="surface">
+            <thead><tr><th>{category.title}</th><th className="numeric">{category.count}</th></tr></thead>
+            <tbody>
+              {category.items.length === 0
+                ? <tr><td className="text-muted" colSpan={2}>None</td></tr>
+                : category.items.map(item => (
+                    <tr key={item.key}>
+                      <td><strong>{item.name}</strong><small>{item.identifier} · {item.provenance}</small></td>
+                      <td className="numeric">{item.quantity}</td>
+                    </tr>
+                  ))}
+            </tbody>
+          </DataTable>
         ))}
       </AutoGrid>
     </DataTableGroup>

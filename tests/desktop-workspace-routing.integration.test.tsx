@@ -53,16 +53,20 @@ describe('DesktopWorkspace routing integration', () => {
     expect(goTo).toHaveBeenCalledTimes(1)
     expect(goTo).toHaveBeenCalledWith('settings')
     expect(router.getSnapshot()).toEqual({ kind: 'settings', view: 'dashboard' })
-    expect(browser.historyCalls).toEqual([['push', '#/settings']])
+    expect(browser.historyCalls).toEqual([
+      ['replace', '#/commander/dashboard'],
+      ['push', '#/settings']
+    ])
 
     await act(async () => {
       deskplaneHarness.props?.onSnapshotChange?.(snapshot('info'))
     })
 
-    expect(router.getSnapshot()).toEqual({ kind: 'information', section: 'home', view: 'overview' })
+    expect(router.getSnapshot()).toEqual({ kind: 'information', section: 'commander', view: 'dashboard' })
     expect(browser.historyCalls).toEqual([
+      ['replace', '#/commander/dashboard'],
       ['push', '#/settings'],
-      ['push', '#/']
+      ['push', '#/commander/dashboard']
     ])
 
     await act(async () => renderer?.unmount())

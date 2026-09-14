@@ -1,18 +1,21 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 import { expect, test, vi } from 'vitest'
 import type { CommanderLogEntry } from '@phoenix/contracts'
 import { CommanderLogService } from '../apps/server/src/application/commander-log/commander-log-service.js'
 import { DefaultCommanderLogProjector } from '../apps/server/src/application/commander-log/commander-log-projector.js'
 import type { CommanderLogRepository } from '../apps/server/src/domain/commander-log.js'
+import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
 
 const noMissions = { getMission: () => null }
 const projector = new DefaultCommanderLogProjector(
   noMissions,
-  identifier => identifier === 'adder' ? 'Adder' : null
+  identifier => identifier === 'adder' ? 'Adder' : null,
+  identifier => identifier === 'Engine_Dirty' ? 'Dirty Engine' : null
 )
 
 test('Commander Log projects mission lifecycle and explicit credit evidence', () => {
@@ -103,6 +106,31 @@ test('Commander Log distinguishes deliberate career updates from startup snapsho
     detail: 'Adder',
     creditDelta: -87808
   })
+
+  expect(projector.project({
+    event: 'EngineerCraft',
+    timestamp: '2026-09-13T12:03:00Z',
+    BlueprintName: 'Engine_Dirty',
+    Level: 2,
+    Engineer: 'Elvira Martuuk'
+  })).toMatchObject({
+    kind: 'engineering.blueprint_applied',
+    detail: 'Dirty Engine · Grade 2 · Elvira Martuuk'
+  })
+
+  expect(projector.project({
+    event: 'EngineerCraft',
+    timestamp: '2026-09-13T12:04:00Z',
+    BlueprintName: 'FSD_LongRange',
+    ApplyExperimentalEffect: 'special_fsd_heavy',
+    ExperimentalEffect: 'special_fsd_heavy',
+    ExperimentalEffect_Localised: 'Mass Manager',
+    Level: 5,
+    Engineer: 'Felicity Farseer'
+  })).toMatchObject({
+    title: 'Experimental effect applied',
+    detail: 'Mass Manager · Grade 5 · Felicity Farseer'
+  })
 })
 
 test('Commander Log persistence is idempotent and historical replay stays quiet', () => {
@@ -125,6 +153,54 @@ test('Commander Log persistence is idempotent and historical replay stays quiet'
   expect(listener).not.toHaveBeenCalled()
   service.ingest({ ...event, timestamp: '2026-09-13T13:01:00Z' })
   expect(listener).toHaveBeenCalledOnce()
+})
+
+test('Commander Log projection migration replays previously checkpointed journals', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-commander-log-migration-'))
+  const path = join(directory, 'phoenix.sqlite')
+  const initial = new SqliteDatabase(path)
+  initial.initialize()
+  initial.putJournalCheckpoint({
+    byteOffset: 4096,
+    filePath: '/journals/Journal.test.log',
+    fileSize: 8192,
+    updatedAt: '2026-09-13T12:00:00.000Z'
+  })
+  initial.commanderLog.putCommanderLogEntry({
+    category: 'mission',
+    creditDelta: null,
+    detail: null,
+    id: 'stale-entry',
+    kind: 'mission.accepted',
+    schemaVersion: 1,
+    sourceEvent: 'MissionAccepted',
+    timestamp: '2026-09-13T12:00:00.000Z',
+    title: 'Mission accepted',
+    tone: 'neutral'
+  })
+  initial.close()
+
+  const raw = new DatabaseSync(path)
+  raw.prepare('DELETE FROM schema_migrations WHERE version = 22').run()
+  raw.close()
+
+  const migrated = new SqliteDatabase(path)
+  try {
+    migrated.initialize()
+    expect(migrated.getJournalCheckpoint('/journals/Journal.test.log')).toBeNull()
+    expect(migrated.commanderLog.countCommanderLogEntries()).toBe(0)
+  } finally {
+    migrated.close()
+  }
+
+  const verified = new DatabaseSync(path)
+  try {
+    expect(verified.prepare('SELECT version FROM schema_migrations WHERE version = 22').get())
+      .toEqual({ version: 22 })
+  } finally {
+    verified.close()
+    rmSync(directory, { force: true, recursive: true })
+  }
 })
 
 test('Commander Log is populated through the journal pipeline and canonical API', async () => {

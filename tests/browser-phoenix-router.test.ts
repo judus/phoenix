@@ -44,7 +44,10 @@ describe('BrowserPhoenixRouter', () => {
 
     router.push({ kind: 'information', section: 'fleet', view: 'overview' })
     expect(browser.location.hash).toBe('#/fleet/overview')
-    expect(browser.historyCalls).toEqual([['push', '#/fleet/overview']])
+    expect(browser.historyCalls).toEqual([
+      ['replace', '#/commander/dashboard'],
+      ['push', '#/fleet/overview']
+    ])
     expect(notifications).toBe(1)
 
     router.replace({ kind: 'settings', view: 'dashboard' })

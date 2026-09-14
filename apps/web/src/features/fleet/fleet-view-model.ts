@@ -78,7 +78,7 @@ export interface StoredModulesModel {
   items: Array<{
     key: string
     name: string
-    identifier: string
+    detail: string | null
     engineering: string
     location: {
       locationName: string | null
@@ -172,17 +172,17 @@ export function createStoredModulesModel(fleet: FleetResponse, locale = 'en-CH')
   const modules = [...fleet.storedModules.items].sort((left, right) =>
     left.system.localeCompare(right.system) ||
     (left.station ?? '').localeCompare(right.station ?? '') ||
-    (left.displayName ?? left.rawName).localeCompare(right.displayName ?? right.rawName) ||
+    (left.displayName ?? left.definition.displayName).localeCompare(right.displayName ?? right.definition.displayName) ||
     left.storageSlot - right.storageSlot
   )
   const locations = new Set(modules.map(module => `${module.system}\u0000${module.marketId}`))
   return {
     items: modules.map(module => ({
       key: `${module.marketId}:${module.storageSlot}`,
-      name: module.displayName ?? module.rawName,
-      identifier: `${module.rawName}${module.hot ? ' · Hot' : ''}`,
+      name: module.displayName ?? module.definition.displayName,
+      detail: storedModuleDetail(module),
       engineering: module.engineering
-        ? `${module.engineering.blueprint}${module.engineering.level === null ? '' : ` G${module.engineering.level}`}`
+        ? `${module.engineering.displayName ?? 'Engineered'}${module.engineering.level === null ? '' : ` G${module.engineering.level}`}`
         : '—',
       location: {
         locationName: module.station,
@@ -195,6 +195,15 @@ export function createStoredModulesModel(fleet: FleetResponse, locale = 'en-CH')
     details: `${title(fleet.storedModules.details)} snapshot`,
     authority: storedModuleAuthority(fleet, locale)
   }
+}
+
+function storedModuleDetail(module: FleetResponse['storedModules']['items'][number]): string | null {
+  const definition = module.definition
+  const moduleClass = [definition.size, definition.rating]
+    .filter(value => value !== null)
+    .join('')
+  const details = [moduleClass || null, definition.mount, module.hot ? 'Hot' : null].filter(Boolean)
+  return details.length > 0 ? details.join(' · ') : null
 }
 
 function fleetShipModel(ship: FleetShip, activeShipId: number | null, locale: string) {

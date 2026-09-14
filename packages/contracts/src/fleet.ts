@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ModuleDefinitionSchema } from './elite-catalogue.js'
 
 export const FleetShipStateSchema = z.enum([
   'active', 'stored-here', 'stored-remote', 'transfer', 'sold', 'unknown'
@@ -39,7 +40,13 @@ export const StoredModuleSchema = z.object({
   updatedAt: z.string().datetime({ offset: true })
 }).strict()
 
-export const LocatedStoredModuleSchema = StoredModuleSchema.extend({
+const LocatedStoredModuleEngineeringSchema = StoredModuleSchema.shape.engineering.unwrap().extend({
+  displayName: z.string().min(1).nullable()
+}).strict()
+
+export const LocatedStoredModuleSchema = StoredModuleSchema.omit({ engineering: true }).extend({
+  definition: ModuleDefinitionSchema,
+  engineering: LocatedStoredModuleEngineeringSchema.nullable(),
   station: z.string().nullable()
 }).strict()
 

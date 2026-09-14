@@ -1,5 +1,6 @@
-import { createEmptyRuntimeState } from '@phoenix/contracts'
+import { createEmptyRuntimeState, type CommanderLogEntry } from '@phoenix/contracts'
 import { expect, test } from 'vitest'
+import { createCommanderLogViewModel } from '../apps/web/src/features/dashboard/commander-log-view-model.js'
 import { createDashboardViewModel } from '../apps/web/src/features/dashboard/dashboard-view-model.js'
 
 test('dashboard view model derives commander, situation, ship, route, and notable activity', () => {
@@ -7,6 +8,10 @@ test('dashboard view model derives commander, situation, ship, route, and notabl
   const runtime = {
     ...empty,
     commander: { ...empty.commander, name: 'Ellan Murdock' },
+    inventory: {
+      ...empty.inventory,
+      cargo: { updatedAt: '2026-08-16T12:00:00.000Z', vessel: 'ship' as const, items: [] }
+    },
     location: { state: 'docked' as const, place: { kind: 'station' as const, name: 'Locke Terminal', type: null, marketId: null, faction: null, government: null, primaryEconomy: null, economies: [], services: [] } },
     ship: { ...empty.ship, name: 'Type-11 Prospector', identifier: 'EL-06L', hullHealth: 0.86, cargoCapacity: 196, maxJumpRange: 22.4 },
     system: { ...empty.system, name: 'Sol', allegiance: 'Federation', population: 1_000 }
@@ -52,10 +57,11 @@ test('dashboard view model derives commander, situation, ship, route, and notabl
 
   expect(model.commander.name).toBe('Ellan Murdock')
   expect(model.situation).toMatchObject({ system: 'Sol', place: 'Locke Terminal', population: "1'000" })
-  expect(model.ship).toMatchObject({ name: 'Type-11 Prospector', identifier: 'EL-06L', hull: '86%', jumpRange: '22.4 ly' })
+  expect(model.ship).toMatchObject({ name: 'Type-11 Prospector', identifier: 'EL-06L', hull: '86%', cargo: '0/196', jumpRange: '22.4 ly' })
   expect(model.route).toEqual({ destination: 'Achenar', detail: '1 jump remaining', nextStarClass: 'G', nextSystem: 'Achenar' })
   expect(model.commanderLog[0]).toMatchObject({
     category: 'Mission',
+    dateTime: expect.stringMatching(/16 Aug 3312.*\d{2}:\d{2}/),
     detail: 'Deliver medicines · Galileo, Sol',
     title: 'Mission completed',
     value: "+125'000 CR"
@@ -69,4 +75,23 @@ test('dashboard view model derives commander, situation, ship, route, and notabl
     scope: 'Commander',
     timestamp: '2026-08-16T11:55:00.000Z'
   })
+})
+
+test('Commander Log dashboard view shows the latest ten entries in chronological order', () => {
+  const entries = Array.from({ length: 12 }, (_, index): CommanderLogEntry => ({
+    category: 'mission',
+    creditDelta: null,
+    detail: null,
+    id: `commander-log-${index}`,
+    kind: 'mission.accepted',
+    schemaVersion: 1,
+    sourceEvent: 'MissionAccepted',
+    timestamp: `2026-08-16T12:${String(59 - index).padStart(2, '0')}:00.000Z`,
+    title: `Mission ${index}`,
+    tone: 'neutral'
+  }))
+
+  expect(createCommanderLogViewModel(entries).map(entry => entry.id)).toEqual(
+    entries.slice(0, 10).reverse().map(entry => entry.id)
+  )
 })

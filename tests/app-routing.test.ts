@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { DISPLAY_PAGE_IDS } from '@phoenix/contracts'
 import {
-  HOME_ROUTE,
+  DEFAULT_ROUTE,
   defaultRouteForInformationSection,
   defaultRouteForWorkspace,
   workspaceForRoute
@@ -13,15 +13,15 @@ import {
 import { routeForDisplayCommand, routeForDisplayPage } from '../apps/web/src/application/navigation/display-page-routes.js'
 
 describe('PHOENIX route parsing and generation', () => {
-  test('empty and Home hashes resolve to the Information workspace', () => {
-    expect(parsePhoenixRoute('')).toEqual(HOME_ROUTE)
-    expect(parsePhoenixRoute('#')).toEqual(HOME_ROUTE)
-    expect(parsePhoenixRoute('#/')).toEqual(HOME_ROUTE)
-    expect(parsePhoenixRoute('#home')).toEqual(HOME_ROUTE)
+  test('empty hashes resolve to the Commander dashboard', () => {
+    expect(parsePhoenixRoute('')).toEqual(DEFAULT_ROUTE)
+    expect(parsePhoenixRoute('#')).toEqual(DEFAULT_ROUTE)
+    expect(parsePhoenixRoute('#/')).toEqual(DEFAULT_ROUTE)
     expect(workspaceForRoute(parsePhoenixRoute('#/'))).toBe('info')
   })
 
   test.each([
+    ['#/commander/dashboard', { kind: 'information', section: 'commander', view: 'dashboard' }, 'info'],
     ['#/controls/navigation', { kind: 'controls', category: 'navigation' }, 'controls'],
     ['#/commander/inventory', { kind: 'information', section: 'commander', view: 'inventory' }, 'info'],
     ['#/fleet/ships/current/loadout', { kind: 'information', section: 'fleet', view: 'current-loadout' }, 'info'],
@@ -180,7 +180,7 @@ describe('PHOENIX route parsing and generation', () => {
 
   test('workspace destinations use explicit defaults', () => {
     expect(defaultRouteForWorkspace('controls')).toEqual({ kind: 'controls', category: 'ship' })
-    expect(defaultRouteForWorkspace('info')).toEqual(HOME_ROUTE)
+    expect(defaultRouteForWorkspace('info')).toEqual(DEFAULT_ROUTE)
     expect(defaultRouteForWorkspace('telemetry')).toEqual({ kind: 'numpad' })
   })
 

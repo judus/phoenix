@@ -1,17 +1,52 @@
   .dashboard-page {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
 
-    > .dashboard-grid {
-      flex: none;
-      block-size: auto;
-      grid-template-rows: auto auto;
+    > .dashboard-alerts {
+      position: absolute;
+      z-index: 10;
+      inset-block-start: var(--page-padding-block);
+      inset-inline-end: var(--page-padding-inline);
+      inline-size: min(30rem, calc(100% - 2 * var(--page-padding-inline)));
+      max-block-size: calc(100% - 2 * var(--page-padding-block));
+      gap: var(--spacing-xxs);
+      padding: var(--spacing-xs);
+      overflow: hidden;
 
-      > .thirds-layout:last-child,
-      > .thirds-layout:last-child > .thirds-grid {
-        block-size: auto;
+      > header { align-items: center; }
+
+      > header + div { overflow: auto; }
+
+      .item-list > li > div {
+        padding: var(--spacing-xxs) 0;
       }
+    }
+
+    .dashboard-alert-dismiss {
+      padding: 0;
+      border: 0;
+      color: var(--color-danger);
+      background: transparent;
+      font-family: var(--font-family-display);
+      font-size: var(--font-size-xs);
+      letter-spacing: var(--font-tracking-display);
+      text-transform: uppercase;
+      cursor: pointer;
+
+      &:hover { color: var(--color-text); }
+
+      &:focus-visible {
+        outline: 2px solid var(--color-focus);
+        outline-offset: 2px;
+      }
+    }
+
+    > .dashboard-grid {
+      flex: 1 1 0;
+      min-block-size: 0;
+      block-size: auto;
     }
 
     .widget {
@@ -28,9 +63,97 @@
       }
     }
 
+    :is(.dashboard-location-widget, .dashboard-ship-widget, .dashboard-route) {
+      > header .widget-heading > small {
+        font-size: var(--font-size-sm);
+      }
+
+      > .widget-body {
+        display: grid;
+        align-content: end;
+      }
+    }
+
+    .dashboard-location-widget > header .widget-heading > small {
+      font-family: var(--font-family-display);
+      font-size: var(--font-size-md);
+      letter-spacing: var(--font-tracking-display);
+      text-transform: uppercase;
+    }
+
+    dl.dashboard-operational-list {
+      dt,
+      dd {
+        font-family: var(--font-family-display);
+        letter-spacing: var(--font-tracking-display);
+        text-transform: uppercase;
+      }
+
+      dt,
+      dd { font-size: var(--font-size-sm); }
+
+      &.one-column > div:last-child,
+      &.two-columns > div:nth-last-child(-n + 2) {
+        padding-block-end: 0;
+      }
+    }
+
+    .dashboard-route dl.dashboard-operational-list {
+      > div {
+        grid-template-columns: 5.5rem minmax(0, 1fr);
+        gap: var(--spacing-xs);
+      }
+
+      dt,
+      dd { font-size: var(--font-size-xs); }
+    }
+
+    .dashboard-command-slots {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--spacing-xs);
+      min-inline-size: 0;
+      min-block-size: 0;
+
+      > .tile.btn {
+        min-block-size: 0;
+        block-size: 100%;
+        padding-inline: var(--spacing-xs);
+        overflow: hidden;
+
+        .label {
+          display: block;
+          overflow: visible;
+          -webkit-line-clamp: unset;
+          line-clamp: unset;
+          font-size: var(--font-size-xs);
+          text-overflow: clip;
+          white-space: nowrap;
+        }
+      }
+    }
+
     .dashboard-market-signals-widget {
       grid-column: 3;
       grid-row: 2 / span 2;
+      block-size: 100%;
+      contain: size;
+    }
+
+    .dashboard-commander-log-widget {
+      .item-list {
+        padding-block-end: var(--dashboard-log-tail-space, 0px);
+      }
+
+      .item-list > li {
+        article {
+          gap: 0;
+
+          > small {
+            margin-block-end: var(--spacing-xxs);
+          }
+        }
+      }
     }
 
     .dashboard-material-watchlist,
@@ -46,11 +169,16 @@
         grid-template-columns: minmax(0, 1fr) auto;
         gap: var(--spacing-xs);
         padding-block: var(--spacing-xxs);
+        padding-inline: 0 var(--scrollable-row-padding-inline-end, var(--list-row-padding-inline));
         font-size: var(--font-size-sm);
+
+        &:last-child {
+          padding-block-end: 0;
+        }
 
         &:not(:last-child)::after {
           position: absolute;
-          inset-inline: 0;
+          inset-inline: 0 var(--scrollable-row-padding-inline-end, var(--list-row-padding-inline));
           inset-block-end: 0;
           block-size: 1px;
           background: var(--color-border-subtle);
@@ -81,11 +209,24 @@
 
       > span {
         color: var(--color-text);
+        font-family: var(--font-family-display);
+        letter-spacing: var(--font-tracking-display);
+        text-transform: uppercase;
       }
 
       > small {
         color: var(--color-text-muted);
-        font-size: var(--font-size-xs);
+        font-size: var(--font-size-sm);
+      }
+    }
+
+    .dashboard-material-watchlist > li {
+      align-items: baseline;
+
+      > :first-child {
+        font-family: var(--font-family-display);
+        letter-spacing: var(--font-tracking-display);
+        text-transform: uppercase;
       }
     }
 

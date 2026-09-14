@@ -1,4 +1,4 @@
-import type { FleetResponse, FleetShip, StoredModule } from '@phoenix/contracts'
+import type { FleetResponse, FleetShip, ModuleDefinition, StoredModule } from '@phoenix/contracts'
 
 export interface FleetRepository {
   getFleetProjectionTimestamp(key: string): string | null
@@ -12,6 +12,12 @@ export interface FleetRepository {
 
 export interface FleetDataReader {
   getFleet(): FleetResponse
+}
+
+export interface FleetCatalogueResolver {
+  resolveBlueprintDisplayName(symbol: string): string | null
+  resolveModule(identifier: string): ModuleDefinition
+  resolveShipDisplayName(identifier: string): string | null
 }
 
 export interface MarketStationResolver {

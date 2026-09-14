@@ -13,7 +13,6 @@ export const CONTROL_CATEGORIES = [
 export type ControlCategory = typeof CONTROL_CATEGORIES[number]
 
 export type InformationPrimarySection =
-  | 'home'
   | 'commander'
   | 'fleet'
   | 'galaxy'
@@ -24,8 +23,7 @@ export type InformationPrimarySection =
 export { GALAXY_QUERY_IDS, type GalaxyQueryId } from '@phoenix/contracts'
 
 export type InformationRoute =
-  | { kind: 'information', section: 'home', view: 'overview' }
-  | { kind: 'information', section: 'commander', view: 'career' | 'statistics' | 'inventory' }
+  | { kind: 'information', section: 'commander', view: 'dashboard' | 'career' | 'statistics' | 'inventory' }
   | { kind: 'information', section: 'fleet', view: 'overview' | 'current-overview' | 'current-loadout' | 'current-cargo' | 'current-engineering' | 'carriers' | 'stored-modules' }
   | { kind: 'information', section: 'fleet', view: 'catalogue', selectedShipId?: string }
   | { kind: 'information', section: 'galaxy', view: 'system', systemName?: string, selectedName?: string }
@@ -58,10 +56,10 @@ export type PhoenixWorkspace =
   | 'journal'
   | 'settings'
 
-export const HOME_ROUTE: InformationRoute = {
+export const DEFAULT_ROUTE: InformationRoute = {
   kind: 'information',
-  section: 'home',
-  view: 'overview'
+  section: 'commander',
+  view: 'dashboard'
 }
 
 export function isInformationRoute(route: PhoenixRoute): route is InformationRoute {
@@ -89,8 +87,7 @@ export function workspaceForRoute(route: PhoenixRoute): PhoenixWorkspace {
 
 export function defaultRouteForInformationSection(section: InformationPrimarySection): InformationRoute {
   switch (section) {
-    case 'home': return HOME_ROUTE
-    case 'commander': return { kind: 'information', section, view: 'career' }
+    case 'commander': return DEFAULT_ROUTE
     case 'fleet': return { kind: 'information', section, view: 'current-overview' }
     case 'galaxy': return { kind: 'information', section, view: 'system' }
     case 'activities': return { kind: 'information', section, view: 'missions' }
@@ -101,7 +98,7 @@ export function defaultRouteForInformationSection(section: InformationPrimarySec
 
 export function defaultRouteForWorkspace(
   workspace: PhoenixWorkspace,
-  rememberedInformation: InformationRoute = HOME_ROUTE
+  rememberedInformation: InformationRoute = DEFAULT_ROUTE
 ): PhoenixRoute {
   switch (workspace) {
     case 'controls': return { kind: 'controls', category: 'ship' }

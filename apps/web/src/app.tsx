@@ -143,10 +143,10 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       copilotContextItems={copilotNavigationItems}
       copilotCurrentContext={copilotContext(route)}
       information={activeDesktop === 'info'
-        ? <FeatureBoundary>{isDashboardRoute(informationRoute)
-            ? <DashboardFeature application={application} />
-            : commanderRoute
-              ? <CommanderFeature application={application} view={commanderRoute.view} />
+        ? <FeatureBoundary>{commanderRoute
+            ? commanderRoute.view === 'dashboard'
+              ? <DashboardFeature application={application} />
+              : <CommanderFeature application={application} view={commanderRoute.view} />
               : fleetRoute
                 ? <FleetFeature key={router.href(fleetRoute)} application={application} route={fleetRoute} />
                 : galaxyRoute
@@ -338,17 +338,6 @@ const DashboardFeature = memo(function DashboardFeature({ application }: { appli
       hrefFor={application.router.href}
       model={model}
       onExecuteAction={actionId => application.api.executeAction(actionId, 'tap')}
-      onInspectMarketSignal={signal => {
-        application.galaxyQueries.set('commodity-markets', { values: {
-          commodity: signal.commoditySymbol,
-          intent: signal.side,
-          maxDaysAgo: '30',
-          maxDistance: '100',
-          minVolume: '1',
-          origin: signal.systemName
-        } })
-        application.router.push({ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'commodity-markets' })
-      }}
       onNavigate={application.router.push}
       runtime={runtime}
       voice={{
@@ -356,15 +345,8 @@ const DashboardFeature = memo(function DashboardFeature({ application }: { appli
         connect: voice.connect,
         disconnect: voice.disconnect,
         ...(voice.error === undefined ? {} : { error: voice.error }),
-        mark: voice.activeProfile.mark,
-        name: voice.activeProfile.name,
-        status: voice.status,
         transitioning: voice.transitioning
       }}
     />
   )
 })
-
-function isDashboardRoute(route: ReturnType<PhoenixRouter['getSnapshot']>): boolean {
-  return route.kind === 'information' && route.section === 'home' && route.view === 'overview'
-}

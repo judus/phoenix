@@ -36,9 +36,9 @@ class FakeRouter implements PhoenixRouter {
 
   constructor(route: PhoenixRoute) { this.#route = route }
   getSnapshot = (): PhoenixRoute => this.#route
-  getRememberedInformationRoute = (): InformationRoute => ({ kind: 'information', section: 'home', view: 'overview' })
-  href = (route: PhoenixRoute): string => route.kind === 'information' && route.section === 'fleet' ? '#/fleet/overview' : '#/'
-  routeForWorkspace = (): PhoenixRoute => ({ kind: 'information', section: 'home', view: 'overview' })
+  getRememberedInformationRoute = (): InformationRoute => ({ kind: 'information', section: 'commander', view: 'dashboard' })
+  href = (route: PhoenixRoute): string => route.kind === 'information' && route.section === 'fleet' ? '#/fleet/overview' : '#/commander/dashboard'
+  routeForWorkspace = (): PhoenixRoute => ({ kind: 'information', section: 'commander', view: 'dashboard' })
   subscribe = (): (() => void) => () => undefined
 }
 

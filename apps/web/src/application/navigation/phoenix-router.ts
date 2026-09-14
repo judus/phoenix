@@ -1,7 +1,7 @@
 import {
   CONTROL_CATEGORIES,
   GALAXY_QUERY_IDS,
-  HOME_ROUTE,
+  DEFAULT_ROUTE,
   type InformationRoute,
   type PhoenixRoute,
   type PhoenixWorkspace
@@ -23,7 +23,7 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
   const { segments, query } = splitHash(input)
   const [section, ...rest] = segments
 
-  if (!section || section === 'home' || section === 'info') return HOME_ROUTE
+  if (!section) return DEFAULT_ROUTE
 
   if (section === 'controls') {
     const category = CONTROL_CATEGORIES.find(candidate => candidate === rest[0]) ?? 'ship'
@@ -82,7 +82,7 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
     const legacyCareer = rest[0] === 'overview' || rest[0] === 'progress'
     const view = legacyCareer
       ? 'career'
-      : oneOf(rest[0], ['career', 'statistics', 'inventory'] as const) ?? 'career'
+      : oneOf(rest[0], ['dashboard', 'career', 'statistics', 'inventory'] as const) ?? 'dashboard'
     return { kind: 'information', section, view }
   }
 
@@ -103,7 +103,7 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
     return { kind: 'information', section, view }
   }
 
-  return HOME_ROUTE
+  return DEFAULT_ROUTE
 }
 
 export function phoenixRouteHash(route: PhoenixRoute): string {
@@ -144,7 +144,6 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
 }
 
 function informationPath(route: InformationRoute): string {
-  if (route.section === 'home') return '/'
   if (route.section === 'fleet') {
     if (route.view === 'current-overview') return '/fleet/ships/current/overview'
     if (route.view === 'current-loadout') return '/fleet/ships/current/loadout'

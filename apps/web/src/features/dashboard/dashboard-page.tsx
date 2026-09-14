@@ -1,12 +1,8 @@
 import {
-  Avatar,
   DashboardGrid,
   DescriptionItem,
   DescriptionList,
   EqualGrid,
-  IconButton,
-  Identity,
-  Inline,
   ItemList,
   ItemListItem,
   Metric,
@@ -16,25 +12,20 @@ import {
   Status,
   Widget
 } from '@phoenix/ui'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { CommanderSummaryWidget } from '../../components/commander-summary-widget.js'
 import { formatPhoenixCredits } from '../../components/phoenix-credits.js'
-import type { GalaxyMarketSignal, GameActionCatalogResponse, GameActionResult } from '@phoenix/contracts'
+import type { GameActionCatalogResponse, GameActionResult } from '@phoenix/contracts'
 import type { PhoenixEventConnectionSnapshot } from '../../application/events/phoenix-event-hub.js'
 import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
 import type { DashboardControllerSnapshot } from './use-dashboard-controller.js'
 import type { DashboardViewModel } from './dashboard-view-model.js'
-import { DashboardRadioControls } from './dashboard-radio-controls.js'
+import { DashboardCommandControls, type DashboardCommandVoice } from './dashboard-command-controls.js'
+import { bottomAlignedRowTailSpace } from './scrollable-log.js'
 
-export interface DashboardVoiceModel {
-  connected: boolean
+export interface DashboardVoiceModel extends DashboardCommandVoice {
   error?: string
-  mark: string
-  name: string
-  status: string
-  transitioning: boolean
-  connect(): Promise<void>
-  disconnect(): void
 }
 
 export function DashboardPage({
@@ -44,7 +35,6 @@ export function DashboardPage({
   hrefFor,
   model,
   onExecuteAction,
-  onInspectMarketSignal,
   onNavigate,
   runtime,
   voice
@@ -55,11 +45,29 @@ export function DashboardPage({
   hrefFor(route: PhoenixRoute): string
   model: DashboardViewModel
   onExecuteAction(actionId: string): Promise<GameActionResult>
-  onInspectMarketSignal(signal: GalaxyMarketSignal): void
   onNavigate(route: PhoenixRoute): void
   runtime: RuntimeStateSnapshot
   voice: DashboardVoiceModel
 }) {
+  const commanderLogBodyRef = useRef<HTMLDivElement>(null)
+  const [dismissedAttention, setDismissedAttention] = useState<string | null>(null)
+  const latestCommanderLogId = model.commanderLog.at(-1)?.id
+
+  useLayoutEffect(() => {
+    const body = commanderLogBodyRef.current
+    if (!body) return
+
+    const alignRows = () => alignCommanderLogRows(body)
+    alignRows()
+    if (typeof ResizeObserver === 'undefined') return
+
+    const resizeObserver = new ResizeObserver(alignRows)
+    resizeObserver.observe(body)
+    const list = body.querySelector<HTMLElement>(':scope > .item-list')
+    if (list) resizeObserver.observe(list)
+    return () => resizeObserver.disconnect()
+  }, [latestCommanderLogId])
+
   const attention = [
     ...model.warnings,
     ...(runtime.status === 'error' ? [runtime.error] : []),
@@ -67,12 +75,30 @@ export function DashboardPage({
     ...(voice.error ? [voice.error] : []),
     ...(eventConnection.state === 'error' ? [eventConnection.error ?? 'Live event connection unavailable.'] : [])
   ]
+  const attentionKey = attention.join('\u0000')
+
+  useEffect(() => {
+    if (attention.length === 0) setDismissedAttention(null)
+  }, [attention.length])
 
   return (
-    <PageFrame className="dashboard-page" aria-busy={controller.status === 'loading'}>
-      {attention.length > 0
+    <PageFrame className="dashboard-page" layout="fit" aria-busy={controller.status === 'loading'}>
+      {attention.length > 0 && attentionKey !== dismissedAttention
         ? (
-            <Panel className="dashboard-alerts" title="Attention" variant="danger">
+            <Panel
+              actions={(
+                <button
+                  aria-label="Dismiss dashboard alert"
+                  className="dashboard-alert-dismiss"
+                  onClick={() => setDismissedAttention(attentionKey)}
+                  type="button"
+                >Dismiss</button>
+              )}
+              className="dashboard-alerts"
+              role="alert"
+              title="Attention"
+              variant="danger"
+            >
               <ItemList density="compact">
                 {attention.map(message => <ItemListItem key={message} title={message} />)}
               </ItemList>
@@ -85,6 +111,7 @@ export function DashboardPage({
           <>
             <Widget
               aria-label="Material watchlist"
+              autoHideScrollbar
               eyebrow="Material watchlist"
               link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'information', section: 'engineering', view: 'projects' }}>Open projects</RouteLink>}
               scrollable
@@ -100,7 +127,7 @@ export function DashboardPage({
                           {controller.materialWatchlist.materials.slice(0, 8).map(material => (
                             <li key={material.materialId}>
                               <span>{material.materialName}</span>
-                              <span>{material.owned}/{material.required}</span>
+                              <span className="numeric text-xs">{material.owned}/{material.required}</span>
                             </li>
                           ))}
                         </ul>
@@ -109,6 +136,9 @@ export function DashboardPage({
 
             <Widget
               aria-label="Commander log"
+              autoHideScrollbar
+              bodyRef={commanderLogBodyRef}
+              className="dashboard-commander-log-widget"
               eyebrow="Commander log"
               link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'journal', view: 'journal' }}>Open journal</RouteLink>}
               scrollable
@@ -121,11 +151,10 @@ export function DashboardPage({
                         <ItemListItem
                           data-tone={entry.tone}
                           description={entry.detail}
-                          eyebrow={entry.category}
+                          eyebrow={<><time dateTime={entry.timestamp}>{entry.dateTime}</time> | {entry.category}</>}
                           key={entry.id}
-                          leading={<time dateTime={entry.timestamp}>{entry.time}</time>}
                           title={entry.title}
-                          trailing={entry.value}
+                          trailing={entry.value === null ? null : <span className="currency">{entry.value}</span>}
                         />
                       ))}
                     </ItemList>
@@ -134,8 +163,9 @@ export function DashboardPage({
 
             <Widget
               aria-label="Local traffic"
+              autoHideScrollbar
               eyebrow="Local traffic"
-              link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'information', section: 'comms', view: 'traffic' }}>Open traffic</RouteLink>}
+              link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'information', section: 'comms', view: 'traffic' }}>Traffic log</RouteLink>}
               scrollable
             >
               {!controller.localTraffic
@@ -157,62 +187,33 @@ export function DashboardPage({
                   )}
             </Widget>
 
-            <Widget
-              aria-label="Copilot"
-              eyebrow="Copilot"
-              link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'copilot', view: 'chat' }}>Open channel</RouteLink>}
-            >
-              <Stack fill justify="center">
-                <Inline align="center" justify="space-between">
-                  <Identity
-                    title={voice.name}
-                    detail={<Status tone={voice.connected ? 'positive' : 'muted'}>{voice.status}</Status>}
-                    leading={<Avatar aria-hidden="true">{voice.mark}</Avatar>}
-                  />
-                  <IconButton
-                    aria-pressed={voice.connected}
-                    busy={voice.transitioning}
-                    label={voice.connected ? 'Disconnect voice' : 'Connect voice'}
-                    size="lg"
-                    onClick={() => voice.connected ? voice.disconnect() : void voice.connect()}
-                  >
-                    <MicrophoneIcon />
-                  </IconButton>
-                </Inline>
-              </Stack>
-            </Widget>
-
-            <Widget
-              className="span-two"
-              eyebrow="GalNet radio"
-              link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'information', section: 'comms', view: 'radio' }}>Open remote</RouteLink>}
-            >
-              <DashboardRadioControls actionCatalog={actions} onExecute={onExecuteAction} />
-            </Widget>
           </>
         )}
       >
-        <CommanderSummaryWidget className="span-full" {...model.commander} />
+        <CommanderSummaryWidget className="span-two" {...model.commander} />
+
+        <DashboardCommandControls actions={actions} onExecute={onExecuteAction} voice={voice} />
 
         <Widget
-          className="span-two"
+          className="dashboard-location-widget span-two"
           detail={model.situation.place}
           eyebrow="Current location"
           heading={model.situation.system.toUpperCase()}
-          link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'information', section: 'galaxy', view: 'system' }}>Open galaxy</RouteLink>}
+          link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'information', section: 'galaxy', view: 'system' }}>System schematic</RouteLink>}
         >
           <Stack gap="sm">
-            <DescriptionList columns="two" density="compact">
+            <DescriptionList className="dashboard-operational-list" columns="two" density="compact">
               <DescriptionItem label="Security" value={model.situation.security} />
               <DescriptionItem label="Economy" value={model.situation.economy} />
               <DescriptionItem label="Allegiance" value={model.situation.allegiance} />
-              <DescriptionItem label="Population" value={model.situation.population} />
+              <DescriptionItem label="Population" value={<span className="numeric">{model.situation.population}</span>} />
             </DescriptionList>
           </Stack>
         </Widget>
 
         <Widget
           aria-label="Market signals"
+          autoHideScrollbar
           className="dashboard-market-signals-widget"
           eyebrow="Market signals"
           link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{
@@ -239,13 +240,7 @@ export function DashboardPage({
                         <ul className="dashboard-market-signals">
                           {controller.marketSignals.result!.signals.map(signal => (
                             <li key={`${signal.side}:${signal.commodityName}:${signal.marketId ?? signal.stationName}`}>
-                              <a
-                                href={hrefFor({ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'commodity-markets' })}
-                                onClick={event => {
-                                  event.preventDefault()
-                                  onInspectMarketSignal(signal)
-                                }}
-                              ><span>{signal.commodityName}</span><small>{signal.side === 'buy' ? 'Buy' : 'Sell'} {formatPhoenixCredits(signal.price)} · {signal.stationName}</small></a>
+                              <div><span>{signal.commodityName}</span><small>{signal.side === 'buy' ? 'Buy' : 'Sell'} {formatPhoenixCredits(signal.price)} · {signal.stationName}</small></div>
                               <span className="dashboard-market-signal-summary">
                                 <span>{signal.side === 'buy' ? '−' : '+'}{Math.round(signal.deviationPercent)}%</span>
                                 <small>{signal.unlimitedVolume ? '∞ t' : `${signal.volume.toLocaleString('en-CH')} t`}</small>
@@ -257,16 +252,17 @@ export function DashboardPage({
         </Widget>
 
         <Widget
+          className="dashboard-ship-widget"
           detail={model.ship.identifier}
           eyebrow="Current ship"
           heading={model.ship.name.toUpperCase()}
-          link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'controls', category: 'ship' }}>Ship controls</RouteLink>}
+          link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'information', section: 'fleet', view: 'current-overview' }}>View ship</RouteLink>}
         >
           <Stack gap="sm">
             <EqualGrid columns={3} gap="xs">
-              <Metric density="compact" label="Hull" value={model.ship.hull} />
-              <Metric density="compact" label="Cargo" value={model.ship.cargo} />
-              <Metric density="compact" label="Jump" value={model.ship.jumpRange} />
+              <Metric density="compact" label="Hull" value={<span className="numeric">{model.ship.hull}</span>} />
+              <Metric density="compact" label="Cargo" value={<span className="numeric">{model.ship.cargo}</span>} />
+              <Metric density="compact" label="Jump" value={<span className="numeric">{model.ship.jumpRange}</span>} />
             </EqualGrid>
           </Stack>
         </Widget>
@@ -276,10 +272,10 @@ export function DashboardPage({
           detail={model.route.detail}
           eyebrow="Route"
           heading={model.route.destination.toUpperCase()}
-          link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'information', section: 'galaxy', view: 'route' }}>Open route</RouteLink>}
+          link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'information', section: 'galaxy', view: 'route' }}>View route</RouteLink>}
         >
           <Stack gap="sm">
-            <DescriptionList columns="one" density="compact">
+            <DescriptionList className="dashboard-operational-list" columns="one" density="compact">
               <DescriptionItem label="Next jump" title={model.route.nextSystem} value={model.route.nextSystem} />
               <DescriptionItem label="Star class" value={model.route.nextStarClass} />
             </DescriptionList>
@@ -288,6 +284,26 @@ export function DashboardPage({
       </DashboardGrid>
     </PageFrame>
   )
+}
+
+function alignCommanderLogRows(body: HTMLDivElement): void {
+  const list = body.querySelector<HTMLElement>(':scope > .item-list')
+  if (!list) {
+    body.scrollTop = body.scrollHeight
+    return
+  }
+
+  const listTop = list.getBoundingClientRect().top
+  const rowBounds = Array.from(list.children, row => {
+    const bounds = row.getBoundingClientRect()
+    return { start: bounds.top - listTop, end: bounds.bottom - listTop }
+  })
+  const tailSpace = bottomAlignedRowTailSpace(body.clientHeight, rowBounds)
+  const value = `${tailSpace}px`
+  if (list.style.getPropertyValue('--dashboard-log-tail-space') !== value) {
+    list.style.setProperty('--dashboard-log-tail-space', value)
+  }
+  body.scrollTop = body.scrollHeight
 }
 
 function RouteLink({
@@ -311,14 +327,5 @@ function RouteLink({
     >
       {children}
     </a>
-  )
-}
-
-function MicrophoneIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24">
-      <rect x="9" y="3" width="6" height="11" rx="3" />
-      <path d="M6 11v1a6 6 0 0 0 12 0v-1M12 18v3M9 21h6" />
-    </svg>
   )
 }

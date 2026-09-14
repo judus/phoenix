@@ -47,7 +47,7 @@ export function HomeDashboardContent() {
             </ItemList>
           </Widget>
 
-          <Widget aria-label="Local traffic" eyebrow="Local traffic" link={<a href="#traffic">Open traffic</a>} scrollable>
+          <Widget aria-label="Local traffic" eyebrow="Local traffic" link={<a href="#traffic">Traffic log</a>} scrollable>
             <ItemList density="compact">
               <ItemListItem eyebrow="Commander · Star system" title="CMDR LAKONMINER" description="o7" trailing={<time>2 min ago</time>} />
               <ItemListItem eyebrow="NPC · Local" title="LOCKE TERMINAL" description="Docking request granted." trailing={<time>6 min ago</time>} />
@@ -56,19 +56,21 @@ export function HomeDashboardContent() {
         </>
       }
     >
-      <Widget
-        aside={<Metric className="commander-total-credits text-end" label="Total credits" value="2,438,917,604 CR" />}
-        className="span-full"
-        eyebrow="Commander"
-        heading="ELLAN MURDOCK"
-      />
+      <Widget aria-label="Commander summary" className="span-two" density="compact">
+        <DescriptionList className="commander-summary-list" columns="two" density="compact">
+          <DescriptionItem className="commander-identity" label="Commander" labelTone="action" value={<strong>ELLAN MURDOCK</strong>} />
+          <DescriptionItem label="Legal status" labelTone="action" value="Clean" />
+          <DescriptionItem label="Balance" labelTone="action" value={<span className="currency">2,438,917,604 CR</span>} />
+          <DescriptionItem label="Notoriety" labelTone="action" value="0" />
+        </DescriptionList>
+      </Widget>
 
       <Widget
         className="span-two"
         detail="Locke Terminal"
         eyebrow="Situation"
         heading="COL 285 SECTOR OK-C B14-5"
-        link={<a href="#galaxy">Open galaxy</a>}
+        link={<a href="#galaxy">System schematic</a>}
       >
         <Stack gap="sm">
           <DescriptionList columns="two" density="compact">
@@ -93,17 +95,17 @@ export function HomeDashboardContent() {
         </Stack>
       </Widget>
 
-      <Widget detail="EL-06L" eyebrow="Current ship" heading="TYPE-11 PROSPECTOR" link={<a href="#controls">Ship controls</a>}>
+      <Widget detail="EL-06L" eyebrow="Current ship" heading="TYPE-11 PROSPECTOR" link={<a href="#ship">View ship</a>}>
         <Stack gap="sm">
           <EqualGrid columns={3} gap="xs">
             <Metric density="compact" label="Hull" value="100%" />
-            <Metric density="compact" label="Cargo" value="3 / 196" />
+            <Metric density="compact" label="Cargo" value="3/196" />
             <Metric density="compact" label="Jump" value="22.4 ly" />
           </EqualGrid>
         </Stack>
       </Widget>
 
-      <Widget detail="19 jumps remaining" eyebrow="Route" heading="WREDGUIA UK-V B30-1" link={<a href="#route">Open route</a>}>
+      <Widget detail="19 jumps remaining" eyebrow="Route" heading="WREDGUIA UK-V B30-1" link={<a href="#route">View route</a>}>
         <Stack gap="sm">
           <DescriptionList columns="one" density="compact">
             <DescriptionItem label="Current" value="Col 285 Sector OK-C b14-5" />

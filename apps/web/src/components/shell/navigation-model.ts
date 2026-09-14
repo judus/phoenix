@@ -1,6 +1,5 @@
 import type { ApplicationNavigationItem, NavigationItem } from '@phoenix/ui'
 import {
-  HOME_ROUTE,
   defaultRouteForInformationSection,
   defaultRouteForWorkspace,
   type InformationPrimarySection,
@@ -47,13 +46,11 @@ export function workspaceItems(informationRoute: InformationRoute): RouteNavigat
   ]
 }
 
-export const homeItem: RouteNavigationItem = routeItem('home', 'Home', undefined, HOME_ROUTE)
-
 export function isRouteNavigationItem(item: ApplicationNavigationItem): item is RouteNavigationItem {
   return 'route' in item
 }
 
-function informationItem(section: Exclude<InformationPrimarySection, 'home'>, label: string): RouteNavigationItem {
+function informationItem(section: InformationPrimarySection, label: string): RouteNavigationItem {
   return routeItem(section, label, undefined, defaultRouteForInformationSection(section))
 }
 

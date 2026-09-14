@@ -4,28 +4,28 @@ import { Breadcrumbs, PageFrame, PageHeader } from '@phoenix/ui'
 type StoredModule = [string, string, string, string, string, string]
 
 const atata: StoredModule[] = [
-  ['Frag Cannon', '$hpt_slugshot_gimbal_small_name;', 'Weapon Efficient G1', '58', '41m · 808 CR', '54,720 CR'],
-  ['Frag Cannon', '$hpt_slugshot_gimbal_small_name;', 'Weapon Efficient G1', '59', '41m · 808 CR', '54,720 CR'],
-  ['Beam Laser', '$hpt_beamlaser_gimbal_small_name;', '—', '67', '41m · 970 CR', '67,185 CR'],
-  ['Beam Laser', '$hpt_beamlaser_gimbal_small_name;', '—', '68', '41m · 970 CR', '67,185 CR'],
-  ['Multi-Cannon', '$hpt_multicannon_gimbal_medium_name;', '—', '70', '41m · 764 CR', '51,300 CR'],
-  ['Plasma Accelerator', '$hpt_plasmaaccelerator_fixed_large_name;', '—', '72', '41m · 39,616 CR', '3,051,200 CR']
+  ['Frag Cannon', '1E · Gimballed', 'Efficient Weapon G1', '58', '41m · 808 CR', '54,720 CR'],
+  ['Frag Cannon', '1E · Gimballed', 'Efficient Weapon G1', '59', '41m · 808 CR', '54,720 CR'],
+  ['Beam Laser', '1E · Gimballed', '—', '67', '41m · 970 CR', '67,185 CR'],
+  ['Beam Laser', '1E · Gimballed', '—', '68', '41m · 970 CR', '67,185 CR'],
+  ['Multi-Cannon', '2F · Gimballed', '—', '70', '41m · 764 CR', '51,300 CR'],
+  ['Plasma Accelerator', '3B · Fixed', '—', '72', '41m · 39,616 CR', '3,051,200 CR']
 ]
 
 const localModules: StoredModule[] = [
-  ['Shield Generator', '$int_shieldgenerator_size5_class1_name;', '—', '564', '0s · 0 CR', '0 CR'],
-  ['Sensors', '$int_sensors_size3_class1_name;', '—', '565', '0s · 0 CR', '0 CR'],
-  ['Thrusters', '$int_engine_size5_class1_name;', '—', '566', '0s · 0 CR', '0 CR'],
-  ['FSD (SCO)', '$int_hyperdrive_overcharge_size5_class1_name;', '—', '567', '0s · 0 CR', '0 CR'],
-  ['Life Support', '$int_lifesupport_size3_class1_name;', '—', '568', '0s · 0 CR', '0 CR'],
-  ['Power Distributor', '$int_powerdistributor_size7_class1_name;', '—', '569', '0s · 0 CR', '0 CR'],
-  ['Power Plant', '$int_powerplant_size6_class1_name;', '—', '570', '0s · 0 CR', '0 CR']
+  ['Shield Generator', '5E', '—', '564', '0s · 0 CR', '0 CR'],
+  ['Sensors', '3E', '—', '565', '0s · 0 CR', '0 CR'],
+  ['Thrusters', '5E', '—', '566', '0s · 0 CR', '0 CR'],
+  ['FSD (SCO)', '5E', '—', '567', '0s · 0 CR', '0 CR'],
+  ['Life Support', '3E', '—', '568', '0s · 0 CR', '0 CR'],
+  ['Power Distributor', '7E', '—', '569', '0s · 0 CR', '0 CR'],
+  ['Power Plant', '6E', '—', '570', '0s · 0 CR', '0 CR']
 ]
 
 const capricorni: StoredModule[] = [
-  ['FSD', '$int_hyperdrive_size5_class1_name;', '—', '576', '43m · 100 CR', '0 CR'],
-  ['Thrusters', '$int_engine_size6_class1_name;', '—', '577', '43m · 100 CR', '0 CR'],
-  ['Power Plant', '$int_powerplant_size7_class1_name;', '—', '578', '43m · 100 CR', '0 CR']
+  ['FSD', '5E', '—', '576', '43m · 100 CR', '0 CR'],
+  ['Thrusters', '6E', '—', '577', '43m · 100 CR', '0 CR'],
+  ['Power Plant', '7E', '—', '578', '43m · 100 CR', '0 CR']
 ]
 
 const storageGroups = [

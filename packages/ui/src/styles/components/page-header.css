@@ -106,14 +106,23 @@
     ol {
       display: flex;
       gap: var(--spacing-xxs);
+      align-items: center;
       margin: 0;
       padding: 0;
       list-style: none;
     }
 
-    li:not(:last-child)::after {
-      margin-inline-start: var(--spacing-xxs);
-      content: '·';
+    li {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-xxs);
+    }
+
+    .breadcrumb-separator {
+      flex: none;
+      inline-size: 0.75rem;
+      block-size: 0.75rem;
+      color: currentColor;
     }
 
     a {

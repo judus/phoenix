@@ -6,11 +6,17 @@ import {
 import type { CommanderLogRepository } from '../domain/commander-log.js'
 
 const SCHEMA_MIGRATION = 18
+const PROJECTION_REBUILD_MIGRATIONS = [21, 22] as const
 
 export class SqliteCommanderLogRepository implements CommanderLogRepository {
   public constructor (private readonly connection: DatabaseSync) {}
 
   public initialize (): void {
+    this.createSchema()
+    this.rebuildProjection()
+  }
+
+  private createSchema (): void {
     const applied = this.connection.prepare(
       'SELECT 1 FROM schema_migrations WHERE version = ?'
     ).get(SCHEMA_MIGRATION)
@@ -35,6 +41,31 @@ export class SqliteCommanderLogRepository implements CommanderLogRepository {
         VALUES (${SCHEMA_MIGRATION}, datetime('now'));
         COMMIT;
       `)
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
+    }
+  }
+
+  private rebuildProjection (): void {
+    const isApplied = this.connection.prepare(
+      'SELECT 1 FROM schema_migrations WHERE version = ?'
+    )
+    const pending = PROJECTION_REBUILD_MIGRATIONS.filter(version => !isApplied.get(version))
+    if (pending.length === 0) return
+
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      this.connection.exec(`
+        DELETE FROM commander_log;
+        DELETE FROM elite_journal_checkpoints;
+      `)
+      const recordMigration = this.connection.prepare(`
+        INSERT INTO schema_migrations (version, applied_at)
+        VALUES (?, datetime('now'))
+      `)
+      for (const version of pending) recordMigration.run(version)
+      this.connection.exec('COMMIT')
     } catch (cause) {
       this.connection.exec('ROLLBACK')
       throw cause

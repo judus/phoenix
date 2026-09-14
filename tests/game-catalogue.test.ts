@@ -47,6 +47,11 @@ test('catalogue resolves known modules and labels unknown new modules as inferre
     mount: 'Fixed',
     source: { kind: 'catalogue' }
   })
+  expect(catalogue.resolveModule('$hpt_testlaser_fixed_medium_name;')).toMatchObject({
+    journalId: 'hpt_testlaser_fixed_medium',
+    displayName: 'Test Laser',
+    source: { kind: 'catalogue' }
+  })
 })
 
 test('catalogue resolves commodity symbols to canonical game names', () => {

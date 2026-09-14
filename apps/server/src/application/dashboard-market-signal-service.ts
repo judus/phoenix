@@ -31,7 +31,7 @@ export class DashboardMarketSignalService implements DashboardMarketSignalReader
         minVolume: integer(parameters.minVolume, 100),
         sides: signalSides(parameters.sides),
         systemName
-      }, 5),
+      }, 10),
       schemaVersion: 1,
       state: 'ready'
     }
