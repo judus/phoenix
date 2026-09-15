@@ -70,7 +70,7 @@ function Planner ({ controller, options }: {
   }
   return (
     <EquipmentPageLayout title="Upgrade planner" updatedAt={options.generatedAt}>
-      <Stack gap="lg">
+      <Stack className="record-page-content" gap="lg" tabIndex={0}>
         <Section title="Plan equipment upgrade" description="Preview the materials and specialists required. This does not save a project.">
           {sources.length === 0
             ? <Status tone="muted">No supported personal equipment is available.</Status>
