@@ -1,7 +1,7 @@
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
-import { useEngineeringController, type EngineeringControllerSnapshot, type EngineeringView } from '../apps/web/src/features/engineering/use-engineering-controller.js'
+import { useEngineeringController, type EngineeringControllerSnapshot, type EngineeringRoute } from '../apps/web/src/features/engineering/use-engineering-controller.js'
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
 
@@ -15,31 +15,34 @@ test('Engineering selects one focused API query for each view', async () => {
     getEngineeringMaterialWatchlist: vi.fn().mockResolvedValue({ activeProjectCount: 0, materials: [], observedAt: null, schemaVersion: 1 })
   } as unknown as PhoenixApi
   let snapshot: EngineeringControllerSnapshot | undefined
-  let view: EngineeringView = 'blueprints'
-  let symbol: string | undefined
+  let route: EngineeringRoute = { kind: 'information', section: 'engineering', view: 'blueprints' }
 
-  function Probe() { snapshot = useEngineeringController(api, view, symbol, 1); return null }
+  function Probe() { snapshot = useEngineeringController(api, route, 1); return null }
   const renderer = await act(async () => create(<Probe />))
   expect(api.getEngineeringBlueprints).toHaveBeenCalledTimes(1)
   expect(snapshot).toMatchObject({ blueprints: { blueprints: [] }, status: 'ready' })
 
-  symbol = 'dirty-drive-tuning'
+  route = { kind: 'information', section: 'engineering', view: 'blueprints', selectedBlueprintSymbol: 'dirty-drive-tuning' }
   await act(async () => renderer.update(<Probe />))
   expect(api.getEngineeringBlueprint).toHaveBeenCalledWith('dirty-drive-tuning', expect.any(AbortSignal))
 
-  symbol = undefined
-  view = 'materials-encoded'
+  route = { kind: 'information', section: 'engineering', view: 'materials-encoded' }
   await act(async () => renderer.update(<Probe />))
   expect(api.getEngineeringMaterials).toHaveBeenCalledWith('encoded', expect.any(AbortSignal))
 
-  view = 'engineers'
+  route = { kind: 'information', section: 'engineering', view: 'engineers' }
   await act(async () => renderer.update(<Probe />))
   expect(api.getEngineeringEngineers).toHaveBeenCalledWith(expect.any(AbortSignal))
 
-  view = 'projects'
+  route = { kind: 'information', section: 'engineering', view: 'projects' }
   await act(async () => renderer.update(<Probe />))
   expect(api.getEngineeringProjects).toHaveBeenCalledWith(expect.any(AbortSignal))
   expect(api.getEngineeringMaterialWatchlist).toHaveBeenCalledWith(expect.any(AbortSignal))
+
+  route = { kind: 'information', section: 'engineering', view: 'project-add-blueprint', selectedBlueprintSymbol: 'dirty-drive-tuning' }
+  await act(async () => renderer.update(<Probe />))
+  expect(api.getEngineeringBlueprint).toHaveBeenLastCalledWith('dirty-drive-tuning', expect.any(AbortSignal))
+  expect(api.getEngineeringProjects).toHaveBeenCalledTimes(2)
   await act(async () => renderer.unmount())
 })
 
@@ -50,7 +53,7 @@ test('Engineering retains a successful page snapshot while a revisit refreshes',
   } as unknown as PhoenixApi
   let snapshot: EngineeringControllerSnapshot | undefined
 
-  function Probe() { snapshot = useEngineeringController(api, 'blueprints'); return null }
+  function Probe() { snapshot = useEngineeringController(api, { kind: 'information', section: 'engineering', view: 'blueprints' }); return null }
   let renderer = await act(async () => create(<Probe />))
   expect(snapshot).toMatchObject({ blueprints, status: 'ready' })
   await act(async () => renderer.unmount())

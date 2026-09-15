@@ -26,7 +26,24 @@ export const engineeringNavigationItems: EngineeringNavigationItem[] = [
 ]
 
 export function engineeringContextForRoute(route: InformationRoute): string {
-  return route.section === 'engineering' ? route.view : 'blueprints'
+  return route.section === 'engineering'
+    ? route.view.startsWith('project-') ? 'projects' : route.view
+    : 'blueprints'
+}
+
+export const engineeringProjectRoutes = {
+  index: routes.projects,
+  new: (selectedBlueprintSymbol?: string): EngineeringRoute => ({
+    kind: 'information', section: 'engineering', view: 'project-new',
+    ...(selectedBlueprintSymbol ? { selectedBlueprintSymbol } : {})
+  }),
+  detail: (selectedProjectId: string): EngineeringRoute => ({
+    kind: 'information', section: 'engineering', view: 'project-detail', selectedProjectId
+  }),
+  addBlueprint: (selectedBlueprintSymbol: string, selectedProjectId?: string): EngineeringRoute => ({
+    kind: 'information', section: 'engineering', view: 'project-add-blueprint', selectedBlueprintSymbol,
+    ...(selectedProjectId ? { selectedProjectId } : {})
+  })
 }
 
 function item(id: keyof typeof routes, label: string, shortLabel: string): EngineeringNavigationItem {

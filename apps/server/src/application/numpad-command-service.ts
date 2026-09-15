@@ -46,7 +46,8 @@ const CONTROL_SELECTORS: Readonly<Record<string, string>> = {
 const INFORMATION_MENUS: readonly MenuDefinition[] = [
   menu('info.commander', 'Commander', '1', [
     destination('commander.dashboard', '1'), destination('commander.career', '2'),
-    destination('commander.inventory', '3'), destination('commander.statistics', '4')
+    destination('commander.inventory', '3'), destination('commander.equipment', '4'),
+    destination('commander.statistics', '5')
   ]),
   menu('info.fleet', 'Fleet', '2', [
     destination('fleet.overview', '1'), destination('fleet.current', '2'), destination('fleet.current-loadout', '3'),

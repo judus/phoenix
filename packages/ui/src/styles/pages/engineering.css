@@ -50,48 +50,6 @@
     white-space: nowrap;
   }
 
-  .engineering-project-form,
-  .blueprint-project-form {
+  .engineering-project-form {
     padding: var(--spacing-sm);
-  }
-
-  .engineering-project {
-    border: 1px solid var(--color-border);
-    background: var(--color-surface);
-
-    > header {
-      align-items: center;
-      border-block-end: 1px solid var(--color-border);
-      display: flex;
-      gap: var(--spacing-sm);
-      justify-content: space-between;
-      padding: var(--spacing-xs) var(--spacing-sm);
-
-      strong,
-      small { display: block; }
-
-      small {
-        color: var(--color-text-muted);
-        text-transform: uppercase;
-      }
-    }
-
-    > p,
-    > .status { margin: var(--spacing-sm); }
-  }
-
-  .engineering-project-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-xxs);
-    justify-content: flex-end;
-  }
-
-  @media (max-width: 720px) {
-    .engineering-project > header {
-      align-items: stretch;
-      flex-direction: column;
-    }
-
-    .engineering-project-actions { justify-content: flex-start; }
   }

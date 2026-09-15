@@ -20,6 +20,7 @@ import {
   PhoenixControlDeckConfigurationSchema,
   CommandCatalogResponseSchema,
   CommanderLogResponseSchema,
+  CommanderEquipmentResponseSchema,
   DashboardMarketSignalsResponseSchema,
   GameActionCatalogResponseSchema,
   GameActionResultSchema,
@@ -95,6 +96,7 @@ import type {
   PhoenixControlDeckConfiguration,
   CommandCatalogResponse,
   CommanderLogResponse,
+  CommanderEquipmentResponse,
   DashboardMarketSignalsResponse,
   GameActionCatalogResponse,
   GameActionOperation,
@@ -250,6 +252,10 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getFleet(signal?: AbortSignal): Promise<FleetResponse> {
     return this.#get('/api/fleet', FleetResponseSchema, signal)
+  }
+
+  async getCommanderEquipment(signal?: AbortSignal): Promise<CommanderEquipmentResponse> {
+    return this.#get('/api/commander/equipment', CommanderEquipmentResponseSchema, signal)
   }
 
   async getGalaxyBookmarks(signal?: AbortSignal): Promise<GalaxyBookmarksResponse> {

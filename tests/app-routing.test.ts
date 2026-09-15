@@ -24,6 +24,7 @@ describe('PHOENIX route parsing and generation', () => {
     ['#/commander/dashboard', { kind: 'information', section: 'commander', view: 'dashboard' }, 'info'],
     ['#/controls/navigation', { kind: 'controls', category: 'navigation' }, 'controls'],
     ['#/commander/inventory', { kind: 'information', section: 'commander', view: 'inventory' }, 'info'],
+    ['#/commander/equipment', { kind: 'information', section: 'commander', view: 'equipment' }, 'info'],
     ['#/fleet/ships/current/loadout', { kind: 'information', section: 'fleet', view: 'current-loadout' }, 'info'],
     ['#/fleet/ships/current/engineering', { kind: 'information', section: 'fleet', view: 'current-engineering' }, 'info'],
     ['#/galaxy/database', { kind: 'information', section: 'galaxy', view: 'database' }, 'info'],
@@ -150,6 +151,20 @@ describe('PHOENIX route parsing and generation', () => {
     expect(blueprint).toEqual({ kind: 'information', section: 'engineering', view: 'blueprints', selectedBlueprintSymbol: 'dirty-drive' })
     expect(phoenixRouteHash(blueprint)).toBe('#/engineering/blueprints?symbol=dirty-drive')
     expect(materials).toEqual({ kind: 'information', section: 'engineering', view: 'materials-raw' })
+  })
+
+  test('Engineering project workflows have canonical dedicated routes', () => {
+    const id = '00000000-0000-4000-8000-000000000001'
+    expect(parsePhoenixRoute('#/engineering/projects/new?blueprint=dirty-drive&ignored=yes')).toEqual({
+      kind: 'information', section: 'engineering', view: 'project-new', selectedBlueprintSymbol: 'dirty-drive'
+    })
+    expect(phoenixRouteHash({ kind: 'information', section: 'engineering', view: 'project-detail', selectedProjectId: id }))
+      .toBe(`#/engineering/projects/${id}`)
+    const add = parsePhoenixRoute(`#/engineering/projects/add-blueprint?blueprint=dirty-drive&project=${id}`)
+    expect(add).toEqual({
+      kind: 'information', section: 'engineering', view: 'project-add-blueprint', selectedBlueprintSymbol: 'dirty-drive', selectedProjectId: id
+    })
+    expect(phoenixRouteHash(add)).toBe(`#/engineering/projects/add-blueprint?blueprint=dirty-drive&project=${id}`)
   })
 
   test('legacy Exploration selections normalize to the owned System Map route', () => {

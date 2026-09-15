@@ -76,6 +76,7 @@
       overflow: hidden;
 
       > strong {
+        font-size: var(--font-size-md);
         min-inline-size: 0;
         overflow: hidden;
       }

@@ -2,17 +2,20 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   Breadcrumbs,
   Button,
+  CheckIcon,
   ControlContext,
+  CrossIcon,
+  DataTable,
   DataTableGroup,
   Field,
   Form,
   FormActions,
   FormGrid,
-  ItemList,
-  ItemListItem,
+  IconButton,
   MultiSelect,
   PageFrame,
   PageHeader,
+  PencilIcon,
   Stack,
   Status,
   Textarea,
@@ -133,19 +136,22 @@ function BookmarkList ({ bookmarks, onNavigate }: {
         <DataTableGroup meta={`${visible.length} of ${bookmarks.length}`} title="Saved locations">
           {visible.length > 0
             ? (
-                <ItemList className="surface" density="compact">
-                  {visible.map(bookmark => (
-                    <ItemListItem
-                      actions={<Button size="sm" variant="outline" onClick={() => onNavigate({ ...bookmarksRoute, bookmarkId: bookmark.id })}>Edit</Button>}
-                      description={bookmark.note}
-                      eyebrow={bookmark.target.kind === 'body' ? `Body · ${bookmark.target.systemName}` : 'System'}
-                      href={targetHref(bookmark.target)}
-                      key={bookmark.id}
-                      meta={bookmark.tags.length > 0 ? bookmark.tags.join(' · ') : undefined}
-                      title={bookmark.target.kind === 'body' ? bookmark.target.bodyName : bookmark.target.systemName}
-                    />
-                  ))}
-                </ItemList>
+                <DataTable density="compact" label="Saved galaxy locations" narrow="priority" scheme="surface">
+                  <thead><tr><th>Location</th><th className="col-fit">Type</th><th className="priority-secondary">Note</th><th className="priority-tertiary">Tags</th><th className="col-fit">Actions</th></tr></thead>
+                  <tbody>{visible.map(bookmark => {
+                    const label = bookmark.target.kind === 'body' ? bookmark.target.bodyName : bookmark.target.systemName
+                    return <tr key={bookmark.id}>
+                      <th scope="row">
+                        <a href={targetHref(bookmark.target)}><strong>{label}</strong></a>
+                        {bookmark.target.kind === 'body' && <small>{bookmark.target.systemName}</small>}
+                      </th>
+                      <td className="col-fit">{bookmark.target.kind === 'body' ? 'Body' : 'System'}</td>
+                      <td className="priority-secondary wrap">{bookmark.note ?? '—'}</td>
+                      <td className="priority-tertiary">{bookmark.tags.length > 0 ? bookmark.tags.join(', ') : '—'}</td>
+                      <td className="col-fit"><IconButton label={`Edit ${label}`} size="sm" variant="outline" onClick={() => onNavigate({ ...bookmarksRoute, bookmarkId: bookmark.id })}><PencilIcon /></IconButton></td>
+                    </tr>
+                  })}</tbody>
+                </DataTable>
               )
             : <Status tone="muted">{bookmarks.length === 0 ? 'Bookmark a system or body from the system schematic.' : 'No bookmarks match these filters.'}</Status>}
         </DataTableGroup>
@@ -209,8 +215,8 @@ function BookmarkEditor ({ bookmark, onCancel, onDelete, onSave, target }: {
               message={error ? <Status tone="danger" wrap>{error}</Status> : undefined}
               navigation={<Button type="button" variant="outline" onClick={onCancel}>Back</Button>}
             >
-              {bookmark && <Button disabled={saving} type="button" variant="danger" onClick={() => void remove()}>Remove</Button>}
-              <Button busy={saving} type="submit" variant="primary">Save bookmark</Button>
+              {bookmark && <IconButton disabled={saving} label="Remove bookmark" type="button" variant="danger" onClick={() => void remove()}><CrossIcon /></IconButton>}
+              <IconButton busy={saving} label="Save bookmark" type="submit" variant="primary"><CheckIcon /></IconButton>
             </FormActions>
           </Form>
         </ControlContext>

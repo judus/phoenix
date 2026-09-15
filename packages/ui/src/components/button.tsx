@@ -44,11 +44,13 @@ type IconButtonProps = ButtonProps & {
   shape?: 'square' | 'landscape'
 }
 
-export function IconButton({ children, className, label, shape = 'square', title, ...props }: IconButtonProps) {
+export function IconButton({ busy = false, children, className, disabled, label, shape = 'square', title, ...props }: IconButtonProps) {
   return (
     <Button
       className={['btn-icon', `btn-icon-${shape}`, className].filter(Boolean).join(' ')}
       aria-label={label}
+      aria-busy={busy || undefined}
+      disabled={disabled || busy}
       title={title ?? label}
       {...props}
     >

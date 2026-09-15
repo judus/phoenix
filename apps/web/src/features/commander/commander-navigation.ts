@@ -9,12 +9,14 @@ const routes = {
   career: { kind: 'information', section: 'commander', view: 'career' },
   statistics: { kind: 'information', section: 'commander', view: 'statistics' },
   inventory: { kind: 'information', section: 'commander', view: 'inventory' },
+  equipment: { kind: 'information', section: 'commander', view: 'equipment' },
 } as const satisfies Record<string, InformationRoute>
 
 export const commanderNavigationItems: CommanderNavigationItem[] = [
   item('dashboard', 'Command dashboard', 'CMD'),
   item('career', 'Career', 'CAR'),
   item('inventory', 'Personal stores', 'INV'),
+  item('equipment', 'Equipment', 'GEA'),
   item('statistics', 'Statistics', 'STA')
 ]
 

@@ -82,7 +82,7 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
     const legacyCareer = rest[0] === 'overview' || rest[0] === 'progress'
     const view = legacyCareer
       ? 'career'
-      : oneOf(rest[0], ['dashboard', 'career', 'statistics', 'inventory'] as const) ?? 'dashboard'
+      : oneOf(rest[0], ['dashboard', 'career', 'statistics', 'inventory', 'equipment'] as const) ?? 'dashboard'
     return { kind: 'information', section, view }
   }
 
@@ -139,6 +139,13 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
   if (route.kind === 'information' && route.section === 'engineering' && route.view === 'blueprints' && route.selectedBlueprintSymbol) {
     parameters.set('symbol', route.selectedBlueprintSymbol)
   }
+  if (route.kind === 'information' && route.section === 'engineering' && route.view === 'project-new' && route.selectedBlueprintSymbol) {
+    parameters.set('blueprint', route.selectedBlueprintSymbol)
+  }
+  if (route.kind === 'information' && route.section === 'engineering' && route.view === 'project-add-blueprint') {
+    parameters.set('blueprint', route.selectedBlueprintSymbol)
+    if (route.selectedProjectId) parameters.set('project', route.selectedProjectId)
+  }
   const query = parameters.toString()
   return `#${path}${query ? `?${query}` : ''}`
 }
@@ -153,6 +160,11 @@ function informationPath(route: InformationRoute): string {
   }
   if (route.section === 'engineering' && route.view.startsWith('materials-')) {
     return `/engineering/materials/${route.view.slice('materials-'.length)}`
+  }
+  if (route.section === 'engineering') {
+    if (route.view === 'project-new') return '/engineering/projects/new'
+    if (route.view === 'project-detail') return `/engineering/projects/${route.selectedProjectId}`
+    if (route.view === 'project-add-blueprint') return '/engineering/projects/add-blueprint'
   }
   return `/${route.section}/${route.view}`
 }
@@ -219,6 +231,29 @@ function parseEngineeringRoute(rest: string[], query: RawRouteQuery): Informatio
   if (rest[0] === 'materials') {
     const material = oneOf(rest[1], ['raw', 'manufactured', 'encoded', 'xeno'] as const) ?? 'raw'
     return { kind: 'information', section: 'engineering', view: `materials-${material}` }
+  }
+  if (rest[0] === 'projects') {
+    if (rest[1] === 'new') {
+      return {
+        kind: 'information',
+        section: 'engineering',
+        view: 'project-new',
+        ...(query.blueprint?.trim() ? { selectedBlueprintSymbol: query.blueprint.trim() } : {})
+      }
+    }
+    if (rest[1] === 'add-blueprint') {
+      return query.blueprint?.trim()
+        ? {
+            kind: 'information',
+            section: 'engineering',
+            view: 'project-add-blueprint',
+            selectedBlueprintSymbol: query.blueprint.trim(),
+            ...(query.project?.trim() ? { selectedProjectId: query.project.trim() } : {})
+          }
+        : { kind: 'information', section: 'engineering', view: 'projects' }
+    }
+    if (rest[1]) return { kind: 'information', section: 'engineering', view: 'project-detail', selectedProjectId: rest[1] }
+    return { kind: 'information', section: 'engineering', view: 'projects' }
   }
   const view = oneOf(rest[0], ['projects', 'blueprints', 'engineers'] as const) ?? 'blueprints'
   if (view === 'blueprints') {

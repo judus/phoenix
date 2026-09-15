@@ -3,6 +3,7 @@ import {
   ActionTile,
   Breadcrumbs,
   Button,
+  CheckIcon,
   ControlContext,
   Field,
   Form,
@@ -528,7 +529,7 @@ function SaveQueryPanel ({ dashboardEligible, error, name, onCancel, onChange, o
     <Field htmlFor="saved-query-name" label="Saved query name" required>
       <TextInput autoFocus id="saved-query-name" maxLength={80} value={name} onChange={event => onChange(event.target.value)} />
     </Field>
-    <div>{dashboardEligible && <ToggleButton pressed={useOnDashboard} type="button" onClick={() => onDashboardChange(!useOnDashboard)}>Use on dashboard</ToggleButton>}<Button type="button" variant="outline" onClick={onCancel}>Cancel</Button><Button busy={saving} disabled={!name.trim()} type="button" variant="primary" onClick={onSave}>Save</Button></div>
+    <div>{dashboardEligible && <ToggleButton pressed={useOnDashboard} type="button" onClick={() => onDashboardChange(!useOnDashboard)}>Use on dashboard</ToggleButton>}<Button type="button" variant="outline" onClick={onCancel}>Cancel</Button><IconButton busy={saving} disabled={!name.trim()} label="Save query" type="button" variant="primary" onClick={onSave}><CheckIcon /></IconButton></div>
     {error && <Status tone="danger" wrap>{error}</Status>}
   </section>
 }

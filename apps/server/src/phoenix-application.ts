@@ -52,6 +52,8 @@ import { HealthService } from './application/health-service.js'
 import { ActivityLogService } from './application/activity-log-service.js'
 import { CommanderLogService } from './application/commander-log/commander-log-service.js'
 import { DefaultCommanderLogProjector } from './application/commander-log/commander-log-projector.js'
+import { CommanderEquipmentService } from './application/commander-equipment-service.js'
+import { DefaultCommanderEquipmentCatalogue } from './application/commander-equipment-catalogue.js'
 import { LoggedGameActions } from './application/logged-game-actions.js'
 import { DisplayCommandService } from './application/display-command-service.js'
 import { NavigationDataService } from './application/navigation-data-service.js'
@@ -228,6 +230,10 @@ export class PhoenixApplication {
         identifier => engineeringCatalogue.getBlueprint(identifier)?.displayName ?? null
       )
     )
+    const commanderEquipment = new CommanderEquipmentService(
+      this.database.commanderEquipment,
+      new DefaultCommanderEquipmentCatalogue()
+    )
     const projector = new DefaultRuntimeStateProjector(
       this.stateStore,
       runtimeStateUpdates,
@@ -271,6 +277,7 @@ export class PhoenixApplication {
       event => missions.ingest(event, 'live-journal'),
       event => communications.ingest(event),
       event => fleet.ingest(event),
+      event => commanderEquipment.ingest(event),
       event => commanderLog.ingest(event),
       event => activityLog.ingestJournal(event)
     ])
@@ -286,6 +293,7 @@ export class PhoenixApplication {
         missions.ingest(event, 'historical-journal')
         communications.ingest(event, 'historical')
         fleet.ingest(event)
+        commanderEquipment.ingest(event)
         commanderLog.ingest(event, 'historical')
         activityLog.ingestJournal(event, 'historical')
       },
@@ -482,6 +490,7 @@ export class PhoenixApplication {
       cartographyUpdates,
       commandCatalogue,
       communicationUpdates,
+      commanderEquipment,
       commanderLog,
       dashboardMarketSignals,
       controlDeckHttp: this.controlDeck.http,

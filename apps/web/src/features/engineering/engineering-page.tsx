@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react'
+import { useMemo } from 'react'
 import type {
   EngineeringBlueprintDetail,
   EngineeringBlueprintSummary,
@@ -6,38 +6,56 @@ import type {
   EngineeringMaterial
 } from '@phoenix/contracts'
 import {
-  Breadcrumbs,
+  Button,
   DataTable,
   DataTableGroup,
   DescriptionItem,
   DescriptionList,
   Meter,
   PageFrame,
-  PageHeader,
+  Section,
   Stack,
   Status,
   ThirdsGrid
 } from '@phoenix/ui'
 import { SystemLocationLink } from '../../components/system-location-link.js'
 import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
-import type { EngineeringControllerSnapshot, EngineeringView } from './use-engineering-controller.js'
-import { BlueprintProjectForm } from './blueprint-project-form.js'
+import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
+import type { EngineeringControllerSnapshot, EngineeringRoute, EngineeringView } from './use-engineering-controller.js'
+import { EngineeringAddBlueprintPage } from './engineering-add-blueprint-page.js'
+import { EngineeringHeader } from './engineering-header.js'
+import { engineeringProjectRoutes } from './engineering-navigation.js'
+import { EngineeringProjectDetailPage } from './engineering-project-detail-page.js'
+import { EngineeringProjectNewPage } from './engineering-project-new-page.js'
 import { EngineeringProjectsPage } from './engineering-projects-page.js'
 
-export function EngineeringPage({ controller, selectedBlueprintSymbol, view }: {
+export function EngineeringPage({ controller, onNavigate, route }: {
   controller: EngineeringControllerSnapshot
-  selectedBlueprintSymbol?: string
-  view: EngineeringView
+  onNavigate(route: PhoenixRoute): void
+  route: EngineeringRoute
 }) {
+  const { view } = route
   const title = pageTitle(view)
   if (controller.status === 'idle' || controller.status === 'loading') return <EngineeringState title={title} />
   if (controller.status === 'error') return <EngineeringState error={controller.error ?? 'Engineering data unavailable.'} title={title} />
-  if (view === 'projects') return <EngineeringProjectsPage actions={controller.actions} projects={controller.projects?.projects ?? []} watchlist={controller.watchlist} />
+  if (view === 'projects') return <EngineeringProjectsPage onNavigate={onNavigate} projects={controller.projects?.projects ?? []} watchlist={controller.watchlist} />
+  if (view === 'project-new') return <EngineeringProjectNewPage actions={controller.actions} onNavigate={onNavigate} selectedBlueprintSymbol={route.selectedBlueprintSymbol} />
+  if (view === 'project-detail') {
+    const project = controller.projects?.projects.find(candidate => candidate.id === route.selectedProjectId)
+    return project
+      ? <EngineeringProjectDetailPage actions={controller.actions} onNavigate={onNavigate} project={project} watchlist={controller.watchlist} />
+      : <EngineeringState error="Engineering project unavailable." title="Project" />
+  }
+  if (view === 'project-add-blueprint') {
+    return controller.blueprint
+      ? <EngineeringAddBlueprintPage actions={controller.actions} blueprint={controller.blueprint} onNavigate={onNavigate} projects={controller.projects?.projects ?? []} selectedProjectId={route.selectedProjectId} />
+      : <EngineeringState error="Engineering blueprint unavailable." title="Add blueprint" />
+  }
   if (view === 'engineers') return <Engineers engineers={controller.engineers?.engineers ?? []} />
   if (view.startsWith('materials-')) return <Materials materials={controller.materials?.materials ?? []} updatedAt={controller.materials?.updatedAt} view={view} />
-  if (selectedBlueprintSymbol) {
+  if (route.view === 'blueprints' && route.selectedBlueprintSymbol) {
     return controller.blueprint
-      ? <BlueprintDetail actions={controller.actions} blueprint={controller.blueprint} projects={controller.projects?.projects ?? []} />
+      ? <BlueprintDetail blueprint={controller.blueprint} onNavigate={onNavigate} />
       : <EngineeringState error="Engineering blueprint unavailable." title="Blueprint" />
   }
   return <Blueprints blueprints={controller.blueprints?.blueprints ?? []} />
@@ -47,7 +65,7 @@ function EngineeringState({ error, title }: { error?: string, title: string }) {
   return (
     <PageFrame aria-busy={!error}>
       <Stack gap="sm">
-        <EngineeringHeader title={title} />
+        <EngineeringHeader title={title} trail={[{ label: title }]} />
         <Status tone={error ? 'danger' : 'muted'}>{error ?? 'Loading engineering records…'}</Status>
       </Stack>
     </PageFrame>
@@ -58,7 +76,7 @@ function Engineers({ engineers }: { engineers: EngineeringEngineer[] }) {
   return (
     <PageFrame layout="fit">
       <Stack fill gap="sm">
-        <EngineeringHeader title="Engineers" />
+        <EngineeringHeader title="Engineers" trail={[{ label: 'Engineers' }]} />
         <Stack className="engineering-scroll-content" gap="sm">
           <EngineerGroup engineers={engineers.filter(engineer => engineer.state === 'unlocked')} title="Unlocked engineers" />
           <EngineerGroup engineers={engineers.filter(engineer => engineer.state === 'known')} title="Known / invited engineers" />
@@ -106,7 +124,7 @@ function Materials({ materials, updatedAt, view }: { materials: EngineeringMater
   return (
     <PageFrame layout="fit">
       <Stack fill gap="sm">
-        <EngineeringHeader status={updatedAt ? <UpdatedDateTime value={updatedAt} /> : undefined} title={pageTitle(view)} />
+        <EngineeringHeader status={updatedAt ? <UpdatedDateTime value={updatedAt} /> : undefined} title={pageTitle(view)} trail={[{ label: pageTitle(view) }]} />
         <Stack className="engineering-scroll-content" gap="sm">
           {materials.length === 0
             ? <Status tone="muted">No materials found.</Status>
@@ -145,7 +163,7 @@ function Blueprints({ blueprints }: { blueprints: EngineeringBlueprintSummary[] 
   return (
     <PageFrame layout="fit">
       <Stack fill gap="sm">
-        <EngineeringHeader title="Blueprints" />
+        <EngineeringHeader title="Blueprints" trail={[{ label: 'Blueprints' }]} />
         <BlueprintGroup blueprints={blueprints} title="Blueprints" />
       </Stack>
     </PageFrame>
@@ -170,19 +188,22 @@ function BlueprintGroup({ blueprints, title }: { blueprints: EngineeringBlueprin
   )
 }
 
-function BlueprintDetail({ actions, blueprint, projects }: {
-  actions?: EngineeringControllerSnapshot['actions']
+function BlueprintDetail({ blueprint, onNavigate }: {
   blueprint: EngineeringBlueprintDetail
-  projects: NonNullable<EngineeringControllerSnapshot['projects']>['projects']
+  onNavigate(route: PhoenixRoute): void
 }) {
   return (
     <PageFrame layout="fit">
       <Stack fill gap="sm">
-        <EngineeringHeader blueprint={blueprint} title={blueprint.name} />
+        <EngineeringHeader title={blueprint.name} trail={[{ label: 'Blueprints', href: '#/engineering/blueprints' }, { label: blueprint.name }]} />
         <Stack className="engineering-scroll-content" gap="sm">
-          <DataTableGroup title="Project plan">
-            <BlueprintProjectForm actions={actions} blueprint={blueprint} projects={projects} />
-          </DataTableGroup>
+          <Section
+            actions={<Button variant="primary" onClick={() => onNavigate(engineeringProjectRoutes.addBlueprint(blueprint.symbol))}>Add to project</Button>}
+            description="Plan this modification, its target grade, and expected rolls."
+            title="Project planning"
+          >
+            <Status tone="muted">Add this blueprint to an active engineering project.</Status>
+          </Section>
           <DataTableGroup title="Engineered equipment">
             {blueprint.appliedModules.length > 0
               ? <DataTable density="compact" label="Engineered equipment" narrow="priority" scheme="surface"><tbody>{blueprint.appliedModules.map(module => (
@@ -241,15 +262,11 @@ function BlueprintEngineers({ blueprint }: { blueprint: EngineeringBlueprintDeta
   )
 }
 
-function EngineeringHeader({ blueprint, status, title }: { blueprint?: EngineeringBlueprintDetail, status?: ReactNode, title: string }) {
-  const items = blueprint
-    ? [{ label: 'Engineering', href: '#/engineering/blueprints' }, { label: 'Blueprints', href: '#/engineering/blueprints' }, { label: title }]
-    : [{ label: 'Engineering', href: '#/engineering/blueprints' }, { label: title }]
-  return <PageHeader variant="cockpit" context={<Breadcrumbs items={title === 'Blueprints' ? [{ label: 'Engineering' }, { label: 'Blueprints' }] : items} />} status={status} title={title} />
-}
-
 function pageTitle(view: EngineeringView): string {
   if (view === 'projects') return 'Engineering projects'
+  if (view === 'project-new') return 'New project'
+  if (view === 'project-detail') return 'Project'
+  if (view === 'project-add-blueprint') return 'Add blueprint'
   if (view === 'blueprints') return 'Blueprints'
   if (view === 'engineers') return 'Engineers'
   return `${capitalize(view.slice('materials-'.length))} materials`

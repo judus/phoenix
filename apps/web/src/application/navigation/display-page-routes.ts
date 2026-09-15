@@ -6,6 +6,7 @@ const DISPLAY_PAGE_ROUTES = {
   'commander.career': { kind: 'information', section: 'commander', view: 'career' },
   'commander.statistics': { kind: 'information', section: 'commander', view: 'statistics' },
   'commander.inventory': { kind: 'information', section: 'commander', view: 'inventory' },
+  'commander.equipment': { kind: 'information', section: 'commander', view: 'equipment' },
   'fleet.current': { kind: 'information', section: 'fleet', view: 'current-overview' },
   'fleet.loadout': { kind: 'information', section: 'fleet', view: 'current-loadout' },
   'fleet.cargo': { kind: 'information', section: 'fleet', view: 'current-cargo' },

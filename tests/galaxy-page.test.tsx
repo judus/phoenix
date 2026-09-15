@@ -203,7 +203,7 @@ test('a configured query can be saved as a durable definition', async () => {
   })
   await act(async () => renderer.root.findAllByType('button').find(button => button.props.children === 'Save query')!.props.onClick())
   await act(async () => renderer.root.findByProps({ id: 'saved-query-name' }).props.onChange({ target: { value: 'Systems near Sol' } }))
-  await act(async () => renderer.root.findAllByType('button').find(button => button.props.children === 'Save')!.props.onClick())
+  await act(async () => renderer.root.findByProps({ 'aria-label': 'Save query' }).props.onClick())
 
   expect(saveGalaxyQuery).toHaveBeenCalledWith(expect.objectContaining({
     name: 'Systems near Sol',

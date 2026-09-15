@@ -17,6 +17,7 @@ import { useDashboardController } from './features/dashboard/use-dashboard-contr
 import { createCommanderViewModel } from './features/commander/commander-view-model.js'
 import type { CommanderView } from './features/commander/commander-page.js'
 import { commanderContextForRoute, commanderNavigationItems } from './features/commander/commander-navigation.js'
+import { useCommanderEquipmentController } from './features/commander/use-commander-equipment-controller.js'
 import { fleetContextForRoute, fleetNavigationItems } from './features/fleet/fleet-navigation.js'
 import { useFleetController } from './features/fleet/use-fleet-controller.js'
 import { galaxyContextForRoute, galaxyNavigationItems } from './features/galaxy/galaxy-navigation.js'
@@ -240,15 +241,13 @@ const EngineeringFeature = memo(function EngineeringFeature({ application, route
   route: Extract<ReturnType<PhoenixRouter['getSnapshot']>, { kind: 'information', section: 'engineering' }>
 }) {
   const runtime = useRuntimeState(application.runtime)
-  const selectedBlueprintSymbol = route.view === 'blueprints' ? route.selectedBlueprintSymbol : undefined
   const controller = useEngineeringController(
     application.api,
-    route.view,
-    selectedBlueprintSymbol,
+    route,
     runtime.status === 'ready' ? runtime.state.revision : undefined,
     application.events
   )
-  return <EngineeringPage controller={controller} selectedBlueprintSymbol={selectedBlueprintSymbol} view={route.view} />
+  return <EngineeringPage controller={controller} onNavigate={application.router.push} route={route} />
 })
 
 const CommsFeature = memo(function CommsFeature({ application, route }: {
@@ -311,11 +310,12 @@ const CommanderFeature = memo(function CommanderFeature({ application, view }: {
   view: CommanderView
 }) {
   const runtime = useRuntimeState(application.runtime)
+  const equipment = useCommanderEquipmentController(application.api, application.events, view === 'equipment')
   const model = useMemo(
     () => runtime.status === 'ready' ? createCommanderViewModel(runtime.state) : undefined,
     [runtime]
   )
-  return <CommanderPage model={model} runtime={runtime} view={view} />
+  return <CommanderPage equipment={equipment} model={model} runtime={runtime} view={view} />
 })
 
 const DashboardFeature = memo(function DashboardFeature({ application }: { application: PhoenixApplicationServices }) {

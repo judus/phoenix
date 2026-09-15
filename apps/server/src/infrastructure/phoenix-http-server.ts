@@ -67,6 +67,7 @@ import type { GalnetNewsReader } from '../domain/galnet.js'
 import type { NavigationDataReader } from '../application/navigation-data-service.js'
 import type { ActivityLogReader, EliteJournalDiagnosticsReader } from '../domain/elite-journal.js'
 import type { CommanderLogReader } from '../domain/commander-log.js'
+import type { CommanderEquipmentReader } from '../domain/commander-equipment.js'
 import type { EliteStatusDiagnosticsReader } from '../domain/elite-status.js'
 import type { Subscribable } from '../domain/publisher.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
@@ -105,6 +106,7 @@ export interface PhoenixHttpServerOptions {
   catalogueDiagnostics: CatalogueDiagnosticsReader
   cartographyUpdates: Subscribable<CartographyUpdate>
   commandCatalogue: CommandCatalogueSnapshots
+  commanderEquipment: CommanderEquipmentReader
   commanderLog: CommanderLogReader
   dashboardMarketSignals: DashboardMarketSignalReader
   controlDeckHttp?: ControlDeckHttpHandler
@@ -298,6 +300,11 @@ export class PhoenixHttpServer {
       this.writeJson(response, 200, this.options.commanderLog.getRecent(
         Number.isSafeInteger(requestedLimit) ? requestedLimit : 24
       ))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/commander/equipment') {
+      this.writeJson(response, 200, this.options.commanderEquipment.getEquipment())
       return
     }
 

@@ -11,14 +11,19 @@ import {
 import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
 import type { CommanderViewModel } from './commander-view-model.js'
+import { CommanderEquipmentPage } from './commander-equipment-page.js'
+import type { CommanderEquipmentControllerSnapshot } from './use-commander-equipment-controller.js'
 
-export type CommanderView = 'career' | 'statistics' | 'inventory'
+export type CommanderView = 'career' | 'statistics' | 'inventory' | 'equipment'
 
-export function CommanderPage({ model, runtime, view }: {
+export function CommanderPage({ equipment, model, runtime, view }: {
+  equipment?: CommanderEquipmentControllerSnapshot
   model?: CommanderViewModel
   runtime: RuntimeStateSnapshot
   view: CommanderView
 }) {
+  if (view === 'equipment') return <CommanderEquipmentPage controller={equipment ?? { status: 'idle' }} />
+
   if (runtime.status !== 'ready' || !model) {
     return (
       <PageFrame className="commander-page" layout="fit" aria-busy={runtime.status !== 'error'}>
@@ -46,7 +51,7 @@ export function CommanderPage({ model, runtime, view }: {
   )
 }
 
-function CommanderHeader({ model, view }: { model?: CommanderViewModel, view: CommanderView }) {
+function CommanderHeader({ model, view }: { model?: CommanderViewModel, view: Exclude<CommanderView, 'equipment'> }) {
   const section = view === 'career' ? 'Career' : view === 'statistics' ? 'Lifetime Statistics' : 'Personal Stores'
 
   return (

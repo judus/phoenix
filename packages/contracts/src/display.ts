@@ -5,6 +5,7 @@ export const DISPLAY_PAGE_IDS = [
   'commander.career',
   'commander.statistics',
   'commander.inventory',
+  'commander.equipment',
   'fleet.current',
   'fleet.loadout',
   'fleet.cargo',

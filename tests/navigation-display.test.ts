@@ -61,6 +61,7 @@ test.each([
   ['current route', 'galaxy.route'],
   ['show me the current route', 'galaxy.route'],
   ['open the personal stores page', 'commander.inventory'],
+  ['gear', 'commander.equipment'],
   ['please take me to GalNet Radio', 'comms.radio']
 ] as const)('display page catalogue resolves %s without exposing browser routes', (request, pageId) => {
   expect(resolveDisplayPage(request).id).toBe(pageId)

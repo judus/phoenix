@@ -16,6 +16,7 @@ export const PHOENIX_NAVIGATION_DESTINATIONS: readonly NavigationCommandDestinat
   destination('commander.career', 'Career', '#/commander/career', 'Commander', 'Open commander career progression and reputation.'),
   destination('commander.statistics', 'Statistics', '#/commander/statistics', 'Commander', 'Open commander lifetime statistics.'),
   destination('commander.inventory', 'Inventory', '#/commander/inventory', 'Commander', 'Open commander inventory.'),
+  destination('commander.equipment', 'Equipment', '#/commander/equipment', 'Commander', 'Open observed suits, weapons, and suit loadouts.'),
   destination('fleet.overview', 'Fleet overview', '#/fleet/overview', 'Fleet', 'Open fleet overview.'),
   destination('fleet.current', 'Current ship', '#/fleet/current/overview', 'Fleet', 'Open the current ship overview.'),
   destination('fleet.current-loadout', 'Current loadout', '#/fleet/ships/current/loadout', 'Fleet', 'Open the current ship loadout.'),

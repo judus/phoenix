@@ -23,7 +23,7 @@ export type InformationPrimarySection =
 export { GALAXY_QUERY_IDS, type GalaxyQueryId } from '@phoenix/contracts'
 
 export type InformationRoute =
-  | { kind: 'information', section: 'commander', view: 'dashboard' | 'career' | 'statistics' | 'inventory' }
+  | { kind: 'information', section: 'commander', view: 'dashboard' | 'career' | 'statistics' | 'inventory' | 'equipment' }
   | { kind: 'information', section: 'fleet', view: 'overview' | 'current-overview' | 'current-loadout' | 'current-cargo' | 'current-engineering' | 'carriers' | 'stored-modules' }
   | { kind: 'information', section: 'fleet', view: 'catalogue', selectedShipId?: string }
   | { kind: 'information', section: 'galaxy', view: 'system', systemName?: string, selectedName?: string }
@@ -35,6 +35,9 @@ export type InformationRoute =
   | { kind: 'information', section: 'activities', view: 'missions' | 'objectives' | 'community-goals' | 'powerplay' | 'colonisation' }
   | { kind: 'information', section: 'engineering', view: 'blueprints', selectedBlueprintSymbol?: string }
   | { kind: 'information', section: 'engineering', view: 'projects' | 'engineers' | 'materials-raw' | 'materials-manufactured' | 'materials-encoded' | 'materials-xeno' }
+  | { kind: 'information', section: 'engineering', view: 'project-new', selectedBlueprintSymbol?: string }
+  | { kind: 'information', section: 'engineering', view: 'project-detail', selectedProjectId: string }
+  | { kind: 'information', section: 'engineering', view: 'project-add-blueprint', selectedBlueprintSymbol: string, selectedProjectId?: string }
   | { kind: 'information', section: 'comms', view: 'inbox' | 'traffic' | 'contacts' | 'galnet' | 'radio' }
 
 export type PhoenixRoute =

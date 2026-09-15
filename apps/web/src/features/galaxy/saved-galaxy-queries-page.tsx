@@ -3,17 +3,19 @@ import {
   Breadcrumbs,
   Button,
   DataTableGroup,
+  IconButton,
   PageFrame,
   PageHeader,
+  PencilIcon,
   SortableDataTable,
   Status,
+  TrashIcon,
   type SortableDataTableColumn
 } from '@phoenix/ui'
 import type { SavedGalaxyQuery } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { createClientId } from '../../application/identity/client-identity.js'
 import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
-import { formatPhoenixDateTime } from '../../components/phoenix-date-time.js'
 import { GALAXY_QUERY_CATALOGUE } from './galaxy-query-catalogue.js'
 
 export function SavedGalaxyQueriesPage({ api, onNavigate }: {
@@ -50,12 +52,6 @@ export function SavedGalaxyQueriesPage({ api, onNavigate }: {
       sortValue: query => queryDefinition(query).title
     },
     {
-      cell: query => queryDefinition(query).domain,
-      heading: 'Domain',
-      id: 'domain',
-      sortValue: query => queryDefinition(query).domain
-    },
-    {
       cell: query => scalar(query.parameters.origin) || '—',
       heading: 'Origin',
       id: 'origin',
@@ -68,23 +64,17 @@ export function SavedGalaxyQueriesPage({ api, onNavigate }: {
       sortValue: query => query.useOnDashboard ? 1 : 0
     },
     {
-      cell: query => formatPhoenixDateTime(query.updatedAt),
-      heading: 'Updated',
-      id: 'updated',
-      sortValue: query => Date.parse(query.updatedAt)
-    },
-    {
       cell: query => <div className="saved-query-actions">
         <Button size="sm" variant="accent" onClick={() => onNavigate(savedQueryRoute(query, true))}>Run</Button>
-        <Button size="sm" variant="outline" onClick={() => onNavigate(savedQueryRoute(query, false))}>Edit</Button>
-        <Button busy={deleting === query.id} size="sm" variant="danger" onClick={() => {
+        <IconButton label={`Edit ${query.name}`} size="sm" variant="outline" onClick={() => onNavigate(savedQueryRoute(query, false))}><PencilIcon /></IconButton>
+        <IconButton busy={deleting === query.id} label={`Delete ${query.name}`} size="sm" variant="danger" onClick={() => {
           setDeleting(query.id)
           setError(undefined)
           void api.deleteGalaxyQuery(query.id)
             .then(() => setQueries(current => current?.filter(candidate => candidate.id !== query.id)))
             .catch(cause => setError(cause instanceof Error ? cause.message : 'Saved query could not be deleted.'))
             .finally(() => setDeleting(undefined))
-        }}>Delete</Button>
+        }}><TrashIcon /></IconButton>
       </div>,
       className: 'col-fit',
       heading: 'Actions',

@@ -41,10 +41,12 @@ import { edsmBodyDetails } from './edsm-cartography-source.js'
 import { ensurePrivateDirectorySync, restrictPrivateFileSync } from './private-user-state.js'
 import { parseStoredCartographyObservation, upgradeStoredCartographyObservation } from './stored-cartography-observation.js'
 import { SqliteCommanderLogRepository } from './sqlite-commander-log-repository.js'
+import { SqliteCommanderEquipmentRepository } from './sqlite-commander-equipment-repository.js'
 import { SqliteEngineeringProjectRepository } from './sqlite-engineering-project-repository.js'
 import { SqliteSavedGalaxyQueryRepository } from './sqlite-saved-galaxy-query-repository.js'
 
 export class SqliteDatabase implements Database, CartographyRepository, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository, CommunicationRepository, FleetRepository, GalaxyBookmarkRepository {
+  public readonly commanderEquipment: SqliteCommanderEquipmentRepository
   public readonly commanderLog: SqliteCommanderLogRepository
   public readonly engineeringProjects: SqliteEngineeringProjectRepository
   public readonly savedGalaxyQueries: SqliteSavedGalaxyQueryRepository
@@ -55,6 +57,7 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     this.path = path
     if (path !== ':memory:') ensurePrivateDirectorySync(dirname(path))
     this.connection = new DatabaseSync(path)
+    this.commanderEquipment = new SqliteCommanderEquipmentRepository(this.connection)
     this.commanderLog = new SqliteCommanderLogRepository(this.connection)
     this.engineeringProjects = new SqliteEngineeringProjectRepository(this.connection)
     this.savedGalaxyQueries = new SqliteSavedGalaxyQueryRepository(this.connection)
@@ -235,6 +238,8 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     this.migrateCartographicBodyAttribution()
     this.migrateCartographicBodyDetails()
     this.migrateGalaxyBookmarks()
+    const equipmentProjectionCreated = this.commanderEquipment.initialize()
+    if (equipmentProjectionCreated) this.connection.exec('DELETE FROM elite_journal_checkpoints;')
     this.commanderLog.initialize()
     this.engineeringProjects.initialize()
     this.savedGalaxyQueries.initialize()
