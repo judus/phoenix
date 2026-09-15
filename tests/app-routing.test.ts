@@ -26,6 +26,7 @@ describe('PHOENIX route parsing and generation', () => {
     ['#/commander/inventory', { kind: 'information', section: 'commander', view: 'inventory' }, 'info'],
     ['#/commander/loadouts', { kind: 'information', section: 'commander', view: 'loadouts' }, 'info'],
     ['#/equipment/gear', { kind: 'information', section: 'equipment', view: 'gear' }, 'info'],
+    ['#/equipment/upgrades?id=weapon_range_kinetic', { kind: 'information', section: 'equipment', view: 'upgrades', selectedUpgradeId: 'weapon_range_kinetic' }, 'info'],
     ['#/equipment/materials', { kind: 'information', section: 'equipment', view: 'materials' }, 'info'],
     ['#/fleet/ships/current/loadout', { kind: 'information', section: 'fleet', view: 'current-loadout' }, 'info'],
     ['#/fleet/ships/current/engineering', { kind: 'information', section: 'fleet', view: 'current-engineering' }, 'info'],

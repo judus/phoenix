@@ -28,7 +28,8 @@ PHOENIX can fetch and locally normalize ship, module, and engineering catalogue 
 
 - [EDCD Coriolis Data](https://github.com/EDCD/coriolis-data), for ship and engineering-blueprint data;
 - [EDCD FDevIDs](https://github.com/EDCD/FDevIDs), for ship, outfitting, material, and engineer identifiers;
-- [EDSM](https://www.edsm.net/), for resolving engineer-system names and coordinates.
+- [EDSM](https://www.edsm.net/), for resolving engineer-system names and coordinates;
+- [Elite Dangerous Almanac](https://github.com/DarkSession/Elite-Dangerous-Almanac), for a pinned personal-equipment, upgrade-recipe, modification, and micro-resource source revision. The Almanac repository is licensed under AGPL-3.0-or-later and identifies Odyssey Materials Helper as the upstream recipe lineage.
 
 PHOENIX does not distribute those upstream catalogue snapshots. The fetcher stores them in the user's writable runtime-data directory. Exact upstream revisions and refresh timestamps are recorded in that local snapshot's `manifest.json`.
 
@@ -37,3 +38,7 @@ The Coriolis Data license states that its Elite Dangerous data and associated JS
 Elite Dangerous, its names, identifiers, and game data are trademarks or intellectual property of Frontier Developments plc. PHOENIX is an unofficial fan-made companion project and is not endorsed by or affiliated with Frontier Developments.
 
 PHOENIX records the source and revision of each locally fetched catalogue where that information is available. Locally inferred display labels are marked as inferred rather than attributed to either catalogue.
+
+## JSONC Parser
+
+PHOENIX's catalogue refresh utility includes `jsonc-parser` by Microsoft to read the pinned Almanac source documents. It is licensed under the MIT License. The complete license is included in `licenses/jsonc-parser-MIT.txt`.

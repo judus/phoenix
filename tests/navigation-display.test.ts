@@ -63,6 +63,7 @@ test.each([
   ['open the personal stores page', 'commander.inventory'],
   ['loadouts', 'commander.loadouts'],
   ['gear', 'equipment.gear'],
+  ['suit upgrades', 'equipment.upgrades'],
   ['on-foot materials', 'equipment.materials'],
   ['please take me to GalNet Radio', 'comms.radio']
 ] as const)('display page catalogue resolves %s without exposing browser routes', (request, pageId) => {

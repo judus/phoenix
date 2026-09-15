@@ -2,12 +2,13 @@ import { Breadcrumbs, PageFrame, PageHeader, Status } from '@phoenix/ui'
 import type { ReactNode } from 'react'
 import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
 
-export function EquipmentPageLayout({ busy = false, children, error, loadingMessage, title, updatedAt }: {
+export function EquipmentPageLayout({ busy = false, children, error, loadingMessage, title, trail, updatedAt }: {
   busy?: boolean
   children?: ReactNode
   error?: string
   loadingMessage?: string
   title: string
+  trail?: Array<{ label: string, href?: string }>
   updatedAt?: string | null
 }) {
   return (
@@ -15,7 +16,7 @@ export function EquipmentPageLayout({ busy = false, children, error, loadingMess
       <div className="record-page-layout">
         <PageHeader
           variant="cockpit"
-          context={<Breadcrumbs items={[{ label: 'Equipment', href: '#/equipment/gear' }, { label: title }]} />}
+          context={<Breadcrumbs items={[{ label: 'Equipment', href: '#/equipment/gear' }, ...(trail ?? [{ label: title }])]} />}
           title={title}
           status={updatedAt ? <UpdatedDateTime value={updatedAt} /> : undefined}
         />

@@ -97,8 +97,10 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
   if (section === 'engineering') return parseEngineeringRoute(rest, query)
 
   if (section === 'equipment') {
-    const view = oneOf(rest[0], ['gear', 'materials'] as const) ?? 'gear'
-    return { kind: 'information', section, view }
+    const view = oneOf(rest[0], ['gear', 'upgrades', 'materials'] as const) ?? 'gear'
+    return view === 'upgrades'
+      ? { kind: 'information', section, view, ...(query.id?.trim() ? { selectedUpgradeId: query.id.trim() } : {}) }
+      : { kind: 'information', section, view }
   }
 
   if (section === 'comms') {
@@ -150,6 +152,9 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
   if (route.kind === 'information' && route.section === 'engineering' && route.view === 'project-add-blueprint') {
     parameters.set('blueprint', route.selectedBlueprintSymbol)
     if (route.selectedProjectId) parameters.set('project', route.selectedProjectId)
+  }
+  if (route.kind === 'information' && route.section === 'equipment' && route.view === 'upgrades' && route.selectedUpgradeId) {
+    parameters.set('id', route.selectedUpgradeId)
   }
   const query = parameters.toString()
   return `#${path}${query ? `?${query}` : ''}`

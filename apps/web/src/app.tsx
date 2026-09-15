@@ -20,6 +20,7 @@ import { commanderContextForRoute, commanderNavigationItems } from './features/c
 import { equipmentContextForRoute, equipmentNavigationItems } from './features/equipment/equipment-navigation.js'
 import { usePersonalEquipmentController } from './features/equipment/use-personal-equipment-controller.js'
 import { usePersonalMaterialsController } from './features/equipment/use-personal-materials-controller.js'
+import { usePersonalEquipmentUpgradesController } from './features/equipment/use-personal-equipment-upgrades-controller.js'
 import { fleetContextForRoute, fleetNavigationItems } from './features/fleet/fleet-navigation.js'
 import { useFleetController } from './features/fleet/use-fleet-controller.js'
 import { galaxyContextForRoute, galaxyNavigationItems } from './features/galaxy/galaxy-navigation.js'
@@ -49,6 +50,7 @@ const DashboardPage = lazy(() => import('./features/dashboard/dashboard-page.js'
 const EngineeringPage = lazy(() => import('./features/engineering/engineering-page.js').then(module => ({ default: module.EngineeringPage })))
 const EquipmentPage = lazy(() => import('./features/equipment/equipment-page.js').then(module => ({ default: module.EquipmentPage })))
 const EquipmentMaterialsPage = lazy(() => import('./features/equipment/equipment-materials-page.js').then(module => ({ default: module.EquipmentMaterialsPage })))
+const EquipmentUpgradesPage = lazy(() => import('./features/equipment/equipment-upgrades-page.js').then(module => ({ default: module.EquipmentUpgradesPage })))
 const FleetPage = lazy(() => import('./features/fleet/fleet-page.js').then(module => ({ default: module.FleetPage })))
 const GalaxyPage = lazy(() => import('./features/galaxy/galaxy-page.js').then(module => ({ default: module.GalaxyPage })))
 const HelpPage = lazy(() => import('./features/settings/help-page.js').then(module => ({ default: module.HelpPage })))
@@ -173,7 +175,11 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
                       : engineeringRoute
                         ? <EngineeringFeature key={router.href(engineeringRoute)} application={application} route={engineeringRoute} />
                         : equipmentRoute
-                          ? <PersonalEquipmentFeature application={application} view={equipmentRoute.view} />
+                          ? <PersonalEquipmentFeature
+                              application={application}
+                              selectedUpgradeId={equipmentRoute.view === 'upgrades' ? equipmentRoute.selectedUpgradeId : undefined}
+                              view={equipmentRoute.view}
+                            />
                         : null}</FeatureBoundary>
         : null}
       journal={activeDesktop === 'journal'
@@ -333,13 +339,16 @@ const CommanderFeature = memo(function CommanderFeature({ application, view }: {
   return <CommanderPage model={model} runtime={runtime} view={view} />
 })
 
-const PersonalEquipmentFeature = memo(function PersonalEquipmentFeature({ application, view }: {
+const PersonalEquipmentFeature = memo(function PersonalEquipmentFeature({ application, selectedUpgradeId, view }: {
   application: PhoenixApplicationServices
-  view: 'gear' | 'loadouts' | 'materials'
+  selectedUpgradeId?: string
+  view: 'gear' | 'loadouts' | 'materials' | 'upgrades'
 }) {
-  const equipment = usePersonalEquipmentController(application.api, application.events, view !== 'materials')
+  const equipment = usePersonalEquipmentController(application.api, application.events, view === 'gear' || view === 'loadouts')
   const materials = usePersonalMaterialsController(application.api, application.events, view === 'materials')
+  const upgrades = usePersonalEquipmentUpgradesController(application.api, view === 'upgrades')
   if (view === 'materials') return <EquipmentMaterialsPage controller={materials} />
+  if (view === 'upgrades') return <EquipmentUpgradesPage controller={upgrades} selectedUpgradeId={selectedUpgradeId} />
   return view === 'gear'
     ? <EquipmentPage controller={equipment} />
     : <CommanderLoadoutsPage controller={equipment} />

@@ -27,6 +27,17 @@ copy('scripts/catalogue')
 copy('scripts/package/launcher.mjs')
 copy('package.json')
 
+await build({
+  bundle: true,
+  entryPoints: [resolve(projectRoot, 'scripts/catalogue/refresh.mjs')],
+  format: 'esm',
+  legalComments: 'none',
+  logLevel: 'warning',
+  outfile: resolve(outputRoot, 'scripts/catalogue/refresh.mjs'),
+  platform: 'node',
+  target: 'node24'
+})
+
 const serverEntrypoint = resolve(outputRoot, 'apps/server/dist/main.js')
 mkdirSync(dirname(serverEntrypoint), { recursive: true })
 await build({

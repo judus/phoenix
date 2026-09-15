@@ -1,5 +1,6 @@
 export * from './catalogue/json-game-catalogue.js'
 export * from './engineering/json-engineering-catalogue.js'
+export * from './engineering/json-personal-equipment-catalogue.js'
 export * from './inventory/elite-inventory-file-source.js'
 export * from './inventory/elite-inventory-parser.js'
 export * from './journal/elite-journal-file-source.js'

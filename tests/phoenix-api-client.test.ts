@@ -187,6 +187,27 @@ test('personal material transport validates the server-owned inventory read mode
   expect(request.mock.calls[0]?.[0]).toBe('/api/equipment/materials')
 })
 
+test('personal equipment upgrade transport validates source-recorded recipes', async () => {
+  const request = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({
+    schemaVersion: 1,
+    catalogueVersion: 'revision',
+    generatedAt: '2026-09-15T00:00:00.000Z',
+    sources: [{
+      name: 'Test catalogue',
+      repository: 'https://example.invalid/catalogue',
+      revision: 'revision',
+      license: 'CC0-1.0',
+      retrievedAt: '2026-09-15T00:00:00.000Z'
+    }],
+    gradeUpgradePaths: [],
+    modifications: []
+  }))
+
+  await expect(new PhoenixApiClient('', request).getPersonalEquipmentUpgrades())
+    .resolves.toMatchObject({ schemaVersion: 1, catalogueVersion: 'revision' })
+  expect(request.mock.calls[0]?.[0]).toBe('/api/equipment/upgrades')
+})
+
 function jsonResponse(payload: unknown): Response {
   return new Response(JSON.stringify(payload), {
     headers: { 'content-type': 'application/json' },

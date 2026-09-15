@@ -10,12 +10,14 @@ test('loads one complete catalogue snapshot without an implicit fallback', () =>
 
   expect(snapshot.game.getDiagnostics()).toMatchObject({ shipCount: 3, moduleCount: 6 })
   expect(snapshot.engineering.listMaterials()).toHaveLength(1)
+  expect(snapshot.personalEquipment.getSnapshot().equipmentDefinitions).toHaveLength(1)
 })
 
 function paths (directory: string) {
   return {
     commodities: join(directory, 'commodities.json'),
     engineeringDirectory: join(directory, 'engineering'),
+    personalEquipment: join(directory, 'personal-equipment.json'),
     ships: join(directory, 'ships.json'),
     modules: join(directory, 'modules.json')
   }

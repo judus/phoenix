@@ -52,6 +52,7 @@ try {
     engineeringCatalogueDirectory: resolve(catalogueDirectory, 'engineering'),
     commodityCataloguePath: resolve(catalogueDirectory, 'commodities.json'),
     moduleCataloguePath: resolve(catalogueDirectory, 'modules.json'),
+    personalEquipmentCataloguePath: resolve(catalogueDirectory, 'personal-equipment.json'),
     shipCataloguePath: resolve(catalogueDirectory, 'ships.json')
   })
   const address = await application.start()

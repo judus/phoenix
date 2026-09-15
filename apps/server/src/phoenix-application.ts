@@ -55,6 +55,7 @@ import { DefaultCommanderLogProjector } from './application/commander-log/comman
 import { CommanderEquipmentService } from './application/commander-equipment-service.js'
 import { DefaultCommanderEquipmentCatalogue } from './application/commander-equipment-catalogue.js'
 import { PersonalMaterialInventoryService } from './application/personal-material-inventory-service.js'
+import { PersonalEquipmentUpgradesService } from './application/personal-equipment-upgrades-service.js'
 import { LoggedGameActions } from './application/logged-game-actions.js'
 import { DisplayCommandService } from './application/display-command-service.js'
 import { NavigationDataService } from './application/navigation-data-service.js'
@@ -144,6 +145,7 @@ export interface PhoenixApplicationOptions {
   openAiEnvironmentKey?: string | null
   macroRepository?: MacroRepository
   port?: number
+  personalEquipmentCataloguePath?: string
   shipCataloguePath?: string
   stationSearchSource?: StationSearchSource
   shipyardSearchSource?: ShipyardSearchSource
@@ -207,6 +209,8 @@ export class PhoenixApplication {
       commodities: resolveProjectPath(projectRoot,
         options.commodityCataloguePath ?? process.env.PHOENIX_COMMODITY_CATALOGUE_PATH ?? resolve(runtimeCatalogueDirectory, 'commodities.json')),
       engineeringDirectory: engineeringCatalogueDirectory,
+      personalEquipment: resolveProjectPath(projectRoot,
+        options.personalEquipmentCataloguePath ?? process.env.PHOENIX_PERSONAL_EQUIPMENT_CATALOGUE_PATH ?? resolve(runtimeCatalogueDirectory, 'personal-equipment.json')),
       ships: resolveProjectPath(projectRoot,
         options.shipCataloguePath ?? process.env.PHOENIX_SHIP_CATALOGUE_PATH ?? resolve(runtimeCatalogueDirectory, 'ships.json')),
       modules: resolveProjectPath(projectRoot,
@@ -214,6 +218,7 @@ export class PhoenixApplication {
     })
     const gameCatalogue = catalogues.game
     const engineeringCatalogue = catalogues.engineering
+    const personalEquipmentUpgrades = new PersonalEquipmentUpgradesService(catalogues.personalEquipment)
     const fleet = new FleetDataService(
       this.database,
       {
@@ -534,6 +539,7 @@ export class PhoenixApplication {
       galaxyData: stationMarkets,
       marketSignals,
       personalMaterials,
+      personalEquipmentUpgrades,
       galnet,
       navigationData,
       navigationRouteUpdates,

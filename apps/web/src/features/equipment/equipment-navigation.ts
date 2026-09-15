@@ -6,11 +6,13 @@ type EquipmentNavigationItem = NavigationItem & { route: InformationRoute }
 
 const routes = {
   gear: { kind: 'information', section: 'equipment', view: 'gear' },
+  upgrades: { kind: 'information', section: 'equipment', view: 'upgrades' },
   materials: { kind: 'information', section: 'equipment', view: 'materials' }
 } as const satisfies Record<string, InformationRoute>
 
 export const equipmentNavigationItems: EquipmentNavigationItem[] = [
   item('gear', 'Gear', 'GEA'),
+  item('upgrades', 'Upgrades', 'UPG'),
   item('materials', 'Materials', 'MAT')
 ]
 

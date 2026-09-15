@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "catalogueVersion": "0000000000000000000000000000000000000000",
+  "generatedAt": "2026-09-15T00:00:00.000Z",
+  "sources": [
+    {
+      "name": "Synthetic PHOENIX test catalogue",
+      "repository": "https://example.invalid/phoenix-test-catalogue",
+      "revision": "0000000000000000000000000000000000000000",
+      "license": "CC0-1.0",
+      "paths": ["synthetic.json"],
+      "retrievedAt": "2026-09-15T00:00:00.000Z"
+    }
+  ],
+  "equipmentDefinitions": [
+    {
+      "id": "test-suit",
+      "kind": "suit",
+      "displayName": "Test Suit",
+      "frontierSymbols": ["test_suit_class1", "test_suit_class2"],
+      "upgradeFamilyId": "test-suit",
+      "engineeringTechnology": null,
+      "grades": [
+        { "grade": 1, "modificationSlots": 0 },
+        { "grade": 2, "modificationSlots": 1 }
+      ]
+    }
+  ],
+  "gradeUpgradeRecipes": [
+    {
+      "id": "grade:suit:test-suit:1-2",
+      "targetKind": "suit",
+      "targetId": "test-suit",
+      "fromGrade": 1,
+      "toGrade": 2,
+      "resultingModificationSlots": 1,
+      "credits": null,
+      "ingredients": [{ "materialId": "test-material", "count": 2 }]
+    }
+  ],
+  "modifications": [
+    {
+      "id": "suit_test",
+      "journalSymbols": ["suit_test"],
+      "displayName": "Test Modification",
+      "targetKind": "suit",
+      "engineeringTechnology": null,
+      "engineers": ["Test Engineer"],
+      "credits": null,
+      "ingredients": [{ "materialId": "test-material", "count": 1 }]
+    }
+  ],
+  "microResources": [
+    {
+      "id": "test-material",
+      "displayName": "Test Material",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    }
+  ]
+}

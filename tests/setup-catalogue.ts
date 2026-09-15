@@ -7,3 +7,4 @@ delete process.env.OPENAI_API_KEY
 process.env.PHOENIX_SHIP_CATALOGUE_PATH = resolve(directory, 'ships.json')
 process.env.PHOENIX_MODULE_CATALOGUE_PATH = resolve(directory, 'modules.json')
 process.env.PHOENIX_ENGINEERING_CATALOGUE_PATH = resolve(directory, 'engineering')
+process.env.PHOENIX_PERSONAL_EQUIPMENT_CATALOGUE_PATH = resolve(directory, 'personal-equipment.json')

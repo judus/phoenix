@@ -8,6 +8,7 @@ const DISPLAY_PAGE_ROUTES = {
   'commander.inventory': { kind: 'information', section: 'commander', view: 'inventory' },
   'commander.loadouts': { kind: 'information', section: 'commander', view: 'loadouts' },
   'equipment.gear': { kind: 'information', section: 'equipment', view: 'gear' },
+  'equipment.upgrades': { kind: 'information', section: 'equipment', view: 'upgrades' },
   'equipment.materials': { kind: 'information', section: 'equipment', view: 'materials' },
   'fleet.current': { kind: 'information', section: 'fleet', view: 'current-overview' },
   'fleet.loadout': { kind: 'information', section: 'fleet', view: 'current-loadout' },

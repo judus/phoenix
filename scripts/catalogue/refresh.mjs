@@ -2,11 +2,16 @@ import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { selectJournalModuleRows } from './select-journal-module-rows.mjs'
+import {
+  buildPersonalEquipmentCatalogue,
+  PERSONAL_EQUIPMENT_SOURCE
+} from './build-personal-equipment-catalogue.mjs'
 
 const projectRoot = resolve(import.meta.dirname, '../..')
 const repositories = {
   fdevids: { owner: 'EDCD', name: 'FDevIDs', branch: 'master' },
-  coriolis: { owner: 'EDCD', name: 'coriolis-data', branch: 'master' }
+  coriolis: { owner: 'EDCD', name: 'coriolis-data', branch: 'master' },
+  almanac: { owner: 'DarkSession', name: 'Elite-Dangerous-Almanac' }
 }
 const coreNames = ['Power Plant', 'Thrusters', 'Frame Shift Drive', 'Life Support', 'Power Distributor', 'Sensors', 'Fuel Tank']
 
@@ -24,14 +29,14 @@ const revisions = {
   coriolis: await latestRevision(repositories.coriolis)
 }
 const currentManifest = await readJsonIfPresent(manifestPath)
-if (!options.force && currentManifest?.schemaVersion === 2 && currentManifest?.sources?.fdevids === revisions.fdevids && currentManifest?.sources?.coriolis === revisions.coriolis) {
+if (!options.force && currentManifest?.schemaVersion === 3 && currentManifest?.sources?.fdevids === revisions.fdevids && currentManifest?.sources?.coriolis === revisions.coriolis && currentManifest?.sources?.personalEquipment === PERSONAL_EQUIPMENT_SOURCE.revision && await fileExists(join(outputDirectory, 'personal-equipment.json'))) {
   await writeJsonAtomic(manifestPath, { ...currentManifest, checkedAt: new Date().toISOString() })
   console.log('Catalogue sources are already current.')
   process.exit(0)
 }
 
-console.log(`Refreshing catalogues from FDevIDs ${short(revisions.fdevids)} and Coriolis ${short(revisions.coriolis)}…`)
-const [outfittingCsv, commodityCsv, rareCommodityCsv, materialsCsv, engineersCsv, shipyardCsv, blueprintsSource, modifications, blueprintModules, shipPaths] = await Promise.all([
+console.log(`Refreshing catalogues from FDevIDs ${short(revisions.fdevids)}, Coriolis ${short(revisions.coriolis)}, and Almanac ${short(PERSONAL_EQUIPMENT_SOURCE.revision)}…`)
+const [outfittingCsv, commodityCsv, rareCommodityCsv, materialsCsv, engineersCsv, shipyardCsv, blueprintsSource, modifications, blueprintModules, shipPaths, personalEquipmentDocuments] = await Promise.all([
   rawText(repositories.fdevids, revisions.fdevids, 'outfitting.csv'),
   rawText(repositories.fdevids, revisions.fdevids, 'commodity.csv'),
   rawText(repositories.fdevids, revisions.fdevids, 'rare_commodity.csv'),
@@ -41,7 +46,11 @@ const [outfittingCsv, commodityCsv, rareCommodityCsv, materialsCsv, engineersCsv
   rawJson(repositories.coriolis, revisions.coriolis, 'modifications/blueprints.json'),
   rawJson(repositories.coriolis, revisions.coriolis, 'modifications/modifications.json'),
   rawJson(repositories.coriolis, revisions.coriolis, 'modifications/modules.json'),
-  repositoryPaths(repositories.coriolis, revisions.coriolis, /^ships\/[^/]+\.json$/u)
+  repositoryPaths(repositories.coriolis, revisions.coriolis, /^ships\/[^/]+\.json$/u),
+  Promise.all(PERSONAL_EQUIPMENT_SOURCE.paths.map(async path => [
+    path,
+    await rawText(repositories.almanac, PERSONAL_EQUIPMENT_SOURCE.revision, path)
+  ])).then(Object.fromEntries)
 ])
 const shipFiles = await mapConcurrent(shipPaths, 8, async path => [path, await rawJson(repositories.coriolis, revisions.coriolis, path)])
 
@@ -51,29 +60,37 @@ const materials = parseCsv(materialsCsv)
 const engineerRows = parseCsv(engineersCsv)
 const shipyard = parseCsv(shipyardCsv)
 const generatedAt = new Date().toISOString()
+const personalEquipment = buildPersonalEquipmentCatalogue(personalEquipmentDocuments, generatedAt)
 const blueprints = buildBlueprints(blueprintsSource, modifications, blueprintModules)
 const engineers = await buildEngineers(engineerRows, blueprints)
 const modules = buildModules(outfitting, revisions.fdevids, generatedAt)
 const files = {
   'commodities.json': buildCommodities(commodities, revisions.fdevids, generatedAt),
   'modules.json': modules,
+  'personal-equipment.json': personalEquipment,
   'ships.json': buildShips(shipFiles, shipyard, revisions.coriolis, generatedAt),
   'engineering/blueprints.json': blueprints,
   'engineering/engineers.json': engineers,
   'engineering/materials.json': materials,
   'engineering/material-uses.json': buildMaterialUses(materials, blueprints),
   'manifest.json': {
-    schemaVersion: 2,
+    schemaVersion: 3,
     generatedAt,
     checkedAt: generatedAt,
-    sources: revisions,
+    sources: {
+      ...revisions,
+      personalEquipment: PERSONAL_EQUIPMENT_SOURCE.revision
+    },
     counts: {
       ships: shipFiles.length,
       modules: modules.modules.length,
       commodities: commodities.length,
       blueprints: blueprints.length,
       engineers: engineers.length,
-      materials: materials.length
+      materials: materials.length,
+      personalEquipmentDefinitions: personalEquipment.equipmentDefinitions.length,
+      personalEquipmentModifications: personalEquipment.modifications.length,
+      personalEquipmentResources: personalEquipment.microResources.length
     }
   }
 }
@@ -104,7 +121,10 @@ function requiredValue (arguments_, index, option) {
 async function isFresh (path, maxAgeHours) {
   const manifest = await readJsonIfPresent(path)
   const checkedAt = Date.parse(manifest?.checkedAt ?? '')
-  return manifest?.schemaVersion === 2 && Number.isFinite(checkedAt) && Date.now() - checkedAt < maxAgeHours * 3_600_000
+  return manifest?.schemaVersion === 3 &&
+    manifest?.sources?.personalEquipment === PERSONAL_EQUIPMENT_SOURCE.revision &&
+    await fileExists(join(dirname(path), 'personal-equipment.json')) &&
+    Number.isFinite(checkedAt) && Date.now() - checkedAt < maxAgeHours * 3_600_000
 }
 
 async function latestRevision (repository) {
@@ -333,7 +353,7 @@ function buildMaterialUses (materials, blueprints) {
 }
 
 function validate (files) {
-  const required = ['commodities.json', 'modules.json', 'ships.json', 'engineering/blueprints.json', 'engineering/engineers.json', 'engineering/materials.json', 'engineering/material-uses.json']
+  const required = ['commodities.json', 'modules.json', 'personal-equipment.json', 'ships.json', 'engineering/blueprints.json', 'engineering/engineers.json', 'engineering/materials.json', 'engineering/material-uses.json']
   for (const path of required) if (!files[path]) throw new Error(`Catalogue output missing ${path}.`)
   if (files['ships.json'].ships.length < 40) throw new Error('Ship catalogue is unexpectedly small.')
   if (files['modules.json'].modules.length < 500) throw new Error('Module catalogue is unexpectedly small.')
@@ -344,6 +364,10 @@ function validate (files) {
   if (!unique(files['ships.json'].ships, 'id')) throw new Error('Duplicate ship IDs detected.')
   if (!unique(files['modules.json'].modules, 'journalId')) throw new Error('Duplicate module IDs detected.')
   if (!unique(files['commodities.json'].commodities, 'symbol')) throw new Error('Duplicate commodity symbols detected.')
+}
+
+async function fileExists (path) {
+  try { await readFile(path); return true } catch (error) { if (error.code === 'ENOENT') return false; throw error }
 }
 
 async function replaceSnapshot (target, files) {
