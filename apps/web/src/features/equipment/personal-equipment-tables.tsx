@@ -4,55 +4,18 @@ import type {
   CommanderSuitLoadout,
   CommanderWeapon
 } from '@phoenix/contracts'
-import { Breadcrumbs, DataTable, DataTableGroup, PageFrame, PageHeader, Stack, Status } from '@phoenix/ui'
+import { DataTable, DataTableGroup, Status } from '@phoenix/ui'
 import { formatPhoenixCredits } from '../../components/phoenix-credits.js'
-import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
-import type { CommanderEquipmentControllerSnapshot } from './use-commander-equipment-controller.js'
 
-export function CommanderEquipmentPage({ controller }: { controller: CommanderEquipmentControllerSnapshot }) {
-  if (controller.status !== 'ready' || !controller.equipment) {
-    return (
-      <PageFrame className="commander-page" layout="fit" aria-busy={controller.status !== 'error'}>
-        <div className="commander-layout">
-          <EquipmentHeader />
-          <Status tone={controller.status === 'error' ? 'danger' : 'muted'}>
-            {controller.status === 'error' ? controller.error : 'Reconstructing commander equipment…'}
-          </Status>
-        </div>
-      </PageFrame>
-    )
-  }
-
-  const equipment = controller.equipment
+export function ObservedEquipmentNotice() {
   return (
-    <PageFrame className="commander-page" layout="fit">
-      <div className="commander-layout">
-        <EquipmentHeader equipment={equipment} />
-        <Stack className="commander-content" gap="xl" tabIndex={0}>
-          <Status tone="muted">
-            Equipment ownership is reconstructed from retained Elite journals. Elite does not publish a complete owned-equipment manifest.
-          </Status>
-          <LoadoutsTable equipment={equipment} />
-          <SuitsTable equipment={equipment} />
-          <WeaponsTable equipment={equipment} />
-        </Stack>
-      </div>
-    </PageFrame>
+    <Status tone="muted">
+      Equipment ownership is reconstructed from retained Elite journals. Elite does not publish a complete owned-equipment manifest.
+    </Status>
   )
 }
 
-function EquipmentHeader({ equipment }: { equipment?: CommanderEquipmentResponse }) {
-  return (
-    <PageHeader
-      variant="cockpit"
-      context={<Breadcrumbs items={[{ label: 'Commander', href: '#/commander/career' }, { label: 'Equipment' }]} />}
-      title="Commander Equipment"
-      status={equipment?.updatedAt ? <UpdatedDateTime value={equipment.updatedAt} /> : undefined}
-    />
-  )
-}
-
-function LoadoutsTable({ equipment }: { equipment: CommanderEquipmentResponse }) {
+export function SuitLoadoutsTable({ equipment }: { equipment: CommanderEquipmentResponse }) {
   const suits = new Map(equipment.suits.map(suit => [suit.id, suit]))
   const weapons = new Map(equipment.weapons.map(weapon => [weapon.id, weapon]))
   return (
@@ -78,7 +41,7 @@ function LoadoutsTable({ equipment }: { equipment: CommanderEquipmentResponse })
   )
 }
 
-function SuitsTable({ equipment }: { equipment: CommanderEquipmentResponse }) {
+export function SuitsTable({ equipment }: { equipment: CommanderEquipmentResponse }) {
   const loadouts = new Map(equipment.loadouts.map(loadout => [loadout.id, loadout.name]))
   return (
     <DataTableGroup meta={`${equipment.summary.suits} observed`} title="Suits">
@@ -102,7 +65,7 @@ function SuitsTable({ equipment }: { equipment: CommanderEquipmentResponse }) {
   )
 }
 
-function WeaponsTable({ equipment }: { equipment: CommanderEquipmentResponse }) {
+export function WeaponsTable({ equipment }: { equipment: CommanderEquipmentResponse }) {
   const loadouts = new Map(equipment.loadouts.map(loadout => [loadout.id, loadout.name]))
   return (
     <DataTableGroup meta={`${equipment.summary.weapons} observed`} title="Personal weapons">

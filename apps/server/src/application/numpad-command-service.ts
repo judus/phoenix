@@ -46,7 +46,7 @@ const CONTROL_SELECTORS: Readonly<Record<string, string>> = {
 const INFORMATION_MENUS: readonly MenuDefinition[] = [
   menu('info.commander', 'Commander', '1', [
     destination('commander.dashboard', '1'), destination('commander.career', '2'),
-    destination('commander.inventory', '3'), destination('commander.equipment', '4'),
+    destination('commander.inventory', '3'), destination('commander.loadouts', '4'),
     destination('commander.statistics', '5')
   ]),
   menu('info.fleet', 'Fleet', '2', [
@@ -69,11 +69,14 @@ const INFORMATION_MENUS: readonly MenuDefinition[] = [
     destination('engineering.materials-manufactured', '5'), destination('engineering.materials-encoded', '6'),
     destination('engineering.materials-xeno', '7')
   ]),
-  menu('info.comms', 'Comms', '6', [
+  menu('info.equipment', 'Equipment', '6', [
+    destination('equipment.gear', '1')
+  ]),
+  menu('info.comms', 'Comms', '7', [
     destination('comms.inbox', '1'), destination('comms.traffic', '2'), destination('comms.contacts', '3'),
     destination('comms.galnet', '4'), destination('comms.radio', '5')
   ]),
-  menu('info.records', 'Records', '7', [
+  menu('info.records', 'Records', '8', [
     destination('records.journal', '1'), destination('records.exploration-ledger', '2'),
     destination('records.exploration-body', '3'), destination('records.exploration-biology', '4'),
     destination('records.exploration-geology', '5')

@@ -8,6 +8,7 @@
 @import './base/tables.css';
 @import './layouts/layout.css';
 @import './patterns/panels.css';
+@import './patterns/record-page.css';
 @import './patterns/control-deck-tiles.css';
 @import './patterns/tile-groups.css';
 @import './patterns/switchers.css';

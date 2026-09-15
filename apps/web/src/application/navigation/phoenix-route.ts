@@ -18,12 +18,13 @@ export type InformationPrimarySection =
   | 'galaxy'
   | 'activities'
   | 'engineering'
+  | 'equipment'
   | 'comms'
 
 export { GALAXY_QUERY_IDS, type GalaxyQueryId } from '@phoenix/contracts'
 
 export type InformationRoute =
-  | { kind: 'information', section: 'commander', view: 'dashboard' | 'career' | 'statistics' | 'inventory' | 'equipment' }
+  | { kind: 'information', section: 'commander', view: 'dashboard' | 'career' | 'statistics' | 'inventory' | 'loadouts' }
   | { kind: 'information', section: 'fleet', view: 'overview' | 'current-overview' | 'current-loadout' | 'current-cargo' | 'current-engineering' | 'carriers' | 'stored-modules' }
   | { kind: 'information', section: 'fleet', view: 'catalogue', selectedShipId?: string }
   | { kind: 'information', section: 'galaxy', view: 'system', systemName?: string, selectedName?: string }
@@ -38,6 +39,7 @@ export type InformationRoute =
   | { kind: 'information', section: 'engineering', view: 'project-new', selectedBlueprintSymbol?: string }
   | { kind: 'information', section: 'engineering', view: 'project-detail', selectedProjectId: string }
   | { kind: 'information', section: 'engineering', view: 'project-add-blueprint', selectedBlueprintSymbol: string, selectedProjectId?: string }
+  | { kind: 'information', section: 'equipment', view: 'gear' }
   | { kind: 'information', section: 'comms', view: 'inbox' | 'traffic' | 'contacts' | 'galnet' | 'radio' }
 
 export type PhoenixRoute =
@@ -95,6 +97,7 @@ export function defaultRouteForInformationSection(section: InformationPrimarySec
     case 'galaxy': return { kind: 'information', section, view: 'system' }
     case 'activities': return { kind: 'information', section, view: 'missions' }
     case 'engineering': return { kind: 'information', section, view: 'blueprints' }
+    case 'equipment': return { kind: 'information', section, view: 'gear' }
     case 'comms': return { kind: 'information', section, view: 'inbox' }
   }
 }

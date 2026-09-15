@@ -1,0 +1,36 @@
+  .record-page,
+  .record-page-layout {
+    inline-size: 100%;
+    block-size: 100%;
+    min-inline-size: 0;
+    min-block-size: 0;
+  }
+
+  .record-page-layout {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--spacing-sm);
+    overflow: hidden;
+  }
+
+  .record-page .page-header > .page-status {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-end: 0;
+    max-inline-size: 42%;
+    text-align: end;
+  }
+
+  .record-page-content {
+    align-content: start;
+    min-inline-size: 0;
+    min-block-size: 0;
+    padding-inline-end: var(--spacing-xs);
+    overflow: auto;
+    overscroll-behavior: contain;
+
+    &:focus-visible {
+      outline: 2px solid var(--color-focus);
+      outline-offset: -2px;
+    }
+  }

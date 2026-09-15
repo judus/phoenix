@@ -7,26 +7,26 @@ import { LatestRequest } from '../../application/requests/latest-request.js'
 
 const CACHE_KEY = 'commander:equipment'
 
-export interface CommanderEquipmentControllerSnapshot {
+export interface PersonalEquipmentControllerSnapshot {
   equipment?: CommanderEquipmentResponse
   error?: string
   status: 'idle' | 'loading' | 'ready' | 'error'
 }
 
-export function useCommanderEquipmentController(
+export function usePersonalEquipmentController(
   api: PhoenixApi,
   events: PhoenixEventHub,
   active: boolean
-): CommanderEquipmentControllerSnapshot {
-  const [snapshot, setSnapshot] = useState<CommanderEquipmentControllerSnapshot>(() => (
+): PersonalEquipmentControllerSnapshot {
+  const [snapshot, setSnapshot] = useState<PersonalEquipmentControllerSnapshot>(() => (
     readControllerSnapshot(api, CACHE_KEY) ?? { status: 'idle' }
   ))
 
   useEffect(() => {
     if (!active) return
     const latest = new LatestRequest()
-    const retained = readControllerSnapshot<CommanderEquipmentControllerSnapshot>(api, CACHE_KEY)
-    const publish = (next: CommanderEquipmentControllerSnapshot) => {
+    const retained = readControllerSnapshot<PersonalEquipmentControllerSnapshot>(api, CACHE_KEY)
+    const publish = (next: PersonalEquipmentControllerSnapshot) => {
       setSnapshot(storeControllerSnapshot(api, CACHE_KEY, next))
     }
     const load = (showLoading = false) => {

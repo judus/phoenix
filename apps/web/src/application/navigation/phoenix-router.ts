@@ -82,7 +82,7 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
     const legacyCareer = rest[0] === 'overview' || rest[0] === 'progress'
     const view = legacyCareer
       ? 'career'
-      : oneOf(rest[0], ['dashboard', 'career', 'statistics', 'inventory', 'equipment'] as const) ?? 'dashboard'
+      : oneOf(rest[0], ['dashboard', 'career', 'statistics', 'inventory', 'loadouts'] as const) ?? 'dashboard'
     return { kind: 'information', section, view }
   }
 
@@ -95,6 +95,10 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
   }
 
   if (section === 'engineering') return parseEngineeringRoute(rest, query)
+
+  if (section === 'equipment') {
+    return { kind: 'information', section, view: 'gear' }
+  }
 
   if (section === 'comms') {
     const view = rest[0] === 'overview'

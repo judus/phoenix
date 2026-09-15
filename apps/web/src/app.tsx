@@ -17,7 +17,8 @@ import { useDashboardController } from './features/dashboard/use-dashboard-contr
 import { createCommanderViewModel } from './features/commander/commander-view-model.js'
 import type { CommanderView } from './features/commander/commander-page.js'
 import { commanderContextForRoute, commanderNavigationItems } from './features/commander/commander-navigation.js'
-import { useCommanderEquipmentController } from './features/commander/use-commander-equipment-controller.js'
+import { equipmentContextForRoute, equipmentNavigationItems } from './features/equipment/equipment-navigation.js'
+import { usePersonalEquipmentController } from './features/equipment/use-personal-equipment-controller.js'
 import { fleetContextForRoute, fleetNavigationItems } from './features/fleet/fleet-navigation.js'
 import { useFleetController } from './features/fleet/use-fleet-controller.js'
 import { galaxyContextForRoute, galaxyNavigationItems } from './features/galaxy/galaxy-navigation.js'
@@ -37,6 +38,7 @@ import { journalContext, journalNavigationItems } from './features/journal/journ
 import { settingsContext, settingsNavigationItems } from './features/settings/settings-navigation.js'
 
 const ActivitiesPage = lazy(() => import('./features/activities/activities-page.js').then(module => ({ default: module.ActivitiesPage })))
+const CommanderLoadoutsPage = lazy(() => import('./features/equipment/commander-loadouts-page.js').then(module => ({ default: module.CommanderLoadoutsPage })))
 const CommanderPage = lazy(() => import('./features/commander/commander-page.js').then(module => ({ default: module.CommanderPage })))
 const CommsPage = lazy(() => import('./features/comms/comms-page.js').then(module => ({ default: module.CommsPage })))
 const ControlsPage = lazy(() => import('./features/controls/controls-page.js').then(module => ({ default: module.ControlsPage })))
@@ -44,6 +46,7 @@ const CopilotFeature = lazy(() => import('./features/copilot/copilot-feature.js'
 const CreditsPage = lazy(() => import('./features/journal/credits-page.js').then(module => ({ default: module.CreditsPage })))
 const DashboardPage = lazy(() => import('./features/dashboard/dashboard-page.js').then(module => ({ default: module.DashboardPage })))
 const EngineeringPage = lazy(() => import('./features/engineering/engineering-page.js').then(module => ({ default: module.EngineeringPage })))
+const EquipmentPage = lazy(() => import('./features/equipment/equipment-page.js').then(module => ({ default: module.EquipmentPage })))
 const FleetPage = lazy(() => import('./features/fleet/fleet-page.js').then(module => ({ default: module.FleetPage })))
 const GalaxyPage = lazy(() => import('./features/galaxy/galaxy-page.js').then(module => ({ default: module.GalaxyPage })))
 const HelpPage = lazy(() => import('./features/settings/help-page.js').then(module => ({ default: module.HelpPage })))
@@ -73,6 +76,7 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
   const activitiesRoute = informationRoute.section === 'activities' ? informationRoute : undefined
   const commsRoute = informationRoute.section === 'comms' ? informationRoute : undefined
   const engineeringRoute = informationRoute.section === 'engineering' ? informationRoute : undefined
+  const equipmentRoute = informationRoute.section === 'equipment' ? informationRoute : undefined
   const controlsRoute = route.kind === 'controls' ? route : undefined
   const logRoute = route.kind === 'journal' || route.kind === 'developer' ? route : undefined
   const [controlsEditing, setControlsEditing] = useState(false)
@@ -123,6 +127,12 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
                   informationContextLabel: 'Engineering views',
                   informationCurrentContext: engineeringContextForRoute(engineeringRoute)
                 }
+              : equipmentRoute
+                ? {
+                    informationContextItems: equipmentNavigationItems,
+                    informationContextLabel: 'Equipment views',
+                    informationCurrentContext: equipmentContextForRoute(equipmentRoute)
+                  }
       : undefined
 
   return (
@@ -147,7 +157,9 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
         ? <FeatureBoundary>{commanderRoute
             ? commanderRoute.view === 'dashboard'
               ? <DashboardFeature application={application} />
-              : <CommanderFeature application={application} view={commanderRoute.view} />
+              : commanderRoute.view === 'loadouts'
+                ? <PersonalEquipmentFeature application={application} view="loadouts" />
+                : <CommanderFeature application={application} view={commanderRoute.view} />
               : fleetRoute
                 ? <FleetFeature key={router.href(fleetRoute)} application={application} route={fleetRoute} />
                 : galaxyRoute
@@ -158,6 +170,8 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
                       ? <CommsFeature key={router.href(commsRoute)} application={application} route={commsRoute} />
                       : engineeringRoute
                         ? <EngineeringFeature key={router.href(engineeringRoute)} application={application} route={engineeringRoute} />
+                        : equipmentRoute
+                          ? <PersonalEquipmentFeature application={application} view="gear" />
                         : null}</FeatureBoundary>
         : null}
       journal={activeDesktop === 'journal'
@@ -310,12 +324,21 @@ const CommanderFeature = memo(function CommanderFeature({ application, view }: {
   view: CommanderView
 }) {
   const runtime = useRuntimeState(application.runtime)
-  const equipment = useCommanderEquipmentController(application.api, application.events, view === 'equipment')
   const model = useMemo(
     () => runtime.status === 'ready' ? createCommanderViewModel(runtime.state) : undefined,
     [runtime]
   )
-  return <CommanderPage equipment={equipment} model={model} runtime={runtime} view={view} />
+  return <CommanderPage model={model} runtime={runtime} view={view} />
+})
+
+const PersonalEquipmentFeature = memo(function PersonalEquipmentFeature({ application, view }: {
+  application: PhoenixApplicationServices
+  view: 'gear' | 'loadouts'
+}) {
+  const controller = usePersonalEquipmentController(application.api, application.events, true)
+  return view === 'gear'
+    ? <EquipmentPage controller={controller} />
+    : <CommanderLoadoutsPage controller={controller} />
 })
 
 const DashboardFeature = memo(function DashboardFeature({ application }: { application: PhoenixApplicationServices }) {

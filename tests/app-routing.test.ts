@@ -24,7 +24,8 @@ describe('PHOENIX route parsing and generation', () => {
     ['#/commander/dashboard', { kind: 'information', section: 'commander', view: 'dashboard' }, 'info'],
     ['#/controls/navigation', { kind: 'controls', category: 'navigation' }, 'controls'],
     ['#/commander/inventory', { kind: 'information', section: 'commander', view: 'inventory' }, 'info'],
-    ['#/commander/equipment', { kind: 'information', section: 'commander', view: 'equipment' }, 'info'],
+    ['#/commander/loadouts', { kind: 'information', section: 'commander', view: 'loadouts' }, 'info'],
+    ['#/equipment/gear', { kind: 'information', section: 'equipment', view: 'gear' }, 'info'],
     ['#/fleet/ships/current/loadout', { kind: 'information', section: 'fleet', view: 'current-loadout' }, 'info'],
     ['#/fleet/ships/current/engineering', { kind: 'information', section: 'fleet', view: 'current-engineering' }, 'info'],
     ['#/galaxy/database', { kind: 'information', section: 'galaxy', view: 'database' }, 'info'],
@@ -113,6 +114,10 @@ describe('PHOENIX route parsing and generation', () => {
 
   test('Fleet lands on the current ship dashboard', () => {
     expect(defaultRouteForInformationSection('fleet')).toEqual({ kind: 'information', section: 'fleet', view: 'current-overview' })
+  })
+
+  test('Equipment lands on observed gear', () => {
+    expect(defaultRouteForInformationSection('equipment')).toEqual({ kind: 'information', section: 'equipment', view: 'gear' })
   })
 
   test('Exobiology is an owned Galaxy route', () => {

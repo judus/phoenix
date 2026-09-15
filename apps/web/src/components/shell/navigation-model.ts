@@ -33,6 +33,7 @@ export const primaryItems: RouteNavigationItem[] = [
   informationItem('galaxy', 'Galaxy'),
   informationItem('activities', 'Activities'),
   informationItem('engineering', 'Engineering'),
+  informationItem('equipment', 'Equipment'),
   informationItem('comms', 'Comms')
 ]
 

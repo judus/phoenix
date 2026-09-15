@@ -11,23 +11,18 @@ import {
 import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
 import type { CommanderViewModel } from './commander-view-model.js'
-import { CommanderEquipmentPage } from './commander-equipment-page.js'
-import type { CommanderEquipmentControllerSnapshot } from './use-commander-equipment-controller.js'
 
-export type CommanderView = 'career' | 'statistics' | 'inventory' | 'equipment'
+export type CommanderView = 'career' | 'statistics' | 'inventory'
 
-export function CommanderPage({ equipment, model, runtime, view }: {
-  equipment?: CommanderEquipmentControllerSnapshot
+export function CommanderPage({ model, runtime, view }: {
   model?: CommanderViewModel
   runtime: RuntimeStateSnapshot
   view: CommanderView
 }) {
-  if (view === 'equipment') return <CommanderEquipmentPage controller={equipment ?? { status: 'idle' }} />
-
   if (runtime.status !== 'ready' || !model) {
     return (
-      <PageFrame className="commander-page" layout="fit" aria-busy={runtime.status !== 'error'}>
-        <div className="commander-layout">
+      <PageFrame className="record-page" layout="fit" aria-busy={runtime.status !== 'error'}>
+        <div className="record-page-layout">
           <CommanderHeader view={view} />
           <Status tone={runtime.status === 'error' ? 'danger' : 'muted'}>
             {runtime.status === 'error' ? runtime.error : 'Waiting for commander telemetry…'}
@@ -38,10 +33,10 @@ export function CommanderPage({ equipment, model, runtime, view }: {
   }
 
   return (
-    <PageFrame className="commander-page" layout="fit">
-      <div className="commander-layout">
+    <PageFrame className="record-page" layout="fit">
+      <div className="record-page-layout">
         <CommanderHeader model={model} view={view} />
-        <Stack className="commander-content" gap="xl" tabIndex={0}>
+        <Stack className="record-page-content" gap="xl" tabIndex={0}>
           {view === 'career' && <CommanderCareer model={model} />}
           {view === 'statistics' && <CommanderStatistics statistics={model.statistics} />}
           {view === 'inventory' && <CommanderInventory stores={model.stores} />}
@@ -51,7 +46,7 @@ export function CommanderPage({ equipment, model, runtime, view }: {
   )
 }
 
-function CommanderHeader({ model, view }: { model?: CommanderViewModel, view: Exclude<CommanderView, 'equipment'> }) {
+function CommanderHeader({ model, view }: { model?: CommanderViewModel, view: CommanderView }) {
   const section = view === 'career' ? 'Career' : view === 'statistics' ? 'Lifetime Statistics' : 'Personal Stores'
 
   return (
