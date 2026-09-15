@@ -8,6 +8,7 @@ import {
 import type { CommandTarget } from './commands.js'
 
 export const InputBackendModeSchema = z.enum(['auto', 'recording', 'linux-xdotool', 'windows-sendinput'])
+export const DEFAULT_MODULE_HEALTH_ALERT_THRESHOLD = 90
 export const PhoenixControlDeckThemeSchema = z.union([z.literal('phoenix'), ControlDeckColorSchemeSchema])
 export const PHOENIX_CONTROL_DECK_ADAPTER_ID = 'phoenix.commands'
 export const PHOENIX_CONTROL_CONTEXTS = [
@@ -51,6 +52,9 @@ export const CopilotExecutionPermissionsSchema = z.object({
 })
 
 export const PhoenixModulesSchema = z.object({
+  currentShip: z.object({
+    moduleHealthAlertThreshold: z.number().int().min(1).max(99).default(DEFAULT_MODULE_HEALTH_ALERT_THRESHOLD)
+  }).default({ moduleHealthAlertThreshold: DEFAULT_MODULE_HEALTH_ALERT_THRESHOLD }),
   numpadCommands: z.object({
     inputAdapter: z.enum(['browser', 'touch', 'both']).default('browser'),
     presentation: z.enum(['tiles', 'columns']).default('tiles'),
@@ -103,6 +107,9 @@ export const PhoenixSettingsSchema = z.object({
     deckConfiguration: PhoenixControlDeckConfigurationSchema
   }),
   modules: PhoenixModulesSchema.default({
+    currentShip: {
+      moduleHealthAlertThreshold: DEFAULT_MODULE_HEALTH_ALERT_THRESHOLD
+    },
     numpadCommands: {
       inputAdapter: 'browser',
       presentation: 'tiles',

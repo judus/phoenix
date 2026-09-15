@@ -78,6 +78,7 @@ test('macro recording uses the shared API, browser identity, and typed router', 
 
 function modules(): PhoenixModules {
   return {
+    currentShip: { moduleHealthAlertThreshold: 90 },
     numpadCommands: {
       inputAdapter: 'browser',
       presentation: 'tiles',

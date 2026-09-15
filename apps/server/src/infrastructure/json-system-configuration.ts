@@ -6,6 +6,7 @@ import {
   type ControlDeckConfigurationRepository
 } from 'control-deck/core'
 import {
+  DEFAULT_MODULE_HEALTH_ALERT_THRESHOLD,
   PhoenixControlDeckConfigurationSchema,
   PhoenixSettingsSchema,
   RuntimeSystemSnapshotSchema,
@@ -36,6 +37,9 @@ export const DEFAULT_PHOENIX_SETTINGS: PhoenixSettings = {
     deckConfiguration: DEFAULT_CONTROL_DECK_CONFIGURATION
   },
   modules: {
+    currentShip: {
+      moduleHealthAlertThreshold: DEFAULT_MODULE_HEALTH_ALERT_THRESHOLD
+    },
     numpadCommands: {
       inputAdapter: 'browser',
       presentation: 'tiles',

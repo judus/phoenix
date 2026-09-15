@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { FleetResponse, GameActionCatalogResponse, ShipDefinition } from '@phoenix/contracts'
+import type { FleetResponse, GameActionCatalogResponse, PhoenixModules, ShipDefinition } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { readControllerSnapshot, storeControllerSnapshot } from '../../application/cache/controller-snapshot-cache.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
@@ -13,6 +13,7 @@ export interface FleetControllerSnapshot {
   catalogueUpdatedAt?: string
   error?: string
   fleet?: FleetResponse
+  settings?: PhoenixModules
   status: 'idle' | 'loading' | 'ready' | 'error'
 }
 
@@ -49,8 +50,8 @@ export function useFleetController(api: PhoenixApi, events: PhoenixEventHub, vie
         return
       }
       if (needsActions) {
-        void api.getActions(signal).then(actions => {
-          if (latest.isCurrent(signal)) publish({ actions, status: 'ready' })
+        void Promise.all([api.getActions(signal), api.getModuleSettings(signal)]).then(([actions, settings]) => {
+          if (latest.isCurrent(signal)) publish({ actions, settings, status: 'ready' })
         }).catch(fail)
         return
       }

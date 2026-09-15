@@ -123,14 +123,16 @@ export function DashboardPage({
                   : controller.materialWatchlist.materials.length === 0
                     ? <Status tone="positive">All planned blueprint materials are currently in inventory.</Status>
                     : (
-                        <ul className="dashboard-material-watchlist">
+                        <ItemList aria-label="Material watchlist" density="dense">
                           {controller.materialWatchlist.materials.slice(0, 8).map(material => (
-                            <li key={material.materialId}>
-                              <span>{material.materialName}</span>
-                              <span className="numeric text-xs">{material.owned}/{material.required}</span>
-                            </li>
+                            <ItemListItem
+                              className="dashboard-material-watchlist-item"
+                              key={material.materialId}
+                              title={material.materialName}
+                              trailing={<span className="numeric">{material.owned}/{material.required}</span>}
+                            />
                           ))}
-                        </ul>
+                        </ItemList>
                       )}
             </Widget>
 
@@ -237,17 +239,19 @@ export function DashboardPage({
                   : controller.marketSignals.result!.signals.length === 0
                     ? <Status tone="muted">No notable local prices match your filters.</Status>
                     : (
-                        <ul className="dashboard-market-signals">
+                        <ItemList aria-label="Market signals" density="dense">
                           {controller.marketSignals.result!.signals.map(signal => (
-                            <li key={`${signal.side}:${signal.commodityName}:${signal.marketId ?? signal.stationName}`}>
-                              <div><span>{signal.commodityName}</span><small>{signal.side === 'buy' ? 'Buy' : 'Sell'} {formatPhoenixCredits(signal.price)} · {signal.stationName}</small></div>
-                              <span className="dashboard-market-signal-summary">
+                            <ItemListItem
+                              description={`${signal.side === 'buy' ? 'Buy' : 'Sell'} ${formatPhoenixCredits(signal.price)} · ${signal.stationName}`}
+                              key={`${signal.side}:${signal.commodityName}:${signal.marketId ?? signal.stationName}`}
+                              title={signal.commodityName}
+                              trailing={<span className="dashboard-market-signal-summary">
                                 <span>{signal.side === 'buy' ? '−' : '+'}{Math.round(signal.deviationPercent)}%</span>
                                 <small>{signal.unlimitedVolume ? '∞ t' : `${signal.volume.toLocaleString('en-CH')} t`}</small>
-                              </span>
-                            </li>
+                              </span>}
+                            />
                           ))}
-                        </ul>
+                        </ItemList>
                       )}
         </Widget>
 

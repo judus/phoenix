@@ -3,8 +3,6 @@ import type { ShipDefinition } from '@phoenix/contracts'
 import {
   AutoGrid,
   Breadcrumbs,
-  CommandTile,
-  ControlContext,
   DataTable,
   DataTableGroup,
   DescriptionItem,
@@ -27,6 +25,7 @@ import type { DevicePreferences } from '../../application/settings/device-prefer
 import { DataSyncNotice } from '../../components/data-sync-notice.js'
 import { SystemLocationLink } from '../../components/system-location-link.js'
 import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
+import { CurrentShipOverview } from './current-ship-overview.js'
 import type { FleetControllerSnapshot, FleetView } from './use-fleet-controller.js'
 import {
   createCurrentShipModel,
@@ -36,13 +35,6 @@ import {
   type FleetOverviewModel
 } from './fleet-view-model.js'
 type FleetRoute = Extract<InformationRoute, { section: 'fleet' }>
-const currentRoutes = {
-  'current-overview': { kind: 'information', section: 'fleet', view: 'current-overview' },
-  'current-loadout': { kind: 'information', section: 'fleet', view: 'current-loadout' },
-  'current-cargo': { kind: 'information', section: 'fleet', view: 'current-cargo' },
-  'current-engineering': { kind: 'information', section: 'fleet', view: 'current-engineering' }
-} as const satisfies Record<string, FleetRoute>
-
 export function FleetPage({ controller, devicePreferences, onExecuteAction, onNavigate, route, runtime }: {
   controller: FleetControllerSnapshot
   devicePreferences: DevicePreferences
@@ -61,7 +53,10 @@ export function FleetPage({ controller, devicePreferences, onExecuteAction, onNa
     if (runtime.status !== 'ready') {
       return <FleetState title="Current ship" status={runtime.status} error={runtime.status === 'error' ? runtime.error : undefined} />
     }
-    const model = createCurrentShipModel(runtime.state)
+    const model = createCurrentShipModel(
+      runtime.state,
+      controller.settings?.currentShip.moduleHealthAlertThreshold
+    )
     if (route.view === 'current-loadout') return <CurrentLoadout
       layout={preferences.currentShipLoadoutView}
       model={model}
@@ -190,68 +185,6 @@ const FLEET_COLUMNS: readonly SortableDataTableColumn<FleetShipModel>[] = [
   }
 ]
 
-function CurrentShipOverview({ actions, model, onExecuteAction, onNavigate }: {
-  actions: FleetControllerSnapshot['actions']
-  model: CurrentShipModel
-  onExecuteAction?(actionId: string): void
-  onNavigate(route: PhoenixRoute): void
-}) {
-  return (
-    <PageFrame layout="fit">
-      <div className="current-ship consolidated">
-        <div className="ship-grid">
-          <div className="vessel-column">
-            <FactsWidget label="Current Vessel" items={[...model.vessel, ...model.operation]} />
-            <ControlContext className="command-grid" context="command" aria-label="Ship controls">
-              {model.controls.map(control => {
-                const action = actions?.actions.find(candidate => candidate.definition.id === control.actionId)
-                const unavailable = action !== undefined && !action.available
-                return (
-                  <CommandTile
-                    aria-label={`${control.label}: ${control.active ? 'active' : 'inactive'}`}
-                    binding={action?.binding?.display}
-                    compact
-                    key={control.actionId}
-                    label={control.label}
-                    onClick={() => onExecuteAction?.(control.actionId)}
-                    selected={control.active}
-                    unavailable={unavailable}
-                  />
-                )
-              })}
-            </ControlContext>
-          </div>
-          <div className="instrument-column">
-            <MeterWidget label="Integrity" meters={model.integrity} />
-            <MeterWidget label="Fuel" meters={model.fuel} />
-            <Widget aria-label="Cargo" eyebrow="Cargo">
-              <div className="cargo-content">
-                <Meter
-                  label="Capacity"
-                  layout="inline"
-                  max={model.cargo.capacity ?? Math.max(1, model.cargo.count)}
-                  tone="action"
-                  value={model.cargo.count}
-                  valueLabel={`${model.cargo.count} / ${model.cargo.capacity ?? '—'} t`}
-                />
-                <DescriptionList aria-label="Cargo manifest" columns="one" density="compact" inset tabIndex={0}>
-                  {model.cargo.items.length === 0
-                    ? <DescriptionItem label="Manifest" value="Cargo hold is empty" />
-                    : model.cargo.items.map(item => <DescriptionItem key={item.id} label={item.label} value={`${item.count} t`} />)}
-                </DescriptionList>
-              </div>
-            </Widget>
-            <div className="actions">
-              <CommandTile compact details={false} label="Loadout" onClick={() => onNavigate(currentRoutes['current-loadout'])} />
-              <CommandTile compact details={false} label="Engineering" onClick={() => onNavigate(currentRoutes['current-engineering'])} />
-            </div>
-          </div>
-        </div>
-      </div>
-    </PageFrame>
-  )
-}
-
 function CurrentLoadout({ layout, model, onLayoutChange }: {
   layout: 'table' | 'tiles'
   model: CurrentShipModel
@@ -347,14 +280,6 @@ function CurrentShipHeader({ actions, current, model }: {
       title={model.title}
     />
   )
-}
-
-function FactsWidget({ items, label }: { items: CurrentShipModel['vessel'], label: string }) {
-  return <Widget aria-label={label} className="fixed-data" eyebrow={label}><DescriptionList className="adaptive-columns" columns="two" density="compact">{items.map(item => <DescriptionItem key={item.label} label={item.label} value={item.value} />)}</DescriptionList></Widget>
-}
-
-function MeterWidget({ meters, label }: { meters: CurrentShipModel['integrity'], label: string }) {
-  return <Widget aria-label={label} eyebrow={label}><div className="meter-stack">{meters.map(meter => <Meter key={meter.label} label={meter.label} layout="inline" tone="action" value={meter.value} valueLabel={meter.valueLabel} />)}</div></Widget>
 }
 
 function ModuleTable({ group }: { group: CurrentShipModel['modules'][number] }) {

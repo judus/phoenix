@@ -1,7 +1,7 @@
 import type { HTMLAttributes, LiHTMLAttributes, ReactNode } from 'react'
 
 type ItemListProps = HTMLAttributes<HTMLUListElement> & {
-  density?: 'compact' | 'standard' | 'comfortable'
+  density?: 'dense' | 'compact' | 'standard' | 'comfortable'
 }
 
 export function ItemList({ density = 'standard', className, ...props }: ItemListProps) {
@@ -44,32 +44,34 @@ export function ItemListItem({
   trailing,
   ...props
 }: ItemListItemProps) {
+  const rowClassName = [
+    'item-list-row',
+    leading && 'has-leading',
+    eyebrow && 'has-eyebrow'
+  ].filter(Boolean).join(' ')
+
   const content = (
     <>
-      {leading && <figure>{leading}</figure>}
-      <article>
-        {eyebrow && <small>{eyebrow}</small>}
-        <header>
-          <strong>{title}</strong>
-          {trailing && <span>{trailing}</span>}
-        </header>
-        {description && <p>{description}</p>}
-        {meta && <small>{meta}</small>}
-      </article>
+      {leading && <figure className="item-list-leading">{leading}</figure>}
+      {eyebrow && <small className="item-list-eyebrow">{eyebrow}</small>}
+      <strong className="item-list-title">{title}</strong>
+      {trailing && <div className="item-list-trailing">{trailing}</div>}
+      {description && <p className="item-list-description">{description}</p>}
+      {meta && <small className="item-list-meta">{meta}</small>}
     </>
   )
 
   return (
     <li
-      className={[selected && 'active', disabled && 'disabled', className].filter(Boolean).join(' ')}
+      className={[selected && 'active', disabled && 'disabled', actions && 'has-actions', className].filter(Boolean).join(' ')}
       {...props}
     >
       {href && !disabled ? (
-        <a href={href} aria-current={selected ? 'page' : undefined}>
+        <a className={rowClassName} href={href} aria-current={selected ? 'page' : undefined}>
           {content}
         </a>
       ) : (
-        <div aria-disabled={disabled || undefined}>{content}</div>
+        <div className={rowClassName} aria-disabled={disabled || undefined}>{content}</div>
       )}
       {actions && <footer>{actions}</footer>}
     </li>

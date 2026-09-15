@@ -83,8 +83,10 @@
       overflow: hidden;
     }
 
-    &.scrollable {
-      --scrollable-row-padding-inline-end: 0px;
+    &.scrollable .item-list {
+      --item-list-row-padding-inline-start: 0px;
+      --item-list-row-padding-inline-end: 0px;
+      --item-list-selection-indicator-width: 0px;
     }
 
     &.scrollable > .widget-body {
@@ -92,29 +94,12 @@
       overscroll-behavior: contain;
     }
 
-    &.scrollable.has-overflow {
-      --scrollable-row-padding-inline-end: var(--list-row-padding-inline);
+    &.scrollable.has-overflow .item-list {
+      --item-list-row-padding-inline-end: var(--spacing-xs);
     }
 
     &.scrollable.has-overflow > .widget-body {
-      padding-inline-end: var(--spacing-xs);
       scrollbar-gutter: stable;
-    }
-
-    &.scrollable .item-list > li {
-      border-inline-start: 0;
-
-      &:not(:last-child)::after {
-        inset-inline: 0 var(--scrollable-row-padding-inline-end);
-      }
-
-      > div {
-        padding-inline: 0 var(--scrollable-row-padding-inline-end);
-      }
-
-      &:last-child > div {
-        padding-block-end: 0;
-      }
     }
 
     &.auto-hide-scrollbar.has-overflow > .widget-body {

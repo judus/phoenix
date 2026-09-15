@@ -145,89 +145,15 @@
         padding-block-end: var(--dashboard-log-tail-space, 0px);
       }
 
-      .item-list > li {
-        article {
-          gap: 0;
+      .item-list-row { row-gap: 0; }
 
-          > small {
-            margin-block-end: var(--spacing-xxs);
-          }
-        }
+      .item-list-eyebrow {
+        margin-block-end: var(--spacing-xxs);
       }
     }
 
-    .dashboard-material-watchlist,
-    .dashboard-market-signals {
-      display: grid;
-      margin: 0;
-      padding: 0;
-      list-style: none;
-
-      > li {
-        position: relative;
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: var(--spacing-xs);
-        padding-block: var(--spacing-xxs);
-        padding-inline: 0 var(--scrollable-row-padding-inline-end, var(--list-row-padding-inline));
-        font-size: var(--font-size-sm);
-
-        &:last-child {
-          padding-block-end: 0;
-        }
-
-        &:not(:last-child)::after {
-          position: absolute;
-          inset-inline: 0 var(--scrollable-row-padding-inline-end, var(--list-row-padding-inline));
-          inset-block-end: 0;
-          block-size: 1px;
-          background: var(--color-border-subtle);
-          content: '';
-        }
-
-        > :first-child {
-          color: var(--color-text-muted);
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-      }
-    }
-
-    .dashboard-market-signals > li > :first-child {
-      display: grid;
-      min-inline-size: 0;
-      color: inherit;
-      text-decoration: none;
-
-      > span,
-      > small {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      > span {
-        color: var(--color-text);
-        font-family: var(--font-family-display);
-        letter-spacing: var(--font-tracking-display);
-        text-transform: uppercase;
-      }
-
-      > small {
-        color: var(--color-text-muted);
-        font-size: var(--font-size-sm);
-      }
-    }
-
-    .dashboard-material-watchlist > li {
-      align-items: baseline;
-
-      > :first-child {
-        font-family: var(--font-family-display);
-        letter-spacing: var(--font-tracking-display);
-        text-transform: uppercase;
-      }
+    .dashboard-material-watchlist-item .item-list-title {
+      color: var(--color-text-muted);
     }
 
     .dashboard-market-signal-summary {

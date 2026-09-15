@@ -13,6 +13,10 @@ test('Fleet queries only the active family data and refreshes retained records o
   const api = {
     getActions: vi.fn().mockResolvedValue({ actions: [], backend: {}, bindingSource: {} }),
     getFleet: vi.fn().mockResolvedValue(fleetFixture()),
+    getModuleSettings: vi.fn().mockResolvedValue({
+      currentShip: { moduleHealthAlertThreshold: 90 },
+      numpadCommands: { inputAdapter: 'browser', presentation: 'tiles', alwaysConfirm: false, cancelAfterMs: 5000 }
+    }),
     getShipCatalogue: vi.fn().mockResolvedValue({ ships: [] })
   } as unknown as PhoenixApi
   let view: 'overview' | 'current-overview' = 'overview'
@@ -33,6 +37,7 @@ test('Fleet queries only the active family data and refreshes retained records o
   expect(api.getFleet).toHaveBeenCalledTimes(2)
   expect(api.getShipCatalogue).not.toHaveBeenCalled()
   expect(api.getActions).toHaveBeenCalledTimes(1)
+  expect(api.getModuleSettings).toHaveBeenCalledTimes(1)
   await act(async () => renderer.unmount())
 })
 

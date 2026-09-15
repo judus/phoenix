@@ -142,6 +142,7 @@ function apiStub(): PhoenixApi {
     async getMacros() { return { version: 1, macros: [] } },
     async getModuleSettings() {
       return {
+        currentShip: { moduleHealthAlertThreshold: 90 },
         numpadCommands: {
           inputAdapter: 'browser',
           presentation: 'tiles',

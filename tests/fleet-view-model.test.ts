@@ -53,6 +53,8 @@ test('current ship model keeps raw identifiers and derives live capacity evidenc
   expect(model.integrity[0]).toMatchObject({ value: 86, valueLabel: '86%' })
   expect(model.cargo).toMatchObject({ count: 4, capacity: 32 })
   expect(model.cargo.items[0]).toMatchObject({ label: 'gold', detail: '1 stolen' })
+  expect(model.moduleStatus).toMatchObject({ healthAlertThreshold: 90, damaged: [{ condition: '90%' }] })
+  expect(createCurrentShipModel(state, 50).moduleStatus.damaged).toEqual([])
   expect(model.modules[0]?.items[0]).toMatchObject({ module: '$int_hyperdrive_size5_class5_name;', condition: '90%' })
   expect(model.modules[0]).toMatchObject({ mounted: 1, capacity: 1 })
   expect(model.modules[1]).toMatchObject({ mounted: 0, capacity: 2 })

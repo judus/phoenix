@@ -1,102 +1,251 @@
   .current-ship.consolidated {
+    --ship-meter-label-size: 4.25rem;
+    --ship-meter-value-size: 3.5rem;
+
+    container-type: inline-size;
+    display: grid;
     grid-template-rows: minmax(0, 1fr);
+    block-size: 100%;
+    min-block-size: 0;
+    overflow: hidden;
 
     .ship-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-rows: auto minmax(0, 1fr);
+      align-items: stretch;
+      gap: var(--spacing-xs);
+      min-inline-size: 0;
+      min-block-size: 0;
+      block-size: 100%;
+      overflow: hidden;
+    }
+
+    :is(.ship-upper-grid, .ship-lower-grid) {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      align-items: stretch;
+      gap: var(--spacing-xs);
+      min-inline-size: 0;
+    }
+
+    .ship-lower-grid {
       grid-template-rows: minmax(0, 1fr);
-      grid-template-areas: none;
+      min-block-size: 0;
+      block-size: 100%;
+
+      > .widget { block-size: 100%; }
+    }
+
+    .ship-upper-grid {
+      > .instrument-column {
+        grid-column: span 2;
+        grid-template-rows: auto auto minmax(0, 1fr) auto;
+      }
+
+      > .vessel-column { grid-column: span 4; }
     }
 
     .vessel-column,
     .instrument-column {
       display: grid;
-      gap: var(--spacing-sm);
+      grid-auto-rows: auto;
+      gap: var(--spacing-xs);
       min-inline-size: 0;
-      min-block-size: 0;
     }
 
-    .vessel-column {
-      grid-template-rows: auto minmax(0, 1fr);
+    .vessel-column { grid-column: span 2; }
+
+    .widget { block-size: auto; }
+
+    .widget-eyebrow-hidden {
+      grid-template-rows: minmax(0, 1fr);
+      gap: 0;
+
+      > header { display: none; }
     }
 
-    .instrument-column {
-      grid-template-rows: auto auto minmax(0, 1fr) auto;
-    }
-
-    .actions {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: var(--spacing-sm);
-    }
-
-    .systems-row {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: var(--spacing-sm);
-    }
-
-    &.systems-left {
-      .vessel-column {
-        grid-template-rows: auto auto auto;
-        align-content: start;
-      }
-
-      .instrument-column {
-        grid-template-rows: auto minmax(0, 1fr);
+    .widget {
+      dl.dl-list dt,
+      dl.dl-list dd,
+      .meter > span,
+      .meter > output {
+        font-family: var(--font-family-display);
+        font-size: var(--font-size-xs);
+        letter-spacing: var(--font-tracking-display);
+        text-transform: uppercase;
       }
     }
+
+    .current-ship-links {
+      display: flex;
+      align-items: baseline;
+      gap: var(--spacing-xs);
+    }
+
+    .tile.btn .label { font-size: var(--font-size-xs); }
 
     .command-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      grid-template-rows: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-auto-rows: 6rem;
       gap: var(--spacing-xs);
-      block-size: 100%;
     }
 
-    .meter-stack {
+    .meter-stack,
+    .cargo-content,
+    .pip-readouts {
       display: grid;
-      align-content: start;
-      gap: var(--spacing-lg);
-      block-size: 100%;
-      min-block-size: 0;
-    }
-
-    .cargo-content {
-      display: grid;
-      grid-template-rows: auto minmax(0, 1fr);
       gap: var(--spacing-sm);
-      block-size: 100%;
-      min-block-size: 0;
+    }
 
-      dl.dl-list {
-        min-block-size: 0;
-        overflow: auto;
+    .cargo-content .item-list > li {
+      .item-list-title { font-size: var(--font-size-xs); }
+
+      .item-list-trailing {
+        font-family: var(--font-family-display);
+        font-size: var(--font-size-xs);
+        letter-spacing: var(--font-tracking-display);
+        text-transform: uppercase;
       }
     }
-  }
 
-  @container current-ship (aspect-ratio > 1 / 1) {
-    .current-ship.consolidated .command-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+    .meter-inline {
+      --meter-label-size: var(--ship-meter-label-size);
+      --meter-value-size: var(--ship-meter-value-size);
+
+      gap: var(--spacing-xs);
+    }
+
+    .pip-readout {
+      display: grid;
+      grid-template-columns:
+        var(--ship-meter-label-size)
+        minmax(0, 1fr);
+      align-items: center;
+      gap: var(--spacing-xs);
+
+      > span {
+        color: var(--color-text-muted);
+        font-family: var(--font-family-display);
+        font-size: var(--font-size-xs);
+        letter-spacing: var(--font-tracking-display);
+        text-transform: uppercase;
+      }
+
+    }
+
+    .pip-segments {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: 2px;
+
+      > span {
+        block-size: var(--spacing-xs);
+        background: var(--meter-track);
+
+        &.active { background: var(--color-action); }
+      }
+    }
+
+    .pip-controls {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--spacing-xs);
+
+      > .tile.btn { min-block-size: 4.5rem; }
+    }
+
+    .warning-lamps {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--spacing-sm);
+    }
+
+    .warning-lamp {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: var(--spacing-xs);
+      min-inline-size: 0;
+      color: var(--color-text-muted);
+      font-family: var(--font-family-display);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-normal);
+      letter-spacing: var(--font-tracking-display);
+      text-transform: uppercase;
+
+      > span {
+        block-size: 1lh;
+        aspect-ratio: 1;
+        background: var(--meter-track);
+      }
+
+      > strong { font-weight: var(--font-weight-normal); }
+
+      &[data-active] {
+        color: var(--color-text);
+
+        > span {
+          background: var(--color-warning);
+          box-shadow: 0 0 var(--spacing-xs) var(--color-warning);
+        }
+      }
+
+      &[data-active][data-tone='danger'] > span {
+        background: var(--color-danger);
+        box-shadow: 0 0 var(--spacing-xs) var(--color-danger);
+      }
+    }
+
+    .module-status-controls {
+      grid-column: 1;
+      grid-row: 1;
+      display: grid;
       grid-template-rows: repeat(2, minmax(0, 1fr));
+      gap: var(--spacing-xs);
+
+      > .tile.btn { block-size: 100%; }
     }
+
+    .cargo-widget {
+      grid-column: 2 / span 2;
+      grid-row: 1;
+    }
+
+    .module-status-widget {
+      grid-column: 4 / span 3;
+      grid-row: 1;
+
+      .item-list-title { font-size: var(--font-size-xs); }
+
+      .item-list-trailing {
+        font-family: var(--font-family-display);
+        letter-spacing: var(--font-tracking-display);
+        text-transform: uppercase;
+      }
+    }
+
   }
 
-  @container current-ship (height < 50rem) {
+  @container current-ship (width < 60rem) {
     .current-ship.consolidated {
-      .ship-grid,
-      .vessel-column,
-      .instrument-column,
-      .meter-stack { gap: var(--spacing-xs); }
-
-      .cargo-content { gap: var(--spacing-xs); }
+      .ship-grid { grid-template-columns: minmax(0, 1fr); }
+      :is(.ship-upper-grid, .ship-lower-grid) { grid-template-columns: minmax(0, 1fr); }
+      .vessel-column { grid-column: auto; }
+      :is(.module-status-controls, .cargo-widget, .module-status-widget) {
+        grid-column: auto;
+        grid-row: auto;
+      }
+      .command-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
   }
 
-  @container current-ship (height >= 64rem) {
-    .current-ship.consolidated .adaptive-columns {
-      grid-template-columns: minmax(0, 1fr);
-
-      > div:nth-last-child(2)::after { display: block; }
+  @container current-ship (width < 34rem) {
+    .current-ship.consolidated {
+      .command-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .pip-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .warning-lamps { grid-template-columns: minmax(0, 1fr); }
     }
   }

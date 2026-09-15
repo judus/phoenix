@@ -38,7 +38,7 @@
         outline-offset: -2px;
       }
 
-      .item-list article > small {
+      .item-list-eyebrow {
         color: var(--color-action);
         letter-spacing: calc(0.04em + var(--font-tracking-display));
         font-family: var(--font-family-display);

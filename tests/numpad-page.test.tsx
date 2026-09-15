@@ -15,6 +15,7 @@ const routeSession: NumpadRouteSession = {
 }
 
 const settings = {
+  currentShip: { moduleHealthAlertThreshold: 90 },
   numpadCommands: {
     inputAdapter: 'browser' as const,
     presentation: 'tiles' as const,

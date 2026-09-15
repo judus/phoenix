@@ -54,6 +54,14 @@ function settingsApi (openAi = { configured: false, source: 'none' as const, sto
         openAi
       }
     },
+    async getModuleSettings() {
+      return {
+        currentShip: { moduleHealthAlertThreshold: 90 },
+        numpadCommands: {
+          inputAdapter: 'browser', presentation: 'tiles', alwaysConfirm: false, cancelAfterMs: 5000
+        }
+      }
+    },
     async getPairingStatus() { return { authenticated: true, installationId: 'test', pairingRequired: false } },
     async getCopilotProfiles() { return { activeProfileId: 'marin', profiles: [{ description: '', id: 'marin', mark: 'M', name: 'Marin', voice: 'marin' }] } },
     async getCopilotVoiceHost() { return { desiredConnected: false, desiredRevision: 0, host: null } }

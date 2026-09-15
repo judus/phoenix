@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import {
+  Button,
   CommandTile,
   CommandTileGroup,
   ControlContext,
@@ -10,6 +11,8 @@ import {
   EqualGrid,
   Field,
   Form,
+  FormActions,
+  NumberInput,
   PageFrame,
   Select,
   Stack,
@@ -17,7 +20,7 @@ import {
   TextInput,
   Widget
 } from '@phoenix/ui'
-import type { InstallationSettings, PairingInfo, PairingStatus } from '@phoenix/contracts'
+import type { InstallationSettings, PairingInfo, PairingStatus, PhoenixModules } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { DevicePreferences } from '../../application/settings/device-preferences.js'
 import { PairingAccess } from '../../components/pairing-access.js'
@@ -43,14 +46,20 @@ export function SettingsPage ({
   devicePreferences: DevicePreferences
 }) {
   const [settings, setSettings] = useState<InstallationSettings>()
+  const [moduleSettings, setModuleSettings] = useState<PhoenixModules>()
   const [pairing, setPairing] = useState<PairingStatus>()
   const [error, setError] = useState<string>()
 
   useEffect(() => {
     const abort = new AbortController()
-    void Promise.all([api.getInstallationSettings(abort.signal), api.getPairingStatus(abort.signal)])
-      .then(([nextSettings, nextPairing]) => {
+    void Promise.all([
+      api.getInstallationSettings(abort.signal),
+      api.getModuleSettings(abort.signal),
+      api.getPairingStatus(abort.signal)
+    ])
+      .then(([nextSettings, nextModuleSettings, nextPairing]) => {
         setSettings(nextSettings)
+        setModuleSettings(nextModuleSettings)
         setPairing(nextPairing)
       })
       .catch(cause => { if (!abort.signal.aborted) setError(message(cause)) })
@@ -58,7 +67,7 @@ export function SettingsPage ({
   }, [api])
 
   if (error) return <PageFrame><Status tone="danger">{error}</Status></PageFrame>
-  if (!settings || !pairing) return <PageFrame><Status tone="muted">Loading settings…</Status></PageFrame>
+  if (!settings || !moduleSettings || !pairing) return <PageFrame><Status tone="muted">Loading settings…</Status></PageFrame>
 
   const updateSettings = async (next: InstallationSettings): Promise<void> => {
     const saved = await api.saveInstallationSettings({
@@ -74,6 +83,7 @@ export function SettingsPage ({
         gap="xs"
         primary={<>
           <CopilotSettings api={api} settings={settings} onChange={setSettings} />
+          <CurrentShipSettings api={api} settings={moduleSettings} onChange={setModuleSettings} />
           <EqualGrid columns={2} gap="xs">
             <DeviceSettings preferences={devicePreferences} />
             <ControlSettings settings={settings} onSave={updateSettings} />
@@ -86,6 +96,56 @@ export function SettingsPage ({
       />
     </PageFrame>
   )
+}
+
+function CurrentShipSettings({ api, settings, onChange }: {
+  api: PhoenixApi
+  settings: PhoenixModules
+  onChange(settings: PhoenixModules): void
+}) {
+  const [threshold, setThreshold] = useState(settings.currentShip.moduleHealthAlertThreshold)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string>()
+
+  const save = async (): Promise<void> => {
+    setBusy(true)
+    setError(undefined)
+    try {
+      const saved = await api.saveModuleSettings({
+        ...settings,
+        currentShip: { moduleHealthAlertThreshold: threshold }
+      })
+      onChange(saved)
+    } catch (cause) {
+      setError(message(cause))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return <Widget heading="Current ship">
+    <ControlContext density="compact">
+      <Form id="current-ship-settings-form" onSubmit={event => { event.preventDefault(); void save() }}>
+        <Field htmlFor="module-health-alert-threshold" label="Module health alert threshold">
+          <NumberInput
+            id="module-health-alert-threshold"
+            max={99}
+            min={1}
+            step={1}
+            value={threshold}
+            onChange={event => setThreshold(Math.max(1, Math.min(99, Number(event.target.value))))}
+          />
+        </Field>
+        <Status tone="muted" wrap>Show modules whose reported health is at or below this percentage.</Status>
+        {error && <Status tone="danger">{error}</Status>}
+        <FormActions>
+          <Button busy={busy} disabled={threshold === settings.currentShip.moduleHealthAlertThreshold} type="submit" variant="primary">
+            Save threshold
+          </Button>
+        </FormActions>
+      </Form>
+    </ControlContext>
+  </Widget>
 }
 
 function CopilotSettings ({ api, settings, onChange }: {

@@ -6,6 +6,7 @@ type CommandTileProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> & 
   binding?: string
   compact?: boolean
   details?: boolean
+  hideBinding?: boolean
   kind?: 'action' | 'macro'
   label: string
   meta?: string
@@ -18,6 +19,7 @@ export function CommandTile({
   binding,
   compact = false,
   details = true,
+  hideBinding = false,
   kind = 'action',
   label,
   meta = 'Tap',
@@ -42,6 +44,7 @@ export function CommandTile({
         unavailable && 'unavailable',
         className
       ].filter(Boolean).join(' ')}
+      hideMeta={hideBinding}
       aria-label={binding ? `${label}, ${binding}` : undefined}
       aria-pressed={selected || undefined}
       disabled={disabled}

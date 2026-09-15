@@ -6,6 +6,7 @@ import type {
   ShipModule,
   ShipSlotDefinition
 } from '@phoenix/contracts'
+import { DEFAULT_MODULE_HEALTH_ALERT_THRESHOLD } from '@phoenix/contracts'
 import { formatPhoenixCredits } from '../../components/phoenix-credits.js'
 import { formatPhoenixDateTime } from '../../components/phoenix-date-time.js'
 
@@ -28,6 +29,17 @@ export interface CurrentShipModel {
   fuel: Array<{ label: string, value: number, valueLabel: string }>
   cargo: { count: number, capacity: number | null, items: Array<{ id: string, label: string, count: number, detail: string }> }
   controls: Array<{ actionId: string, label: string, active: boolean }>
+  powerDistribution: {
+    channels: Array<{ actionId: string, label: string, shortLabel: string, value: number | null }>
+    resetActionId: string
+  }
+  warnings: Array<{ id: string, label: string, active: boolean, tone: 'warning' | 'danger' }>
+  moduleStatus: {
+    total: number
+    healthAlertThreshold: number
+    damaged: Array<{ id: string, label: string, condition: string, priority: number | null }>
+    disabled: Array<{ id: string, label: string, condition: string, priority: number | null }>
+  }
   modules: Array<{
     capacity: number
     id: string
@@ -46,6 +58,9 @@ export interface CurrentShipModel {
       engineeringEngineer: string | null
       engineeringExperimentalEffect: string | null
       condition: string
+      health: number | null
+      enabled: boolean | null
+      priority: number | null
       empty?: boolean
       state: string
       status?: 'broken' | 'disabled'
@@ -92,7 +107,11 @@ export interface StoredModulesModel {
   details: string
 }
 
-export function createCurrentShipModel(state: RuntimeState, locale = 'en-CH'): CurrentShipModel {
+export function createCurrentShipModel(
+  state: RuntimeState,
+  moduleHealthAlertThreshold = DEFAULT_MODULE_HEALTH_ALERT_THRESHOLD,
+  locale = 'en-CH'
+): CurrentShipModel {
   const { ship, gameStatus } = state
   const cargoItems = state.inventory.cargo?.items ?? []
   const cargoCount = cargoItems.reduce((total, item) => total + item.count, 0)
@@ -100,6 +119,12 @@ export function createCurrentShipModel(state: RuntimeState, locale = 'en-CH'): C
   const fuelReserve = percentage(gameStatus?.fuel?.reservoir, ship.fuelCapacity?.reserve)
   const hull = ship.hullHealth === null ? 0 : ship.hullHealth * 100
   const flags = gameStatus?.flags
+  const modules = moduleGroups.map(group => moduleGroupModel(ship, group)).filter(group => group.capacity > 0)
+  const observedModules = ship.modules.map(module => moduleModel(module))
+  const damaged = observedModules.filter(module =>
+    module.enabled !== false && module.health !== null && module.health <= moduleHealthAlertThreshold
+  )
+  const disabled = observedModules.filter(module => module.enabled === false)
 
   return {
     title: ship.name ?? ship.definition?.displayName ?? ship.typeId ?? 'Current ship',
@@ -120,8 +145,8 @@ export function createCurrentShipModel(state: RuntimeState, locale = 'en-CH'): C
       fact('Legal state', gameStatus?.legalState)
     ],
     integrity: [
-      { label: 'Hull', value: hull, valueLabel: ship.hullHealth === null ? 'Not reported' : `${Math.round(hull)}%` },
-      { label: 'Shields', value: flags?.shieldsUp ? 100 : 0, valueLabel: flags ? (flags.shieldsUp ? 'Up' : 'Down') : 'Not reported' }
+      { label: 'Hull', value: hull, valueLabel: ship.hullHealth === null ? '—' : `${Math.round(hull)}%` },
+      { label: 'Shields', value: flags?.shieldsUp ? 100 : 0, valueLabel: flags ? (flags.shieldsUp ? 'Up' : 'Down') : '—' }
     ],
     fuel: [
       { label: 'Main fuel', value: fuelMain.value, valueLabel: fuelMain.label },
@@ -138,14 +163,49 @@ export function createCurrentShipModel(state: RuntimeState, locale = 'en-CH'): C
       }))
     },
     controls: [
-      { actionId: 'elite.TargetNextRouteSystem', label: 'Target next jump', active: false },
+      { actionId: 'elite.TargetNextRouteSystem', label: 'Route', active: false },
       { actionId: 'elite.GalaxyMapOpen', label: 'Galaxy map', active: false },
       { actionId: 'elite.SystemMapOpen', label: 'System map', active: false },
       { actionId: 'elite.OrbitLinesToggle', label: 'Orbit lines', active: false },
+      { actionId: 'elite.DeployHardpointToggle', label: 'Hardpoints', active: flags?.hardpointsDeployed ?? false },
+      { actionId: 'elite.LandingGearToggle', label: 'Landing gear', active: flags?.landingGearDown ?? false },
+      { actionId: 'elite.ToggleCargoScoop', label: 'Cargo scoop', active: flags?.cargoScoopDeployed ?? false },
       { actionId: 'elite.ShipSpotLightToggle', label: 'Lights', active: flags?.lightsOn ?? false },
-      { actionId: 'elite.NightVisionToggle', label: 'Night vision', active: flags?.nightVision ?? false }
+      { actionId: 'elite.NightVisionToggle', label: 'Night vision', active: flags?.nightVision ?? false },
+      { actionId: 'elite.SilentRunning', label: 'Silent running', active: flags?.silentRunning ?? false },
+      { actionId: 'elite.ToggleFlightAssist', label: 'Flight assist', active: flags ? !flags.flightAssistOff : false }
     ],
-    modules: moduleGroups.map(group => moduleGroupModel(ship, group)).filter(group => group.capacity > 0)
+    powerDistribution: {
+      channels: [
+        { actionId: 'elite.IncreaseSystemsPower', label: 'Systems', shortLabel: 'SYS', value: gameStatus?.pips?.systems ?? null },
+        { actionId: 'elite.IncreaseEnginesPower', label: 'Engines', shortLabel: 'ENG', value: gameStatus?.pips?.engines ?? null },
+        { actionId: 'elite.IncreaseWeaponsPower', label: 'Weapons', shortLabel: 'WEP', value: gameStatus?.pips?.weapons ?? null }
+      ],
+      resetActionId: 'elite.ResetPowerDistribution'
+    },
+    warnings: [
+      { id: 'low-fuel', label: 'Low fuel', active: flags?.lowFuel ?? false, tone: 'warning' },
+      { id: 'overheating', label: 'Overheating', active: flags?.overheating ?? false, tone: 'danger' },
+      { id: 'danger', label: 'Danger', active: flags?.inDanger ?? false, tone: 'danger' },
+      { id: 'mass-lock', label: 'Mass lock', active: flags?.fsdMassLocked ?? false, tone: 'warning' }
+    ],
+    moduleStatus: {
+      total: observedModules.length,
+      healthAlertThreshold: moduleHealthAlertThreshold,
+      damaged: damaged.map(module => ({
+        id: module.id,
+        label: module.module,
+        condition: module.condition,
+        priority: module.priority
+      })),
+      disabled: disabled.map(module => ({
+        id: module.id,
+        label: module.module,
+        condition: module.condition,
+        priority: module.priority
+      }))
+    },
+    modules
   }
 }
 
@@ -275,6 +335,9 @@ function moduleModel(
     engineeringEngineer: engineering?.engineer ?? null,
     engineeringExperimentalEffect: engineering?.experimentalEffectLabel ?? engineering?.experimentalEffect ?? null,
     condition: health === null ? '—' : `${health}%`,
+    health,
+    enabled: module.enabled,
+    priority: module.priority,
     state: module.enabled === false ? 'Disabled' : module.enabled === true ? `Enabled · P${module.priority ?? '—'}` : `Priority ${module.priority ?? '—'}`,
     ...(health !== null && health <= 0 ? { status: 'broken' as const } : module.enabled === false ? { status: 'disabled' as const } : {})
   }
@@ -298,6 +361,9 @@ function emptyModule(
     engineeringEngineer: null,
     engineeringExperimentalEffect: null,
     condition: '—',
+    health: null,
+    enabled: null,
+    priority: null,
     empty: true,
     state: 'Available'
   }
@@ -336,10 +402,14 @@ function fact(label: string, value: string | null | undefined) {
 
 function percentage(value: number | null | undefined, maximum: number | null | undefined) {
   if (value === null || value === undefined || maximum === null || maximum === undefined || maximum <= 0) {
-    return { value: 0, label: 'Not reported' }
+    return { value: 0, label: '—' }
   }
   const percent = Math.max(0, Math.min(100, value / maximum * 100))
-  return { value: percent, label: `${value.toFixed(1)} / ${maximum.toFixed(1)} t` }
+  return { value: percent, label: `${compactDecimal(value)}/${compactDecimal(maximum)} t` }
+}
+
+function compactDecimal(value: number): string {
+  return value.toFixed(1).replace(/\.0$/, '')
 }
 
 function credits(value: number | null | undefined, locale: string): string {
