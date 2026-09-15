@@ -6,6 +6,7 @@ type EquipmentNavigationItem = NavigationItem & { route: InformationRoute }
 
 const routes = {
   gear: { kind: 'information', section: 'equipment', view: 'gear' },
+  planner: { kind: 'information', section: 'equipment', view: 'planner' },
   upgrades: { kind: 'information', section: 'equipment', view: 'upgrades' },
   specialists: { kind: 'information', section: 'equipment', view: 'specialists' },
   materials: { kind: 'information', section: 'equipment', view: 'materials' }
@@ -13,6 +14,7 @@ const routes = {
 
 export const equipmentNavigationItems: EquipmentNavigationItem[] = [
   item('gear', 'Gear', 'GEA'),
+  item('planner', 'Planner', 'PLN'),
   item('upgrades', 'Upgrades', 'UPG'),
   item('specialists', 'Specialists', 'SPC'),
   item('materials', 'Materials', 'MAT')

@@ -26,6 +26,7 @@ describe('PHOENIX route parsing and generation', () => {
     ['#/commander/inventory', { kind: 'information', section: 'commander', view: 'inventory' }, 'info'],
     ['#/commander/loadouts', { kind: 'information', section: 'commander', view: 'loadouts' }, 'info'],
     ['#/equipment/gear', { kind: 'information', section: 'equipment', view: 'gear' }, 'info'],
+    ['#/equipment/planner', { kind: 'information', section: 'equipment', view: 'planner' }, 'info'],
     ['#/equipment/upgrades?id=weapon_range_kinetic', { kind: 'information', section: 'equipment', view: 'upgrades', selectedUpgradeId: 'weapon_range_kinetic' }, 'info'],
     ['#/equipment/specialists?id=yi-shen', { kind: 'information', section: 'equipment', view: 'specialists', selectedSpecialistId: 'yi-shen' }, 'info'],
     ['#/equipment/materials', { kind: 'information', section: 'equipment', view: 'materials' }, 'info'],

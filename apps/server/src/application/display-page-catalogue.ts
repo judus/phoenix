@@ -12,6 +12,7 @@ export const DISPLAY_PAGE_CATALOGUE = {
   'commander.inventory': page('Personal stores', 'inventory', 'commander inventory', 'backpack', 'ship locker'),
   'commander.loadouts': page('Suit loadouts', 'loadouts', 'commander loadouts'),
   'equipment.gear': page('Personal equipment', 'equipment', 'gear', 'suits', 'personal weapons'),
+  'equipment.planner': page('Personal equipment planner', 'equipment planner', 'upgrade planner'),
   'equipment.upgrades': page('Personal equipment upgrades', 'equipment upgrades', 'suit upgrades', 'weapon upgrades'),
   'equipment.specialists': page('Personal equipment specialists', 'equipment specialists', 'Odyssey engineers', 'personal equipment engineers'),
   'equipment.materials': page('Personal materials', 'on-foot materials', 'micro resources', 'ship locker materials'),

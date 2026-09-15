@@ -29,7 +29,7 @@ const revisions = {
   coriolis: await latestRevision(repositories.coriolis)
 }
 const currentManifest = await readJsonIfPresent(manifestPath)
-if (!options.force && currentManifest?.schemaVersion === 4 && currentManifest?.sources?.fdevids === revisions.fdevids && currentManifest?.sources?.coriolis === revisions.coriolis && currentManifest?.sources?.personalEquipment === PERSONAL_EQUIPMENT_SOURCE.revision && await fileExists(join(outputDirectory, 'personal-equipment.json'))) {
+if (!options.force && currentManifest?.schemaVersion === 5 && currentManifest?.sources?.fdevids === revisions.fdevids && currentManifest?.sources?.coriolis === revisions.coriolis && currentManifest?.sources?.personalEquipment === PERSONAL_EQUIPMENT_SOURCE.revision && await fileExists(join(outputDirectory, 'personal-equipment.json'))) {
   await writeJsonAtomic(manifestPath, { ...currentManifest, checkedAt: new Date().toISOString() })
   console.log('Catalogue sources are already current.')
   process.exit(0)
@@ -75,7 +75,7 @@ const files = {
   'engineering/materials.json': materials,
   'engineering/material-uses.json': buildMaterialUses(materials, blueprints),
   'manifest.json': {
-    schemaVersion: 4,
+    schemaVersion: 5,
     generatedAt,
     checkedAt: generatedAt,
     sources: {
@@ -122,7 +122,7 @@ function requiredValue (arguments_, index, option) {
 async function isFresh (path, maxAgeHours) {
   const manifest = await readJsonIfPresent(path)
   const checkedAt = Date.parse(manifest?.checkedAt ?? '')
-  return manifest?.schemaVersion === 4 &&
+  return manifest?.schemaVersion === 5 &&
     manifest?.sources?.personalEquipment === PERSONAL_EQUIPMENT_SOURCE.revision &&
     await fileExists(join(dirname(path), 'personal-equipment.json')) &&
     Number.isFinite(checkedAt) && Date.now() - checkedAt < maxAgeHours * 3_600_000

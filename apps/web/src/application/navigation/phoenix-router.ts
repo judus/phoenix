@@ -97,7 +97,7 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
   if (section === 'engineering') return parseEngineeringRoute(rest, query)
 
   if (section === 'equipment') {
-    const view = oneOf(rest[0], ['gear', 'upgrades', 'specialists', 'materials'] as const) ?? 'gear'
+    const view = oneOf(rest[0], ['gear', 'planner', 'upgrades', 'specialists', 'materials'] as const) ?? 'gear'
     if (view === 'upgrades') return { kind: 'information', section, view, ...(query.id?.trim() ? { selectedUpgradeId: query.id.trim() } : {}) }
     if (view === 'specialists') return { kind: 'information', section, view, ...(query.id?.trim() ? { selectedSpecialistId: query.id.trim() } : {}) }
     return { kind: 'information', section, view }

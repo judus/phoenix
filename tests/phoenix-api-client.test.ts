@@ -241,6 +241,39 @@ test('personal equipment specialist transport validates source-recorded capabili
   expect(request.mock.calls[0]?.[0]).toBe('/api/equipment/specialists')
 })
 
+test('personal equipment planner transport sends a preview without persisting it', async () => {
+  const request = vi.fn<typeof fetch>()
+    .mockResolvedValueOnce(jsonResponse({
+      schemaVersion: 1,
+      catalogueVersion: 'revision',
+      generatedAt: '2026-09-15T00:00:00.000Z',
+      equipment: []
+    }))
+    .mockResolvedValueOnce(jsonResponse({
+      schemaVersion: 1,
+      catalogueVersion: 'revision',
+      equipment: { id: 'test-suit', name: 'Test Suit', kind: 'suit', source: 'catalogue' },
+      currentGrade: 1,
+      targetGrade: 1,
+      slots: { current: 0, target: 0, installed: 0, planned: 0, remaining: 0 },
+      steps: [],
+      materials: [],
+      credits: { knownSubtotal: 0, total: 0, complete: true },
+      specialists: [],
+      unresolvedInstalledModifications: []
+    }))
+  const client = new PhoenixApiClient('', request)
+  await client.getPersonalEquipmentPlannerOptions()
+  await client.previewPersonalEquipmentPlan({
+    source: { kind: 'catalogue', equipmentId: 'test-suit', currentGrade: 1 },
+    targetGrade: 1,
+    plannedModificationIds: []
+  })
+  expect(request.mock.calls[0]?.[0]).toBe('/api/equipment/planner')
+  expect(request.mock.calls[1]?.[0]).toBe('/api/equipment/planner/preview')
+  expect(request.mock.calls[1]?.[1]).toMatchObject({ method: 'POST' })
+})
+
 function jsonResponse(payload: unknown): Response {
   return new Response(JSON.stringify(payload), {
     headers: { 'content-type': 'application/json' },

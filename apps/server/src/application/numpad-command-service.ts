@@ -70,7 +70,7 @@ const INFORMATION_MENUS: readonly MenuDefinition[] = [
     destination('engineering.materials-xeno', '7')
   ]),
   menu('info.equipment', 'Equipment', '6', [
-    destination('equipment.gear', '1'), destination('equipment.upgrades', '2'), destination('equipment.specialists', '3'), destination('equipment.materials', '4')
+    destination('equipment.gear', '1'), destination('equipment.planner', '2'), destination('equipment.upgrades', '3'), destination('equipment.specialists', '4'), destination('equipment.materials', '5')
   ]),
   menu('info.comms', 'Comms', '7', [
     destination('comms.inbox', '1'), destination('comms.traffic', '2'), destination('comms.contacts', '3'),

@@ -23,6 +23,8 @@ import {
   CommanderEquipmentResponseSchema,
   PersonalEquipmentUpgradesResponseSchema,
   PersonalEquipmentSpecialistsResponseSchema,
+  PersonalEquipmentPlannerOptionsResponseSchema,
+  PersonalEquipmentPlanPreviewResponseSchema,
   PersonalMaterialInventoryResponseSchema,
   DashboardMarketSignalsResponseSchema,
   GameActionCatalogResponseSchema,
@@ -102,6 +104,9 @@ import type {
   CommanderEquipmentResponse,
   PersonalEquipmentUpgradesResponse,
   PersonalEquipmentSpecialistsResponse,
+  PersonalEquipmentPlannerOptionsResponse,
+  PersonalEquipmentPlanPreviewRequest,
+  PersonalEquipmentPlanPreviewResponse,
   PersonalMaterialInventoryResponse,
   DashboardMarketSignalsResponse,
   GameActionCatalogResponse,
@@ -270,6 +275,14 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getPersonalEquipmentSpecialists(signal?: AbortSignal): Promise<PersonalEquipmentSpecialistsResponse> {
     return this.#get('/api/equipment/specialists', PersonalEquipmentSpecialistsResponseSchema, signal)
+  }
+
+  async getPersonalEquipmentPlannerOptions(signal?: AbortSignal): Promise<PersonalEquipmentPlannerOptionsResponse> {
+    return this.#get('/api/equipment/planner', PersonalEquipmentPlannerOptionsResponseSchema, signal)
+  }
+
+  async previewPersonalEquipmentPlan(input: PersonalEquipmentPlanPreviewRequest, signal?: AbortSignal): Promise<PersonalEquipmentPlanPreviewResponse> {
+    return this.#json('/api/equipment/planner/preview', 'POST', input, PersonalEquipmentPlanPreviewResponseSchema, signal)
   }
 
   async getPersonalMaterialInventory(signal?: AbortSignal): Promise<PersonalMaterialInventoryResponse> {

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "catalogueVersion": "0000000000000000000000000000000000000000",
   "generatedAt": "2026-09-15T00:00:00.000Z",
   "sources": [
@@ -45,6 +45,7 @@
       "displayName": "Test Modification",
       "targetKind": "suit",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": ["test-suit"],
       "engineerIds": ["test-engineer"],
       "credits": null,
       "ingredients": [{ "materialId": "test-material", "count": 1 }]

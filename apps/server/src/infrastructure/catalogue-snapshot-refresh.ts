@@ -33,7 +33,7 @@ function isCurrentSnapshot (directory: string, manifest: string): boolean {
   if (!existsSync(manifest) || !existsSync(resolve(directory, 'commodities.json'))) return false
   try {
     const value = JSON.parse(readFileSync(manifest, 'utf8')) as { schemaVersion?: unknown }
-    return value.schemaVersion === 4
+    return value.schemaVersion === 5
   } catch {
     return false
   }

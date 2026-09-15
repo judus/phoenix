@@ -7,6 +7,7 @@ export const DISPLAY_PAGE_IDS = [
   'commander.inventory',
   'commander.loadouts',
   'equipment.gear',
+  'equipment.planner',
   'equipment.upgrades',
   'equipment.specialists',
   'equipment.materials',

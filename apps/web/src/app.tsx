@@ -22,6 +22,7 @@ import { usePersonalEquipmentController } from './features/equipment/use-persona
 import { usePersonalMaterialsController } from './features/equipment/use-personal-materials-controller.js'
 import { usePersonalEquipmentUpgradesController } from './features/equipment/use-personal-equipment-upgrades-controller.js'
 import { usePersonalEquipmentSpecialistsController } from './features/equipment/use-personal-equipment-specialists-controller.js'
+import { usePersonalEquipmentPlannerController } from './features/equipment/use-personal-equipment-planner-controller.js'
 import { fleetContextForRoute, fleetNavigationItems } from './features/fleet/fleet-navigation.js'
 import { useFleetController } from './features/fleet/use-fleet-controller.js'
 import { galaxyContextForRoute, galaxyNavigationItems } from './features/galaxy/galaxy-navigation.js'
@@ -53,6 +54,7 @@ const EquipmentPage = lazy(() => import('./features/equipment/equipment-page.js'
 const EquipmentMaterialsPage = lazy(() => import('./features/equipment/equipment-materials-page.js').then(module => ({ default: module.EquipmentMaterialsPage })))
 const EquipmentUpgradesPage = lazy(() => import('./features/equipment/equipment-upgrades-page.js').then(module => ({ default: module.EquipmentUpgradesPage })))
 const EquipmentSpecialistsPage = lazy(() => import('./features/equipment/equipment-specialists-page.js').then(module => ({ default: module.EquipmentSpecialistsPage })))
+const EquipmentPlannerPage = lazy(() => import('./features/equipment/equipment-planner-page.js').then(module => ({ default: module.EquipmentPlannerPage })))
 const FleetPage = lazy(() => import('./features/fleet/fleet-page.js').then(module => ({ default: module.FleetPage })))
 const GalaxyPage = lazy(() => import('./features/galaxy/galaxy-page.js').then(module => ({ default: module.GalaxyPage })))
 const HelpPage = lazy(() => import('./features/settings/help-page.js').then(module => ({ default: module.HelpPage })))
@@ -346,15 +348,17 @@ const PersonalEquipmentFeature = memo(function PersonalEquipmentFeature({ applic
   application: PhoenixApplicationServices
   selectedSpecialistId?: string
   selectedUpgradeId?: string
-  view: 'gear' | 'loadouts' | 'materials' | 'specialists' | 'upgrades'
+  view: 'gear' | 'loadouts' | 'materials' | 'planner' | 'specialists' | 'upgrades'
 }) {
   const equipment = usePersonalEquipmentController(application.api, application.events, view === 'gear' || view === 'loadouts')
   const materials = usePersonalMaterialsController(application.api, application.events, view === 'materials')
   const upgrades = usePersonalEquipmentUpgradesController(application.api, view === 'upgrades')
   const specialists = usePersonalEquipmentSpecialistsController(application.api, view === 'specialists')
+  const planner = usePersonalEquipmentPlannerController(application.api, view === 'planner')
   if (view === 'materials') return <EquipmentMaterialsPage controller={materials} />
   if (view === 'specialists') return <EquipmentSpecialistsPage controller={specialists} selectedSpecialistId={selectedSpecialistId} />
   if (view === 'upgrades') return <EquipmentUpgradesPage controller={upgrades} selectedUpgradeId={selectedUpgradeId} />
+  if (view === 'planner') return <EquipmentPlannerPage controller={planner} />
   return view === 'gear'
     ? <EquipmentPage controller={equipment} />
     : <CommanderLoadoutsPage controller={equipment} />

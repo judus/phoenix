@@ -8,17 +8,22 @@ test('keeps technology-specific weapon recipes distinct from their shared journa
   const catalogue = transformPersonalEquipmentCatalogue(sourceDocuments(), '2026-09-15T00:00:00.000Z')
   const greaterRange = catalogue.modifications.find(modification => modification.id === 'weapon_range_kinetic')
 
-  expect(catalogue.schemaVersion).toBe(2)
+  expect(catalogue.schemaVersion).toBe(3)
   expect(catalogue.engineers.find(engineer => engineer.displayName === 'Domino Green')).toEqual({
     displayName: 'Domino Green',
     frontierEngineerId: 400002,
     id: 'domino-green'
   })
   expect(greaterRange).toMatchObject({
+    compatibleEquipmentIds: ['wpn_s_pistol_kinetic_sauto'],
     engineerIds: ['domino-green'],
     engineeringTechnology: 'kinetic',
     journalSymbols: ['weapon_range'],
     targetKind: 'weapon'
+  })
+  expect(catalogue.modifications.find(modification => modification.id === 'suit_backpack')).toMatchObject({
+    compatibleEquipmentIds: ['utilitysuit'],
+    targetKind: 'suit'
   })
 })
 
@@ -70,26 +75,46 @@ function sourceDocuments () {
     family: 'utilitysuit',
     name: 'Maverick Suit',
     grades: grades(grade => `utilitysuit_class${grade}`)
+  }, {
+    family: 'flightsuit',
+    name: 'Flight Suit',
+    grades: { 1: { symbol: 'flightsuit_class1', modificationSlots: 0 } }
   }])
-  documents['data/equipment/weapons.jsonc'] = JSON.stringify([{
-    symbol: 'wpn_s_pistol_kinetic_sauto',
-    name: 'Karma P-15',
-    upgradeGroup: 'karma',
-    engineeringType: 'kinetic',
-    grades: grades()
-  }])
+  documents['data/equipment/weapons.jsonc'] = JSON.stringify([
+    {
+      symbol: 'wpn_s_pistol_kinetic_sauto',
+      name: 'Karma P-15',
+      upgradeGroup: 'karma',
+      engineeringType: 'kinetic',
+      grades: grades()
+    },
+    {
+      symbol: 'wpn_s_pistol_laser_sauto',
+      name: 'TK Zenith',
+      upgradeGroup: 'tk',
+      engineeringType: 'laser',
+      grades: grades()
+    }
+  ])
   documents['data/equipment/upgrade-costs.jsonc'] = JSON.stringify({
     suits: {
       utilitysuit: upgradeSteps(['suitschematic', 'healthmonitor', 'manufacturinginstructions'], ['carbonfibreplating', 'graphene'])
     },
     weaponGroups: {
-      karma: upgradeSteps(['weaponschematic', 'compressionliquefiedgas', 'manufacturinginstructions'], ['tungstencarbide', 'weaponcomponent'])
+      karma: upgradeSteps(['weaponschematic', 'compressionliquefiedgas', 'manufacturinginstructions'], ['tungstencarbide', 'weaponcomponent']),
+      tk: upgradeSteps(['weaponschematic', 'compressionliquefiedgas', 'manufacturinginstructions'], ['tungstencarbide', 'weaponcomponent'])
     }
   })
   documents['data/equipment/modifications.jsonc'] = JSON.stringify({
     weapon_range_kinetic: {
       name: 'Greater Range',
       target: 'weapon',
+      engineers: ['Domino Green'],
+      modifiers: []
+    },
+    suit_backpack: {
+      name: 'Extra Backpack Capacity',
+      target: 'suit',
       engineers: ['Domino Green'],
       modifiers: []
     }
@@ -101,7 +126,8 @@ function sourceDocuments () {
       ['metalcoil', 10],
       ['rdx', 10],
       ['weaponcomponent', 5]
-    ])
+    ]),
+    suit_backpack: ingredients([['graphene', 5]])
   })
   documents['data/equipment/modification-journal-names.jsonc'] = JSON.stringify({
     weapon_range_kinetic: 'weapon_range'

@@ -63,6 +63,7 @@ test.each([
   ['open the personal stores page', 'commander.inventory'],
   ['loadouts', 'commander.loadouts'],
   ['gear', 'equipment.gear'],
+  ['upgrade planner', 'equipment.planner'],
   ['suit upgrades', 'equipment.upgrades'],
   ['Odyssey engineers', 'equipment.specialists'],
   ['on-foot materials', 'equipment.materials'],

@@ -29,6 +29,7 @@ import {
   MacroDefinitionSchema,
   OpenAiApiKeyRequestSchema,
   PlotEliteDestinationRequestSchema,
+  PersonalEquipmentPlanPreviewRequestSchema,
   PhoenixModulesSchema,
   RecordMacroActionRequestSchema,
   SavedGalaxyQueryWriteRequestSchema,
@@ -71,6 +72,7 @@ import type { CommanderEquipmentReader } from '../domain/commander-equipment.js'
 import type { PersonalMaterialInventoryReader } from '../domain/personal-materials.js'
 import type { PersonalEquipmentUpgradesReader } from '../domain/personal-equipment-upgrades.js'
 import type { PersonalEquipmentSpecialistsReader } from '../domain/personal-equipment-specialists.js'
+import type { PersonalEquipmentPlanner } from '../domain/personal-equipment-planner.js'
 import type { EliteStatusDiagnosticsReader } from '../domain/elite-status.js'
 import type { Subscribable } from '../domain/publisher.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
@@ -113,6 +115,7 @@ export interface PhoenixHttpServerOptions {
   personalMaterials: PersonalMaterialInventoryReader
   personalEquipmentUpgrades: PersonalEquipmentUpgradesReader
   personalEquipmentSpecialists: PersonalEquipmentSpecialistsReader
+  personalEquipmentPlanner: PersonalEquipmentPlanner
   commanderLog: CommanderLogReader
   dashboardMarketSignals: DashboardMarketSignalReader
   controlDeckHttp?: ControlDeckHttpHandler
@@ -326,6 +329,17 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/equipment/specialists') {
       this.writeJson(response, 200, this.options.personalEquipmentSpecialists.getSpecialists())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/equipment/planner') {
+      this.writeJson(response, 200, this.options.personalEquipmentPlanner.getOptions())
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/equipment/planner/preview') {
+      const input = await readValidatedJsonBody(request, PersonalEquipmentPlanPreviewRequestSchema)
+      this.writeJson(response, 200, this.options.personalEquipmentPlanner.preview(input))
       return
     }
 

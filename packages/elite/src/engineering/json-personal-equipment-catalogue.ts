@@ -47,6 +47,7 @@ const PersonalEquipmentModificationSchema = z.object({
   displayName: z.string().min(1),
   targetKind: z.enum(['suit', 'weapon']),
   engineeringTechnology: z.enum(['kinetic', 'laser', 'plasma']).nullable(),
+  compatibleEquipmentIds: z.array(z.string().min(1)).min(1),
   engineerIds: z.array(z.string().min(1)).min(1),
   credits: z.number().int().nonnegative().nullable(),
   ingredients: z.array(PersonalEquipmentIngredientSchema).min(1)
@@ -66,7 +67,7 @@ const PersonalEquipmentMicroResourceSchema = z.object({
 }).strict()
 
 const PersonalEquipmentCatalogueSnapshotSchema = z.object({
-  schemaVersion: z.literal(2),
+  schemaVersion: z.literal(3),
   catalogueVersion: z.string().min(1),
   generatedAt: z.iso.datetime(),
   sources: z.array(PersonalEquipmentSourceSchema).min(1),

@@ -1,7 +1,7 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "catalogueVersion": "362210e98b334cd7575d0734301c66c8bd2d17bd",
-  "generatedAt": "2026-09-15T22:21:30.056Z",
+  "generatedAt": "2026-09-15T23:07:45.629Z",
   "sources": [
     {
       "name": "Elite Dangerous Almanac",
@@ -20,7 +20,7 @@
         "data/materials/micro-resources-data.jsonc",
         "data/materials/micro-resources-consumable.jsonc"
       ],
-      "retrievedAt": "2026-09-15T22:21:30.056Z"
+      "retrievedAt": "2026-09-15T23:07:45.629Z"
     }
   ],
   "equipmentDefinitions": [
@@ -1256,6 +1256,11 @@
       "displayName": "Added Melee Damage",
       "targetKind": "suit",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "explorationsuit",
+        "tacticalsuit",
+        "utilitysuit"
+      ],
       "engineerIds": [
         "jude-navarro",
         "kit-fowler",
@@ -1289,6 +1294,19 @@
       "displayName": "Audio Masking",
       "targetKind": "weapon",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "wpn_m_assaultrifle_kinetic_fauto",
+        "wpn_m_assaultrifle_laser_fauto",
+        "wpn_m_assaultrifle_plasma_fauto",
+        "wpn_m_launcher_rocket_sauto",
+        "wpn_m_shotgun_plasma_doublebarrel",
+        "wpn_m_sniper_plasma_charged",
+        "wpn_m_submachinegun_kinetic_fauto",
+        "wpn_m_submachinegun_laser_fauto",
+        "wpn_s_pistol_kinetic_sauto",
+        "wpn_s_pistol_laser_sauto",
+        "wpn_s_pistol_plasma_charged"
+      ],
       "engineerIds": [
         "yarden-bond",
         "yi-shen"
@@ -1325,6 +1343,11 @@
       "displayName": "Combat Movement Speed",
       "targetKind": "suit",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "explorationsuit",
+        "tacticalsuit",
+        "utilitysuit"
+      ],
       "engineerIds": [
         "terra-velasquez",
         "yarden-bond",
@@ -1358,6 +1381,11 @@
       "displayName": "Damage Resistance",
       "targetKind": "suit",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "explorationsuit",
+        "tacticalsuit",
+        "utilitysuit"
+      ],
       "engineerIds": [
         "jude-navarro",
         "uma-laszlo",
@@ -1395,6 +1423,11 @@
       "displayName": "Enhanced Tracking",
       "targetKind": "suit",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "explorationsuit",
+        "tacticalsuit",
+        "utilitysuit"
+      ],
       "engineerIds": [
         "domino-green",
         "oden-geiger",
@@ -1432,6 +1465,11 @@
       "displayName": "Extra Ammo Capacity",
       "targetKind": "suit",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "explorationsuit",
+        "tacticalsuit",
+        "utilitysuit"
+      ],
       "engineerIds": [
         "jude-navarro",
         "kit-fowler",
@@ -1465,6 +1503,11 @@
       "displayName": "Extra Backpack Capacity",
       "targetKind": "suit",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "explorationsuit",
+        "tacticalsuit",
+        "utilitysuit"
+      ],
       "engineerIds": [
         "domino-green",
         "wellington-beck",
@@ -1502,6 +1545,19 @@
       "displayName": "Faster Handling",
       "targetKind": "weapon",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "wpn_m_assaultrifle_kinetic_fauto",
+        "wpn_m_assaultrifle_laser_fauto",
+        "wpn_m_assaultrifle_plasma_fauto",
+        "wpn_m_launcher_rocket_sauto",
+        "wpn_m_shotgun_plasma_doublebarrel",
+        "wpn_m_sniper_plasma_charged",
+        "wpn_m_submachinegun_kinetic_fauto",
+        "wpn_m_submachinegun_laser_fauto",
+        "wpn_s_pistol_kinetic_sauto",
+        "wpn_s_pistol_laser_sauto",
+        "wpn_s_pistol_plasma_charged"
+      ],
       "engineerIds": [
         "hero-ferrari",
         "yarden-bond",
@@ -1535,6 +1591,11 @@
       "displayName": "Faster Shield Regen",
       "targetKind": "suit",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "explorationsuit",
+        "tacticalsuit",
+        "utilitysuit"
+      ],
       "engineerIds": [
         "kit-fowler",
         "uma-laszlo",
@@ -1568,6 +1629,12 @@
       "displayName": "Greater Range",
       "targetKind": "weapon",
       "engineeringTechnology": "kinetic",
+      "compatibleEquipmentIds": [
+        "wpn_m_assaultrifle_kinetic_fauto",
+        "wpn_m_launcher_rocket_sauto",
+        "wpn_m_submachinegun_kinetic_fauto",
+        "wpn_s_pistol_kinetic_sauto"
+      ],
       "engineerIds": [
         "domino-green",
         "wellington-beck",
@@ -1605,6 +1672,11 @@
       "displayName": "Greater Range",
       "targetKind": "weapon",
       "engineeringTechnology": "laser",
+      "compatibleEquipmentIds": [
+        "wpn_m_assaultrifle_laser_fauto",
+        "wpn_m_submachinegun_laser_fauto",
+        "wpn_s_pistol_laser_sauto"
+      ],
       "engineerIds": [
         "domino-green",
         "wellington-beck",
@@ -1642,6 +1714,12 @@
       "displayName": "Greater Range",
       "targetKind": "weapon",
       "engineeringTechnology": "plasma",
+      "compatibleEquipmentIds": [
+        "wpn_m_assaultrifle_plasma_fauto",
+        "wpn_m_shotgun_plasma_doublebarrel",
+        "wpn_m_sniper_plasma_charged",
+        "wpn_s_pistol_plasma_charged"
+      ],
       "engineerIds": [
         "domino-green",
         "wellington-beck",
@@ -1679,6 +1757,12 @@
       "displayName": "Headshot Damage",
       "targetKind": "weapon",
       "engineeringTechnology": "kinetic",
+      "compatibleEquipmentIds": [
+        "wpn_m_assaultrifle_kinetic_fauto",
+        "wpn_m_launcher_rocket_sauto",
+        "wpn_m_submachinegun_kinetic_fauto",
+        "wpn_s_pistol_kinetic_sauto"
+      ],
       "engineerIds": [
         "uma-laszlo",
         "yi-shen"
@@ -1715,6 +1799,11 @@
       "displayName": "Headshot Damage",
       "targetKind": "weapon",
       "engineeringTechnology": "laser",
+      "compatibleEquipmentIds": [
+        "wpn_m_assaultrifle_laser_fauto",
+        "wpn_m_submachinegun_laser_fauto",
+        "wpn_s_pistol_laser_sauto"
+      ],
       "engineerIds": [
         "uma-laszlo",
         "yi-shen"
@@ -1751,6 +1840,12 @@
       "displayName": "Headshot Damage",
       "targetKind": "weapon",
       "engineeringTechnology": "plasma",
+      "compatibleEquipmentIds": [
+        "wpn_m_assaultrifle_plasma_fauto",
+        "wpn_m_shotgun_plasma_doublebarrel",
+        "wpn_m_sniper_plasma_charged",
+        "wpn_s_pistol_plasma_charged"
+      ],
       "engineerIds": [
         "uma-laszlo",
         "yi-shen"
@@ -1787,6 +1882,11 @@
       "displayName": "Improved Battery Capacity",
       "targetKind": "suit",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "explorationsuit",
+        "tacticalsuit",
+        "utilitysuit"
+      ],
       "engineerIds": [
         "oden-geiger",
         "wellington-beck",
@@ -1824,6 +1924,12 @@
       "displayName": "Improved Hip Fire Accuracy",
       "targetKind": "weapon",
       "engineeringTechnology": "kinetic",
+      "compatibleEquipmentIds": [
+        "wpn_m_assaultrifle_kinetic_fauto",
+        "wpn_m_launcher_rocket_sauto",
+        "wpn_m_submachinegun_kinetic_fauto",
+        "wpn_s_pistol_kinetic_sauto"
+      ],
       "engineerIds": [
         "yarden-bond",
         "terra-velasquez",
@@ -1861,6 +1967,11 @@
       "displayName": "Improved Hip Fire Accuracy",
       "targetKind": "weapon",
       "engineeringTechnology": "laser",
+      "compatibleEquipmentIds": [
+        "wpn_m_assaultrifle_laser_fauto",
+        "wpn_m_submachinegun_laser_fauto",
+        "wpn_s_pistol_laser_sauto"
+      ],
       "engineerIds": [
         "yarden-bond",
         "terra-velasquez",
@@ -1898,6 +2009,12 @@
       "displayName": "Improved Hip Fire Accuracy",
       "targetKind": "weapon",
       "engineeringTechnology": "plasma",
+      "compatibleEquipmentIds": [
+        "wpn_m_assaultrifle_plasma_fauto",
+        "wpn_m_shotgun_plasma_doublebarrel",
+        "wpn_m_sniper_plasma_charged",
+        "wpn_s_pistol_plasma_charged"
+      ],
       "engineerIds": [
         "yarden-bond",
         "terra-velasquez",
@@ -1935,6 +2052,11 @@
       "displayName": "Improved Jump Assist",
       "targetKind": "suit",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "explorationsuit",
+        "tacticalsuit",
+        "utilitysuit"
+      ],
       "engineerIds": [
         "hero-ferrari",
         "yarden-bond",
@@ -1968,6 +2090,11 @@
       "displayName": "Increased Air Reserves",
       "targetKind": "suit",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "explorationsuit",
+        "tacticalsuit",
+        "utilitysuit"
+      ],
       "engineerIds": [
         "hero-ferrari",
         "terra-velasquez",
@@ -2001,6 +2128,11 @@
       "displayName": "Increased Sprint Duration",
       "targetKind": "suit",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "explorationsuit",
+        "tacticalsuit",
+        "utilitysuit"
+      ],
       "engineerIds": [
         "hero-ferrari",
         "terra-velasquez",
@@ -2038,6 +2170,19 @@
       "displayName": "Magazine Size",
       "targetKind": "weapon",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "wpn_m_assaultrifle_kinetic_fauto",
+        "wpn_m_assaultrifle_laser_fauto",
+        "wpn_m_assaultrifle_plasma_fauto",
+        "wpn_m_launcher_rocket_sauto",
+        "wpn_m_shotgun_plasma_doublebarrel",
+        "wpn_m_sniper_plasma_charged",
+        "wpn_m_submachinegun_kinetic_fauto",
+        "wpn_m_submachinegun_laser_fauto",
+        "wpn_s_pistol_kinetic_sauto",
+        "wpn_s_pistol_laser_sauto",
+        "wpn_s_pistol_plasma_charged"
+      ],
       "engineerIds": [
         "jude-navarro",
         "kit-fowler",
@@ -2075,6 +2220,11 @@
       "displayName": "Night Vision",
       "targetKind": "suit",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "explorationsuit",
+        "tacticalsuit",
+        "utilitysuit"
+      ],
       "engineerIds": [
         "oden-geiger",
         "yi-shen"
@@ -2111,6 +2261,19 @@
       "displayName": "Noise Suppressor",
       "targetKind": "weapon",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "wpn_m_assaultrifle_kinetic_fauto",
+        "wpn_m_assaultrifle_laser_fauto",
+        "wpn_m_assaultrifle_plasma_fauto",
+        "wpn_m_launcher_rocket_sauto",
+        "wpn_m_shotgun_plasma_doublebarrel",
+        "wpn_m_sniper_plasma_charged",
+        "wpn_m_submachinegun_kinetic_fauto",
+        "wpn_m_submachinegun_laser_fauto",
+        "wpn_s_pistol_kinetic_sauto",
+        "wpn_s_pistol_laser_sauto",
+        "wpn_s_pistol_plasma_charged"
+      ],
       "engineerIds": [
         "hero-ferrari",
         "terra-velasquez",
@@ -2144,6 +2307,11 @@
       "displayName": "Quieter Footsteps",
       "targetKind": "suit",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "explorationsuit",
+        "tacticalsuit",
+        "utilitysuit"
+      ],
       "engineerIds": [
         "yarden-bond",
         "yi-shen"
@@ -2180,6 +2348,11 @@
       "displayName": "Reduced Tool Battery Consumption",
       "targetKind": "suit",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "explorationsuit",
+        "tacticalsuit",
+        "utilitysuit"
+      ],
       "engineerIds": [
         "domino-green",
         "wellington-beck",
@@ -2213,6 +2386,19 @@
       "displayName": "Reload Speed",
       "targetKind": "weapon",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "wpn_m_assaultrifle_kinetic_fauto",
+        "wpn_m_assaultrifle_laser_fauto",
+        "wpn_m_assaultrifle_plasma_fauto",
+        "wpn_m_launcher_rocket_sauto",
+        "wpn_m_shotgun_plasma_doublebarrel",
+        "wpn_m_sniper_plasma_charged",
+        "wpn_m_submachinegun_kinetic_fauto",
+        "wpn_m_submachinegun_laser_fauto",
+        "wpn_s_pistol_kinetic_sauto",
+        "wpn_s_pistol_laser_sauto",
+        "wpn_s_pistol_plasma_charged"
+      ],
       "engineerIds": [
         "jude-navarro",
         "uma-laszlo",
@@ -2250,6 +2436,19 @@
       "displayName": "Scope",
       "targetKind": "weapon",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "wpn_m_assaultrifle_kinetic_fauto",
+        "wpn_m_assaultrifle_laser_fauto",
+        "wpn_m_assaultrifle_plasma_fauto",
+        "wpn_m_launcher_rocket_sauto",
+        "wpn_m_shotgun_plasma_doublebarrel",
+        "wpn_m_sniper_plasma_charged",
+        "wpn_m_submachinegun_kinetic_fauto",
+        "wpn_m_submachinegun_laser_fauto",
+        "wpn_s_pistol_kinetic_sauto",
+        "wpn_s_pistol_laser_sauto",
+        "wpn_s_pistol_plasma_charged"
+      ],
       "engineerIds": [
         "oden-geiger",
         "wellington-beck",
@@ -2283,6 +2482,19 @@
       "displayName": "Stability",
       "targetKind": "weapon",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "wpn_m_assaultrifle_kinetic_fauto",
+        "wpn_m_assaultrifle_laser_fauto",
+        "wpn_m_assaultrifle_plasma_fauto",
+        "wpn_m_launcher_rocket_sauto",
+        "wpn_m_shotgun_plasma_doublebarrel",
+        "wpn_m_sniper_plasma_charged",
+        "wpn_m_submachinegun_kinetic_fauto",
+        "wpn_m_submachinegun_laser_fauto",
+        "wpn_s_pistol_kinetic_sauto",
+        "wpn_s_pistol_laser_sauto",
+        "wpn_s_pistol_plasma_charged"
+      ],
       "engineerIds": [
         "domino-green",
         "oden-geiger",
@@ -2316,6 +2528,19 @@
       "displayName": "Stowed reloading",
       "targetKind": "weapon",
       "engineeringTechnology": null,
+      "compatibleEquipmentIds": [
+        "wpn_m_assaultrifle_kinetic_fauto",
+        "wpn_m_assaultrifle_laser_fauto",
+        "wpn_m_assaultrifle_plasma_fauto",
+        "wpn_m_launcher_rocket_sauto",
+        "wpn_m_shotgun_plasma_doublebarrel",
+        "wpn_m_sniper_plasma_charged",
+        "wpn_m_submachinegun_kinetic_fauto",
+        "wpn_m_submachinegun_laser_fauto",
+        "wpn_s_pistol_kinetic_sauto",
+        "wpn_s_pistol_laser_sauto",
+        "wpn_s_pistol_plasma_charged"
+      ],
       "engineerIds": [
         "kit-fowler",
         "uma-laszlo",

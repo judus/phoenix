@@ -57,6 +57,7 @@ import { DefaultCommanderEquipmentCatalogue } from './application/commander-equi
 import { PersonalMaterialInventoryService } from './application/personal-material-inventory-service.js'
 import { PersonalEquipmentUpgradesService } from './application/personal-equipment-upgrades-service.js'
 import { PersonalEquipmentSpecialistsService } from './application/personal-equipment-specialists-service.js'
+import { PersonalEquipmentPlannerService } from './application/personal-equipment-planner-service.js'
 import { LoggedGameActions } from './application/logged-game-actions.js'
 import { DisplayCommandService } from './application/display-command-service.js'
 import { NavigationDataService } from './application/navigation-data-service.js'
@@ -247,6 +248,11 @@ export class PhoenixApplication {
       new DefaultCommanderEquipmentCatalogue()
     )
     const personalMaterials = new PersonalMaterialInventoryService(this.stateStore)
+    const personalEquipmentPlanner = new PersonalEquipmentPlannerService(
+      catalogues.personalEquipment,
+      commanderEquipment,
+      personalMaterials
+    )
     const projector = new DefaultRuntimeStateProjector(
       this.stateStore,
       runtimeStateUpdates,
@@ -547,6 +553,7 @@ export class PhoenixApplication {
       personalMaterials,
       personalEquipmentUpgrades,
       personalEquipmentSpecialists,
+      personalEquipmentPlanner,
       galnet,
       navigationData,
       navigationRouteUpdates,

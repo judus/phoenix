@@ -91,6 +91,12 @@ export function transformPersonalEquipmentCatalogue (sourceDocuments, generatedA
       displayName: requiredString(record, 'name', `modification ${id}`),
       targetKind,
       engineeringTechnology,
+      compatibleEquipmentIds: compatibleEquipmentIds(
+        equipmentDefinitions,
+        targetKind,
+        engineeringTechnology,
+        id
+      ),
       engineerIds: requiredArray(record.engineers, `modification ${id}.engineers`)
         .map((name, index) => engineerId(requiredStringValue(name, `modification ${id}.engineers[${index}]`))),
       credits: null,
@@ -106,7 +112,7 @@ export function transformPersonalEquipmentCatalogue (sourceDocuments, generatedA
   }
 
   const catalogue = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     catalogueVersion: PERSONAL_EQUIPMENT_SOURCE.revision,
     generatedAt,
     sources: [{
@@ -123,6 +129,20 @@ export function transformPersonalEquipmentCatalogue (sourceDocuments, generatedA
     microResources: microResources.sort((left, right) => left.displayName.localeCompare(right.displayName))
   }
   return catalogue
+}
+
+function compatibleEquipmentIds (definitions, targetKind, engineeringTechnology, modificationId) {
+  const compatible = definitions.filter(definition => (
+    definition.kind === targetKind &&
+    definition.grades.some(grade => grade.modificationSlots > 0) &&
+    (
+      targetKind !== 'weapon' ||
+      engineeringTechnology === null ||
+      definition.engineeringTechnology === engineeringTechnology
+    )
+  )).map(definition => definition.id).sort()
+  if (compatible.length === 0) throw new Error(`Modification ${modificationId} has no compatible equipment definitions.`)
+  return compatible
 }
 
 function equipmentDefinition (value, index, kind) {
