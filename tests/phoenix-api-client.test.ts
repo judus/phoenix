@@ -166,6 +166,27 @@ test('Engineering transports preserve the existing read API', async () => {
   ])
 })
 
+test('personal material transport validates the server-owned inventory read model', async () => {
+  const request = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({
+    schemaVersion: 1,
+    updatedAt: null,
+    stores: { shipLockerUpdatedAt: null, backpackUpdatedAt: null },
+    groups: [
+      { id: 'goods', label: 'Goods', items: [] },
+      { id: 'assets', label: 'Assets', items: [] },
+      { id: 'data', label: 'Data', items: [] },
+      { id: 'consumables', label: 'Consumables', items: [] }
+    ]
+  }))
+
+  await expect(new PhoenixApiClient('', request).getPersonalMaterialInventory())
+    .resolves.toMatchObject({
+      schemaVersion: 1,
+      groups: expect.arrayContaining([expect.objectContaining({ id: 'goods' })])
+    })
+  expect(request.mock.calls[0]?.[0]).toBe('/api/equipment/materials')
+})
+
 function jsonResponse(payload: unknown): Response {
   return new Response(JSON.stringify(payload), {
     headers: { 'content-type': 'application/json' },

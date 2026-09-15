@@ -19,6 +19,7 @@ import type { CommanderView } from './features/commander/commander-page.js'
 import { commanderContextForRoute, commanderNavigationItems } from './features/commander/commander-navigation.js'
 import { equipmentContextForRoute, equipmentNavigationItems } from './features/equipment/equipment-navigation.js'
 import { usePersonalEquipmentController } from './features/equipment/use-personal-equipment-controller.js'
+import { usePersonalMaterialsController } from './features/equipment/use-personal-materials-controller.js'
 import { fleetContextForRoute, fleetNavigationItems } from './features/fleet/fleet-navigation.js'
 import { useFleetController } from './features/fleet/use-fleet-controller.js'
 import { galaxyContextForRoute, galaxyNavigationItems } from './features/galaxy/galaxy-navigation.js'
@@ -47,6 +48,7 @@ const CreditsPage = lazy(() => import('./features/journal/credits-page.js').then
 const DashboardPage = lazy(() => import('./features/dashboard/dashboard-page.js').then(module => ({ default: module.DashboardPage })))
 const EngineeringPage = lazy(() => import('./features/engineering/engineering-page.js').then(module => ({ default: module.EngineeringPage })))
 const EquipmentPage = lazy(() => import('./features/equipment/equipment-page.js').then(module => ({ default: module.EquipmentPage })))
+const EquipmentMaterialsPage = lazy(() => import('./features/equipment/equipment-materials-page.js').then(module => ({ default: module.EquipmentMaterialsPage })))
 const FleetPage = lazy(() => import('./features/fleet/fleet-page.js').then(module => ({ default: module.FleetPage })))
 const GalaxyPage = lazy(() => import('./features/galaxy/galaxy-page.js').then(module => ({ default: module.GalaxyPage })))
 const HelpPage = lazy(() => import('./features/settings/help-page.js').then(module => ({ default: module.HelpPage })))
@@ -171,7 +173,7 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
                       : engineeringRoute
                         ? <EngineeringFeature key={router.href(engineeringRoute)} application={application} route={engineeringRoute} />
                         : equipmentRoute
-                          ? <PersonalEquipmentFeature application={application} view="gear" />
+                          ? <PersonalEquipmentFeature application={application} view={equipmentRoute.view} />
                         : null}</FeatureBoundary>
         : null}
       journal={activeDesktop === 'journal'
@@ -333,12 +335,14 @@ const CommanderFeature = memo(function CommanderFeature({ application, view }: {
 
 const PersonalEquipmentFeature = memo(function PersonalEquipmentFeature({ application, view }: {
   application: PhoenixApplicationServices
-  view: 'gear' | 'loadouts'
+  view: 'gear' | 'loadouts' | 'materials'
 }) {
-  const controller = usePersonalEquipmentController(application.api, application.events, true)
+  const equipment = usePersonalEquipmentController(application.api, application.events, view !== 'materials')
+  const materials = usePersonalMaterialsController(application.api, application.events, view === 'materials')
+  if (view === 'materials') return <EquipmentMaterialsPage controller={materials} />
   return view === 'gear'
-    ? <EquipmentPage controller={controller} />
-    : <CommanderLoadoutsPage controller={controller} />
+    ? <EquipmentPage controller={equipment} />
+    : <CommanderLoadoutsPage controller={equipment} />
 })
 
 const DashboardFeature = memo(function DashboardFeature({ application }: { application: PhoenixApplicationServices }) {

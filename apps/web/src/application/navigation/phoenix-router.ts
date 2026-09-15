@@ -97,7 +97,8 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
   if (section === 'engineering') return parseEngineeringRoute(rest, query)
 
   if (section === 'equipment') {
-    return { kind: 'information', section, view: 'gear' }
+    const view = oneOf(rest[0], ['gear', 'materials'] as const) ?? 'gear'
+    return { kind: 'information', section, view }
   }
 
   if (section === 'comms') {

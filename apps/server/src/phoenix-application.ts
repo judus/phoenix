@@ -54,6 +54,7 @@ import { CommanderLogService } from './application/commander-log/commander-log-s
 import { DefaultCommanderLogProjector } from './application/commander-log/commander-log-projector.js'
 import { CommanderEquipmentService } from './application/commander-equipment-service.js'
 import { DefaultCommanderEquipmentCatalogue } from './application/commander-equipment-catalogue.js'
+import { PersonalMaterialInventoryService } from './application/personal-material-inventory-service.js'
 import { LoggedGameActions } from './application/logged-game-actions.js'
 import { DisplayCommandService } from './application/display-command-service.js'
 import { NavigationDataService } from './application/navigation-data-service.js'
@@ -234,6 +235,7 @@ export class PhoenixApplication {
       this.database.commanderEquipment,
       new DefaultCommanderEquipmentCatalogue()
     )
+    const personalMaterials = new PersonalMaterialInventoryService(this.stateStore)
     const projector = new DefaultRuntimeStateProjector(
       this.stateStore,
       runtimeStateUpdates,
@@ -531,6 +533,7 @@ export class PhoenixApplication {
       fleet,
       galaxyData: stationMarkets,
       marketSignals,
+      personalMaterials,
       galnet,
       navigationData,
       navigationRouteUpdates,

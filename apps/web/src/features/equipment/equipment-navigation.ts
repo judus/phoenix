@@ -5,11 +5,13 @@ import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js
 type EquipmentNavigationItem = NavigationItem & { route: InformationRoute }
 
 const routes = {
-  gear: { kind: 'information', section: 'equipment', view: 'gear' }
+  gear: { kind: 'information', section: 'equipment', view: 'gear' },
+  materials: { kind: 'information', section: 'equipment', view: 'materials' }
 } as const satisfies Record<string, InformationRoute>
 
 export const equipmentNavigationItems: EquipmentNavigationItem[] = [
-  item('gear', 'Gear', 'GEA')
+  item('gear', 'Gear', 'GEA'),
+  item('materials', 'Materials', 'MAT')
 ]
 
 export function equipmentContextForRoute(route: InformationRoute): string {

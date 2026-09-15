@@ -51,7 +51,10 @@ test('commander loadouts and equipment gear share observed state without duplica
   )
   const gear = renderToStaticMarkup(<EquipmentPage controller={{ status: 'ready', equipment }} />)
 
-  expect(equipmentNavigationItems.map(item => [item.label, item.href])).toEqual([['Gear', '#/equipment/gear']])
+  expect(equipmentNavigationItems.map(item => [item.label, item.href])).toEqual([
+    ['Gear', '#/equipment/gear'],
+    ['Materials', '#/equipment/materials']
+  ])
   expect(loadouts).toContain('<h1>Suit Loadouts</h1>')
   expect(loadouts).toContain('EXPEDITION')
   expect(loadouts).toContain('Equipped')
