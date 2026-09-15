@@ -70,6 +70,7 @@ import type { CommanderLogReader } from '../domain/commander-log.js'
 import type { CommanderEquipmentReader } from '../domain/commander-equipment.js'
 import type { PersonalMaterialInventoryReader } from '../domain/personal-materials.js'
 import type { PersonalEquipmentUpgradesReader } from '../domain/personal-equipment-upgrades.js'
+import type { PersonalEquipmentSpecialistsReader } from '../domain/personal-equipment-specialists.js'
 import type { EliteStatusDiagnosticsReader } from '../domain/elite-status.js'
 import type { Subscribable } from '../domain/publisher.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
@@ -111,6 +112,7 @@ export interface PhoenixHttpServerOptions {
   commanderEquipment: CommanderEquipmentReader
   personalMaterials: PersonalMaterialInventoryReader
   personalEquipmentUpgrades: PersonalEquipmentUpgradesReader
+  personalEquipmentSpecialists: PersonalEquipmentSpecialistsReader
   commanderLog: CommanderLogReader
   dashboardMarketSignals: DashboardMarketSignalReader
   controlDeckHttp?: ControlDeckHttpHandler
@@ -319,6 +321,11 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/equipment/upgrades') {
       this.writeJson(response, 200, this.options.personalEquipmentUpgrades.getUpgrades())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/equipment/specialists') {
+      this.writeJson(response, 200, this.options.personalEquipmentSpecialists.getSpecialists())
       return
     }
 

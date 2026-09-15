@@ -43,6 +43,7 @@ export const PHOENIX_NAVIGATION_DESTINATIONS: readonly NavigationCommandDestinat
   destination('engineering.materials-xeno', 'Xeno materials', '#/engineering/materials/xeno', 'Engineering', 'Open xeno materials.'),
   destination('equipment.gear', 'Personal equipment', '#/equipment/gear', 'Equipment', 'Open observed suits and personal weapons.'),
   destination('equipment.upgrades', 'Personal equipment upgrades', '#/equipment/upgrades', 'Equipment', 'Open suit and personal weapon upgrade recipes.'),
+  destination('equipment.specialists', 'Personal equipment specialists', '#/equipment/specialists', 'Equipment', 'Open Odyssey engineers and their modification capabilities.'),
   destination('equipment.materials', 'Personal materials', '#/equipment/materials', 'Equipment', 'Open observed Ship Locker and Backpack materials.'),
   destination('comms.inbox', 'Inbox', '#/comms/inbox', 'Comms', 'Open retained direct and group messages.'),
   destination('comms.traffic', 'Traffic', '#/comms/traffic', 'Comms', 'Open communications traffic.'),

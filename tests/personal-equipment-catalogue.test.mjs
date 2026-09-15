@@ -8,7 +8,14 @@ test('keeps technology-specific weapon recipes distinct from their shared journa
   const catalogue = transformPersonalEquipmentCatalogue(sourceDocuments(), '2026-09-15T00:00:00.000Z')
   const greaterRange = catalogue.modifications.find(modification => modification.id === 'weapon_range_kinetic')
 
+  expect(catalogue.schemaVersion).toBe(2)
+  expect(catalogue.engineers.find(engineer => engineer.displayName === 'Domino Green')).toEqual({
+    displayName: 'Domino Green',
+    frontierEngineerId: 400002,
+    id: 'domino-green'
+  })
   expect(greaterRange).toMatchObject({
+    engineerIds: ['domino-green'],
     engineeringTechnology: 'kinetic',
     journalSymbols: ['weapon_range'],
     targetKind: 'weapon'

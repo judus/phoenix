@@ -47,9 +47,15 @@ const PersonalEquipmentModificationSchema = z.object({
   displayName: z.string().min(1),
   targetKind: z.enum(['suit', 'weapon']),
   engineeringTechnology: z.enum(['kinetic', 'laser', 'plasma']).nullable(),
-  engineers: z.array(z.string().min(1)).min(1),
+  engineerIds: z.array(z.string().min(1)).min(1),
   credits: z.number().int().nonnegative().nullable(),
   ingredients: z.array(PersonalEquipmentIngredientSchema).min(1)
+}).strict()
+
+const PersonalEquipmentEngineerSchema = z.object({
+  id: z.string().min(1),
+  frontierEngineerId: z.number().int().positive(),
+  displayName: z.string().min(1)
 }).strict()
 
 const PersonalEquipmentMicroResourceSchema = z.object({
@@ -60,13 +66,14 @@ const PersonalEquipmentMicroResourceSchema = z.object({
 }).strict()
 
 const PersonalEquipmentCatalogueSnapshotSchema = z.object({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   catalogueVersion: z.string().min(1),
   generatedAt: z.iso.datetime(),
   sources: z.array(PersonalEquipmentSourceSchema).min(1),
   equipmentDefinitions: z.array(PersonalEquipmentDefinitionSchema).min(1),
   gradeUpgradeRecipes: z.array(PersonalEquipmentGradeUpgradeRecipeSchema).min(1),
   modifications: z.array(PersonalEquipmentModificationSchema).min(1),
+  engineers: z.array(PersonalEquipmentEngineerSchema).min(1),
   microResources: z.array(PersonalEquipmentMicroResourceSchema).min(1)
 }).strict()
 
@@ -74,6 +81,7 @@ export type PersonalEquipmentCatalogueSource = z.infer<typeof PersonalEquipmentS
 export type PersonalEquipmentDefinition = z.infer<typeof PersonalEquipmentDefinitionSchema>
 export type PersonalEquipmentGradeUpgradeRecipe = z.infer<typeof PersonalEquipmentGradeUpgradeRecipeSchema>
 export type PersonalEquipmentModification = z.infer<typeof PersonalEquipmentModificationSchema>
+export type PersonalEquipmentEngineer = z.infer<typeof PersonalEquipmentEngineerSchema>
 export type PersonalEquipmentMicroResource = z.infer<typeof PersonalEquipmentMicroResourceSchema>
 export type PersonalEquipmentCatalogueSnapshot = z.infer<typeof PersonalEquipmentCatalogueSnapshotSchema>
 

@@ -208,6 +208,39 @@ test('personal equipment upgrade transport validates source-recorded recipes', a
   expect(request.mock.calls[0]?.[0]).toBe('/api/equipment/upgrades')
 })
 
+test('personal equipment specialist transport validates source-recorded capabilities', async () => {
+  const request = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({
+    schemaVersion: 2,
+    catalogueVersion: 'revision',
+    generatedAt: '2026-09-15T00:00:00.000Z',
+    sources: [{
+      name: 'Test catalogue',
+      repository: 'https://example.invalid/catalogue',
+      revision: 'revision',
+      license: 'CC0-1.0',
+      retrievedAt: '2026-09-15T00:00:00.000Z'
+    }],
+    specialists: [{
+      id: 'test-engineer',
+      frontierEngineerId: 900002,
+      name: 'Test Engineer',
+      access: { state: 'unlocked', reportedStatus: 'Unlocked', evidence: 'elite_journal' },
+      location: {
+        systemName: 'Specialist System',
+        systemAddress: 42,
+        marketId: 128999999,
+        distanceLy: 5,
+        evidence: 'external_catalogue'
+      },
+      modifications: [{ id: 'suit_test', name: 'Test Modification', targetKind: 'suit', engineeringTechnology: null }]
+    }]
+  }))
+
+  await expect(new PhoenixApiClient('', request).getPersonalEquipmentSpecialists())
+    .resolves.toMatchObject({ schemaVersion: 2, specialists: [{ id: 'test-engineer' }] })
+  expect(request.mock.calls[0]?.[0]).toBe('/api/equipment/specialists')
+})
+
 function jsonResponse(payload: unknown): Response {
   return new Response(JSON.stringify(payload), {
     headers: { 'content-type': 'application/json' },

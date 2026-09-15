@@ -37,7 +37,13 @@ export class DefaultRuntimeStateProjector implements RuntimeStateProjector {
           : event.type === 'commander.rank_progress_changed'
             ? { ...current.commander, rankProgress: event.payload }
             : event.type === 'commander.engineers_changed'
-              ? { ...current.commander, engineers: event.payload }
+              ? { ...current.commander, engineers: event.payload, engineerAccessCoverage: 'complete' }
+              : event.type === 'commander.engineer_progress_changed'
+                ? {
+                    ...current.commander,
+                    engineers: upsertEngineer(current.commander.engineers, event.payload),
+                    engineerAccessCoverage: current.commander.engineerAccessCoverage === 'complete' ? 'complete' : 'partial'
+                  }
               : event.type === 'commander.reputation_changed'
                 ? { ...current.commander, reputation: event.payload }
                 : event.type === 'commander.statistics_changed'
@@ -76,6 +82,15 @@ export class DefaultRuntimeStateProjector implements RuntimeStateProjector {
     this.updates.publish(next)
     return next
   }
+}
+
+function upsertEngineer (
+  engineers: RuntimeState['commander']['engineers'],
+  update: RuntimeState['commander']['engineers'][number]
+): RuntimeState['commander']['engineers'] {
+  const index = engineers.findIndex(engineer => engineer.id === update.id)
+  if (index < 0) return [...engineers, update]
+  return engineers.map((engineer, engineerIndex) => engineerIndex === index ? update : engineer)
 }
 
 function consumeMaterial (

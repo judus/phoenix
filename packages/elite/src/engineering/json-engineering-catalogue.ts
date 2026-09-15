@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 const EngineerRecordSchema = z.object({
   id: z.coerce.number().int().nonnegative(),
+  kind: z.enum(['ship', 'personal']),
   name: z.string().min(1),
   description: z.string().min(1),
   systemName: z.string().min(1),
@@ -51,6 +52,7 @@ const BlueprintRecordSchema = z.object({
 
 export interface EngineeringCatalogueEngineer {
   id: number
+  kind: 'ship' | 'personal'
   name: string
   description: string
   systemName: string

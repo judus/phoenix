@@ -17,6 +17,7 @@ import type {
   CommanderLogResponse,
   CommanderEquipmentResponse,
   PersonalEquipmentUpgradesResponse,
+  PersonalEquipmentSpecialistsResponse,
   PersonalMaterialInventoryResponse,
   DashboardMarketSignalsResponse,
   ActivityLogResponse,
@@ -147,6 +148,7 @@ export interface PhoenixApi {
   getCommanderLog(limit?: number, signal?: AbortSignal): Promise<CommanderLogResponse>
   getCommanderEquipment(signal?: AbortSignal): Promise<CommanderEquipmentResponse>
   getPersonalEquipmentUpgrades(signal?: AbortSignal): Promise<PersonalEquipmentUpgradesResponse>
+  getPersonalEquipmentSpecialists(signal?: AbortSignal): Promise<PersonalEquipmentSpecialistsResponse>
   getPersonalMaterialInventory(signal?: AbortSignal): Promise<PersonalMaterialInventoryResponse>
   getDashboardMarketSignals(signal?: AbortSignal): Promise<DashboardMarketSignalsResponse>
   getFleet(signal?: AbortSignal): Promise<FleetResponse>

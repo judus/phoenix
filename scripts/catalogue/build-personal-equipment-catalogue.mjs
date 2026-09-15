@@ -26,6 +26,22 @@ const RESOURCE_FILES = [
   ['data/materials/micro-resources-consumable.jsonc', 'consumable', 'consumables']
 ]
 
+const PERSONAL_ENGINEERS = Object.freeze({
+  Baltanos: { id: 'baltanos', frontierEngineerId: 400010 },
+  'Domino Green': { id: 'domino-green', frontierEngineerId: 400002 },
+  'Eleanor Bresa': { id: 'eleanor-bresa', frontierEngineerId: 400011 },
+  'Hero Ferrari': { id: 'hero-ferrari', frontierEngineerId: 400003 },
+  'Jude Navarro': { id: 'jude-navarro', frontierEngineerId: 400001 },
+  'Kit Fowler': { id: 'kit-fowler', frontierEngineerId: 400004 },
+  'Oden Geiger': { id: 'oden-geiger', frontierEngineerId: 400008 },
+  'Rosa Dayette': { id: 'rosa-dayette', frontierEngineerId: 400012 },
+  'Terra Velasquez': { id: 'terra-velasquez', frontierEngineerId: 400006 },
+  'Uma Laszlo': { id: 'uma-laszlo', frontierEngineerId: 400007 },
+  'Wellington Beck': { id: 'wellington-beck', frontierEngineerId: 400005 },
+  'Yarden Bond': { id: 'yarden-bond', frontierEngineerId: 400009 },
+  'Yi Shen': { id: 'yi-shen', frontierEngineerId: 400013 }
+})
+
 export function buildPersonalEquipmentCatalogue (sourceDocuments, generatedAt) {
   const catalogue = transformPersonalEquipmentCatalogue(sourceDocuments, generatedAt)
   validateRevisionInvariants(catalogue)
@@ -75,8 +91,8 @@ export function transformPersonalEquipmentCatalogue (sourceDocuments, generatedA
       displayName: requiredString(record, 'name', `modification ${id}`),
       targetKind,
       engineeringTechnology,
-      engineers: requiredArray(record.engineers, `modification ${id}.engineers`)
-        .map((name, index) => requiredStringValue(name, `modification ${id}.engineers[${index}]`)),
+      engineerIds: requiredArray(record.engineers, `modification ${id}.engineers`)
+        .map((name, index) => engineerId(requiredStringValue(name, `modification ${id}.engineers[${index}]`))),
       credits: null,
       ingredients: ingredients(modificationCosts[id], `modification cost ${id}`, resources)
     }
@@ -90,7 +106,7 @@ export function transformPersonalEquipmentCatalogue (sourceDocuments, generatedA
   }
 
   const catalogue = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     catalogueVersion: PERSONAL_EQUIPMENT_SOURCE.revision,
     generatedAt,
     sources: [{
@@ -101,6 +117,9 @@ export function transformPersonalEquipmentCatalogue (sourceDocuments, generatedA
     equipmentDefinitions: equipmentDefinitions.sort((left, right) => left.displayName.localeCompare(right.displayName)),
     gradeUpgradeRecipes: gradeUpgradeRecipes.sort((left, right) => left.targetKind.localeCompare(right.targetKind) || left.targetId.localeCompare(right.targetId) || left.toGrade - right.toGrade),
     modifications,
+    engineers: Object.entries(PERSONAL_ENGINEERS)
+      .map(([displayName, definition]) => ({ ...definition, displayName }))
+      .sort((left, right) => left.displayName.localeCompare(right.displayName)),
     microResources: microResources.sort((left, right) => left.displayName.localeCompare(right.displayName))
   }
   return catalogue
@@ -185,18 +204,27 @@ function validateRevisionInvariants (catalogue) {
   const suitModifications = catalogue.modifications.filter(modification => modification.targetKind === 'suit')
   const weaponModifications = catalogue.modifications.filter(modification => modification.targetKind === 'weapon')
   const ambiguousJournalSymbols = catalogue.modifications.filter(modification => modification.engineeringTechnology !== null)
+  const referencedEngineerIds = new Set(catalogue.modifications.flatMap(modification => modification.engineerIds))
   const checks = [
     [suits.length, 4, 'suit definitions'],
     [weapons.length, 11, 'weapon definitions'],
     [catalogue.gradeUpgradeRecipes.length, 24, 'grade upgrade recipes'],
     [suitModifications.length, 14, 'suit modifications'],
     [weaponModifications.length, 17, 'weapon modifications'],
+    [catalogue.engineers.length, 13, 'engineers'],
+    [referencedEngineerIds.size, 13, 'referenced engineers'],
     [ambiguousJournalSymbols.length, 9, 'technology-specific journal-symbol mappings'],
     [catalogue.microResources.length, 226, 'micro resources']
   ]
   for (const [actual, expected, label] of checks) {
     if (actual !== expected) throw new Error(`Pinned personal-equipment revision has ${actual} ${label}; expected ${expected}.`)
   }
+}
+
+function engineerId (displayName) {
+  const engineer = PERSONAL_ENGINEERS[displayName]
+  if (!engineer) throw new Error(`Pinned personal-equipment revision references unknown engineer ${displayName}.`)
+  return engineer.id
 }
 
 function technologySuffix (id) {

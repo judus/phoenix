@@ -41,6 +41,7 @@ export type InformationRoute =
   | { kind: 'information', section: 'engineering', view: 'project-add-blueprint', selectedBlueprintSymbol: string, selectedProjectId?: string }
   | { kind: 'information', section: 'equipment', view: 'gear' | 'materials' }
   | { kind: 'information', section: 'equipment', view: 'upgrades', selectedUpgradeId?: string }
+  | { kind: 'information', section: 'equipment', view: 'specialists', selectedSpecialistId?: string }
   | { kind: 'information', section: 'comms', view: 'inbox' | 'traffic' | 'contacts' | 'galnet' | 'radio' }
 
 export type PhoenixRoute =

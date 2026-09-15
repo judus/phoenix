@@ -56,6 +56,7 @@ import { CommanderEquipmentService } from './application/commander-equipment-ser
 import { DefaultCommanderEquipmentCatalogue } from './application/commander-equipment-catalogue.js'
 import { PersonalMaterialInventoryService } from './application/personal-material-inventory-service.js'
 import { PersonalEquipmentUpgradesService } from './application/personal-equipment-upgrades-service.js'
+import { PersonalEquipmentSpecialistsService } from './application/personal-equipment-specialists-service.js'
 import { LoggedGameActions } from './application/logged-game-actions.js'
 import { DisplayCommandService } from './application/display-command-service.js'
 import { NavigationDataService } from './application/navigation-data-service.js'
@@ -219,6 +220,11 @@ export class PhoenixApplication {
     const gameCatalogue = catalogues.game
     const engineeringCatalogue = catalogues.engineering
     const personalEquipmentUpgrades = new PersonalEquipmentUpgradesService(catalogues.personalEquipment)
+    const personalEquipmentSpecialists = new PersonalEquipmentSpecialistsService(
+      catalogues.personalEquipment,
+      engineeringCatalogue,
+      this.stateStore
+    )
     const fleet = new FleetDataService(
       this.database,
       {
@@ -540,6 +546,7 @@ export class PhoenixApplication {
       marketSignals,
       personalMaterials,
       personalEquipmentUpgrades,
+      personalEquipmentSpecialists,
       galnet,
       navigationData,
       navigationRouteUpdates,

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "catalogueVersion": "0000000000000000000000000000000000000000",
   "generatedAt": "2026-09-15T00:00:00.000Z",
   "sources": [
@@ -45,11 +45,12 @@
       "displayName": "Test Modification",
       "targetKind": "suit",
       "engineeringTechnology": null,
-      "engineers": ["Test Engineer"],
+      "engineerIds": ["test-engineer"],
       "credits": null,
       "ingredients": [{ "materialId": "test-material", "count": 1 }]
     }
   ],
+  "engineers": [{ "id": "test-engineer", "frontierEngineerId": 900002, "displayName": "Test Engineer" }],
   "microResources": [
     {
       "id": "test-material",

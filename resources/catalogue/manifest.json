@@ -1,11 +1,12 @@
 {
-  "schemaVersion": 2,
-  "generatedAt": "2026-08-19T20:52:31.440Z",
-  "checkedAt": "2026-08-22T08:35:06.391Z",
+  "schemaVersion": 4,
+  "generatedAt": "2026-09-15T22:21:30.056Z",
+  "checkedAt": "2026-09-15T22:21:30.056Z",
   "sources": {
     "fdevids": "b8fc3d34baa4a2d17fe49d2d2782daca1539932b",
     "commodityFdevids": "c35612952dd6a547d1a7ac4cffab9c7051e86579",
-    "coriolis": "0db9234b5b9ce8c939ea84133d7ce336eea88e27"
+    "coriolis": "0db9234b5b9ce8c939ea84133d7ce336eea88e27",
+    "personalEquipment": "362210e98b334cd7575d0734301c66c8bd2d17bd"
   },
   "counts": {
     "ships": 47,
@@ -13,6 +14,9 @@
     "commodities": 412,
     "blueprints": 81,
     "engineers": 38,
-    "materials": 137
+    "materials": 137,
+    "personalEquipmentDefinitions": 15,
+    "personalEquipmentModifications": 31,
+    "personalEquipmentResources": 226
   }
 }

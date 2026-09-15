@@ -72,6 +72,6 @@ function paths (userRoot: string, installRoot = '/opt/phoenix-test'): Applicatio
 }
 
 function writeCurrentSnapshotMarker (directory: string, extra: Record<string, unknown> = {}): void {
-  writeFileSync(join(directory, 'manifest.json'), JSON.stringify({ schemaVersion: 2, ...extra }))
+  writeFileSync(join(directory, 'manifest.json'), JSON.stringify({ schemaVersion: 4, ...extra }))
   writeFileSync(join(directory, 'commodities.json'), '{}')
 }

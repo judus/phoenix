@@ -61,11 +61,20 @@ export class EliteJournalIngestionService {
     }
 
     if (event.event === 'EngineerProgress') {
-      candidates.push({
-        type: 'commander.engineers_changed',
-        gameTimestamp,
-        payload: mapEngineerProgress(event.Engineers)
-      })
+      if (Array.isArray(event.Engineers)) {
+        candidates.push({
+          type: 'commander.engineers_changed',
+          gameTimestamp,
+          payload: mapEngineerProgress(event.Engineers)
+        })
+      } else {
+        const progress = mapEngineerProgress([event])[0]
+        if (progress) candidates.push({
+          type: 'commander.engineer_progress_changed',
+          gameTimestamp,
+          payload: progress
+        })
+      }
     }
 
     if (event.event === 'Reputation') {

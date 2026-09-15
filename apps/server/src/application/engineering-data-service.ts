@@ -36,7 +36,7 @@ export class EngineeringDataService implements EngineeringDataReader {
 
   public getEngineers (): EngineeringEngineersResponse {
     const state = this.runtimeState.getCurrent()
-    const engineers = this.catalogue.listEngineers().map(definition => {
+    const engineers = this.catalogue.listEngineers().filter(definition => definition.kind === 'ship').map(definition => {
       const progress = state.commander.engineers.find(candidate => (
         candidate.id === definition.id || sameName(candidate.name, definition.name)
       ))

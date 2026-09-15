@@ -215,6 +215,7 @@ export const RuntimeStateSchema = z.object({
   commander: z.object({
     name: z.string().min(1).nullable(),
     engineers: z.array(CommanderEngineerProgressSchema),
+    engineerAccessCoverage: z.enum(['unknown', 'partial', 'complete']),
     ranks: CommanderRanksSchema,
     rankProgress: CommanderRankProgressSchema,
     reputation: CommanderReputationSchema,
@@ -253,6 +254,10 @@ export const GameEventEnvelopeSchema = z.discriminatedUnion('type', [
   GameEventEnvelopeBaseSchema.extend({
     type: z.literal('commander.engineers_changed'),
     payload: z.array(CommanderEngineerProgressSchema)
+  }),
+  GameEventEnvelopeBaseSchema.extend({
+    type: z.literal('commander.engineer_progress_changed'),
+    payload: CommanderEngineerProgressSchema
   }),
   GameEventEnvelopeBaseSchema.extend({
     type: z.literal('commander.reputation_changed'),
@@ -323,6 +328,7 @@ export function createEmptyRuntimeState (): RuntimeState {
     commander: {
       name: null,
       engineers: [],
+      engineerAccessCoverage: 'unknown',
       ranks: emptyCommanderRanks(),
       rankProgress: emptyCommanderRanks(),
       reputation: {

@@ -97,10 +97,10 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
   if (section === 'engineering') return parseEngineeringRoute(rest, query)
 
   if (section === 'equipment') {
-    const view = oneOf(rest[0], ['gear', 'upgrades', 'materials'] as const) ?? 'gear'
-    return view === 'upgrades'
-      ? { kind: 'information', section, view, ...(query.id?.trim() ? { selectedUpgradeId: query.id.trim() } : {}) }
-      : { kind: 'information', section, view }
+    const view = oneOf(rest[0], ['gear', 'upgrades', 'specialists', 'materials'] as const) ?? 'gear'
+    if (view === 'upgrades') return { kind: 'information', section, view, ...(query.id?.trim() ? { selectedUpgradeId: query.id.trim() } : {}) }
+    if (view === 'specialists') return { kind: 'information', section, view, ...(query.id?.trim() ? { selectedSpecialistId: query.id.trim() } : {}) }
+    return { kind: 'information', section, view }
   }
 
   if (section === 'comms') {
@@ -155,6 +155,9 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
   }
   if (route.kind === 'information' && route.section === 'equipment' && route.view === 'upgrades' && route.selectedUpgradeId) {
     parameters.set('id', route.selectedUpgradeId)
+  }
+  if (route.kind === 'information' && route.section === 'equipment' && route.view === 'specialists' && route.selectedSpecialistId) {
+    parameters.set('id', route.selectedSpecialistId)
   }
   const query = parameters.toString()
   return `#${path}${query ? `?${query}` : ''}`

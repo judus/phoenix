@@ -29,7 +29,7 @@ const revisions = {
   coriolis: await latestRevision(repositories.coriolis)
 }
 const currentManifest = await readJsonIfPresent(manifestPath)
-if (!options.force && currentManifest?.schemaVersion === 3 && currentManifest?.sources?.fdevids === revisions.fdevids && currentManifest?.sources?.coriolis === revisions.coriolis && currentManifest?.sources?.personalEquipment === PERSONAL_EQUIPMENT_SOURCE.revision && await fileExists(join(outputDirectory, 'personal-equipment.json'))) {
+if (!options.force && currentManifest?.schemaVersion === 4 && currentManifest?.sources?.fdevids === revisions.fdevids && currentManifest?.sources?.coriolis === revisions.coriolis && currentManifest?.sources?.personalEquipment === PERSONAL_EQUIPMENT_SOURCE.revision && await fileExists(join(outputDirectory, 'personal-equipment.json'))) {
   await writeJsonAtomic(manifestPath, { ...currentManifest, checkedAt: new Date().toISOString() })
   console.log('Catalogue sources are already current.')
   process.exit(0)
@@ -62,7 +62,8 @@ const shipyard = parseCsv(shipyardCsv)
 const generatedAt = new Date().toISOString()
 const personalEquipment = buildPersonalEquipmentCatalogue(personalEquipmentDocuments, generatedAt)
 const blueprints = buildBlueprints(blueprintsSource, modifications, blueprintModules)
-const engineers = await buildEngineers(engineerRows, blueprints)
+const personalEngineerIds = new Set(personalEquipment.engineers.map(engineer => engineer.frontierEngineerId))
+const engineers = await buildEngineers(engineerRows, blueprints, personalEngineerIds)
 const modules = buildModules(outfitting, revisions.fdevids, generatedAt)
 const files = {
   'commodities.json': buildCommodities(commodities, revisions.fdevids, generatedAt),
@@ -74,7 +75,7 @@ const files = {
   'engineering/materials.json': materials,
   'engineering/material-uses.json': buildMaterialUses(materials, blueprints),
   'manifest.json': {
-    schemaVersion: 3,
+    schemaVersion: 4,
     generatedAt,
     checkedAt: generatedAt,
     sources: {
@@ -121,7 +122,7 @@ function requiredValue (arguments_, index, option) {
 async function isFresh (path, maxAgeHours) {
   const manifest = await readJsonIfPresent(path)
   const checkedAt = Date.parse(manifest?.checkedAt ?? '')
-  return manifest?.schemaVersion === 3 &&
+  return manifest?.schemaVersion === 4 &&
     manifest?.sources?.personalEquipment === PERSONAL_EQUIPMENT_SOURCE.revision &&
     await fileExists(join(dirname(path), 'personal-equipment.json')) &&
     Number.isFinite(checkedAt) && Date.now() - checkedAt < maxAgeHours * 3_600_000
@@ -308,7 +309,7 @@ function buildBlueprints (source, modifications, moduleGroups) {
   })).sort((left, right) => left.symbol.localeCompare(right.symbol))
 }
 
-async function buildEngineers (rows, blueprints) {
+async function buildEngineers (rows, blueprints, personalEngineerIds) {
   const specialties = new Map()
   for (const blueprint of blueprints) for (const engineer of Object.keys(blueprint.engineers)) {
     const values = specialties.get(engineer) ?? new Set()
@@ -320,6 +321,7 @@ async function buildEngineers (rows, blueprints) {
     const modules = [...(specialties.get(row.name) ?? [])].slice(0, 4)
     return {
       id: row.id,
+      kind: personalEngineerIds.has(Number(row.id)) ? 'personal' : 'ship',
       systemAddress: row.system_address,
       marketId: row.market_id,
       name: row.name,
@@ -360,6 +362,16 @@ function validate (files) {
   if (files['commodities.json'].commodities.length < 200) throw new Error('Commodity catalogue is unexpectedly small.')
   if (files['engineering/blueprints.json'].length < 50) throw new Error('Blueprint catalogue is unexpectedly small.')
   if (files['engineering/materials.json'].length < 100) throw new Error('Material catalogue is unexpectedly small.')
+  const personalEngineerIds = new Set(
+    files['engineering/engineers.json']
+      .filter(engineer => engineer.kind === 'personal')
+      .map(engineer => Number(engineer.id))
+  )
+  const missingPersonalEngineers = files['personal-equipment.json'].engineers
+    .filter(engineer => !personalEngineerIds.has(engineer.frontierEngineerId))
+  if (missingPersonalEngineers.length > 0) {
+    throw new Error(`Personal-equipment engineers missing location records: ${missingPersonalEngineers.map(engineer => engineer.displayName).join(', ')}.`)
+  }
   const unique = (items, key) => new Set(items.map(item => item[key])).size === items.length
   if (!unique(files['ships.json'].ships, 'id')) throw new Error('Duplicate ship IDs detected.')
   if (!unique(files['modules.json'].modules, 'journalId')) throw new Error('Duplicate module IDs detected.')

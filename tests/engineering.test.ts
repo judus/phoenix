@@ -26,6 +26,13 @@ test('engineering APIs combine the imported catalogue with live commander state'
       rank: 4,
       rankProgress: 73
     }]))
+    application.ingestGameEvent(envelope('commander.engineer_progress_changed', {
+      id: 900001,
+      name: 'Ada Fixture',
+      status: 'Unlocked',
+      rank: 5,
+      rankProgress: 0
+    }))
     application.ingestGameEvent(envelope('system.changed', {
       ...empty.system,
       name: 'Sol',
@@ -52,7 +59,7 @@ test('engineering APIs combine the imported catalogue with live commander state'
     expect(engineers.engineers).toHaveLength(1)
     expect(engineers.engineers.find(engineer => engineer.name === 'Ada Fixture')).toMatchObject({
       state: 'unlocked',
-      progress: { rank: 4, rankProgress: 73, status: 'Unlocked' },
+      progress: { rank: 5, rankProgress: 0, status: 'Unlocked' },
       system: { name: 'Test System' }
     })
     expect(materials.materials.find(material => material.id === 'TestWidgets')).toMatchObject({
@@ -89,6 +96,15 @@ test('EngineerProgress journal events become typed commander state events', () =
   })
   service.ingest({
     timestamp: '2026-08-11T20:01:00Z',
+    event: 'EngineerProgress',
+    Engineer: 'Didi Vatermann',
+    EngineerID: 300000,
+    Progress: 'Barred',
+    Rank: 0,
+    RankProgress: 0
+  })
+  service.ingest({
+    timestamp: '2026-08-11T20:02:00Z',
     event: 'EngineerCraft',
     Ingredients: [{ Name: 'WornShieldEmitters', Name_Localised: 'Worn Shield Emitters', Count: 2 }]
   })
@@ -97,6 +113,10 @@ test('EngineerProgress journal events become typed commander state events', () =
     expect.objectContaining({
       type: 'commander.engineers_changed',
       payload: [{ id: 300000, name: 'Didi Vatermann', status: 'Unlocked', rank: 4, rankProgress: 73 }]
+    }),
+    expect.objectContaining({
+      type: 'commander.engineer_progress_changed',
+      payload: { id: 300000, name: 'Didi Vatermann', status: 'Barred', rank: 0, rankProgress: 0 }
     }),
     expect.objectContaining({
       type: 'inventory.material_consumed',

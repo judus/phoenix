@@ -1,11 +1,22 @@
 [
   {
     "id": 900001,
+    "kind": "ship",
     "name": "Ada Fixture",
     "description": "Synthetic engineer used only by PHOENIX tests.",
     "systemName": "Test System",
     "systemAddress": null,
     "systemPosition": [1, 2, 3],
     "marketId": null
+  },
+  {
+    "id": 900002,
+    "kind": "personal",
+    "name": "Test Engineer",
+    "description": "Synthetic personal-equipment specialist used only by PHOENIX tests.",
+    "systemName": "Specialist System",
+    "systemAddress": 42,
+    "systemPosition": [4, 6, 3],
+    "marketId": 128999999
   }
 ]

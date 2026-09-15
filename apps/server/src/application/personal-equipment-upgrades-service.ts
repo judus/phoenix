@@ -17,6 +17,7 @@ export class PersonalEquipmentUpgradesService implements PersonalEquipmentUpgrad
   public getUpgrades (): PersonalEquipmentUpgradesResponse {
     const catalogue = this.catalogue.getSnapshot()
     const resources = new Map(catalogue.microResources.map(resource => [resource.id, resource] as const))
+    const engineers = new Map(catalogue.engineers.map(engineer => [engineer.id, engineer.displayName] as const))
     return PersonalEquipmentUpgradesResponseSchema.parse({
       schemaVersion: 1,
       catalogueVersion: catalogue.catalogueVersion,
@@ -35,12 +36,18 @@ export class PersonalEquipmentUpgradesService implements PersonalEquipmentUpgrad
         name: modification.displayName,
         targetKind: modification.targetKind,
         engineeringTechnology: modification.engineeringTechnology,
-        engineers: modification.engineers,
+        engineers: modification.engineerIds.map(engineerId => engineerName(engineerId, engineers)),
         credits: modification.credits,
         ingredients: modification.ingredients.map(ingredient => ingredientView(ingredient, resources))
       }))
     })
   }
+}
+
+function engineerName (id: string, engineers: Map<string, string>): string {
+  const name = engineers.get(id)
+  if (!name) throw new Error(`Personal-equipment modification references unknown engineer ${id}.`)
+  return name
 }
 
 function gradeUpgradePaths (

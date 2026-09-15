@@ -1,0 +1,3774 @@
+{
+  "schemaVersion": 2,
+  "catalogueVersion": "362210e98b334cd7575d0734301c66c8bd2d17bd",
+  "generatedAt": "2026-09-15T22:21:30.056Z",
+  "sources": [
+    {
+      "name": "Elite Dangerous Almanac",
+      "repository": "https://github.com/DarkSession/Elite-Dangerous-Almanac",
+      "revision": "362210e98b334cd7575d0734301c66c8bd2d17bd",
+      "license": "AGPL-3.0-or-later",
+      "paths": [
+        "data/equipment/suits.jsonc",
+        "data/equipment/weapons.jsonc",
+        "data/equipment/modifications.jsonc",
+        "data/equipment/modification-costs.jsonc",
+        "data/equipment/modification-journal-names.jsonc",
+        "data/equipment/upgrade-costs.jsonc",
+        "data/materials/micro-resources-item.jsonc",
+        "data/materials/micro-resources-component.jsonc",
+        "data/materials/micro-resources-data.jsonc",
+        "data/materials/micro-resources-consumable.jsonc"
+      ],
+      "retrievedAt": "2026-09-15T22:21:30.056Z"
+    }
+  ],
+  "equipmentDefinitions": [
+    {
+      "id": "explorationsuit",
+      "kind": "suit",
+      "displayName": "Artemis Suit",
+      "frontierSymbols": [
+        "explorationsuit_class1",
+        "explorationsuit_class2",
+        "explorationsuit_class3",
+        "explorationsuit_class4",
+        "explorationsuit_class5"
+      ],
+      "upgradeFamilyId": "explorationsuit",
+      "engineeringTechnology": null,
+      "grades": [
+        {
+          "grade": 1,
+          "modificationSlots": 0
+        },
+        {
+          "grade": 2,
+          "modificationSlots": 1
+        },
+        {
+          "grade": 3,
+          "modificationSlots": 2
+        },
+        {
+          "grade": 4,
+          "modificationSlots": 3
+        },
+        {
+          "grade": 5,
+          "modificationSlots": 4
+        }
+      ]
+    },
+    {
+      "id": "tacticalsuit",
+      "kind": "suit",
+      "displayName": "Dominator Suit",
+      "frontierSymbols": [
+        "tacticalsuit_class1",
+        "tacticalsuit_class2",
+        "tacticalsuit_class3",
+        "tacticalsuit_class4",
+        "tacticalsuit_class5"
+      ],
+      "upgradeFamilyId": "tacticalsuit",
+      "engineeringTechnology": null,
+      "grades": [
+        {
+          "grade": 1,
+          "modificationSlots": 0
+        },
+        {
+          "grade": 2,
+          "modificationSlots": 1
+        },
+        {
+          "grade": 3,
+          "modificationSlots": 2
+        },
+        {
+          "grade": 4,
+          "modificationSlots": 3
+        },
+        {
+          "grade": 5,
+          "modificationSlots": 4
+        }
+      ]
+    },
+    {
+      "id": "flightsuit",
+      "kind": "suit",
+      "displayName": "Flight Suit",
+      "frontierSymbols": [
+        "flightsuit"
+      ],
+      "upgradeFamilyId": "flightsuit",
+      "engineeringTechnology": null,
+      "grades": [
+        {
+          "grade": 1,
+          "modificationSlots": 0
+        }
+      ]
+    },
+    {
+      "id": "wpn_m_assaultrifle_kinetic_fauto",
+      "kind": "weapon",
+      "displayName": "Karma AR-50",
+      "frontierSymbols": [
+        "wpn_m_assaultrifle_kinetic_fauto"
+      ],
+      "upgradeFamilyId": "karma",
+      "engineeringTechnology": "kinetic",
+      "grades": [
+        {
+          "grade": 1,
+          "modificationSlots": 0
+        },
+        {
+          "grade": 2,
+          "modificationSlots": 1
+        },
+        {
+          "grade": 3,
+          "modificationSlots": 2
+        },
+        {
+          "grade": 4,
+          "modificationSlots": 3
+        },
+        {
+          "grade": 5,
+          "modificationSlots": 4
+        }
+      ]
+    },
+    {
+      "id": "wpn_m_submachinegun_kinetic_fauto",
+      "kind": "weapon",
+      "displayName": "Karma C-44",
+      "frontierSymbols": [
+        "wpn_m_submachinegun_kinetic_fauto"
+      ],
+      "upgradeFamilyId": "karma",
+      "engineeringTechnology": "kinetic",
+      "grades": [
+        {
+          "grade": 1,
+          "modificationSlots": 0
+        },
+        {
+          "grade": 2,
+          "modificationSlots": 1
+        },
+        {
+          "grade": 3,
+          "modificationSlots": 2
+        },
+        {
+          "grade": 4,
+          "modificationSlots": 3
+        },
+        {
+          "grade": 5,
+          "modificationSlots": 4
+        }
+      ]
+    },
+    {
+      "id": "wpn_m_launcher_rocket_sauto",
+      "kind": "weapon",
+      "displayName": "Karma L-6",
+      "frontierSymbols": [
+        "wpn_m_launcher_rocket_sauto"
+      ],
+      "upgradeFamilyId": "karma",
+      "engineeringTechnology": "kinetic",
+      "grades": [
+        {
+          "grade": 1,
+          "modificationSlots": 0
+        },
+        {
+          "grade": 2,
+          "modificationSlots": 1
+        },
+        {
+          "grade": 3,
+          "modificationSlots": 2
+        },
+        {
+          "grade": 4,
+          "modificationSlots": 3
+        },
+        {
+          "grade": 5,
+          "modificationSlots": 4
+        }
+      ]
+    },
+    {
+      "id": "wpn_s_pistol_kinetic_sauto",
+      "kind": "weapon",
+      "displayName": "Karma P-15",
+      "frontierSymbols": [
+        "wpn_s_pistol_kinetic_sauto"
+      ],
+      "upgradeFamilyId": "karma",
+      "engineeringTechnology": "kinetic",
+      "grades": [
+        {
+          "grade": 1,
+          "modificationSlots": 0
+        },
+        {
+          "grade": 2,
+          "modificationSlots": 1
+        },
+        {
+          "grade": 3,
+          "modificationSlots": 2
+        },
+        {
+          "grade": 4,
+          "modificationSlots": 3
+        },
+        {
+          "grade": 5,
+          "modificationSlots": 4
+        }
+      ]
+    },
+    {
+      "id": "wpn_m_sniper_plasma_charged",
+      "kind": "weapon",
+      "displayName": "Manticore Executioner",
+      "frontierSymbols": [
+        "wpn_m_sniper_plasma_charged"
+      ],
+      "upgradeFamilyId": "manticore",
+      "engineeringTechnology": "plasma",
+      "grades": [
+        {
+          "grade": 1,
+          "modificationSlots": 0
+        },
+        {
+          "grade": 2,
+          "modificationSlots": 1
+        },
+        {
+          "grade": 3,
+          "modificationSlots": 2
+        },
+        {
+          "grade": 4,
+          "modificationSlots": 3
+        },
+        {
+          "grade": 5,
+          "modificationSlots": 4
+        }
+      ]
+    },
+    {
+      "id": "wpn_m_shotgun_plasma_doublebarrel",
+      "kind": "weapon",
+      "displayName": "Manticore Intimidator",
+      "frontierSymbols": [
+        "wpn_m_shotgun_plasma_doublebarrel"
+      ],
+      "upgradeFamilyId": "manticore",
+      "engineeringTechnology": "plasma",
+      "grades": [
+        {
+          "grade": 1,
+          "modificationSlots": 0
+        },
+        {
+          "grade": 2,
+          "modificationSlots": 1
+        },
+        {
+          "grade": 3,
+          "modificationSlots": 2
+        },
+        {
+          "grade": 4,
+          "modificationSlots": 3
+        },
+        {
+          "grade": 5,
+          "modificationSlots": 4
+        }
+      ]
+    },
+    {
+      "id": "wpn_m_assaultrifle_plasma_fauto",
+      "kind": "weapon",
+      "displayName": "Manticore Oppressor",
+      "frontierSymbols": [
+        "wpn_m_assaultrifle_plasma_fauto"
+      ],
+      "upgradeFamilyId": "manticore",
+      "engineeringTechnology": "plasma",
+      "grades": [
+        {
+          "grade": 1,
+          "modificationSlots": 0
+        },
+        {
+          "grade": 2,
+          "modificationSlots": 1
+        },
+        {
+          "grade": 3,
+          "modificationSlots": 2
+        },
+        {
+          "grade": 4,
+          "modificationSlots": 3
+        },
+        {
+          "grade": 5,
+          "modificationSlots": 4
+        }
+      ]
+    },
+    {
+      "id": "wpn_s_pistol_plasma_charged",
+      "kind": "weapon",
+      "displayName": "Manticore Tormentor",
+      "frontierSymbols": [
+        "wpn_s_pistol_plasma_charged"
+      ],
+      "upgradeFamilyId": "manticore",
+      "engineeringTechnology": "plasma",
+      "grades": [
+        {
+          "grade": 1,
+          "modificationSlots": 0
+        },
+        {
+          "grade": 2,
+          "modificationSlots": 1
+        },
+        {
+          "grade": 3,
+          "modificationSlots": 2
+        },
+        {
+          "grade": 4,
+          "modificationSlots": 3
+        },
+        {
+          "grade": 5,
+          "modificationSlots": 4
+        }
+      ]
+    },
+    {
+      "id": "utilitysuit",
+      "kind": "suit",
+      "displayName": "Maverick Suit",
+      "frontierSymbols": [
+        "utilitysuit_class1",
+        "utilitysuit_class2",
+        "utilitysuit_class3",
+        "utilitysuit_class4",
+        "utilitysuit_class5"
+      ],
+      "upgradeFamilyId": "utilitysuit",
+      "engineeringTechnology": null,
+      "grades": [
+        {
+          "grade": 1,
+          "modificationSlots": 0
+        },
+        {
+          "grade": 2,
+          "modificationSlots": 1
+        },
+        {
+          "grade": 3,
+          "modificationSlots": 2
+        },
+        {
+          "grade": 4,
+          "modificationSlots": 3
+        },
+        {
+          "grade": 5,
+          "modificationSlots": 4
+        }
+      ]
+    },
+    {
+      "id": "wpn_m_assaultrifle_laser_fauto",
+      "kind": "weapon",
+      "displayName": "TK Aphelion",
+      "frontierSymbols": [
+        "wpn_m_assaultrifle_laser_fauto"
+      ],
+      "upgradeFamilyId": "takada",
+      "engineeringTechnology": "laser",
+      "grades": [
+        {
+          "grade": 1,
+          "modificationSlots": 0
+        },
+        {
+          "grade": 2,
+          "modificationSlots": 1
+        },
+        {
+          "grade": 3,
+          "modificationSlots": 2
+        },
+        {
+          "grade": 4,
+          "modificationSlots": 3
+        },
+        {
+          "grade": 5,
+          "modificationSlots": 4
+        }
+      ]
+    },
+    {
+      "id": "wpn_m_submachinegun_laser_fauto",
+      "kind": "weapon",
+      "displayName": "TK Eclipse",
+      "frontierSymbols": [
+        "wpn_m_submachinegun_laser_fauto"
+      ],
+      "upgradeFamilyId": "takada",
+      "engineeringTechnology": "laser",
+      "grades": [
+        {
+          "grade": 1,
+          "modificationSlots": 0
+        },
+        {
+          "grade": 2,
+          "modificationSlots": 1
+        },
+        {
+          "grade": 3,
+          "modificationSlots": 2
+        },
+        {
+          "grade": 4,
+          "modificationSlots": 3
+        },
+        {
+          "grade": 5,
+          "modificationSlots": 4
+        }
+      ]
+    },
+    {
+      "id": "wpn_s_pistol_laser_sauto",
+      "kind": "weapon",
+      "displayName": "TK Zenith",
+      "frontierSymbols": [
+        "wpn_s_pistol_laser_sauto"
+      ],
+      "upgradeFamilyId": "takada",
+      "engineeringTechnology": "laser",
+      "grades": [
+        {
+          "grade": 1,
+          "modificationSlots": 0
+        },
+        {
+          "grade": 2,
+          "modificationSlots": 1
+        },
+        {
+          "grade": 3,
+          "modificationSlots": 2
+        },
+        {
+          "grade": 4,
+          "modificationSlots": 3
+        },
+        {
+          "grade": 5,
+          "modificationSlots": 4
+        }
+      ]
+    }
+  ],
+  "gradeUpgradeRecipes": [
+    {
+      "id": "grade:suit:explorationsuit:1-2",
+      "targetKind": "suit",
+      "targetId": "explorationsuit",
+      "fromGrade": 1,
+      "toGrade": 2,
+      "resultingModificationSlots": 1,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "suitschematic",
+          "count": 1
+        },
+        {
+          "materialId": "healthmonitor",
+          "count": 1
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 1
+        },
+        {
+          "materialId": "aerogel",
+          "count": 2
+        },
+        {
+          "materialId": "graphene",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "grade:suit:explorationsuit:2-3",
+      "targetKind": "suit",
+      "targetId": "explorationsuit",
+      "fromGrade": 2,
+      "toGrade": 3,
+      "resultingModificationSlots": 2,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "suitschematic",
+          "count": 2
+        },
+        {
+          "materialId": "healthmonitor",
+          "count": 2
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 2
+        },
+        {
+          "materialId": "aerogel",
+          "count": 5
+        },
+        {
+          "materialId": "graphene",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "grade:suit:explorationsuit:3-4",
+      "targetKind": "suit",
+      "targetId": "explorationsuit",
+      "fromGrade": 3,
+      "toGrade": 4,
+      "resultingModificationSlots": 3,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "suitschematic",
+          "count": 4
+        },
+        {
+          "materialId": "healthmonitor",
+          "count": 4
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 4
+        },
+        {
+          "materialId": "aerogel",
+          "count": 9
+        },
+        {
+          "materialId": "graphene",
+          "count": 9
+        }
+      ]
+    },
+    {
+      "id": "grade:suit:explorationsuit:4-5",
+      "targetKind": "suit",
+      "targetId": "explorationsuit",
+      "fromGrade": 4,
+      "toGrade": 5,
+      "resultingModificationSlots": 4,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "suitschematic",
+          "count": 5
+        },
+        {
+          "materialId": "healthmonitor",
+          "count": 5
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 5
+        },
+        {
+          "materialId": "aerogel",
+          "count": 12
+        },
+        {
+          "materialId": "graphene",
+          "count": 12
+        }
+      ]
+    },
+    {
+      "id": "grade:suit:tacticalsuit:1-2",
+      "targetKind": "suit",
+      "targetId": "tacticalsuit",
+      "fromGrade": 1,
+      "toGrade": 2,
+      "resultingModificationSlots": 1,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "suitschematic",
+          "count": 1
+        },
+        {
+          "materialId": "healthmonitor",
+          "count": 1
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 1
+        },
+        {
+          "materialId": "titaniumplating",
+          "count": 2
+        },
+        {
+          "materialId": "graphene",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "grade:suit:tacticalsuit:2-3",
+      "targetKind": "suit",
+      "targetId": "tacticalsuit",
+      "fromGrade": 2,
+      "toGrade": 3,
+      "resultingModificationSlots": 2,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "suitschematic",
+          "count": 2
+        },
+        {
+          "materialId": "healthmonitor",
+          "count": 2
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 2
+        },
+        {
+          "materialId": "titaniumplating",
+          "count": 5
+        },
+        {
+          "materialId": "graphene",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "grade:suit:tacticalsuit:3-4",
+      "targetKind": "suit",
+      "targetId": "tacticalsuit",
+      "fromGrade": 3,
+      "toGrade": 4,
+      "resultingModificationSlots": 3,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "suitschematic",
+          "count": 4
+        },
+        {
+          "materialId": "healthmonitor",
+          "count": 4
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 4
+        },
+        {
+          "materialId": "titaniumplating",
+          "count": 9
+        },
+        {
+          "materialId": "graphene",
+          "count": 9
+        }
+      ]
+    },
+    {
+      "id": "grade:suit:tacticalsuit:4-5",
+      "targetKind": "suit",
+      "targetId": "tacticalsuit",
+      "fromGrade": 4,
+      "toGrade": 5,
+      "resultingModificationSlots": 4,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "suitschematic",
+          "count": 5
+        },
+        {
+          "materialId": "healthmonitor",
+          "count": 5
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 5
+        },
+        {
+          "materialId": "titaniumplating",
+          "count": 12
+        },
+        {
+          "materialId": "graphene",
+          "count": 12
+        }
+      ]
+    },
+    {
+      "id": "grade:suit:utilitysuit:1-2",
+      "targetKind": "suit",
+      "targetId": "utilitysuit",
+      "fromGrade": 1,
+      "toGrade": 2,
+      "resultingModificationSlots": 1,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "suitschematic",
+          "count": 1
+        },
+        {
+          "materialId": "healthmonitor",
+          "count": 1
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 1
+        },
+        {
+          "materialId": "carbonfibreplating",
+          "count": 2
+        },
+        {
+          "materialId": "graphene",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "grade:suit:utilitysuit:2-3",
+      "targetKind": "suit",
+      "targetId": "utilitysuit",
+      "fromGrade": 2,
+      "toGrade": 3,
+      "resultingModificationSlots": 2,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "suitschematic",
+          "count": 2
+        },
+        {
+          "materialId": "healthmonitor",
+          "count": 2
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 2
+        },
+        {
+          "materialId": "carbonfibreplating",
+          "count": 5
+        },
+        {
+          "materialId": "graphene",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "grade:suit:utilitysuit:3-4",
+      "targetKind": "suit",
+      "targetId": "utilitysuit",
+      "fromGrade": 3,
+      "toGrade": 4,
+      "resultingModificationSlots": 3,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "suitschematic",
+          "count": 4
+        },
+        {
+          "materialId": "healthmonitor",
+          "count": 4
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 4
+        },
+        {
+          "materialId": "carbonfibreplating",
+          "count": 9
+        },
+        {
+          "materialId": "graphene",
+          "count": 9
+        }
+      ]
+    },
+    {
+      "id": "grade:suit:utilitysuit:4-5",
+      "targetKind": "suit",
+      "targetId": "utilitysuit",
+      "fromGrade": 4,
+      "toGrade": 5,
+      "resultingModificationSlots": 4,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "suitschematic",
+          "count": 5
+        },
+        {
+          "materialId": "healthmonitor",
+          "count": 5
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 5
+        },
+        {
+          "materialId": "carbonfibreplating",
+          "count": 12
+        },
+        {
+          "materialId": "graphene",
+          "count": 12
+        }
+      ]
+    },
+    {
+      "id": "grade:weapon:karma:1-2",
+      "targetKind": "weapon",
+      "targetId": "karma",
+      "fromGrade": 1,
+      "toGrade": 2,
+      "resultingModificationSlots": 1,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "weaponschematic",
+          "count": 1
+        },
+        {
+          "materialId": "compressionliquefiedgas",
+          "count": 1
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 1
+        },
+        {
+          "materialId": "weaponcomponent",
+          "count": 2
+        },
+        {
+          "materialId": "tungstencarbide",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "grade:weapon:karma:2-3",
+      "targetKind": "weapon",
+      "targetId": "karma",
+      "fromGrade": 2,
+      "toGrade": 3,
+      "resultingModificationSlots": 2,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "weaponschematic",
+          "count": 2
+        },
+        {
+          "materialId": "compressionliquefiedgas",
+          "count": 2
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 2
+        },
+        {
+          "materialId": "weaponcomponent",
+          "count": 5
+        },
+        {
+          "materialId": "tungstencarbide",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "grade:weapon:karma:3-4",
+      "targetKind": "weapon",
+      "targetId": "karma",
+      "fromGrade": 3,
+      "toGrade": 4,
+      "resultingModificationSlots": 3,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "weaponschematic",
+          "count": 4
+        },
+        {
+          "materialId": "compressionliquefiedgas",
+          "count": 4
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 4
+        },
+        {
+          "materialId": "weaponcomponent",
+          "count": 9
+        },
+        {
+          "materialId": "tungstencarbide",
+          "count": 9
+        }
+      ]
+    },
+    {
+      "id": "grade:weapon:karma:4-5",
+      "targetKind": "weapon",
+      "targetId": "karma",
+      "fromGrade": 4,
+      "toGrade": 5,
+      "resultingModificationSlots": 4,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "weaponschematic",
+          "count": 5
+        },
+        {
+          "materialId": "compressionliquefiedgas",
+          "count": 5
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 5
+        },
+        {
+          "materialId": "weaponcomponent",
+          "count": 12
+        },
+        {
+          "materialId": "tungstencarbide",
+          "count": 12
+        }
+      ]
+    },
+    {
+      "id": "grade:weapon:manticore:1-2",
+      "targetKind": "weapon",
+      "targetId": "manticore",
+      "fromGrade": 1,
+      "toGrade": 2,
+      "resultingModificationSlots": 1,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "weaponschematic",
+          "count": 1
+        },
+        {
+          "materialId": "ionisedgas",
+          "count": 1
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 1
+        },
+        {
+          "materialId": "microelectrode",
+          "count": 2
+        },
+        {
+          "materialId": "chemicalsuperbase",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "grade:weapon:manticore:2-3",
+      "targetKind": "weapon",
+      "targetId": "manticore",
+      "fromGrade": 2,
+      "toGrade": 3,
+      "resultingModificationSlots": 2,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "weaponschematic",
+          "count": 2
+        },
+        {
+          "materialId": "ionisedgas",
+          "count": 2
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 2
+        },
+        {
+          "materialId": "microelectrode",
+          "count": 5
+        },
+        {
+          "materialId": "chemicalsuperbase",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "grade:weapon:manticore:3-4",
+      "targetKind": "weapon",
+      "targetId": "manticore",
+      "fromGrade": 3,
+      "toGrade": 4,
+      "resultingModificationSlots": 3,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "weaponschematic",
+          "count": 4
+        },
+        {
+          "materialId": "ionisedgas",
+          "count": 4
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 4
+        },
+        {
+          "materialId": "microelectrode",
+          "count": 9
+        },
+        {
+          "materialId": "chemicalsuperbase",
+          "count": 9
+        }
+      ]
+    },
+    {
+      "id": "grade:weapon:manticore:4-5",
+      "targetKind": "weapon",
+      "targetId": "manticore",
+      "fromGrade": 4,
+      "toGrade": 5,
+      "resultingModificationSlots": 4,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "weaponschematic",
+          "count": 5
+        },
+        {
+          "materialId": "ionisedgas",
+          "count": 5
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 5
+        },
+        {
+          "materialId": "microelectrode",
+          "count": 12
+        },
+        {
+          "materialId": "chemicalsuperbase",
+          "count": 12
+        }
+      ]
+    },
+    {
+      "id": "grade:weapon:takada:1-2",
+      "targetKind": "weapon",
+      "targetId": "takada",
+      "fromGrade": 1,
+      "toGrade": 2,
+      "resultingModificationSlots": 1,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "weaponschematic",
+          "count": 1
+        },
+        {
+          "materialId": "ionisedgas",
+          "count": 1
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 1
+        },
+        {
+          "materialId": "microelectrode",
+          "count": 2
+        },
+        {
+          "materialId": "opticalfibre",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "grade:weapon:takada:2-3",
+      "targetKind": "weapon",
+      "targetId": "takada",
+      "fromGrade": 2,
+      "toGrade": 3,
+      "resultingModificationSlots": 2,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "weaponschematic",
+          "count": 2
+        },
+        {
+          "materialId": "ionisedgas",
+          "count": 2
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 2
+        },
+        {
+          "materialId": "microelectrode",
+          "count": 5
+        },
+        {
+          "materialId": "opticalfibre",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "grade:weapon:takada:3-4",
+      "targetKind": "weapon",
+      "targetId": "takada",
+      "fromGrade": 3,
+      "toGrade": 4,
+      "resultingModificationSlots": 3,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "weaponschematic",
+          "count": 4
+        },
+        {
+          "materialId": "ionisedgas",
+          "count": 4
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 4
+        },
+        {
+          "materialId": "microelectrode",
+          "count": 9
+        },
+        {
+          "materialId": "opticalfibre",
+          "count": 9
+        }
+      ]
+    },
+    {
+      "id": "grade:weapon:takada:4-5",
+      "targetKind": "weapon",
+      "targetId": "takada",
+      "fromGrade": 4,
+      "toGrade": 5,
+      "resultingModificationSlots": 4,
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "weaponschematic",
+          "count": 5
+        },
+        {
+          "materialId": "ionisedgas",
+          "count": 5
+        },
+        {
+          "materialId": "manufacturinginstructions",
+          "count": 5
+        },
+        {
+          "materialId": "microelectrode",
+          "count": 12
+        },
+        {
+          "materialId": "opticalfibre",
+          "count": 12
+        }
+      ]
+    }
+  ],
+  "modifications": [
+    {
+      "id": "suit_increasedmeleedamage",
+      "journalSymbols": [
+        "suit_increasedmeleedamage"
+      ],
+      "displayName": "Added Melee Damage",
+      "targetKind": "suit",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "jude-navarro",
+        "kit-fowler",
+        "eleanor-bresa"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "combattrainingmaterial",
+          "count": 5
+        },
+        {
+          "materialId": "combatantperformance",
+          "count": 5
+        },
+        {
+          "materialId": "epinephrine",
+          "count": 5
+        },
+        {
+          "materialId": "microthrusters",
+          "count": 8
+        }
+      ]
+    },
+    {
+      "id": "weapon_suppression_unpressurised",
+      "journalSymbols": [
+        "weapon_suppression_unpressurised"
+      ],
+      "displayName": "Audio Masking",
+      "targetKind": "weapon",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "yarden-bond",
+        "yi-shen"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "audiologs",
+          "count": 3
+        },
+        {
+          "materialId": "patrolroutes",
+          "count": 5
+        },
+        {
+          "materialId": "scrambler",
+          "count": 5
+        },
+        {
+          "materialId": "transmitter",
+          "count": 8
+        },
+        {
+          "materialId": "circuitboard",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "suit_adsmovementspeed",
+      "journalSymbols": [
+        "suit_adsmovementspeed"
+      ],
+      "displayName": "Combat Movement Speed",
+      "targetKind": "suit",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "terra-velasquez",
+        "yarden-bond",
+        "baltanos"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "evacuationprotocols",
+          "count": 5
+        },
+        {
+          "materialId": "geneticresearch",
+          "count": 3
+        },
+        {
+          "materialId": "epinephrine",
+          "count": 5
+        },
+        {
+          "materialId": "phneutraliser",
+          "count": 8
+        }
+      ]
+    },
+    {
+      "id": "suit_improvedarmourrating",
+      "journalSymbols": [
+        "suit_improvedarmourrating"
+      ],
+      "displayName": "Damage Resistance",
+      "targetKind": "suit",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "jude-navarro",
+        "uma-laszlo",
+        "eleanor-bresa"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "weaponinventory",
+          "count": 5
+        },
+        {
+          "materialId": "ballisticsdata",
+          "count": 5
+        },
+        {
+          "materialId": "titaniumplating",
+          "count": 3
+        },
+        {
+          "materialId": "epoxyadhesive",
+          "count": 8
+        },
+        {
+          "materialId": "carbonfibreplating",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "suit_improvedradar",
+      "journalSymbols": [
+        "suit_improvedradar"
+      ],
+      "displayName": "Enhanced Tracking",
+      "targetKind": "suit",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "domino-green",
+        "oden-geiger",
+        "rosa-dayette"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "topographicalsurveys",
+          "count": 5
+        },
+        {
+          "materialId": "stellaractivitylogs",
+          "count": 5
+        },
+        {
+          "materialId": "spectralanalysisdata",
+          "count": 5
+        },
+        {
+          "materialId": "transmitter",
+          "count": 3
+        },
+        {
+          "materialId": "circuitboard",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "suit_increasedammoreserves",
+      "journalSymbols": [
+        "suit_increasedammoreserves"
+      ],
+      "displayName": "Extra Ammo Capacity",
+      "targetKind": "suit",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "jude-navarro",
+        "kit-fowler",
+        "eleanor-bresa"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "recyclinglogs",
+          "count": 8
+        },
+        {
+          "materialId": "weapontestdata",
+          "count": 5
+        },
+        {
+          "materialId": "productionreports",
+          "count": 5
+        },
+        {
+          "materialId": "weaponcomponent",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "suit_backpackcapacity",
+      "journalSymbols": [
+        "suit_backpackcapacity"
+      ],
+      "displayName": "Extra Backpack Capacity",
+      "targetKind": "suit",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "domino-green",
+        "wellington-beck",
+        "rosa-dayette"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "weaponinventory",
+          "count": 5
+        },
+        {
+          "materialId": "chemicalinventory",
+          "count": 5
+        },
+        {
+          "materialId": "digitaldesigns",
+          "count": 5
+        },
+        {
+          "materialId": "epoxyadhesive",
+          "count": 5
+        },
+        {
+          "materialId": "memorychip",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "weapon_handling",
+      "journalSymbols": [
+        "weapon_handling"
+      ],
+      "displayName": "Faster Handling",
+      "targetKind": "weapon",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "hero-ferrari",
+        "yarden-bond",
+        "baltanos"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "operationalmanual",
+          "count": 5
+        },
+        {
+          "materialId": "combatantperformance",
+          "count": 5
+        },
+        {
+          "materialId": "combattrainingmaterial",
+          "count": 5
+        },
+        {
+          "materialId": "viscoelasticpolymer",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "suit_increasedshieldregen",
+      "journalSymbols": [
+        "suit_increasedshieldregen"
+      ],
+      "displayName": "Faster Shield Regen",
+      "targetKind": "suit",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "kit-fowler",
+        "uma-laszlo",
+        "eleanor-bresa"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "reactoroutputreview",
+          "count": 5
+        },
+        {
+          "materialId": "ionbattery",
+          "count": 3
+        },
+        {
+          "materialId": "microtransformer",
+          "count": 8
+        },
+        {
+          "materialId": "electricalwiring",
+          "count": 8
+        }
+      ]
+    },
+    {
+      "id": "weapon_range_kinetic",
+      "journalSymbols": [
+        "weapon_range"
+      ],
+      "displayName": "Greater Range",
+      "targetKind": "weapon",
+      "engineeringTechnology": "kinetic",
+      "engineerIds": [
+        "domino-green",
+        "wellington-beck",
+        "rosa-dayette"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "ballisticsdata",
+          "count": 10
+        },
+        {
+          "materialId": "topographicalsurveys",
+          "count": 10
+        },
+        {
+          "materialId": "metalcoil",
+          "count": 10
+        },
+        {
+          "materialId": "rdx",
+          "count": 10
+        },
+        {
+          "materialId": "weaponcomponent",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "weapon_range_laser",
+      "journalSymbols": [
+        "weapon_range"
+      ],
+      "displayName": "Greater Range",
+      "targetKind": "weapon",
+      "engineeringTechnology": "laser",
+      "engineerIds": [
+        "domino-green",
+        "wellington-beck",
+        "rosa-dayette"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "stellaractivitylogs",
+          "count": 5
+        },
+        {
+          "materialId": "riskassessments",
+          "count": 8
+        },
+        {
+          "materialId": "opticallens",
+          "count": 3
+        },
+        {
+          "materialId": "microtransformer",
+          "count": 8
+        },
+        {
+          "materialId": "circuitboard",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "weapon_range_plasma",
+      "journalSymbols": [
+        "weapon_range"
+      ],
+      "displayName": "Greater Range",
+      "targetKind": "weapon",
+      "engineeringTechnology": "plasma",
+      "engineerIds": [
+        "domino-green",
+        "wellington-beck",
+        "rosa-dayette"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "chemicalformulae",
+          "count": 10
+        },
+        {
+          "materialId": "mineralsurvey",
+          "count": 15
+        },
+        {
+          "materialId": "electromagnet",
+          "count": 10
+        },
+        {
+          "materialId": "motor",
+          "count": 5
+        },
+        {
+          "materialId": "electricalfuse",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "weapon_headshotdamage_kinetic",
+      "journalSymbols": [
+        "weapon_headshotdamage"
+      ],
+      "displayName": "Headshot Damage",
+      "targetKind": "weapon",
+      "engineeringTechnology": "kinetic",
+      "engineerIds": [
+        "uma-laszlo",
+        "yi-shen"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "weapontestdata",
+          "count": 10
+        },
+        {
+          "materialId": "medicalrecords",
+          "count": 5
+        },
+        {
+          "materialId": "chemicalcatalyst",
+          "count": 10
+        },
+        {
+          "materialId": "rdx",
+          "count": 15
+        },
+        {
+          "materialId": "weaponcomponent",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "weapon_headshotdamage_laser",
+      "journalSymbols": [
+        "weapon_headshotdamage"
+      ],
+      "displayName": "Headshot Damage",
+      "targetKind": "weapon",
+      "engineeringTechnology": "laser",
+      "engineerIds": [
+        "uma-laszlo",
+        "yi-shen"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "spectralanalysisdata",
+          "count": 5
+        },
+        {
+          "materialId": "biometricdata",
+          "count": 3
+        },
+        {
+          "materialId": "ionbattery",
+          "count": 5
+        },
+        {
+          "materialId": "opticallens",
+          "count": 3
+        },
+        {
+          "materialId": "scrambler",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "weapon_headshotdamage_plasma",
+      "journalSymbols": [
+        "weapon_headshotdamage"
+      ],
+      "displayName": "Headshot Damage",
+      "targetKind": "weapon",
+      "engineeringTechnology": "plasma",
+      "engineerIds": [
+        "uma-laszlo",
+        "yi-shen"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "chemicalexperimentdata",
+          "count": 10
+        },
+        {
+          "materialId": "bloodtestresults",
+          "count": 5
+        },
+        {
+          "materialId": "ionbattery",
+          "count": 10
+        },
+        {
+          "materialId": "electromagnet",
+          "count": 10
+        },
+        {
+          "materialId": "microsupercapacitor",
+          "count": 15
+        }
+      ]
+    },
+    {
+      "id": "suit_increasedbatterycapacity",
+      "journalSymbols": [
+        "suit_increasedbatterycapacity"
+      ],
+      "displayName": "Improved Battery Capacity",
+      "targetKind": "suit",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "oden-geiger",
+        "wellington-beck",
+        "rosa-dayette"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "reactoroutputreview",
+          "count": 5
+        },
+        {
+          "materialId": "maintenancelogs",
+          "count": 8
+        },
+        {
+          "materialId": "ionbattery",
+          "count": 3
+        },
+        {
+          "materialId": "microsupercapacitor",
+          "count": 5
+        },
+        {
+          "materialId": "electricalwiring",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "weapon_accuracy_kinetic",
+      "journalSymbols": [
+        "weapon_accuracy"
+      ],
+      "displayName": "Improved Hip Fire Accuracy",
+      "targetKind": "weapon",
+      "engineeringTechnology": "kinetic",
+      "engineerIds": [
+        "yarden-bond",
+        "terra-velasquez",
+        "baltanos"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "extractionyielddata",
+          "count": 10
+        },
+        {
+          "materialId": "biometricdata",
+          "count": 5
+        },
+        {
+          "materialId": "combatantperformance",
+          "count": 10
+        },
+        {
+          "materialId": "rdx",
+          "count": 10
+        },
+        {
+          "materialId": "viscoelasticpolymer",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "weapon_accuracy_laser",
+      "journalSymbols": [
+        "weapon_accuracy"
+      ],
+      "displayName": "Improved Hip Fire Accuracy",
+      "targetKind": "weapon",
+      "engineeringTechnology": "laser",
+      "engineerIds": [
+        "yarden-bond",
+        "terra-velasquez",
+        "baltanos"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "radioactivitydata",
+          "count": 3
+        },
+        {
+          "materialId": "combatantperformance",
+          "count": 5
+        },
+        {
+          "materialId": "opticallens",
+          "count": 3
+        },
+        {
+          "materialId": "electricalwiring",
+          "count": 8
+        },
+        {
+          "materialId": "metalcoil",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "weapon_accuracy_plasma",
+      "journalSymbols": [
+        "weapon_accuracy"
+      ],
+      "displayName": "Improved Hip Fire Accuracy",
+      "targetKind": "weapon",
+      "engineeringTechnology": "plasma",
+      "engineerIds": [
+        "yarden-bond",
+        "terra-velasquez",
+        "baltanos"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "chemicalpatents",
+          "count": 5
+        },
+        {
+          "materialId": "combatantperformance",
+          "count": 10
+        },
+        {
+          "materialId": "chemicalcatalyst",
+          "count": 10
+        },
+        {
+          "materialId": "electromagnet",
+          "count": 10
+        },
+        {
+          "materialId": "metalcoil",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "suit_improvedjumpassist",
+      "journalSymbols": [
+        "suit_improvedjumpassist"
+      ],
+      "displayName": "Improved Jump Assist",
+      "targetKind": "suit",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "hero-ferrari",
+        "yarden-bond",
+        "baltanos"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "gmeds",
+          "count": 5
+        },
+        {
+          "materialId": "topographicalsurveys",
+          "count": 5
+        },
+        {
+          "materialId": "microthrusters",
+          "count": 3
+        },
+        {
+          "materialId": "motor",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "suit_increasedo2capacity",
+      "journalSymbols": [
+        "suit_increasedo2capacity"
+      ],
+      "displayName": "Increased Air Reserves",
+      "targetKind": "suit",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "hero-ferrari",
+        "terra-velasquez",
+        "baltanos"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "pharmaceuticalpatents",
+          "count": 3
+        },
+        {
+          "materialId": "airqualityreports",
+          "count": 8
+        },
+        {
+          "materialId": "oxygenicbacteria",
+          "count": 5
+        },
+        {
+          "materialId": "phneutraliser",
+          "count": 8
+        }
+      ]
+    },
+    {
+      "id": "suit_increasedsprintduration",
+      "journalSymbols": [
+        "suit_increasedsprintduration"
+      ],
+      "displayName": "Increased Sprint Duration",
+      "targetKind": "suit",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "hero-ferrari",
+        "terra-velasquez",
+        "baltanos"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "troopdeploymentrecords",
+          "count": 3
+        },
+        {
+          "materialId": "genesequencingdata",
+          "count": 3
+        },
+        {
+          "materialId": "medicaltrialrecords",
+          "count": 3
+        },
+        {
+          "materialId": "oxygenicbacteria",
+          "count": 5
+        },
+        {
+          "materialId": "chemicalcatalyst",
+          "count": 8
+        }
+      ]
+    },
+    {
+      "id": "weapon_clipsize",
+      "journalSymbols": [
+        "weapon_clipsize"
+      ],
+      "displayName": "Magazine Size",
+      "targetKind": "weapon",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "jude-navarro",
+        "kit-fowler",
+        "eleanor-bresa"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "weapontestdata",
+          "count": 5
+        },
+        {
+          "materialId": "securityexpenses",
+          "count": 3
+        },
+        {
+          "materialId": "weaponcomponent",
+          "count": 3
+        },
+        {
+          "materialId": "tungstencarbide",
+          "count": 3
+        },
+        {
+          "materialId": "metalcoil",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "suit_nightvision",
+      "journalSymbols": [
+        "suit_nightvision"
+      ],
+      "displayName": "Night Vision",
+      "targetKind": "suit",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "oden-geiger",
+        "yi-shen"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "surveillanceequipment",
+          "count": 5
+        },
+        {
+          "materialId": "surveilleancelogs",
+          "count": 3
+        },
+        {
+          "materialId": "nocdata",
+          "count": 3
+        },
+        {
+          "materialId": "radioactivitydata",
+          "count": 3
+        },
+        {
+          "materialId": "circuitswitch",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "weapon_suppression_pressurised",
+      "journalSymbols": [
+        "weapon_suppression_pressurised"
+      ],
+      "displayName": "Noise Suppressor",
+      "targetKind": "weapon",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "hero-ferrari",
+        "terra-velasquez",
+        "baltanos"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "atmosphericdata",
+          "count": 5
+        },
+        {
+          "materialId": "mininganalytics",
+          "count": 5
+        },
+        {
+          "materialId": "viscoelasticpolymer",
+          "count": 8
+        },
+        {
+          "materialId": "weaponcomponent",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "suit_quieterfootsteps",
+      "journalSymbols": [
+        "suit_quieterfootsteps"
+      ],
+      "displayName": "Quieter Footsteps",
+      "targetKind": "suit",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "yarden-bond",
+        "yi-shen"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "settlementassaultplans",
+          "count": 3
+        },
+        {
+          "materialId": "tacticalplans",
+          "count": 5
+        },
+        {
+          "materialId": "patrolroutes",
+          "count": 5
+        },
+        {
+          "materialId": "microhydraulics",
+          "count": 3
+        },
+        {
+          "materialId": "viscoelasticpolymer",
+          "count": 8
+        }
+      ]
+    },
+    {
+      "id": "suit_reducedtoolbatteryconsumption",
+      "journalSymbols": [
+        "suit_reducedtoolbatteryconsumption"
+      ],
+      "displayName": "Reduced Tool Battery Consumption",
+      "targetKind": "suit",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "domino-green",
+        "wellington-beck",
+        "rosa-dayette"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "reactoroutputreview",
+          "count": 5
+        },
+        {
+          "materialId": "electricalwiring",
+          "count": 8
+        },
+        {
+          "materialId": "electricalfuse",
+          "count": 3
+        },
+        {
+          "materialId": "microtransformer",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "weapon_reloadspeed",
+      "journalSymbols": [
+        "weapon_reloadspeed"
+      ],
+      "displayName": "Reload Speed",
+      "targetKind": "weapon",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "jude-navarro",
+        "uma-laszlo",
+        "eleanor-bresa"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "operationalmanual",
+          "count": 5
+        },
+        {
+          "materialId": "productionreports",
+          "count": 5
+        },
+        {
+          "materialId": "combattrainingmaterial",
+          "count": 5
+        },
+        {
+          "materialId": "microhydraulics",
+          "count": 5
+        },
+        {
+          "materialId": "electromagnet",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "weapon_scope",
+      "journalSymbols": [
+        "weapon_scope"
+      ],
+      "displayName": "Scope",
+      "targetKind": "weapon",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "oden-geiger",
+        "wellington-beck",
+        "rosa-dayette"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "spectralanalysisdata",
+          "count": 5
+        },
+        {
+          "materialId": "biometricdata",
+          "count": 3
+        },
+        {
+          "materialId": "opticallens",
+          "count": 5
+        },
+        {
+          "materialId": "opticalfibre",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "weapon_stability",
+      "journalSymbols": [
+        "weapon_stability"
+      ],
+      "displayName": "Stability",
+      "targetKind": "weapon",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "domino-green",
+        "oden-geiger",
+        "rosa-dayette"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "mininganalytics",
+          "count": 5
+        },
+        {
+          "materialId": "riskassessments",
+          "count": 8
+        },
+        {
+          "materialId": "viscoelasticpolymer",
+          "count": 5
+        },
+        {
+          "materialId": "microhydraulics",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "weapon_backpackreloading",
+      "journalSymbols": [
+        "weapon_backpackreloading"
+      ],
+      "displayName": "Stowed reloading",
+      "targetKind": "weapon",
+      "engineeringTechnology": null,
+      "engineerIds": [
+        "kit-fowler",
+        "uma-laszlo",
+        "eleanor-bresa"
+      ],
+      "credits": null,
+      "ingredients": [
+        {
+          "materialId": "digitaldesigns",
+          "count": 5
+        },
+        {
+          "materialId": "operationalmanual",
+          "count": 5
+        },
+        {
+          "materialId": "productionschedule",
+          "count": 5
+        },
+        {
+          "materialId": "circuitboard",
+          "count": 3
+        },
+        {
+          "materialId": "encryptedmemorychip",
+          "count": 8
+        }
+      ]
+    }
+  ],
+  "engineers": [
+    {
+      "id": "baltanos",
+      "frontierEngineerId": 400010,
+      "displayName": "Baltanos"
+    },
+    {
+      "id": "domino-green",
+      "frontierEngineerId": 400002,
+      "displayName": "Domino Green"
+    },
+    {
+      "id": "eleanor-bresa",
+      "frontierEngineerId": 400011,
+      "displayName": "Eleanor Bresa"
+    },
+    {
+      "id": "hero-ferrari",
+      "frontierEngineerId": 400003,
+      "displayName": "Hero Ferrari"
+    },
+    {
+      "id": "jude-navarro",
+      "frontierEngineerId": 400001,
+      "displayName": "Jude Navarro"
+    },
+    {
+      "id": "kit-fowler",
+      "frontierEngineerId": 400004,
+      "displayName": "Kit Fowler"
+    },
+    {
+      "id": "oden-geiger",
+      "frontierEngineerId": 400008,
+      "displayName": "Oden Geiger"
+    },
+    {
+      "id": "rosa-dayette",
+      "frontierEngineerId": 400012,
+      "displayName": "Rosa Dayette"
+    },
+    {
+      "id": "terra-velasquez",
+      "frontierEngineerId": 400006,
+      "displayName": "Terra Velasquez"
+    },
+    {
+      "id": "uma-laszlo",
+      "frontierEngineerId": 400007,
+      "displayName": "Uma Laszlo"
+    },
+    {
+      "id": "wellington-beck",
+      "frontierEngineerId": 400005,
+      "displayName": "Wellington Beck"
+    },
+    {
+      "id": "yarden-bond",
+      "frontierEngineerId": 400009,
+      "displayName": "Yarden Bond"
+    },
+    {
+      "id": "yi-shen",
+      "frontierEngineerId": 400013,
+      "displayName": "Yi Shen"
+    }
+  ],
+  "microResources": [
+    {
+      "id": "accidentlogs",
+      "displayName": "Accident Logs",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "aerogel",
+      "displayName": "Aerogel",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "agriculturalprocesssample",
+      "displayName": "Agricultural Process Sample",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "poweragriculture",
+      "displayName": "Agricultural Sample",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "airqualityreports",
+      "displayName": "Air Quality Reports",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "atmosphericdata",
+      "displayName": "Atmospheric Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "audiologs",
+      "displayName": "Audio Logs",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "axcombatlogs",
+      "displayName": "AX Combat Logs",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "ballisticsdata",
+      "displayName": "Ballistics Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "biochemicalagent",
+      "displayName": "Biochemical Agent",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "geneticsample",
+      "displayName": "Biological Sample",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "biologicalweapondata",
+      "displayName": "Biological Weapon Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "biometricdata",
+      "displayName": "Biometric Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "blacklistdata",
+      "displayName": "Blacklist Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "bloodtestresults",
+      "displayName": "Blood Test Results",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "buildingschematic",
+      "displayName": "Building Schematic",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "californium",
+      "displayName": "Californium",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "campaignplans",
+      "displayName": "Campaign Plans",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "carbonfibreplating",
+      "displayName": "Carbon Fibre Plating",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "castfossil",
+      "displayName": "Cast Fossil",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "catmedia",
+      "displayName": "Cat Media",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "censusdata",
+      "displayName": "Census Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "chemicalcatalyst",
+      "displayName": "Chemical Catalyst",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "chemicalexperimentdata",
+      "displayName": "Chemical Experiment Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "chemicalformulae",
+      "displayName": "Chemical Formulae",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "chemicalinventory",
+      "displayName": "Chemical Inventory",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "chemicalpatents",
+      "displayName": "Chemical Patents",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "chemicalprocesssample",
+      "displayName": "Chemical Process Sample",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "chemicalsample",
+      "displayName": "Chemical Sample",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "chemicalsuperbase",
+      "displayName": "Chemical Superbase",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "chemicalweapondata",
+      "displayName": "Chemical Weapon Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "circuitboard",
+      "displayName": "Circuit Board",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "circuitswitch",
+      "displayName": "Circuit Switch",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "classicentertainment",
+      "displayName": "Classic Entertainment",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "medicaltrialrecords",
+      "displayName": "Clinical Trial Records",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "cocktailrecipes",
+      "displayName": "Cocktail Recipes",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "combattrainingmaterial",
+      "displayName": "Combat Training Material",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "combatantperformance",
+      "displayName": "Combatant Performance",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "compactlibrary",
+      "displayName": "Compact Library",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "compressionliquefiedgas",
+      "displayName": "Compression-Liquefied Gas",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "powercomputer",
+      "displayName": "Computer Parts",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "conflicthistory",
+      "displayName": "Conflict History",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "sabotagedcomponent",
+      "displayName": "Contaminated Spire Compound",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "criminalrecords",
+      "displayName": "Criminal Records",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "cropyieldanalysis",
+      "displayName": "Crop Yield Analysis",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "culinaryrecipes",
+      "displayName": "Culinary Recipes",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "powermisccomputer",
+      "displayName": "Data Storage Device",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "deepmantlesample",
+      "displayName": "Deep Mantle Sample",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "degradedpowerregulator",
+      "displayName": "Degraded Power Regulator",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "digitaldesigns",
+      "displayName": "Digital Designs",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "dutyrota",
+      "displayName": "Duty Rota",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "bypass",
+      "displayName": "E-Breach",
+      "journalBucket": "consumable",
+      "playerGroup": "consumables"
+    },
+    {
+      "id": "electricalfuse",
+      "displayName": "Electrical Fuse",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "electricalwiring",
+      "displayName": "Electrical Wiring",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "electromagnet",
+      "displayName": "Electromagnet",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "powerelectronics",
+      "displayName": "Electronics Package",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "employeedirectory",
+      "displayName": "Employee Directory",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "employeeexpenses",
+      "displayName": "Employee Expenses",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "employeegeneticdata",
+      "displayName": "Employee Genetic Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "employmenthistory",
+      "displayName": "Employment History",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "encryptedmemorychip",
+      "displayName": "Encrypted Memory Chip",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "energycell",
+      "displayName": "Energy Cell",
+      "journalBucket": "consumable",
+      "playerGroup": "consumables"
+    },
+    {
+      "id": "powerpower",
+      "displayName": "Energy Regulator",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "enhancedinterrogationrecordings",
+      "displayName": "Enhanced Interrogation Recordings",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "epinephrine",
+      "displayName": "Epinephrine",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "epoxyadhesive",
+      "displayName": "Epoxy Adhesive",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "espionagematerial",
+      "displayName": "Espionage Material",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "evacuationprotocols",
+      "displayName": "Evacuation Protocols",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "powerexperiment",
+      "displayName": "Experiment Prototype",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "explorationjournals",
+      "displayName": "Exploration Journals",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "powerextraction",
+      "displayName": "Extraction Sample",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "extractionyielddata",
+      "displayName": "Extraction Yield Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "factionassociates",
+      "displayName": "Faction Associates",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "factiondonatorlist",
+      "displayName": "Faction Donator List",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "factionnews",
+      "displayName": "Faction News",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "financialprojections",
+      "displayName": "Financial Projections",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "fleetregistry",
+      "displayName": "Fleet Registry",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "amm_grenade_frag",
+      "displayName": "Frag Grenade",
+      "journalBucket": "consumable",
+      "playerGroup": "consumables"
+    },
+    {
+      "id": "gmeds",
+      "displayName": "G-Meds",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "genesequencingdata",
+      "displayName": "Gene Sequencing Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "geneticrepairmeds",
+      "displayName": "Genetic Repair Meds",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "geneticresearch",
+      "displayName": "Genetic Research",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "geologicaldata",
+      "displayName": "Geological Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "graphene",
+      "displayName": "Graphene",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "healthmonitor",
+      "displayName": "Health Monitor",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "hush",
+      "displayName": "Hush",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "hydroponicdata",
+      "displayName": "Hydroponic Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "incidentlogs",
+      "displayName": "Incident Logs",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "powerindustrial",
+      "displayName": "Industrial Component",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "powermiscindust",
+      "displayName": "Industrial Machinery",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "inertiacanister",
+      "displayName": "Inertia Canister",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "infinity",
+      "displayName": "Infinity",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "influenceprojections",
+      "displayName": "Influence Projections",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "inorganiccontaminant",
+      "displayName": "Inorganic Contaminant",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "insight",
+      "displayName": "Insight",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "insightdatabank",
+      "displayName": "Insight Data Bank",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "insightentertainmentsuite",
+      "displayName": "Insight Entertainment Suite",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "operationscounterattackdata",
+      "displayName": "Installation Intelligence Report",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "internalcorrespondence",
+      "displayName": "Internal Correspondence",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "interrogationrecordings",
+      "displayName": "Interrogation Recordings",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "interviewrecordings",
+      "displayName": "Interview Recordings",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "powerinventory",
+      "displayName": "Inventory Record",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "ionbattery",
+      "displayName": "Ion Battery",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "ionisedgas",
+      "displayName": "Ionised Gas",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "jobapplications",
+      "displayName": "Job Applications",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "kompromat",
+      "displayName": "Kompromat",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "lazarus",
+      "displayName": "Lazarus",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "literaryfiction",
+      "displayName": "Literary Fiction",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "maintenancelogs",
+      "displayName": "Maintenance Logs",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "manufacturinginstructions",
+      "displayName": "Manufacturing Instructions",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "medicalrecords",
+      "displayName": "Medical Records",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "powermedical",
+      "displayName": "Medical Sample",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "healthpack",
+      "displayName": "Medkit",
+      "journalBucket": "consumable",
+      "playerGroup": "consumables"
+    },
+    {
+      "id": "meetingminutes",
+      "displayName": "Meeting Minutes",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "memorychip",
+      "displayName": "Memory Chip",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "metalcoil",
+      "displayName": "Metal Coil",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "microhydraulics",
+      "displayName": "Micro Hydraulics",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "microsupercapacitor",
+      "displayName": "Micro Supercapacitor",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "microthrusters",
+      "displayName": "Micro Thrusters",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "microtransformer",
+      "displayName": "Micro Transformer",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "microbialinhibitor",
+      "displayName": "Microbial Inhibitor",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "microelectrode",
+      "displayName": "Microelectrode",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "powerplaymilitary",
+      "displayName": "Military Schematic",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "mineralsurvey",
+      "displayName": "Mineral Survey",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "mininganalytics",
+      "displayName": "Mining Analytics",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "motor",
+      "displayName": "Motor",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "multimediaentertainment",
+      "displayName": "Multimedia Entertainment",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "mutageniccatalyst",
+      "displayName": "Mutagenic Catalyst",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "networkaccesshistory",
+      "displayName": "Network Access History",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "networksecurityprotocols",
+      "displayName": "Network Security Protocols",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "nextofkinrecords",
+      "displayName": "Next of Kin Records",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "nocdata",
+      "displayName": "NOC Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "nutritionalconcentrate",
+      "displayName": "Nutritional Concentrate",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "operationalmanual",
+      "displayName": "Operational Manual",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "opinionpolls",
+      "displayName": "Opinion Polls",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "opticalfibre",
+      "displayName": "Optical Fibre",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "opticallens",
+      "displayName": "Optical Lens",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "oxygenicbacteria",
+      "displayName": "Oxygenic Bacteria",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "patienthistory",
+      "displayName": "Patient History",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "patrolroutes",
+      "displayName": "Patrol Routes",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "payrollinformation",
+      "displayName": "Payroll Information",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "personalcomputer",
+      "displayName": "Personal Computer",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "personaldocuments",
+      "displayName": "Personal Documents",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "personallogs",
+      "displayName": "Personal Logs",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "powerequipment",
+      "displayName": "Personal Protective Equipment",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "petrifiedfossil",
+      "displayName": "Petrified Fossil",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "phneutraliser",
+      "displayName": "pH Neutraliser",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "pharmaceuticalpatents",
+      "displayName": "Pharmaceutical Patents",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "photoalbums",
+      "displayName": "Photo Albums",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "plantgrowthcharts",
+      "displayName": "Plant Growth Charts",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "politicalaffiliations",
+      "displayName": "Political Affiliations",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "poweremployeedata",
+      "displayName": "Power Association Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "powerclassifieddata",
+      "displayName": "Power Classified Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "powerfinancialrecords",
+      "displayName": "Power Industrial Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "powerpreparationspyware",
+      "displayName": "Power Injection Malware",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "powermegashipdata",
+      "displayName": "Power Megaship Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "powerpropagandadata",
+      "displayName": "Power Political Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "largecapacitypowerregulator",
+      "displayName": "Power Regulator",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "powerresearchdata",
+      "displayName": "Power Research Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "powerspyware",
+      "displayName": "Power Tracker Malware",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "powervirus",
+      "displayName": "Power Virus",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "prisonerlogs",
+      "displayName": "Prisoner Logs",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "productionreports",
+      "displayName": "Production Reports",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "productionschedule",
+      "displayName": "Production Schedule",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "propaganda",
+      "displayName": "Propaganda",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "purchaserecords",
+      "displayName": "Purchase Records",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "purchaserequests",
+      "displayName": "Purchase Requests",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "push",
+      "displayName": "Push",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "pyrolyticcatalyst",
+      "displayName": "Pyrolytic Catalyst",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "radioactivitydata",
+      "displayName": "Radioactivity Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "rdx",
+      "displayName": "RDX",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "reactoroutputreview",
+      "displayName": "Reactor Output Review",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "recyclinglogs",
+      "displayName": "Recycling Logs",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "refinementprocesssample",
+      "displayName": "Refinement Process Sample",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "powerresearch",
+      "displayName": "Research Notes",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "operationsstrikedata",
+      "displayName": "Researcher Location Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "residentialdirectory",
+      "displayName": "Residential Directory",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "riskassessments",
+      "displayName": "Risk Assessments",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "salesrecords",
+      "displayName": "Sales Records",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "scrambler",
+      "displayName": "Scrambler",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "securityexpenses",
+      "displayName": "Security Expenses",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "powersecurity",
+      "displayName": "Security Logs",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "seedgeneaology",
+      "displayName": "Seed Geneaology",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "settlementassaultplans",
+      "displayName": "Settlement Assault Plans",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "settlementdefenceplans",
+      "displayName": "Settlement Defence Plans",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "shareholderinformation",
+      "displayName": "Shareholder Information",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "amm_grenade_emp",
+      "displayName": "Shield Disruptor",
+      "journalBucket": "consumable",
+      "playerGroup": "consumables"
+    },
+    {
+      "id": "amm_grenade_shield",
+      "displayName": "Shield Projector",
+      "journalBucket": "consumable",
+      "playerGroup": "consumables"
+    },
+    {
+      "id": "shipschematic",
+      "displayName": "Ship Schematic",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "slushfundlogs",
+      "displayName": "Slush Fund Logs",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "smallcapacitypowerregulator",
+      "displayName": "Small-Capacity Power Regulator",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "smearcampaignplans",
+      "displayName": "Smear Campaign Plans",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "spectralanalysisdata",
+      "displayName": "Spectral Analysis Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "biomechanicalcomponent",
+      "displayName": "Spire Refinery Compound",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "spyware",
+      "displayName": "Spyware",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "stellaractivitylogs",
+      "displayName": "Stellar Activity Logs",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "suitschematic",
+      "displayName": "Suit Schematic",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "surveillanceequipment",
+      "displayName": "Surveillance Equipment",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "surveilleancelogs",
+      "displayName": "Surveillance Logs",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "syntheticgenome",
+      "displayName": "Synthetic Genome",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "syntheticpathogen",
+      "displayName": "Synthetic Pathogen",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "tacticalplans",
+      "displayName": "Tactical Plans",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "taxrecords",
+      "displayName": "Tax Records",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "titaniumplating",
+      "displayName": "Titanium Plating",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "topographicalsurveys",
+      "displayName": "Topographical Surveys",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "transmitter",
+      "displayName": "Transmitter",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "travelpermits",
+      "displayName": "Travel Permits",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "troopdeploymentrecords",
+      "displayName": "Troop Deployment Records",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "trueformfossil",
+      "displayName": "True Form Fossil",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "tungstencarbide",
+      "displayName": "Tungsten Carbide",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "nm_seed",
+      "displayName": "Unica Seed",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "unionmembership",
+      "displayName": "Union Membership",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "universaltranslator",
+      "displayName": "Universal Translator",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "vaccinationrecords",
+      "displayName": "Vaccination Records",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "vaccineresearch",
+      "displayName": "Vaccine Research",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "vehicleschematic",
+      "displayName": "Vehicle Schematic",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "vipsecuritydetail",
+      "displayName": "VIP Security Detail",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "virologydata",
+      "displayName": "Virology Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "virus",
+      "displayName": "Virus",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "viscoelasticpolymer",
+      "displayName": "Viscoelastic Polymer",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "visitorregister",
+      "displayName": "Visitor Register",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "weaponcomponent",
+      "displayName": "Weapon Component",
+      "journalBucket": "component",
+      "playerGroup": "assets"
+    },
+    {
+      "id": "weaponinventory",
+      "displayName": "Weapon Inventory",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "weaponschematic",
+      "displayName": "Weapon Schematic",
+      "journalBucket": "item",
+      "playerGroup": "goods"
+    },
+    {
+      "id": "weapontestdata",
+      "displayName": "Weapon Test Data",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    },
+    {
+      "id": "xenodefenceprotocols",
+      "displayName": "Xeno-Defence Protocols",
+      "journalBucket": "data",
+      "playerGroup": "data"
+    }
+  ]
+}

@@ -21,6 +21,7 @@ import { equipmentContextForRoute, equipmentNavigationItems } from './features/e
 import { usePersonalEquipmentController } from './features/equipment/use-personal-equipment-controller.js'
 import { usePersonalMaterialsController } from './features/equipment/use-personal-materials-controller.js'
 import { usePersonalEquipmentUpgradesController } from './features/equipment/use-personal-equipment-upgrades-controller.js'
+import { usePersonalEquipmentSpecialistsController } from './features/equipment/use-personal-equipment-specialists-controller.js'
 import { fleetContextForRoute, fleetNavigationItems } from './features/fleet/fleet-navigation.js'
 import { useFleetController } from './features/fleet/use-fleet-controller.js'
 import { galaxyContextForRoute, galaxyNavigationItems } from './features/galaxy/galaxy-navigation.js'
@@ -51,6 +52,7 @@ const EngineeringPage = lazy(() => import('./features/engineering/engineering-pa
 const EquipmentPage = lazy(() => import('./features/equipment/equipment-page.js').then(module => ({ default: module.EquipmentPage })))
 const EquipmentMaterialsPage = lazy(() => import('./features/equipment/equipment-materials-page.js').then(module => ({ default: module.EquipmentMaterialsPage })))
 const EquipmentUpgradesPage = lazy(() => import('./features/equipment/equipment-upgrades-page.js').then(module => ({ default: module.EquipmentUpgradesPage })))
+const EquipmentSpecialistsPage = lazy(() => import('./features/equipment/equipment-specialists-page.js').then(module => ({ default: module.EquipmentSpecialistsPage })))
 const FleetPage = lazy(() => import('./features/fleet/fleet-page.js').then(module => ({ default: module.FleetPage })))
 const GalaxyPage = lazy(() => import('./features/galaxy/galaxy-page.js').then(module => ({ default: module.GalaxyPage })))
 const HelpPage = lazy(() => import('./features/settings/help-page.js').then(module => ({ default: module.HelpPage })))
@@ -177,6 +179,7 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
                         : equipmentRoute
                           ? <PersonalEquipmentFeature
                               application={application}
+                              selectedSpecialistId={equipmentRoute.view === 'specialists' ? equipmentRoute.selectedSpecialistId : undefined}
                               selectedUpgradeId={equipmentRoute.view === 'upgrades' ? equipmentRoute.selectedUpgradeId : undefined}
                               view={equipmentRoute.view}
                             />
@@ -339,15 +342,18 @@ const CommanderFeature = memo(function CommanderFeature({ application, view }: {
   return <CommanderPage model={model} runtime={runtime} view={view} />
 })
 
-const PersonalEquipmentFeature = memo(function PersonalEquipmentFeature({ application, selectedUpgradeId, view }: {
+const PersonalEquipmentFeature = memo(function PersonalEquipmentFeature({ application, selectedSpecialistId, selectedUpgradeId, view }: {
   application: PhoenixApplicationServices
+  selectedSpecialistId?: string
   selectedUpgradeId?: string
-  view: 'gear' | 'loadouts' | 'materials' | 'upgrades'
+  view: 'gear' | 'loadouts' | 'materials' | 'specialists' | 'upgrades'
 }) {
   const equipment = usePersonalEquipmentController(application.api, application.events, view === 'gear' || view === 'loadouts')
   const materials = usePersonalMaterialsController(application.api, application.events, view === 'materials')
   const upgrades = usePersonalEquipmentUpgradesController(application.api, view === 'upgrades')
+  const specialists = usePersonalEquipmentSpecialistsController(application.api, view === 'specialists')
   if (view === 'materials') return <EquipmentMaterialsPage controller={materials} />
+  if (view === 'specialists') return <EquipmentSpecialistsPage controller={specialists} selectedSpecialistId={selectedSpecialistId} />
   if (view === 'upgrades') return <EquipmentUpgradesPage controller={upgrades} selectedUpgradeId={selectedUpgradeId} />
   return view === 'gear'
     ? <EquipmentPage controller={equipment} />
