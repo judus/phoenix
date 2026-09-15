@@ -57,6 +57,11 @@ export function CurrentShipOverview({ actions, model, onExecuteAction, onNavigat
         <div className="ship-grid">
           <div className="ship-upper-grid">
             <div className="vessel-column">
+              <FactsWidget
+                items={[...model.vessel, ...model.operation]}
+                label="Current Vessel"
+                link={<CurrentShipLinks onNavigate={onNavigate} />}
+              />
               <ControlContext className="command-grid" context="command" aria-label="Ship commands">
                 {primaryControls.slice(0, 2).map(control => (
                   <ActionCommand
@@ -88,11 +93,6 @@ export function CurrentShipOverview({ actions, model, onExecuteAction, onNavigat
                   />
                 ))}
               </ControlContext>
-              <FactsWidget
-                items={[...model.vessel, ...model.operation]}
-                label="Current Vessel"
-                link={<CurrentShipLinks onNavigate={onNavigate} />}
-              />
             </div>
 
             <div className="instrument-column">
@@ -103,6 +103,8 @@ export function CurrentShipOverview({ actions, model, onExecuteAction, onNavigat
           </div>
 
           <div className="ship-lower-grid">
+            <ModuleStatusWidget model={model} onNavigate={onNavigate} />
+            <CargoWidget model={model} onNavigate={onNavigate} />
             <ControlContext className="module-status-controls" context="command" aria-label="Module status ship commands">
               {moduleStatusControls.map(control => (
                 <ActionCommand
@@ -115,8 +117,6 @@ export function CurrentShipOverview({ actions, model, onExecuteAction, onNavigat
                 />
               ))}
             </ControlContext>
-            <CargoWidget model={model} onNavigate={onNavigate} />
-            <ModuleStatusWidget model={model} onNavigate={onNavigate} />
           </div>
         </div>
       </div>
