@@ -26,7 +26,9 @@ export class CopilotProfileService implements CopilotProfiles {
   public constructor (
     private readonly profiles: AgentProfileEditor,
     private readonly settings: SystemSettingsRepository
-  ) {}
+  ) {
+    this.reconcilePermissionPolicies()
+  }
 
   public activeProfileId (): string {
     const requested = this.settings.loadOrCreate().copilot.activeProfileId
@@ -65,11 +67,24 @@ export class CopilotProfileService implements CopilotProfiles {
 
   public create (candidate: CopilotProfileWriteRequest): CopilotProfileDocument {
     const input = CopilotProfileWriteRequestSchema.parse(candidate)
+    const templateProfileId = input.templateProfileId ?? this.activeProfileId()
     const created = this.profiles.create({
       characterSpeech: input.characterSpeech,
       characterText: input.characterText,
       descriptor: input.profile
-    }, input.templateProfileId ?? this.activeProfileId())
+    }, templateProfileId)
+    const settings = this.settings.loadOrCreate()
+    const templatePermissions = settings.copilot.profilePermissions[templateProfileId] ?? settings.copilot.permissions
+    this.settings.save({
+      ...settings,
+      copilot: {
+        ...settings.copilot,
+        profilePermissions: {
+          ...settings.copilot.profilePermissions,
+          [created.descriptor.id]: structuredClone(templatePermissions)
+        }
+      }
+    })
     const document = CopilotProfileDocumentSchema.parse({
       characterSpeech: created.characterSpeech,
       characterText: created.characterText,
@@ -102,5 +117,19 @@ export class CopilotProfileService implements CopilotProfiles {
   }
   private publish (result: CopilotProfilesResponse): void {
     for (const listener of this.listeners) listener(result)
+  }
+
+  private reconcilePermissionPolicies (): void {
+    const settings = this.settings.loadOrCreate()
+    const profilePermissions = { ...settings.copilot.profilePermissions }
+    let changed = false
+    for (const profile of this.profiles.list()) {
+      if (profilePermissions[profile.id] !== undefined) continue
+      profilePermissions[profile.id] = structuredClone(settings.copilot.permissions)
+      changed = true
+    }
+    if (changed) {
+      this.settings.save({ ...settings, copilot: { ...settings.copilot, profilePermissions } })
+    }
   }
 }

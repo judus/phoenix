@@ -4,14 +4,13 @@ import {
   MacroPlaybackSchema,
   MacroRecordingSchema,
   RecordMacroActionRequestSchema,
-  type CopilotExecutionPermissions,
   type GameActionOrigin,
   type MacroPlayback,
   type MacroRecording
 } from '@phoenix/contracts'
 import type { GameActions } from './game-action-service.js'
 import type { MacroRepository, Macros } from '../domain/macros.js'
-import { isDangerousMacroAction, withEffectiveMacroRisk } from './macro-risk.js'
+import { withEffectiveMacroRisk } from './macro-risk.js'
 
 interface HeldAction {
   leaseId: string
@@ -31,11 +30,6 @@ export class MacroService implements Macros {
     private readonly repository: MacroRepository,
     private readonly gameActions: GameActions,
     private readonly now: () => Date = () => new Date(),
-    private readonly copilotPermissions: () => CopilotExecutionPermissions = () => ({
-      gameActions: true,
-      macros: true,
-      dangerousActions: true
-    }),
     private readonly holdLeaseRenewalMs = 5_000
   ) {}
 
@@ -134,10 +128,6 @@ export class MacroService implements Macros {
         if (step.type === 'wait') {
           await abortableWait(step.durationMs, signal)
         } else {
-          if (origin === 'copilot' && !this.copilotPermissions().dangerousActions &&
-              isDangerousMacroAction(step.actionId, this.gameActions.getCatalog())) {
-            throw new Error('Dangerous Copilot actions are disabled in Settings.')
-          }
           const leaseId = step.operation === 'press'
             ? held.get(step.actionId)?.leaseId ?? randomUUID()
             : step.operation === 'release' ? held.get(step.actionId)?.leaseId : undefined

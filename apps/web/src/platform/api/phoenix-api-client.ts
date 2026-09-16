@@ -7,6 +7,8 @@ import {
   CopilotConversationEventSchema,
   CopilotHistoryResponseSchema,
   CopilotProfileDocumentSchema,
+  CopilotProfileCapabilitySettingsSchema,
+  CopilotPermissionPolicySchema,
   CopilotProfileSelectionRequestSchema,
   CopilotProfileWriteRequestSchema,
   CopilotProfilesResponseSchema,
@@ -57,6 +59,7 @@ import {
   GalaxyBookmarkWriteRequestSchema,
   CopilotSettingsSchema,
   CopilotSettingsUpdateSchema,
+  CopilotToolDiagnosticsResponseSchema,
   GeneralSettingsSchema,
   GeneralSettingsUpdateSchema,
   LocalTrafficResponseSchema,
@@ -92,6 +95,8 @@ import type {
   CopilotConversationEvent,
   CopilotHistoryResponse,
   CopilotProfileDocument,
+  CopilotProfileCapabilitySettings,
+  CopilotPermissionPolicy,
   CopilotProfileWriteRequest,
   CopilotProfilesResponse,
   CopilotRealtimeTokenRequest,
@@ -145,6 +150,7 @@ import type {
   HealthResponse,
   CopilotSettings,
   CopilotSettingsUpdate,
+  CopilotToolDiagnosticsResponse,
   GeneralSettings,
   GeneralSettingsUpdate,
   LocalTrafficResponse,
@@ -257,6 +263,10 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getCopilotSettings(signal?: AbortSignal): Promise<CopilotSettings> {
     return this.#get('/api/settings/copilot', CopilotSettingsSchema, signal)
+  }
+
+  async getCopilotToolDiagnostics(signal?: AbortSignal): Promise<CopilotToolDiagnosticsResponse> {
+    return this.#get('/api/developer/copilot-tools', CopilotToolDiagnosticsResponseSchema, signal)
   }
 
   async saveCopilotSettings(
@@ -578,12 +588,20 @@ export class PhoenixApiClient implements PhoenixApi {
     return this.#get(`/api/copilot/profiles/${encodeURIComponent(profileId)}`, CopilotProfileDocumentSchema, signal)
   }
 
+  async getCopilotProfileCapabilities(profileId: string, signal?: AbortSignal): Promise<CopilotProfileCapabilitySettings> {
+    return this.#get(`/api/copilot/profiles/${encodeURIComponent(profileId)}/capabilities`, CopilotProfileCapabilitySettingsSchema, signal)
+  }
+
   async createCopilotProfile(input: CopilotProfileWriteRequest, signal?: AbortSignal): Promise<CopilotProfileDocument> {
     return this.#json('/api/copilot/profiles', 'POST', CopilotProfileWriteRequestSchema.parse(input), CopilotProfileDocumentSchema, signal)
   }
 
   async updateCopilotProfile(profileId: string, input: CopilotProfileWriteRequest, signal?: AbortSignal): Promise<CopilotProfileDocument> {
     return this.#json(`/api/copilot/profiles/${encodeURIComponent(profileId)}`, 'PUT', CopilotProfileWriteRequestSchema.parse(input), CopilotProfileDocumentSchema, signal)
+  }
+
+  async updateCopilotProfileCapabilities(profileId: string, permissions: CopilotPermissionPolicy, signal?: AbortSignal): Promise<CopilotProfileCapabilitySettings> {
+    return this.#json(`/api/copilot/profiles/${encodeURIComponent(profileId)}/capabilities`, 'PUT', CopilotPermissionPolicySchema.parse(permissions), CopilotProfileCapabilitySettingsSchema, signal)
   }
 
   async selectCopilotProfile(profileId: string, signal?: AbortSignal): Promise<CopilotProfilesResponse> {

@@ -1,7 +1,7 @@
 import type { JsonObject, LocalTool } from '@jdu/llm-client'
 import type { StationQuery } from './tool-gateways.js'
 
-export class OutfittingFindModuleTool implements LocalTool {
+export class StationsFindStationsSellingModuleTool implements LocalTool {
   public readonly definition = {
     annotations: { readOnly: true },
     description: 'Find nearby stations reported to sell a specific outfitting module. Accepts exact Elite labels such as "6A Power Plant" or a broad module name such as "Power Plant". Uses the commander\'s current system unless systemName is supplied.',
@@ -18,7 +18,7 @@ export class OutfittingFindModuleTool implements LocalTool {
       required: ['query'],
       type: 'object'
     },
-    name: 'outfitting.find_module'
+    name: 'stations.find_stations_selling_module'
   }
 
   public constructor (private readonly stations: StationQuery) {}

@@ -54,6 +54,60 @@ test('invalid JSON settings fail validation instead of being silently overwritte
   expect(() => new JsonSystemSettingsRepository(path).loadOrCreate()).toThrow()
 })
 
+test('version one settings migrate once to the capability permission schema', () => {
+  const directory = temporaryDirectory()
+  const path = join(directory, 'settings.json')
+  writeFileSync(path, JSON.stringify({
+    ...DEFAULT_PHOENIX_SETTINGS,
+    version: 1,
+    copilot: {
+      activeProfileId: 'marin',
+      permissions: { gameActions: true, macros: true, dangerousActions: true }
+    }
+  }))
+
+  const settings = new JsonSystemSettingsRepository(path).loadOrCreate()
+
+  expect(settings.version).toBe(3)
+  expect(settings.copilot.provider).toBe('openai')
+  expect(settings.copilot.permissions).toEqual(DEFAULT_PHOENIX_SETTINGS.copilot.permissions)
+  expect(settings.copilot.profilePermissions.marin).toEqual(DEFAULT_PHOENIX_SETTINGS.copilot.permissions)
+  expect(JSON.parse(readFileSync(path, 'utf8')).version).toBe(3)
+})
+
+test('capability permission version one migrates renamed tool identifiers once', () => {
+  const directory = temporaryDirectory()
+  const path = join(directory, 'settings.json')
+  writeFileSync(path, JSON.stringify({
+    ...DEFAULT_PHOENIX_SETTINGS,
+    copilot: {
+      ...DEFAULT_PHOENIX_SETTINGS.copilot,
+      permissions: {
+        version: 1,
+        enabledCapabilityIds: [
+          'tool:ships.get_definition',
+          'tool:ships.find_shipyards',
+          'tool:controls.execute',
+          'command.elite.Lights'
+        ]
+      }
+    }
+  }))
+
+  const settings = new JsonSystemSettingsRepository(path).loadOrCreate()
+
+  expect(settings.copilot.permissions).toEqual({
+    version: 2,
+    enabledCapabilityIds: [
+      'tool:ships.get_ship_definition',
+      'tool:stations.find_shipyards_selling_ship',
+      'tool:controls.execute_command',
+      'command.elite.Lights'
+    ]
+  })
+  expect(JSON.parse(readFileSync(path, 'utf8')).copilot.permissions.version).toBe(2)
+})
+
 test('noncanonical deck data is discarded instead of imported', () => {
   const directory = temporaryDirectory()
   const path = join(directory, 'settings.json')

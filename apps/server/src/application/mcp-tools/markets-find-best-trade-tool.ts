@@ -20,7 +20,7 @@ export class MarketsFindBestTradeTool implements LocalTool {
       required: ['commodity', 'intent'],
       type: 'object'
     },
-    name: 'markets.find_best_trade'
+    name: 'markets.find_commodity_markets'
   }
   public constructor (private readonly markets: TradeMarketQuery) {}
   public readonly execute = (arguments_: JsonObject) => this.markets.findBestTrade(arguments_)

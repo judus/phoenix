@@ -27,7 +27,7 @@ export const settingsNavigationItems: Array<NavigationItem & { route: SettingsRo
   {
     id: 'copilot',
     label: 'Copilot and keys',
-    shortLabel: 'COP',
+    shortLabel: 'CPT',
     route: copilotRoute,
     href: phoenixRouteHash(copilotRoute)
   },

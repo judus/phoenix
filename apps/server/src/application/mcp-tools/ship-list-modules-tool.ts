@@ -18,7 +18,7 @@ export class ShipListModulesTool implements LocalTool {
       },
       type: 'object'
     },
-    name: 'ship.list_modules'
+    name: 'ship.list_installed_modules'
   }
 
   public constructor (private readonly runtimeState: RuntimeStateReader) {}

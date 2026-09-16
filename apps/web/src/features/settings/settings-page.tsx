@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import {
   Breadcrumbs,
   Button,
@@ -21,8 +21,12 @@ export function SettingsPage ({ api, devicePreferences }: { api: PhoenixApi, dev
   const [settings, setSettings] = useState<GeneralSettings>()
   const [modules, setModules] = useState<PhoenixModules>()
   const [threshold, setThreshold] = useState(90)
+  const [uiScalePercent, setUiScalePercent] = useState(preferences.uiScalePercent)
   const [pending, setPending] = useState<string>()
   const [error, setError] = useState<string>()
+  const uiScaleDragging = useRef(false)
+
+  useEffect(() => setUiScalePercent(preferences.uiScalePercent), [preferences.uiScalePercent])
 
   useEffect(() => {
     const abort = new AbortController()
@@ -67,7 +71,7 @@ export function SettingsPage ({ api, devicePreferences }: { api: PhoenixApi, dev
   }
 
   return (
-    <PageFrame className="settings-page">
+    <PageFrame className="settings-page" layout="fit">
       <PageHeader
         context={<Breadcrumbs items={[{ label: 'Settings' }, { label: 'General' }]} />}
         description="Application appearance, local device behavior, and shared game integration."
@@ -90,17 +94,35 @@ export function SettingsPage ({ api, devicePreferences }: { api: PhoenixApi, dev
                   min="85"
                   step="5"
                   type="range"
-                  value={preferences.uiScalePercent}
-                  onChange={event => devicePreferences.update({ uiScalePercent: Number(event.target.value) })}
+                  value={uiScalePercent}
+                  onBlur={event => {
+                    if (!uiScaleDragging.current) return
+                    uiScaleDragging.current = false
+                    devicePreferences.update({ uiScalePercent: Number(event.currentTarget.value) })
+                  }}
+                  onChange={event => {
+                    const nextScale = Number(event.currentTarget.value)
+                    setUiScalePercent(nextScale)
+                    if (!uiScaleDragging.current) devicePreferences.update({ uiScalePercent: nextScale })
+                  }}
+                  onPointerCancel={() => {
+                    uiScaleDragging.current = false
+                    setUiScalePercent(preferences.uiScalePercent)
+                  }}
+                  onPointerDown={() => { uiScaleDragging.current = true }}
+                  onPointerUp={event => {
+                    uiScaleDragging.current = false
+                    devicePreferences.update({ uiScalePercent: Number(event.currentTarget.value) })
+                  }}
                 />
-                <output>{preferences.uiScalePercent}%</output>
+                <output>{uiScalePercent}%</output>
               </div>
             </SettingRow>
-            <SettingRow description="Reduce long Numpy labels to fit their buttons." scope="This device" title="Adaptive Numpy labels">
+            <SettingRow description="Scale long Numpy and Control Deck labels to fit their buttons." scope="This device" title="Variable font size">
               <SettingToggle
-                checked={preferences.adaptiveNumpadLabels}
-                label={preferences.adaptiveNumpadLabels ? 'On' : 'Off'}
-                onChange={() => devicePreferences.update({ adaptiveNumpadLabels: !preferences.adaptiveNumpadLabels })}
+                checked={preferences.variableCommandLabelSizes}
+                label={preferences.variableCommandLabelSizes ? 'On' : 'Off'}
+                onChange={() => devicePreferences.update({ variableCommandLabelSizes: !preferences.variableCommandLabelSizes })}
               />
             </SettingRow>
           </SettingsList>

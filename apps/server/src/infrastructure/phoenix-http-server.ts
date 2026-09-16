@@ -12,13 +12,16 @@ import {
   ExecuteCommandRequestSchema,
   CopilotChatRequestSchema,
   CopilotProfileSelectionRequestSchema,
+  CopilotProfileCapabilitySettingsSchema,
   CopilotProfileWriteRequestSchema,
+  CopilotPermissionPolicySchema,
   CopilotConversationEventSchema,
   CopilotVoiceHostDesiredStateRequestSchema,
   CopilotVoiceHostHeartbeatSchema,
   CopilotRealtimeTokenRequestSchema,
   CopilotRealtimeToolRequestSchema,
   CopilotRealtimeTurnRequestSchema,
+  CopilotToolDiagnosticsResponseSchema,
   ExplorationManualCompletionRequestSchema,
   EngineeringProjectCreateRequestSchema,
   EngineeringProjectStepCreateRequestSchema,
@@ -45,7 +48,7 @@ import {
   type NavigationRoute,
   type RuntimeState
 } from '@phoenix/contracts'
-import { AiError, serializeAiError, type AiStreamEvent } from '@jdu/llm-client'
+import { AiError, serializeAiError, type AiStreamEvent, type ToolRegistry } from '@jdu/llm-client'
 import type { ControlDeckHttpHandler } from 'control-deck/host'
 import type { CopilotText, CopilotTextRequest } from '../application/copilot-text-service.js'
 import type { CopilotConversationEvents } from '../application/copilot-conversation-event-service.js'
@@ -53,6 +56,7 @@ import type { CopilotVoiceHostControl } from '../application/copilot-voice-host-
 import type { CopilotProfiles } from '../application/copilot-profile-service.js'
 import type { OpenAiConfiguration } from '../application/openai-configuration-service.js'
 import {
+  realtimeToolDefinition,
   serializeToolOutput,
   type CopilotRealtime
 } from '../application/copilot-realtime-service.js'
@@ -60,6 +64,7 @@ import type { CatalogueDiagnosticsReader } from '../application/catalogue-diagno
 import type { GameActions } from '../application/game-action-service.js'
 import type { EliteDestinations } from '../domain/elite-destination.js'
 import type { Commands } from '../domain/commands.js'
+import type { CopilotCapabilities } from '../domain/copilot-capabilities.js'
 import type { HealthCheck } from '../application/health-service.js'
 import type { EngineeringDataReader } from '../application/engineering-data-service.js'
 import type { EngineeringProjects } from '../domain/engineering-projects.js'
@@ -89,7 +94,7 @@ import type { GalaxyBookmarks } from '../domain/galaxy-bookmarks.js'
 import type { SavedGalaxyQueries } from '../domain/saved-galaxy-queries.js'
 import type { DashboardMarketSignalReader } from '../application/dashboard-market-signal-service.js'
 import type { MarketSignalReader } from '../application/market-signal-service.js'
-import type { PhoenixMcpServer } from './phoenix-mcp-server.js'
+import { mcpToolDefinition, type PhoenixMcpServer } from './phoenix-mcp-server.js'
 import type { PairingAccessController } from './pairing-access-controller.js'
 import { activeRouteIPv4Address, serverAccessUrls } from './server-access-urls.js'
 
@@ -126,6 +131,8 @@ export interface PhoenixHttpServerOptions {
   copilotConversationEvents: CopilotConversationEvents
   copilotVoiceHost: CopilotVoiceHostControl
   copilotRealtime?: CopilotRealtime
+  copilotCapabilities: CopilotCapabilities
+  copilotTools: ToolRegistry
   commands: Commands
   gameActions: GameActions
   eliteInventoryDiagnostics: { getDiagnostics(): EliteInventorySourceDiagnostics }
@@ -847,6 +854,29 @@ export class PhoenixHttpServer {
       return
     }
 
+    const copilotProfileCapabilitiesMatch = url.pathname.match(/^\/api\/copilot\/profiles\/([a-z][a-z0-9_-]*)\/capabilities$/u)
+    if ((request.method === 'GET' || request.method === 'PUT') && copilotProfileCapabilitiesMatch) {
+      if (!this.options.copilotProfiles) {
+        this.writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot profiles are not configured.' } })
+        return
+      }
+      try {
+        const profileId = copilotProfileCapabilitiesMatch[1]!
+        this.options.copilotProfiles.getDocument(profileId)
+        const result = request.method === 'PUT'
+          ? this.options.copilotCapabilities.saveProfilePolicy(
+              profileId,
+              CopilotPermissionPolicySchema.parse(await readJsonBody(request))
+            )
+          : this.options.copilotCapabilities.profileSettings(profileId)
+        this.writeJson(response, 200, CopilotProfileCapabilitySettingsSchema.parse(result))
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : 'Invalid Copilot profile permissions.'
+        this.writeJson(response, 400, { error: { code: 'invalid_copilot_profile_permissions', message } })
+      }
+      return
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/copilot/voice-host') {
       this.writeJson(response, 200, this.options.copilotVoiceHost.snapshot())
       return
@@ -1033,8 +1063,11 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/settings/copilot') {
       const settings = this.options.systemSettings.loadOrCreate()
+      const permissions = this.options.copilotCapabilities.normalizePolicy(settings.copilot.permissions)
       this.writeJson(response, 200, CopilotSettingsSchema.parse({
-        permissions: settings.copilot.permissions,
+        provider: settings.copilot.provider,
+        permissions,
+        capabilities: this.options.copilotCapabilities.catalogue(),
         openAi: this.options.openAiConfiguration.status()
       }))
       return
@@ -1043,13 +1076,16 @@ export class PhoenixHttpServer {
     if (request.method === 'PUT' && url.pathname === '/api/settings/copilot') {
       try {
         const input = CopilotSettingsUpdateSchema.parse(await readJsonBody(request))
+        const permissions = this.options.copilotCapabilities.saveInstallationPolicy(input.permissions)
         const settings = this.options.systemSettings.loadOrCreate()
         this.options.systemSettings.save({
           ...settings,
-          copilot: { ...settings.copilot, permissions: input.permissions }
+          copilot: { ...settings.copilot, provider: input.provider }
         })
         this.writeJson(response, 200, CopilotSettingsSchema.parse({
-          permissions: input.permissions,
+          provider: input.provider,
+          permissions,
+          capabilities: this.options.copilotCapabilities.catalogue(),
           openAi: this.options.openAiConfiguration.status()
         }))
       } catch (cause) {
@@ -1212,6 +1248,18 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/developer/catalogue') {
       this.writeJson(response, 200, this.options.catalogueDiagnostics.getDiagnostics())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/developer/copilot-tools') {
+      this.writeJson(response, 200, CopilotToolDiagnosticsResponseSchema.parse({
+        version: 1,
+        tools: this.options.copilotTools.definitions.map(definition => ({
+          id: definition.name,
+          mcp: mcpToolDefinition(definition),
+          realtime: realtimeToolDefinition(definition)
+        }))
+      }))
       return
     }
 

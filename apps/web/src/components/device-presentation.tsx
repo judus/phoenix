@@ -34,7 +34,7 @@ export function DevicePresentation ({
   }, [snapshot.uiScalePercent])
 
   return (
-    <div className={`phoenix-presentation presentation-${snapshot.presentation}`}>
+    <div className={snapshot.presentation === 'elite' ? 'phoenix-presentation theme-elite' : 'phoenix-presentation'}>
       {children}
     </div>
   )

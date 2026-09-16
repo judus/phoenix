@@ -77,33 +77,6 @@ test('macro recording owns and releases hold leases', async () => {
   expect(actions.calls[1]?.leaseId).toBe(actions.calls[0]?.leaseId)
 })
 
-test('macro playback rechecks dangerous Copilot actions', async () => {
-  const actions = new StubGameActions()
-  const repository = new InMemoryMacroRepository()
-  repository.save({
-    assumptions: [],
-    description: '',
-    enabled: true,
-    id: 'understated',
-    name: 'Understated',
-    risk: 'safe',
-    steps: [{ type: 'game-action', actionId: 'elite.EjectAllCargo', operation: 'tap' }],
-    version: 1
-  })
-  const service = new MacroService(
-    repository,
-    actions,
-    undefined,
-    () => ({ gameActions: false, macros: true, dangerousActions: false })
-  )
-
-  await expect(service.execute('understated', 'copilot')).resolves.toMatchObject({
-    status: 'failed',
-    message: 'Dangerous Copilot actions are disabled in Settings.'
-  })
-  expect(actions.calls).toEqual([])
-})
-
 class StubGameActions implements GameActions {
   public readonly calls: Array<{ actionId: string, leaseId?: string, operation: string }> = []
 

@@ -1,10 +1,11 @@
 import { memo, useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import type { CopilotHistoryMessage, CopilotProfileDocument } from '@phoenix/contracts'
-import { Button, CommandTile, DescriptionItem, DescriptionList, Field, Form, FormActions, FormGrid, Identity, PageFrame, PageHeader, Select, Status, Textarea, TextInput, Widget } from '@phoenix/ui'
+import type { CopilotHistoryMessage, CopilotProfileCapabilitySettings, CopilotProfileDocument, CopilotPermissionPolicy } from '@phoenix/contracts'
+import { Button, CommandTile, DescriptionItem, DescriptionList, Field, Form, FormActions, FormGrid, Identity, PageFrame, PageHeader, Section, Select, Status, Textarea, TextInput, Widget } from '@phoenix/ui'
 import type { PhoenixApi, CopilotStreamEvent } from '../../application/api/phoenix-api.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
 import type { ClientIdentity } from '../../application/identity/client-identity.js'
 import { CopilotMarkdown } from './copilot-markdown.js'
+import { CopilotPermissionEditor } from '../../components/copilot-permission-editor.js'
 import { CopilotVoiceToggle } from './copilot-voice-toggle.js'
 import { useCopilotVoice } from './copilot-voice-provider.js'
 
@@ -22,6 +23,8 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
   const [toolStatus, setToolStatus] = useState<string>()
   const [remoteTurns, setRemoteTurns] = useState<Record<string, RemoteTurn>>({})
   const [draft, setDraft] = useState<ProfileDraft>()
+  const [profileCapabilities, setProfileCapabilities] = useState<CopilotProfileCapabilitySettings>()
+  const [permissionsPending, setPermissionsPending] = useState(false)
   const [saving, setSaving] = useState(false)
   const [composer, setComposer] = useState('')
   const clientId = useRef(clientIdentity.forScope('copilot'))
@@ -75,9 +78,59 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
     } catch (cause) { if (!abort.signal.aborted) { setMessages(current => current.filter(item => item.id !== assistantId || item.text)); setError(message(cause, 'Copilot request failed.')) } }
     finally { if (streamRequest.current === abort) streamRequest.current = undefined; if (!abort.signal.aborted) { setPending(false); setToolStatus(undefined) } }
   }
-  const edit = async (id: string) => { try { setDraft(toDraft(await api.getCopilotProfile(id))); setError(undefined) } catch (cause) { setError(message(cause, 'Unable to load Copilot profile.')) } }
-  const create = async () => { try { const source = await api.getCopilotProfile(voice.activeProfile.id); setDraft({ ...toDraft(source), id: '', mark: '?', name: '', description: '', templateProfileId: source.profile.id }); setError(undefined) } catch (cause) { setError(message(cause, 'Unable to prepare a new profile.')) } }
-  const save = async (next: ProfileDraft) => { setSaving(true); try { const creating = next.templateProfileId !== undefined; const input = { characterSpeech: next.characterSpeech, characterText: next.characterText, profile: { description: next.description, id: creating ? profileId(next.name) : next.id, mark: creating ? next.name.trim().charAt(0).toUpperCase() || '?' : next.mark, name: next.name, voice: next.voice }, ...(next.templateProfileId ? { templateProfileId: next.templateProfileId } : {}) }; setDraft(toDraft(creating ? await api.createCopilotProfile(input) : await api.updateCopilotProfile(next.id, input))); setError(undefined) } catch (cause) { setError(message(cause, 'Unable to save Copilot profile.')) } finally { setSaving(false) } }
+  const edit = async (id: string) => {
+    try {
+      const [document, capabilities] = await Promise.all([
+        api.getCopilotProfile(id),
+        api.getCopilotProfileCapabilities(id)
+      ])
+      setDraft(toDraft(document))
+      setProfileCapabilities(capabilities)
+      setError(undefined)
+    } catch (cause) {
+      setError(message(cause, 'Unable to load Copilot profile.'))
+    }
+  }
+  const create = async () => {
+    try {
+      const [source, capabilities] = await Promise.all([
+        api.getCopilotProfile(voice.activeProfile.id),
+        api.getCopilotProfileCapabilities(voice.activeProfile.id)
+      ])
+      setDraft({ ...toDraft(source), id: '', mark: '?', name: '', description: '', templateProfileId: source.profile.id })
+      setProfileCapabilities(capabilities)
+      setError(undefined)
+    } catch (cause) {
+      setError(message(cause, 'Unable to prepare a new profile.'))
+    }
+  }
+  const save = async (next: ProfileDraft) => {
+    setSaving(true)
+    try {
+      const creating = next.templateProfileId !== undefined
+      const input = { characterSpeech: next.characterSpeech, characterText: next.characterText, profile: { description: next.description, id: creating ? profileId(next.name) : next.id, mark: creating ? next.name.trim().charAt(0).toUpperCase() || '?' : next.mark, name: next.name, voice: next.voice }, ...(next.templateProfileId ? { templateProfileId: next.templateProfileId } : {}) }
+      const document = creating ? await api.createCopilotProfile(input) : await api.updateCopilotProfile(next.id, input)
+      setDraft(toDraft(document))
+      if (creating) setProfileCapabilities(await api.getCopilotProfileCapabilities(document.profile.id))
+      setError(undefined)
+    } catch (cause) {
+      setError(message(cause, 'Unable to save Copilot profile.'))
+    } finally {
+      setSaving(false)
+    }
+  }
+  const saveProfilePermissions = async (permissions: CopilotPermissionPolicy): Promise<void> => {
+    if (!draft || draft.templateProfileId !== undefined) return
+    setPermissionsPending(true)
+    try {
+      setProfileCapabilities(await api.updateCopilotProfileCapabilities(draft.id, permissions))
+      setError(undefined)
+    } catch (cause) {
+      setError(message(cause, 'Unable to save profile permissions.'))
+    } finally {
+      setPermissionsPending(false)
+    }
+  }
 
   return <PageFrame className={`copilot-page copilot-page-${view}`} layout="fit">
     {view === 'profiles'
@@ -122,7 +175,7 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
             </div>
           </div>
         </div>
-      : <div className="copilot-profiles"><aside><ul>{voice.profiles.map(profile => <li key={profile.id}><Button alignment="start" variant={profile.id === voice.activeProfile.id ? 'accent' : 'quiet'} onClick={() => void edit(profile.id)}>{profile.name}</Button></li>)}</ul><Button variant="outline" onClick={() => void create()}>New profile</Button></aside>{draft ? <ProfileEditor draft={draft} saving={saving} onChange={setDraft} onSave={save} /> : <Status tone="muted">Select a profile to inspect its character prompts.</Status>}</div>}
+      : <div className="copilot-profiles"><aside><ul>{voice.profiles.map(profile => <li key={profile.id}><Button alignment="start" variant={profile.id === voice.activeProfile.id ? 'accent' : 'quiet'} onClick={() => void edit(profile.id)}>{profile.name}</Button></li>)}</ul><Button variant="outline" onClick={() => void create()}>New profile</Button></aside>{draft ? <ProfileEditor capabilities={profileCapabilities} draft={draft} permissionsPending={permissionsPending} saving={saving} onChange={setDraft} onSave={save} onSavePermissions={saveProfilePermissions} /> : <Status tone="muted">Select a profile to inspect its character prompts.</Status>}</div>}
   </PageFrame>
 }
 
@@ -136,7 +189,36 @@ const CopilotMessages = memo(function CopilotMessages({ activeTurn, messages, pe
 })
 function Message({ live = false, role, text }: { live?: boolean, role: CopilotHistoryMessage['role'], text: string }) { return <article className={`copilot-message copilot-message-${role}${live ? ' live' : ''}`}><small>{role === 'user' ? 'Commander' : role === 'assistant' ? 'Copilot' : 'System'}{live ? ' · live' : ''}</small><div>{role === 'assistant' ? <CopilotMarkdown>{text}</CopilotMarkdown> : text}</div></article> }
 function CopilotComposer({ onSubmit, onTextChange, pending, profileName, text }: { onSubmit(text: string): Promise<void>, onTextChange(text: string): void, pending: boolean, profileName: string, text: string }) { const submit = (event: FormEvent) => { event.preventDefault(); const value = text.trim(); if (!value) return; onTextChange(''); void onSubmit(value) }; return <Form id="copilot-composer-form" className="copilot-composer" onSubmit={submit}><Field htmlFor="copilot-message" label="Message Copilot"><Textarea value={text} rows={2} disabled={pending} placeholder={`Ask ${profileName}…`} onChange={event => onTextChange(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} /></Field></Form> }
-function ProfileEditor({ draft, onChange, onSave, saving }: { draft: ProfileDraft, onChange(value: ProfileDraft): void, onSave(value: ProfileDraft): Promise<void>, saving: boolean }) { const update = (field: keyof ProfileDraft) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange({ ...draft, [field]: event.target.value }); return <Form className="copilot-profile-editor" onSubmit={event => { event.preventDefault(); void onSave(draft) }}><FormGrid><Field htmlFor="profile-name" label="Name" required><TextInput value={draft.name} maxLength={48} required onChange={update('name')} /></Field><Field htmlFor="profile-voice" label="Realtime voice" required><Select value={draft.voice} onChange={event => onChange({ ...draft, voice: event.target.value })}>{Array.from(new Set([...VOICES, draft.voice])).sort().map(value => <option key={value}>{value}</option>)}</Select></Field></FormGrid><Field htmlFor="profile-description" label="Description"><TextInput value={draft.description} maxLength={240} onChange={update('description')} /></Field><Field htmlFor="profile-text" label="Text character prompt" required><Textarea value={draft.characterText} required rows={7} onChange={update('characterText')} /></Field><Field htmlFor="profile-speech" label="Speech character prompt" required><Textarea value={draft.characterSpeech} required rows={7} onChange={update('characterSpeech')} /></Field><FormActions><Button variant="primary" busy={saving}>{draft.templateProfileId ? 'Create profile' : 'Save profile'}</Button></FormActions></Form> }
+function ProfileEditor({ capabilities, draft, onChange, onSave, onSavePermissions, permissionsPending, saving }: {
+  capabilities?: CopilotProfileCapabilitySettings
+  draft: ProfileDraft
+  onChange(value: ProfileDraft): void
+  onSave(value: ProfileDraft): Promise<void>
+  onSavePermissions(value: CopilotPermissionPolicy): Promise<void>
+  permissionsPending: boolean
+  saving: boolean
+}) {
+  const update = (field: keyof ProfileDraft) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange({ ...draft, [field]: event.target.value })
+  return <Form className="copilot-profile-editor" onSubmit={event => { event.preventDefault(); void onSave(draft) }}>
+    <FormGrid><Field htmlFor="profile-name" label="Name" required><TextInput value={draft.name} maxLength={48} required onChange={update('name')} /></Field><Field htmlFor="profile-voice" label="Realtime voice" required><Select value={draft.voice} onChange={event => onChange({ ...draft, voice: event.target.value })}>{Array.from(new Set([...VOICES, draft.voice])).sort().map(value => <option key={value}>{value}</option>)}</Select></Field></FormGrid>
+    <Field htmlFor="profile-description" label="Description"><TextInput value={draft.description} maxLength={240} onChange={update('description')} /></Field>
+    <Field htmlFor="profile-text" label="Text character prompt" required><Textarea value={draft.characterText} required rows={7} onChange={update('characterText')} /></Field>
+    <Field htmlFor="profile-speech" label="Speech character prompt" required><Textarea value={draft.characterSpeech} required rows={7} onChange={update('characterSpeech')} /></Field>
+    <FormActions><Button variant="primary" busy={saving}>{draft.templateProfileId ? 'Create profile' : 'Save profile'}</Button></FormActions>
+    {capabilities && <Section
+      description={draft.templateProfileId ? 'This profile will inherit the selected template permissions when created.' : 'This profile can use only capabilities allowed for the installation.'}
+      title="Capabilities"
+    >
+      <CopilotPermissionEditor
+        capabilities={capabilities.capabilities}
+        disabled={permissionsPending || draft.templateProfileId !== undefined}
+        permissions={capabilities.permissions}
+        visibleCapabilityIds={capabilities.installationPermissions.enabledCapabilityIds}
+        onChange={permissions => void onSavePermissions(permissions)}
+      />
+    </Section>}
+  </Form>
+}
 function applyStream(event: CopilotStreamEvent, assistantId: string, setMessages: (update: (messages: readonly CopilotHistoryMessage[]) => readonly CopilotHistoryMessage[]) => void, setTool: (value: string | undefined) => void) { if (event.type === 'delta') setMessages(items => items.map(item => item.id === assistantId ? { ...item, text: `${item.text}${event.delta}` } : item)); else if (event.type === 'reset') setMessages(items => items.map(item => item.id === assistantId ? { ...item, text: '' } : item)); else if (event.type === 'retrying') setTool(`Provider stream retry ${event.attempt}…`); else if (event.type === 'tool') setTool(event.name ? `${event.name}: ${event.status}` : `Tool: ${event.status}`) }
 function temporary(id: string, role: CopilotHistoryMessage['role'], text: string): CopilotHistoryMessage { return { createdAt: new Date().toISOString(), id, role, text } }
 function without(turns: Record<string, RemoteTurn>, id: string) { const next = { ...turns }; delete next[id]; return next }

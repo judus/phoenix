@@ -46,6 +46,7 @@ test('the controls page renders bound and unbound discovered commands', () => {
       onExecuteAction={() => Promise.reject(new Error('not executed during server rendering'))}
       onEditingChange={() => undefined}
       onSaveConfiguration={configuration => Promise.resolve(configuration)}
+      variableFontSizes
     />
   )
 
@@ -92,11 +93,64 @@ test('a button label override replaces the command catalogue label', () => {
       onExecuteAction={() => Promise.resolve()}
       onEditingChange={() => undefined}
       onSaveConfiguration={saved => Promise.resolve(saved)}
+      variableFontSizes={false}
     />
   )
 
   expect(markup).toMatch(/<strong class="label"[^>]*>Floodlights<\/strong>/)
   expect(markup).not.toMatch(/<strong class="label"[^>]*>Ship Lights<\/strong>/)
+  expect(markup).not.toContain('variable-font-sizes')
+})
+
+test('a button color override is applied to the command tile', () => {
+  const configuration = {
+    ...DEFAULT_CONTROL_DECK_CONFIGURATION,
+    decks: DEFAULT_CONTROL_DECK_CONFIGURATION.decks.map(deck => deck.context !== 'phoenix:ship'
+      ? deck
+      : {
+          ...deck,
+          elements: deck.elements.map(element => element.kind !== 'command' || element.target.commandId !== 'command.elite.ShipSpotLightToggle'
+            ? element
+            : {
+                ...element,
+                appearance: {
+                  ...element.appearance,
+                  foregroundColor: '#ff6258' as const,
+                  backgroundColor: '#3a1717' as const
+                }
+              })
+        })
+  }
+  const markup = renderToStaticMarkup(
+    <ControlsPage
+      category="ship"
+      editing={false}
+      controller={{
+        status: 'ready',
+        configuration,
+        actions: {
+          backend: { id: 'test', available: true, simulated: false, detail: 'ready' },
+          bindingSource: {
+            directory: '/bindings', filePath: '/bindings/custom.binds', presetNames: ['Custom'],
+            available: true, bindingCount: 1, keyboardBindingCount: 1,
+            loadedAt: '2026-08-19T00:00:00.000Z', error: null
+          },
+          actions: [action('elite.ShipSpotLightToggle', 'ShipSpotLightToggle', 'Ship Lights', 'L')]
+        }
+      }}
+      macros={emptyMacroRuntime()}
+      onExecuteAction={() => Promise.resolve()}
+      onEditingChange={() => undefined}
+      onSaveConfiguration={saved => Promise.resolve(saved)}
+      variableFontSizes={false}
+    />
+  )
+
+  const shipButton = markup.match(/<button aria-label="Ship Lights, L"[^>]*>/)?.[0]
+  expect(shipButton).toContain('--command-border:var(--command-danger-border)')
+  expect(shipButton).toContain('--command-background:var(--command-danger-background)')
+  expect(shipButton).not.toContain('--command-meta:')
+  expect(shipButton).not.toContain('--command-text:')
 })
 
 test('the control picker disambiguates commands with the same label by context', () => {
@@ -128,6 +182,7 @@ test('unavailable commands remain clickable while editing the control deck', () 
       onExecuteAction={() => Promise.resolve()}
       onEditingChange={() => undefined}
       onSaveConfiguration={configuration => Promise.resolve(configuration)}
+      variableFontSizes
     />
   )
 
@@ -143,8 +198,9 @@ test('unavailable commands remain clickable while editing the control deck', () 
   expect(markup).toContain('aria-label="Deck layout"')
   expect(markup).toContain('<option value="phoenix.ship" selected="">Phoenix Ship</option>')
   expect(markup).toContain('<option value="phoenix" selected="">Phoenix</option>')
-  expect(markup).toMatch(/<strong class="label"[^>]*>Cancel<\/strong>/)
-  expect(markup).toMatch(/<strong class="label"[^>]*>Save<\/strong>/)
+  expect(markup).not.toMatch(/<strong class="label"[^>]*>Cancel<\/strong>/)
+  expect(markup).toContain('aria-label="Save and finish editing"')
+  expect(markup).toMatch(/class="btn btn-primary btn-icon btn-icon-square control-deck-save"[^>]*aria-label="Save and finish editing"/)
   expect(markup).not.toContain('Subdeck')
   expect(markup).not.toContain('Delete deck')
 })
@@ -173,6 +229,21 @@ test('selecting the Phoenix theme clears legacy group and deck colors', () => {
 
   expect(updated.groups?.find(candidate => candidate.id === group.id)?.appearance).toBeUndefined()
   expect(updated.decks.find(candidate => candidate.id === deck.id)?.appearance).toBeUndefined()
+})
+
+test('selecting a deck theme stores it on the deck and clears a legacy group theme', () => {
+  const sourceDeck = DEFAULT_CONTROL_DECK_CONFIGURATION.decks.find(candidate => candidate.context === 'phoenix:combat')!
+  const sourceGroup = DEFAULT_CONTROL_DECK_CONFIGURATION.groups!.find(candidate => candidate.id === sourceDeck.groupId)!
+  const group = { ...sourceGroup, appearance: { colorScheme: 'orange' as const } }
+  const configuration = {
+    ...DEFAULT_CONTROL_DECK_CONFIGURATION,
+    groups: DEFAULT_CONTROL_DECK_CONFIGURATION.groups!.map(candidate => candidate.id === group.id ? group : candidate)
+  }
+
+  const updated = applyControlDeckTheme(configuration, sourceDeck, group, 'red')
+
+  expect(updated.groups?.find(candidate => candidate.id === group.id)?.appearance).toBeUndefined()
+  expect(updated.decks.find(candidate => candidate.id === sourceDeck.id)?.appearance).toEqual({ colorScheme: 'red' })
 })
 
 test('control-deck tiles reserve long presses for cockpit hold gestures', () => {
@@ -211,6 +282,7 @@ test('PHOENIX uses the shared hold-to-arm interaction before executing a safety 
     onExecuteAction={execute}
     onEditingChange={() => undefined}
     onSaveConfiguration={configuration => Promise.resolve(configuration)}
+    variableFontSizes
   />) })
   const button = renderer.root.findAllByType('button').find(candidate => candidate.findAllByType('strong').some(label => label.children.includes('Eject all cargo')))!
 

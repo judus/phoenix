@@ -21,7 +21,7 @@ export class SystemsSearchTool implements LocalTool {
       },
       type: 'object'
     },
-    name: 'systems.search'
+    name: 'systems.find_systems'
   }
 
   public constructor (private readonly systems: SystemSearchQuery) {}

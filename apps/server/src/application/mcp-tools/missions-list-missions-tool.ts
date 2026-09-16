@@ -2,7 +2,7 @@ import type { JsonObject, LocalTool } from '@jdu/llm-client'
 import type { MissionDataReader } from '../../domain/missions.js'
 import { boundedLimit, json, optionalIntegerArgument, optionalStringArgument, output } from './tool-support.js'
 
-export class OperationsListMissionsTool implements LocalTool {
+export class MissionsListMissionsTool implements LocalTool {
   public readonly definition = {
     annotations: { readOnly: true },
     description: 'List the commander\'s reconstructed Frontier missions. Records explicitly report when acceptance details are incomplete; use status to request active, completed, failed, abandoned, unknown, or all missions.',
@@ -14,7 +14,7 @@ export class OperationsListMissionsTool implements LocalTool {
       },
       type: 'object'
     },
-    name: 'operations.list_missions'
+    name: 'missions.list_missions'
   }
 
   public constructor (private readonly missions: MissionDataReader) {}

@@ -1,7 +1,7 @@
 import type { JsonObject, LocalTool } from '@jdu/llm-client'
 import type { StationQuery } from './tool-gateways.js'
 
-export class ShipsFindShipyardsTool implements LocalTool {
+export class StationsFindShipyardsSellingShipTool implements LocalTool {
   public readonly definition = {
     annotations: { readOnly: true },
     description: 'Find nearby shipyards reported to sell one specific ship hull. Uses the commander\'s current system unless systemName is supplied. Results include price, travel distance, arrival distance, pad size, and report age.',
@@ -15,7 +15,7 @@ export class ShipsFindShipyardsTool implements LocalTool {
       required: ['hullName'],
       type: 'object'
     },
-    name: 'ships.find_shipyards'
+    name: 'stations.find_shipyards_selling_ship'
   }
 
   public constructor (private readonly stations: StationQuery) {}

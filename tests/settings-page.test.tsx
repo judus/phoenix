@@ -20,11 +20,34 @@ test('device settings expose browser-local display and input preferences', async
 
   expect(markup).toContain('Follow Copilot')
   expect(markup).toContain('Capture numpad')
-  expect(markup).toContain('Adaptive Numpy labels')
+  expect(markup).toContain('Variable font size')
+  expect(markup).toContain('Scale long Numpy and Control Deck labels')
   expect(markup).toContain('Presentation')
   expect(markup).toContain('UI scale')
   expect(markup).toContain('Game integration')
   expect(markup).not.toContain('OpenAI')
+  await act(async () => renderer.unmount())
+})
+
+test('UI scale is applied after a pointer drag completes', async () => {
+  const preferences = new BrowserDevicePreferences(new MemoryStorage())
+  const renderer = await act(async () => create(
+    <SettingsPage
+      api={settingsApi()}
+      devicePreferences={preferences}
+    />
+  ))
+  const scale = renderer.root.findByProps({ 'aria-label': 'UI scale' })
+
+  act(() => scale.props.onPointerDown())
+  act(() => scale.props.onChange({ currentTarget: { value: '115' } }))
+
+  expect(preferences.getSnapshot().uiScalePercent).toBe(100)
+  expect(renderer.root.findByType('output').children.join('')).toBe('115%')
+
+  act(() => scale.props.onPointerUp({ currentTarget: { value: '115' } }))
+
+  expect(preferences.getSnapshot().uiScalePercent).toBe(115)
   await act(async () => renderer.unmount())
 })
 
@@ -40,6 +63,18 @@ test('saved OpenAI configuration clearly reports that PHOENIX must restart', asy
 
   expect(markup).toContain('Restart required')
   expect(markup).toContain('OpenAI configuration changed. Restart PHOENIX to apply it.')
+  expect(markup).toContain('AI provider')
+  expect(markup).toContain('Only OpenAI is integrated currently.')
+  expect(markup).toContain('AI load')
+  expect(markup).toContain('Focused')
+  expect(markup).toContain('External')
+  expect(markup).not.toContain('tool:web.search_web')
+  expect(markup).not.toContain('Dangerous actions')
+
+  const external = renderer.root.findByProps({ className: 'capability-group' })
+  act(() => external.props.onToggle({ currentTarget: { open: true } }))
+
+  expect(JSON.stringify(renderer.toJSON())).toContain('tool:web.search_web')
   await act(async () => renderer.unmount())
 })
 
@@ -50,7 +85,32 @@ function settingsApi (openAi = { configured: false, source: 'none' as const, sto
     },
     async getCopilotSettings() {
       return {
-        permissions: { gameActions: false, macros: false, dangerousActions: false },
+        provider: 'openai',
+        permissions: { version: 2, enabledCapabilityIds: ['tool:web.search_web'] },
+        capabilities: {
+          groups: [{
+            id: 'tools.external',
+            label: 'External',
+            capabilities: [{
+              id: 'tool:web.search_web',
+              label: 'Search Web',
+              description: 'Search the public web.',
+              kind: 'fixed-tool',
+              access: 'external',
+              available: true,
+              enabled: true,
+              loadCost: 2,
+              risk: null
+            }],
+            subgroups: []
+          }],
+          load: {
+            score: 2,
+            percentage: 2,
+            level: 'focused',
+            enabled: { fixedTools: 1, gameActions: 0, macros: 0, total: 1 }
+          }
+        },
         openAi
       }
     },

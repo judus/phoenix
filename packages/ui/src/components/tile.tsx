@@ -85,7 +85,7 @@ export function TileButton({
 function responsiveTextLength(text: ReactNode) {
   if (typeof text !== 'string') return undefined
   const length = [...text.trim()].length
-  if (length <= 10) return 'short'
+  if (length <= 8) return 'short'
   if (length <= 18) return 'medium'
   if (length <= 28) return 'long'
   return 'extra-long'

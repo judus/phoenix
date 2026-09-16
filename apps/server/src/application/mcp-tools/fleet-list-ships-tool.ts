@@ -7,7 +7,7 @@ export class FleetListShipsTool implements LocalTool {
     annotations: { readOnly: true },
     description: 'List the commander\'s locally reconstructed owned ships, including the active vessel, stored locations, transfer state, values, and honest unknowns.',
     inputSchema: { additionalProperties: false, properties: {}, type: 'object' },
-    name: 'fleet.list_ships'
+    name: 'fleet.list_owned_ships'
   }
 
   public constructor (private readonly fleet: FleetDataReader) {}

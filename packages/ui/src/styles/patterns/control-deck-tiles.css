@@ -110,7 +110,7 @@
     }
 
     .note {
-      color: var(--color-text-muted);
+      color: var(--command-note);
       font-size: var(--font-size-xxs);
       font-family: var(--font-family-display);
       letter-spacing: var(--font-tracking-display);
@@ -179,19 +179,17 @@
 
     &.unavailable,
     &:disabled {
+      --command-text: var(--command-unavailable-text);
       --command-meta: var(--color-text-muted);
+      --command-note: var(--color-text-muted);
+      --command-grip: var(--color-text-muted);
+      --command-grip-opacity: 0.24;
 
       border-color: var(--color-text-muted);
       color: var(--command-unavailable-text);
       background: var(--command-unavailable-background);
       opacity: 0.48;
 
-      &::after {
-        background:
-          radial-gradient(circle, var(--color-text-muted) 0 0.08rem, transparent 0.1rem)
-          0 0 / 33.333% 33.333%;
-        opacity: 0.24;
-      }
     }
 
     &.label-only {
@@ -263,7 +261,15 @@
   &:is(.variable-font-sizes, .watermarked) { container-type: size; }
 
   &.variable-font-sizes {
-    .label { font-size: clamp(.8rem, 14cqi, var(--font-size-sm)); }
+    .label {
+      display: block;
+      max-block-size: calc(3em * var(--line-height-compact));
+      overflow: hidden;
+      font-size: clamp(.8rem, 14cqi, var(--font-size-sm));
+      text-overflow: clip;
+      -webkit-line-clamp: unset;
+      line-clamp: unset;
+    }
     .label[data-text-length='medium'] { font-size: clamp(.68rem, 9cqi, var(--font-size-sm)); }
     .label[data-text-length='long'] { font-size: clamp(.6rem, 7.5cqi, var(--font-size-sm)); }
     .label[data-text-length='extra-long'] { font-size: clamp(.5rem, 6cqi, var(--font-size-sm)); }

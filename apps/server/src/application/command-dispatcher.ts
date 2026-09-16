@@ -5,7 +5,6 @@ import {
   GameActionOriginSchema,
   type CommandExecutionResult,
   type CommandTarget,
-  type CopilotExecutionPermissions,
   type GameActionOperation,
   type GameActionOrigin
 } from '@phoenix/contracts'
@@ -24,12 +23,7 @@ export class DefaultCommandDispatcher implements Commands {
     private readonly gameActions: GameActions,
     private readonly destinations: readonly NavigationCommandDestination[],
     private readonly navigation: NavigationCommandExecutor = new BrowserNavigationCommandExecutor(),
-    private readonly macros?: MacroCommandExecutor,
-    private readonly copilotPermissions: () => CopilotExecutionPermissions = () => ({
-      gameActions: true,
-      macros: true,
-      dangerousActions: true
-    })
+    private readonly macros?: MacroCommandExecutor
   ) {}
 
   public getCatalog () { return this.registry.getCatalog() }
@@ -49,18 +43,6 @@ export class DefaultCommandDispatcher implements Commands {
     }
     if (!descriptor.available) {
       return this.result(requestId, correlationId, descriptor.id, request.target, request.operation, origin, 'rejected', descriptor.unavailableReason ?? 'Command unavailable.')
-    }
-    if (origin === 'copilot') {
-      const permissions = this.copilotPermissions()
-      if (request.target.type === 'game-action' && !permissions.gameActions) {
-        return this.result(requestId, correlationId, descriptor.id, request.target, request.operation, origin, 'rejected', 'Copilot game actions are disabled in Settings.')
-      }
-      if (request.target.type === 'macro' && !permissions.macros) {
-        return this.result(requestId, correlationId, descriptor.id, request.target, request.operation, origin, 'rejected', 'Copilot macros are disabled in Settings.')
-      }
-      if ((request.target.type === 'game-action' || request.target.type === 'macro') && ['dangerous', 'destructive'].includes(descriptor.risk) && !permissions.dangerousActions) {
-        return this.result(requestId, correlationId, descriptor.id, request.target, request.operation, origin, 'rejected', 'Dangerous Copilot actions are disabled in Settings.')
-      }
     }
     if (request.target.type === 'macro') {
       if (!this.macros) {

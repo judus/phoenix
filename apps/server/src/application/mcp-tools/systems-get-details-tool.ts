@@ -6,7 +6,7 @@ export class SystemsGetDetailsTool implements LocalTool {
     annotations: { readOnly: true },
     description: 'Return faction, security, economy, population, coordinates, and station summary for a system. Defaults to the current system.',
     inputSchema: { additionalProperties: false, properties: { systemName: { type: 'string' } }, type: 'object' },
-    name: 'systems.get_details'
+    name: 'systems.get_system_details'
   }
   public constructor (private readonly systems: SystemDetailsQuery) {}
   public readonly execute = (arguments_: JsonObject) => this.systems.getDetails(arguments_)

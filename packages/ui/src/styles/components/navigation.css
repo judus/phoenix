@@ -248,7 +248,7 @@
     }
   }
 
-  .presentation-elite nav.app-navigation .nav-item {
+  .theme-elite nav.app-navigation .nav-item {
     font-weight: var(--font-weight-medium);
 
     &.active {

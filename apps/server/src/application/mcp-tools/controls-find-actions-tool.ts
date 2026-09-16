@@ -7,7 +7,7 @@ const STOP_WORDS = new Set(['a', 'an', 'for', 'off', 'on', 'please', 'set', 'shi
 export class ControlsFindActionsTool implements LocalTool {
   public readonly definition: LocalTool['definition'] = {
     annotations: { readOnly: true },
-    description: 'Read-only discovery: find a small set of executable PHOENIX controls or commander-created macros by words from the request, label, command ID, description, target, or optional category. Questions such as "do you see", "can you find", "is there", or "list" authorize discovery only and must not be followed by execution. Use before controls.execute or controls.set_switch only when the commander separately asks to operate the control.',
+    description: 'Read-only discovery: find a small set of executable PHOENIX controls or commander-created macros by words from the request, label, command ID, description, target, or optional category. Questions such as "do you see", "can you find", "is there", or "list" authorize discovery only and must not be followed by execution. Use before controls.execute_command or controls.set_control_state only when the commander separately asks to operate the control.',
     inputSchema: {
       additionalProperties: false,
       properties: {

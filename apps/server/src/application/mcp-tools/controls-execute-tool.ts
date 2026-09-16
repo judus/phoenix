@@ -22,7 +22,7 @@ export class ControlsExecuteTool implements LocalTool {
       required: ['target'],
       type: 'object'
     },
-    name: 'controls.execute'
+    name: 'controls.execute_command'
   }
 
   public constructor (private readonly commands: Commands) {}

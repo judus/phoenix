@@ -53,7 +53,18 @@ test('settings API persists general and Copilot settings through domain-owned mu
   try {
     const general = await client.saveGeneralSettings({ controlsEnabled: false })
     const copilot = await client.saveCopilotSettings({
-      permissions: { gameActions: true, macros: true, dangerousActions: false }
+      provider: 'openai',
+      permissions: { version: 2, enabledCapabilityIds: ['tool:web.search_web'] }
+    })
+    expect(copilot.permissions.enabledCapabilityIds).toEqual(['tool:web.search_web'])
+    expect(copilot.capabilities.groups.flatMap(group => group.capabilities)
+      .find(capability => capability.id === 'tool:web.search_web')).toMatchObject({ enabled: true })
+    const injected = await client.getCopilotToolDiagnostics()
+    expect(injected.tools).toHaveLength(1)
+    expect(injected.tools[0]).toMatchObject({
+      id: 'web.search_web',
+      mcp: { name: 'web.search_web' },
+      realtime: { name: 'phoenix_web_search_web', type: 'function' }
     })
     expect(await client.getGeneralSettings()).toEqual(general)
     expect(await client.getCopilotSettings()).toEqual(copilot)

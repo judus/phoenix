@@ -58,6 +58,30 @@ test('dangerous PHOENIX commands default to confirmation and retain the configur
   })
 })
 
+test('the PHOENIX-owned button editor persists an explicit button color', () => {
+  const save = vi.fn<(element: ControlDeckCommandElement) => void>()
+  let renderer!: ReturnType<typeof create>
+  act(() => {
+    renderer = create(<ButtonEditor
+      catalogue={catalogue('safe')}
+      position={{ column: 1, row: 1 }}
+      renderCommandOptions={() => null}
+      onClose={() => undefined}
+      onRemove={() => undefined}
+      onSave={save}
+    />)
+  })
+
+  const color = renderer.root.findByProps({ className: 'button-editor-color' }).findByType('select')
+  act(() => color.props.onChange({ target: { value: 'red' } }))
+  act(() => renderer.root.findByProps({ 'aria-label': 'Save button' }).props.onClick())
+
+  expect(save.mock.calls[0]?.[0].appearance).toMatchObject({
+    foregroundColor: '#ff6258',
+    backgroundColor: '#3a1717'
+  })
+})
+
 function catalogue(risk: 'safe' | 'dangerous'): ControlDeckCommandCatalogue {
   return {
     adapters: [{

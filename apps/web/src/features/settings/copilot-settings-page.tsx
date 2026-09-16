@@ -8,12 +8,12 @@ import {
   Select,
   SettingRow,
   SettingsList,
-  SettingToggle,
   Status,
   TextInput
 } from '@phoenix/ui'
-import type { CopilotExecutionPermissions, CopilotSettings } from '@phoenix/contracts'
+import type { CopilotAiProvider, CopilotPermissionPolicy, CopilotSettings } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
+import { CopilotPermissionEditor } from '../../components/copilot-permission-editor.js'
 
 export interface AudioSettingsController {
   devices: {
@@ -40,11 +40,25 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
     return () => abort.abort()
   }, [api])
 
-  const savePermissions = async (permissions: CopilotExecutionPermissions): Promise<void> => {
+  const savePermissions = async (permissions: CopilotPermissionPolicy): Promise<void> => {
+    if (!settings) return
     setPending('permissions')
     setError(undefined)
     try {
-      setSettings(await api.saveCopilotSettings({ permissions }))
+      setSettings(await api.saveCopilotSettings({ provider: settings.provider, permissions }))
+    } catch (cause) {
+      setError(message(cause))
+    } finally {
+      setPending(undefined)
+    }
+  }
+
+  const saveProvider = async (provider: CopilotAiProvider): Promise<void> => {
+    if (!settings) return
+    setPending('provider')
+    setError(undefined)
+    try {
+      setSettings(await api.saveCopilotSettings({ provider, permissions: settings.permissions }))
     } catch (cause) {
       setError(message(cause))
     } finally {
@@ -81,23 +95,28 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
     }
   }
 
-  const togglePermission = (key: keyof CopilotExecutionPermissions): void => {
-    if (!settings) return
-    void savePermissions({ ...settings.permissions, [key]: !settings.permissions[key] })
-  }
-
   return (
-    <PageFrame className="settings-page">
+    <PageFrame className="settings-page" layout="fit">
       <PageHeader
         context={<Breadcrumbs items={[{ label: 'Settings' }, { label: 'Copilot' }]} />}
         description="AI service access, voice devices, and command permissions."
         title="Copilot settings"
       />
       <div className="settings-sections">
-        <Section description="The key is stored on the PHOENIX computer, not in this browser." title="OpenAI">
+        <Section description="Select the AI service used by Copilot. Provider credentials are stored on the PHOENIX computer." title="AI provider">
           {!settings
             ? <Status tone={error ? 'danger' : 'muted'}>{error ?? 'Loading Copilot settings…'}</Status>
             : <SettingsList>
+                <SettingRow description="Only OpenAI is integrated currently." scope="Installation" title="Provider">
+                  <Select
+                    aria-label="AI provider"
+                    disabled={pending !== undefined}
+                    value={settings.provider}
+                    onChange={event => void saveProvider(event.target.value as CopilotAiProvider)}
+                  >
+                    <option value="openai">OpenAI</option>
+                  </Select>
+                </SettingRow>
                 <SettingRow
                   description={settings.openAi.configured
                     ? `Configured from ${settings.openAi.source}.${settings.openAi.restartRequired ? ' Restart required.' : ''}`
@@ -132,20 +151,15 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
           </SettingsList>
         </Section>
 
-        <Section description="Copilot receives only the abilities enabled here." title="Command permissions">
+        <Section description="Disabled capabilities are hidden from Copilot and rejected at execution time." title="Capabilities">
           {!settings
             ? <Status tone="muted">Loading permissions…</Status>
-            : <SettingsList>
-                <SettingRow description="Allow Copilot to execute individual configured game actions." scope="Installation" title="Game actions">
-                  <SettingToggle checked={settings.permissions.gameActions} disabled={pending !== undefined} label={settings.permissions.gameActions ? 'On' : 'Off'} onChange={() => togglePermission('gameActions')} />
-                </SettingRow>
-                <SettingRow description="Allow Copilot to execute recorded command sequences." scope="Installation" title="Macros">
-                  <SettingToggle checked={settings.permissions.macros} disabled={pending !== undefined} label={settings.permissions.macros ? 'On' : 'Off'} onChange={() => togglePermission('macros')} />
-                </SettingRow>
-                <SettingRow description="Allow Copilot to execute commands marked as dangerous." scope="Installation" title="Dangerous actions">
-                  <SettingToggle checked={settings.permissions.dangerousActions} disabled={pending !== undefined} label={settings.permissions.dangerousActions ? 'On' : 'Off'} onChange={() => togglePermission('dangerousActions')} />
-                </SettingRow>
-              </SettingsList>}
+            : <CopilotPermissionEditor
+                capabilities={settings.capabilities}
+                disabled={pending !== undefined}
+                permissions={settings.permissions}
+                onChange={permissions => void savePermissions(permissions)}
+              />}
         </Section>
         {error && settings && <Status tone="danger">{error}</Status>}
       </div>

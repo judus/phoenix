@@ -11,7 +11,7 @@ export class ShipGetCargoTool implements LocalTool {
       properties: { limit: { maximum: 50, minimum: 1, type: 'integer' }, query: { type: 'string' } },
       type: 'object'
     },
-    name: 'ship.get_cargo'
+    name: 'ship.get_cargo_manifest'
   }
 
   public constructor (private readonly runtimeState: RuntimeStateReader) {}

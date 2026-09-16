@@ -4,6 +4,8 @@ import type {
   CopilotConversationEvent,
   CopilotHistoryResponse,
   CopilotProfileDocument,
+  CopilotProfileCapabilitySettings,
+  CopilotPermissionPolicy,
   CopilotProfileWriteRequest,
   CopilotProfilesResponse,
   CopilotRealtimeTokenRequest,
@@ -59,6 +61,7 @@ import type {
   HealthResponse,
   CopilotSettings,
   CopilotSettingsUpdate,
+  CopilotToolDiagnosticsResponse,
   GeneralSettings,
   GeneralSettingsUpdate,
   LocalTrafficResponse,
@@ -143,6 +146,7 @@ export interface PhoenixApi {
   getCopilotAudioProcessing(profileId?: string, signal?: AbortSignal): Promise<CopilotAudioProcessing>
   getCopilotHistory(conversationId: string, signal?: AbortSignal): Promise<CopilotHistoryResponse>
   getCopilotProfile(profileId: string, signal?: AbortSignal): Promise<CopilotProfileDocument>
+  getCopilotProfileCapabilities(profileId: string, signal?: AbortSignal): Promise<CopilotProfileCapabilitySettings>
   getCopilotProfiles(signal?: AbortSignal): Promise<CopilotProfilesResponse>
   getCopilotRealtimeContext(signal?: AbortSignal): Promise<{ fingerprint: string, text: string, updatedAt: string | null }>
   getCopilotVoiceHost(signal?: AbortSignal): Promise<CopilotVoiceHostSnapshot>
@@ -175,6 +179,7 @@ export interface PhoenixApi {
   getHealth(signal?: AbortSignal): Promise<HealthResponse>
   getGeneralSettings(signal?: AbortSignal): Promise<GeneralSettings>
   getCopilotSettings(signal?: AbortSignal): Promise<CopilotSettings>
+  getCopilotToolDiagnostics(signal?: AbortSignal): Promise<CopilotToolDiagnosticsResponse>
   getMacros(signal?: AbortSignal): Promise<MacroLibrary>
   getMissions(signal?: AbortSignal): Promise<MissionsResponse>
   getModuleSettings(signal?: AbortSignal): Promise<PhoenixModules>
@@ -218,6 +223,7 @@ export interface PhoenixApi {
   stopMacroRecording(recordingId: string, clientId: string, signal?: AbortSignal): Promise<MacroRecording>
   streamCopilotMessage(input: CopilotChatRequest, onEvent: (event: CopilotStreamEvent) => void, signal?: AbortSignal): Promise<void>
   updateCopilotProfile(profileId: string, input: CopilotProfileWriteRequest, signal?: AbortSignal): Promise<CopilotProfileDocument>
+  updateCopilotProfileCapabilities(profileId: string, permissions: CopilotPermissionPolicy, signal?: AbortSignal): Promise<CopilotProfileCapabilitySettings>
   updateCopilotVoiceHost(input: CopilotVoiceHostHeartbeat, signal?: AbortSignal): Promise<CopilotVoiceHostSnapshot>
   deleteGalaxyBookmark(id: string, signal?: AbortSignal): Promise<void>
   deleteGalaxyQuery(id: string, signal?: AbortSignal): Promise<void>

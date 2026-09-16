@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto'
 import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { CartographyUpdate, CommunicationMessage, DisplayCommand, EngineeringProjectsChanged, GameEventEnvelope, NavigationRoute, PhoenixControlDeckConfiguration, RuntimeState } from '@phoenix/contracts'
-import { ToolRegistry } from '@jdu/llm-client'
 import { ControlDeckCommandService, type ControlDeckConfigurationRepository } from 'control-deck/core'
 import { ControlDeckIntegration } from 'control-deck/host'
 import {
@@ -41,6 +40,9 @@ import { DefaultNumpadCommands, NumpadTreeProjector } from './application/numpad
 import { DefaultRuntimeStateProjector } from './application/default-runtime-state-projector.js'
 import { GameActionService, type GameActions } from './application/game-action-service.js'
 import { createPhoenixMcpTools } from './application/phoenix-mcp-tools.js'
+import { DefaultCopilotCapabilityService } from './application/copilot-capability-service.js'
+import { CopilotCommands } from './application/copilot-commands.js'
+import { CopilotToolRegistry } from './application/copilot-tool-registry.js'
 import { StatefulGameActionService } from './application/stateful-game-action-service.js'
 import { EliteJournalIngestionService } from './application/elite-journal-ingestion-service.js'
 import { EliteJournalProjectionPipeline } from './application/elite-journal-projection-pipeline.js'
@@ -58,6 +60,7 @@ import { PersonalMaterialInventoryService } from './application/personal-materia
 import { PersonalEquipmentUpgradesService } from './application/personal-equipment-upgrades-service.js'
 import { PersonalEquipmentSpecialistsService } from './application/personal-equipment-specialists-service.js'
 import { PersonalEquipmentPlannerService } from './application/personal-equipment-planner-service.js'
+import { PersonalEquipmentReportService } from './application/personal-equipment-report-service.js'
 import { LoggedGameActions } from './application/logged-game-actions.js'
 import { DisplayCommandService } from './application/display-command-service.js'
 import { NavigationDataService } from './application/navigation-data-service.js'
@@ -253,6 +256,13 @@ export class PhoenixApplication {
       commanderEquipment,
       personalMaterials
     )
+    const personalEquipmentReport = new PersonalEquipmentReportService(
+      commanderEquipment,
+      personalMaterials,
+      personalEquipmentUpgrades,
+      personalEquipmentSpecialists,
+      personalEquipmentPlanner
+    )
     const projector = new DefaultRuntimeStateProjector(
       this.stateStore,
       runtimeStateUpdates,
@@ -370,9 +380,7 @@ export class PhoenixApplication {
     )
     const macros = new MacroService(
       macroRepository,
-      gameActions,
-      undefined,
-      () => systemSettings.loadOrCreate().copilot.permissions
+      gameActions
     )
     const commandRegistry = new DefaultCommandRegistry(
       gameActions,
@@ -385,8 +393,7 @@ export class PhoenixApplication {
       gameActions,
       PHOENIX_NAVIGATION_DESTINATIONS,
       undefined,
-      macros,
-      () => systemSettings.loadOrCreate().copilot.permissions
+      macros
     )
     this.controlDeck = new ControlDeckIntegration({
       integrations: [createPhoenixControlDeckCommandIntegration(
@@ -408,8 +415,7 @@ export class PhoenixApplication {
       gameActions,
       this.stateStore,
       2_500,
-      50,
-      () => systemSettings.loadOrCreate().copilot.permissions
+      50
     )
     const cartography = new SystemCartographyService(
       options.cartographySource ?? new EdsmCartographySource(),
@@ -459,9 +465,17 @@ export class PhoenixApplication {
       this.stateStore,
       this.database
     )
-    const toolRegistry = new ToolRegistry(createPhoenixMcpTools({
-      commands,
+    let copilotTools: ReturnType<typeof createPhoenixMcpTools> = []
+    const copilotCapabilities = new DefaultCopilotCapabilityService(
+      () => copilotTools.map(tool => tool.definition),
+      commandCatalogue,
+      systemSettings
+    )
+    const copilotCommands = new CopilotCommands(commands, copilotCapabilities)
+    copilotTools = createPhoenixMcpTools({
+      commands: copilotCommands,
       display,
+      equipment: personalEquipmentReport,
       engineers: new DefaultCommanderEngineersQuery(engineering),
       exploration,
       explorationTargets,
@@ -481,7 +495,8 @@ export class PhoenixApplication {
         apiKey: () => openAiConfiguration.activeApiKey(),
         model: process.env.PHOENIX_OPENAI_WEB_SEARCH_MODEL ?? process.env.PHOENIX_OPENAI_MODEL ?? 'gpt-5.6-terra'
       })
-    }))
+    })
+    const toolRegistry = new CopilotToolRegistry(copilotTools, copilotCapabilities)
     const mcpServer = new PhoenixMcpServer(toolRegistry)
     const configuredCopilot = options.copilot === undefined && options.copilotRealtime === undefined
       ? createConfiguredCopilot(paths, {
@@ -518,6 +533,8 @@ export class PhoenixApplication {
       copilotConversationEvents,
       copilotVoiceHost,
       copilotRealtime,
+      copilotCapabilities,
+      copilotTools: toolRegistry,
       commands,
       gameActions,
       eliteInventoryDiagnostics: this.inventorySource,

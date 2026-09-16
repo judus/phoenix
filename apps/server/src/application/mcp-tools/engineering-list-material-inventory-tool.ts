@@ -2,7 +2,7 @@ import type { JsonObject, LocalTool } from '@jdu/llm-client'
 import type { RuntimeStateReader } from '../../domain/runtime-state.js'
 import { boundedLimit, displayName, optionalBooleanArgument, optionalIntegerArgument, optionalStringArgument, output } from './tool-support.js'
 
-export class CommanderListMaterialsTool implements LocalTool {
+export class EngineeringListMaterialInventoryTool implements LocalTool {
   public readonly definition = {
     annotations: { readOnly: true },
     description: 'List engineering materials, optionally filtered by name, category, or low stock. PHOENIX reports journal counts; storage capacity and material grade are not currently available.',
@@ -16,7 +16,7 @@ export class CommanderListMaterialsTool implements LocalTool {
       },
       type: 'object'
     },
-    name: 'commander.list_materials'
+    name: 'engineering.list_material_inventory'
   }
 
   public constructor (private readonly runtimeState: RuntimeStateReader) {}

@@ -33,7 +33,7 @@ export interface CurrentShipModel {
     channels: Array<{ actionId: string, label: string, shortLabel: string, value: number | null }>
     resetActionId: string
   }
-  warnings: Array<{ id: string, label: string, active: boolean, tone: 'warning' | 'danger' }>
+  warnings: Array<{ id: string, label: string, active: boolean, tone: 'information' | 'danger' }>
   moduleStatus: {
     total: number
     healthAlertThreshold: number
@@ -166,7 +166,7 @@ export function createCurrentShipModel(
       { actionId: 'elite.TargetNextRouteSystem', label: 'Route', active: false },
       { actionId: 'elite.GalaxyMapOpen', label: 'Galaxy map', active: false },
       { actionId: 'elite.SystemMapOpen', label: 'System map', active: false },
-      { actionId: 'elite.OrbitLinesToggle', label: 'Orbit lines', active: false },
+      { actionId: 'elite.OrbitLinesToggle', label: 'Orbit lines', active: true },
       { actionId: 'elite.DeployHardpointToggle', label: 'Hardpoints', active: flags?.hardpointsDeployed ?? false },
       { actionId: 'elite.LandingGearToggle', label: 'Landing gear', active: flags?.landingGearDown ?? false },
       { actionId: 'elite.ToggleCargoScoop', label: 'Cargo scoop', active: flags?.cargoScoopDeployed ?? false },
@@ -184,10 +184,10 @@ export function createCurrentShipModel(
       resetActionId: 'elite.ResetPowerDistribution'
     },
     warnings: [
-      { id: 'low-fuel', label: 'Low fuel', active: flags?.lowFuel ?? false, tone: 'warning' },
+      { id: 'interdiction', label: 'Interdiction', active: flags?.beingInterdicted ?? false, tone: 'danger' },
       { id: 'overheating', label: 'Overheating', active: flags?.overheating ?? false, tone: 'danger' },
       { id: 'danger', label: 'Danger', active: flags?.inDanger ?? false, tone: 'danger' },
-      { id: 'mass-lock', label: 'Mass lock', active: flags?.fsdMassLocked ?? false, tone: 'warning' }
+      { id: 'mass-lock', label: 'Mass lock', active: flags?.fsdMassLocked ?? false, tone: 'information' }
     ],
     moduleStatus: {
       total: observedModules.length,

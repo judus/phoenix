@@ -9,7 +9,7 @@ export class CommanderGetCurrentStateTool implements LocalTool {
     annotations: { readOnly: true },
     description: 'Read a compact fresh PHOENIX telemetry snapshot: commander, system, location, ship, fuel, cargo, destination, and active status flags. Use when request-time context may be stale or the commander asks for the current situation.',
     inputSchema: emptyObjectSchema(),
-    name: 'commander.get_current_state'
+    name: 'commander.get_current_situation'
   }
 
   public constructor (private readonly runtimeState: RuntimeStateReader) {}

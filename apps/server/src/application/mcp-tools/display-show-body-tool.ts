@@ -11,7 +11,7 @@ export class DisplayShowBodyTool implements LocalTool {
       required: ['bodyName'],
       type: 'object'
     },
-    name: 'display.show_body'
+    name: 'display.show_body_details'
   }
   public constructor (private readonly display: DisplayCommands) {}
   public readonly execute = (arguments_: JsonObject) => this.display.showBody(arguments_)

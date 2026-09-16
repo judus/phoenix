@@ -7,7 +7,7 @@ export class NavigationGetRouteTool implements LocalTool {
     annotations: { readOnly: true },
     description: 'Return the locally plotted navigation route, including the next hop and final destination.',
     inputSchema: emptyObjectSchema(),
-    name: 'navigation.get_route'
+    name: 'navigation.get_plotted_route'
   }
   public constructor (private readonly navigation: NavigationQuery) {}
   public readonly execute = (arguments_: JsonObject) => this.navigation.getRoute(arguments_)

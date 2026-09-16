@@ -24,6 +24,16 @@ test('browser pairing sessions authorize independently and can be revoked per de
     const status = await fetch(`${baseUrl}/api/pairing/status`)
     expect(await status.json()).toMatchObject({ authenticated: false, pairingRequired: true, serverDevice: true })
 
+    const proxiedStatus = await fetch(`${baseUrl}/api/pairing/status`, {
+      headers: { 'x-forwarded-for': '192.0.2.10' }
+    })
+    expect(await proxiedStatus.json()).toMatchObject({ authenticated: false, pairingRequired: true, serverDevice: false })
+
+    const proxiedPairingInfo = await fetch(`${baseUrl}/api/pairing/info`, {
+      headers: { 'x-forwarded-for': '192.0.2.10' }
+    })
+    expect(proxiedPairingInfo.status).toBe(403)
+
     const pairingInfo = await fetch(`${baseUrl}/api/pairing/info`)
     expect(pairingInfo.status).toBe(200)
     expect(await pairingInfo.json()).toMatchObject({

@@ -10,7 +10,13 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:3400',
-        xfwd: true
+        configure(proxy) {
+          proxy.on('proxyReq', (proxyRequest, request) => {
+            const remoteAddress = request.socket.remoteAddress
+            if (remoteAddress) proxyRequest.setHeader('x-forwarded-for', remoteAddress)
+            else proxyRequest.removeHeader('x-forwarded-for')
+          })
+        }
       }
     }
   }

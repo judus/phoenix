@@ -14,7 +14,7 @@ export class WebSearchTool implements LocalTool {
       required: ['query'],
       type: 'object'
     },
-    name: 'web.search'
+    name: 'web.search_web'
   }
 
   public constructor (private readonly source: WebSearchSource) {}

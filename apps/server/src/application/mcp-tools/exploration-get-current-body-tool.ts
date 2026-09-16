@@ -7,7 +7,7 @@ export class ExplorationGetCurrentBodyTool implements LocalTool {
     annotations: { readOnly: true },
     description: 'Return detected biological and geological signals plus biological sample progress for the current or last nearby body. Local journal history may be incomplete.',
     inputSchema: emptyObjectSchema(),
-    name: 'exploration.get_current_body'
+    name: 'exploration.get_current_body_signals'
   }
   public constructor (private readonly bodies: ExplorationBodyQuery) {}
   public readonly execute = (arguments_: JsonObject) => this.bodies.getCurrentBody(arguments_)

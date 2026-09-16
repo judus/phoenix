@@ -13,6 +13,7 @@
 @import './patterns/tile-groups.css';
 @import './patterns/switchers.css';
 @import './patterns/settings-list.css';
+@import './patterns/copilot-permission-editor.css';
 @import './components/data-display.css';
 @import './components/page-header.css';
 @import './components/navigation.css';
@@ -27,6 +28,7 @@
 @import './pages/current-ship-consolidated.css';
 @import './pages/current-ship-loadout.css';
 @import './pages/dashboard.css';
+@import './pages/developer.css';
 @import './pages/commander.css';
 @import './pages/credits.css';
 @import './pages/exobiology.css';
@@ -62,6 +64,8 @@
     block-size: 100%;
     margin: 0;
   }
+
+  html { -webkit-tap-highlight-color: transparent; }
 
   button,
   input,

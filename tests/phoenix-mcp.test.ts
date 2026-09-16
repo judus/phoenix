@@ -13,12 +13,15 @@ import { RecordingKeyboardOutput } from 'control-deck/adapter-keyboard'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 
 test('the portable AI client discovers and calls PHOENIX tools over MCP', async () => {
+  const systemSettingsRepository = new InMemorySystemSettingsRepository()
+  enableCapabilities(systemSettingsRepository, 'command.elite.ShipSpotLightToggle')
   const application = new PhoenixApplication({
     eliteBindings: new StaticEliteDangerousBindings(),
     databasePath: ':memory:',
     eliteDirectory: null,
     host: '127.0.0.1',
-    port: 0
+    port: 0,
+    systemSettingsRepository
   })
   const address = await application.start()
   const provider = configuredProvider([
@@ -26,7 +29,7 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
       {
         arguments: {},
         callId: 'current-state-1',
-        name: 'phoenix__commander_get_current_state',
+        name: 'phoenix__commander_get_current_situation',
         type: 'tool_call'
       },
       {
@@ -38,7 +41,7 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
       {
         arguments: { detail: 'summary', identifier: 'lakonminer' },
         callId: 'type-11-definition-1',
-        name: 'phoenix__ships_get_definition',
+        name: 'phoenix__ships_get_ship_definition',
         type: 'tool_call'
       }
     ], 'tool_calls'),
@@ -55,42 +58,42 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
     expect(result.text).toBe('Telemetry received.')
     expect(provider.requests).toHaveLength(2)
     expect(provider.requests[0]?.tools?.map(tool => tool.name)).toEqual([
-      'phoenix__commander_get_current_state',
-      'phoenix__commander_get_inventory',
-      'phoenix__commander_list_engineers',
-      'phoenix__commander_list_materials',
+      'phoenix__commander_get_current_situation',
+      'phoenix__equipment_get_equipment_report',
+      'phoenix__engineering_list_engineers',
+      'phoenix__engineering_list_material_inventory',
       'phoenix__comms_list_messages',
       'phoenix__controls_find_actions',
-      'phoenix__controls_execute',
-      'phoenix__controls_set_switch',
+      'phoenix__controls_execute_command',
+      'phoenix__controls_set_control_state',
       'phoenix__display_open_page',
-      'phoenix__display_show_body',
-      'phoenix__display_show_system',
-      'phoenix__exploration_get_current_body',
-      'phoenix__exploration_search_targets',
-      'phoenix__factions_search',
-      'phoenix__fleet_list_ships',
+      'phoenix__display_show_body_details',
+      'phoenix__display_show_system_schematic',
+      'phoenix__exploration_get_current_body_signals',
+      'phoenix__exploration_find_exploration_targets',
+      'phoenix__factions_find_faction_presence',
+      'phoenix__fleet_list_owned_ships',
       'phoenix__fleet_list_stored_modules',
-      'phoenix__navigation_can_jump_to',
-      'phoenix__navigation_get_route',
-      'phoenix__operations_list_missions',
-      'phoenix__outfitting_find_module',
-      'phoenix__markets_find_best_trade',
+      'phoenix__navigation_check_jump_reachability',
+      'phoenix__navigation_get_plotted_route',
+      'phoenix__missions_list_missions',
+      'phoenix__stations_find_stations_selling_module',
+      'phoenix__markets_find_commodity_markets',
       'phoenix__markets_find_trade_opportunities',
-      'phoenix__ship_get_cargo',
-      'phoenix__ship_get_status',
-      'phoenix__ship_list_modules',
-      'phoenix__ships_compare',
-      'phoenix__ships_find_shipyards',
-      'phoenix__ships_get_definition',
-      'phoenix__stations_find_nearest',
-      'phoenix__stations_get_details',
+      'phoenix__ship_get_cargo_manifest',
+      'phoenix__ship_get_current_ship_status',
+      'phoenix__ship_list_installed_modules',
+      'phoenix__ships_compare_ship_definitions',
+      'phoenix__stations_find_shipyards_selling_ship',
+      'phoenix__ships_get_ship_definition',
+      'phoenix__stations_find_nearest_service',
+      'phoenix__stations_get_station_details',
       'phoenix__stations_list_shipyard_stock',
-      'phoenix__stations_lookup',
-      'phoenix__stations_search_outfitting',
-      'phoenix__systems_get_details',
-      'phoenix__systems_search',
-      'phoenix__web_search'
+      'phoenix__stations_find_stations_by_name',
+      'phoenix__stations_list_outfitting_stock',
+      'phoenix__systems_get_system_details',
+      'phoenix__systems_find_systems',
+      'phoenix__web_search_web'
     ])
     expect(provider.requests[0]?.tools?.find(tool => tool.name === 'phoenix__display_open_page')).toMatchObject({
       inputSchema: {
@@ -155,14 +158,7 @@ test('the Copilot discovers and executes commander-created macros through the co
     version: 1
   })
   const systemSettingsRepository = new InMemorySystemSettingsRepository()
-  const settings = systemSettingsRepository.loadOrCreate()
-  systemSettingsRepository.save({
-    ...settings,
-    copilot: {
-      ...settings.copilot,
-      permissions: { ...settings.copilot.permissions, macros: true }
-    }
-  })
+  enableCapabilities(systemSettingsRepository, 'command.macro.panic-button')
   const inputBackend = new RecordingKeyboardOutput()
   const application = new PhoenixApplication({
     eliteBindings: new StaticEliteDangerousBindings(),
@@ -186,7 +182,7 @@ test('the Copilot discovers and executes commander-created macros through the co
       {
         arguments: { target: { macroId: 'panic-button', type: 'macro' } },
         callId: 'run-panic',
-        name: 'phoenix__controls_execute',
+        name: 'phoenix__controls_execute_command',
         type: 'tool_call'
       }
     ], 'tool_calls'),
@@ -227,12 +223,15 @@ test('the Copilot discovers and executes commander-created macros through the co
 })
 
 test('the Copilot discovers controls by integration-provided aliases', async () => {
+  const systemSettingsRepository = new InMemorySystemSettingsRepository()
+  enableCapabilities(systemSettingsRepository, 'command.elite.TargetNextRouteSystem')
   const application = new PhoenixApplication({
     eliteBindings: new StaticEliteDangerousBindings(),
     databasePath: ':memory:',
     eliteDirectory: null,
     host: '127.0.0.1',
-    port: 0
+    port: 0,
+    systemSettingsRepository
   })
   const address = await application.start()
   const provider = configuredProvider([
@@ -279,6 +278,20 @@ function configuredProvider (responses: readonly ModelResponse[]): ConfiguredPro
       }
     }
   ), { model: 'scripted-tools' })
+}
+
+function enableCapabilities (repository: InMemorySystemSettingsRepository, ...ids: string[]): void {
+  const settings = repository.loadOrCreate()
+  const enabledCapabilityIds = [...new Set([...settings.copilot.permissions.enabledCapabilityIds, ...ids])]
+  const permissions = { version: 2 as const, enabledCapabilityIds }
+  repository.save({
+    ...settings,
+    copilot: {
+      ...settings.copilot,
+      permissions,
+      profilePermissions: { ...settings.copilot.profilePermissions, [settings.copilot.activeProfileId]: permissions }
+    }
+  })
 }
 
 function response (

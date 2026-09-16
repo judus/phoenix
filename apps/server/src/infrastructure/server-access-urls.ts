@@ -64,6 +64,19 @@ export function isServerAddress (
   return Object.values(interfaces).some(entries => entries?.some(entry => normalizeIpAddress(entry.address) === remote))
 }
 
+export function clientAddressBehindLocalProxy (
+  remoteAddress: string | undefined,
+  forwardedFor: string | string[] | undefined,
+  interfaces: NetworkInterfaces = networkInterfaces()
+): string | undefined {
+  const direct = normalizeIpAddress(remoteAddress) ?? undefined
+  if (!direct || !isServerAddress(direct, interfaces)) return direct
+  const forwarded = (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor)
+    ?.split(',', 1)[0]
+    ?.trim()
+  return normalizeIpAddress(forwarded) ?? direct
+}
+
 function isWildcard (host: string): boolean {
   return host === '0.0.0.0' || host === '::'
 }

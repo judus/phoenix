@@ -1,6 +1,6 @@
 import type { NetworkInterfaceInfo } from 'node:os'
 import { expect, test } from 'vitest'
-import { isServerAddress, serverAccessUrls } from '../apps/server/src/infrastructure/server-access-urls.js'
+import { clientAddressBehindLocalProxy, isServerAddress, serverAccessUrls } from '../apps/server/src/infrastructure/server-access-urls.js'
 
 test('presents localhost and LAN URLs for a wildcard listener', () => {
   const interfaces = {
@@ -41,6 +41,14 @@ test('recognizes loopback, mapped loopback, and this computer network addresses'
   expect(isServerAddress('::ffff:127.0.0.1', interfaces)).toBe(true)
   expect(isServerAddress('192.168.1.42', interfaces)).toBe(true)
   expect(isServerAddress('192.168.1.73', interfaces)).toBe(false)
+})
+
+test('uses a forwarded client address only when the direct peer is this computer', () => {
+  const interfaces = { ethernet: [interfaceInfo('192.168.1.42', false)] }
+
+  expect(clientAddressBehindLocalProxy('127.0.0.1', '192.168.1.73', interfaces)).toBe('192.168.1.73')
+  expect(clientAddressBehindLocalProxy('127.0.0.1', '192.168.1.42', interfaces)).toBe('192.168.1.42')
+  expect(clientAddressBehindLocalProxy('192.168.1.73', '127.0.0.1', interfaces)).toBe('192.168.1.73')
 })
 
 function interfaceInfo (address: string, internal: boolean): NetworkInterfaceInfo {

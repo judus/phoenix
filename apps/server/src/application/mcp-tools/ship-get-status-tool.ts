@@ -7,7 +7,7 @@ export class ShipGetStatusTool implements LocalTool {
     annotations: { readOnly: true },
     description: 'Return a concise status summary for the commander\'s current or last known ship.',
     inputSchema: emptyObjectSchema(),
-    name: 'ship.get_status'
+    name: 'ship.get_current_ship_status'
   }
 
   public constructor (private readonly runtimeState: RuntimeStateReader) {}

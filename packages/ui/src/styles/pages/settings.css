@@ -1,13 +1,18 @@
   .settings-page {
     display: grid;
-    align-content: start;
+    grid-template-rows: max-content minmax(0, 1fr);
     gap: var(--spacing-lg);
+    min-block-size: 0;
+    overflow: hidden;
 
     .settings-sections {
       display: grid;
       align-content: start;
       gap: var(--spacing-xl);
-      inline-size: min(100%, var(--container-xl));
+      inline-size: 100%;
+      min-block-size: 0;
+      overflow: auto;
+      overscroll-behavior: contain;
     }
 
     .section > header { margin-block-end: var(--spacing-xs); }

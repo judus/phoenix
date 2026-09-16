@@ -47,13 +47,7 @@ export function ControlSurface({
         key={element?.id ?? `empty_${slot.column}_${slot.row}`}
         style={{
           gridColumn: `${slot.column} / span ${slot.columnSpan}`,
-          gridRow: `${slot.row} / span ${slot.rowSpan}`,
-          ...(element?.kind === 'command'
-            ? {
-                color: element.appearance.foregroundColor ?? undefined,
-                backgroundColor: element.appearance.backgroundColor ?? undefined
-              }
-            : {})
+          gridRow: `${slot.row} / span ${slot.rowSpan}`
         }}
       >
         {element?.kind === 'command'

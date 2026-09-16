@@ -45,23 +45,19 @@ export interface CopilotRealtimeServiceOptions {
 
 const TOOL_INSTRUCTIONS = [
   'Use the available PHOENIX tools whenever fresh telemetry or a game action would improve the answer.',
-  'Use phoenix_controls_find_actions when an exact control or macro target is unknown, then pass its target unchanged to phoenix_controls_execute.',
+  'Use phoenix_controls_find_actions when an exact control or macro target is unknown, then pass its target unchanged to phoenix_controls_execute_command.',
   'Existence and discovery questions such as "do you see", "can you find", "is there", or "list" are read-only: find and report the control, but never execute it unless the commander separately gives an imperative execution request.',
   'Distinguish the full-screen Elite Galaxy/System Maps from PHOENIX system schematics and body details; ask which interface when a map request is ambiguous.',
-  'For observable on/off controls, use phoenix_controls_set_switch and answer from its result.',
-  'Use phoenix_web_search for current public-web information that PHOENIX telemetry and structured galaxy tools cannot answer. Preserve its source URLs in typed answers and identify important sources briefly in speech.',
+  'For observable on/off controls, use phoenix_controls_set_control_state and answer from its result.',
+  'Use phoenix_web_search_web for current public-web information that PHOENIX telemetry and structured galaxy tools cannot answer. Preserve its source URLs in typed answers and identify important sources briefly in speech.',
   'After a routine action is confirmed, say only "Done." Never invent confirmation.'
 ].join(' ')
 
 export class CopilotRealtimeService implements CopilotRealtime {
   private readonly defaultProfileId: string
-  private readonly realtimeToolNames = new Map<string, string>()
 
   public constructor (private readonly options: CopilotRealtimeServiceOptions) {
     this.defaultProfileId = options.defaultProfileId ?? 'marin'
-    for (const definition of options.tools.definitions) {
-      this.realtimeToolNames.set(realtimeToolName(definition.name), definition.name)
-    }
   }
 
   public audioProcessing (profileId?: string): CopilotAudioProcessing {
@@ -112,12 +108,7 @@ export class CopilotRealtimeService implements CopilotRealtime {
         model: this.options.model,
         output_modalities: ['audio'],
         tool_choice: 'auto',
-        tools: this.options.tools.definitions.map(definition => ({
-          description: definition.description,
-          name: realtimeToolName(definition.name),
-          parameters: definition.inputSchema,
-          type: 'function'
-        })),
+        tools: this.options.tools.definitions.map(realtimeToolDefinition),
         type: 'realtime'
       }
     })
@@ -136,7 +127,8 @@ export class CopilotRealtimeService implements CopilotRealtime {
     request: CopilotRealtimeToolRequest,
     signal: AbortSignal = AbortSignal.timeout(30_000)
   ): Promise<ToolExecutionOutput> {
-    const name = this.realtimeToolNames.get(request.name)
+    const name = this.options.tools.definitions
+      .find(definition => realtimeToolName(definition.name) === request.name)?.name
     if (!name) throw new Error(`Unknown Realtime tool: ${request.name}`)
     return this.options.tools.execute(
       { arguments: request.arguments as JsonObject, id: randomUUID(), name },
@@ -208,6 +200,15 @@ export class CopilotRealtimeService implements CopilotRealtime {
 
 function realtimeToolName (name: string): string {
   return `phoenix_${name.replaceAll(/[^A-Za-z0-9_-]/gu, '_')}`
+}
+
+export function realtimeToolDefinition (definition: ToolRegistry['definitions'][number]): JsonObject {
+  return {
+    description: definition.description,
+    name: realtimeToolName(definition.name),
+    parameters: definition.inputSchema,
+    type: 'function'
+  }
 }
 
 function realtimeMessage (

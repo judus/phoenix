@@ -13,7 +13,7 @@ export class ShipsCompareTool implements LocalTool {
       required: ['identifiers'],
       type: 'object'
     },
-    name: 'ships.compare'
+    name: 'ships.compare_ship_definitions'
   }
 
   public constructor (private readonly catalogue: GameCatalogue) {}

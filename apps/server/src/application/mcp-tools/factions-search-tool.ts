@@ -21,7 +21,7 @@ export class FactionsSearchTool implements LocalTool {
       required: ['factionName'],
       type: 'object'
     },
-    name: 'factions.search'
+    name: 'factions.find_faction_presence'
   }
 
   public constructor (private readonly factions: FactionPresenceQuery) {}

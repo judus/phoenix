@@ -5,7 +5,7 @@ import {
   PairingHttpController
 } from 'control-deck/host'
 import { networkInterfaces } from 'node:os'
-import { isServerAddress } from './server-access-urls.js'
+import { clientAddressBehindLocalProxy, isServerAddress } from './server-access-urls.js'
 
 /** PHOENIX composition adapter for the shared Control Deck pairing host. */
 export class PairingAccessController extends PairingHttpController {
@@ -17,7 +17,15 @@ export class PairingAccessController extends PairingHttpController {
       ),
       {
         cookieName: 'phoenix_session',
-        isServerRequest: request => isServerAddress(request.socket.remoteAddress, networkInterfaces())
+        isServerRequest: request => {
+          const interfaces = networkInterfaces()
+          const clientAddress = clientAddressBehindLocalProxy(
+            request.socket.remoteAddress,
+            request.headers['x-forwarded-for'],
+            interfaces
+          )
+          return isServerAddress(clientAddress, interfaces)
+        }
       }
     )
   }

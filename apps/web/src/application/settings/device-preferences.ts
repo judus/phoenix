@@ -1,6 +1,5 @@
 export interface PhoenixDevicePreferencesSnapshot {
-  version: 1
-  adaptiveNumpadLabels: boolean
+  version: 2
   audioInputId: string
   audioOutputId: string
   captureNumpad: boolean
@@ -9,6 +8,7 @@ export interface PhoenixDevicePreferencesSnapshot {
   presentation: 'phoenix' | 'elite'
   shipCatalogueView: 'dossier' | 'table'
   uiScalePercent: number
+  variableCommandLabelSizes: boolean
 }
 
 export interface DevicePreferences {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type ButtonHTMLAttributes } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type ButtonHTMLAttributes, type CSSProperties } from 'react'
 import {
   applyControlDeckLayoutPreset,
   removeControlDeckElement,
@@ -7,11 +7,12 @@ import {
   resolveControlDeckInteraction,
   upsertControlDeckElement,
   useCustomControlDeckLayout,
+  type ControlDeckElementAppearance,
   type ControlDeckGridDeck,
   type ControlDeckDeckGroup
 } from 'control-deck/core'
 import { PHOENIX_CONTROL_LAYOUT_PRESETS, PhoenixControlDeckThemeSchema, controlDeckTargetToPhoenixTarget, phoenixControlLayoutPreset, type CommandTarget, type GameActionAvailability, type GameActionOperation, type PhoenixControlDeckConfiguration, type PhoenixControlDeckTheme, type RuntimeState } from '@phoenix/contracts'
-import { Breadcrumbs, Button, CommandTile, compactBindingLabel, ControlContext, DataTable, NumberInput, PageFrame, PageHeader, Select, Status, TileButton, Widget } from '@phoenix/ui'
+import { Breadcrumbs, Button, CheckIcon, compactBindingLabel, ControlContext, DataTable, IconButton, NumberInput, PageFrame, PageHeader, Select, Status, TileButton, Widget } from '@phoenix/ui'
 import { createClientId } from '../../application/identity/client-identity.js'
 import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
 import type { ControlCategory } from '../../application/navigation/phoenix-route.js'
@@ -22,12 +23,13 @@ import { ArmingController } from './arming-controller.js'
 import { ButtonEditor } from './button-editor.js'
 import { ControlSurface } from './control-surface.js'
 
-export function ControlsPage({ category, controller, editing, macros, runtime, onEditingChange, onExecuteAction, onSaveConfiguration }: {
+export function ControlsPage({ category, controller, editing, macros, runtime, variableFontSizes, onEditingChange, onExecuteAction, onSaveConfiguration }: {
   category: ControlCategory
   controller: ControlsControllerSnapshot
   editing: boolean
   macros: MacroRuntime
   runtime?: RuntimeState
+  variableFontSizes: boolean
   onEditingChange(editing: boolean): void
   onExecuteAction(actionId: string, operation: GameActionOperation, leaseId?: string): Promise<unknown>
   onSaveConfiguration(configuration: PhoenixControlDeckConfiguration): Promise<PhoenixControlDeckConfiguration>
@@ -108,11 +110,6 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
         deck={deck}
         group={group}
         onChange={setDraft}
-        onCancel={() => {
-          setDraft(controller.configuration)
-          setError(undefined)
-          onEditingChange(false)
-        }}
         onSave={() => {
           if (!draft) return
           setSaving(true)
@@ -205,12 +202,14 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
                   const armed = armedElementId === elementId
                   const interaction = resolveControlDeckInteraction(element.interaction, 'tap')
                   return <ControlDeckCommandTile
+                    appearance={element.appearance}
                     binding="Macro"
                     label={element.appearance.label ?? macro?.name ?? target.macroId}
                     interaction={armed ? 'tap' : interaction.interactionHint}
                     kind="macro"
                     selected={armed}
                     unavailable={!editing && !macro?.enabled}
+                    variableFontSizes={variableFontSizes}
                     onClick={() => {
                       if (editing) { setEditingPosition(position); return }
                       if (!macro) return
@@ -230,21 +229,22 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
                     onPointerCancel={event => finishSafetyHold(elementId, event.pointerId)}
                   />
                 }
-                if (target.type !== 'game-action') return <MissingTarget target={target} />
+                if (target.type !== 'game-action') return <MissingTarget appearance={element.appearance} target={target} variableFontSizes={variableFontSizes} />
                 const action = actions.get(target.actionId)
-                if (!action) return <MissingTarget target={target} />
+                if (!action) return <MissingTarget appearance={element.appearance} target={target} variableFontSizes={variableFontSizes} />
                 const active = telemetryState(runtime, action.definition.telemetryKey)
                 const elementId = element.id
                 const confirmation = element.interaction.confirmation
                 const armed = armedElementId === elementId
                 const interaction = resolveControlDeckInteraction(element.interaction, action.definition.inputMode)
                 return <ControlDeckCommandTile
+                  appearance={element.appearance}
                   binding={action.binding?.display ?? 'Unbound'}
                   label={element.appearance.label ?? action.definition.label}
                   interaction={armed ? 'tap' : interaction.interactionHint}
                   selected={armed || active}
-                  tone={action.definition.risk === 'dangerous' ? 'danger' : 'normal'}
                   unavailable={!action.available}
+                  variableFontSizes={variableFontSizes}
                   disabled={!editing && !action.available}
                   onContextMenu={event => event.preventDefault()}
                   onClick={event => {
@@ -291,12 +291,11 @@ export function ControlsPage({ category, controller, editing, macros, runtime, o
   )
 }
 
-function DeckSettings ({ configuration, deck, group, onChange, onCancel, onSave, saving }: {
+function DeckSettings ({ configuration, deck, group, onChange, onSave, saving }: {
   configuration: PhoenixControlDeckConfiguration
   deck: ControlDeckGridDeck
   group: ControlDeckDeckGroup
   onChange(configuration: PhoenixControlDeckConfiguration): void
-  onCancel(): void
   onSave(): void
   saving: boolean
 }) {
@@ -341,8 +340,16 @@ function DeckSettings ({ configuration, deck, group, onChange, onCancel, onSave,
         </Select>
       </ControlContext>
     </Widget>
-    <CommandTile compact details={false} label="Cancel" unavailable={saving} onClick={onCancel} />
-    <CommandTile compact details={false} label={saving ? 'Saving…' : 'Save'} unavailable={saving} onClick={onSave} />
+    <IconButton
+      aria-busy={saving || undefined}
+      className="control-deck-save"
+      disabled={saving}
+      label="Save and finish editing"
+      variant="primary"
+      onClick={onSave}
+    >
+      <CheckIcon />
+    </IconButton>
   </section>
 }
 
@@ -375,7 +382,7 @@ function themeLabel (theme: PhoenixControlDeckTheme): string {
 }
 
 function controlDeckTheme (deck: ControlDeckGridDeck | undefined, group: ControlDeckDeckGroup | undefined): PhoenixControlDeckTheme {
-  return group?.appearance?.colorScheme ?? deck?.appearance?.colorScheme ?? 'phoenix'
+  return deck?.appearance?.colorScheme ?? group?.appearance?.colorScheme ?? 'phoenix'
 }
 
 export function applyControlDeckTheme (
@@ -386,16 +393,19 @@ export function applyControlDeckTheme (
 ): PhoenixControlDeckConfiguration {
   const groupAppearance = withoutColorScheme(group.appearance)
   const deckAppearance = withoutColorScheme(deck.appearance)
-  const themedGroup: ControlDeckDeckGroup = {
+  const normalizedGroup: ControlDeckDeckGroup = {
     ...group,
-    appearance: theme === 'phoenix'
-      ? groupAppearance
-      : { ...groupAppearance, colorScheme: theme }
+    appearance: groupAppearance
   }
-  const normalizedDeck: ControlDeckGridDeck = { ...deck, appearance: deckAppearance }
+  const themedDeck: ControlDeckGridDeck = {
+    ...deck,
+    appearance: theme === 'phoenix'
+      ? deckAppearance
+      : { ...deckAppearance, colorScheme: theme }
+  }
   return replaceControlDeck(
-    replaceControlDeckGroup(configuration, themedGroup),
-    normalizedDeck
+    replaceControlDeckGroup(configuration, normalizedGroup),
+    themedDeck
   ) as PhoenixControlDeckConfiguration
 }
 
@@ -405,28 +415,34 @@ function withoutColorScheme (appearance: ControlDeckDeckGroup['appearance']): Co
   return Object.keys(rest).length > 0 ? rest : undefined
 }
 
-function MissingTarget({ target }: { target: CommandTarget }) {
+function MissingTarget({ appearance, target, variableFontSizes }: { appearance: ControlDeckElementAppearance, target: CommandTarget, variableFontSizes: boolean }) {
   const label = target.type === 'navigation' ? target.destinationId : target.type === 'macro' ? target.macroId : target.actionId
-  return <ControlDeckCommandTile binding="Unbound" interaction="tap" label={label} unavailable />
+  return <ControlDeckCommandTile appearance={appearance} binding="Unbound" interaction="tap" label={label} unavailable variableFontSizes={variableFontSizes} />
 }
 
-function ControlDeckCommandTile({ binding, interaction, kind = 'action', label, selected = false, tone = 'normal', unavailable = false, disabled = unavailable, className, ...props }: Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> & {
+function ControlDeckCommandTile({ appearance, binding, interaction, kind = 'action', label, selected = false, unavailable = false, variableFontSizes, disabled = unavailable, className, style, ...props }: Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> & {
+  appearance: ControlDeckElementAppearance
   binding?: string
   interaction: 'tap' | 'hold' | 'arm'
   kind?: 'action' | 'macro'
   label: string
   selected?: boolean
-  tone?: 'normal' | 'danger'
   unavailable?: boolean
+  variableFontSizes: boolean
 }) {
   const displayedBinding = binding === undefined ? undefined : compactBindingLabel(binding)
+  const dangerAppearance = appearance.foregroundColor === '#ff6258' && appearance.backgroundColor === '#3a1717'
+  const customStyle = {
+    ...(appearance.foregroundColor ? { '--command-border': dangerAppearance ? 'var(--command-danger-border)' : appearance.foregroundColor } : {}),
+    ...(appearance.backgroundColor ? { '--command-background': dangerAppearance ? 'var(--command-danger-background)' : appearance.backgroundColor } : {}),
+    ...style
+  } as CSSProperties
   return <TileButton
     aria-label={binding ? `${label}, ${binding}` : label}
     aria-pressed={selected || undefined}
     className={[
       kind === 'macro' && 'theme-macro',
       selected && 'active',
-      tone === 'danger' && 'theme-danger',
       unavailable && 'unavailable',
       className
     ].filter(Boolean).join(' ')}
@@ -435,6 +451,8 @@ function ControlDeckCommandTile({ binding, interaction, kind = 'action', label, 
     meta={displayedBinding}
     metaTitle={binding}
     note={interaction}
+    style={customStyle}
+    variableFontSizes={variableFontSizes}
     {...props}
   />
 }

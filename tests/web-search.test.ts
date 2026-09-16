@@ -19,7 +19,7 @@ test('the web search tool returns a bounded sourced result through the shared to
   const tools = new ToolRegistry([new WebSearchTool(source)])
 
   const result = await tools.execute(
-    { arguments: { query: 'current answer' }, id: 'call-1', name: 'web.search' },
+    { arguments: { query: 'current answer' }, id: 'call-1', name: 'web.search_web' },
     {
       callId: 'call-1',
       deadline: new Date(Date.now() + 1_000).toISOString(),

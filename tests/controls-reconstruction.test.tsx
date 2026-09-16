@@ -35,10 +35,11 @@ test('reconstructed controls render the persisted grid with shared command tiles
     onExecuteAction={() => Promise.resolve()}
     onEditingChange={() => undefined}
     onSaveConfiguration={configuration => Promise.resolve(configuration)}
+    variableFontSizes
   />)
 
   expect(markup).toContain('Ship lights')
-  expect(markup).toContain('class="tile btn"')
+  expect(markup).toContain('class="tile btn variable-font-sizes"')
   expect(markup).toContain('aria-label="Ship command grid"')
   expect(markup).toContain('grid-template-columns:repeat(8, minmax(0, 1fr))')
 })

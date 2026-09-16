@@ -1,6 +1,5 @@
-import { lazy, memo, Suspense, useMemo, useState, type ReactNode } from 'react'
+import { lazy, memo, Suspense, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
 import type { ApplicationNavigationItem } from '@phoenix/ui'
-import { PlaceholderPage } from './components/shell/placeholder-page.js'
 import { PhoenixApplicationShell } from './components/shell/phoenix-application-shell.js'
 import { isInformationRoute, workspaceForRoute } from './application/navigation/phoenix-route.js'
 import type { PhoenixRouter } from './application/navigation/phoenix-router.js'
@@ -50,6 +49,7 @@ const ControlsPage = lazy(() => import('./features/controls/controls-page.js').t
 const CopilotFeature = lazy(() => import('./features/copilot/copilot-feature.js').then(module => ({ default: module.CopilotFeature })))
 const CreditsPage = lazy(() => import('./features/journal/credits-page.js').then(module => ({ default: module.CreditsPage })))
 const DashboardPage = lazy(() => import('./features/dashboard/dashboard-page.js').then(module => ({ default: module.DashboardPage })))
+const DeveloperPage = lazy(() => import('./features/journal/developer-page.js').then(module => ({ default: module.DeveloperPage })))
 const EngineeringPage = lazy(() => import('./features/engineering/engineering-page.js').then(module => ({ default: module.EngineeringPage })))
 const EquipmentPage = lazy(() => import('./features/equipment/equipment-page.js').then(module => ({ default: module.EquipmentPage })))
 const EquipmentMaterialsPage = lazy(() => import('./features/equipment/equipment-materials-page.js').then(module => ({ default: module.EquipmentMaterialsPage })))
@@ -194,7 +194,7 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
         : null}
       journal={activeDesktop === 'journal'
         ? <FeatureBoundary>{logRoute?.kind === 'developer'
-            ? <PlaceholderPage context="Log · Developer" title="Developer tools" />
+            ? <DeveloperPage api={application.api} />
             : logRoute?.view === 'credits'
               ? <CreditsPage />
               : <JournalFeature application={application} />}</FeatureBoundary>
@@ -260,6 +260,7 @@ const ControlsFeature = memo(function ControlsFeature({ application, category, e
   const controller = useControlsController(application.api, application.events)
   const runtime = useRuntimeState(application.runtime)
   const macros = useMacroRuntime()
+  const devicePreferences = useSyncExternalStore(application.devicePreferences.subscribe, application.devicePreferences.getSnapshot, application.devicePreferences.getSnapshot)
   return <ControlsPage
     category={category}
     controller={controller}
@@ -267,6 +268,7 @@ const ControlsFeature = memo(function ControlsFeature({ application, category, e
     macros={macros}
     onEditingChange={onEditingChange}
     runtime={runtime.status === 'ready' ? runtime.state : undefined}
+    variableFontSizes={devicePreferences.variableCommandLabelSizes}
     onExecuteAction={(actionId, operation, leaseId) => application.api.executeAction(actionId, operation, { leaseId })}
     onSaveConfiguration={configuration => application.api.saveControlDeckConfiguration(configuration)}
   />

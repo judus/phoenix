@@ -8,9 +8,9 @@
     inline-size: 0.9rem;
     aspect-ratio: 1;
     background:
-      radial-gradient(circle, var(--color-action) 0 0.08rem, transparent 0.1rem)
+      radial-gradient(circle, var(--command-grip) 0 0.08rem, transparent 0.1rem)
       0 0 / 33.333% 33.333%;
-    opacity: 0.12;
+    opacity: var(--command-grip-opacity);
     content: '';
     pointer-events: none;
   }
@@ -173,7 +173,7 @@
     }
   }
 
-  .presentation-elite {
+  .theme-elite {
     .btn {
       font-weight: var(--font-weight-normal);
       font-family: var(--font-family-display);

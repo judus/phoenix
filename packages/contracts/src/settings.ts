@@ -6,6 +6,10 @@ import {
   type ControlDeckCommandTarget
 } from 'control-deck/core'
 import type { CommandTarget } from './commands.js'
+import {
+  CopilotCapabilityCatalogueSchema,
+  CopilotPermissionPolicySchema
+} from './copilot-capabilities.js'
 
 export const InputBackendModeSchema = z.enum(['auto', 'recording', 'linux-xdotool', 'windows-sendinput'])
 export const DEFAULT_MODULE_HEALTH_ALERT_THRESHOLD = 90
@@ -45,11 +49,7 @@ export const PhoenixControlDeckConfigurationSchema = ControlDeckConfigurationSch
   }
 })
 
-export const CopilotExecutionPermissionsSchema = z.object({
-  gameActions: z.boolean().default(false),
-  macros: z.boolean().default(false),
-  dangerousActions: z.boolean().default(false)
-})
+export const CopilotAiProviderSchema = z.enum(['openai'])
 
 export const PhoenixModulesSchema = z.object({
   currentShip: z.object({
@@ -89,17 +89,20 @@ export function controlDeckTargetToPhoenixTarget (target: ControlDeckCommandTarg
 }
 
 export const PhoenixSettingsSchema = z.object({
-  version: z.literal(1),
+  version: z.literal(3),
   copilot: z.object({
     activeProfileId: z.string().regex(/^[a-z][a-z0-9_-]*$/u).default('marin'),
-    permissions: CopilotExecutionPermissionsSchema.default({
-      gameActions: false,
-      macros: false,
-      dangerousActions: false
-    })
+    provider: CopilotAiProviderSchema.default('openai'),
+    permissions: CopilotPermissionPolicySchema,
+    profilePermissions: z.record(
+      z.string().regex(/^[a-z][a-z0-9_-]*$/u),
+      CopilotPermissionPolicySchema
+    )
   }).default({
     activeProfileId: 'marin',
-    permissions: { gameActions: false, macros: false, dangerousActions: false }
+    provider: 'openai',
+    permissions: { version: 2, enabledCapabilityIds: [] },
+    profilePermissions: { marin: { version: 2, enabledCapabilityIds: [] } }
   }),
   controls: z.object({
     enabled: z.boolean(),
@@ -133,12 +136,15 @@ export const GeneralSettingsSchema = z.object({
 export const GeneralSettingsUpdateSchema = GeneralSettingsSchema
 
 export const CopilotSettingsSchema = z.object({
-  permissions: CopilotExecutionPermissionsSchema,
+  provider: CopilotAiProviderSchema,
+  permissions: CopilotPermissionPolicySchema,
+  capabilities: CopilotCapabilityCatalogueSchema,
   openAi: OpenAiConfigurationStatusSchema
 })
 
 export const CopilotSettingsUpdateSchema = z.object({
-  permissions: CopilotExecutionPermissionsSchema
+  provider: CopilotAiProviderSchema,
+  permissions: CopilotPermissionPolicySchema
 })
 
 export const OpenAiApiKeyRequestSchema = z.object({
@@ -162,7 +168,7 @@ export const RuntimeSystemSnapshotSchema = z.object({
 })
 
 export type InputBackendMode = z.infer<typeof InputBackendModeSchema>
-export type CopilotExecutionPermissions = z.infer<typeof CopilotExecutionPermissionsSchema>
+export type CopilotAiProvider = z.infer<typeof CopilotAiProviderSchema>
 export type PhoenixModules = z.infer<typeof PhoenixModulesSchema>
 export type PhoenixControlDeckTheme = z.infer<typeof PhoenixControlDeckThemeSchema>
 export type PhoenixControlDeckConfiguration = z.infer<typeof PhoenixControlDeckConfigurationSchema>

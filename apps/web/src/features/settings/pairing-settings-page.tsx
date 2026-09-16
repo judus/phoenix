@@ -76,7 +76,7 @@ export function PairingSettingsPage ({ api }: { api: PhoenixApi }) {
   }
 
   return (
-    <PageFrame className="settings-page">
+    <PageFrame className="settings-page" layout="fit">
       <PageHeader
         context={<Breadcrumbs items={[{ label: 'Settings' }, { label: 'Pairing' }]} />}
         description="Connect browsers and manage access to this PHOENIX installation."

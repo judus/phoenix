@@ -42,7 +42,13 @@
     }
 
     .control-deck-settings {
+      grid-template-columns: minmax(0, 1fr) auto;
       gap: var(--spacing-xs);
+
+      .control-deck-save {
+        align-self: stretch;
+        block-size: 100%;
+      }
 
       .control-deck-settings-form {
         padding: var(--spacing-xs);

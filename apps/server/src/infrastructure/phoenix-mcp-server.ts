@@ -70,7 +70,7 @@ export class PhoenixMcpServer {
     }
     if (message.method === 'tools/list') {
       writeResult(response, message.id ?? null, {
-        tools: this.tools.definitions.map(mcpDefinition)
+        tools: this.tools.definitions.map(mcpToolDefinition)
       })
       return
     }
@@ -182,7 +182,7 @@ export class McpSessionRegistry {
   }
 }
 
-function mcpDefinition (definition: ToolDefinition): JsonObject {
+export function mcpToolDefinition (definition: ToolDefinition): JsonObject {
   const annotations = definition.annotations
   return {
     name: definition.name,

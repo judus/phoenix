@@ -29,3 +29,11 @@ export function CrossIcon () {
     </svg>
   )
 }
+
+export function ChevronRightIcon () {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <path d="m9 5 7 7-7 7" strokeWidth="1.75" />
+    </svg>
+  )
+}

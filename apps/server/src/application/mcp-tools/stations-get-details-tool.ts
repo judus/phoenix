@@ -7,7 +7,7 @@ export class StationsGetDetailsTool implements LocalTool {
     annotations: { readOnly: true },
     description: 'Return services, economy, faction, station type, and distance to arrival for a known station. Defaults to the currently docked station.',
     inputSchema: stationReferenceSchema,
-    name: 'stations.get_details'
+    name: 'stations.get_station_details'
   }
   public constructor (private readonly stations: StationQuery) {}
   public readonly execute = (arguments_: JsonObject) => this.stations.getDetails(arguments_)

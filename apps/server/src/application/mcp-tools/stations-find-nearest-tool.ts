@@ -18,7 +18,7 @@ export class StationsFindNearestTool implements LocalTool {
       required: ['service'],
       type: 'object'
     },
-    name: 'stations.find_nearest'
+    name: 'stations.find_nearest_service'
   }
   public constructor (private readonly stations: StationQuery) {}
   public readonly execute = (arguments_: JsonObject) => this.stations.findNearest(arguments_)

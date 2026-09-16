@@ -6,8 +6,10 @@ import type {
 } from '@phoenix/contracts'
 import { DefaultCommandRegistry } from '../apps/server/src/application/default-command-registry.js'
 import { DefaultCommandDispatcher } from '../apps/server/src/application/command-dispatcher.js'
+import { CopilotCommands } from '../apps/server/src/application/copilot-commands.js'
 import { MacroService } from '../apps/server/src/application/macro-service.js'
 import type { GameActions } from '../apps/server/src/application/game-action-service.js'
+import type { CopilotCapabilities } from '../apps/server/src/domain/copilot-capabilities.js'
 import { InMemoryMacroRepository } from '../apps/server/src/infrastructure/macro-repositories.js'
 
 test('command identities survive catalogue sorting and unavailable actions remain discoverable', () => {
@@ -33,19 +35,17 @@ test('Copilot game execution follows explicit installation permissions', async (
   const dispatcher = new DefaultCommandDispatcher(
     registry,
     actions,
-    [],
-    undefined,
-    undefined,
-    () => ({ gameActions: allowed, macros: false, dangerousActions: false })
+    []
   )
+  const copilot = new CopilotCommands(dispatcher, stubCapabilities(registry, () => allowed))
 
-  expect((await dispatcher.execute({ target: { type: 'game-action', actionId: 'elite.BoundAction' } }, 'copilot')).status).toBe('rejected')
+  expect((await copilot.execute({ target: { type: 'game-action', actionId: 'elite.BoundAction' } }, 'copilot')).status).toBe('rejected')
   allowed = true
-  expect((await dispatcher.execute({ target: { type: 'game-action', actionId: 'elite.BoundAction' } }, 'copilot')).status).toBe('accepted')
+  expect((await copilot.execute({ target: { type: 'game-action', actionId: 'elite.BoundAction' } }, 'copilot')).status).toBe('accepted')
   expect((await dispatcher.execute({ target: { type: 'game-action', actionId: 'elite.BoundAction' } }, 'ui')).status).toBe('accepted')
 })
 
-test('Copilot cannot execute a dangerous action through an understated macro', async () => {
+test('Copilot authorizes an exact macro while retaining its effective risk as metadata', async () => {
   const actions = new StubGameActions()
   const macros = new InMemoryMacroRepository()
   macros.save({
@@ -65,15 +65,33 @@ test('Copilot cannot execute a dangerous action through an understated macro', a
     actions,
     [],
     undefined,
-    service,
-    () => ({ gameActions: false, macros: true, dangerousActions: false })
+    service
   )
+  let allowed = false
+  const copilot = new CopilotCommands(dispatcher, stubCapabilities(registry, () => allowed))
 
   expect(registry.find({ type: 'macro', macroId: 'unsafe-safe' })?.risk).toBe('dangerous')
-  await expect(dispatcher.execute({ target: { type: 'macro', macroId: 'unsafe-safe' } }, 'copilot'))
-    .resolves.toMatchObject({ status: 'rejected', message: 'Dangerous Copilot actions are disabled in Settings.' })
+  await expect(copilot.execute({ target: { type: 'macro', macroId: 'unsafe-safe' } }, 'copilot'))
+    .resolves.toMatchObject({ status: 'rejected' })
   expect(actions.calls).toEqual([])
+  allowed = true
+  await expect(copilot.execute({ target: { type: 'macro', macroId: 'unsafe-safe' } }, 'copilot'))
+    .resolves.toMatchObject({ status: 'accepted' })
+  expect(actions.calls).toEqual(['elite.DangerousAction'])
 })
+
+function stubCapabilities (
+  registry: DefaultCommandRegistry,
+  allowed: () => boolean
+): CopilotCapabilities {
+  return {
+    catalogue: () => ({ groups: [], load: { score: 0, percentage: 0, level: 'focused', enabled: { fixedTools: 0, gameActions: 0, macros: 0, total: 0 } } }),
+    normalizePolicy: policy => policy,
+    isCommandEnabled: target => allowed() && registry.find(target) !== undefined,
+    isDescriptorEnabled: descriptor => allowed() && registry.find(descriptor.target) !== undefined,
+    isToolEnabled: () => false
+  }
+}
 
 class StubGameActions implements GameActions {
   public readonly calls: string[] = []

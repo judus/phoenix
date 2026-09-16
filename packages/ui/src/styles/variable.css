@@ -44,6 +44,7 @@
     --palette-wine-strong: #1e0712;
     --palette-amber: #ff8700;
     --palette-cyan: #00b3f7;
+    --palette-green: #52d273;
     --palette-ice: #d8ecff;
     --palette-slate: #788399;
     --palette-coral: #ff6176;
@@ -63,6 +64,7 @@
     --color-broken-surface: rgb(12 3 7 / 96%);
     --color-broken-text: rgb(255 97 118 / 62%);
     --color-positive: var(--palette-cyan);
+    --color-success: var(--palette-green);
     --color-warning: var(--palette-amber);
     --color-border: color-mix(in srgb, var(--palette-amber) 65%, transparent);
     --color-border-subtle: color-mix(in srgb, var(--palette-amber) 18%, transparent);
@@ -87,8 +89,8 @@
     /* Data display roles. */
     --meter-track: color-mix(in srgb, var(--palette-amber) 4%, var(--color-surface-subtle));
     --status-color: var(--color-text);
-    --selection-background: var(--color-action);
-    --selection-text: var(--color-canvas);
+    --selection-background: var(--color-danger-surface);
+    --selection-text: var(--color-text);
     --selection-indicator-width: 2px;
     --list-row-padding-block: var(--spacing-sm);
     --list-row-padding-inline: var(--spacing-sm);
@@ -166,6 +168,9 @@
     --command-border: var(--color-border-subtle);
     --command-text: var(--color-text);
     --command-meta: var(--color-action);
+    --command-note: var(--color-text-muted);
+    --command-grip: var(--color-action);
+    --command-grip-opacity: 0.12;
     --command-selected-background: color-mix(in srgb, var(--palette-cyan) 16%, transparent);
     --command-selected-border: var(--color-information);
     --command-selected-text: var(--color-text);
@@ -199,13 +204,37 @@
     }
   }
 
-  .presentation-elite {
+  .theme-elite {
+    --palette-amber: #ff7100;
+    --palette-cyan: #00b3f7;
+    --palette-green: #029e4c;
+    --palette-coral: #ff0000;
+    --color-action: var(--palette-amber);
+    --color-information: var(--palette-cyan);
+    --color-positive: var(--palette-cyan);
+    --color-success: var(--palette-green);
+    --color-danger: var(--palette-coral);
+    --color-warning: var(--palette-amber);
+    --color-border: color-mix(in srgb, var(--palette-amber) 65%, transparent);
+    --color-border-subtle: color-mix(in srgb, var(--palette-amber) 18%, transparent);
+    --color-focus: var(--palette-cyan);
+    --meter-track: color-mix(in srgb, var(--palette-amber) 4%, var(--color-surface-subtle));
+    --scrollbar-thumb: var(--color-border);
+    --scrollbar-thumb-hover: var(--color-action);
+    --panel-title: var(--color-action);
+    --elite-command-active: #ffb000;
+    --elite-command-ink: #000;
+    --elite-ambient-text-bloom:
+      0 0 0.25rem color-mix(in srgb, currentColor 48%, transparent),
+      0 0 0.65rem color-mix(in srgb, currentColor 28%, transparent);
+    --command-active-emissive: color-mix(in srgb, var(--elite-command-active) 15%, white);
+    --elite-command-pressed: color-mix(in srgb, var(--color-action) 88%, white);
+    --selection-background: var(--color-action);
+    --selection-text: var(--color-canvas);
     --control-block-size: 3rem;
     --control-padding-inline: var(--spacing-md);
     --control-border-width: 2px;
     --page-header-border-width: 2px;
-    --page-header-title: var(--color-action);
-    --panel-border: var(--color-border);
     --shell-header-size: 3.5rem;
     --shell-navigation-item-size: 3rem;
     --shell-navigation-active-background: var(--color-action);
@@ -218,17 +247,28 @@
     --button-secondary-border: var(--color-action);
     --button-secondary-text: var(--color-action);
     --button-quiet-text: var(--color-text);
-    --button-danger-background: #b70d2c;
+    --button-danger-background: var(--color-danger);
+    --button-danger-border: var(--color-danger);
+    --button-danger-text: var(--elite-command-ink);
 
     --command-background: var(--color-action);
-    --command-border: var(--color-canvas);
-    --command-text: var(--color-canvas);
-    --command-meta: var(--color-information);
-    --command-selected-background: #11b4c9;
-    --command-selected-border: var(--color-canvas);
-    --command-selected-text: var(--color-canvas);
+    --command-border: var(--color-action);
+    --command-text: var(--elite-command-ink);
+    --command-meta: var(--elite-command-ink);
+    --command-note: var(--palette-wine-strong);
+    --command-grip: var(--palette-wine-strong);
+    --command-grip-opacity: 0.2;
+    --command-selected-background: var(--elite-command-active);
+    --command-selected-border: var(--elite-command-active);
+    --command-selected-text: var(--command-active-emissive);
     --command-unavailable-background: rgb(16 9 16 / 96%);
     --command-unavailable-text: var(--color-text-muted);
-    --command-danger-background: #b70d2c;
-    --command-danger-border: var(--color-canvas);
+    --command-danger-background: var(--color-danger);
+    --command-danger-border: var(--color-danger);
+    --color-pressed-danger-background: var(--color-danger);
+
+    &,
+    & :where(*) {
+      text-shadow: var(--elite-ambient-text-bloom);
+    }
   }

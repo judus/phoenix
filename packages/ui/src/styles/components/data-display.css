@@ -154,6 +154,7 @@
     min-inline-size: 0;
 
     &.meter-action { --meter-color: var(--color-action); }
+    &.meter-success { --meter-color: var(--color-success); }
     &.meter-warning { --meter-color: var(--color-warning); }
     &.meter-danger { --meter-color: var(--color-danger); }
 

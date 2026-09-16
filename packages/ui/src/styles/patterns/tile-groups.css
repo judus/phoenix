@@ -76,14 +76,92 @@
     }
   }
 
-  .presentation-elite {
+  .theme-elite {
     .described-tile { --described-tile-size: 10rem; }
 
     .tile.btn {
+      padding: var(--spacing-xs);
       font-weight: var(--font-weight-normal);
 
+      &::after {
+        inset-inline-end: var(--spacing-xs);
+        inset-block-end: var(--spacing-xs);
+      }
+
+      &:not(.active, .unavailable, :disabled) {
+        :where(.label, .meta, .note) {
+          text-shadow:
+            0 0 0.22rem rgb(0 0 0 / 26%),
+            0 0 0.5rem rgb(0 0 0 / 22%);
+        }
+
+        &::after {
+          filter:
+            drop-shadow(0 0 0.22rem rgb(0 0 0 / 26%))
+            drop-shadow(0 0 0.5rem rgb(0 0 0 / 22%));
+        }
+      }
+
+      &.active {
+        --command-text: var(--command-active-emissive);
+        --command-selected-text: var(--command-active-emissive);
+        --command-note: var(--command-active-emissive);
+        --command-grip: var(--command-active-emissive);
+        --command-grip-opacity: 0.72;
+
+        :where(.label, .meta, .note) {
+          text-shadow:
+            0 0 0.24rem rgb(255 255 255 / 90%),
+            0 0 0.62rem rgb(255 255 255 / 62%);
+        }
+
+        &::after {
+          filter: drop-shadow(0 0 0.2rem rgb(255 255 255 / 86%));
+        }
+      }
+
+      &.palette-preview-blue {
+        --command-background: var(--palette-cyan);
+        --command-border: var(--palette-cyan);
+        --command-active-emissive: color-mix(in srgb, var(--palette-cyan) 15%, white);
+        --palette-preview-active: color-mix(in srgb, var(--palette-cyan) 80%, white);
+      }
+
+      &.palette-preview-green {
+        --command-background: var(--palette-green);
+        --command-border: var(--palette-green);
+        --command-active-emissive: color-mix(in srgb, var(--palette-green) 15%, white);
+        --palette-preview-active: color-mix(in srgb, var(--palette-green) 80%, white);
+      }
+
+      &.palette-preview-red {
+        --command-background: var(--palette-coral);
+        --command-border: var(--palette-coral);
+        --command-active-emissive: color-mix(in srgb, var(--palette-coral) 15%, white);
+        --palette-preview-active: color-mix(in srgb, var(--palette-coral) 80%, white);
+      }
+
+      &:is(.palette-preview-blue, .palette-preview-green, .palette-preview-red).active {
+        --command-selected-background: var(--palette-preview-active);
+        --command-selected-border: var(--palette-preview-active);
+      }
+
+      &:focus-visible { outline: none; }
+      &:hover:not(:disabled) { filter: none; }
+
+      &:active:not(:disabled) {
+        --command-meta: var(--elite-command-ink);
+
+        border-color: var(--elite-command-pressed);
+        background: var(--elite-command-pressed);
+        filter: none;
+      }
+
       &.theme-macro {
-        --command-background: linear-gradient(135deg, rgb(0 178 210 / 20%), rgb(16 9 16 / 98%));
+        --command-background: var(--color-action);
+        --command-border: var(--color-action);
+        --command-text: var(--elite-command-ink);
+        --command-meta: var(--elite-command-ink);
       }
     }
   }

@@ -1,0 +1,107 @@
+.copilot-load {
+  display: grid;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface);
+
+  > small {
+    color: var(--color-text-muted);
+    font-family: var(--font-family-display);
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+  }
+}
+
+.capability-groups {
+  display: grid;
+  gap: var(--spacing-xs);
+  margin-block-start: var(--spacing-xs);
+}
+
+.capability-group,
+.capability-subgroup {
+  > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    cursor: pointer;
+    list-style: none;
+
+    &::-webkit-details-marker { display: none; }
+
+    .capability-summary-label {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-xxs);
+      min-inline-size: 0;
+
+      > svg {
+        flex: none;
+        inline-size: 0.75rem;
+        block-size: 0.75rem;
+        stroke: currentColor;
+        transition: transform 100ms ease-out;
+      }
+    }
+
+    strong {
+      color: var(--color-text);
+      font-family: var(--font-family-display);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-normal);
+      text-transform: uppercase;
+    }
+
+    small {
+      color: var(--color-text-muted);
+      font-family: var(--font-family-display);
+      font-size: var(--font-size-xs);
+      text-transform: uppercase;
+    }
+  }
+
+  > .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-block-start: 1px solid var(--color-border-subtle);
+  }
+
+  > .settings-list { border-block-start: 1px solid var(--color-border-subtle); }
+
+  &[open] > summary .capability-summary-label > svg { transform: rotate(90deg); }
+}
+
+.capability-group {
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface);
+
+  > summary strong { color: var(--color-action); }
+}
+
+.capability-subgroups { border-block-start: 1px solid var(--color-border-subtle); }
+
+.capability-subgroup {
+  background: var(--color-surface-subtle);
+
+  + .capability-subgroup { border-block-start: 1px solid var(--color-border-subtle); }
+
+  > summary { padding-inline-start: var(--spacing-lg); }
+
+  > .actions,
+  > .settings-list { margin-inline-start: var(--spacing-sm); }
+}
+
+.capability-id {
+  display: block;
+  margin-block-start: var(--spacing-xxs);
+  color: var(--color-text-muted);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xxs);
+  letter-spacing: normal;
+  text-transform: none;
+}

@@ -18,7 +18,7 @@ export class StationsLookupTool implements LocalTool {
       required: ['name'],
       type: 'object'
     },
-    name: 'stations.lookup'
+    name: 'stations.find_stations_by_name'
   }
 
   public constructor (private readonly stations: StationQuery) {}

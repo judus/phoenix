@@ -5,7 +5,7 @@ type MeterProps = HTMLAttributes<HTMLDivElement> & {
   layout?: 'stacked' | 'inline' | 'compact'
   max?: number
   showValue?: boolean
-  tone?: 'action' | 'information' | 'warning' | 'danger'
+  tone?: 'action' | 'information' | 'success' | 'warning' | 'danger'
   value: number
   valueLabel: string
 }

@@ -19,7 +19,7 @@ export class ExplorationSearchTargetsTool implements LocalTool {
         volcanismTypes: { items: { minLength: 1, type: 'string' }, type: 'array' }
       }, type: 'object'
     },
-    name: 'exploration.search_targets'
+    name: 'exploration.find_exploration_targets'
   }
   public constructor (private readonly exploration: ExplorationTargetQuery) {}
   public readonly execute = (arguments_: JsonObject) => this.exploration.searchTargets(arguments_)

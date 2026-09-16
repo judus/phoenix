@@ -13,7 +13,7 @@ export class ShipsGetDefinitionTool implements LocalTool {
       required: ['identifier'],
       type: 'object'
     },
-    name: 'ships.get_definition'
+    name: 'ships.get_ship_definition'
   }
 
   public constructor (private readonly catalogue: GameCatalogue) {}

@@ -6,8 +6,34 @@ test('browser device preferences default to following Copilot and capturing the 
   const preferences = new BrowserDevicePreferences(storage)
 
   expect(preferences.getSnapshot()).toEqual({
+    version: 2,
+    audioInputId: '',
+    audioOutputId: '',
+    captureNumpad: true,
+    currentShipLoadoutView: 'tiles',
+    followCopilotNavigation: true,
+    presentation: 'phoenix',
+    shipCatalogueView: 'dossier',
+    uiScalePercent: 100,
+    variableCommandLabelSizes: true
+  })
+  preferences.update({ variableCommandLabelSizes: false, audioInputId: 'mic-1', captureNumpad: false, currentShipLoadoutView: 'table', presentation: 'elite', shipCatalogueView: 'table', uiScalePercent: 115 })
+  expect(new BrowserDevicePreferences(storage).getSnapshot()).toMatchObject({
+    audioInputId: 'mic-1',
+    captureNumpad: false,
+    currentShipLoadoutView: 'table',
+    presentation: 'elite',
+    shipCatalogueView: 'table',
+    uiScalePercent: 115,
+    variableCommandLabelSizes: false
+  })
+})
+
+test('browser device preferences migrate the Numpy-only label setting', () => {
+  const storage = new MemoryStorage()
+  storage.setItem('phoenix.device.preferences', JSON.stringify({
     version: 1,
-    adaptiveNumpadLabels: true,
+    adaptiveNumpadLabels: false,
     audioInputId: '',
     audioOutputId: '',
     captureNumpad: true,
@@ -16,16 +42,11 @@ test('browser device preferences default to following Copilot and capturing the 
     presentation: 'phoenix',
     shipCatalogueView: 'dossier',
     uiScalePercent: 100
-  })
-  preferences.update({ adaptiveNumpadLabels: false, audioInputId: 'mic-1', captureNumpad: false, currentShipLoadoutView: 'table', presentation: 'elite', shipCatalogueView: 'table', uiScalePercent: 115 })
+  }))
+
   expect(new BrowserDevicePreferences(storage).getSnapshot()).toMatchObject({
-    adaptiveNumpadLabels: false,
-    audioInputId: 'mic-1',
-    captureNumpad: false,
-    currentShipLoadoutView: 'table',
-    presentation: 'elite',
-    shipCatalogueView: 'table',
-    uiScalePercent: 115
+    version: 2,
+    variableCommandLabelSizes: false
   })
 })
 

@@ -3,9 +3,9 @@ import type { GameCatalogue } from '@phoenix/elite'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type { Commands } from '../domain/commands.js'
 import { CommanderGetCurrentStateTool } from './mcp-tools/commander-get-current-state-tool.js'
-import { CommanderGetInventoryTool } from './mcp-tools/commander-get-inventory-tool.js'
-import { CommanderListEngineersTool } from './mcp-tools/commander-list-engineers-tool.js'
-import { CommanderListMaterialsTool } from './mcp-tools/commander-list-materials-tool.js'
+import { EquipmentGetReportTool } from './mcp-tools/equipment-get-report-tool.js'
+import { EngineeringListEngineersTool } from './mcp-tools/engineering-list-engineers-tool.js'
+import { EngineeringListMaterialInventoryTool } from './mcp-tools/engineering-list-material-inventory-tool.js'
 import { ControlsExecuteTool } from './mcp-tools/controls-execute-tool.js'
 import { ControlsFindActionsTool } from './mcp-tools/controls-find-actions-tool.js'
 import { ControlsSetSwitchTool } from './mcp-tools/controls-set-switch-tool.js'
@@ -19,7 +19,7 @@ import { ShipGetStatusTool } from './mcp-tools/ship-get-status-tool.js'
 import { ShipListModulesTool } from './mcp-tools/ship-list-modules-tool.js'
 import { ShipsCompareTool } from './mcp-tools/ships-compare-tool.js'
 import { ShipsGetDefinitionTool } from './mcp-tools/ships-get-definition-tool.js'
-import { ShipsFindShipyardsTool } from './mcp-tools/ships-find-shipyards-tool.js'
+import { StationsFindShipyardsSellingShipTool } from './mcp-tools/stations-find-shipyards-selling-ship-tool.js'
 import { SystemsGetDetailsTool } from './mcp-tools/systems-get-details-tool.js'
 import { SystemsSearchTool } from './mcp-tools/systems-search-tool.js'
 import { FactionsSearchTool } from './mcp-tools/factions-search-tool.js'
@@ -32,8 +32,8 @@ import { StationsSearchOutfittingTool } from './mcp-tools/stations-search-outfit
 import { StationsLookupTool } from './mcp-tools/stations-lookup-tool.js'
 import { ExplorationGetCurrentBodyTool } from './mcp-tools/exploration-get-current-body-tool.js'
 import { ExplorationSearchTargetsTool } from './mcp-tools/exploration-search-targets-tool.js'
-import { OperationsListMissionsTool } from './mcp-tools/operations-list-missions-tool.js'
-import { OutfittingFindModuleTool } from './mcp-tools/outfitting-find-module-tool.js'
+import { MissionsListMissionsTool } from './mcp-tools/missions-list-missions-tool.js'
+import { StationsFindStationsSellingModuleTool } from './mcp-tools/stations-find-stations-selling-module-tool.js'
 import { CommsListMessagesTool } from './mcp-tools/comms-list-messages-tool.js'
 import { FleetListShipsTool } from './mcp-tools/fleet-list-ships-tool.js'
 import { FleetListStoredModulesTool } from './mcp-tools/fleet-list-stored-modules-tool.js'
@@ -44,6 +44,7 @@ import type { MissionDataReader } from '../domain/missions.js'
 import type { CommunicationDataReader } from '../domain/communications.js'
 import type { FleetDataReader } from '../domain/fleet.js'
 import type { WebSearchSource } from '../domain/web-search.js'
+import type { PersonalEquipmentReportReader } from '../domain/personal-equipment-report.js'
 
 export interface PhoenixMcpToolDependencies {
   commands: Commands
@@ -51,6 +52,7 @@ export interface PhoenixMcpToolDependencies {
   gameCatalogue: GameCatalogue
   engineers: CommanderEngineersQuery
   display: DisplayCommands
+  equipment: PersonalEquipmentReportReader
   exploration: ExplorationBodyQuery
   explorationTargets: ExplorationTargetQuery
   fleet: FleetDataReader
@@ -74,13 +76,13 @@ export interface PhoenixMcpToolDependencies {
 export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies): LocalTool[] {
   return [
     new CommanderGetCurrentStateTool(dependencies.runtimeState),
-    new CommanderGetInventoryTool(dependencies.runtimeState),
-    new CommanderListEngineersTool(dependencies.engineers),
-    new CommanderListMaterialsTool(dependencies.runtimeState),
+    new EquipmentGetReportTool(dependencies.equipment),
+    new EngineeringListEngineersTool(dependencies.engineers),
+    new EngineeringListMaterialInventoryTool(dependencies.runtimeState),
     new CommsListMessagesTool(dependencies.communications),
     new ControlsFindActionsTool(dependencies.commands),
     new ControlsExecuteTool(dependencies.commands),
-    new ControlsSetSwitchTool(dependencies.statefulActions),
+    new ControlsSetSwitchTool(dependencies.statefulActions, dependencies.commands),
     new DisplayOpenPageTool(dependencies.display),
     new DisplayShowBodyTool(dependencies.display),
     new DisplayShowSystemTool(dependencies.display),
@@ -91,15 +93,15 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new FleetListStoredModulesTool(dependencies.fleet),
     new NavigationCanJumpToTool(dependencies.navigation),
     new NavigationGetRouteTool(dependencies.navigation),
-    new OperationsListMissionsTool(dependencies.missions),
-    new OutfittingFindModuleTool(dependencies.stations),
+    new MissionsListMissionsTool(dependencies.missions),
+    new StationsFindStationsSellingModuleTool(dependencies.stations),
     new MarketsFindBestTradeTool(dependencies.markets),
     new MarketsFindTradeOpportunitiesTool(dependencies.markets),
     new ShipGetCargoTool(dependencies.runtimeState),
     new ShipGetStatusTool(dependencies.runtimeState),
     new ShipListModulesTool(dependencies.runtimeState),
     new ShipsCompareTool(dependencies.gameCatalogue),
-    new ShipsFindShipyardsTool(dependencies.stations),
+    new StationsFindShipyardsSellingShipTool(dependencies.stations),
     new ShipsGetDefinitionTool(dependencies.gameCatalogue),
     new StationsFindNearestTool(dependencies.stations),
     new StationsGetDetailsTool(dependencies.stations),

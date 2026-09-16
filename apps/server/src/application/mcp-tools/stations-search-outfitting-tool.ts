@@ -17,7 +17,7 @@ export class StationsSearchOutfittingTool implements LocalTool {
       required: ['query'],
       type: 'object'
     },
-    name: 'stations.search_outfitting'
+    name: 'stations.list_outfitting_stock'
   }
   public constructor (private readonly stations: StationQuery) {}
   public readonly execute = (arguments_: JsonObject) => this.stations.searchOutfitting(arguments_)

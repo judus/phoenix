@@ -58,6 +58,7 @@
   }
 
   .setting-toggle {
+    position: relative;
     display: inline-grid;
     grid-template-columns: auto auto;
     align-items: center;
@@ -66,10 +67,13 @@
 
     input {
       position: absolute;
-      inline-size: 1px;
-      block-size: 1px;
-      overflow: hidden;
-      clip-path: inset(50%);
+      z-index: 1;
+      inset: 0;
+      inline-size: 100%;
+      block-size: 100%;
+      margin: 0;
+      cursor: inherit;
+      opacity: 0;
     }
 
     span {
