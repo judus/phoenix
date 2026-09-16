@@ -67,8 +67,7 @@ export function CurrentShipOverview({ actions, model, onExecuteAction, onNavigat
                   <ActionCommand
                     actionId={control.actionId}
                     actions={actions}
-                    active={control.active || palettePreviewActive(control.actionId)}
-                    className={palettePreviewClass(control.actionId)}
+                    active={control.active}
                     key={control.actionId}
                     label={control.label}
                     onExecuteAction={onExecuteAction}
@@ -88,7 +87,6 @@ export function CurrentShipOverview({ actions, model, onExecuteAction, onNavigat
                     actionId={control.actionId}
                     actions={actions}
                     active={control.active}
-                    className={palettePreviewClass(control.actionId)}
                     key={control.actionId}
                     label={control.label}
                     onExecuteAction={onExecuteAction}
@@ -112,8 +110,7 @@ export function CurrentShipOverview({ actions, model, onExecuteAction, onNavigat
                 <ActionCommand
                   actionId={control.actionId}
                   actions={actions}
-                  active={control.active || palettePreviewActive(control.actionId)}
-                  className={palettePreviewClass(control.actionId)}
+                  active={control.active}
                   key={control.actionId}
                   label={control.label}
                   onExecuteAction={onExecuteAction}
@@ -133,7 +130,7 @@ function FactsWidget({ items, label, link }: {
   link?: ReactNode
 }) {
   return (
-    <Widget aria-label={label} className="fixed-data" eyebrow={label} link={link}>
+    <Widget aria-label={label} className="current-vessel-widget fixed-data" eyebrow={label} link={link}>
       <DescriptionList className="adaptive-columns" columns="two" density="compact">
         {items.map(item => <DescriptionItem key={item.label} label={item.label} value={item.value} />)}
       </DescriptionList>
@@ -232,15 +229,13 @@ function PowerDistributionWidget({ actions, model, onExecuteAction }: {
 }
 
 function WarningsWidget({ warnings }: { warnings: CurrentShipModel['warnings'] }) {
-  const previewActiveWarnings = new Set(['interdiction', 'mass-lock'])
-
   return (
     <Widget aria-label="Warnings" className="warning-widget widget-eyebrow-hidden" eyebrow="Warnings">
       <div className="warning-lamps">
         {warnings.map(warning => (
           <div
             className="warning-lamp"
-            data-active={warning.active || previewActiveWarnings.has(warning.id) || undefined}
+            data-active={warning.active || undefined}
             data-tone={warning.tone}
             key={warning.id}
           >
@@ -290,11 +285,10 @@ function ModuleStatusWidget({ model, onNavigate }: { model: CurrentShipModel, on
   )
 }
 
-function ActionCommand({ actionId, actions, active, className, details = true, hideBinding = false, label, onExecuteAction }: {
+function ActionCommand({ actionId, actions, active, details = true, hideBinding = false, label, onExecuteAction }: {
   actionId: string
   actions: GameActionCatalogResponse | undefined
   active: boolean
-  className?: string
   details?: boolean
   hideBinding?: boolean
   label: string
@@ -305,7 +299,6 @@ function ActionCommand({ actionId, actions, active, className, details = true, h
     <CommandTile
       aria-label={`${label}: ${active ? 'active' : 'inactive'}`}
       binding={action?.binding?.display}
-      className={className}
       compact
       details={details}
       hideBinding={hideBinding}
@@ -341,15 +334,4 @@ function CurrentShipLinks({ onNavigate }: { onNavigate(route: PhoenixRoute): voi
 
 function priorityLabel(priority: number | null): string {
   return priority === null ? 'P—' : `P${priority}`
-}
-
-function palettePreviewClass(actionId: string): string | undefined {
-  if (actionId === 'elite.GalaxyMapOpen' || actionId === 'elite.NightVisionToggle') return 'palette-preview-blue'
-  if (actionId === 'elite.TargetNextRouteSystem' || actionId === 'elite.ShipSpotLightToggle') return 'palette-preview-green'
-  if (actionId === 'elite.ToggleCargoScoop' || actionId === 'elite.SilentRunning') return 'palette-preview-red'
-  return undefined
-}
-
-function palettePreviewActive(actionId: string): boolean {
-  return actionId === 'elite.GalaxyMapOpen' || actionId === 'elite.TargetNextRouteSystem' || actionId === 'elite.ToggleCargoScoop'
 }

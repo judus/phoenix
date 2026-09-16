@@ -209,6 +209,9 @@
     --palette-cyan: #00b3f7;
     --palette-green: #029e4c;
     --palette-coral: #ff0000;
+    --color-surface: rgb(27 11 14 / 90%);
+    --color-surface-strong: rgb(34 10 14 / 96%);
+    --color-surface-subtle: rgb(47 12 15 / 38%);
     --color-action: var(--palette-amber);
     --color-information: var(--palette-cyan);
     --color-positive: var(--palette-cyan);
@@ -237,6 +240,27 @@
     --page-header-border-width: 2px;
     --shell-header-size: 3.5rem;
     --shell-navigation-item-size: 3rem;
+    --elite-texture-horizontal:
+      repeating-linear-gradient(
+        0deg,
+        color-mix(in srgb, var(--color-action) 3%, transparent) 0 1px,
+        transparent 1px 4px
+      );
+    --elite-texture-vertical:
+      repeating-linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--color-action) 1.5%, transparent) 0 1px,
+        transparent 1px 2rem
+      );
+    --elite-row-background:
+      var(--elite-texture-horizontal),
+      var(--elite-texture-vertical),
+      var(--color-surface);
+    --elite-row-gap: 0.375rem;
+    --shell-chrome-background:
+      var(--elite-texture-horizontal),
+      var(--elite-texture-vertical),
+      var(--color-surface);
     --shell-navigation-active-background: var(--color-action);
     --shell-navigation-active-text: var(--color-canvas);
 

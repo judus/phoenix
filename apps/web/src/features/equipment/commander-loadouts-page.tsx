@@ -2,7 +2,7 @@ import type { CommanderEquipmentResponse } from '@phoenix/contracts'
 import { Breadcrumbs, PageFrame, PageHeader, Stack, Status } from '@phoenix/ui'
 import type { ReactNode } from 'react'
 import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
-import { ObservedEquipmentNotice, SuitLoadoutsTable } from './personal-equipment-tables.js'
+import { SuitLoadoutsTable } from './personal-equipment-tables.js'
 import type { PersonalEquipmentControllerSnapshot } from './use-personal-equipment-controller.js'
 
 export function CommanderLoadoutsPage({ controller }: { controller: PersonalEquipmentControllerSnapshot }) {
@@ -14,7 +14,6 @@ export function CommanderLoadoutsPage({ controller }: { controller: PersonalEqui
   return (
     <LoadoutsFrame equipment={equipment}>
       <Stack className="record-page-content" gap="xl" tabIndex={0}>
-        <ObservedEquipmentNotice />
         <SuitLoadoutsTable equipment={equipment} />
       </Stack>
     </LoadoutsFrame>

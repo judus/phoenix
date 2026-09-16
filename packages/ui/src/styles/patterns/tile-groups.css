@@ -120,32 +120,6 @@
         }
       }
 
-      &.palette-preview-blue {
-        --command-background: var(--palette-cyan);
-        --command-border: var(--palette-cyan);
-        --command-active-emissive: color-mix(in srgb, var(--palette-cyan) 15%, white);
-        --palette-preview-active: color-mix(in srgb, var(--palette-cyan) 80%, white);
-      }
-
-      &.palette-preview-green {
-        --command-background: var(--palette-green);
-        --command-border: var(--palette-green);
-        --command-active-emissive: color-mix(in srgb, var(--palette-green) 15%, white);
-        --palette-preview-active: color-mix(in srgb, var(--palette-green) 80%, white);
-      }
-
-      &.palette-preview-red {
-        --command-background: var(--palette-coral);
-        --command-border: var(--palette-coral);
-        --command-active-emissive: color-mix(in srgb, var(--palette-coral) 15%, white);
-        --palette-preview-active: color-mix(in srgb, var(--palette-coral) 80%, white);
-      }
-
-      &:is(.palette-preview-blue, .palette-preview-green, .palette-preview-red).active {
-        --command-selected-background: var(--palette-preview-active);
-        --command-selected-border: var(--palette-preview-active);
-      }
-
       &:focus-visible { outline: none; }
       &:hover:not(:disabled) { filter: none; }
 

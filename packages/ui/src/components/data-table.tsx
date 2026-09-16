@@ -1,4 +1,5 @@
 import { useMemo, useState, type HTMLAttributes, type Key, type ReactNode, type TableHTMLAttributes } from 'react'
+import { ControlContext } from './control-context'
 
 export type DataTableProps = Omit<TableHTMLAttributes<HTMLTableElement>, 'aria-label'> & {
   density?: 'compact' | 'standard' | 'comfortable'
@@ -126,6 +127,7 @@ export function DataTable({
 }
 
 type DataTableGroupProps = HTMLAttributes<HTMLElement> & {
+  actions?: ReactNode
   contentGap?: 'none' | 'sm'
   fill?: boolean
   meta?: ReactNode
@@ -133,7 +135,7 @@ type DataTableGroupProps = HTMLAttributes<HTMLElement> & {
   tone?: 'default' | 'muted'
 }
 
-export function DataTableGroup({ children, className, contentGap = 'none', fill = false, meta, title, tone = 'default', ...props }: DataTableGroupProps) {
+export function DataTableGroup({ actions, children, className, contentGap = 'none', fill = false, meta, title, tone = 'default', ...props }: DataTableGroupProps) {
   return (
     <section
       className={['data-table-group', contentGap !== 'none' && `content-gap-${contentGap}`, fill && 'fill', tone === 'muted' && 'muted', className].filter(Boolean).join(' ')}
@@ -142,6 +144,11 @@ export function DataTableGroup({ children, className, contentGap = 'none', fill 
       <header>
         <h2>{title}</h2>
         {meta !== undefined && meta !== null && <span>{meta}</span>}
+        {actions && (
+          <ControlContext className="actions" context="toolbar" density="compact">
+            {actions}
+          </ControlContext>
+        )}
       </header>
       {children}
     </section>

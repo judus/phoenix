@@ -47,7 +47,6 @@ function SpecialistIndex({ catalogue }: { catalogue: PersonalEquipmentSpecialist
   return (
     <EquipmentPageLayout title="Specialists" updatedAt={catalogue.generatedAt}>
       <Stack className="record-page-content" gap="xl" tabIndex={0}>
-        <CatalogueNotice catalogue={catalogue} />
         {groups.map(group => {
           const specialists = catalogue.specialists.filter(specialist => group.states.some(state => state === specialist.access.state))
           return specialists.length > 0
@@ -88,7 +87,6 @@ function SpecialistDetail({ catalogue, specialist }: {
       updatedAt={catalogue.generatedAt}
     >
       <Stack className="record-page-content" gap="xl" tabIndex={0}>
-        <CatalogueNotice catalogue={catalogue} />
         <DataTableGroup title="Access and location">
           <DescriptionList columns="two" density="compact">
             <DescriptionItem label="Access" value={accessLabel(specialist)} />
@@ -110,16 +108,6 @@ function SpecialistDetail({ catalogue, specialist }: {
         </DataTableGroup>
       </Stack>
     </EquipmentPageLayout>
-  )
-}
-
-function CatalogueNotice({ catalogue }: { catalogue: PersonalEquipmentSpecialistsResponse }) {
-  const source = catalogue.sources[0]
-  return (
-    <Status tone="muted">
-      {source ? `${source.name} catalogue ${source.revision.slice(0, 8)}. ` : ''}
-      Capabilities and locations are externally reported. Access is reconstructed from the local Frontier journal; exact unlock counters and Pioneer stock are not claimed.
-    </Status>
   )
 }
 

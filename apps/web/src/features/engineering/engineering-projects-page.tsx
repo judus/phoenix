@@ -1,5 +1,5 @@
 import type { EngineeringMaterialWatchlistResponse, EngineeringProject } from '@phoenix/contracts'
-import { Button, DataTable, PageFrame, Section, Stack, Status } from '@phoenix/ui'
+import { Button, DataTable, DataTableGroup, PageFrame, Stack, Status } from '@phoenix/ui'
 import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
 import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js'
 import { formatPhoenixDateTime } from '../../components/phoenix-date-time.js'
@@ -16,7 +16,7 @@ export function EngineeringProjectsPage ({ onNavigate, projects, watchlist }: {
       <Stack fill gap="sm">
         <EngineeringHeader title="Engineering projects" trail={[{ label: 'Projects' }]} />
         <Stack className="engineering-scroll-content" gap="sm">
-          <Section
+          <DataTableGroup
             actions={<Button size="sm" variant="outline" onClick={() => onNavigate(engineeringProjectRoutes.new())}>New project</Button>}
             title="Project ledger"
           >
@@ -44,7 +44,7 @@ export function EngineeringProjectsPage ({ onNavigate, projects, watchlist }: {
                   </DataTable>
                 )
               : <Status tone="muted">No engineering projects. Create one, then add blueprints from the catalogue.</Status>}
-          </Section>
+          </DataTableGroup>
         </Stack>
       </Stack>
     </PageFrame>

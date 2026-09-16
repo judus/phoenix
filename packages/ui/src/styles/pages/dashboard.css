@@ -156,13 +156,17 @@
       color: var(--color-text-muted);
     }
 
-    .dashboard-market-signal-summary {
+    .dashboard-market-signal-detail {
       display: grid;
-      justify-items: end;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: var(--spacing-sm);
+      align-items: baseline;
+      min-inline-size: 0;
 
       > small {
         color: var(--color-text-muted);
         font-size: var(--font-size-xs);
+        white-space: nowrap;
       }
     }
   }

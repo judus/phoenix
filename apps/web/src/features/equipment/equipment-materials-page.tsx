@@ -1,5 +1,5 @@
-import type { PersonalMaterialInventoryGroup, PersonalMaterialInventoryResponse } from '@phoenix/contracts'
-import { DataTable, DataTableGroup, Stack, Status } from '@phoenix/ui'
+import type { PersonalMaterialInventoryGroup } from '@phoenix/contracts'
+import { DataTable, DataTableGroup, Stack } from '@phoenix/ui'
 import { EquipmentPageLayout } from './equipment-page-layout.js'
 import type { PersonalMaterialsControllerSnapshot } from './use-personal-materials-controller.js'
 
@@ -19,7 +19,6 @@ export function EquipmentMaterialsPage({ controller }: { controller: PersonalMat
   return (
     <EquipmentPageLayout title="Materials" updatedAt={inventory.updatedAt}>
       <Stack className="record-page-content" gap="xl" tabIndex={0}>
-        <Status tone="muted">{coverageLabel(inventory)}</Status>
         {inventory.groups.map(group => <MaterialGroup group={group} key={group.id} />)}
       </Stack>
     </EquipmentPageLayout>
@@ -48,15 +47,6 @@ function MaterialGroup({ group }: { group: PersonalMaterialInventoryGroup }) {
       </DataTable>
     </DataTableGroup>
   )
-}
-
-function coverageLabel(inventory: PersonalMaterialInventoryResponse): string {
-  const locker = inventory.stores.shipLockerUpdatedAt !== null
-  const backpack = inventory.stores.backpackUpdatedAt !== null
-  if (locker && backpack) return 'Ship Locker and Backpack snapshots reported by Elite.'
-  if (locker) return 'Only the Ship Locker snapshot has been reported. Backpack quantities are unknown.'
-  if (backpack) return 'Only the Backpack snapshot has been reported. Ship Locker quantities are unknown.'
-  return 'Elite has not reported a Ship Locker or Backpack snapshot yet.'
 }
 
 function count(value: number | null): number | string {

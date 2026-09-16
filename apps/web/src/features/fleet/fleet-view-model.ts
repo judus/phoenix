@@ -166,7 +166,7 @@ export function createCurrentShipModel(
       { actionId: 'elite.TargetNextRouteSystem', label: 'Route', active: false },
       { actionId: 'elite.GalaxyMapOpen', label: 'Galaxy map', active: false },
       { actionId: 'elite.SystemMapOpen', label: 'System map', active: false },
-      { actionId: 'elite.OrbitLinesToggle', label: 'Orbit lines', active: true },
+      { actionId: 'elite.OrbitLinesToggle', label: 'Orbit lines', active: false },
       { actionId: 'elite.DeployHardpointToggle', label: 'Hardpoints', active: flags?.hardpointsDeployed ?? false },
       { actionId: 'elite.LandingGearToggle', label: 'Landing gear', active: flags?.landingGearDown ?? false },
       { actionId: 'elite.ToggleCargoScoop', label: 'Cargo scoop', active: flags?.cargoScoopDeployed ?? false },

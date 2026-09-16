@@ -42,7 +42,6 @@ function UpgradeIndex({ catalogue }: { catalogue: PersonalEquipmentUpgradesRespo
   return (
     <EquipmentPageLayout title="Upgrades" updatedAt={catalogue.generatedAt}>
       <Stack className="record-page-content" gap="xl" tabIndex={0}>
-        <CatalogueNotice catalogue={catalogue} />
         <DataTableGroup meta={`${catalogue.gradeUpgradePaths.length} paths`} title="Grade upgrades">
           <DataTable density="compact" label="Personal equipment grade upgrades" narrow="priority" scheme="surface">
             <thead><tr><th>Equipment</th><th>Path</th><th className="priority-secondary">Modification slots</th><th className="priority-secondary">Steps</th></tr></thead>
@@ -81,7 +80,6 @@ function GradeUpgradeDetail({ catalogue, path }: {
   return (
     <EquipmentPageLayout title={path.name} trail={[{ label: 'Upgrades', href: '#/equipment/upgrades' }, { label: path.name }]} updatedAt={catalogue.generatedAt}>
       <Stack className="record-page-content" gap="xl" tabIndex={0}>
-        <CatalogueNotice catalogue={catalogue} />
         <DataTableGroup title="Upgrade path">
           <DescriptionList columns="two" density="compact">
             <DescriptionItem label="Equipment" value={path.equipmentNames.join(', ')} />
@@ -115,7 +113,6 @@ function ModificationDetail({ catalogue, modification }: {
   return (
     <EquipmentPageLayout title={modification.name} trail={[{ label: 'Upgrades', href: '#/equipment/upgrades' }, { label: modification.name }]} updatedAt={catalogue.generatedAt}>
       <Stack className="record-page-content" gap="xl" tabIndex={0}>
-        <CatalogueNotice catalogue={catalogue} />
         <DataTableGroup title="Modification">
           <DescriptionList columns="two" density="compact">
             <DescriptionItem label="Target" value={targetLabel(modification)} />
@@ -144,16 +141,6 @@ function IngredientsTable({ ingredients, label }: { ingredients: PersonalEquipme
         </tr>
       ))}</tbody>
     </DataTable>
-  )
-}
-
-function CatalogueNotice({ catalogue }: { catalogue: PersonalEquipmentUpgradesResponse }) {
-  const source = catalogue.sources[0]
-  return (
-    <Status tone="muted">
-      {source ? `${source.name} catalogue ${source.revision.slice(0, 8)}. ` : ''}
-      Material requirements are externally reported. Credit costs remain unknown where the catalogue does not provide them.
-    </Status>
   )
 }
 

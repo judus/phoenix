@@ -242,13 +242,13 @@ export function DashboardPage({
                         <ItemList aria-label="Market signals" density="dense">
                           {controller.marketSignals.result!.signals.map(signal => (
                             <ItemListItem
-                              description={`${signal.side === 'buy' ? 'Buy' : 'Sell'} ${formatPhoenixCredits(signal.price)} · ${signal.stationName}`}
-                              key={`${signal.side}:${signal.commodityName}:${signal.marketId ?? signal.stationName}`}
-                              title={signal.commodityName}
-                              trailing={<span className="dashboard-market-signal-summary">
-                                <span>{signal.side === 'buy' ? '−' : '+'}{Math.round(signal.deviationPercent)}%</span>
+                              description={<span className="dashboard-market-signal-detail">
+                                <span>{signal.side === 'buy' ? 'Buy' : 'Sell'} {formatPhoenixCredits(signal.price)} · {signal.stationName}</span>
                                 <small>{signal.unlimitedVolume ? '∞ t' : `${signal.volume.toLocaleString('en-CH')} t`}</small>
                               </span>}
+                              key={`${signal.side}:${signal.commodityName}:${signal.marketId ?? signal.stationName}`}
+                              title={signal.commodityName}
+                              trailing={<span>{signal.side === 'buy' ? '−' : '+'}{Math.round(signal.deviationPercent)}%</span>}
                             />
                           ))}
                         </ItemList>

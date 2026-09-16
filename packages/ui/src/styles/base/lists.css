@@ -261,6 +261,17 @@
     &.compact { --list-row-padding-block: var(--spacing-xs); }
     &.comfortable { --list-row-padding-block: var(--spacing-md); }
   }
+
+  .theme-elite ul.item-list:not(.widget *) {
+    --item-list-selection-indicator-width: 0px;
+
+    gap: var(--elite-row-gap);
+
+    > li:not(.active) { background: var(--elite-row-background); }
+
+    > li:not(:last-child) > .item-list-row { border-block-end: 0; }
+  }
+
   @container item-list (width < 30rem) {
     ul.item-list > li.has-actions {
       grid-template-columns: minmax(0, 1fr);

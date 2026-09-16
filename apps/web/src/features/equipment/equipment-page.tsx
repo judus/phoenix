@@ -1,6 +1,6 @@
 import { Stack } from '@phoenix/ui'
 import { EquipmentPageLayout } from './equipment-page-layout.js'
-import { ObservedEquipmentNotice, SuitsTable, WeaponsTable } from './personal-equipment-tables.js'
+import { SuitsTable, WeaponsTable } from './personal-equipment-tables.js'
 import type { PersonalEquipmentControllerSnapshot } from './use-personal-equipment-controller.js'
 
 export function EquipmentPage({ controller }: { controller: PersonalEquipmentControllerSnapshot }) {
@@ -19,7 +19,6 @@ export function EquipmentPage({ controller }: { controller: PersonalEquipmentCon
   return (
     <EquipmentPageLayout title="Gear" updatedAt={equipment.updatedAt}>
       <Stack className="record-page-content" gap="xl" tabIndex={0}>
-        <ObservedEquipmentNotice />
         <SuitsTable equipment={equipment} />
         <WeaponsTable equipment={equipment} />
       </Stack>

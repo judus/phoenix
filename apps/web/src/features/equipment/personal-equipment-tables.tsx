@@ -4,16 +4,8 @@ import type {
   CommanderSuitLoadout,
   CommanderWeapon
 } from '@phoenix/contracts'
-import { DataTable, DataTableGroup, Status } from '@phoenix/ui'
+import { DataTable, DataTableGroup } from '@phoenix/ui'
 import { formatPhoenixCredits } from '../../components/phoenix-credits.js'
-
-export function ObservedEquipmentNotice() {
-  return (
-    <Status tone="muted">
-      Equipment ownership is reconstructed from retained Elite journals. Elite does not publish a complete owned-equipment manifest.
-    </Status>
-  )
-}
 
 export function SuitLoadoutsTable({ equipment }: { equipment: CommanderEquipmentResponse }) {
   const suits = new Map(equipment.suits.map(suit => [suit.id, suit]))

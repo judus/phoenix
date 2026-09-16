@@ -59,6 +59,10 @@
 
     .widget { block-size: auto; }
 
+    .current-vessel-widget > header .widget-heading > span {
+      font-size: var(--font-size-sm);
+    }
+
     .widget-eyebrow-hidden {
       grid-template-rows: minmax(0, 1fr);
       gap: 0;
