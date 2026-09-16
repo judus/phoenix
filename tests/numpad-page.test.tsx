@@ -24,8 +24,8 @@ const settings = {
   }
 }
 
-const devicePreferences = (variableNumpadFontSizes = true) => ({
-  getSnapshot: () => ({ audioInputId: '', audioOutputId: '', captureNumpad: true, currentShipLoadoutView: 'tiles' as const, followCopilotNavigation: true, shipCatalogueView: 'dossier' as const, variableNumpadFontSizes }),
+const devicePreferences = (adaptiveNumpadLabels = true) => ({
+  getSnapshot: () => ({ version: 1 as const, adaptiveNumpadLabels, audioInputId: '', audioOutputId: '', captureNumpad: true, currentShipLoadoutView: 'tiles' as const, followCopilotNavigation: true, presentation: 'phoenix' as const, shipCatalogueView: 'dossier' as const, uiScalePercent: 100 }),
   subscribe: () => () => {},
   update: () => {}
 }) satisfies DevicePreferences

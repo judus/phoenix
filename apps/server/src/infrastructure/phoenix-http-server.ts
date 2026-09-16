@@ -24,8 +24,10 @@ import {
   EngineeringProjectStepCreateRequestSchema,
   EngineeringProjectUpdateRequestSchema,
   GalaxyBookmarkWriteRequestSchema,
-  InstallationSettingsSchema,
-  InstallationSettingsUpdateSchema,
+  CopilotSettingsSchema,
+  CopilotSettingsUpdateSchema,
+  GeneralSettingsSchema,
+  GeneralSettingsUpdateSchema,
   MacroDefinitionSchema,
   OpenAiApiKeyRequestSchema,
   PlotEliteDestinationRequestSchema,
@@ -231,13 +233,14 @@ export class PhoenixHttpServer {
       this.writeJson(response, 200, {
         authenticated: true,
         installationId: 'development',
-        pairingRequired: false
+        pairingRequired: false,
+        serverDevice: false
       })
       return
     }
 
     if (!this.options.accessControl && request.method === 'POST' && url.pathname === '/api/pairing/claim') {
-      this.writeJson(response, 200, { authenticated: true, installationId: 'development', pairingRequired: false })
+      this.writeJson(response, 200, { authenticated: true, installationId: 'development', pairingRequired: false, serverDevice: false })
       return
     }
 
@@ -262,6 +265,35 @@ export class PhoenixHttpServer {
       response.setHeader('www-authenticate', 'Bearer realm="PHOENIX"')
       this.writeJson(response, 401, { error: { code: 'pairing_required', message: 'Pair this device with PHOENIX.' } })
       return
+    }
+
+    if (this.options.accessControl && url.pathname.startsWith('/api/pairing/')) {
+      if (!this.options.accessControl.isServerRequest(request)) {
+        this.writeJson(response, 403, {
+          error: { code: 'server_device_required', message: 'Paired device administration is only available on the PHOENIX computer.' }
+        })
+        return
+      }
+      if (request.method === 'GET' && url.pathname === '/api/pairing/devices') {
+        this.writeJson(response, 200, this.options.accessControl.devices(request))
+        return
+      }
+      if (request.method === 'POST' && url.pathname === '/api/pairing/code') {
+        this.options.accessControl.rotatePairingCode()
+        this.writeJson(response, 200, await this.pairingInfo())
+        return
+      }
+      if (request.method === 'DELETE' && url.pathname === '/api/pairing/devices') {
+        this.options.accessControl.revokeAllSessions()
+        this.writeJson(response, 200, this.options.accessControl.devices(request))
+        return
+      }
+      const deviceMatch = url.pathname.match(/^\/api\/pairing\/devices\/([^/]+)$/u)
+      if (request.method === 'DELETE' && deviceMatch) {
+        this.options.accessControl.revokeSession(decodeURIComponent(deviceMatch[1]!))
+        this.writeJson(response, 200, this.options.accessControl.devices(request))
+        return
+      }
     }
 
     if (this.options.controlDeckHttp &&
@@ -977,32 +1009,52 @@ export class PhoenixHttpServer {
       return
     }
 
-    if (request.method === 'GET' && url.pathname === '/api/settings') {
+    if (request.method === 'GET' && url.pathname === '/api/settings/general') {
       const settings = this.options.systemSettings.loadOrCreate()
-      this.writeJson(response, 200, InstallationSettingsSchema.parse({
-        controlsEnabled: settings.controls.enabled,
-        copilotPermissions: settings.copilot.permissions,
+      this.writeJson(response, 200, GeneralSettingsSchema.parse({ controlsEnabled: settings.controls.enabled }))
+      return
+    }
+
+    if (request.method === 'PUT' && url.pathname === '/api/settings/general') {
+      try {
+        const input = GeneralSettingsUpdateSchema.parse(await readJsonBody(request))
+        const settings = this.options.systemSettings.loadOrCreate()
+        this.options.systemSettings.save({
+          ...settings,
+          controls: { ...settings.controls, enabled: input.controlsEnabled }
+        })
+        this.writeJson(response, 200, GeneralSettingsSchema.parse(input))
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : 'Invalid general settings.'
+        this.writeJson(response, 400, { error: { code: 'invalid_general_settings', message } })
+      }
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/settings/copilot') {
+      const settings = this.options.systemSettings.loadOrCreate()
+      this.writeJson(response, 200, CopilotSettingsSchema.parse({
+        permissions: settings.copilot.permissions,
         openAi: this.options.openAiConfiguration.status()
       }))
       return
     }
 
-    if (request.method === 'PUT' && url.pathname === '/api/settings') {
+    if (request.method === 'PUT' && url.pathname === '/api/settings/copilot') {
       try {
-        const input = InstallationSettingsUpdateSchema.parse(await readJsonBody(request))
+        const input = CopilotSettingsUpdateSchema.parse(await readJsonBody(request))
         const settings = this.options.systemSettings.loadOrCreate()
         this.options.systemSettings.save({
           ...settings,
-          copilot: { ...settings.copilot, permissions: input.copilotPermissions },
-          controls: { ...settings.controls, enabled: input.controlsEnabled }
+          copilot: { ...settings.copilot, permissions: input.permissions }
         })
-        this.writeJson(response, 200, InstallationSettingsSchema.parse({
-          ...input,
+        this.writeJson(response, 200, CopilotSettingsSchema.parse({
+          permissions: input.permissions,
           openAi: this.options.openAiConfiguration.status()
         }))
       } catch (cause) {
-        const message = cause instanceof Error ? cause.message : 'Invalid installation settings.'
-        this.writeJson(response, 400, { error: { code: 'invalid_settings', message } })
+        const message = cause instanceof Error ? cause.message : 'Invalid Copilot settings.'
+        this.writeJson(response, 400, { error: { code: 'invalid_copilot_settings', message } })
       }
       return
     }

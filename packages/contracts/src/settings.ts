@@ -126,15 +126,19 @@ export const OpenAiConfigurationStatusSchema = z.object({
   restartRequired: z.boolean()
 })
 
-export const InstallationSettingsSchema = z.object({
+export const GeneralSettingsSchema = z.object({
   controlsEnabled: z.boolean(),
-  copilotPermissions: CopilotExecutionPermissionsSchema,
+})
+
+export const GeneralSettingsUpdateSchema = GeneralSettingsSchema
+
+export const CopilotSettingsSchema = z.object({
+  permissions: CopilotExecutionPermissionsSchema,
   openAi: OpenAiConfigurationStatusSchema
 })
 
-export const InstallationSettingsUpdateSchema = z.object({
-  controlsEnabled: z.boolean(),
-  copilotPermissions: CopilotExecutionPermissionsSchema
+export const CopilotSettingsUpdateSchema = z.object({
+  permissions: CopilotExecutionPermissionsSchema
 })
 
 export const OpenAiApiKeyRequestSchema = z.object({
@@ -164,7 +168,9 @@ export type PhoenixControlDeckTheme = z.infer<typeof PhoenixControlDeckThemeSche
 export type PhoenixControlDeckConfiguration = z.infer<typeof PhoenixControlDeckConfigurationSchema>
 export type PhoenixSettings = z.infer<typeof PhoenixSettingsSchema>
 export type OpenAiConfigurationStatus = z.infer<typeof OpenAiConfigurationStatusSchema>
-export type InstallationSettings = z.infer<typeof InstallationSettingsSchema>
-export type InstallationSettingsUpdate = z.infer<typeof InstallationSettingsUpdateSchema>
+export type GeneralSettings = z.infer<typeof GeneralSettingsSchema>
+export type GeneralSettingsUpdate = z.infer<typeof GeneralSettingsUpdateSchema>
+export type CopilotSettings = z.infer<typeof CopilotSettingsSchema>
+export type CopilotSettingsUpdate = z.infer<typeof CopilotSettingsUpdateSchema>
 export type OpenAiApiKeyRequest = z.infer<typeof OpenAiApiKeyRequestSchema>
 export type RuntimeSystemSnapshot = z.infer<typeof RuntimeSystemSnapshotSchema>

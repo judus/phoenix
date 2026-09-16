@@ -267,7 +267,10 @@ class FakeDevicePreferences implements DevicePreferences {
     currentShipLoadoutView: 'tiles',
     followCopilotNavigation: true,
     shipCatalogueView: 'dossier',
-    variableNumpadFontSizes: true
+    adaptiveNumpadLabels: true,
+    presentation: 'phoenix',
+    uiScalePercent: 100,
+    version: 1
   }
 
   getSnapshot = (): PhoenixDevicePreferencesSnapshot => this.#snapshot

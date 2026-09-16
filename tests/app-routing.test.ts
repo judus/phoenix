@@ -44,7 +44,9 @@ describe('PHOENIX route parsing and generation', () => {
     ['#/records/journal', { kind: 'journal', view: 'journal' }, 'journal'],
     ['#/records/credits', { kind: 'journal', view: 'credits' }, 'journal'],
     ['#/developer/runtime', { kind: 'developer', view: 'runtime' }, 'journal'],
-    ['#/settings', { kind: 'settings', view: 'dashboard' }, 'settings'],
+    ['#/settings/general', { kind: 'settings', view: 'general' }, 'settings'],
+    ['#/settings/pairing', { kind: 'settings', view: 'pairing' }, 'settings'],
+    ['#/settings/copilot', { kind: 'settings', view: 'copilot' }, 'settings'],
     ['#/settings/help', { kind: 'settings', view: 'help' }, 'settings']
   ] as const)('parses %s as a canonical destination', (hash, route, workspace) => {
     expect(parsePhoenixRoute(hash)).toEqual(route)
@@ -52,11 +54,11 @@ describe('PHOENIX route parsing and generation', () => {
     expect(phoenixRouteHash(parsePhoenixRoute(hash))).toBe(hash)
   })
 
-  test('legacy Settings pages resolve to the dashboard', () => {
-    const route = parsePhoenixRoute('#/settings/audio')
+  test('unknown Settings pages resolve to General', () => {
+    const route = parsePhoenixRoute('#/settings/unknown')
 
-    expect(route).toEqual({ kind: 'settings', view: 'dashboard' })
-    expect(phoenixRouteHash(route)).toBe('#/settings')
+    expect(route).toEqual({ kind: 'settings', view: 'general' })
+    expect(phoenixRouteHash(route)).toBe('#/settings/general')
   })
 
   test('query state survives parsing and canonical generation', () => {

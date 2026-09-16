@@ -52,7 +52,7 @@ export type PhoenixRoute =
   | { kind: 'macros' }
   | { kind: 'journal', view: 'journal' | 'credits' }
   | { kind: 'developer', view: 'overview' | 'runtime' | 'elite' | 'health' | 'tests' | 'controls' }
-  | { kind: 'settings', view: 'dashboard' | 'help' }
+  | { kind: 'settings', view: 'general' | 'pairing' | 'copilot' | 'help' }
 
 export type PhoenixWorkspace =
   | 'controls'
@@ -115,7 +115,7 @@ export function defaultRouteForWorkspace(
     case 'telemetry': return { kind: 'numpad' }
     case 'macros': return { kind: 'macros' }
     case 'journal': return { kind: 'journal', view: 'journal' }
-    case 'settings': return { kind: 'settings', view: 'dashboard' }
+    case 'settings': return { kind: 'settings', view: 'general' }
   }
 }
 import type { GalaxyQueryId } from '@phoenix/contracts'

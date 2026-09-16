@@ -60,7 +60,7 @@ export const PHOENIX_NAVIGATION_DESTINATIONS: readonly NavigationCommandDestinat
   destination('copilot.channel', 'Copilot', '#copilot', 'Copilot', 'Open the Copilot channel.'),
   destination('macros.library', 'Macros', '#/macros', 'Macros', 'Open the macro library.'),
   destination('log.journal', 'Log', '#/records/journal', 'Log', 'Open the retained event journal.'),
-  destination('settings.dashboard', 'Settings', '#/settings', 'Settings', 'Open PHOENIX settings.')
+  destination('settings.dashboard', 'Settings', '#/settings/general', 'Settings', 'Open PHOENIX settings.')
 ]
 
 export class DefaultCommandRegistry implements CommandRegistry {

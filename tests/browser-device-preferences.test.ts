@@ -6,28 +6,34 @@ test('browser device preferences default to following Copilot and capturing the 
   const preferences = new BrowserDevicePreferences(storage)
 
   expect(preferences.getSnapshot()).toEqual({
+    version: 1,
+    adaptiveNumpadLabels: true,
     audioInputId: '',
     audioOutputId: '',
     captureNumpad: true,
     currentShipLoadoutView: 'tiles',
     followCopilotNavigation: true,
+    presentation: 'phoenix',
     shipCatalogueView: 'dossier',
-    variableNumpadFontSizes: true
+    uiScalePercent: 100
   })
-  preferences.update({ audioInputId: 'mic-1', captureNumpad: false, currentShipLoadoutView: 'table', shipCatalogueView: 'table', variableNumpadFontSizes: false })
+  preferences.update({ adaptiveNumpadLabels: false, audioInputId: 'mic-1', captureNumpad: false, currentShipLoadoutView: 'table', presentation: 'elite', shipCatalogueView: 'table', uiScalePercent: 115 })
   expect(new BrowserDevicePreferences(storage).getSnapshot()).toMatchObject({
+    adaptiveNumpadLabels: false,
     audioInputId: 'mic-1',
     captureNumpad: false,
     currentShipLoadoutView: 'table',
+    presentation: 'elite',
     shipCatalogueView: 'table',
-    variableNumpadFontSizes: false
+    uiScalePercent: 115
   })
 })
 
-test('browser device preferences migrate the previous display-following choice', () => {
+test('browser device preferences reject unversioned legacy data', () => {
   const storage = new MemoryStorage()
   storage.setItem('phoenix.device.allow-remote-display-commands', 'false')
-  expect(new BrowserDevicePreferences(storage).getSnapshot().followCopilotNavigation).toBe(false)
+  storage.setItem('phoenix.device.preferences', JSON.stringify({ followCopilotNavigation: false }))
+  expect(new BrowserDevicePreferences(storage).getSnapshot().followCopilotNavigation).toBe(true)
 })
 
 class MemoryStorage {

@@ -19,7 +19,7 @@ test('settings API stores OpenAI secrets without returning key material', async 
   const client = new PhoenixApiClient(`http://${address.host}:${address.port}`)
 
   try {
-    expect((await client.getInstallationSettings()).openAi).toEqual({
+    expect((await client.getCopilotSettings()).openAi).toEqual({
       configured: false,
       restartRequired: false,
       source: 'none',
@@ -37,7 +37,7 @@ test('settings API stores OpenAI secrets without returning key material', async 
   }
 })
 
-test('settings API persists installation control permissions', async () => {
+test('settings API persists general and Copilot settings through domain-owned mutations', async () => {
   const application = new PhoenixApplication({
     copilot: null,
     copilotRealtime: null,
@@ -51,15 +51,12 @@ test('settings API persists installation control permissions', async () => {
   const client = new PhoenixApiClient(`http://${address.host}:${address.port}`)
 
   try {
-    const saved = await client.saveInstallationSettings({
-      controlsEnabled: false,
-      copilotPermissions: { gameActions: true, macros: true, dangerousActions: false }
+    const general = await client.saveGeneralSettings({ controlsEnabled: false })
+    const copilot = await client.saveCopilotSettings({
+      permissions: { gameActions: true, macros: true, dangerousActions: false }
     })
-    expect(saved).toMatchObject({
-      controlsEnabled: false,
-      copilotPermissions: { gameActions: true, macros: true, dangerousActions: false }
-    })
-    expect(await client.getInstallationSettings()).toEqual(saved)
+    expect(await client.getGeneralSettings()).toEqual(general)
+    expect(await client.getCopilotSettings()).toEqual(copilot)
   } finally {
     await application.stop()
   }

@@ -1,6 +1,7 @@
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test } from 'vitest'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
+import { CopilotSettingsPage } from '../apps/web/src/features/settings/copilot-settings-page.js'
 import { SettingsPage } from '../apps/web/src/features/settings/settings-page.js'
 import { BrowserDevicePreferences } from '../apps/web/src/platform/storage/browser-device-preferences.js'
 
@@ -12,7 +13,6 @@ test('device settings expose browser-local display and input preferences', async
   const renderer = await act(async () => create(
     <SettingsPage
       api={api}
-      audio={{ devices: { inputs: [], outputs: [] }, inputId: '', outputId: '', setInputId() {}, setOutputId() {} }}
       devicePreferences={preferences}
     />
   ))
@@ -20,22 +20,20 @@ test('device settings expose browser-local display and input preferences', async
 
   expect(markup).toContain('Follow Copilot')
   expect(markup).toContain('Capture numpad')
-  expect(markup).toContain('Variable font sizes')
-  expect(markup).toContain('Copilot · OpenAI')
-  expect(markup).toContain('Voice audio')
-  expect(markup).toContain('Control permissions')
-  expect(markup).toContain('Device pairing')
-  expect(markup).not.toContain('Enable macros')
+  expect(markup).toContain('Adaptive Numpy labels')
+  expect(markup).toContain('Presentation')
+  expect(markup).toContain('UI scale')
+  expect(markup).toContain('Game integration')
+  expect(markup).not.toContain('OpenAI')
   await act(async () => renderer.unmount())
 })
 
 test('saved OpenAI configuration clearly reports that PHOENIX must restart', async () => {
   const api = settingsApi({ configured: true, source: 'stored', stored: true, restartRequired: true })
   const renderer = await act(async () => create(
-    <SettingsPage
+    <CopilotSettingsPage
       api={api}
       audio={{ devices: { inputs: [], outputs: [] }, inputId: '', outputId: '', setInputId() {}, setOutputId() {} }}
-      devicePreferences={new BrowserDevicePreferences(new MemoryStorage())}
     />
   ))
   const markup = JSON.stringify(renderer.toJSON())
@@ -47,10 +45,12 @@ test('saved OpenAI configuration clearly reports that PHOENIX must restart', asy
 
 function settingsApi (openAi = { configured: false, source: 'none' as const, stored: false, restartRequired: false }): PhoenixApi {
   return {
-    async getInstallationSettings() {
+    async getGeneralSettings() {
+      return { controlsEnabled: true }
+    },
+    async getCopilotSettings() {
       return {
-        controlsEnabled: true,
-        copilotPermissions: { gameActions: false, macros: false, dangerousActions: false },
+        permissions: { gameActions: false, macros: false, dangerousActions: false },
         openAi
       }
     },
@@ -62,7 +62,7 @@ function settingsApi (openAi = { configured: false, source: 'none' as const, sto
         }
       }
     },
-    async getPairingStatus() { return { authenticated: true, installationId: 'test', pairingRequired: false } },
+    async getPairingStatus() { return { authenticated: true, installationId: 'test', pairingRequired: false, serverDevice: false } },
     async getCopilotProfiles() { return { activeProfileId: 'marin', profiles: [{ description: '', id: 'marin', mark: 'M', name: 'Marin', voice: 'marin' }] } },
     async getCopilotVoiceHost() { return { desiredConnected: false, desiredRevision: 0, host: null } }
   } as PhoenixApi

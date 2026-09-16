@@ -55,8 +55,10 @@ import {
   GalaxyBookmarkSchema,
   GalaxyBookmarksResponseSchema,
   GalaxyBookmarkWriteRequestSchema,
-  InstallationSettingsSchema,
-  InstallationSettingsUpdateSchema,
+  CopilotSettingsSchema,
+  CopilotSettingsUpdateSchema,
+  GeneralSettingsSchema,
+  GeneralSettingsUpdateSchema,
   LocalTrafficResponseSchema,
   MacroDefinitionSchema,
   MacroLibrarySchema,
@@ -68,6 +70,7 @@ import {
   PlotEliteDestinationResultSchema,
   NumpadExecutionResultSchema,
   NumpadTreeSnapshotSchema,
+  PairingDeviceListSchema,
   PairingInfoSchema,
   PairingStatusSchema,
   OpenAiApiKeyRequestSchema,
@@ -140,8 +143,10 @@ import type {
   GalaxyBookmarksResponse,
   GalaxyBookmarkWriteRequest,
   HealthResponse,
-  InstallationSettings,
-  InstallationSettingsUpdate,
+  CopilotSettings,
+  CopilotSettingsUpdate,
+  GeneralSettings,
+  GeneralSettingsUpdate,
   LocalTrafficResponse,
   MacroDefinition,
   MacroLibrary,
@@ -152,6 +157,7 @@ import type {
   PlotEliteDestinationResult,
   NumpadExecutionResult,
   NumpadTreeSnapshot,
+  PairingDeviceList,
   PairingInfo,
   PairingStatus,
   OpenAiConfigurationStatus,
@@ -206,6 +212,22 @@ export class PhoenixApiClient implements PhoenixApi {
     return PairingInfoSchema.parse(await response.json())
   }
 
+  async getPairingDevices(signal?: AbortSignal): Promise<PairingDeviceList> {
+    return this.#get('/api/pairing/devices', PairingDeviceListSchema, signal)
+  }
+
+  async rotatePairingCode(signal?: AbortSignal): Promise<PairingInfo> {
+    return this.#json('/api/pairing/code', 'POST', undefined, PairingInfoSchema, signal)
+  }
+
+  async revokePairingDevice(deviceId: string, signal?: AbortSignal): Promise<PairingDeviceList> {
+    return this.#json(`/api/pairing/devices/${encodeURIComponent(deviceId)}`, 'DELETE', undefined, PairingDeviceListSchema, signal)
+  }
+
+  async revokeAllPairingDevices(signal?: AbortSignal): Promise<PairingDeviceList> {
+    return this.#json('/api/pairing/devices', 'DELETE', undefined, PairingDeviceListSchema, signal)
+  }
+
   async claimPairing(code: string, signal?: AbortSignal): Promise<PairingStatus> {
     const response = await this.#request(`${this.#baseUrl}/api/pairing/claim`, {
       body: JSON.stringify({ code }),
@@ -222,15 +244,26 @@ export class PhoenixApiClient implements PhoenixApi {
     await this.#empty('/api/pairing/release', 'POST', undefined, signal)
   }
 
-  async getInstallationSettings(signal?: AbortSignal): Promise<InstallationSettings> {
-    return this.#get('/api/settings', InstallationSettingsSchema, signal)
+  async getGeneralSettings(signal?: AbortSignal): Promise<GeneralSettings> {
+    return this.#get('/api/settings/general', GeneralSettingsSchema, signal)
   }
 
-  async saveInstallationSettings(
-    settings: InstallationSettingsUpdate,
+  async saveGeneralSettings(
+    settings: GeneralSettingsUpdate,
     signal?: AbortSignal
-  ): Promise<InstallationSettings> {
-    return this.#json('/api/settings', 'PUT', InstallationSettingsUpdateSchema.parse(settings), InstallationSettingsSchema, signal)
+  ): Promise<GeneralSettings> {
+    return this.#json('/api/settings/general', 'PUT', GeneralSettingsUpdateSchema.parse(settings), GeneralSettingsSchema, signal)
+  }
+
+  async getCopilotSettings(signal?: AbortSignal): Promise<CopilotSettings> {
+    return this.#get('/api/settings/copilot', CopilotSettingsSchema, signal)
+  }
+
+  async saveCopilotSettings(
+    settings: CopilotSettingsUpdate,
+    signal?: AbortSignal
+  ): Promise<CopilotSettings> {
+    return this.#json('/api/settings/copilot', 'PUT', CopilotSettingsUpdateSchema.parse(settings), CopilotSettingsSchema, signal)
   }
 
   async saveOpenAiApiKey(apiKey: string, signal?: AbortSignal): Promise<OpenAiConfigurationStatus> {

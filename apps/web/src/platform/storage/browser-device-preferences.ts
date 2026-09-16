@@ -3,17 +3,19 @@ import type {
   PhoenixDevicePreferencesSnapshot
 } from '../../application/settings/device-preferences.js'
 
-const DEVICE_PREFERENCES_KEY = 'phoenix.device.preferences.v1'
-const LEGACY_FOLLOW_KEY = 'phoenix.device.allow-remote-display-commands'
+const DEVICE_PREFERENCES_KEY = 'phoenix.device.preferences'
 
 const defaults: PhoenixDevicePreferencesSnapshot = {
+  version: 1,
+  adaptiveNumpadLabels: true,
   audioInputId: '',
   audioOutputId: '',
   captureNumpad: true,
   currentShipLoadoutView: 'tiles',
   followCopilotNavigation: true,
+  presentation: 'phoenix',
   shipCatalogueView: 'dossier',
-  variableNumpadFontSizes: true
+  uiScalePercent: 100
 }
 
 type BrowserStorage = Pick<Storage, 'getItem' | 'setItem'>
@@ -28,8 +30,8 @@ export class BrowserDevicePreferences implements DevicePreferences {
 
   public getSnapshot = (): PhoenixDevicePreferencesSnapshot => this.snapshot
 
-  public update (patch: Partial<PhoenixDevicePreferencesSnapshot>): void {
-    this.snapshot = { ...this.snapshot, ...patch }
+  public update (patch: Partial<Omit<PhoenixDevicePreferencesSnapshot, 'version'>>): void {
+    this.snapshot = { ...this.snapshot, ...patch, version: 1 }
     try {
       this.storage.setItem(DEVICE_PREFERENCES_KEY, JSON.stringify(this.snapshot))
     } catch {
@@ -47,23 +49,29 @@ export class BrowserDevicePreferences implements DevicePreferences {
     try {
       const raw = this.storage.getItem(DEVICE_PREFERENCES_KEY)
       if (raw) {
-        const candidate = JSON.parse(raw) as Partial<PhoenixDevicePreferencesSnapshot>
-        return {
-          audioInputId: typeof candidate.audioInputId === 'string' ? candidate.audioInputId : '',
-          audioOutputId: typeof candidate.audioOutputId === 'string' ? candidate.audioOutputId : '',
-          captureNumpad: candidate.captureNumpad !== false,
-          currentShipLoadoutView: candidate.currentShipLoadoutView === 'table' ? 'table' : 'tiles',
-          followCopilotNavigation: candidate.followCopilotNavigation !== false,
-          shipCatalogueView: candidate.shipCatalogueView === 'table' ? 'table' : 'dossier',
-          variableNumpadFontSizes: candidate.variableNumpadFontSizes !== false
-        }
+        const candidate: unknown = JSON.parse(raw)
+        if (isDevicePreferences(candidate)) return candidate
       }
-      return {
-        ...defaults,
-        followCopilotNavigation: this.storage.getItem(LEGACY_FOLLOW_KEY) !== 'false'
-      }
+      return defaults
     } catch {
       return defaults
     }
   }
+}
+
+function isDevicePreferences (value: unknown): value is PhoenixDevicePreferencesSnapshot {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Record<string, unknown>
+  return candidate.version === 1 &&
+    typeof candidate.adaptiveNumpadLabels === 'boolean' &&
+    typeof candidate.audioInputId === 'string' &&
+    typeof candidate.audioOutputId === 'string' &&
+    typeof candidate.captureNumpad === 'boolean' &&
+    ['table', 'tiles'].includes(candidate.currentShipLoadoutView as string) &&
+    typeof candidate.followCopilotNavigation === 'boolean' &&
+    ['phoenix', 'elite'].includes(candidate.presentation as string) &&
+    ['dossier', 'table'].includes(candidate.shipCatalogueView as string) &&
+    typeof candidate.uiScalePercent === 'number' &&
+    Number.isInteger(candidate.uiScalePercent) &&
+    candidate.uiScalePercent >= 85 && candidate.uiScalePercent <= 125
 }

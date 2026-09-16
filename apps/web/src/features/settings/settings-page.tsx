@@ -1,367 +1,142 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import {
+  Breadcrumbs,
   Button,
-  CommandTile,
-  CommandTileGroup,
-  ControlContext,
-  DashboardColumns,
-  DescribedCommandTile,
-  DescriptionItem,
-  DescriptionList,
-  EqualGrid,
-  Field,
-  Form,
-  FormActions,
   NumberInput,
   PageFrame,
+  PageHeader,
+  Section,
   Select,
-  Stack,
-  Status,
-  TextInput,
-  Widget
+  SettingRow,
+  SettingsList,
+  SettingToggle,
+  Status
 } from '@phoenix/ui'
-import type { InstallationSettings, PairingInfo, PairingStatus, PhoenixModules } from '@phoenix/contracts'
+import type { GeneralSettings, PhoenixModules } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { DevicePreferences } from '../../application/settings/device-preferences.js'
-import { PairingAccess } from '../../components/pairing-access.js'
 
-export interface AudioSettingsController {
-  devices: {
-    inputs: ReadonlyArray<{ id: string, label: string }>
-    outputs: ReadonlyArray<{ id: string, label: string }>
-  }
-  inputId: string
-  outputId: string
-  setInputId(id: string): void
-  setOutputId(id: string): void
-}
-
-export function SettingsPage ({
-  api,
-  audio,
-  devicePreferences
-}: {
-  api: PhoenixApi
-  audio: AudioSettingsController
-  devicePreferences: DevicePreferences
-}) {
-  const [settings, setSettings] = useState<InstallationSettings>()
-  const [moduleSettings, setModuleSettings] = useState<PhoenixModules>()
-  const [pairing, setPairing] = useState<PairingStatus>()
+export function SettingsPage ({ api, devicePreferences }: { api: PhoenixApi, devicePreferences: DevicePreferences }) {
+  const preferences = useSyncExternalStore(devicePreferences.subscribe, devicePreferences.getSnapshot, devicePreferences.getSnapshot)
+  const [settings, setSettings] = useState<GeneralSettings>()
+  const [modules, setModules] = useState<PhoenixModules>()
+  const [threshold, setThreshold] = useState(90)
+  const [pending, setPending] = useState<string>()
   const [error, setError] = useState<string>()
 
   useEffect(() => {
     const abort = new AbortController()
-    void Promise.all([
-      api.getInstallationSettings(abort.signal),
-      api.getModuleSettings(abort.signal),
-      api.getPairingStatus(abort.signal)
-    ])
-      .then(([nextSettings, nextModuleSettings, nextPairing]) => {
+    void Promise.all([api.getGeneralSettings(abort.signal), api.getModuleSettings(abort.signal)])
+      .then(([nextSettings, nextModules]) => {
         setSettings(nextSettings)
-        setModuleSettings(nextModuleSettings)
-        setPairing(nextPairing)
+        setModules(nextModules)
+        setThreshold(nextModules.currentShip.moduleHealthAlertThreshold)
       })
       .catch(cause => { if (!abort.signal.aborted) setError(message(cause)) })
     return () => abort.abort()
   }, [api])
 
-  if (error) return <PageFrame><Status tone="danger">{error}</Status></PageFrame>
-  if (!settings || !moduleSettings || !pairing) return <PageFrame><Status tone="muted">Loading settings…</Status></PageFrame>
-
-  const updateSettings = async (next: InstallationSettings): Promise<void> => {
-    const saved = await api.saveInstallationSettings({
-      controlsEnabled: next.controlsEnabled,
-      copilotPermissions: next.copilotPermissions
-    })
-    setSettings(saved)
-  }
-
-  return (
-    <PageFrame className="settings-page" layout="fit">
-      <DashboardColumns
-        gap="xs"
-        primary={<>
-          <CopilotSettings api={api} settings={settings} onChange={setSettings} />
-          <CurrentShipSettings api={api} settings={moduleSettings} onChange={setModuleSettings} />
-          <EqualGrid columns={2} gap="xs">
-            <DeviceSettings preferences={devicePreferences} />
-            <ControlSettings settings={settings} onSave={updateSettings} />
-          </EqualGrid>
-        </>}
-        secondary={<>
-          <AudioSettings audio={audio} />
-          <PairingSettings api={api} pairing={pairing} />
-        </>}
-      />
-    </PageFrame>
-  )
-}
-
-function CurrentShipSettings({ api, settings, onChange }: {
-  api: PhoenixApi
-  settings: PhoenixModules
-  onChange(settings: PhoenixModules): void
-}) {
-  const [threshold, setThreshold] = useState(settings.currentShip.moduleHealthAlertThreshold)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string>()
-
-  const save = async (): Promise<void> => {
-    setBusy(true)
+  const saveControls = async (enabled: boolean): Promise<void> => {
+    setPending('controls')
     setError(undefined)
     try {
-      const saved = await api.saveModuleSettings({
-        ...settings,
-        currentShip: { moduleHealthAlertThreshold: threshold }
-      })
-      onChange(saved)
-    } catch (cause) {
-      setError(message(cause))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return <Widget heading="Current ship">
-    <ControlContext density="compact">
-      <Form id="current-ship-settings-form" onSubmit={event => { event.preventDefault(); void save() }}>
-        <Field htmlFor="module-health-alert-threshold" label="Module health alert threshold">
-          <NumberInput
-            id="module-health-alert-threshold"
-            max={99}
-            min={1}
-            step={1}
-            value={threshold}
-            onChange={event => setThreshold(Math.max(1, Math.min(99, Number(event.target.value))))}
-          />
-        </Field>
-        <Status tone="muted" wrap>Show modules whose reported health is at or below this percentage.</Status>
-        {error && <Status tone="danger">{error}</Status>}
-        <FormActions>
-          <Button busy={busy} disabled={threshold === settings.currentShip.moduleHealthAlertThreshold} type="submit" variant="primary">
-            Save threshold
-          </Button>
-        </FormActions>
-      </Form>
-    </ControlContext>
-  </Widget>
-}
-
-function CopilotSettings ({ api, settings, onChange }: {
-  api: PhoenixApi
-  settings: InstallationSettings
-  onChange(settings: InstallationSettings): void
-}) {
-  const [apiKey, setApiKey] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string>()
-  const status = settings.openAi
-
-  const save = async (): Promise<void> => {
-    setBusy(true)
-    setError(undefined)
-    try {
-      const openAi = await api.saveOpenAiApiKey(apiKey)
-      onChange({ ...settings, openAi })
-      setApiKey('')
-    } catch (cause) {
-      setError(message(cause))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const remove = async (): Promise<void> => {
-    setBusy(true)
-    setError(undefined)
-    try {
-      const openAi = await api.removeOpenAiApiKey()
-      onChange({ ...settings, openAi })
-    } catch (cause) {
-      setError(message(cause))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return <div className="widget-command-row">
-    <Widget heading="Copilot · OpenAI" meta={status.restartRequired ? 'Restart required' : status.configured ? `Configured · ${status.source}` : 'Not configured'}>
-      <ControlContext density="compact">
-        <Form id="openai-settings-form" onSubmit={event => { event.preventDefault(); void save() }}>
-          <Field htmlFor="openai-key" label={status.stored ? 'Replace API key' : 'API key'}>
-            <TextInput id="openai-key" type="password" autoComplete="off" value={apiKey} onChange={event => setApiKey(event.target.value)} />
-          </Field>
-          {status.restartRequired && <Status tone="warning" wrap>OpenAI configuration changed. Restart PHOENIX to apply it.</Status>}
-          {error && <Status tone="danger">{error}</Status>}
-        </Form>
-      </ControlContext>
-    </Widget>
-    <CommandTile
-      binding={busy ? 'Working' : 'Store'}
-      form="openai-settings-form"
-      label={status.stored ? 'Replace key' : 'Save key'}
-      unavailable={busy || apiKey.trim().length < 20}
-    />
-    {status.stored && <CommandTile
-      binding="Stored"
-      label="Remove key"
-      tone="danger"
-      unavailable={busy}
-      onClick={event => { event.preventDefault(); void remove() }}
-    />}
-  </div>
-}
-
-function AudioSettings ({ audio }: { audio: AudioSettingsController }) {
-  return <Widget heading="Voice audio" meta="This device">
-    <ControlContext density="compact">
-      <Stack gap="sm">
-        <Field htmlFor="audio-input" label="Microphone">
-          <Select id="audio-input" value={audio.inputId} onChange={event => audio.setInputId(event.target.value)}>
-            <option value="">System default</option>
-            {audio.devices.inputs.map(device => <option key={device.id} value={device.id}>{device.label || 'Microphone'}</option>)}
-          </Select>
-        </Field>
-        <Field htmlFor="audio-output" label="Output">
-          <Select id="audio-output" value={audio.outputId} onChange={event => audio.setOutputId(event.target.value)}>
-            <option value="">System default</option>
-            {audio.devices.outputs.map(device => <option key={device.id} value={device.id}>{device.label || 'Audio output'}</option>)}
-          </Select>
-        </Field>
-        <Status tone="muted" wrap>Device names may remain hidden until microphone access is granted.</Status>
-      </Stack>
-    </ControlContext>
-  </Widget>
-}
-
-function DeviceSettings ({ preferences }: { preferences: DevicePreferences }) {
-  const snapshot = useSyncExternalStore(preferences.subscribe, preferences.getSnapshot, preferences.getSnapshot)
-  return <CommandTileGroup title="This device" meta="Browser local">
-    <DescribedCommandTile description="Open pages on this screen when Copilot navigates through PHOENIX.">
-      <CommandTile
-        binding={snapshot.followCopilotNavigation ? 'On' : 'Off'}
-        label="Follow Copilot"
-        selected={snapshot.followCopilotNavigation}
-        onClick={() => preferences.update({ followCopilotNavigation: !snapshot.followCopilotNavigation })}
-      />
-    </DescribedCommandTile>
-    <DescribedCommandTile description="Reserve this keyboard's physical numpad for PHOENIX shortcuts.">
-      <CommandTile
-        binding={snapshot.captureNumpad ? 'On' : 'Off'}
-        label="Capture numpad"
-        selected={snapshot.captureNumpad}
-        onClick={() => preferences.update({ captureNumpad: !snapshot.captureNumpad })}
-      />
-    </DescribedCommandTile>
-    <DescribedCommandTile description="Scale Numpy labels according to their length and available button space.">
-      <CommandTile
-        binding={snapshot.variableNumpadFontSizes ? 'On' : 'Off'}
-        label="Variable font sizes"
-        selected={snapshot.variableNumpadFontSizes}
-        onClick={() => preferences.update({ variableNumpadFontSizes: !snapshot.variableNumpadFontSizes })}
-      />
-    </DescribedCommandTile>
-  </CommandTileGroup>
-}
-
-function ControlSettings ({ settings, onSave }: {
-  settings: InstallationSettings
-  onSave(settings: InstallationSettings): Promise<void>
-}) {
-  const [pending, setPending] = useState<string>()
-  const [error, setError] = useState<string>()
-  const change = async (id: string, next: InstallationSettings): Promise<void> => {
-    setPending(id)
-    setError(undefined)
-    try {
-      await onSave(next)
+      setSettings(await api.saveGeneralSettings({ controlsEnabled: enabled }))
     } catch (cause) {
       setError(message(cause))
     } finally {
       setPending(undefined)
     }
   }
-  const permission = (key: keyof InstallationSettings['copilotPermissions']) => void change(key, {
-    ...settings,
-    copilotPermissions: { ...settings.copilotPermissions, [key]: !settings.copilotPermissions[key] }
-  })
 
-  return <CommandTileGroup title="Control permissions" meta={pending ? 'Updating' : 'Installation'}>
-      <DescribedCommandTile description="Allow PHOENIX to send configured inputs to Elite. Requires a restart.">
-        <CommandTile
-          binding={settings.controlsEnabled ? 'On' : 'Off'}
-          label="Game controls"
-          selected={settings.controlsEnabled}
-          unavailable={pending !== undefined}
-          onClick={() => void change('controls', { ...settings, controlsEnabled: !settings.controlsEnabled })}
-        />
-      </DescribedCommandTile>
-      <DescribedCommandTile description="Allow Copilot to execute individual game actions.">
-        <CommandTile
-          binding={settings.copilotPermissions.gameActions ? 'On' : 'Off'}
-          label="Copilot actions"
-          selected={settings.copilotPermissions.gameActions}
-          unavailable={pending !== undefined}
-          onClick={() => permission('gameActions')}
-        />
-      </DescribedCommandTile>
-      <DescribedCommandTile description="Allow Copilot to run recorded command sequences.">
-        <CommandTile
-          binding={settings.copilotPermissions.macros ? 'On' : 'Off'}
-          label="Copilot macros"
-          selected={settings.copilotPermissions.macros}
-          unavailable={pending !== undefined}
-          onClick={() => permission('macros')}
-        />
-      </DescribedCommandTile>
-      <DescribedCommandTile description="Allow Copilot to execute commands marked as dangerous.">
-        <CommandTile
-          binding={settings.copilotPermissions.dangerousActions ? 'On' : 'Off'}
-          label="Dangerous actions"
-          selected={settings.copilotPermissions.dangerousActions}
-          tone="danger"
-          unavailable={pending !== undefined}
-          onClick={() => permission('dangerousActions')}
-        />
-      </DescribedCommandTile>
-      {error && <Status className="span-full" tone="danger">{error}</Status>}
-  </CommandTileGroup>
-}
+  const saveThreshold = async (): Promise<void> => {
+    if (!modules) return
+    setPending('threshold')
+    setError(undefined)
+    try {
+      const saved = await api.saveModuleSettings({
+        ...modules,
+        currentShip: { moduleHealthAlertThreshold: threshold }
+      })
+      setModules(saved)
+      setThreshold(saved.currentShip.moduleHealthAlertThreshold)
+    } catch (cause) {
+      setError(message(cause))
+    } finally {
+      setPending(undefined)
+    }
+  }
 
-function PairingSettings ({ api, pairing }: { api: PhoenixApi, pairing: PairingStatus }) {
-  const [busy, setBusy] = useState(false)
-  const [info, setInfo] = useState<PairingInfo>()
-  const [error, setError] = useState<string>()
-  useEffect(() => {
-    if (!pairing.serverDevice) return
-    const abort = new AbortController()
-    void api.getPairingInfo(abort.signal)
-      .then(setInfo)
-      .catch(cause => { if (!abort.signal.aborted) setError(message(cause)) })
-    return () => abort.abort()
-  }, [api, pairing.serverDevice])
-  return <div className="pairing-settings">
-    {info && <PairingAccess info={info} />}
-    {error && <Status tone="danger">{error}</Status>}
-    {!info && <Widget heading="Device pairing" meta={pairing.authenticated ? 'Paired' : 'Not paired'}>
-      <DescriptionList columns="one" density="compact">
-        <DescriptionItem label="Installation" value={pairing.installationId} />
-        <DescriptionItem label="This browser" value={pairing.authenticated ? 'Paired' : 'Not paired'} />
-        <DescriptionItem label="Required" value={pairing.pairingRequired ? 'Yes' : 'No'} />
-      </DescriptionList>
-    </Widget>}
-    {pairing.pairingRequired && pairing.authenticated && <CommandTile
-      binding={busy ? 'Working' : 'Paired'}
-      label="Unpair device"
-      tone="danger"
-      unavailable={busy}
-      onClick={() => {
-        setBusy(true)
-        void api.releasePairing().then(() => globalThis.location?.reload()).finally(() => setBusy(false))
-      }}
-    />}
-  </div>
+  return (
+    <PageFrame className="settings-page">
+      <PageHeader
+        context={<Breadcrumbs items={[{ label: 'Settings' }, { label: 'General' }]} />}
+        description="Application appearance, local device behavior, and shared game integration."
+        title="General settings"
+      />
+      <div className="settings-sections">
+        <Section description="Stored only in this browser." title="Appearance">
+          <SettingsList>
+            <SettingRow description="Use PHOENIX's compact interface or the larger Elite-inspired presentation." scope="This device" title="Presentation">
+              <Select aria-label="Presentation" value={preferences.presentation} onChange={event => devicePreferences.update({ presentation: event.target.value as 'phoenix' | 'elite' })}>
+                <option value="phoenix">PHOENIX</option>
+                <option value="elite">Elite</option>
+              </Select>
+            </SettingRow>
+            <SettingRow description="Scale the complete interface, including application chrome." scope="This device" title="UI scale">
+              <div className="setting-range">
+                <input
+                  aria-label="UI scale"
+                  max="125"
+                  min="85"
+                  step="5"
+                  type="range"
+                  value={preferences.uiScalePercent}
+                  onChange={event => devicePreferences.update({ uiScalePercent: Number(event.target.value) })}
+                />
+                <output>{preferences.uiScalePercent}%</output>
+              </div>
+            </SettingRow>
+            <SettingRow description="Reduce long Numpy labels to fit their buttons." scope="This device" title="Adaptive Numpy labels">
+              <SettingToggle
+                checked={preferences.adaptiveNumpadLabels}
+                label={preferences.adaptiveNumpadLabels ? 'On' : 'Off'}
+                onChange={() => devicePreferences.update({ adaptiveNumpadLabels: !preferences.adaptiveNumpadLabels })}
+              />
+            </SettingRow>
+          </SettingsList>
+        </Section>
+
+        <Section description="Behavior specific to this browser or tablet." title="This device">
+          <SettingsList>
+            <SettingRow description="Open pages on this screen when Copilot navigates through PHOENIX." scope="This device" title="Follow Copilot navigation">
+              <SettingToggle checked={preferences.followCopilotNavigation} label={preferences.followCopilotNavigation ? 'On' : 'Off'} onChange={() => devicePreferences.update({ followCopilotNavigation: !preferences.followCopilotNavigation })} />
+            </SettingRow>
+            <SettingRow description="Reserve this keyboard's physical numpad for PHOENIX shortcuts." scope="This device" title="Capture numpad">
+              <SettingToggle checked={preferences.captureNumpad} label={preferences.captureNumpad ? 'On' : 'Off'} onChange={() => devicePreferences.update({ captureNumpad: !preferences.captureNumpad })} />
+            </SettingRow>
+          </SettingsList>
+        </Section>
+
+        <Section description="Shared by every paired device." title="Game integration">
+          {!settings || !modules
+            ? <Status tone={error ? 'danger' : 'muted'}>{error ?? 'Loading installation settings…'}</Status>
+            : <SettingsList>
+                <SettingRow description="Allow PHOENIX to send configured inputs to Elite. A restart may be required." scope="Installation" title="Game controls">
+                  <SettingToggle checked={settings.controlsEnabled} disabled={pending !== undefined} label={settings.controlsEnabled ? 'On' : 'Off'} onChange={() => void saveControls(!settings.controlsEnabled)} />
+                </SettingRow>
+                <SettingRow description="Show ship modules whose reported health is at or below this percentage." scope="Installation" title="Module health warning">
+                  <div className="setting-number-action">
+                    <NumberInput aria-label="Module health warning threshold" max={99} min={1} step={1} value={threshold} onChange={event => setThreshold(Math.max(1, Math.min(99, Number(event.target.value))))} />
+                    <span>%</span>
+                    <Button busy={pending === 'threshold'} disabled={threshold === modules.currentShip.moduleHealthAlertThreshold} size="sm" variant="outline" onClick={() => void saveThreshold()}>Save</Button>
+                  </div>
+                </SettingRow>
+              </SettingsList>}
+          {error && settings && modules && <Status tone="danger">{error}</Status>}
+        </Section>
+      </div>
+    </PageFrame>
+  )
 }
 
 function message (cause: unknown): string {

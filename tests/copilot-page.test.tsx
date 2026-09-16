@@ -13,7 +13,7 @@ const api = {
 } as PhoenixApi
 const events = { subscribe: () => () => undefined } as unknown as PhoenixEventHub
 const identity = { forScope: () => 'copilot-test-client' } as ClientIdentity
-const deviceSnapshot = { audioInputId: '', audioOutputId: '', captureNumpad: true, currentShipLoadoutView: 'tiles', followCopilotNavigation: true, shipCatalogueView: 'dossier', variableNumpadFontSizes: true } as const
+const deviceSnapshot = { version: 1, adaptiveNumpadLabels: true, audioInputId: '', audioOutputId: '', captureNumpad: true, currentShipLoadoutView: 'tiles', followCopilotNavigation: true, presentation: 'phoenix', shipCatalogueView: 'dossier', uiScalePercent: 100 } as const
 const devicePreferences = {
   getSnapshot: () => deviceSnapshot,
   subscribe: () => () => undefined,

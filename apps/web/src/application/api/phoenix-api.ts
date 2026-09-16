@@ -57,8 +57,10 @@ import type {
   GalaxyBookmarksResponse,
   GalaxyBookmarkWriteRequest,
   HealthResponse,
-  InstallationSettings,
-  InstallationSettingsUpdate,
+  CopilotSettings,
+  CopilotSettingsUpdate,
+  GeneralSettings,
+  GeneralSettingsUpdate,
   LocalTrafficResponse,
   MacroDefinition,
   MacroLibrary,
@@ -70,6 +72,7 @@ import type {
   NumpadExecutionResult,
   NumpadTreeSnapshot,
   PairingInfo,
+  PairingDeviceList,
   PairingStatus,
   OpenAiConfigurationStatus,
   PhoenixModules,
@@ -170,7 +173,8 @@ export interface PhoenixApi {
   findGalaxyStations(input: GalaxyStationLookupSearch, signal?: AbortSignal): Promise<GalaxyStationLookupResponse>
   findGalaxyTradeOpportunities(input: GalaxyTradeOpportunitySearch, signal?: AbortSignal): Promise<GalaxyTradeOpportunitiesResponse>
   getHealth(signal?: AbortSignal): Promise<HealthResponse>
-  getInstallationSettings(signal?: AbortSignal): Promise<InstallationSettings>
+  getGeneralSettings(signal?: AbortSignal): Promise<GeneralSettings>
+  getCopilotSettings(signal?: AbortSignal): Promise<CopilotSettings>
   getMacros(signal?: AbortSignal): Promise<MacroLibrary>
   getMissions(signal?: AbortSignal): Promise<MissionsResponse>
   getModuleSettings(signal?: AbortSignal): Promise<PhoenixModules>
@@ -178,6 +182,7 @@ export interface PhoenixApi {
   plotEliteDestination(systemName: string, signal?: AbortSignal): Promise<PlotEliteDestinationResult>
   getNumpadSnapshot(signal?: AbortSignal): Promise<NumpadTreeSnapshot>
   getPairingInfo(signal?: AbortSignal): Promise<PairingInfo>
+  getPairingDevices(signal?: AbortSignal): Promise<PairingDeviceList>
   getPairingStatus(signal?: AbortSignal): Promise<PairingStatus>
   getRuntimeState(signal?: AbortSignal): Promise<RuntimeState>
   getSavedGalaxyQueries(signal?: AbortSignal): Promise<SavedGalaxyQueriesResponse>
@@ -200,10 +205,14 @@ export interface PhoenixApi {
   saveGalaxyBookmark(input: GalaxyBookmarkWriteRequest, id?: string, signal?: AbortSignal): Promise<GalaxyBookmark>
   saveControlDeckConfiguration(configuration: PhoenixControlDeckConfiguration, signal?: AbortSignal): Promise<PhoenixControlDeckConfiguration>
   saveModuleSettings(settings: PhoenixModules, signal?: AbortSignal): Promise<PhoenixModules>
-  saveInstallationSettings(settings: InstallationSettingsUpdate, signal?: AbortSignal): Promise<InstallationSettings>
+  saveGeneralSettings(settings: GeneralSettingsUpdate, signal?: AbortSignal): Promise<GeneralSettings>
+  saveCopilotSettings(settings: CopilotSettingsUpdate, signal?: AbortSignal): Promise<CopilotSettings>
   saveOpenAiApiKey(apiKey: string, signal?: AbortSignal): Promise<OpenAiConfigurationStatus>
   saveGalaxyQuery(input: SavedGalaxyQueryWriteRequest, id?: string, signal?: AbortSignal): Promise<SavedGalaxyQuery>
   removeOpenAiApiKey(signal?: AbortSignal): Promise<OpenAiConfigurationStatus>
+  rotatePairingCode(signal?: AbortSignal): Promise<PairingInfo>
+  revokePairingDevice(deviceId: string, signal?: AbortSignal): Promise<PairingDeviceList>
+  revokeAllPairingDevices(signal?: AbortSignal): Promise<PairingDeviceList>
   selectCopilotProfile(profileId: string, signal?: AbortSignal): Promise<CopilotProfilesResponse>
   startMacroRecording(clientId: string, signal?: AbortSignal): Promise<MacroRecording>
   stopMacroRecording(recordingId: string, clientId: string, signal?: AbortSignal): Promise<MacroRecording>

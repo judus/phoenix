@@ -9,6 +9,7 @@ import { usePhoenixEventConnection } from './application/events/use-phoenix-even
 import { useRuntimeState } from './application/runtime/use-runtime-state.js'
 import type { PhoenixApplicationServices } from './bootstrap/create-application.js'
 import { PairingGate } from './bootstrap/pairing-gate.js'
+import { DevicePresentation } from './components/device-presentation.js'
 import { PhoenixProviders } from './bootstrap/providers.js'
 import { useCopilotVoice } from './features/copilot/copilot-voice-provider.js'
 import { copilotContext, copilotNavigationItems } from './features/copilot/copilot-navigation.js'
@@ -58,6 +59,8 @@ const EquipmentPlannerPage = lazy(() => import('./features/equipment/equipment-p
 const FleetPage = lazy(() => import('./features/fleet/fleet-page.js').then(module => ({ default: module.FleetPage })))
 const GalaxyPage = lazy(() => import('./features/galaxy/galaxy-page.js').then(module => ({ default: module.GalaxyPage })))
 const HelpPage = lazy(() => import('./features/settings/help-page.js').then(module => ({ default: module.HelpPage })))
+const CopilotSettingsPage = lazy(() => import('./features/settings/copilot-settings-page.js').then(module => ({ default: module.CopilotSettingsPage })))
+const PairingSettingsPage = lazy(() => import('./features/settings/pairing-settings-page.js').then(module => ({ default: module.PairingSettingsPage })))
 const JournalPage = lazy(() => import('./features/journal/journal-page.js').then(module => ({ default: module.JournalPage })))
 const MacrosPage = lazy(() => import('./features/macros/macros-page.js').then(module => ({ default: module.MacrosPage })))
 const NumpadPage = lazy(() => import('./features/numpad/numpad-page.js').then(module => ({ default: module.NumpadPage })))
@@ -65,11 +68,13 @@ const SettingsPage = lazy(() => import('./features/settings/settings-page.js').t
 
 export function App({ application }: { application: PhoenixApplicationServices }) {
   return (
-    <PairingGate api={application.api}>
-      <PhoenixProviders application={application}>
-        <PhoenixApplication application={application} />
-      </PhoenixProviders>
-    </PairingGate>
+    <DevicePresentation preferences={application.devicePreferences}>
+      <PairingGate api={application.api}>
+        <PhoenixProviders application={application}>
+          <PhoenixApplication application={application} />
+        </PhoenixProviders>
+      </PairingGate>
+    </DevicePresentation>
   )
 }
 
@@ -198,7 +203,7 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       journalCurrentContext={journalContext(route)}
       macros={activeDesktop === 'macros' ? <FeatureBoundary><MacrosFeature /></FeatureBoundary> : null}
       settings={activeDesktop === 'settings'
-        ? <FeatureBoundary><SettingsFeature application={application} view={route.kind === 'settings' ? route.view : 'dashboard'} /></FeatureBoundary>
+        ? <FeatureBoundary><SettingsFeature application={application} view={route.kind === 'settings' ? route.view : 'general'} /></FeatureBoundary>
         : null}
       settingsContextItems={settingsNavigationItems}
       settingsCurrentContext={settingsContext(route.kind === 'settings' ? route : undefined)}
@@ -214,10 +219,11 @@ function FeatureBoundary({ children }: { children: ReactNode }) {
 }
 
 const StableCopilotFeature = memo(CopilotFeature)
-const SettingsFeature = memo(function SettingsFeature({ application, view }: { application: PhoenixApplicationServices, view: 'dashboard' | 'help' }) {
+const SettingsFeature = memo(function SettingsFeature({ application, view }: { application: PhoenixApplicationServices, view: 'general' | 'pairing' | 'copilot' | 'help' }) {
   const voice = useCopilotVoice()
   if (view === 'help') return <HelpPage />
-  return <SettingsPage
+  if (view === 'pairing') return <PairingSettingsPage api={application.api} />
+  if (view === 'copilot') return <CopilotSettingsPage
     api={application.api}
     audio={{
       devices: voice.devices,
@@ -226,6 +232,9 @@ const SettingsFeature = memo(function SettingsFeature({ application, view }: { a
       setInputId: voice.setInputId,
       setOutputId: voice.setOutputId
     }}
+  />
+  return <SettingsPage
+    api={application.api}
     devicePreferences={application.devicePreferences}
   />
 })

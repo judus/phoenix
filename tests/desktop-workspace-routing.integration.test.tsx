@@ -47,15 +47,15 @@ describe('DesktopWorkspace routing integration', () => {
     goTo.mockClear()
 
     await act(async () => {
-      router.push({ kind: 'settings', view: 'dashboard' })
+      router.push({ kind: 'settings', view: 'general' })
     })
 
     expect(goTo).toHaveBeenCalledTimes(1)
     expect(goTo).toHaveBeenCalledWith('settings')
-    expect(router.getSnapshot()).toEqual({ kind: 'settings', view: 'dashboard' })
+    expect(router.getSnapshot()).toEqual({ kind: 'settings', view: 'general' })
     expect(browser.historyCalls).toEqual([
       ['replace', '#/commander/dashboard'],
-      ['push', '#/settings']
+      ['push', '#/settings/general']
     ])
 
     await act(async () => {
@@ -65,7 +65,7 @@ describe('DesktopWorkspace routing integration', () => {
     expect(router.getSnapshot()).toEqual({ kind: 'information', section: 'commander', view: 'dashboard' })
     expect(browser.historyCalls).toEqual([
       ['replace', '#/commander/dashboard'],
-      ['push', '#/settings'],
+      ['push', '#/settings/general'],
       ['push', '#/commander/dashboard']
     ])
 

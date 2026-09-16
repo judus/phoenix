@@ -50,9 +50,9 @@ describe('BrowserPhoenixRouter', () => {
     ])
     expect(notifications).toBe(1)
 
-    router.replace({ kind: 'settings', view: 'dashboard' })
-    expect(browser.location.hash).toBe('#/settings')
-    expect(browser.historyCalls.at(-1)).toEqual(['replace', '#/settings'])
+    router.replace({ kind: 'settings', view: 'general' })
+    expect(browser.location.hash).toBe('#/settings/general')
+    expect(browser.historyCalls.at(-1)).toEqual(['replace', '#/settings/general'])
     expect(notifications).toBe(2)
 
     unsubscribe()

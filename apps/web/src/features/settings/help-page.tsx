@@ -33,7 +33,7 @@ export function HelpPage() {
     <PageFrame className="help-page" layout="fit">
       <PageHeader
         variant="cockpit"
-        context={<Breadcrumbs items={[{ label: 'Settings', href: '#/settings' }, { label: 'Help' }]} />}
+        context={<Breadcrumbs items={[{ label: 'Settings', href: '#/settings/general' }, { label: 'Help' }]} />}
         title="Help"
       />
       <div className="help-layout">
@@ -120,7 +120,7 @@ export function HelpPage() {
 
           <ManualSection id="copilot" title="Copilot">
             <h3>Copilot is optional</h3>
-            <p>Core PHOENIX features do not require OpenAI. Copilot becomes available only after an API key is configured in <a href="#/settings">Settings</a> and requires internet access.</p>
+            <p>Core PHOENIX features do not require OpenAI. Copilot becomes available only after an API key is configured in <a href="#/settings/copilot">Copilot settings</a> and requires internet access.</p>
             <h3>Text and audio leave the host</h3>
             <p>When Copilot is used, prompts and any enabled voice input are sent to OpenAI to produce responses. Review the active profile and permissions before using it.</p>
             <h3>Permissions are deliberate</h3>

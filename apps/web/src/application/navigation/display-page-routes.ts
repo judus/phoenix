@@ -56,7 +56,7 @@ const DISPLAY_PAGE_ROUTES = {
   macros: { kind: 'macros' },
   journal: { kind: 'journal', view: 'journal' },
   credits: { kind: 'journal', view: 'credits' },
-  settings: { kind: 'settings', view: 'dashboard' },
+  settings: { kind: 'settings', view: 'general' },
   help: { kind: 'settings', view: 'help' },
   'developer.overview': { kind: 'developer', view: 'overview' },
   'developer.runtime': { kind: 'developer', view: 'runtime' },

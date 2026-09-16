@@ -5,7 +5,9 @@ import { settingsNavigationItems } from '../apps/web/src/features/settings/setti
 
 test('Settings integrates the indexed Help manual as a canonical destination', () => {
   expect(settingsNavigationItems.map(item => [item.label, item.href])).toEqual([
-    ['Settings', '#/settings'],
+    ['General', '#/settings/general'],
+    ['Pairing', '#/settings/pairing'],
+    ['Copilot and keys', '#/settings/copilot'],
     ['Help', '#/settings/help']
   ])
 

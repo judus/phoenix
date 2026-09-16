@@ -12,6 +12,7 @@
 @import './patterns/control-deck-tiles.css';
 @import './patterns/tile-groups.css';
 @import './patterns/switchers.css';
+@import './patterns/settings-list.css';
 @import './components/data-display.css';
 @import './components/page-header.css';
 @import './components/navigation.css';
@@ -80,6 +81,12 @@
     block-size: 100%;
     min-block-size: 0;
     overflow: hidden;
+  }
+
+  .phoenix-presentation {
+    inline-size: 100%;
+    block-size: 100%;
+    min-block-size: 0;
   }
 
   body {
