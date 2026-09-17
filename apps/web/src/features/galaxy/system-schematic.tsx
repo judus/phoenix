@@ -55,7 +55,10 @@ export function SystemSchematic ({ actions, commanderName, onBookmarkBody, onSel
   }
 
   return (
-    <div className={selected ? 'system-cartography has-selection' : 'system-cartography'}>
+    <div
+      className={selected ? 'system-cartography has-selection' : 'system-cartography'}
+      data-deskplane-no-swipe
+    >
       <section className="system-schematic" aria-label={`Schematic map of ${system.name}`}>
         <div
           className="system-schematic__viewport"

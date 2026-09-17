@@ -112,7 +112,7 @@ function distance(points: FocusGestureState['points']): number {
 
 function blockedTarget(target: EventTarget | null): boolean {
   if (typeof Element === 'undefined' || !(target instanceof Element)) return false
-  return Boolean(target.closest('input, select, textarea, [contenteditable="true"], [data-control-deck-activation="hold"]'))
+  return Boolean(target.closest('input, select, textarea, [contenteditable="true"], [data-control-deck-activation="hold"], [data-deskplane-no-swipe]'))
 }
 
 function cancelSinglePointerGesture(event: ReactPointerEvent<HTMLElement>, pointerId: number | undefined): void {

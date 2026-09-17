@@ -6,13 +6,17 @@
 PHOENIX is a local-first companion application and ship-computer interface for Elite Dangerous. It turns live telemetry, journal history, control bindings, public galaxy data, and an optional AI Copilot into one cockpit for desktop, tablet, and auxiliary displays.
 
 
-![PHOENIX commander dashboard](docs/screens/screen-20.webp)
+![PHOENIX commander dashboard](docs/screens/img.webp)
 
-![PHOENIX plotted route](docs/screens/screen-07.webp)
+![PHOENIX currentship dashboard](docs/screens/img_1.webp)
 
-![PHOENIX customizable control deck](docs/screens/screen-16.webp)
+![PHOENIX system schematics](docs/screens/img_6.webp)
 
-![PHOENIX Copilot conversation](docs/screens/screen-25.webp)
+![PHOENIX plotted route](docs/screens/img_3.webp)
+
+![PHOENIX customizable control deck](docs/screens/img_4.webp)
+
+![PHOENIX Copilot conversation](docs/screens/img_5.webp)
 
 ## Current status
 
@@ -27,11 +31,24 @@ other browsers, and other devices still need broader testing.
 - **Customizable control deck:** remotely control the ship and Elite Dangerous interface using the
   commander's real bindings. Arrange commands freely, record reusable macros, and keep dangerous
   actions visibly distinct.
-- **Commander and ship information:** inspect live and reconstructed commander data, ships, fleet,
-  cargo, engineering, missions, communications, navigation, exploration, and journal history.
-- **Galaxy and cartography tools:** use symbolic system cartography, plotted-route views, and galaxy
-  queries for systems, stations, shipyards, outfitting, markets, factions, and community-sourced
-  intelligence.
+- **Commander dashboard and records:** keep the current location, ship, plotted route, engineering
+  material watchlist, local market signals, notable journal events, and system traffic together.
+  Inspect career progress, statistics, personal stores, suit loadouts, missions, objectives, and
+  retained journal history when more detail is needed.
+- **Fleet and ship operations:** inspect the active ship's telemetry, cargo, modules, engineering,
+  power distribution, warnings, and control bindings. Browse stored ships and modules, fleet
+  carriers, and the ship catalogue without leaving the cockpit interface.
+- **Engineering project planning:** browse blueprints, engineers, and material inventories; build
+  multi-step upgrade projects; choose grades and planned rolls; and track stock, requirements, and
+  missing materials through the dashboard watchlist.
+- **On-foot equipment:** reconstruct observed suits, personal weapons, and loadouts from retained
+  journals. Browse upgrade recipes, material requirements, and equipment specialists, and prepare
+  suit and weapon upgrade plans.
+- **Galaxy, exploration, and market intelligence:** use symbolic system cartography, plotted-route
+  and exobiology views, bookmarks, reusable queries, and local market signals. Search systems,
+  stations, shipyards, outfitting, commodities, factions, and community-sourced intelligence.
+- **Activities and communications:** review missions, objectives, community goals, Powerplay,
+  colonisation, local traffic, correspondents, GalNet, and radio from dedicated cockpit sections.
 - **Customizable AI Copilot:** create distinct Copilot profiles and converse through persistent text
   chat or realtime voice. The Copilot can query PHOENIX and configured external data sources, reason
   over live commander context, navigate the application across connected displays, and—with
@@ -43,6 +60,9 @@ other browsers, and other devices still need broader testing.
 - **Coordinated multi-device cockpit:** pair browsers, synchronize display commands, choose which
   screen follows Copilot navigation, and coordinate the active voice host without turning every
   connected display into the same screen.
+- **Per-display presentation:** select the compact PHOENIX or Elite-inspired presentation, adjust UI
+  scale and command-label sizing, enter fullscreen or focused F13 mode, and move between workspaces
+  with touch gestures.
 
 ## Installation
 
@@ -222,8 +242,6 @@ and the runtime licence included with the package for the complete boundary.
 
 ## Screenshots
 
-![PHOENIX current ship overview](docs/screens/screen-02.webp)
-![PHOENIX system cartography](docs/screens/screen-06.webp)
 ![PHOENIX mission tracking](docs/screens/screen-10.webp)
 ![PHOENIX engineering blueprint browser](docs/screens/screen-22.webp)
 ![PHOENIX encoded materials inventory](docs/screens/screen-11.webp)
