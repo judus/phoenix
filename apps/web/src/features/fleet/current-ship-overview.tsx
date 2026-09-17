@@ -10,7 +10,6 @@ import {
   Meter,
   PageFrame,
   Status,
-  TileButton,
   Widget,
 } from '@phoenix/ui'
 import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
@@ -38,11 +37,12 @@ const primaryShipCommandOrder = [
   'elite.NightVisionToggle'
 ]
 
-export function CurrentShipOverview({ actions, model, onExecuteAction, onNavigate }: {
+export function CurrentShipOverview({ actions, model, onExecuteAction, onNavigate, presentation }: {
   actions: GameActionCatalogResponse | undefined
   model: CurrentShipModel
   onExecuteAction?(actionId: string): void
   onNavigate(route: PhoenixRoute): void
+  presentation: 'phoenix' | 'elite'
 }) {
   const primaryControls = primaryShipCommandOrder
     .map(actionId => model.controls.find(control => control.actionId === actionId))
@@ -50,6 +50,17 @@ export function CurrentShipOverview({ actions, model, onExecuteAction, onNavigat
   const moduleStatusControls = moduleStatusCommandOrder
     .map(actionId => model.controls.find(control => control.actionId === actionId))
     .filter(control => control !== undefined)
+  const renderActionCommand = (control: CurrentShipModel['controls'][number]) => (
+    <ActionCommand
+      actionId={control.actionId}
+      actions={actions}
+      active={control.active}
+      key={control.actionId}
+      label={control.label}
+      onExecuteAction={onExecuteAction}
+    />
+  )
+  const showModuleControlsInMainGroup = presentation === 'elite'
 
   return (
     <PageFrame layout="fit">
@@ -62,36 +73,25 @@ export function CurrentShipOverview({ actions, model, onExecuteAction, onNavigat
                 label="Current Vessel"
                 link={<CurrentShipLinks onNavigate={onNavigate} />}
               />
-              <ControlContext className="command-grid" context="command" aria-label="Ship commands">
-                {primaryControls.slice(0, 2).map(control => (
-                  <ActionCommand
-                    actionId={control.actionId}
-                    actions={actions}
-                    active={control.active}
-                    key={control.actionId}
-                    label={control.label}
-                    onExecuteAction={onExecuteAction}
-                  />
-                ))}
-                <TileButton
-                  aria-label="Request docking unavailable"
-                  className="compact"
-                  disabled
+              <ControlContext
+                aria-label="Ship commands"
+                className={`command-grid${showModuleControlsInMainGroup ? ' with-module-controls' : ''}`}
+                context="command"
+                variant="embedded"
+              >
+                {primaryControls.slice(0, 2).map(renderActionCommand)}
+                <CommandTile
+                  compact
                   label="Dock"
-                  note="N/A"
-                  title="Docking request is not available yet."
-                  type="button"
                 />
-                {primaryControls.slice(2).map(control => (
-                  <ActionCommand
-                    actionId={control.actionId}
-                    actions={actions}
-                    active={control.active}
-                    key={control.actionId}
-                    label={control.label}
-                    onExecuteAction={onExecuteAction}
-                  />
-                ))}
+                {showModuleControlsInMainGroup
+                  ? <>
+                      {primaryControls.slice(2, 3).map(renderActionCommand)}
+                      {moduleStatusControls.slice(0, 1).map(renderActionCommand)}
+                      {primaryControls.slice(3).map(renderActionCommand)}
+                      {moduleStatusControls.slice(1).map(renderActionCommand)}
+                    </>
+                  : primaryControls.slice(2).map(renderActionCommand)}
               </ControlContext>
             </div>
 
@@ -105,18 +105,14 @@ export function CurrentShipOverview({ actions, model, onExecuteAction, onNavigat
           <div className="ship-lower-grid">
             <ModuleStatusWidget model={model} onNavigate={onNavigate} />
             <CargoWidget model={model} onNavigate={onNavigate} />
-            <ControlContext className="module-status-controls" context="command" aria-label="Module status ship commands">
-              {moduleStatusControls.map(control => (
-                <ActionCommand
-                  actionId={control.actionId}
-                  actions={actions}
-                  active={control.active}
-                  key={control.actionId}
-                  label={control.label}
-                  onExecuteAction={onExecuteAction}
-                />
-              ))}
-            </ControlContext>
+            {!showModuleControlsInMainGroup && <ControlContext
+              aria-label="Module status ship commands"
+              className="module-status-controls"
+              context="command"
+              variant="embedded"
+            >
+              {moduleStatusControls.map(renderActionCommand)}
+            </ControlContext>}
           </div>
         </div>
       </div>
@@ -203,7 +199,7 @@ function PowerDistributionWidget({ actions, model, onExecuteAction }: {
           ))}
         </div>
       </Widget>
-      <ControlContext className="pip-controls" context="command" aria-label="Power distribution controls">
+      <ControlContext className="pip-controls" context="command" variant="embedded" aria-label="Power distribution controls">
         {model.powerDistribution.channels.map(channel => (
           <ActionCommand
             actionId={channel.actionId}

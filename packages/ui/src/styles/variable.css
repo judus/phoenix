@@ -226,6 +226,7 @@
     --scrollbar-thumb-hover: var(--color-action);
     --panel-title: var(--color-action);
     --elite-command-active: #ffb000;
+    --elite-command-embedded: color-mix(in srgb, var(--color-action) 78%, black);
     --elite-command-ink: #000;
     --elite-ambient-text-bloom:
       0 0 0.25rem color-mix(in srgb, currentColor 48%, transparent),

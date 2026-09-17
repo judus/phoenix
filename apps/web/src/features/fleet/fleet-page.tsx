@@ -69,6 +69,7 @@ export function FleetPage({ controller, devicePreferences, onExecuteAction, onNa
       model={model}
       onExecuteAction={onExecuteAction}
       onNavigate={onNavigate}
+      presentation={preferences.presentation}
     />
   }
 

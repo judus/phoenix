@@ -79,6 +79,11 @@
   .theme-elite {
     .described-tile { --described-tile-size: 10rem; }
 
+    .controls-embedded .tile.btn:not(.active, .theme-danger, .unavailable, :disabled, :active) {
+      --command-background: var(--elite-command-embedded);
+      --command-border: var(--elite-command-embedded);
+    }
+
     .tile.btn {
       padding: var(--spacing-xs);
       font-weight: var(--font-weight-normal);
