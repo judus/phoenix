@@ -180,6 +180,29 @@ Open `http://localhost:3400`. Developers who want the live development servers c
 npm run dev
 ```
 
+### Building test installers
+
+Installer builds are host-native: build the Debian package on Linux x64 and the Windows installer
+on Windows x64. The local build and verification commands do not require GitHub Actions:
+
+```sh
+# Linux x64 with dpkg-deb
+npm ci
+npm run installer:linux
+npm run installer:linux:verify
+```
+
+```powershell
+# Windows x64 with Visual C++ Build Tools and Inno Setup 6 or 7
+npm.cmd ci
+npm.cmd run installer:windows
+npm.cmd run installer:windows:verify
+```
+
+See [the packaging guide](scripts/package/README.md) for prerequisites, outputs, verification scope,
+and the optional manual GitHub Actions proof workflow. These are test installers while PHOENIX
+remains in active development.
+
 ### Embedded Control Deck runtime
 
 PHOENIX owns its cockpit UI and consumes only a compiled Control Deck runtime containing the core,
