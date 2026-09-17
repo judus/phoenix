@@ -52,8 +52,17 @@
       > button {
         min-block-size: 0;
 
+        .header > .corner {
+          position: absolute;
+          inset-block-start: 0;
+          inset-inline-start: 0;
+          color: var(--command-meta);
+        }
+
+        .label { padding-block-start: calc(var(--font-size-sm) + var(--spacing-xxs)); }
+
         &::before {
-          color: var(--color-action);
+          color: var(--command-meta);
           font-family: var(--font-family-display);
           letter-spacing: var(--font-tracking-display);
           opacity: 0.09;
@@ -63,6 +72,17 @@
       }
 
       --command-meta: var(--color-action);
+    }
+
+    .theme-elite & .numpad-grid {
+      --command-meta: var(--elite-command-ink);
+
+      > button {
+        --command-grip: var(--elite-command-ink);
+        --command-grip-opacity: 0.18;
+
+        &::before { opacity: 0.08; }
+      }
     }
 
     .control-deck-numpad-layout { --grid-spacing: var(--spacing-xs); }
