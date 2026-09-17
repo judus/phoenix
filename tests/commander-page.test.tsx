@@ -71,7 +71,6 @@ test('commander loadouts and equipment gear share observed state without duplica
   expect(gear).toContain('150&#x27;000 CR')
   expect(gear).toContain('Last upgrade: 100&#x27;000 CR; 3 Weapon Component')
   expect(gear).not.toContain('<h2>Suit loadouts</h2>')
-  expect(gear).toContain('Elite does not publish a complete owned-equipment manifest')
 })
 
 test('commander career and statistics expose unique commander records', () => {

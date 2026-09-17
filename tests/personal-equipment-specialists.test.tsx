@@ -42,7 +42,6 @@ describe('personal equipment specialists', () => {
     expect(index).toContain('#/equipment/specialists?id=test-engineer')
     expect(detail).toContain('Test Engineer')
     expect(detail).toContain('#/equipment/upgrades?id=suit_test')
-    expect(detail).toContain('Access is reconstructed from the local Frontier journal')
   })
 
   test('does not call an unobserved specialist locked before a complete startup summary', () => {

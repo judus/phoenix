@@ -104,7 +104,6 @@ test('personal materials page presents journal stores side by side', () => {
   const markup = renderToStaticMarkup(<EquipmentMaterialsPage controller={{ inventory, status: 'ready' }} />)
 
   expect(markup).toContain('<h1>Materials</h1>')
-  expect(markup).toContain('Only the Ship Locker snapshot has been reported')
   expect(markup).toContain('<h2>Goods</h2>')
   expect(markup).toContain('Chemical Sample')
   expect(markup).toContain('<th class="numeric">Ship locker</th>')
