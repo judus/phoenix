@@ -109,6 +109,7 @@ export function DesktopWorkspace({
                   contextLabel="Log views"
                   currentContext={journalCurrentContext}
                   onNavigate={onNavigateRoute}
+                  swipeZone
                 >
                   {journal}
                 </WorkspacePage>
@@ -130,6 +131,7 @@ export function DesktopWorkspace({
                   currentContext={controlsCurrentContext}
                   onAction={onControlsContextAction}
                   onNavigate={onNavigateRoute}
+                  swipeZone
                 >
                   {controls}
                 </WorkspacePage>
@@ -146,6 +148,7 @@ export function DesktopWorkspace({
                   currentPrimary={informationRoute.section}
                   onNavigate={onNavigateRoute}
                   primaryItems={primaryItems}
+                  swipeZone
                 >
                   {information}
                 </InformationWorkspace>
@@ -160,6 +163,7 @@ export function DesktopWorkspace({
                   contextLabel="Copilot views"
                   currentContext={copilotCurrentContext}
                   onNavigate={onNavigateRoute}
+                  swipeZone
                 >
                   {copilot}
                 </WorkspacePage>
@@ -180,6 +184,7 @@ export function DesktopWorkspace({
                   contextLabel="Settings views"
                   currentContext={settingsCurrentContext}
                   onNavigate={onNavigateRoute}
+                  swipeZone
                 >
                   {settings}
                 </WorkspacePage>
@@ -196,6 +201,6 @@ function utilityDesktop(id: PhoenixWorkspace, ariaLabel: string, children: React
   return {
     id,
     ariaLabel,
-    children: <UtilityWorkspacePage>{children}</UtilityWorkspacePage>
+    children: <UtilityWorkspacePage swipeZone>{children}</UtilityWorkspacePage>
   }
 }

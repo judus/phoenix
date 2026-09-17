@@ -20,7 +20,7 @@ vi.mock('deskplane/react', () => ({
   DeskplaneViewport(props: DeskplaneViewportProps) {
     deskplaneHarness.props = props
     useEffect(() => props.onReady?.(requiredController()), [])
-    return <div data-testid="deskplane-viewport" />
+    return <div data-testid="deskplane-viewport">{props.rows.flatMap(row => row.desktops.map(desktop => <div key={desktop.id}>{desktop.children}</div>))}</div>
   }
 }))
 
@@ -44,6 +44,7 @@ describe('DesktopWorkspace routing integration', () => {
     await act(async () => {
       renderer = create(<RoutedDesktopWorkspace router={router} />)
     })
+    expect(renderer.root.findAll(element => element.props['data-deskplane-swipe-zone'] === 'horizontal')).toHaveLength(7)
     goTo.mockClear()
 
     await act(async () => {

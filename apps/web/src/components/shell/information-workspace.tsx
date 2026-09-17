@@ -12,7 +12,8 @@ export function InformationWorkspace({
   currentContext,
   currentPrimary,
   onNavigate,
-  primaryItems
+  primaryItems,
+  swipeZone = false
 }: {
   children?: ReactNode
   contextLabel: string
@@ -21,9 +22,10 @@ export function InformationWorkspace({
   currentPrimary: string
   onNavigate: (route: PhoenixRoute) => void
   primaryItems: RouteNavigationItem[]
+  swipeZone?: boolean
 }) {
   return (
-    <div className="deskplane-section">
+    <div className="deskplane-section" {...(swipeZone ? { 'data-deskplane-swipe-zone': 'horizontal' } : {})}>
       <PrimaryBar>
         <Navigation
           label="Primary"

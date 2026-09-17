@@ -306,6 +306,10 @@
   }
 }
 
+:where(.deskplane-page, .deskplane-section).deskplane-swipe-zone {
+  touch-action: pan-y;
+}
+
 .shell-body.deskplane-viewport .deskplane-desktop { overflow: hidden; }
 
 @container application-shell (width < 42rem) {

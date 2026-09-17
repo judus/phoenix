@@ -10,7 +10,8 @@ export function WorkspacePage({
   contextItems,
   contextLabel,
   onAction,
-  onNavigate
+  onNavigate,
+  swipeZone = false
 }: {
   children?: ReactNode
   currentContext: string
@@ -18,9 +19,10 @@ export function WorkspacePage({
   contextLabel: string
   onAction?: (item: ApplicationNavigationItem) => void
   onNavigate?: (route: PhoenixRoute) => void
+  swipeZone?: boolean
 }) {
   return (
-    <div className="deskplane-page">
+    <div className="deskplane-page" {...(swipeZone ? { 'data-deskplane-swipe-zone': 'horizontal' } : {})}>
       <Rail label={contextLabel}>
         <Navigation
           variant="compact"
@@ -39,9 +41,9 @@ export function WorkspacePage({
   )
 }
 
-export function UtilityWorkspacePage({ children }: { children: ReactNode }) {
+export function UtilityWorkspacePage({ children, swipeZone = false }: { children: ReactNode, swipeZone?: boolean }) {
   return (
-    <div className="deskplane-page">
+    <div className="deskplane-page" {...(swipeZone ? { 'data-deskplane-swipe-zone': 'horizontal' } : {})}>
       <Content>{children}</Content>
     </div>
   )
