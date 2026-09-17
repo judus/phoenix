@@ -34,7 +34,55 @@ test('focus view toggles explicitly and Escape exits it', () => {
   }
 })
 
+test('a two-touch pinch enters and exits focus without treating one touch as focus input', () => {
+  let renderer!: ReturnType<typeof create>
+  act(() => { renderer = create(<FocusHarness />) })
+  let target = renderer.root.findByType('main')
+
+  act(() => {
+    target.props.onPointerDownCapture(pointer(1, 0))
+    target.props.onPointerMoveCapture(pointer(1, 40))
+  })
+  expect(renderer.root.findByType('main').props['data-active']).toBe(false)
+
+  act(() => {
+    target.props.onPointerDownCapture(pointer(2, 140))
+    target.props.onPointerMoveCapture(pointer(2, 180))
+  })
+  expect(renderer.root.findByType('main').props['data-active']).toBe(true)
+
+  target = renderer.root.findByType('main')
+  act(() => {
+    target.props.onPointerUpCapture(pointer(1, 40))
+    target.props.onPointerUpCapture(pointer(2, 180))
+    target.props.onPointerDownCapture(pointer(3, 0))
+    target.props.onPointerDownCapture(pointer(4, 125))
+    target.props.onPointerMoveCapture(pointer(4, 95))
+  })
+  expect(renderer.root.findByType('main').props['data-active']).toBe(false)
+})
+
 function FocusHarness() {
   const focus = useWorkspaceFocus()
-  return <main data-active={focus.active}><button type="button" onClick={focus.toggle}>Focus</button></main>
+  return <main
+    data-active={focus.active}
+    onClickCapture={focus.onClickCapture}
+    onPointerCancelCapture={focus.onPointerCancelCapture}
+    onPointerDownCapture={focus.onPointerDownCapture}
+    onPointerMoveCapture={focus.onPointerMoveCapture}
+    onPointerUpCapture={focus.onPointerUpCapture}
+  ><button type="button" onClick={focus.toggle}>Focus</button></main>
+}
+
+function pointer(pointerId: number, clientX: number) {
+  return {
+    clientX,
+    clientY: 0,
+    currentTarget: { ownerDocument: { defaultView: null } },
+    pointerId,
+    pointerType: 'touch',
+    preventDefault: vi.fn(),
+    stopPropagation: vi.fn(),
+    target: {}
+  }
 }

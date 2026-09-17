@@ -231,6 +231,8 @@
     > .shell-body .context-rail { display: none; }
   }
 
+  .application-shell-container.focus-gesture-enabled { touch-action: pan-x pan-y; }
+
   @container application-shell (width < 42rem) {
     .application-shell > .topbar > .status-area { display: none; }
   }

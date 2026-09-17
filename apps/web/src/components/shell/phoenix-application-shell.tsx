@@ -63,7 +63,14 @@ export function PhoenixApplicationShell({
   const focus = useWorkspaceFocus()
 
   return (
-    <ApplicationShell className={focus.active ? 'focus-mode' : undefined}>
+    <ApplicationShell
+      className={`focus-gesture-enabled${focus.active ? ' focus-mode' : ''}`}
+      onClickCapture={focus.onClickCapture}
+      onPointerCancelCapture={focus.onPointerCancelCapture}
+      onPointerDownCapture={focus.onPointerDownCapture}
+      onPointerMoveCapture={focus.onPointerMoveCapture}
+      onPointerUpCapture={focus.onPointerUpCapture}
+    >
       <TopBar
         brand={<PhoenixBrand />}
         utilities={
