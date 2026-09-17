@@ -224,6 +224,13 @@
     }
   }
 
+  .application-shell-container.focus-mode > .application-shell {
+    > .topbar,
+    > .workspace-navigation,
+    > .shell-body .deskplane-section > .primary-bar,
+    > .shell-body .context-rail { display: none; }
+  }
+
   @container application-shell (width < 42rem) {
     .application-shell > .topbar > .status-area { display: none; }
   }

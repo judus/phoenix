@@ -10,7 +10,7 @@ import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js
 
 export type RouteNavigationItem = NavigationItem & { route: PhoenixRoute }
 
-export function utilityItems(fullscreen: { active: boolean, supported: boolean }): ApplicationNavigationItem[] {
+export function utilityItems(fullscreen: { active: boolean, supported: boolean }, focusActive = false): ApplicationNavigationItem[] {
   return [
     routeItem('telemetry', 'Numpad', '011', { kind: 'numpad' }),
     routeItem('macros', 'Macros', 'MCR', { kind: 'macros' }),
@@ -23,6 +23,13 @@ export function utilityItems(fullscreen: { active: boolean, supported: boolean }
       shortLabel: 'F11',
       pressed: fullscreen.active,
       disabled: !fullscreen.supported
+    },
+    {
+      id: 'focus',
+      kind: 'action',
+      label: focusActive ? 'Exit focus view' : 'Enter focus view',
+      shortLabel: 'F13',
+      pressed: focusActive
     }
   ]
 }

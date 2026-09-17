@@ -4,6 +4,7 @@ import type { ApplicationNavigationItem, NavigationItem } from '@phoenix/ui'
 import { DesktopWorkspace } from './desktop-workspace.js'
 import { PhoenixBrand } from './phoenix-brand.js'
 import { isRouteNavigationItem, utilityItems, workspaceItems } from './navigation-model.js'
+import { useWorkspaceFocus } from './use-workspace-focus.js'
 import { useFullscreen } from '../../platform/fullscreen/use-fullscreen.js'
 import type { InformationRoute, PhoenixRoute, PhoenixWorkspace } from '../../application/navigation/phoenix-route.js'
 
@@ -59,9 +60,10 @@ export function PhoenixApplicationShell({
   telemetry
 }: PhoenixApplicationShellProps) {
   const fullscreen = useFullscreen()
+  const focus = useWorkspaceFocus()
 
   return (
-    <ApplicationShell>
+    <ApplicationShell className={focus.active ? 'focus-mode' : undefined}>
       <TopBar
         brand={<PhoenixBrand />}
         utilities={
@@ -69,10 +71,14 @@ export function PhoenixApplicationShell({
             variant="compact"
             label="Utilities"
             current={activeDesktop}
-            items={utilityItems(fullscreen)}
+            items={utilityItems(fullscreen, focus.active)}
             onItemSelect={(item) => {
               if (item.id === 'fullscreen') {
                 void fullscreen.toggle()
+                return
+              }
+              if (item.id === 'focus') {
+                focus.toggle()
                 return
               }
               if (isRouteNavigationItem(item)) onNavigateRoute(item.route)
