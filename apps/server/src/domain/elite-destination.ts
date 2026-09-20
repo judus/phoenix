@@ -2,6 +2,7 @@ import type { EliteDestinationPhase, PlotEliteDestinationResult } from '@phoenix
 
 export const ELITE_DESTINATION_BINDINGS = [
   'GalaxyMapOpen',
+  'CamZoomOut',
   'UI_Up',
   'UI_Select',
   'UI_Right',
@@ -18,6 +19,7 @@ export interface EliteDestinationInputStatus {
 
 export interface EliteDestinationInput {
   getStatus(): EliteDestinationInputStatus
+  diagnoseBindings(): Promise<string[]>
   hold(binding: EliteDestinationBinding, durationMs: number, signal?: AbortSignal): Promise<void>
   tap(binding: EliteDestinationBinding, signal?: AbortSignal): Promise<void>
   tapKey(key: string, signal?: AbortSignal): Promise<void>

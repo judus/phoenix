@@ -413,3 +413,39 @@ function galaxyApi(overrides: Partial<PhoenixApi> = {}): PhoenixApi {
     ...overrides
   } as unknown as PhoenixApi
 }
+
+test.each(['result', 'network'])('route plotting %s failure opens a help-linked popover instead of inline error text', async kind => {
+  const showPopover = vi.fn()
+  const plotEliteDestination = kind === 'network'
+    ? vi.fn().mockRejectedValue(new Error('Connection lost.'))
+    : vi.fn().mockImplementation(async () => ({
+      requestedSystem: 'Sol', confirmedSystem: null, status: 'timed_out', phase: 'confirm_route',
+      message: 'Elite did not confirm a newly plotted route to Sol.',
+      bindingWarnings: ['Missing keyboard binding: UI_Right.']
+    }))
+  const onNavigate = vi.fn()
+  let renderer: ReturnType<typeof create>
+  await act(async () => {
+    renderer = create(<GalaxyPage
+      api={galaxyApi({ plotEliteDestination })}
+      controller={{ lookup: { cache: 'local', system: emptySystem('Sol') }, status: 'ready' }}
+      onNavigate={onNavigate}
+      querySessions={new GalaxyQuerySessionStore()}
+      route={{ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Sol' }}
+      runtime={{ state: createEmptyRuntimeState(), status: 'ready' }}
+    />, { createNodeMock: element => element.props.popover ? { showPopover } : null })
+  })
+  const plot = () => renderer.root.findAllByType('button').find(button => button.props['aria-label'] === 'Plot route')!
+  await act(async () => plot().props.onClick())
+  expect(showPopover).toHaveBeenCalledTimes(1)
+  expect(onNavigate).not.toHaveBeenCalled()
+  const popover = renderer.root.findByProps({ role: 'dialog' })
+  expect(popover.props.popover).toBe('auto')
+  expect(popover.findByType('a').props.href).toBe('#/settings/help?topic=route-plotting')
+  expect(popover.findByProps({ 'aria-label': 'Close route plotting error' }).props.popoverTargetAction).toBe('hide')
+  expect(popover.findAllByType('li').map(item => item.children.join(''))).toEqual(kind === 'network' ? [] : ['Missing keyboard binding: UI_Right.'])
+  expect(renderer.root.findAllByProps({ className: 'system-query__status' })).toHaveLength(0)
+  await act(async () => plot().props.onClick())
+  expect(showPopover).toHaveBeenCalledTimes(2)
+  await act(async () => renderer.unmount())
+})

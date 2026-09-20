@@ -203,7 +203,7 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       journalCurrentContext={journalContext(route)}
       macros={activeDesktop === 'macros' ? <FeatureBoundary><MacrosFeature /></FeatureBoundary> : null}
       settings={activeDesktop === 'settings'
-        ? <FeatureBoundary><SettingsFeature application={application} view={route.kind === 'settings' ? route.view : 'general'} /></FeatureBoundary>
+        ? <FeatureBoundary><SettingsFeature application={application} topic={route.kind === 'settings' ? route.topic : undefined} view={route.kind === 'settings' ? route.view : 'general'} /></FeatureBoundary>
         : null}
       settingsContextItems={settingsNavigationItems}
       settingsCurrentContext={settingsContext(route.kind === 'settings' ? route : undefined)}
@@ -219,9 +219,9 @@ function FeatureBoundary({ children }: { children: ReactNode }) {
 }
 
 const StableCopilotFeature = memo(CopilotFeature)
-const SettingsFeature = memo(function SettingsFeature({ application, view }: { application: PhoenixApplicationServices, view: 'general' | 'pairing' | 'copilot' | 'help' }) {
+const SettingsFeature = memo(function SettingsFeature({ application, view, topic }: { application: PhoenixApplicationServices, topic?: string, view: 'general' | 'pairing' | 'copilot' | 'help' }) {
   const voice = useCopilotVoice()
-  if (view === 'help') return <HelpPage />
+  if (view === 'help') return <HelpPage topic={topic} />
   if (view === 'pairing') return <PairingSettingsPage api={application.api} />
   if (view === 'copilot') return <CopilotSettingsPage
     api={application.api}

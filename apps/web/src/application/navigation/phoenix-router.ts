@@ -68,7 +68,7 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
 
   if (section === 'settings') {
     const view = oneOf(rest[0], ['general', 'pairing', 'copilot', 'help'] as const) ?? 'general'
-    return { kind: 'settings', view }
+    return { kind: 'settings', view, ...(view === 'help' && query.topic?.trim() ? { topic: query.topic.trim() } : {}) }
   }
 
   if (section === 'ship') {
@@ -127,6 +127,7 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
     case 'settings': path = `/settings/${route.view}`; break
   }
   const parameters = new URLSearchParams()
+  if (route.kind === 'settings' && route.view === 'help' && route.topic) parameters.set('topic', route.topic)
   if (route.kind === 'information' && route.section === 'galaxy' && route.view === 'system') {
     if (route.systemName) parameters.set('name', route.systemName)
     if (route.selectedName) parameters.set('selected', route.selectedName)

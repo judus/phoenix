@@ -16,20 +16,16 @@ import {
 
 export interface EliteDestinationTiming {
   pause(durationMs: number, signal?: AbortSignal): Promise<void>
-  now(): number
   pollIntervalMs: number
   mapFocusTimeoutMs: number
   routeConfirmationTimeoutMs: number
-  statusFreshnessMs: number
 }
 
 const DEFAULT_TIMING: EliteDestinationTiming = {
   pause: async (durationMs, signal) => delay(durationMs, undefined, { signal }),
-  now: Date.now,
   pollIntervalMs: 100,
   mapFocusTimeoutMs: 12_000,
-  routeConfirmationTimeoutMs: 15_000,
-  statusFreshnessMs: 30_000
+  routeConfirmationTimeoutMs: 15_000
 }
 
 export class EliteDestinationService implements EliteDestinations {
@@ -47,14 +43,10 @@ export class EliteDestinationService implements EliteDestinations {
     if (this.active) return result(systemName, 'rejected', 'preflight', 'Another Galaxy Map operation is already running.')
 
     const status = this.input.getStatus()
-    if (!status.available) return result(systemName, 'rejected', 'preflight', status.detail)
+    if (!status.available) return this.failure(systemName, 'rejected', 'preflight', status.detail)
     const gameStatus = this.runtimeState.getCurrent().gameStatus
     if (!gameStatus) {
-      return result(systemName, 'rejected', 'preflight', 'Elite is not reporting live status.')
-    }
-    const statusAge = this.timing.now() - Date.parse(gameStatus.timestamp)
-    if (!Number.isFinite(statusAge) || statusAge > this.timing.statusFreshnessMs) {
-      return result(systemName, 'rejected', 'preflight', 'Elite status is stale.')
+      return this.failure(systemName, 'rejected', 'preflight', 'Elite is not reporting live status.')
     }
 
     this.active = true
@@ -63,14 +55,27 @@ export class EliteDestinationService implements EliteDestinations {
     try {
       await this.at('open_map', async () => {
         await this.input.tap('GalaxyMapOpen', signal)
-        openedMap = true
+        // Status.json changes with game state, not on a heartbeat. Require a map
+        // acknowledgement instead of rejecting an unchanged snapshot by age.
         await this.waitFor(
-          () => this.runtimeState.getCurrent().gameStatus?.guiFocus?.id === 6,
+          () => {
+            const current = this.runtimeState.getCurrent().gameStatus
+            return current?.guiFocus?.id === 6 && (
+              gameStatus.guiFocus?.id !== 6 || current.timestamp !== gameStatus.timestamp
+            )
+          },
           this.timing.mapFocusTimeoutMs,
           'open_map',
           'Elite did not report an open Galaxy Map.',
           signal
         )
+        openedMap = true
+      })
+
+      await this.at('zoom_out', async () => {
+        await this.timing.pause(500, signal)
+        // Reduce the destination camera travel before search takes keyboard focus.
+        await this.input.hold('CamZoomOut', 4_000, signal)
       })
 
       await this.at('focus_search', async () => {
@@ -92,7 +97,10 @@ export class EliteDestinationService implements EliteDestinations {
         await this.timing.pause(500, signal)
         await this.input.tap('UI_Select', signal)
         await this.timing.pause(2_000, signal)
-        await this.input.tap('CamZoomIn', signal)
+      })
+
+      await this.at('zoom_in', async () => {
+        await this.input.hold('CamZoomIn', 6_000, signal)
         await this.timing.pause(500, signal)
       })
 
@@ -121,12 +129,31 @@ export class EliteDestinationService implements EliteDestinations {
         try { await this.closeMap() } catch { /* Preserve the primary failure. */ }
       }
       if (cause instanceof EliteDestinationOperationError) {
-        return result(systemName, cause.timedOut ? 'timed_out' : 'failed', cause.phase, cause.message)
+        return await this.failure(systemName, cause.timedOut ? 'timed_out' : 'failed', cause.phase, cause.message)
       }
-      return result(systemName, 'failed', 'preflight', errorMessage(cause))
+      return await this.failure(systemName, 'failed', 'preflight', errorMessage(cause))
     } finally {
       this.active = false
     }
+  }
+
+  private async failure (
+    systemName: string,
+    status: 'rejected' | 'failed' | 'timed_out',
+    phase: EliteDestinationPhase,
+    message: string
+  ): Promise<PlotEliteDestinationResult> {
+    // Diagnostics must never hide the original failure or send more game input.
+    let bindingWarnings: string[]
+    try {
+      bindingWarnings = await this.input.diagnoseBindings()
+    } catch {
+      bindingWarnings = ['PHOENIX could not check the active bindings. Check them manually in Elite.']
+    }
+    return PlotEliteDestinationResultSchema.parse({
+      ...result(systemName, status, phase, message),
+      bindingWarnings
+    })
   }
 
   private async at<T> (phase: EliteDestinationPhase, operation: () => Promise<T>): Promise<T> {

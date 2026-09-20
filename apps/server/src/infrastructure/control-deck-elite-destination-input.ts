@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import { setTimeout as delay } from 'node:timers/promises'
 import type { KeyboardOutput } from 'control-deck/adapter-keyboard'
 import type { EliteDangerousBindingSource } from 'control-deck/integration-elite-dangerous'
@@ -7,6 +8,8 @@ import {
   type EliteDestinationInput,
   type EliteDestinationInputStatus
 } from '../domain/elite-destination.js'
+
+import { galaxyMapBindingWarnings } from './galaxy-map-binding-diagnostics.js'
 
 const TEXT_KEY_DELAY_MS = 35
 
@@ -28,6 +31,18 @@ export class ControlDeckEliteDestinationInput implements EliteDestinationInput {
           : 'Elite Galaxy Map input is ready.',
       missingBindings
     }
+  }
+
+  public async diagnoseBindings (): Promise<string[]> {
+    const warnings = this.getStatus().missingBindings.map(binding => `Missing keyboard binding: ${binding}.`)
+    const filePath = this.bindings.getDiagnostics().filePath
+    try {
+      if (!filePath) throw new Error('No active bindings file.')
+      warnings.push(...galaxyMapBindingWarnings(await readFile(filePath, 'utf8'), this.bindings))
+    } catch {
+      warnings.push('PHOENIX could not check Galaxy Map camera conflicts. Check both binding slots manually in Elite.')
+    }
+    return warnings
   }
 
   public async tap (binding: EliteDestinationBinding, signal?: AbortSignal): Promise<void> {

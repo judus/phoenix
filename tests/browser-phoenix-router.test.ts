@@ -149,3 +149,10 @@ class MemoryStorage {
     this.#values.set(key, value)
   }
 }
+
+test('Help topic links survive route parsing and formatting', () => {
+  const href = '#/settings/help?topic=route-plotting'
+  expect(parsePhoenixRoute(href)).toEqual({ kind: 'settings', view: 'help', topic: 'route-plotting' })
+  expect(phoenixRouteHash(parsePhoenixRoute(href))).toBe(href)
+  expect(parsePhoenixRoute('#/settings/general?topic=route-plotting')).toEqual({ kind: 'settings', view: 'general' })
+})

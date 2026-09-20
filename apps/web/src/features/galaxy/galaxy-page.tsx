@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { RoutePlotFeedback } from './route-plot-feedback.js'
 import {
   ActionTile,
   Breadcrumbs,
@@ -243,11 +244,7 @@ function SystemHeader({ bookmarked = false, following, onBookmark, onFollow, onL
             if (name) onLoad(name)
           }}
         >
-          {plotResult && (
-            <Status className="system-query__status" tone={plotResult.status === 'confirmed' ? 'positive' : 'danger'} wrap>
-              {plotResult.status === 'confirmed' ? plotResult.message : `${destinationPhaseLabel(plotResult.phase)}: ${plotResult.message}`}
-            </Status>
-          )}
+          {plotResult && <RoutePlotFeedback result={plotResult} />}
           <div className="system-query__controls">
             <label className="sr-only" htmlFor="system-query-name">System name</label>
             <TextInput
@@ -320,19 +317,6 @@ function FollowSystemIcon () {
 
 function PlotRouteIcon () {
   return <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="5" cy="18" r="2" /><circle cx="19" cy="6" r="2" /><path d="M7 18h4a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h8" /></svg>
-}
-
-function destinationPhaseLabel (phase: PlotEliteDestinationResult['phase']): string {
-  return {
-    preflight: 'Preflight',
-    open_map: 'Opening Galaxy Map',
-    focus_search: 'Opening search',
-    enter_destination: 'Entering destination',
-    select_result: 'Selecting result',
-    plot_route: 'Plotting route',
-    confirm_route: 'Confirming route',
-    close_map: 'Closing Galaxy Map'
-  }[phase]
 }
 
 function QueryConsole({ api, onNavigate, querySessions, route, runtime }: {

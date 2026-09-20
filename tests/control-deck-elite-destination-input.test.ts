@@ -1,3 +1,6 @@
+import { mkdtemp, writeFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { expect, test, vi } from 'vitest'
 import type { KeyboardCommandConfiguration, KeyboardOutput } from 'control-deck/adapter-keyboard'
 import type { EliteDangerousBindingSource } from 'control-deck/integration-elite-dangerous'
@@ -36,6 +39,19 @@ test('Elite destination input reports every required missing semantic binding be
   })
 })
 
+test('Elite destination input requires a keyboard binding for the initial zoom-out step', () => {
+  const source = bindings()
+  const resolve = source.resolve
+  source.resolve = binding => binding === 'CamZoomOut' ? null : resolve(binding)
+  const input = new ControlDeckEliteDestinationInput(source, output(vi.fn()))
+
+  expect(input.getStatus()).toEqual({
+    available: false,
+    detail: 'Elite bindings are missing: CamZoomOut.',
+    missingBindings: ['CamZoomOut']
+  })
+})
+
 function output (send: KeyboardOutput['send']): KeyboardOutput {
   return {
     getStatus: () => ({ available: true, detail: 'Ready.', platformRequirements: [], simulated: false }),
@@ -55,3 +71,31 @@ function bindings (): EliteDangerousBindingSource {
     stopWatching: () => {}
   }
 }
+
+test('failure diagnostics report missing keys and conflicts from the active file without sending input', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'phoenix-binding-diagnostics-'))
+  try {
+    const filePath = join(directory, 'Custom.binds')
+    await writeFile(filePath, '<Root><CamTranslateForward><Secondary Device="Keyboard" Key="Key_W" /></CamTranslateForward></Root>')
+    const source = bindings()
+    const diagnostics = source.getDiagnostics()
+    source.getDiagnostics = () => ({ ...diagnostics, filePath })
+    source.resolve = action => action === 'UI_Right' ? null : action === 'UI_Up'
+      ? { key: 'W', modifiers: [], display: 'W' }
+      : { key: 'g', modifiers: [], display: 'G' }
+    const send = vi.fn()
+    const input = new ControlDeckEliteDestinationInput(source, output(send))
+    await expect(input.diagnoseBindings()).resolves.toEqual([
+      'Missing keyboard binding: UI_Right.',
+      'UI_Up (W) also activates Galaxy Map camera control CamTranslateForward. Assign different keys in Elite.'
+    ])
+    await writeFile(filePath, '<broken>')
+    await expect(input.diagnoseBindings()).resolves.toEqual([
+      'Missing keyboard binding: UI_Right.',
+      'PHOENIX could not check Galaxy Map camera conflicts. Check both binding slots manually in Elite.'
+    ])
+    expect(send).not.toHaveBeenCalled()
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})

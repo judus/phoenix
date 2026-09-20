@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import {
   Breadcrumbs,
   DataTableGroup,
@@ -17,12 +17,19 @@ const topics = [
   { id: 'data', label: 'How PHOENIX gets its data' },
   { id: 'missing-data', label: 'Missing or incomplete data' },
   { id: 'control-deck', label: 'Control Deck and focus' },
+  { id: 'route-plotting', label: 'Route plotting setup' },
   { id: 'copilot', label: 'Copilot' },
   { id: 'troubleshooting', label: 'Troubleshooting' }
 ] as const
 
-export function HelpPage() {
-  const [selectedId, setSelectedId] = useState<string>(topics[0].id)
+export function HelpPage({ topic }: { topic?: string }) {
+  const initialTopic = topics.find(candidate => candidate.id === topic)?.id ?? topics[0].id
+  const [selectedId, setSelectedId] = useState<string>(initialTopic)
+
+  useEffect(() => {
+    setSelectedId(initialTopic)
+    if (topic) document.getElementById(`help-${initialTopic}`)?.scrollIntoView({ block: 'start' })
+  }, [initialTopic, topic])
 
   const select = (id: string) => {
     setSelectedId(id)
@@ -116,6 +123,23 @@ export function HelpPage() {
             <p>Use Control Deck from a paired device so Elite can retain focus on the host. Check the focused application before using actions with meaningful consequences.</p>
             <h3>Tap, hold and safety actions differ</h3>
             <p>Tap actions execute once. Hold actions remain active while held. Safety actions require the additional confirmation shown by the interface.</p>
+          </ManualSection>
+
+          <ManualSection id="route-plotting" title="Route plotting setup">
+            <p>The Plot route button in a system schematic runs PHOENIX’s built-in Galaxy Map routine. Its input sequence depends on your active Elite keyboard bindings and map settings.</p>
+            <h3>Give every required action a keyboard binding</h3>
+            <p>In Elite’s Options → Controls, check Galaxy Map, UI Panel Up, UI Panel Right, UI Panel Select, Galaxy Map Zoom Out and Galaxy Map Zoom In. Controller-only bindings are not enough.</p>
+            <p>The binding identifiers shown in diagnostics are <code>GalaxyMapOpen</code>, <code>UI_Up</code>, <code>UI_Right</code>, <code>UI_Select</code>, <code>CamZoomOut</code> and <code>CamZoomIn</code>.</p>
+            <h3>Separate UI navigation from Galaxy Map camera movement</h3>
+            <p>A fresh default keymap can assign the same keys to both. A key intended to select a search result can move the camera instead, preventing the routine from selecting or plotting the destination.</p>
+            <p>Check both primary and secondary slots under the Galaxy Map camera controls, including movement, rotation and zoom. These are the Galaxy Map controls, not the free camera or camera suite controls. Assign UI navigation and Galaxy Map camera actions different keys or modifier combinations, then apply your changes.</p>
+            <h3>Select Fastest routes</h3>
+            <p>Open the Galaxy Map route options and choose <strong>Fastest routes</strong> rather than <strong>Economical routes</strong>. Economical routing can cause Elite to report “Route unavailable”, especially for distant destinations.</p>
+            <h3>Retry from a paired device with Elite focused</h3>
+            <p>The routine opens the map, zooms out before searching, selects the destination, zooms in and holds the plotting key. Allow it to finish before changing the map or sending other input.</p>
+            <h3>If plotting still fails</h3>
+            <p>The error popover shows the failed step and any missing required keyboard bindings or detected camera conflicts. Conflict checks compare the UI keys the routine sends with both Galaxy Map camera binding slots, including modifiers.</p>
+            <p>PHOENIX cannot read your Fastest/Economical selection or the game’s on-screen error. Check the route options manually. Try plotting the same route in Elite; jump range, permits and route filters can also prevent a route. A timeout means PHOENIX did not receive a new route confirmation, not that it knows why Elite refused the route.</p>
           </ManualSection>
 
           <ManualSection id="copilot" title="Copilot">

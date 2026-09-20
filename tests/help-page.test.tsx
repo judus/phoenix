@@ -22,3 +22,13 @@ test('Settings integrates the indexed Help manual as a canonical destination', (
   expect(markup).toContain('Starport Services → Outfitting')
   expect(markup).not.toContain('class="widget')
 })
+
+test('Help opens the route plotting section from a deep link and falls back for unknown topics', () => {
+  const markup = renderToStaticMarkup(<HelpPage topic="route-plotting" />)
+  expect(markup).toContain('id="help-route-plotting"')
+  expect(markup).toContain('Fastest routes')
+  expect(markup).toContain('Economical routes')
+  expect(markup).toContain('not the free camera')
+  expect(markup).toMatch(/aria-current="location"[^>]*>[\s\S]*?Route plotting setup/)
+  expect(renderToStaticMarkup(<HelpPage topic="unknown" />)).toContain('Getting started')
+})

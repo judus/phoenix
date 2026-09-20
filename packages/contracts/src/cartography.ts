@@ -197,9 +197,11 @@ export const NavigationRouteSchema = z.object({
 export const EliteDestinationPhaseSchema = z.enum([
   'preflight',
   'open_map',
+  'zoom_out',
   'focus_search',
   'enter_destination',
   'select_result',
+  'zoom_in',
   'plot_route',
   'confirm_route',
   'close_map'
@@ -214,7 +216,8 @@ export const PlotEliteDestinationResultSchema = z.object({
   confirmedSystem: z.string().min(1).nullable(),
   status: z.enum(['confirmed', 'rejected', 'failed', 'timed_out']),
   phase: EliteDestinationPhaseSchema,
-  message: z.string().min(1)
+  message: z.string().min(1),
+  bindingWarnings: z.array(z.string().min(1)).optional()
 })
 
 export const CartographyLookupResponseSchema = z.object({
