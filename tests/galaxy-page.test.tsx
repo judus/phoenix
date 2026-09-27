@@ -9,6 +9,79 @@ import { galaxyContextForRoute, galaxyNavigationItems } from '../apps/web/src/fe
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
 
+test('faction state search accepts multiple states without a faction name', async () => {
+  const findGalaxyFactionPresences = vi.fn().mockRejectedValue(new Error('Fixture'))
+  const state = createEmptyRuntimeState()
+  state.system.name = 'Sol'
+  let renderer: ReturnType<typeof create>
+  await act(async () => { renderer = create(<GalaxyPage
+    api={{ findGalaxyFactionPresences } as unknown as PhoenixApi}
+    controller={{ status: 'idle' }} onNavigate={vi.fn()} querySessions={new GalaxyQuerySessionStore()}
+    route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'faction-presence' }}
+    runtime={{ state, status: 'ready' }}
+  />) })
+  expect(renderer.root.findByProps({ id: 'query-faction' }).props.required).not.toBe(true)
+  await act(async () => renderer.root.findAllByProps({ id: 'query-states' }).find(node => typeof node.props.onChange === 'function')!.props.onChange(['War', 'Civil War']))
+  await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+  expect(findGalaxyFactionPresences).toHaveBeenCalledWith(expect.objectContaining({
+    factionName: undefined, states: ['War', 'Civil War'], controlling: 'any', systemName: 'Sol'
+  }))
+  await act(async () => renderer.unmount())
+})
+
+test('legacy saved faction state becomes a selected state in the new editor', async () => {
+  const savedQuery = {
+    id: '00000000-0000-4000-8000-000000000001', name: 'Old war query',
+    createdAt: '2026-09-11T10:00:00.000Z', updatedAt: '2026-09-11T10:00:00.000Z',
+    parameters: { origin: 'Sol', faction: 'Test faction', state: 'War' },
+    queryId: 'faction-presence', schemaVersion: 2, useOnDashboard: false
+  }
+  const findGalaxyFactionPresences = vi.fn().mockRejectedValue(new Error('Fixture'))
+  let renderer: ReturnType<typeof create>
+  await act(async () => { renderer = create(<GalaxyPage
+    api={{ findGalaxyFactionPresences, getSavedGalaxyQueries: async () => ({ queries: [savedQuery] }) } as unknown as PhoenixApi}
+    controller={{ status: 'idle' }} onNavigate={vi.fn()} querySessions={new GalaxyQuerySessionStore()}
+    route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'faction-presence', savedQueryId: savedQuery.id }}
+    runtime={{ state: createEmptyRuntimeState(), status: 'ready' }}
+  />) })
+  await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+  expect(findGalaxyFactionPresences).toHaveBeenCalledWith(expect.objectContaining({
+    factionName: 'Test faction', states: ['War'], systemName: 'Sol'
+  }))
+  await act(async () => renderer.unmount())
+})
+
+test('reference toggle follows live telemetry, typing fixes it, and missing telemetry never reuses a stale origin', async () => {
+  // Keep the editor open after each request so the same mounted form can follow telemetry.
+  const findGalaxySystems = vi.fn().mockRejectedValue(new Error('Fixture response unavailable'))
+  const state = createEmptyRuntimeState()
+  state.system.name = 'Sol'
+  const sessions = new GalaxyQuerySessionStore()
+  const common = { api: { findGalaxySystems } as unknown as PhoenixApi, controller: { status: 'idle' as const }, onNavigate: vi.fn(), querySessions: sessions, route: { kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'system-search' } as const }
+  let renderer: ReturnType<typeof create>
+  await act(async () => { renderer = create(<GalaxyPage {...common} runtime={{ state, status: 'ready' }} />) })
+  const submit = async () => act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+  const updateSystem = async (name: string | null) => act(async () => renderer.update(<GalaxyPage {...common} runtime={{ state: { ...state, system: { ...state.system, name } }, status: 'ready' }} />))
+  await updateSystem('Achenar')
+  expect(renderer.root.findByProps({ id: 'query-origin' }).props.placeholder).toBe('Achenar')
+  await submit()
+  expect(findGalaxySystems).toHaveBeenLastCalledWith(expect.objectContaining({ system: 'Achenar' }))
+  await act(async () => renderer.root.findByProps({ id: 'query-origin' }).props.onChange({ target: { value: 'Colonia' } }))
+  expect(renderer.root.findByProps({ 'aria-label': 'Follow current system' }).props['aria-pressed']).toBe(false)
+  await updateSystem('Alioth')
+  await submit()
+  expect(findGalaxySystems).toHaveBeenLastCalledWith(expect.objectContaining({ system: 'Colonia' }))
+  await act(async () => renderer.root.findByProps({ 'aria-label': 'Follow current system' }).props.onClick())
+  expect(sessions.get('system-search')?.values).toMatchObject({ origin: '', originMode: 'current' })
+  await submit()
+  expect(findGalaxySystems).toHaveBeenLastCalledWith(expect.objectContaining({ system: 'Alioth' }))
+  await updateSystem(null)
+  await submit()
+  expect(findGalaxySystems).toHaveBeenCalledTimes(3)
+  expect(JSON.stringify(renderer.toJSON())).toContain('Current system is unavailable')
+  await act(async () => renderer.unmount())
+})
+
 test('system search uses one query form for nearby and filtered searches', async () => {
   const findGalaxySystems = vi.fn().mockResolvedValue({
     cache: 'fresh',
@@ -57,7 +130,8 @@ test('system search uses one query form for nearby and filtered searches', async
     />)
   })
 
-  expect(renderer.root.findByProps({ id: 'query-origin' }).props.value).toBe('Sol')
+  expect(renderer.root.findByProps({ id: 'query-origin' }).props.value).toBe('')
+  expect(renderer.root.findByProps({ id: 'query-origin' }).props.placeholder).toBe('Sol')
   await act(async () => renderer.root.findByProps({ id: 'query-population' }).props.onChange({ target: { value: 'inhabited' } }))
   await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault: vi.fn() }))
 
@@ -207,6 +281,7 @@ test('a configured query can be saved as a durable definition', async () => {
 
   expect(saveGalaxyQuery).toHaveBeenCalledWith(expect.objectContaining({
     name: 'Systems near Sol',
+    parameters: expect.objectContaining({ origin: '', originMode: 'current' }),
     queryId: 'system-search'
   }), undefined)
   expect(onNavigate).toHaveBeenLastCalledWith({

@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest'
 import {
+  AiError,
   createAiClient,
   type ConfiguredProvider,
   type ConversationMessage,
@@ -11,6 +12,28 @@ import { InMemorySystemSettingsRepository } from '../apps/server/src/infrastruct
 import { InMemoryMacroRepository } from '../apps/server/src/infrastructure/macro-repositories.js'
 import { RecordingKeyboardOutput } from 'control-deck/adapter-keyboard'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
+
+test('Copilot receives correction hints and public execution errors through MCP', async () => {
+  const application = new PhoenixApplication({
+    databasePath: ':memory:', eliteDirectory: null, host: '127.0.0.1', port: 0,
+    webSearchSource: { search: async () => { throw new AiError('timeout', 'Web search timed out. Retry once with the same query.', { code: 'web_search_timeout', retryable: true, cause: new Error('secret-provider-key') }) } }
+  })
+  const address = await application.start()
+  const provider = configuredProvider([
+    response('bad-input', [{ arguments: { service: 'refuel', maxDistance: 500, limit: 5 }, callId: 'invalid', name: 'phoenix__stations_find_nearest_service', type: 'tool_call' }], 'tool_calls'),
+    response('web-failure', [{ arguments: { query: 'test' }, callId: 'web', name: 'phoenix__web_search_web', type: 'tool_call' }], 'tool_calls'),
+    response('done', [{ source: 'generated', text: 'Reported.', type: 'text' }], 'stop')
+  ])
+  const client = createAiClient({ mcp: [{ name: 'phoenix', url: `http://${address.host}:${address.port}/mcp` }], provider })
+  try {
+    await client.user('Test failures').run()
+    const validation = JSON.stringify(provider.requests[1]?.messages)
+    expect(validation).toContain('Remove unknown argument')
+    expect(validation).toContain('maxDistance')
+    expect(JSON.stringify(provider.requests[2]?.messages)).toContain('Web search timed out. Retry once with the same query.')
+    expect(JSON.stringify(provider.requests)).not.toContain('secret-provider-key')
+  } finally { await application.stop() }
+})
 
 test('the portable AI client discovers and calls PHOENIX tools over MCP', async () => {
   const systemSettingsRepository = new InMemorySystemSettingsRepository()

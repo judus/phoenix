@@ -2,6 +2,22 @@ import { describe, expect, it } from 'vitest'
 import { GALAXY_QUERY_CATALOGUE } from '../apps/web/src/features/galaxy/galaxy-query-catalogue.js'
 
 describe('Galaxy query catalogue', () => {
+  it('requires only a station name and leaves all narrowing filters optional', () => {
+    const query = GALAXY_QUERY_CATALOGUE.find(query => query.id === 'station-lookup')!
+    expect(query.fields.filter(field => field.required).map(field => field.id)).toEqual(['name'])
+    expect(query.fields.map(field => field.id)).toEqual(['name', 'origin', 'radius', 'stationType', 'pad'])
+    expect(query.defaults).toEqual({ name: '', origin: '', radius: '', stationType: 'any', pad: '' })
+  })
+  it('accepts fractional gravity without relaxing integer signal counts', () => {
+    const exploration = GALAXY_QUERY_CATALOGUE.find(query => query.id === 'exploration-targets')!
+    for (const id of ['minGravityG', 'maxGravityG']) {
+      expect(exploration.fields.find(field => field.id === id)).toMatchObject({ min: 0, step: 'any', type: 'number' })
+    }
+    for (const id of ['minBiologicalSignals', 'minGeologicalSignals']) {
+      expect(exploration.fields.find(field => field.id === id)?.step).toBeUndefined()
+    }
+  })
+
   it('keeps query identities unique and required defaults usable', () => {
     const ids = GALAXY_QUERY_CATALOGUE.map(query => query.id)
     expect(new Set(ids).size).toBe(ids.length)

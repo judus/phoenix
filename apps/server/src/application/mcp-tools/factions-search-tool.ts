@@ -4,7 +4,7 @@ import type { FactionPresenceQuery } from './tool-gateways.js'
 export class FactionsSearchTool implements LocalTool {
   public readonly definition = {
     annotations: { readOnly: true },
-    description: 'Find the community-reported presence of an exact minor-faction name near the current or supplied reference system. Filter by distance, minimum influence percentage, allegiance, government, current state, or whether the faction controls the system. Results include influence, active/pending/recovering states, controlling status, and the system report time. These are community reports, not live authoritative game state.',
+    description: 'Find community-reported factions near the current or supplied system. Omit factionName to search any faction; when supplied it is an exact name. Use states for OR matching, for example ["War", "Civil War"]. Filters apply to the same faction. Results are candidate systems, not live conflict zones or guaranteed salvage signals. Includes influence, active/pending/recovering states and report time.',
     inputSchema: {
       additionalProperties: false,
       properties: {
@@ -16,9 +16,9 @@ export class FactionsSearchTool implements LocalTool {
         maxDistance: { maximum: 500, minimum: 1, type: 'integer' },
         minInfluencePercent: { maximum: 100, minimum: 0, type: 'integer' },
         state: { minLength: 1, type: 'string' },
+        states: { description: 'Reported faction states to match (OR). Overrides legacy state when supplied; empty means any.', items: { minLength: 1, type: 'string' }, type: 'array', uniqueItems: true },
         systemName: { minLength: 1, type: 'string' }
       },
-      required: ['factionName'],
       type: 'object'
     },
     name: 'factions.find_faction_presence'

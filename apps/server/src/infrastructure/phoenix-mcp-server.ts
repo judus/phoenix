@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import {
+  AiError,
   ToolRegistry,
   type JsonObject,
   type JsonValue,
@@ -117,7 +118,7 @@ export class PhoenixMcpServer {
       writeResult(response, message.id ?? null, mcpToolResult(result))
     } catch (cause) {
       writeResult(response, message.id ?? null, {
-        content: [{ text: cause instanceof Error ? cause.message : 'PHOENIX tool execution failed.', type: 'text' }],
+        content: [{ text: cause instanceof AiError ? cause.message : 'PHOENIX tool execution failed internally. Do not guess different arguments; report the failure to the user.', type: 'text' }],
         isError: true
       })
     } finally {

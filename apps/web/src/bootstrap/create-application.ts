@@ -16,6 +16,7 @@ import { BrowserClientIdentity } from '../platform/storage/browser-client-identi
 import { GalaxyQuerySessionStore } from '../features/galaxy/galaxy-query-session-store.js'
 
 export interface PhoenixApplicationServices {
+  initialPairingCode?: string
   api: PhoenixApi
   clientIdentity: ClientIdentity
   devicePreferences: DevicePreferences
@@ -36,6 +37,8 @@ export function createPhoenixApplication(
   browserWindow: Window,
   options: CreatePhoenixApplicationOptions = {}
 ): PhoenixApplicationServices {
+  // Capture the QR fragment before the router canonicalizes the initial URL.
+  const initialPairingCode = new URLSearchParams(browserWindow.location.hash.slice(1)).get('pair') ?? ''
   const api = new PhoenixApiClient(options.baseUrl, options.request)
   const createEventSource = options.createEventSource ?? (url => new EventSource(url))
   const events = new BrowserPhoenixEventHub(api, createEventSource)
@@ -53,6 +56,7 @@ export function createPhoenixApplication(
   }
   const router = new BrowserPhoenixRouter(browserWindow)
   return {
+    initialPairingCode,
     api,
     clientIdentity: new BrowserClientIdentity(sessionStorage),
     devicePreferences: new BrowserDevicePreferences(localStorage),

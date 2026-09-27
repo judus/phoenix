@@ -14,6 +14,7 @@ export interface GalaxyQueryField {
   options?: GalaxyQueryFieldOption[]
   placeholder?: string
   required?: boolean
+  step?: number | 'any'
   type: 'date' | 'multi-select' | 'number' | 'select' | 'text'
 }
 
@@ -117,8 +118,8 @@ const GALAXY_QUERY_DEFINITIONS: GalaxyQueryDefinition[] = [
       { id: 'bodyType', label: 'Body subtype', options: BODY_SUBTYPES, type: 'multi-select' },
       { id: 'atmosphere', label: 'Atmosphere', options: ATMOSPHERES, type: 'multi-select' },
       { id: 'landable', label: 'Landable', options: [{ label: 'Any', value: 'any' }, { label: 'Yes', value: 'yes' }, { label: 'No', value: 'no' }], type: 'select' },
-      { id: 'minGravityG', label: 'Minimum gravity (g)', min: 0, type: 'number' },
-      { id: 'maxGravityG', label: 'Maximum gravity (g)', min: 0, type: 'number' },
+      { id: 'minGravityG', label: 'Minimum gravity (g)', min: 0, step: 'any', type: 'number' },
+      { id: 'maxGravityG', label: 'Maximum gravity (g)', min: 0, step: 'any', type: 'number' },
       { id: 'minTemperatureK', label: 'Minimum temperature (K)', min: 0, type: 'number' },
       { id: 'maxTemperatureK', label: 'Maximum temperature (K)', min: 0, type: 'number' },
       { id: 'volcanism', label: 'Volcanism', options: VOLCANISM_TYPES, type: 'multi-select' },
@@ -198,17 +199,17 @@ const GALAXY_QUERY_DEFINITIONS: GalaxyQueryDefinition[] = [
     title: 'Outfitting stock'
   },
   {
-    defaults: { name: '', origin: '', pad: 'small', radius: '100', stationType: 'any' },
+    defaults: { name: '', origin: '', pad: '', radius: '', stationType: 'any' },
     domain: 'Facilities',
     fields: [
-      { id: 'name', label: 'Station name', required: true, type: 'text' },
-      ORIGIN,
-      RADIUS,
+      { id: 'name', label: 'Station name', hint: 'Full or partial name. Only this field is required; the filters below are optional.', required: true, type: 'text' },
+      { ...ORIGIN, required: false, hint: 'Optional distance reference. Uses your current system when known.' },
+      { ...RADIUS, required: false, hint: 'Leave blank for no distance limit.' },
       { id: 'stationType', label: 'Station type', options: [{ label: 'Any', value: 'any' }, { label: 'Orbital', value: 'orbital' }, { label: 'Surface', value: 'surface' }, { label: 'Fleet carrier', value: 'carrier' }], type: 'select' },
-      PAD
+      { ...PAD, required: false, options: [{ label: 'Any', value: '' }, ...PAD.options!] }
     ],
     id: 'station-lookup',
-    purpose: 'Locate a known or partially remembered station.',
+    purpose: 'Find stations by a full or partial name anywhere in the galaxy, optionally narrowed by distance, type, or landing pads.',
     title: 'Station lookup'
   },
   {
@@ -230,21 +231,21 @@ const GALAXY_QUERY_DEFINITIONS: GalaxyQueryDefinition[] = [
     title: 'System search'
   },
   {
-    defaults: { allegiance: 'any', controlling: 'any', faction: '', government: 'any', maxDistance: '100', minInfluence: '0', origin: '', state: 'any' },
+    defaults: { allegiance: 'any', controlling: 'any', faction: '', government: 'any', maxDistance: '100', minInfluence: '0', origin: '', states: [] },
     domain: 'Politics',
     fields: [
-      { id: 'faction', label: 'Faction', required: true, type: 'text' },
+      { id: 'faction', label: 'Faction', placeholder: 'Any faction', hint: 'Optional exact faction name.', type: 'text' },
       ORIGIN,
       { ...RADIUS, id: 'maxDistance' },
-      { id: 'state', label: 'State', options: commonAnyOptions(['Boom', 'Bust', 'Civil Unrest', 'Expansion', 'Famine', 'War']), type: 'select' },
+      { id: 'states', label: 'States', hint: 'Matches any selected state. For conflict candidates select War and Civil War. Empty means any state.', options: ['War', 'Civil War', 'Civil Unrest', 'Outbreak', 'Boom', 'Bust', 'Expansion', 'Election', 'Retreat', 'Lockdown', 'Civil Liberty', 'Infrastructure Failure', 'Investment', 'Public Holiday', 'Drought', 'Pirate Attack', 'Famine', 'Blight', 'Terrorist Attack', 'Natural Disaster', 'None'].map(value => ({ label: value, value })), type: 'multi-select' },
       { id: 'allegiance', label: 'Allegiance', options: commonAnyOptions(['Alliance', 'Empire', 'Federation', 'Independent']), type: 'select' },
       { id: 'government', label: 'Government', options: commonAnyOptions(['Anarchy', 'Communism', 'Confederacy', 'Cooperative', 'Corporate', 'Democracy', 'Dictatorship', 'Feudal', 'Patronage', 'Prison Colony', 'Theocracy']), type: 'select' },
       { id: 'controlling', label: 'Controls system', options: [{ label: 'Any', value: 'any' }, { label: 'Yes', value: 'yes' }, { label: 'No', value: 'no' }], type: 'select' },
       { id: 'minInfluence', label: 'Minimum influence (%)', min: 0, max: 100, type: 'number' }
     ],
     id: 'faction-presence',
-    purpose: 'Locate faction presence and matching BGS conditions.',
-    title: 'Faction and BGS presence'
+    purpose: 'Find nearby factions by name or reported state. Results are candidate systems, not live conflict zones or guaranteed salvage signals.',
+    title: 'Faction / State Search'
   },
   {
     defaults: { availableCredits: '10000000', cargoCapacity: '100', maxDaysAgo: '3', maxDistance: '100', minVolume: '100', origin: '' },

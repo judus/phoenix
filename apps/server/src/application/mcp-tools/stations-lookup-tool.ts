@@ -4,7 +4,7 @@ import type { StationQuery } from './tool-gateways.js'
 export class StationsLookupTool implements LocalTool {
   public readonly definition = {
     annotations: { readOnly: true },
-    description: 'Find stations by a full or partially remembered station name near the commander. Returns matching station identity, system, distance, type, pad size, economies, government, services, and report timestamp. Uses the current system unless systemName is supplied.',
+    description: 'Find stations galaxy-wide by a full or partially remembered station name. Only name is required; no radius, pad, or type restriction is applied by default. Returns station identity, system, distance, type, pads, services, and report timestamp. Current system supplies distance context when known; systemName overrides that context. Optional filters are for explicitly narrowed searches, not ordinary name lookup.',
     inputSchema: {
       additionalProperties: false,
       properties: {

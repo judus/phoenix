@@ -2,6 +2,23 @@ import { expect, test } from 'vitest'
 import { GalaxyBookmarkService } from '../apps/server/src/application/galaxy-bookmark-service.js'
 import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
 
+test('station bookmarks distinguish systems, deduplicate case-insensitively, and coexist with bodies', () => {
+  const database = new SqliteDatabase(':memory:')
+  database.initialize()
+  const service = new GalaxyBookmarkService(database)
+  try {
+    const station = service.create({ note: null, tags: [], target: { kind: 'station', stationName: 'Sweet Terminal', systemName: 'Smoje TO-Z d13-40' } })
+    const updated = service.create({ note: 'Return here', tags: ['Trade'], target: { kind: 'station', stationName: 'sweet terminal', systemName: 'smoje to-z d13-40' } })
+    expect(updated.id).toBe(station.id)
+    service.create({ note: null, tags: [], target: { kind: 'station', stationName: 'Sweet Terminal', systemName: 'HIP 6795' } })
+    service.create({ note: null, tags: [], target: { kind: 'body', bodyName: 'Sweet Terminal', systemName: 'Smoje TO-Z d13-40' } })
+    expect(service.getAll().bookmarks).toHaveLength(3)
+    expect(database.getGalaxyBookmark(station.id)?.note).toBe('Return here')
+    service.delete(station.id)
+    expect(service.getAll().bookmarks).toHaveLength(2)
+  } finally { database.close() }
+})
+
 test('galaxy bookmarks persist distinct system and body targets', () => {
   const database = new SqliteDatabase(':memory:')
   database.initialize()

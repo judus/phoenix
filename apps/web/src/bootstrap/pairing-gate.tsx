@@ -9,7 +9,7 @@ type PairingGateState =
   | { status: 'pairing', error?: string, info?: PairingInfo }
   | { status: 'authenticated' }
 
-export function PairingGate({ api, children }: { api: PhoenixApi, children: ReactNode }) {
+export function PairingGate({ api, children, initialCode = '' }: { api: PhoenixApi, children: ReactNode, initialCode?: string }) {
   const [state, setState] = useState<PairingGateState>({ status: 'checking' })
 
   useEffect(() => {
@@ -48,6 +48,7 @@ export function PairingGate({ api, children }: { api: PhoenixApi, children: Reac
   if (state.status === 'authenticated') return children
   return (
     <PairingPage
+      initialCode={initialCode}
       checking={state.status === 'checking'}
       error={state.status === 'pairing' ? state.error : undefined}
       info={state.status === 'pairing' ? state.info : undefined}
@@ -64,14 +65,16 @@ function PairingPage({
   checking,
   error,
   info,
+  initialCode,
   onPair
 }: {
   checking: boolean
   error?: string
   info?: PairingInfo
+  initialCode: string
   onPair(code: string): Promise<void>
 }) {
-  const [code, setCode] = useState(pairingCodeFromLocation())
+  const [code, setCode] = useState(initialCode)
   const [localError, setLocalError] = useState<string>()
   const [pending, setPending] = useState(false)
 
@@ -83,7 +86,6 @@ function PairingPage({
     try {
       await onPair(candidate)
       setLocalError(undefined)
-      clearPairingLocationFragment()
     } catch (cause) {
       setLocalError(cause instanceof Error ? cause.message : 'Device pairing failed.')
     } finally {
@@ -108,7 +110,7 @@ function PairingPage({
                 <Form onSubmit={event => void submit(event)}>
                   <Field
                     error={localError ?? error}
-                    hint={info ? 'Enter the code shown above.' : 'Enter the code shown on the PHOENIX computer.'}
+                    hint={initialCode ? 'Confirm the code from your scanned link to pair this device.' : info ? 'Enter the code shown above.' : 'Enter the code shown on the PHOENIX computer.'}
                     htmlFor="pairing-code"
                     label="Pairing code"
                     required
@@ -135,15 +137,4 @@ function PairingPage({
       </section>
     </PageFrame>
   )
-}
-
-function pairingCodeFromLocation (): string {
-  if (typeof globalThis.location === 'undefined' || !globalThis.location.hash.startsWith('#')) return ''
-  return new URLSearchParams(globalThis.location.hash.slice(1)).get('pair') ?? ''
-}
-
-function clearPairingLocationFragment (): void {
-  if (typeof globalThis.location === 'undefined' || typeof globalThis.history === 'undefined') return
-  if (!new URLSearchParams(globalThis.location.hash.slice(1)).has('pair')) return
-  globalThis.history.replaceState(null, '', `${globalThis.location.pathname}${globalThis.location.search}`)
 }

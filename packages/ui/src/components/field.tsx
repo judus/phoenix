@@ -47,8 +47,9 @@ export function Field({ children, htmlFor, label, hint, error, required = false 
   )
 }
 
-export function TextInput({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={['form-control', className].filter(Boolean).join(' ')} {...props} />
+export function TextInput({ action, className, ...props }: InputHTMLAttributes<HTMLInputElement> & { action?: ReactNode }) {
+  const input = <input className={['form-control', className].filter(Boolean).join(' ')} {...props} />
+  return action ? <div className="input-action">{input}<span className="action">{action}</span></div> : input
 }
 
 export function NumberInput({ className, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {

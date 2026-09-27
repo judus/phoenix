@@ -22,12 +22,13 @@ function providerFilters (request: FactionPresenceRequest): Record<string, unkno
     influence: {
       comparison: '<=>',
       value: [request.minInfluencePercent / 100, 1]
-    },
-    name: { value: [request.factionName] }
+    }
   }
+  if (request.factionName) presence.name = { value: [request.factionName] }
   if (request.allegiance) presence.allegiance = { value: [request.allegiance] }
   if (request.government) presence.government = { value: [request.government] }
-  if (request.state) presence.state = { value: [request.state] }
+  const states = request.states ?? (request.state ? [request.state] : [])
+  if (states.length) presence.state = { value: states }
   return {
     distance: { max: String(request.maxDistanceLy), min: '0' },
     minor_faction_presences: [presence]
@@ -42,32 +43,43 @@ function mapSystem (candidate: unknown, request: FactionPresenceRequest): Factio
   const y = finiteNumber(raw?.y)
   const z = finiteNumber(raw?.z)
   if (!raw || !systemName || distanceLy === null || x === null || y === null || z === null || !Array.isArray(raw.minor_faction_presences)) return []
+  if (distanceLy > request.maxDistanceLy) return []
   const controllingFaction = stringValue(raw.controlling_minor_faction)
-  const presence = raw.minor_faction_presences
-    .map(record)
-    .find(candidate => stringValue(candidate?.name)?.toLocaleLowerCase() === request.factionName.toLocaleLowerCase())
-  const factionName = stringValue(presence?.name)
-  const influence = finiteNumber(presence?.influence)
-  if (!presence || !factionName || influence === null || influence < 0 || influence > 1) return []
-  const controlling = controllingFaction?.toLocaleLowerCase() === factionName.toLocaleLowerCase()
-  if (request.controlling === 'yes' && !controlling) return []
-  if (request.controlling === 'no' && controlling) return []
-  return [{
-    activeStates: stringArray(presence.active_states),
-    allegiance: stringValue(presence.allegiance),
-    controlling,
-    distanceLy,
-    factionName,
-    government: stringValue(presence.government),
-    influencePercent: influence * 100,
-    pendingStates: stringArray(presence.pending_states),
-    position: [x, y, z],
-    recoveringStates: stringArray(presence.recovering_states),
-    state: stringValue(presence.state),
-    systemAddress: integerValue(raw.id64),
-    systemName,
-    updatedAt: isoString(raw.updated_at)
-  }]
+  return raw.minor_faction_presences.flatMap(candidate => {
+    const presence = record(candidate)
+    const factionName = stringValue(presence?.name)
+    const influence = finiteNumber(presence?.influence)
+    if (!presence || !factionName || influence === null || influence < 0 || influence > 1) return []
+    if (request.factionName && !same(factionName, request.factionName)) return []
+    if (influence * 100 < request.minInfluencePercent) return []
+    if (request.allegiance && !same(stringValue(presence.allegiance), request.allegiance)) return []
+    if (request.government && !same(stringValue(presence.government), request.government)) return []
+    const states = request.states ?? (request.state ? [request.state] : [])
+    if (states.length && !states.some(state => same(stringValue(presence.state), state))) return []
+    const controlling = controllingFaction?.toLocaleLowerCase() === factionName.toLocaleLowerCase()
+    if (request.controlling === 'yes' && !controlling) return []
+    if (request.controlling === 'no' && controlling) return []
+    return [{
+      activeStates: stringArray(presence.active_states),
+      allegiance: stringValue(presence.allegiance),
+      controlling,
+      distanceLy,
+      factionName,
+      government: stringValue(presence.government),
+      influencePercent: influence * 100,
+      pendingStates: stringArray(presence.pending_states),
+      position: [x, y, z],
+      recoveringStates: stringArray(presence.recovering_states),
+      state: stringValue(presence.state),
+      systemAddress: integerValue(raw.id64),
+      systemName,
+      updatedAt: isoString(raw.updated_at)
+    }]
+  })
+}
+
+function same (left: string | null, right: string): boolean {
+  return left?.toLocaleLowerCase() === right.toLocaleLowerCase()
 }
 
 function record (candidate: unknown): Record<string, unknown> | null {

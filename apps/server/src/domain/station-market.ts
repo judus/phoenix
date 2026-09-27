@@ -145,16 +145,17 @@ export interface ShipyardSearchSource {
 }
 
 export interface OutfittingSearchSource {
+  moduleNames(): Promise<string[]>
   findOutfitting(request: OutfittingSearchRequest): Promise<OutfittingSearchResult[]>
 }
 
 export type StationLocationType = 'any' | 'carrier' | 'orbital' | 'surface'
 
 export interface StationLookupRequest {
-  maxDistanceLy: number
+  maxDistanceLy: number | null
   minimumPadSize: number | null
   name: string
-  referencePosition: [number, number, number]
+  referencePosition: [number, number, number] | null
   stationType: StationLocationType
 }
 
@@ -207,12 +208,13 @@ export type FactionControllingFilter = 'any' | 'yes' | 'no'
 export interface FactionPresenceRequest {
   allegiance: string | null
   controlling: FactionControllingFilter
-  factionName: string
+  factionName: string | null
   government: string | null
   maxDistanceLy: number
   minInfluencePercent: number
   referencePosition: [number, number, number]
   state: string | null
+  states?: string[]
 }
 
 export interface FactionPresenceResult {

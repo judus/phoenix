@@ -1,4 +1,5 @@
-import type { JsonObject } from '@jdu/llm-client'
+import { ToolUsageError, type JsonObject } from '@jdu/llm-client'
+import { stationNameSuggestions } from './station-name-suggestions.js'
 import type {
   CartographicStation,
   GalaxyCommodityMarketsResponse,
@@ -212,14 +213,14 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
 
   public async lookup (arguments_: JsonObject) {
     const name = stringArgument(arguments_, 'name')
-    const systemName = this.originSystem(optionalStringArgument(arguments_, 'systemName'))
+    const systemName = optionalStringArgument(arguments_, 'systemName')
     const minimumPadSize = optionalStringArgument(arguments_, 'minimumPadSize')
     if (minimumPadSize && PAD_SIZES[minimumPadSize] === undefined) {
       throw new Error('minimumPadSize must be small, medium, or large.')
     }
     const stationType = stationLocationType(optionalStringArgument(arguments_, 'stationType'))
     const result = await this.searchStations({
-      maxDistanceLy: bounded(optionalIntegerArgument(arguments_, 'maxDistance'), 100, 1, 500),
+      maxDistanceLy: arguments_.maxDistance === undefined ? null : bounded(optionalIntegerArgument(arguments_, 'maxDistance'), 100, 1, 500),
       minimumPadSize: minimumPadSize ? PAD_SIZES[minimumPadSize]! : null,
       name,
       stationType,
@@ -227,8 +228,8 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     }, boundedLimit(optionalIntegerArgument(arguments_, 'limit'), 5, 20), minimumPadSize === undefined ? null : minimumPadSize as 'small' | 'medium' | 'large')
     return output(
       result.matches.length > 0
-        ? [`Stations matching "${name}" near ${result.originSystem}:`, ...result.matches.map(formatStationLookup)].join('\n')
-        : `No stations matching "${name}" were reported within ${result.maxDistanceLy} ly of ${result.originSystem}.`,
+        ? [`Stations matching "${name}"${result.originSystem ? ` (distances from ${result.originSystem})` : ''}:`, ...result.matches.map(formatStationLookup)].join('\n')
+        : `No stations matching "${name}" were reported${result.maxDistanceLy === null ? '' : ` within ${result.maxDistanceLy} ly of ${result.originSystem}`}.`,
       json(result)
     )
   }
@@ -256,7 +257,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
 
   public async searchFactionPresences (arguments_: JsonObject) {
     const systemName = this.originSystem(optionalStringArgument(arguments_, 'systemName'))
-    const factionName = stringArgument(arguments_, 'factionName')
+    const factionName = optionalStringArgument(arguments_, 'factionName') ?? null
     const result = await this.findFactionPresences({
       allegiance: optionalFilter(arguments_, 'allegiance'),
       controlling: controllingFilter(optionalStringArgument(arguments_, 'controlling')),
@@ -265,12 +266,13 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
       maxDistanceLy: bounded(optionalIntegerArgument(arguments_, 'maxDistance'), 100, 1, 500),
       minInfluencePercent: bounded(optionalIntegerArgument(arguments_, 'minInfluencePercent'), 0, 0, 100),
       state: optionalFilter(arguments_, 'state'),
+      states: Array.isArray(arguments_.states) ? arguments_.states.filter((value): value is string => typeof value === 'string' && value.trim().length > 0) : undefined,
       systemName
     }, boundedLimit(optionalIntegerArgument(arguments_, 'limit'), 10, 20))
     return output(
       result.presences.length > 0
-        ? [`Community-reported presence for ${factionName} near ${result.originSystem}:`, ...result.presences.map(formatFactionPresence)].join('\n')
-        : `No community-reported presence for ${factionName} matched within ${result.filters.maxDistanceLy} ly of ${result.originSystem}.`,
+        ? [`Community-reported presence for ${factionName ?? 'matching factions'} near ${result.originSystem}:`, ...result.presences.map(formatFactionPresence)].join('\n')
+        : `No community-reported presence for ${factionName ?? 'matching factions'} matched within ${result.filters.maxDistanceLy} ly of ${result.originSystem}.`,
       json(result)
     )
   }
@@ -408,7 +410,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     const { systemName: _systemName, ...filters } = input
     const request: FactionPresenceRequest = { ...filters, referencePosition: origin.system.position }
     const cached = await this.providerQueries.get(
-      'spansh-faction-presence',
+      'spansh-faction-presence-v2',
       stableKey({ ...request, systemName: origin.system.name }),
       FACTION_PRESENCE_CACHE_MS,
       () => this.factionPresenceSource.findFactionPresences(request),
@@ -444,6 +446,10 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
       originSystem: origin.system.name,
       shipyards: cached.value.slice(0, boundedLimit(limit, DEFAULT_GALAXY_RESULT_LIMIT, DEFAULT_GALAXY_RESULT_LIMIT))
     }
+  }
+
+  public outfittingModuleNames (): Promise<string[]> {
+    return this.outfittingSearchSource.moduleNames()
   }
 
   public async searchOutfittingMarkets (
@@ -486,27 +492,29 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
 
   public async searchStations (
     input: {
-      maxDistanceLy: number
-      minimumPadSize: number | null
+      maxDistanceLy?: number | null
+      minimumPadSize?: number | null
       name: string
-      stationType: StationLocationType
-      systemName: string
+      stationType?: StationLocationType
+      systemName?: string
     },
     limit = DEFAULT_GALAXY_RESULT_LIMIT,
     minimumPadSize: 'small' | 'medium' | 'large' | null = null
   ): Promise<GalaxyStationLookupResponse> {
-    const origin = await this.cartography.getSystem(input.systemName)
-    if (!origin.system.position) throw new Error(`Coordinates for ${input.systemName} are unavailable.`)
+    const origin = input.systemName
+      ? await this.cartography.getSystem(input.systemName)
+      : { system: this.runtimeState.getCurrent().system }
     const request = {
-      maxDistanceLy: input.maxDistanceLy,
-      minimumPadSize: input.minimumPadSize,
+      maxDistanceLy: input.maxDistanceLy ?? null,
+      minimumPadSize: input.minimumPadSize ?? null,
       name: input.name.trim(),
-      referencePosition: origin.system.position,
-      stationType: input.stationType
+      referencePosition: origin?.system.position ?? null,
+      stationType: input.stationType ?? 'any'
     }
+    if (request.maxDistanceLy !== null && request.referencePosition === null) throw new ToolUsageError('stations.find_stations_by_name', 'A distance limit needs a reference system with known coordinates.', 'Provide a reference system (systemName), or remove maxDistance for an unrestricted name search.')
     const cached = await this.providerQueries.get(
-      'spansh-stations',
-      stableKey({ ...request, systemName: origin.system.name }),
+      'spansh-stations-v2',
+      stableKey({ ...request, systemName: origin?.system.name ?? null }),
       STATION_LOOKUP_CACHE_MS,
       () => this.stationLookupSource.findStations(request),
       isStationLookupResults
@@ -514,16 +522,16 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     return {
       cache: cached.cache,
       matches: cached.value.slice(0, boundedLimit(limit, DEFAULT_GALAXY_RESULT_LIMIT, DEFAULT_GALAXY_RESULT_LIMIT)),
-      maxDistanceLy: input.maxDistanceLy,
+      maxDistanceLy: request.maxDistanceLy,
       minimumPadSize,
       name: request.name,
-      originSystem: origin.system.name,
-      stationType: input.stationType
+      originSystem: origin?.system.name ?? null,
+      stationType: request.stationType
     }
   }
 
   public async getDetails (arguments_: JsonObject) {
-    const resolved = await this.resolveStation(arguments_)
+    const resolved = await this.resolveStation(arguments_, 'stations.get_station_details')
     const station = resolved.station
     const services = stationServices(station)
     return output([
@@ -536,7 +544,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
   }
 
   public async listShipyardStock (arguments_: JsonObject) {
-    const resolved = await this.resolveStation(arguments_)
+    const resolved = await this.resolveStation(arguments_, 'stations.list_shipyard_stock')
     if (!resolved.station.facilities.shipyard) {
       return output(`${resolved.station.name} (${resolved.systemName}) does not report a shipyard.`, {
         station: resolved.station.name, systemName: resolved.systemName, ships: []
@@ -560,7 +568,7 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
 
   public async searchOutfitting (arguments_: JsonObject) {
     const query = stringArgument(arguments_, 'query')
-    const resolved = await this.resolveStation(arguments_)
+    const resolved = await this.resolveStation(arguments_, 'stations.list_outfitting_stock')
     if (!resolved.station.facilities.outfitting) {
       return output(`${resolved.station.name} (${resolved.systemName}) does not report outfitting.`, {
         modules: [], query, station: resolved.station.name, systemName: resolved.systemName
@@ -592,14 +600,15 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     return systemName
   }
 
-  private async resolveStation (arguments_: JsonObject): Promise<ResolvedStation> {
+  private async resolveStation (arguments_: JsonObject, toolName: string): Promise<ResolvedStation> {
     const state = this.runtimeState.getCurrent()
-    const systemName = this.originSystem(optionalStringArgument(arguments_, 'systemName'))
+    const systemName = optionalStringArgument(arguments_, 'systemName') ?? state.system.name
+    if (!systemName) throw new ToolUsageError(toolName, 'Current system is unavailable.', 'Provide systemName explicitly.', { code: 'station_system_required' })
     const requestedName = optionalStringArgument(arguments_, 'stationName')
       ?? (state.location.place?.kind === 'station' ? state.location.place.name : undefined)
     const requestedMarketId = optionalIntegerArgument(arguments_, 'marketId')
     if (!requestedName && requestedMarketId === undefined) {
-      throw new Error('No station is selected. Provide stationName or marketId.')
+      throw new ToolUsageError(toolName, 'No station is selected.', 'Provide stationName or marketId, and systemName if the station is elsewhere.', { code: 'station_reference_required' })
     }
     const cartography = await this.cartography.getSystem(systemName)
     const station = cartography.system.stations.find(candidate => (
@@ -608,9 +617,15 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
         : requestedName !== undefined && sameName(candidate.name, requestedName)
     )) ?? localStation(state, systemName, requestedName, requestedMarketId)
     if (!station) {
-      throw new Error(requestedName
-        ? `Station "${requestedName}" was not found in ${systemName}.`
-        : `Market ${requestedMarketId} was not found in ${systemName}.`)
+      const suggestions = requestedMarketId === undefined && requestedName
+        ? stationNameSuggestions(requestedName, cartography.system.stations.map(candidate => candidate.name))
+        : []
+      const correction = suggestions.length > 0
+        ? `Possible station-name matches in ${JSON.stringify(cartography.system.name)} (up to five): ${suggestions.map(name => JSON.stringify(name)).join(', ')}. These are suggestions, not a selected station. If one clearly matches the intended station, retry with its exact stationName and this systemName; otherwise ask the user to choose. Omit marketId when retrying by name.`
+        : 'Verify the system and station spelling or marketId. Use stations.find_stations_by_name to locate the station if available, or ask the user for the full station name and system. Do not repeat the unchanged call.'
+      throw new ToolUsageError(toolName,
+        requestedMarketId === undefined ? 'No exact station-name match was found in the selected system.' : 'No station with that marketId was found in the selected system.',
+        correction, { code: 'station_not_found' })
     }
     return { cache: cartography.cache, station, systemName: cartography.system.name }
   }
@@ -889,7 +904,7 @@ function isStationLookupResults (candidate: unknown): candidate is StationLookup
     isRecord(item) &&
     typeof item.stationName === 'string' &&
     typeof item.systemName === 'string' &&
-    typeof item.distanceLy === 'number' &&
+    (item.distanceLy === null || typeof item.distanceLy === 'number') &&
     Array.isArray(item.services)
   ))
 }

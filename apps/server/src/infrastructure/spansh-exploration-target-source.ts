@@ -72,11 +72,17 @@ function mapTarget (candidate: unknown): ExplorationTargetSearchResult | null {
   }
 }
 
-function signalCount (signals: Record<string, unknown>[], name: string): number {
+function signalCount (signals: Record<string, unknown>[], name: string): number | null {
   const match = signals.find(signal => stringValue(signal.name)?.toLocaleLowerCase() === name)
-  return integerValue(match?.count) ?? 0
+  return integerValue(match?.count)
 }
-function range (min: number | null, max: number | null): Record<string, number> | null { return min === null && max === null ? null : { ...(min === null ? {} : { min }), ...(max === null ? {} : { max }) } }
+function range (min: number | null, max: number | null): { comparison: string, value: number | [number, number] } | null {
+  // Body numeric fields use comparison/value; min/max is only valid for distance.
+  if (min !== null && max !== null) return { comparison: '<=>', value: [min, max] }
+  if (min !== null) return { comparison: '>=', value: min }
+  if (max !== null) return { comparison: '<=', value: max }
+  return null
+}
 function record (value: unknown): Record<string, unknown> | null { return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null }
 function stringValue (value: unknown): string | null { return typeof value === 'string' && value.trim() ? value.trim() : null }
 function numberValue (value: unknown): number | null { return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null }

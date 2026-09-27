@@ -39,6 +39,8 @@ export const GalaxySystemSearchResponseSchema = z.object({
   systems: z.array(GalaxySystemSearchResultSchema)
 })
 
+export const GalaxyOutfittingModuleNamesSchema = z.array(z.string().min(1))
+
 export const GalaxyFactionPresenceSchema = z.object({
   activeStates: z.array(z.string().min(1)),
   allegiance: nullableString,
@@ -61,11 +63,12 @@ export const GalaxyFactionPresencesResponseSchema = z.object({
   filters: z.object({
     allegiance: nullableString,
     controlling: z.enum(['any', 'yes', 'no']),
-    factionName: z.string().min(1),
+    factionName: nullableString,
     government: nullableString,
     maxDistanceLy: z.number().int().min(1).max(500),
     minInfluencePercent: z.number().finite().min(0).max(100),
-    state: nullableString
+    state: nullableString,
+    states: z.array(z.string().min(1)).optional()
   }),
   originSystem: z.string().min(1),
   presences: z.array(GalaxyFactionPresenceSchema),
@@ -150,10 +153,10 @@ export const GalaxyStationLookupResultSchema = GalaxyNearbyStationSchema.extend(
 export const GalaxyStationLookupResponseSchema = z.object({
   cache: GalaxyCacheStateSchema,
   matches: z.array(GalaxyStationLookupResultSchema),
-  maxDistanceLy: z.number().int().min(1).max(500),
+  maxDistanceLy: z.number().int().min(1).max(500).nullable(),
   minimumPadSize: z.enum(['small', 'medium', 'large']).nullable(),
   name: z.string().min(1),
-  originSystem: z.string().min(1),
+  originSystem: z.string().min(1).nullable(),
   stationType: z.enum(['any', 'carrier', 'orbital', 'surface'])
 })
 
@@ -253,13 +256,13 @@ export const GalaxyTradeOpportunitiesResponseSchema = z.object({
 
 export const GalaxyExplorationTargetSchema = z.object({
   atmosphere: nullableString,
-  biologicalSignals: z.number().int().nonnegative(),
+  biologicalSignals: z.number().int().nonnegative().nullable(),
   bodyId: z.number().int().nonnegative().nullable(),
   bodyName: z.string().min(1),
   bodyType: nullableString,
   distanceLy: z.number().finite().nonnegative(),
   distanceToArrivalLs: nullableNumber,
-  geologicalSignals: z.number().int().nonnegative(),
+  geologicalSignals: z.number().int().nonnegative().nullable(),
   gravityG: nullableNumber,
   landable: z.boolean().nullable(),
   providerUpdatedAt: z.string().datetime().nullable(),

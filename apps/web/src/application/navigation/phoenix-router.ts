@@ -141,6 +141,7 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
     if (route.bookmarkId) parameters.set('edit', route.bookmarkId)
     if (route.systemName) parameters.set('system', route.systemName)
     if (route.bodyName) parameters.set('body', route.bodyName)
+    if (route.stationName) parameters.set('station', route.stationName)
   }
   if (route.kind === 'information' && route.section === 'fleet' && route.view === 'catalogue' && route.selectedShipId) {
     parameters.set('ship', route.selectedShipId)
@@ -236,7 +237,7 @@ function parseGalaxyRoute(rest: string[], query: RawRouteQuery): InformationRout
       view,
       ...(query.edit?.trim() ? { bookmarkId: query.edit.trim() } : {}),
       ...(query.system?.trim() ? { systemName: query.system.trim() } : {}),
-      ...(query.body?.trim() ? { bodyName: query.body.trim() } : {})
+      ...(query.station?.trim() ? { stationName: query.station.trim() } : query.body?.trim() ? { bodyName: query.body.trim() } : {})
     }
   }
   return { kind: 'information', section: 'galaxy', view }

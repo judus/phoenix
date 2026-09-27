@@ -146,9 +146,10 @@ export class JsonEngineeringCatalogue implements EngineeringCatalogue {
 
   public getBlueprint (symbol: string): EngineeringCatalogueBlueprint | null {
     const normalized = normalize(symbol)
-    const blueprint = this.blueprints.find(candidate => (
-      [candidate.symbol, candidate.fdname].some(value => normalize(value) === normalized)
-    ))
+    // Internal names can be shared, and may also be another blueprint's symbol.
+    // A selected catalogue symbol must win regardless of display-name ordering.
+    const blueprint = this.blueprints.find(candidate => normalize(candidate.symbol) === normalized)
+      ?? this.blueprints.find(candidate => normalize(candidate.fdname) === normalized)
     return blueprint ? structuredClone(blueprint) : null
   }
 

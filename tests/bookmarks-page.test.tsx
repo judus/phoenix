@@ -4,8 +4,27 @@ import type { GalaxyBookmark } from '@phoenix/contracts'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
 import type { PhoenixRoute } from '../apps/web/src/application/navigation/phoenix-route.js'
 import { BookmarksPage } from '../apps/web/src/features/galaxy/bookmarks-page.js'
+import { parsePhoenixRoute, phoenixRouteHash } from '../apps/web/src/application/navigation/phoenix-router.js'
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
+
+test('station bookmarks open the station and edit the existing target', async () => {
+  const station: GalaxyBookmark = { createdAt: '2026-09-26T10:00:00Z', updatedAt: '2026-09-26T10:00:00Z', id: '00000000-0000-4000-8000-000000000003', note: 'Refuel', tags: ['Home'], target: { kind: 'station', stationName: 'Sweet Terminal', systemName: 'Smoje TO-Z d13-40' } }
+  const saveGalaxyBookmark = vi.fn().mockResolvedValue(station)
+  const api = { getGalaxyBookmarks: vi.fn().mockResolvedValue({ bookmarks: [station] }), saveGalaxyBookmark } as unknown as PhoenixApi
+  const route = { kind: 'information', section: 'galaxy', view: 'bookmarks' } as const
+  const stationRoute = { ...route, stationName: 'Sweet Terminal', systemName: 'Smoje TO-Z d13-40' }
+  expect(parsePhoenixRoute(phoenixRouteHash(stationRoute))).toEqual(stationRoute)
+  let renderer: ReturnType<typeof create>
+  await act(async () => { renderer = create(<BookmarksPage api={api} onNavigate={() => {}} route={route} />) })
+  expect(renderer.root.findAllByType('a').map(node => node.props.href)).toContain(phoenixRouteHash({ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Smoje TO-Z d13-40', selectedName: 'Sweet Terminal' }))
+  await act(async () => renderer.root.findByProps({ id: 'bookmark-search' }).props.onChange({ target: { value: 'sweet' } }))
+  expect(renderer.root.findAllByType('strong').map(node => node.children.join(''))).toContain('Sweet Terminal')
+  await act(async () => renderer.update(<BookmarksPage api={api} onNavigate={() => {}} route={{ ...route, systemName: 'Smoje TO-Z d13-40', stationName: 'Sweet Terminal' }} />))
+  await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+  expect(saveGalaxyBookmark).toHaveBeenCalledWith({ note: 'Refuel', tags: ['Home'], target: station.target }, station.id)
+  await act(async () => renderer.unmount())
+})
 
 const bookmarks: GalaxyBookmark[] = [
   {

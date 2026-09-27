@@ -5,6 +5,7 @@ import {
   type SortableDataTableColumn
 } from '@phoenix/ui'
 import type { ReactNode } from 'react'
+import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js'
 import type {
   GalaxyCommodityMarket,
   GalaxyCommodityMarketsResponse,
@@ -162,7 +163,12 @@ const STATION_COLUMNS: readonly SortableDataTableColumn<GalaxyStationLookupResul
     id: 'services',
     sortValue: row => row.services.join(', ')
   },
-  reportedColumn<GalaxyStationLookupResult>()
+  reportedColumn<GalaxyStationLookupResult>(),
+  {
+    id: 'bookmark', heading: 'Bookmark',
+    cell: row => <a aria-label={`Bookmark ${row.stationName} in ${row.systemName}`} href={phoenixRouteHash({ kind: 'information', section: 'galaxy', view: 'bookmarks', stationName: row.stationName, systemName: row.systemName })}>Bookmark</a>,
+    sortValue: row => row.stationName
+  }
 ]
 
 const FACTION_COLUMNS: readonly SortableDataTableColumn<GalaxyFactionPresence>[] = [
@@ -270,8 +276,8 @@ const EXPLORATION_COLUMNS: readonly SortableDataTableColumn<GalaxyExplorationTar
   systemColumn<GalaxyExplorationTarget>(),
   distanceColumn<GalaxyExplorationTarget>(),
   textColumn('type', 'Type', row => row.subtype ?? row.bodyType),
-  numberColumn('biological', 'Biological', row => row.biologicalSignals),
-  numberColumn('geological', 'Geological', row => row.geologicalSignals),
+  numberColumn('biological', 'Biological', row => row.biologicalSignals, 'Not reported'),
+  numberColumn('geological', 'Geological', row => row.geologicalSignals, 'Not reported'),
   {
     cell: row => formatReported(row.signalsUpdatedAt ?? row.providerUpdatedAt),
     heading: 'Reported',
@@ -357,8 +363,8 @@ function textColumn<T>(id: string, heading: string, value: (row: T) => string | 
   return { cell: row => value(row) ?? '—', heading, id, rowHeader, sortValue: value }
 }
 
-function numberColumn<T>(id: string, heading: string, value: (row: T) => number | null): SortableDataTableColumn<T> {
-  return { cell: row => value(row)?.toLocaleString() ?? '—', className: 'numeric', heading, id, sortValue: value }
+function numberColumn<T>(id: string, heading: string, value: (row: T) => number | null, missing = '—'): SortableDataTableColumn<T> {
+  return { cell: row => value(row)?.toLocaleString() ?? missing, className: 'numeric', heading, id, sortValue: value }
 }
 
 function creditColumn<T>(id: string, heading: string, value: (row: T) => number | null): SortableDataTableColumn<T> {

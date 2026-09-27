@@ -1,4 +1,4 @@
-import type { DashboardMarketSignalsResponse, GalaxyQueryParameterValue } from '@phoenix/contracts'
+import { resolveGalaxyQueryOrigin, type DashboardMarketSignalsResponse, type GalaxyQueryParameterValue } from '@phoenix/contracts'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type { SavedGalaxyQueries } from '../domain/saved-galaxy-queries.js'
 import type { MarketSignalReader } from './market-signal-service.js'
@@ -18,7 +18,7 @@ export class DashboardMarketSignalService implements DashboardMarketSignalReader
     const query = this.savedQueries.getDashboardQuery('market-signals')
     if (!query) return { configuration: null, result: null, schemaVersion: 1, state: 'not-configured' }
     const configuration = { id: query.id, name: query.name }
-    const systemName = this.runtimeState.getCurrent().system.name?.trim()
+    const systemName = resolveGalaxyQueryOrigin(query.parameters, this.runtimeState.getCurrent().system.name)
     if (!systemName) return { configuration, result: null, schemaVersion: 1, state: 'location-unknown' }
     const parameters = query.parameters
     return {

@@ -1,0 +1,17 @@
+[
+  {
+    "id": 1, "symbol": "MC_Overcharged", "fdname": "Weapon_Overcharged", "name": "Overcharged",
+    "modulename": ["Weapon"], "engineers": {},
+    "grades": {"1": {"components": {"Test Widgets": 1}, "features": {}}}
+  },
+  {
+    "id": 2, "symbol": "Weapon_Overcharged", "fdname": "Weapon_Overcharged", "name": "Overcharged",
+    "modulename": ["Weapon"], "engineers": {},
+    "grades": {"1": {"components": {"Test Widgets": 2}, "features": {}}}
+  },
+  {
+    "id": 3, "symbol": "TestModule_Reinforced", "fdname": "Legacy_Reinforced", "name": "Reinforced",
+    "modulename": ["Test Module"], "engineers": {},
+    "grades": {"1": {"components": {"Test Widgets": 1}, "features": {}}}
+  }
+]

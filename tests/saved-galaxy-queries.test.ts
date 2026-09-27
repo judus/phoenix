@@ -5,6 +5,23 @@ import { DatabaseSync } from 'node:sqlite'
 import { expect, test } from 'vitest'
 import { SavedGalaxyQueryService } from '../apps/server/src/application/saved-galaxy-query-service.js'
 import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
+import { resolveGalaxyQueryOrigin } from '@phoenix/contracts'
+
+test('saved dynamic references drop captured names and resolve each run; legacy references stay fixed', () => {
+  const database = new SqliteDatabase(':memory:')
+  database.initialize()
+  const service = new SavedGalaxyQueryService(database.savedGalaxyQueries)
+  try {
+    const saved = service.create({ name: 'Near me', parameters: { origin: 'Stale system', originMode: 'current' }, queryId: 'system-search', useOnDashboard: false })
+    const restored = service.getAll().queries.find(query => query.id === saved.id)!
+    expect(restored.parameters).toEqual({ origin: '', originMode: 'current' })
+    expect(resolveGalaxyQueryOrigin(restored.parameters, 'Sol')).toBe('Sol')
+    expect(resolveGalaxyQueryOrigin(restored.parameters, 'Alioth')).toBe('Alioth')
+    expect(resolveGalaxyQueryOrigin(restored.parameters, null)).toBe('')
+    expect(resolveGalaxyQueryOrigin({ origin: 'Colonia' }, 'Alioth')).toBe('Colonia')
+    expect(() => service.create({ name: 'Invalid', parameters: { originMode: 'invalid' }, queryId: 'system-search', useOnDashboard: false })).toThrow('originMode')
+  } finally { database.close() }
+})
 
 test('saved Galaxy queries persist versioned query definitions without result data', () => {
   const database = new SqliteDatabase(':memory:')

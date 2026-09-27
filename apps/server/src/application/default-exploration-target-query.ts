@@ -12,6 +12,8 @@ import { boundedLimit, json, optionalIntegerArgument, optionalStringArgument, ou
 import { DEFAULT_GALAXY_RESULT_LIMIT } from './galaxy-data-service.js'
 
 const CACHE_MS = 30 * 60 * 1000
+// Earlier caches used unenforced numeric filters and collapsed missing signals to zero.
+const CACHE_NAMESPACE = 'spansh-exploration-targets-v3'
 const CANDIDATE_LIMIT = 100
 
 export interface ExplorationTargetSearchInput {
@@ -63,7 +65,7 @@ export class DefaultExplorationTargetQuery implements ExplorationTargetReader, E
     }, boundedLimit(optionalIntegerArgument(arguments_, 'limit'), 10, 20))
     return output(
       result.targets.length > 0
-        ? [`Reported exploration candidates near ${result.originSystem}:`, ...result.targets.map(target => `- ${target.bodyName} (${target.systemName}, ${target.distanceLy.toFixed(1)} ly): ${target.subtype ?? target.bodyType ?? 'unknown body'}, ${target.biologicalSignals} biological / ${target.geologicalSignals} geological signals.`), result.caveat].join('\n')
+        ? [`Reported exploration candidates near ${result.originSystem}:`, ...result.targets.map(target => `- ${target.bodyName} (${target.systemName}, ${target.distanceLy.toFixed(1)} ly): ${target.subtype ?? target.bodyType ?? 'unknown body'}, biological signals: ${target.biologicalSignals ?? 'not reported'} / geological signals: ${target.geologicalSignals ?? 'not reported'}.`), result.caveat].join('\n')
         : `No reported exploration candidates matched near ${result.originSystem}. ${result.caveat}`,
       json(result)
     )
@@ -76,7 +78,10 @@ export class DefaultExplorationTargetQuery implements ExplorationTargetReader, E
     const request: ExplorationTargetSearchRequest = { ...providerFilters, referencePosition: origin.position }
     const cached = await this.cached(stableKey({ ...request, systemName: origin.name }), () => this.source.findTargets(request))
     const targets = cached.value
-      .filter(target => target.biologicalSignals >= input.minBiologicalSignals && target.geologicalSignals >= input.minGeologicalSignals)
+      .filter(target => meetsSignalMinimum(target.biologicalSignals, input.minBiologicalSignals)
+        && meetsSignalMinimum(target.geologicalSignals, input.minGeologicalSignals))
+      .filter(target => withinRange(target.surfaceTemperatureK, input.minTemperatureK, input.maxTemperatureK)
+        && withinRange(target.gravityG, input.minGravityG, input.maxGravityG))
       .map(target => GalaxyExplorationTargetSchema.parse(target))
       .slice(0, boundedLimit(limit, DEFAULT_GALAXY_RESULT_LIMIT, DEFAULT_GALAXY_RESULT_LIMIT))
     return {
@@ -106,7 +111,7 @@ export class DefaultExplorationTargetQuery implements ExplorationTargetReader, E
   }
 
   private async cached (key: string, load: () => Promise<ExplorationTargetSearchResult[]>): Promise<{ cache: 'fresh' | 'refreshed' | 'stale', value: ExplorationTargetSearchResult[] }> {
-    const namespace = 'spansh-exploration-targets'
+    const namespace = CACHE_NAMESPACE
     const existing = this.cache.getProviderResponse(namespace, key)
     if (existing && isSourceResults(existing.value) && this.now().getTime() - Date.parse(existing.fetchedAt) <= CACHE_MS) return { cache: 'fresh', value: existing.value }
     try {
@@ -127,8 +132,13 @@ export class DefaultExplorationTargetQuery implements ExplorationTargetReader, E
 }
 
 function same (left: string, right: string): boolean { return left.trim().toLocaleLowerCase() === right.trim().toLocaleLowerCase() }
+function withinRange (value: number | null, min: number | null, max: number | null): boolean {
+  if (min === null && max === null) return true
+  return value !== null && (min === null || value >= min) && (max === null || value <= max)
+}
 function stableKey (value: object): string { return JSON.stringify(Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right)))) }
-function isSourceResults (value: unknown): value is ExplorationTargetSearchResult[] { return Array.isArray(value) && value.every(item => { const candidate = item as Partial<ExplorationTargetSearchResult>; return typeof candidate.bodyName === 'string' && typeof candidate.systemName === 'string' && typeof candidate.distanceLy === 'number' && Number.isInteger(candidate.biologicalSignals) && Number.isInteger(candidate.geologicalSignals) }) }
+function isSourceResults (value: unknown): value is ExplorationTargetSearchResult[] { return Array.isArray(value) && value.every(item => GalaxyExplorationTargetSchema.safeParse(item).success) }
+function meetsSignalMinimum (count: number | null, minimum: number): boolean { return minimum === 0 || (count !== null && count >= minimum) }
 function boundedInteger (value: number | undefined, fallback: number, min: number, max: number): number { return value === undefined ? fallback : Math.min(Math.max(value, min), max) }
 function optionalNumber (arguments_: JsonObject, key: string): number | null { const value = arguments_[key]; if (value === undefined || value === null) return null; if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) throw new Error(`${key} must be a non-negative number.`); return value }
 function optionalStringArrayArgument (arguments_: JsonObject, key: string): string[] { const value = arguments_[key]; if (value === undefined || value === null) return []; if (!Array.isArray(value) || value.some(item => typeof item !== 'string' || !item.trim())) throw new Error(`${key} must be an array of non-empty strings.`); return [...new Set(value.map(item => String(item).trim()))] }

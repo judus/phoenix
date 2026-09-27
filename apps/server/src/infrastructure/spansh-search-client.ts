@@ -6,7 +6,7 @@ export type SpanshSearchIndex = 'bodies' | 'stations' | 'systems'
 
 export interface SpanshSearchRequest {
   filters: Record<string, unknown>
-  referencePosition: [number, number, number]
+  referencePosition: [number, number, number] | null
 }
 
 export interface SpanshSearchGateway {
@@ -41,8 +41,9 @@ export class SpanshSearchClient implements SpanshSearchGateway {
     if (!response.ok) throw new Error(`Spansh field-value lookup failed with HTTP ${response.status}.`)
     const payload: unknown = await response.json()
     const raw = record(payload)
-    if (!raw || !Array.isArray(raw.values)) throw new Error('Spansh returned an unexpected field-value response.')
-    return [...new Set(raw.values.map(stringValue).filter((value): value is string => value !== null))]
+    const values = index === 'stations' && field === 'modules' ? record(raw?.values)?.name : raw?.values
+    if (!Array.isArray(values)) throw new Error('Spansh returned an unexpected field-value response.')
+    return [...new Set(values.map(stringValue).filter((value): value is string => value !== null))]
   }
 
   public async search (index: SpanshSearchIndex, request: SpanshSearchRequest): Promise<unknown[]> {
@@ -50,13 +51,13 @@ export class SpanshSearchClient implements SpanshSearchGateway {
       body: JSON.stringify({
         filters: request.filters,
         page: 0,
-        reference_coords: {
+        ...(request.referencePosition ? { reference_coords: {
           x: request.referencePosition[0],
           y: request.referencePosition[1],
           z: request.referencePosition[2]
-        },
+        } } : {}),
         size: DEFAULT_RESULT_SIZE,
-        sort: [{ distance: { direction: 'asc' } }]
+        ...(request.referencePosition ? { sort: [{ distance: { direction: 'asc' } }] } : {})
       }),
       headers: {
         accept: 'application/json',

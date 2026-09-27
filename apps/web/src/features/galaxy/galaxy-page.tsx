@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { RoutePlotFeedback } from './route-plot-feedback.js'
+import { OutfittingModuleInput } from './outfitting-module-input.js'
 import {
   ActionTile,
   Breadcrumbs,
@@ -22,6 +23,7 @@ import {
   ToggleButton
 } from '@phoenix/ui'
 import type { PlotEliteDestinationResult, SavedGalaxyQuery } from '@phoenix/contracts'
+import { galaxyQueryOriginMode, resolveGalaxyQueryOrigin } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { InformationRoute, PhoenixRoute } from '../../application/navigation/phoenix-route.js'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
@@ -162,6 +164,7 @@ function SystemView({ api, commanderName, lookup, onNavigate, route }: {
       <SystemSchematic
         commanderName={commanderName}
         onBookmarkBody={bodyName => onNavigate({ kind: 'information', section: 'galaxy', view: 'bookmarks', systemName: lookup.system.name, bodyName })}
+        onBookmarkStation={stationName => onNavigate({ kind: 'information', section: 'galaxy', view: 'bookmarks', systemName: lookup.system.name, stationName })}
         onSelect={selectedName => onNavigate({
           kind: 'information',
           section: 'galaxy',
@@ -400,7 +403,7 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, executionId, onBack
   const executeOnMount = executionId !== undefined && retained?.executionId !== executionId
   const initial = (): Record<string, GalaxyQueryValue> => retained
     ? { ...retained.values }
-    : queryValues(definition, savedQuery?.parameters, defaultOrigin)
+    : queryValues(definition, savedQuery?.parameters)
   const [values, setValues] = useState<Record<string, GalaxyQueryValue>>(initial)
   const [result, setResult] = useState<GalaxyQueryResult | undefined>(executeOnMount ? undefined : retained?.result)
   const [error, setError] = useState<string>()
@@ -414,7 +417,13 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, executionId, onBack
     setLoading(true)
     setError(undefined)
     try {
-      const nextResult = await executeGalaxyQuery(api, definition.id, nextValues)
+      const origin = resolveGalaxyQueryOrigin(nextValues, defaultOrigin)
+      if (!origin && (definition.id !== 'station-lookup' || scalar(nextValues.radius).trim())) {
+        throw new Error(galaxyQueryOriginMode(nextValues) === 'current'
+          ? 'Current system is unavailable. Enter a fixed reference system or wait for telemetry.'
+          : 'Enter a reference system or select Follow current system.')
+      }
+      const nextResult = await executeGalaxyQuery(api, definition.id, { ...nextValues, origin })
       querySessions.set(sessionId, { ...(executionId ? { executionId } : {}), result: nextResult, values: nextValues })
       setResult(nextResult)
     } catch (cause) {
@@ -468,14 +477,18 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, executionId, onBack
               <Form onSubmit={execute}>
                 <div className="query-workspace">
                   <aside className="query-envelope" aria-label="Current query">
-                    <header><small>{definition.domain}</small><strong>{savedQuery?.name ?? definition.title}</strong><p>{savedQuery ? `${definition.title} · ` : ''}from {scalar(values.origin) || 'an unresolved system'}</p></header>
+                    <header><small>{definition.domain}</small><strong>{savedQuery?.name ?? definition.title}</strong><p>{savedQuery ? `${definition.title} · ` : ''}from {galaxyQueryOriginMode(values) === 'current' ? `current system (${defaultOrigin || 'unavailable'})` : scalar(values.origin) || 'an unresolved system'}</p></header>
                     <dl><div><dt>Parameters</dt><dd>{definition.fields.length}</dd></div><div><dt>Data source</dt><dd>Community intelligence</dd></div></dl>
                     <p>{definition.purpose}</p>
                   </aside>
                   <div className="query-parameters">
                     <div className="query-fields">
-                      <FormGrid>{definition.fields.map(field => <CatalogueField field={field} key={field.id} value={values[field.id] ?? ''} onChange={value => setValues(current => {
-                        const next = { ...current, [field.id]: value }
+                      <FormGrid>{definition.fields.map(field => <CatalogueField api={api} field={field} key={field.id} currentSystem={defaultOrigin} following={galaxyQueryOriginMode(values) === 'current'} onFollow={() => setValues(current => {
+                        const next = { ...current, origin: '', originMode: 'current' }
+                        querySessions.set(sessionId, { values: next })
+                        return next
+                      })} value={values[field.id] ?? ''} onChange={value => setValues(current => {
+                        const next = { ...current, [field.id]: value, ...(field.id === 'origin' ? { originMode: 'fixed' } : {}) }
                         querySessions.set(sessionId, { values: next })
                         return next
                       })} />)}</FormGrid>
@@ -483,7 +496,7 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, executionId, onBack
                     {saveOpen && <SaveQueryPanel dashboardEligible={definition.id === 'market-signals'} name={savedName} saving={saving} useOnDashboard={useOnDashboard} onCancel={() => setSaveOpen(false)} onChange={setSavedName} onDashboardChange={setUseOnDashboard} onSave={() => void save()} />}
                     <FormActions className="query-actions" layout="columns" message={error ? <Status tone="danger" wrap>{error}</Status> : undefined}>
                       <FormActionGroup columns="two"><Button alignment="start" variant="outline" size="lg" type="button" onClick={onBack}>Back</Button><Button alignment="start" variant="outline" size="lg" type="button" onClick={() => {
-                        const reset = { ...definition.defaults, origin: defaultOrigin || scalar(definition.defaults.origin) }
+                        const reset = queryValues(definition, undefined)
                         querySessions.set(sessionId, { values: reset })
                         setValues(reset)
                       }}>Reset query</Button></FormActionGroup>
@@ -522,12 +535,14 @@ function QueryConsoleState ({ error }: { error?: string }) {
   return <PageFrame><PageHeader variant="cockpit" context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Query console' }]} />} title="Query console" /><Status tone={error ? 'danger' : 'muted'}>{error ?? 'Loading saved query…'}</Status></PageFrame>
 }
 
-function queryValues (definition: GalaxyQueryDefinition, parameters: SavedGalaxyQuery['parameters'] | undefined, defaultOrigin: string): Record<string, GalaxyQueryValue> {
+function queryValues (definition: GalaxyQueryDefinition, parameters: SavedGalaxyQuery['parameters'] | undefined): Record<string, GalaxyQueryValue> {
   const values: Record<string, GalaxyQueryValue> = {
     ...definition.defaults,
-    origin: defaultOrigin || scalar(definition.defaults.origin)
+    origin: '',
+    originMode: parameters ? galaxyQueryOriginMode(parameters) : 'current'
   }
   if (!parameters) return values
+  if (definition.id === 'faction-presence' && !Array.isArray(parameters.states) && typeof parameters.state === 'string' && parameters.state !== 'any') values.states = [parameters.state]
   const fields = new Map(definition.fields.map(field => [field.id, field]))
   for (const [key, value] of Object.entries(parameters)) {
     const field = fields.get(key)
@@ -535,17 +550,22 @@ function queryValues (definition: GalaxyQueryDefinition, parameters: SavedGalaxy
     if (field.type === 'multi-select' && Array.isArray(value)) values[key] = [...value]
     if (field.type !== 'multi-select' && typeof value === 'string') values[key] = value
   }
+  if (values.originMode === 'current') values.origin = ''
   return values
 }
 
-function CatalogueField({ field, onChange, value }: { field: GalaxyQueryField, onChange(value: GalaxyQueryValue): void, value: GalaxyQueryValue }) {
+function CatalogueField({ api, field, onChange, value, currentSystem, following, onFollow }: { api: PhoenixApi, field: GalaxyQueryField, onChange(value: GalaxyQueryValue): void, value: GalaxyQueryValue, currentSystem: string, following: boolean, onFollow(): void }) {
   const id = `query-${field.id}`
+  if (field.id === 'module') return <OutfittingModuleInput api={api} value={scalar(value)} onChange={onChange} />
+  if (field.id === 'origin') return <Field htmlFor={id} label={field.label} hint={following ? `Following current system: ${currentSystem || 'unavailable'}` : 'Fixed reference. Select the location icon to follow your current system.'}>
+    <TextInput id={id} placeholder={following ? currentSystem || 'Current system unavailable' : 'System name'} value={following ? '' : scalar(value)} required={!following && field.required} onChange={event => onChange(event.target.value)} action={<IconButton type="button" label="Follow current system" aria-pressed={following} className={`btn-toggle inset${following ? ' active' : ''}`} onClick={onFollow}><FollowSystemIcon /></IconButton>} />
+  </Field>
   const control = field.type === 'multi-select'
     ? <MultiSelect id={id} options={field.options ?? []} value={multiple(value)} onChange={onChange} />
     : field.type === 'select'
       ? <Select id={id} required={field.required} value={scalar(value)} onChange={event => onChange(event.target.value)}>{field.options?.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</Select>
     : field.type === 'number'
-      ? <NumberInput id={id} max={field.max} min={field.min} required={field.required} value={scalar(value)} onChange={event => onChange(event.target.value)} />
+      ? <NumberInput id={id} max={field.max} min={field.min} required={field.required} step={field.step} value={scalar(value)} onChange={event => onChange(event.target.value)} />
       : <TextInput id={id} placeholder={field.placeholder} required={field.required} type={field.type === 'date' ? 'date' : 'text'} value={scalar(value)} onChange={event => onChange(event.target.value)} />
   return <Field htmlFor={id} hint={field.hint} label={field.label} required={field.required}>{control}</Field>
 }
@@ -568,8 +588,8 @@ async function executeGalaxyQuery(api: PhoenixApi, id: GalaxyQueryDefinition['id
     case 'market-signals': return { id, value: await api.findGalaxyMarketSignals({ fleetCarriers: scalar(values.fleetCarriers) === 'yes', maxDaysAgo: numeric(values.maxDaysAgo), minDeviationPercent: decimal(values.minDeviationPercent), minimumPadSize: pad(values.pad), minVolume: numeric(values.minVolume), sides: signalSides(values.sides), systemName: scalar(values.origin) }) }
     case 'commodity-markets': return { id, value: await api.findGalaxyCommodityMarkets({ commodity: scalar(values.commodity), intent: scalar(values.intent) === 'buy' ? 'buy' : 'sell', maxDaysAgo: numeric(values.maxDaysAgo), maxDistance: numeric(values.maxDistance), minVolume: numeric(values.minVolume), systemName: scalar(values.origin) }) }
     case 'outfitting-stock': return { id, value: await api.findGalaxyOutfitting({ maxDaysAgo: numeric(values.maxDaysAgo), maxDistance: numeric(values.maxDistance), minimumPadSize: pad(values.pad), module: scalar(values.module), systemName: scalar(values.origin) }) }
-    case 'station-lookup': return { id, value: await api.findGalaxyStations({ maxDistance: numeric(values.radius), minimumPadSize: pad(values.pad), name: scalar(values.name), stationType: stationType(values.stationType), systemName: scalar(values.origin) }) }
-    case 'faction-presence': return { id, value: await api.findGalaxyFactionPresences({ allegiance: selection(values.allegiance), controlling: controlling(values.controlling), factionName: scalar(values.faction), government: selection(values.government), maxDistance: numeric(values.maxDistance), minInfluence: numeric(values.minInfluence), state: selection(values.state), systemName: scalar(values.origin) }) }
+    case 'station-lookup': return { id, value: await api.findGalaxyStations({ maxDistance: numeric(values.radius), minimumPadSize: pad(values.pad), name: scalar(values.name), stationType: stationType(values.stationType), systemName: text(values.origin) }) }
+    case 'faction-presence': return { id, value: await api.findGalaxyFactionPresences({ allegiance: selection(values.allegiance), controlling: controlling(values.controlling), factionName: text(values.faction), government: selection(values.government), maxDistance: numeric(values.maxDistance), minInfluence: numeric(values.minInfluence), states: multiple(values.states), systemName: scalar(values.origin) }) }
     case 'trade-opportunities': return { id, value: await api.findGalaxyTradeOpportunities({ availableCredits: numeric(values.availableCredits) ?? 0, cargoCapacity: numeric(values.cargoCapacity) ?? 0, maxDaysAgo: numeric(values.maxDaysAgo), maxDistance: numeric(values.maxDistance), minVolume: numeric(values.minVolume), systemName: scalar(values.origin) }) }
     case 'exploration-targets': return { id, value: await api.findGalaxyExplorationTargets({ atmospheres: multiple(values.atmosphere), bodySubtypes: multiple(values.bodyType), landable: landable(values.landable), lastReportedBefore: text(values.lastReportedBefore), maxDistance: numeric(values.maxDistance), maxGravityG: decimal(values.maxGravityG), maxTemperatureK: decimal(values.maxTemperatureK), minBiologicalSignals: numeric(values.minBiologicalSignals), minGeologicalSignals: numeric(values.minGeologicalSignals), minGravityG: decimal(values.minGravityG), minTemperatureK: decimal(values.minTemperatureK), systemName: scalar(values.origin), volcanismTypes: multiple(values.volcanism) }) }
   }
@@ -584,8 +604,8 @@ function decimal(value?: GalaxyQueryValue): number | undefined { const candidate
 function text(value?: GalaxyQueryValue): string | undefined { return scalar(value).trim() || undefined }
 function selection(value?: GalaxyQueryValue): string | undefined { const candidate = scalar(value); return candidate && candidate !== 'any' ? candidate : undefined }
 function pad(value?: GalaxyQueryValue): 'large' | 'medium' | 'small' | undefined { const candidate = scalar(value); return candidate === 'large' || candidate === 'medium' || candidate === 'small' ? candidate : undefined }
-function stationType(value?: GalaxyQueryValue): 'any' | 'carrier' | 'orbital' | 'surface' | undefined { const candidate = scalar(value); return candidate === 'carrier' || candidate === 'orbital' || candidate === 'surface' ? candidate : 'any' }
 function controlling(value?: GalaxyQueryValue): 'any' | 'yes' | 'no' { const candidate = scalar(value); return candidate === 'yes' || candidate === 'no' ? candidate : 'any' }
+function stationType(value?: GalaxyQueryValue): 'any' | 'carrier' | 'orbital' | 'surface' { const candidate = scalar(value); return candidate === 'carrier' || candidate === 'orbital' || candidate === 'surface' ? candidate : 'any' }
 function population(value?: GalaxyQueryValue): 'any' | 'inhabited' | 'uninhabited' { const candidate = scalar(value); return candidate === 'inhabited' || candidate === 'uninhabited' ? candidate : 'any' }
 function landable(value?: GalaxyQueryValue): 'any' | 'yes' | 'no' { const candidate = scalar(value); return candidate === 'yes' || candidate === 'no' ? candidate : 'any' }
 

@@ -111,11 +111,11 @@ export interface GalaxySystemSearch {
 export interface GalaxyNearestStationSearch { minimumPadSize?: PadSize, service: string, systemName: string }
 export interface GalaxyShipyardSearch { hullName: string, limit?: number, systemName: string }
 export interface GalaxyOutfittingSearch { limit?: number, maxDaysAgo?: number, maxDistance?: number, minimumPadSize?: PadSize, module: string, systemName: string }
-export interface GalaxyStationLookupSearch { limit?: number, maxDistance?: number, minimumPadSize?: PadSize, name: string, stationType?: 'any' | 'carrier' | 'orbital' | 'surface', systemName: string }
+export interface GalaxyStationLookupSearch { limit?: number, maxDistance?: number, minimumPadSize?: PadSize, name: string, stationType?: 'any' | 'carrier' | 'orbital' | 'surface', systemName?: string }
 export interface GalaxyCommodityMarketSearch { commodity: string, fleetCarriers?: boolean, intent: 'buy' | 'sell', maxDaysAgo?: number, maxDistance?: number, minVolume?: number, systemName: string }
 export interface GalaxyMarketSignalSearch { fleetCarriers?: boolean, limit?: number, maxDaysAgo?: number, minDeviationPercent?: number, minimumPadSize?: PadSize, minVolume?: number, sides: Array<'buy' | 'sell'>, systemName: string }
 export interface GalaxyTradeOpportunitySearch { availableCredits: number, cargoCapacity: number, fleetCarriers?: boolean, limit?: number, maxDaysAgo?: number, maxDistance?: number, minVolume?: number, systemName: string }
-export interface GalaxyFactionPresenceSearch { allegiance?: string, controlling?: 'any' | 'yes' | 'no', factionName: string, government?: string, limit?: number, maxDistance?: number, minInfluence?: number, state?: string, systemName: string }
+export interface GalaxyFactionPresenceSearch { allegiance?: string, controlling?: 'any' | 'yes' | 'no', factionName?: string, government?: string, limit?: number, maxDistance?: number, minInfluence?: number, state?: string, states?: string[], systemName: string }
 export interface GalaxyExplorationTargetSearch { atmospheres?: string[], bodySubtypes?: string[], landable?: 'any' | 'yes' | 'no', lastReportedBefore?: string, limit?: number, maxDistance?: number, maxGravityG?: number, maxTemperatureK?: number, minBiologicalSignals?: number, minGeologicalSignals?: number, minGravityG?: number, minTemperatureK?: number, systemName: string, volcanismTypes?: string[] }
 type PadSize = 'small' | 'medium' | 'large'
 
@@ -173,6 +173,7 @@ export interface PhoenixApi {
   findGalaxyFactionPresences(input: GalaxyFactionPresenceSearch, signal?: AbortSignal): Promise<GalaxyFactionPresencesResponse>
   findGalaxyNearestStations(input: GalaxyNearestStationSearch, signal?: AbortSignal): Promise<GalaxyNearestStationsResponse>
   findGalaxyOutfitting(input: GalaxyOutfittingSearch, signal?: AbortSignal): Promise<GalaxyOutfittingResponse>
+  getOutfittingModuleNames(signal?: AbortSignal): Promise<string[]>
   findGalaxyShipyards(input: GalaxyShipyardSearch, signal?: AbortSignal): Promise<GalaxyShipyardsResponse>
   findGalaxyStations(input: GalaxyStationLookupSearch, signal?: AbortSignal): Promise<GalaxyStationLookupResponse>
   findGalaxyTradeOpportunities(input: GalaxyTradeOpportunitySearch, signal?: AbortSignal): Promise<GalaxyTradeOpportunitiesResponse>

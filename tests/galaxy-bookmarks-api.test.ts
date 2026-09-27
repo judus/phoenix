@@ -33,6 +33,10 @@ test('the Galaxy bookmark API creates, updates, lists, and removes bookmarks', a
 
     await client.deleteGalaxyBookmark(created.id)
     await expect(client.getGalaxyBookmarks()).resolves.toEqual({ bookmarks: [] })
+    const station = await client.saveGalaxyBookmark({ note: 'Refuel', tags: ['Home'], target: { kind: 'station', stationName: 'Sweet Terminal', systemName: 'Smoje TO-Z d13-40' } })
+    await expect(client.getGalaxyBookmarks()).resolves.toEqual({ bookmarks: [station] })
+    await client.deleteGalaxyBookmark(station.id)
+    await expect(client.getGalaxyBookmarks()).resolves.toEqual({ bookmarks: [] })
   } finally {
     await application.stop()
   }

@@ -72,6 +72,7 @@ export class SavedGalaxyQueryService implements SavedGalaxyQueries {
 
 function normalizeInput (input: SavedGalaxyQueryWriteRequest): SavedGalaxyQueryWriteRequest {
   const validated = SavedGalaxyQueryWriteRequestSchema.parse(input)
+  if (validated.parameters.originMode === 'current') validated.parameters.origin = ''
   return {
     name: validated.name,
     parameters: Object.fromEntries(Object.entries(validated.parameters).map(([key, value]) => [

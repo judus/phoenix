@@ -3,6 +3,8 @@ import type { ReactTestRenderer } from 'react-test-renderer'
 import { afterEach, beforeAll, expect, test, vi } from 'vitest'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
 import { PairingGate } from '../apps/web/src/bootstrap/pairing-gate.js'
+import { createPhoenixApplication } from '../apps/web/src/bootstrap/create-application.js'
+import { App } from '../apps/web/src/app.js'
 
 beforeAll(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
@@ -67,30 +69,68 @@ test('the server device shows a scannable LAN pairing link and code', async () =
   await act(async () => renderer?.unmount())
 })
 
-test('a scanned pairing fragment pre-fills the code and is removed after confirmation', async () => {
-  const replaceState = vi.fn()
-  vi.stubGlobal('location', { hash: '#pair=ABCDE-12345', pathname: '/', search: '' })
-  vi.stubGlobal('history', { replaceState })
+test.each([
+  ['#pair=ABCDE%2D12345', 'ABCDE-12345'],
+  ['', ''],
+  ['#/settings/help?topic=pairing', '']
+])('application bootstrap passes the pairing code from %s through App mounting', async (hash, expectedCode) => {
+  const browser = pairingBrowser(hash)
+  const request = vi.fn(async () => new Response(JSON.stringify({
+    authenticated: false, installationId: 'test-installation', pairingRequired: true
+  }), { headers: { 'Content-Type': 'application/json' } }))
+  const application = createPhoenixApplication(browser, { request })
+  expect(browser.location.hash).not.toContain('pair=')
+  let renderer: ReactTestRenderer | undefined
+  await act(async () => { renderer = create(<App application={application} />) })
+  expect(renderer?.root.findByType('input').props.value).toBe(expectedCode)
+  expect(request).toHaveBeenCalledTimes(1)
+  await act(async () => renderer?.unmount())
+})
+
+test('a scanned code requires confirmation and remains editable after a failed claim', async () => {
   const claimPairing = vi.fn(async () => ({
     authenticated: true,
     installationId: 'test-installation',
     pairingRequired: true,
     serverDevice: false
   }))
+  claimPairing.mockRejectedValueOnce(new Error('Pairing code expired.'))
   let renderer: ReactTestRenderer | undefined
 
   await act(async () => {
-    renderer = create(<PairingGate api={apiStub(claimPairing)}><span>Authorized application</span></PairingGate>)
+    renderer = create(<PairingGate api={apiStub(claimPairing)} initialCode="ABCDE-12345"><span>Authorized application</span></PairingGate>)
   })
 
   expect(renderer?.root.findByType('input').props.value).toBe('ABCDE-12345')
+  expect(claimPairing).not.toHaveBeenCalled()
   await act(async () => renderer?.root.findByType('form').props.onSubmit({ preventDefault() {} }))
 
   expect(claimPairing).toHaveBeenCalledWith('ABCDE-12345')
-  expect(replaceState).toHaveBeenCalledWith(null, '', '/')
+  expect(renderer?.root.findByType('input').props.value).toBe('ABCDE-12345')
+  await act(async () => renderer?.root.findByType('input').props.onChange({ target: { value: 'fresh-54321' } }))
+  await act(async () => renderer?.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+  expect(claimPairing).toHaveBeenLastCalledWith('FRESH-54321')
+  expect(renderer?.root.findByType('span').children).toEqual(['Authorized application'])
 
   await act(async () => renderer?.unmount())
 })
+
+function pairingBrowser(hash: string): Window {
+  const location = { hash }
+  const values = new Map<string, string>()
+  const storage = {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => { values.set(key, value) }
+  }
+  return {
+    location,
+    history: { replaceState: (_data: unknown, _unused: string, url: string) => { location.hash = url } },
+    localStorage: storage,
+    sessionStorage: storage,
+    addEventListener() {},
+    removeEventListener() {}
+  } as unknown as Window
+}
 
 function apiStub(claimPairing: PhoenixApi['claimPairing']): PhoenixApi {
   return {

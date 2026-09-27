@@ -1,4 +1,5 @@
 import {
+  GalaxyOutfittingModuleNamesSchema,
   ActivityLogResponseSchema,
   CartographyLookupResponseSchema,
   CommunicationsResponseSchema,
@@ -538,8 +539,12 @@ export class PhoenixApiClient implements PhoenixApi {
     return this.#get(`/api/galaxy/exploration-targets?${parameters({ ...filters, atmosphere: atmospheres, bodySubtype: bodySubtypes, system: systemName, volcanism: volcanismTypes })}`, GalaxyExplorationTargetsResponseSchema, signal)
   }
 
+  async getOutfittingModuleNames(signal?: AbortSignal): Promise<string[]> {
+    return this.#get('/api/galaxy/outfitting/module-names', GalaxyOutfittingModuleNamesSchema, signal)
+  }
+
   async findGalaxyFactionPresences(input: GalaxyFactionPresenceSearch, signal?: AbortSignal): Promise<GalaxyFactionPresencesResponse> {
-    const query = parameters({ allegiance: input.allegiance, controlling: input.controlling, faction: input.factionName, government: input.government, limit: input.limit, maxDistance: input.maxDistance, minInfluence: input.minInfluence, state: input.state, system: input.systemName })
+    const query = parameters({ allegiance: input.allegiance, controlling: input.controlling, faction: input.factionName, government: input.government, limit: input.limit, maxDistance: input.maxDistance, minInfluence: input.minInfluence, state: input.states ? undefined : input.state, states: input.states, system: input.systemName })
     return this.#get(`/api/galaxy/factions/search?${query}`, GalaxyFactionPresencesResponseSchema, signal)
   }
 

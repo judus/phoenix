@@ -18,7 +18,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@jdu/llm-client": "0.1.2",
+    "@jdu/llm-client": "file:../../vendor/llm-client/jdu-llm-client-0.1.2.tgz",
     "@phoenix/contracts": "*"
   }
 }

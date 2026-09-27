@@ -9,12 +9,14 @@ export interface SpanshStationRecord {
   systemName: string
 }
 
-export function spanshStationRecord (candidate: unknown): SpanshStationRecord | null {
+export function spanshStationRecord (candidate: unknown): SpanshStationRecord | null
+export function spanshStationRecord (candidate: unknown, allowMissingDistance: true): (Omit<SpanshStationRecord, 'distanceLy'> & { distanceLy: number | null }) | null
+export function spanshStationRecord (candidate: unknown, allowMissingDistance = false): (Omit<SpanshStationRecord, 'distanceLy'> & { distanceLy: number | null }) | null {
   const raw = spanshRecord(candidate)
   const stationName = spanshString(raw?.name)
   const systemName = spanshString(raw?.system_name)
   const distanceLy = spanshNonnegativeNumber(raw?.distance)
-  if (!raw || !stationName || !systemName || distanceLy === null) return null
+  if (!raw || !stationName || !systemName || (!allowMissingDistance && distanceLy === null)) return null
   return {
     distanceLy,
     distanceToArrivalLs: spanshNonnegativeNumber(raw.distance_to_arrival),

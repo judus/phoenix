@@ -22,12 +22,13 @@ export interface SystemSchematicProps {
   actions?: ReactNode
   commanderName?: string | null
   onBookmarkBody?(name: string): void
+  onBookmarkStation?(name: string): void
   onSelect(name?: string): void
   selected?: CartographicSelection | null
   system: CartographicSystem
 }
 
-export function SystemSchematic ({ actions, commanderName, onBookmarkBody, onSelect, selected, system }: SystemSchematicProps) {
+export function SystemSchematic ({ actions, commanderName, onBookmarkBody, onBookmarkStation, onSelect, selected, system }: SystemSchematicProps) {
   const hierarchy = buildSystemHierarchy(system)
   const layout = layoutSystemHierarchy(hierarchy.roots)
   const viewportRef = useRef<HTMLDivElement>(null)
@@ -132,7 +133,7 @@ export function SystemSchematic ({ actions, commanderName, onBookmarkBody, onSel
 
       </section>
 
-      {selected && <CartographyDetail commanderName={commanderName} onBookmarkBody={onBookmarkBody} selection={selected} />}
+      {selected && <CartographyDetail commanderName={commanderName} onBookmarkBody={onBookmarkBody} onBookmarkStation={onBookmarkStation} selection={selected} />}
       <SystemSummary system={system} />
     </div>
   )
@@ -375,8 +376,8 @@ function StationGlyph () {
   return <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 5h22v22H5zM10 10h12v12H10zM2 16h7M23 16h7M16 2v7M16 23v7" /></svg>
 }
 
-function CartographyDetail ({ commanderName, onBookmarkBody, selection }: { commanderName?: string | null, onBookmarkBody?(name: string): void, selection: CartographicSelection }) {
-  if (isStation(selection)) return <StationDetail station={selection} />
+function CartographyDetail ({ commanderName, onBookmarkBody, onBookmarkStation, selection }: { commanderName?: string | null, onBookmarkBody?(name: string): void, onBookmarkStation?(name: string): void, selection: CartographicSelection }) {
+  if (isStation(selection)) return <StationDetail station={selection} onBookmark={onBookmarkStation} />
   return <BodyDetail body={selection} commanderName={commanderName} onBookmark={onBookmarkBody} />
 }
 
@@ -508,7 +509,7 @@ function BodyDetail ({ body, commanderName, onBookmark }: { body: CartographicBo
   )
 }
 
-function StationDetail ({ station }: { station: CartographicStation }) {
+function StationDetail ({ station, onBookmark }: { station: CartographicStation, onBookmark?(name: string): void }) {
   return (
     <aside className="cartography-detail">
       <header className="cartography-detail__station"><StationGlyph /><div><span>Installation</span><h2>{station.name}</h2><p>{station.type ?? 'Station'}</p></div></header>
@@ -520,6 +521,7 @@ function StationDetail ({ station }: { station: CartographicStation }) {
         ...(station.facilities.outfitting ? ['Outfitting'] : []),
         ...station.services
       ]} /></DetailSection>
+      {onBookmark && <footer className="cartography-detail__actions"><Button alignment="start" type="button" variant="outline" onClick={() => onBookmark(station.name)}>Bookmark station</Button></footer>}
     </aside>
   )
 }

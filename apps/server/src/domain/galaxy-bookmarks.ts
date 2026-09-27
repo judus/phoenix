@@ -22,6 +22,7 @@ export interface GalaxyBookmarks {
 
 export function galaxyBookmarkTargetKey(target: GalaxyBookmarkTarget): string {
   const system = normalizeIdentity(target.systemName)
+  if (target.kind === 'station') return `station:${system}:${normalizeIdentity(target.stationName)}`
   return target.kind === 'system'
     ? `system:${system}`
     : `body:${system}:${normalizeIdentity(target.bodyName)}`

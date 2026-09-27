@@ -116,7 +116,7 @@ function BookmarkList ({ bookmarks, onNavigate }: {
             <Field htmlFor="bookmark-search" label="Search">
               <TextInput
                 id="bookmark-search"
-                placeholder="System, body, note, or tag"
+                placeholder="System, body, station, note, or tag"
                 type="search"
                 value={query}
                 onChange={event => setQuery(event.target.value)}
@@ -139,13 +139,13 @@ function BookmarkList ({ bookmarks, onNavigate }: {
                 <DataTable density="compact" label="Saved galaxy locations" narrow="priority" scheme="surface">
                   <thead><tr><th>Location</th><th className="col-fit">Type</th><th className="priority-secondary">Note</th><th className="priority-tertiary">Tags</th><th className="col-fit">Actions</th></tr></thead>
                   <tbody>{visible.map(bookmark => {
-                    const label = bookmark.target.kind === 'body' ? bookmark.target.bodyName : bookmark.target.systemName
+                    const label = targetLabel(bookmark.target)
                     return <tr key={bookmark.id}>
                       <th scope="row">
                         <a href={targetHref(bookmark.target)}><strong>{label}</strong></a>
-                        {bookmark.target.kind === 'body' && <small>{bookmark.target.systemName}</small>}
+                        {bookmark.target.kind !== 'system' && <small>{bookmark.target.systemName}</small>}
                       </th>
-                      <td className="col-fit">{bookmark.target.kind === 'body' ? 'Body' : 'System'}</td>
+                      <td className="col-fit">{bookmark.target.kind === 'body' ? 'Body' : bookmark.target.kind === 'station' ? 'Station' : 'System'}</td>
                       <td className="priority-secondary wrap">{bookmark.note ?? '—'}</td>
                       <td className="priority-tertiary">{bookmark.tags.length > 0 ? bookmark.tags.join(', ') : '—'}</td>
                       <td className="col-fit"><IconButton label={`Edit ${label}`} size="sm" variant="outline" onClick={() => onNavigate({ ...bookmarksRoute, bookmarkId: bookmark.id })}><PencilIcon /></IconButton></td>
@@ -153,7 +153,7 @@ function BookmarkList ({ bookmarks, onNavigate }: {
                   })}</tbody>
                 </DataTable>
               )
-            : <Status tone="muted">{bookmarks.length === 0 ? 'Bookmark a system or body from the system schematic.' : 'No bookmarks match these filters.'}</Status>}
+            : <Status tone="muted">{bookmarks.length === 0 ? 'Bookmark a system, body, or station from the system schematic.' : 'No bookmarks match these filters.'}</Status>}
         </DataTableGroup>
       </Stack>
     </PageFrame>
@@ -204,7 +204,7 @@ function BookmarkEditor ({ bookmark, onCancel, onDelete, onSave, target }: {
         />
         <ControlContext context="panel" density="compact">
           <Form onSubmit={submit}>
-            <p><strong>{target.kind === 'body' ? target.bodyName : target.systemName}</strong>{target.kind === 'body' ? ` · ${target.systemName}` : ''}</p>
+            <p><strong>{targetLabel(target)}</strong>{target.kind !== 'system' ? ` · ${target.systemName}` : ''}</p>
             <Field htmlFor="bookmark-note" label="Note">
               <Textarea id="bookmark-note" rows={5} value={note} onChange={event => setNote(event.target.value)} />
             </Field>
@@ -244,6 +244,7 @@ function filterBookmarks (bookmarks: GalaxyBookmark[], query: string, selectedTa
     if (!needle) return true
     const values = [bookmark.target.systemName, bookmark.note ?? '', ...bookmark.tags]
     if (bookmark.target.kind === 'body') values.push(bookmark.target.bodyName)
+    if (bookmark.target.kind === 'station') values.push(bookmark.target.stationName)
     return values.some(value => value.toLocaleLowerCase().includes(needle))
   })
 }
@@ -254,6 +255,7 @@ function parseTags (input: string): string[] {
 
 function targetFromRoute (route: BookmarksRoute): GalaxyBookmarkTarget | undefined {
   if (!route.systemName) return undefined
+  if (route.stationName) return { kind: 'station', stationName: route.stationName, systemName: route.systemName }
   return route.bodyName
     ? { bodyName: route.bodyName, kind: 'body', systemName: route.systemName }
     : { kind: 'system', systemName: route.systemName }
@@ -265,6 +267,7 @@ function sameTarget (left: GalaxyBookmarkTarget, right: GalaxyBookmarkTarget): b
 
 function targetKey (target: GalaxyBookmarkTarget): string {
   const systemName = target.systemName.trim().toLocaleLowerCase()
+  if (target.kind === 'station') return `station:${systemName}:${target.stationName.trim().toLocaleLowerCase()}`
   return target.kind === 'system'
     ? `system:${systemName}`
     : `body:${systemName}:${target.bodyName.trim().toLocaleLowerCase()}`
@@ -276,8 +279,12 @@ function targetHref (target: GalaxyBookmarkTarget): string {
     section: 'galaxy',
     view: 'system',
     systemName: target.systemName,
-    ...(target.kind === 'body' ? { selectedName: target.bodyName } : {})
+    ...(target.kind !== 'system' ? { selectedName: targetLabel(target) } : {})
   })
 }
 
 const bookmarksRoute = { kind: 'information', section: 'galaxy', view: 'bookmarks' } as const
+
+function targetLabel(target: GalaxyBookmarkTarget): string {
+  return target.kind === 'station' ? target.stationName : target.kind === 'body' ? target.bodyName : target.systemName
+}

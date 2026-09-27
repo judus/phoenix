@@ -44,7 +44,7 @@ export class GalaxyBookmarkService implements GalaxyBookmarks {
     const normalized = normalizeInput(input)
     const conflicting = this.repository.findGalaxyBookmarkByTarget(normalized.target)
     if (conflicting && conflicting.id !== id) {
-      throw new Error('That system or body is already bookmarked.')
+      throw new Error('That location is already bookmarked.')
     }
     const bookmark = GalaxyBookmarkSchema.parse({
       ...normalized,

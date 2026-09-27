@@ -32,9 +32,9 @@ export class SpanshStationLookupSource implements StationLookupSource {
     const names = await this.spansh.findFieldValues('stations', 'name', request.name)
     if (names.length === 0) return []
     const filters: Record<string, unknown> = {
-      distance: { max: String(request.maxDistanceLy), min: 0 },
       name: { value: names }
     }
+    if (request.maxDistanceLy !== null) filters.distance = { max: String(request.maxDistanceLy), min: 0 }
     const stationTypes = providerTypes(request.stationType)
     if (stationTypes) filters.type = { value: stationTypes }
     if (request.minimumPadSize === 3) filters.has_large_pad = { value: true }
@@ -48,15 +48,16 @@ export class SpanshStationLookupSource implements StationLookupSource {
 }
 
 function mapStation (candidate: unknown, request: StationLookupRequest): StationLookupResult[] {
-  const station = spanshStationRecord(candidate)
+  const station = spanshStationRecord(candidate, true)
   if (!station) return []
   const { raw, ...location } = station
   if (!station.stationName.toLocaleLowerCase().includes(request.name.toLocaleLowerCase())) return []
-  if (station.distanceLy > request.maxDistanceLy) return []
+  if (request.maxDistanceLy !== null && (station.distanceLy === null || station.distanceLy > request.maxDistanceLy)) return []
   if (request.minimumPadSize !== null && (station.maxLandingPadSize === null || station.maxLandingPadSize < request.minimumPadSize)) return []
   if (!matchesStationType(raw, request.stationType)) return []
   return [{
     ...location,
+    distanceLy: request.referencePosition === null ? null : location.distanceLy,
     allegiance: spanshString(raw.allegiance),
     controllingFaction: spanshString(raw.controlling_minor_faction),
     government: spanshString(raw.government),

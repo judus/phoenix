@@ -13,6 +13,7 @@ import {
   type SortableDataTableColumn
 } from '@phoenix/ui'
 import type { SavedGalaxyQuery } from '@phoenix/contracts'
+import { galaxyQueryOriginMode } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { createClientId } from '../../application/identity/client-identity.js'
 import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
@@ -52,10 +53,10 @@ export function SavedGalaxyQueriesPage({ api, onNavigate }: {
       sortValue: query => queryDefinition(query).title
     },
     {
-      cell: query => scalar(query.parameters.origin) || '—',
+      cell: query => galaxyQueryOriginMode(query.parameters) === 'current' ? 'Current system (dynamic)' : scalar(query.parameters.origin) || '—',
       heading: 'Origin',
       id: 'origin',
-      sortValue: query => scalar(query.parameters.origin) || null
+      sortValue: query => galaxyQueryOriginMode(query.parameters) === 'current' ? 'Current system (dynamic)' : scalar(query.parameters.origin) || null
     },
     {
       cell: query => query.useOnDashboard ? 'Active' : '—',

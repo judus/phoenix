@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, test } from 'vitest'
-import { ToolRegistry, type JsonObject } from '@jdu/llm-client'
+import { ToolRegistry, ToolUsageError, type JsonObject } from '@jdu/llm-client'
 import type {
   CopilotAudioProcessing,
   CopilotRealtimeTokenRequest,
@@ -108,6 +108,8 @@ test('the PHOENIX HTTP API exposes the complete Realtime browser bridge', async 
       .resolves.toEqual({ value: 'token', model: 'realtime-test' })
     await expect(post(`${base}/tool`, { arguments: {}, name: 'phoenix_test' }))
       .resolves.toMatchObject({ result: { structuredContent: { ok: true } } })
+    await expect(fetch(`${base}/tool`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ arguments: {}, name: 'invalid_test' }) }).then(response => response.json()))
+      .resolves.toMatchObject({ error: { code: 'tool_usage_error', message: expect.stringContaining('Remove unknown argument maxDistance'), retryable: false } })
     await post(`${base}/turn`, {
       assistantText: 'Done.',
       conversationId: 'phoenix-copilot',
@@ -139,6 +141,7 @@ class RecordingRealtimeService implements CopilotRealtime {
     return Promise.resolve({ value: 'token', model: 'realtime-test' })
   }
   public executeTool (_request: CopilotRealtimeToolRequest) {
+    if (_request.name === 'invalid_test') throw new ToolUsageError('test', 'Unknown argument.', 'Remove unknown argument maxDistance.')
     return Promise.resolve({ structuredContent: { ok: true } })
   }
   public persistTurn (request: CopilotRealtimeTurnRequest): Promise<void> {

@@ -30,7 +30,7 @@ export type InformationRoute =
   | { kind: 'information', section: 'galaxy', view: 'system', systemName?: string, selectedName?: string }
   | { kind: 'information', section: 'galaxy', view: 'route' }
   | { kind: 'information', section: 'galaxy', view: 'exobiology' }
-  | { kind: 'information', section: 'galaxy', view: 'bookmarks', bookmarkId?: string, systemName?: string, bodyName?: string }
+  | { kind: 'information', section: 'galaxy', view: 'bookmarks', bookmarkId?: string, systemName?: string, bodyName?: string, stationName?: string }
   | { kind: 'information', section: 'galaxy', view: 'database', savedQueryId?: string, savedQueryRunId?: string, selectedQueryId?: GalaxyQueryId }
   | { kind: 'information', section: 'galaxy', view: 'saved-queries' }
   | { kind: 'information', section: 'activities', view: 'missions' | 'objectives' | 'community-goals' | 'powerplay' | 'colonisation' }

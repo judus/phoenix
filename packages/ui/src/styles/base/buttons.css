@@ -173,6 +173,30 @@
     }
   }
 
+  .btn.inset {
+    min-block-size: calc(var(--control-block-size) - 2 * var(--spacing-xs));
+    inline-size: calc(var(--control-block-size) - 2 * var(--spacing-xs));
+    padding: 0;
+    border-color: transparent;
+    background: transparent;
+
+    &::after { content: none; }
+
+    &.active {
+      border-color: transparent;
+      background: transparent;
+      color: var(--toggle-active-color, var(--color-information));
+    }
+
+    &:active:not(:disabled) {
+      border-color: transparent;
+      background: transparent;
+      transform: none;
+    }
+
+    &:focus-visible { outline-offset: 0; }
+  }
+
   .theme-elite {
     .btn {
       font-weight: var(--font-weight-normal);

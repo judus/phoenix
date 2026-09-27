@@ -16,7 +16,7 @@ export function EngineeringAddBlueprintPage ({ actions, blueprint, onNavigate, p
   const active = projects.filter(project => project.status === 'active')
   const [projectId, setProjectId] = useState(selectedProjectId && active.some(project => project.id === selectedProjectId) ? selectedProjectId : active[0]?.id ?? '')
   const [grade, setGrade] = useState(blueprint.grades.at(-1)?.grade ?? 1)
-  const [rolls, setRolls] = useState(1)
+  const [rolls, setRolls] = useState('1')
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string>()
@@ -26,9 +26,14 @@ export function EngineeringAddBlueprintPage ({ actions, blueprint, onNavigate, p
   const submit = (event: FormEvent): void => {
     event.preventDefault()
     if (!actions || !projectId) return
+    const plannedRolls = Number(rolls)
+    if (!rolls.trim() || !Number.isInteger(plannedRolls) || plannedRolls < 1 || plannedRolls > 100) {
+      setError('Planned rolls must be a whole number between 1 and 100.')
+      return
+    }
     setSaving(true)
     setError(undefined)
-    void actions.addStep(projectId, { blueprintSymbol: blueprint.symbol, targetGrade: grade, plannedRolls: rolls, note: note.trim() || null })
+    void actions.addStep(projectId, { blueprintSymbol: blueprint.symbol, targetGrade: grade, plannedRolls, note: note.trim() || null })
       .then(() => onNavigate(engineeringProjectRoutes.detail(projectId)))
       .catch(cause => {
         setError(cause instanceof Error ? cause.message : 'Blueprint could not be added to the project.')
@@ -56,7 +61,7 @@ export function EngineeringAddBlueprintPage ({ actions, blueprint, onNavigate, p
                       </Select>
                     </Field>
                     <Field htmlFor="blueprint-rolls" label="Planned rolls">
-                      <TextInput id="blueprint-rolls" inputMode="numeric" min={1} max={100} type="number" value={rolls} onChange={event => setRolls(Number(event.target.value))} />
+                      <TextInput id="blueprint-rolls" inputMode="numeric" min={1} max={100} step={1} required type="number" value={rolls} onChange={event => setRolls(event.target.value)} />
                     </Field>
                   </FormGrid>
                   <Field htmlFor="blueprint-project-note" label="Step note">

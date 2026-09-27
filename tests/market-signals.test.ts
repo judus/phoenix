@@ -74,6 +74,7 @@ test('dashboard market signals use the selected saved query with the live system
       minDeviationPercent: '35',
       minVolume: '250',
       origin: 'Saved origin is ignored',
+      originMode: 'current',
       pad: 'large',
       sides: ['sell']
     },
@@ -107,6 +108,13 @@ test('dashboard market signals use the selected saved query with the live system
     sides: ['sell'],
     systemName: 'Shinrarta Dezhra'
   }, 10)
+  query.parameters.originMode = 'fixed'
+  query.parameters.origin = 'Sol'
+  await service.getDashboardMarketSignals()
+  expect(reader.searchMarketSignals).toHaveBeenLastCalledWith(expect.objectContaining({ systemName: 'Sol' }), 10)
+  delete query.parameters.originMode
+  await service.getDashboardMarketSignals()
+  expect(reader.searchMarketSignals).toHaveBeenLastCalledWith(expect.objectContaining({ systemName: 'Sol' }), 10)
 })
 
 class MemoryProviderCache implements ProviderResponseCache {

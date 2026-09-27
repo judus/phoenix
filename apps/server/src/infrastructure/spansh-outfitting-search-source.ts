@@ -15,7 +15,19 @@ import {
 } from './spansh-station-record.js'
 
 export class SpanshOutfittingSearchSource implements OutfittingSearchSource {
+  private names: { expires: number, value: Promise<string[]> } | undefined
   public constructor (private readonly spansh: SpanshSearchGateway) {}
+
+  public moduleNames (): Promise<string[]> {
+    if (!this.names || this.names.expires < Date.now()) {
+      const value = this.spansh.findFieldValues('stations', 'modules', '').catch(error => {
+        this.names = undefined
+        throw error
+      })
+      this.names = { expires: Date.now() + 86_400_000, value }
+    }
+    return this.names.value
+  }
 
   public async findOutfitting (request: OutfittingSearchRequest): Promise<OutfittingSearchResult[]> {
     const moduleFilter: Record<string, unknown> = { name: [request.moduleName] }

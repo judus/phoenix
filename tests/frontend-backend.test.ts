@@ -36,6 +36,7 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
     }]
   }
   const outfittingSearchSource: OutfittingSearchSource = {
+    moduleNames: async () => ['Point Defence', 'Guardian FSD Booster'],
     findOutfitting: async request => [{
       category: 'standard', distanceLy: 4.2, distanceToArrivalLs: 300, marketId: 42,
       maxLandingPadSize: 3, moduleClass: request.moduleClass, moduleName: request.moduleName,
@@ -65,7 +66,7 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
   const factionPresenceSource: FactionPresenceSearchSource = {
     findFactionPresences: async request => [{
       activeStates: ['Boom'], allegiance: 'Federation', controlling: true, distanceLy: 4.37,
-      factionName: request.factionName, government: 'Democracy', influencePercent: 42.15,
+      factionName: request.factionName ?? 'Mother Gaia', government: 'Democracy', influencePercent: 42.15,
       pendingStates: ['Expansion'], position: [3.03125, -0.09375, 3.15625], recoveringStates: [],
       state: 'Boom', systemAddress: 1178707802194, systemName: 'Alpha Centauri',
       updatedAt: observedAt
@@ -107,12 +108,17 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       .resolves.toMatchObject({ hullName: 'Type-11 Prospector', shipyards: [{ stationName: 'Test Exchange' }] })
     await expect(client.findGalaxyOutfitting({ maxDaysAgo: 30, maxDistance: 100, minimumPadSize: 'large', module: '6A Power Plant', systemName: 'Sol' }))
       .resolves.toMatchObject({ moduleClass: 6, moduleName: 'Power Plant', moduleRating: 'A', matches: [{ stationName: 'Test Exchange' }] })
-    await expect(client.findGalaxyStations({ maxDistance: 100, minimumPadSize: 'large', name: 'Test', stationType: 'orbital', systemName: 'Sol' }))
-      .resolves.toMatchObject({ name: 'Test', stationType: 'orbital', matches: [{ stationName: 'Test Exchange', services: ['Dock', 'Repair'] }] })
+    await expect(client.findGalaxyStations({ name: 'Test' }))
+      .resolves.toMatchObject({ name: 'Test', stationType: 'any', maxDistanceLy: null, minimumPadSize: null, matches: [{ stationName: 'Test Exchange', services: ['Dock', 'Repair'] }] })
+    await expect(client.findGalaxyStations({ name: 'Test', maxDistance: 100, minimumPadSize: 'large', stationType: 'orbital', systemName: 'Sol' }))
+      .resolves.toMatchObject({ name: 'Test', stationType: 'orbital', maxDistanceLy: 100, minimumPadSize: 'large' })
     await expect(client.findGalaxySystems({ allegiance: 'Federation', maxDistance: 100, population: 'inhabited', system: 'Sol' }))
       .resolves.toMatchObject({ filters: { allegiance: 'Federation', population: 'inhabited' }, systems: [{ systemName: 'Alpha Centauri' }] })
     await expect(client.findGalaxyFactionPresences({ controlling: 'yes', factionName: 'Mother Gaia', maxDistance: 100, minInfluence: 25, systemName: 'Sol' }))
       .resolves.toMatchObject({ filters: { controlling: 'yes', factionName: 'Mother Gaia', minInfluencePercent: 25 }, presences: [{ controlling: true, influencePercent: 42.15, systemName: 'Alpha Centauri' }], provenance: 'Spansh community-reported system data' })
+    await expect(client.findGalaxyFactionPresences({ states: ['War', 'Civil War'], systemName: 'Sol' }))
+      .resolves.toMatchObject({ filters: { controlling: 'any', factionName: null, states: ['War', 'Civil War'] } })
+    await expect(client.getOutfittingModuleNames()).resolves.toEqual(['Point Defence', 'Guardian FSD Booster'])
   } finally {
     await application.stop()
   }

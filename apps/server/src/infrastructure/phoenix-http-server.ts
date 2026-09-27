@@ -560,11 +560,12 @@ export class PhoenixHttpServer {
       this.writeJson(response, 200, await this.options.galaxyData.findFactionPresences({
         allegiance: optionalQuery(url, 'allegiance'),
         controlling,
-        factionName: requiredQuery(url, 'faction'),
+        factionName: optionalQuery(url, 'faction'),
         government: optionalQuery(url, 'government'),
         maxDistanceLy: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
         minInfluencePercent: boundedQueryInteger(url, 'minInfluence', 0, 0, 100),
         state: optionalQuery(url, 'state'),
+        states: url.searchParams.has('states') ? repeatedQuery(url, 'states') : undefined,
         systemName: requiredQuery(url, 'system')
       }, boundedQueryInteger(url, 'limit', DEFAULT_GALAXY_RESULT_LIMIT, 1, DEFAULT_GALAXY_RESULT_LIMIT)))
       return
@@ -576,6 +577,11 @@ export class PhoenixHttpServer {
         requiredQuery(url, 'system'),
         boundedQueryInteger(url, 'limit', DEFAULT_GALAXY_RESULT_LIMIT, 1, DEFAULT_GALAXY_RESULT_LIMIT)
       ))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/outfitting/module-names') {
+      this.writeJson(response, 200, await this.options.galaxyData.outfittingModuleNames())
       return
     }
 
@@ -600,11 +606,11 @@ export class PhoenixHttpServer {
         throw new HttpRequestValidationError('type must be any, orbital, surface, or carrier.')
       }
       this.writeJson(response, 200, await this.options.galaxyData.searchStations({
-        maxDistanceLy: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
+        maxDistanceLy: url.searchParams.get('maxDistance')?.trim() ? boundedQueryInteger(url, 'maxDistance', 100, 1, 500) : null,
         minimumPadSize: minimumPadSize ? padSizes[minimumPadSize] : null,
         name: requiredQuery(url, 'name'),
         stationType,
-        systemName: requiredQuery(url, 'system')
+        systemName: url.searchParams.get('system')?.trim() || undefined
       }, boundedQueryInteger(url, 'limit', DEFAULT_GALAXY_RESULT_LIMIT, 1, DEFAULT_GALAXY_RESULT_LIMIT), minimumPadSize))
       return
     }
@@ -1753,8 +1759,9 @@ export class PhoenixHttpServer {
 function realtimeError (cause: unknown, code: string): unknown {
   return {
     error: {
-      code,
-      message: cause instanceof Error ? cause.message : 'Realtime Copilot request failed.'
+      code: cause instanceof AiError ? cause.code : code,
+      retryable: cause instanceof AiError ? cause.retryable : false,
+      message: cause instanceof AiError ? cause.message : 'Realtime Copilot request failed internally. Report the failure to the user; do not retry with guessed arguments.'
     }
   }
 }

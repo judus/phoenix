@@ -2,6 +2,11 @@ import { z } from 'zod'
 
 export const GalaxyBookmarkTargetSchema = z.discriminatedUnion('kind', [
   z.object({
+    kind: z.literal('station'),
+    stationName: z.string().trim().min(1),
+    systemName: z.string().trim().min(1)
+  }).strict(),
+  z.object({
     kind: z.literal('system'),
     systemName: z.string().trim().min(1)
   }).strict(),

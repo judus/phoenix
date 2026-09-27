@@ -18,13 +18,13 @@ export interface ExplorationTargetSearchRequest {
 
 export interface ExplorationTargetSearchResult {
   atmosphere: string | null
-  biologicalSignals: number
+  biologicalSignals: number | null
   bodyId: number | null
   bodyName: string
   bodyType: string | null
   distanceLy: number
   distanceToArrivalLs: number | null
-  geologicalSignals: number
+  geologicalSignals: number | null
   gravityG: number | null
   landable: boolean | null
   providerUpdatedAt: string | null

@@ -287,6 +287,21 @@ test('Spansh source resolves partial station names and normalizes station metada
   })
 })
 
+test('name-only lookup keeps distant and unknown-pad stations without a reference system', async () => {
+  const search = vi.fn(async () => [
+    { name: 'Sweet Terminal', system_name: 'Far Away', distance: 8000, type: 'Settlement' },
+    { name: 'Sweet Terminal', system_name: 'Unknown Distance', type: 'Outpost' }
+  ])
+  const source = new SpanshStationLookupSource({ findFieldValues: async () => ['Sweet Terminal'], search })
+  const request = { name: 'Sweet Terminal', maxDistanceLy: null, minimumPadSize: null, stationType: 'any' as const, referencePosition: null }
+  const results = await source.findStations(request)
+  expect(results.map(row => row.systemName)).toEqual(['Far Away', 'Unknown Distance'])
+  expect(results.every(row => row.distanceLy === null)).toBe(true)
+  expect(search).toHaveBeenCalledWith('stations', { filters: { name: { value: ['Sweet Terminal'] } }, referencePosition: null })
+  const withOrigin = await source.findStations({ ...request, referencePosition: [1, 2, 3] })
+  expect(withOrigin[0]?.distanceLy).toBe(8000)
+})
+
 test('Spansh source filters systems and reports the actual main-star subtype', async () => {
   const fetcher = vi.fn(async () => response({
     results: [{
@@ -399,6 +414,7 @@ test('station and market query resolves current location, formats trade directio
     }])
   }
   const outfittingMarkets: OutfittingSearchSource = {
+    moduleNames: async () => [],
     findOutfitting: vi.fn(async () => [{
       category: 'standard', distanceLy: 4.2, distanceToArrivalLs: 321.5, marketId: 42,
       maxLandingPadSize: 3, moduleClass: 6, moduleName: 'Power Plant', moduleRating: 'A',
@@ -481,11 +497,34 @@ class MemoryProviderCache implements ProviderResponseCache {
   }
 }
 
-function stationMarketQuery (search: StationSearchSource): DefaultStationMarketQuery {
+test('station resolution returns corrective suggestions without silently selecting a station', async () => {
+  const system = fixtureSystem()
+  system.name = 'Wyrd'
+  system.stations[0]!.name = 'Vonarburg Co-operative'
+  const search: StationSearchSource = {
+    findCommodityMarkets: async () => [], findSystemExports: async () => [], findSystemImports: async () => [],
+    getCommodityReports: async () => [], findNearestStations: async () => []
+  }
+  const service = stationMarketQuery(search, { getSystem: async () => ({ cache: 'fresh', system }) })
+  for (const invoke of [
+    () => service.getDetails({ stationName: 'Vonarburg Co-op', systemName: 'Wyrd' }),
+    () => service.listShipyardStock({ stationName: 'Vonarburg Co-op', systemName: 'Wyrd' }),
+    () => service.searchOutfitting({ query: 'Power Plant', stationName: 'Vonarburg Co-op', systemName: 'Wyrd' })
+  ]) {
+    await expect(invoke()).rejects.toMatchObject({ name: 'ToolUsageError', code: 'station_not_found', message: expect.stringContaining('"Vonarburg Co-operative"') })
+  }
+  await expect(service.getDetails({ stationName: 'Vonarburg Co-operative', systemName: 'Wyrd' })).resolves.toMatchObject({ structuredContent: { station: { name: 'Vonarburg Co-operative' }, systemName: 'Wyrd' } })
+  await expect(service.getDetails({ stationName: 'Unrelated', systemName: 'Wyrd' })).rejects.toThrow('stations.find_stations_by_name')
+  await expect(service.getDetails({ marketId: 999, stationName: 'Vonarburg Co-op', systemName: 'Wyrd' })).rejects.toThrow('No station with that marketId')
+  await expect(service.getDetails({ systemName: 'Wyrd' })).rejects.toMatchObject({ code: 'station_reference_required' })
+  await expect(service.getDetails({ stationName: 'Vonarburg Co-op' })).rejects.toMatchObject({ code: 'station_system_required' })
+})
+
+function stationMarketQuery (search: StationSearchSource, systemCartography = cartography()): DefaultStationMarketQuery {
   const runtime = new InMemoryRuntimeStateStore()
   const stock: StationStockSource = { getOutfitting: async () => [], getShipyard: async () => [] }
   const shipyards: ShipyardSearchSource = { findShipyards: async () => [] }
-  const outfitting: OutfittingSearchSource = { findOutfitting: async () => [] }
+  const outfitting: OutfittingSearchSource = { findOutfitting: async () => [], moduleNames: async () => [] }
   const stations: StationLookupSource = { findStations: async () => [] }
   const systems: SystemSearchSource = { findSystems: async () => [] }
   const factions: FactionPresenceSearchSource = { findFactionPresences: async () => [] }
@@ -497,7 +536,7 @@ function stationMarketQuery (search: StationSearchSource): DefaultStationMarketQ
     stations,
     systems,
     factions,
-    cartography(),
+    systemCartography,
     runtime,
     new MemoryProviderCache(),
     () => new Date('2026-08-16T12:00:00Z')

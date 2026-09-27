@@ -1,10 +1,41 @@
 import { renderToStaticMarkup } from 'react-dom/server'
-import { expect, test } from 'vitest'
+import { beforeAll, expect, test, vi } from 'vitest'
+import { act, create } from 'react-test-renderer'
+import { EngineeringAddBlueprintPage } from '../apps/web/src/features/engineering/engineering-add-blueprint-page.js'
+import type { EngineeringControllerActions } from '../apps/web/src/features/engineering/use-engineering-controller.js'
 import type { EngineeringBlueprintDetail, EngineeringEngineer, EngineeringMaterial } from '@phoenix/contracts'
 import { EngineeringPage } from '../apps/web/src/features/engineering/engineering-page.js'
 import { engineeringNavigationItems } from '../apps/web/src/features/engineering/engineering-navigation.js'
 
 const onNavigate = () => undefined
+beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
+
+test('planned rolls can be cleared and replaced, and invalid drafts cannot be submitted', async () => {
+  const project = engineeringProject('00000000-0000-4000-8000-000000000001')
+  const addStep = vi.fn().mockResolvedValue(project)
+  let renderer: ReturnType<typeof create>
+  await act(async () => { renderer = create(<EngineeringAddBlueprintPage
+    actions={{ addStep } as unknown as EngineeringControllerActions}
+    blueprint={blueprint()} projects={[project]} onNavigate={onNavigate}
+  />) })
+  const field = () => renderer.root.findByType('input')
+  const change = async (value: string) => act(async () => field().props.onChange({ target: { value } }))
+  const submit = async () => act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+  expect(field().props.value).toBe('1')
+  await change('')
+  expect(field().props.value).toBe('')
+  for (const invalid of ['', '0', '-1', '1.5', '101']) {
+    await change(invalid)
+    await submit()
+    expect(addStep).not.toHaveBeenCalled()
+  }
+  await change('')
+  await change('3')
+  expect(field().props.value).toBe('3')
+  await submit()
+  expect(addStep).toHaveBeenCalledWith(project.id, expect.objectContaining({ plannedRolls: 3 }))
+  await act(async () => renderer.unmount())
+})
 
 test('Engineering exposes project planning and catalogue views through typed routes', () => {
   expect(engineeringNavigationItems.map(item => [item.label, item.href])).toEqual([
