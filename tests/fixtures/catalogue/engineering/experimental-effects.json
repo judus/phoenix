@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "effects": [
+    {
+      "symbol": "special_test",
+      "name": "Test effect",
+      "description": "Fixture effect",
+      "modules": [{ "id": "mc", "name": "Multi-cannon" }],
+      "components": [{ "name": "Test Widgets", "cost": 2 }]
+    },
+    {
+      "symbol": "special_test_other",
+      "name": "Test effect",
+      "description": "Different module recipe",
+      "modules": [{ "id": "t", "name": "Thrusters" }],
+      "components": [{ "name": "Test Widgets", "cost": 3 }]
+    }
+  ]
+}

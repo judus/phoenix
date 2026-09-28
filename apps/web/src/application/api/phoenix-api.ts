@@ -1,4 +1,5 @@
 import type {
+  EngineeringExperimentalEffectsResponse,
   CopilotChatRequest,
   CopilotAudioProcessing,
   CopilotConversationEvent,
@@ -131,6 +132,7 @@ export interface PhoenixApi {
   executeNumpadAddress(address: string, revision: number, operation?: GameActionOperation, leaseId?: string, signal?: AbortSignal): Promise<NumpadExecutionResult>
   getEngineeringBlueprint(symbol: string, signal?: AbortSignal): Promise<EngineeringBlueprintDetail>
   getEngineeringBlueprints(signal?: AbortSignal): Promise<EngineeringBlueprintsResponse>
+  getEngineeringExperimentalEffects(signal?: AbortSignal): Promise<EngineeringExperimentalEffectsResponse>
   getEngineeringEngineers(signal?: AbortSignal): Promise<EngineeringEngineersResponse>
   getEngineeringMaterials(category: EngineeringMaterial['category'], signal?: AbortSignal): Promise<EngineeringMaterialsResponse>
   getEngineeringProjects(signal?: AbortSignal): Promise<EngineeringProjectsResponse>

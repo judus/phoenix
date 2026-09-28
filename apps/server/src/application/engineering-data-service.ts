@@ -1,4 +1,6 @@
 import {
+  EngineeringExperimentalEffectsResponseSchema,
+  type EngineeringExperimentalEffectsResponse,
   EngineeringBlueprintDetailSchema,
   EngineeringBlueprintsResponseSchema,
   EngineeringEngineersResponseSchema,
@@ -22,6 +24,7 @@ const materialLimits = { 1: 300, 2: 250, 3: 200, 4: 150, 5: 100 } as const
 const rarityNames = { 1: 'Very Common', 2: 'Common', 3: 'Standard', 4: 'Rare', 5: 'Very Rare' } as const
 
 export interface EngineeringDataReader {
+  getExperimentalEffects(): EngineeringExperimentalEffectsResponse
   getBlueprint(symbol: string): EngineeringBlueprintDetail | null
   getBlueprints(): EngineeringBlueprintsResponse
   getEngineers(): EngineeringEngineersResponse
@@ -33,6 +36,22 @@ export class EngineeringDataService implements EngineeringDataReader {
     private readonly catalogue: EngineeringCatalogue,
     private readonly runtimeState: RuntimeStateReader
   ) {}
+
+  public getExperimentalEffects (): EngineeringExperimentalEffectsResponse {
+    const materials = new Map(this.getMaterials().materials.map(material => [normalize(material.name), material]))
+    return EngineeringExperimentalEffectsResponseSchema.parse({
+      effects: this.catalogue.listExperimentalEffects().map(effect => ({
+        ...effect,
+        components: effect.components.map(component => {
+          const material = materials.get(normalize(component.name))
+          return {
+            ...component, id: material?.id ?? normalize(component.name),
+            category: material?.category ?? null, grade: material?.grade ?? null, count: material?.count ?? 0
+          }
+        })
+      }))
+    })
+  }
 
   public getEngineers (): EngineeringEngineersResponse {
     const state = this.runtimeState.getCurrent()

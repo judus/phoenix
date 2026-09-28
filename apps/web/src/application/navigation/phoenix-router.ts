@@ -149,6 +149,9 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
   if (route.kind === 'information' && route.section === 'engineering' && route.view === 'blueprints' && route.selectedBlueprintSymbol) {
     parameters.set('symbol', route.selectedBlueprintSymbol)
   }
+  if (route.kind === 'information' && route.section === 'engineering' && route.view === 'experimental-effects' && route.selectedEffectSymbol) {
+    parameters.set('symbol', route.selectedEffectSymbol)
+  }
   if (route.kind === 'information' && route.section === 'engineering' && route.view === 'project-new' && route.selectedBlueprintSymbol) {
     parameters.set('blueprint', route.selectedBlueprintSymbol)
   }
@@ -270,6 +273,10 @@ function parseEngineeringRoute(rest: string[], query: RawRouteQuery): Informatio
     }
     if (rest[1]) return { kind: 'information', section: 'engineering', view: 'project-detail', selectedProjectId: rest[1] }
     return { kind: 'information', section: 'engineering', view: 'projects' }
+  }
+  if (rest[0] === 'experimental-effects') return {
+    kind: 'information', section: 'engineering', view: 'experimental-effects',
+    ...(query.symbol?.trim() ? { selectedEffectSymbol: query.symbol.trim() } : {})
   }
   const view = oneOf(rest[0], ['projects', 'blueprints', 'engineers'] as const) ?? 'blueprints'
   if (view === 'blueprints') {

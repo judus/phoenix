@@ -118,7 +118,15 @@ export const EngineeringProjectRequirementSchema = z.object({
   required: z.number().int().positive()
 }).strict()
 
-export const EngineeringProjectStepSchema = z.object({
+export const EngineeringExperimentalEffectsResponseSchema = z.object({
+  effects: z.array(z.object({
+    symbol: z.string().min(1), name: z.string().min(1), description: z.string(),
+    modules: z.array(z.object({ id: z.string().min(1), name: z.string().min(1) })).min(1),
+    components: z.array(EngineeringBlueprintComponentSchema).min(1)
+  }))
+})
+
+const EngineeringBlueprintStepSchema = z.object({
   id: z.string().uuid(),
   kind: z.literal('blueprint'),
   blueprintSymbol: z.string().min(1),
@@ -130,6 +138,26 @@ export const EngineeringProjectStepSchema = z.object({
   requirements: z.array(EngineeringProjectRequirementSchema),
   createdAt: z.iso.datetime()
 }).strict()
+
+export const EngineeringExperimentalStepCreateRequestSchema = z.object({
+  kind: z.literal('experimental'),
+  effectSymbol: z.string().trim().min(1),
+  moduleId: z.string().trim().min(1),
+  applications: z.number().int().min(1).max(100),
+  note: z.string().trim().max(500).nullable().default(null)
+}).strict()
+
+const EngineeringExperimentalStepSchema = EngineeringExperimentalStepCreateRequestSchema.extend({
+  id: z.string().uuid(),
+  effectName: z.string().min(1),
+  moduleNames: z.array(z.string().min(1)).min(1),
+  requirements: z.array(EngineeringProjectRequirementSchema).min(1),
+  createdAt: z.iso.datetime()
+}).strict()
+
+export const EngineeringProjectStepSchema = z.discriminatedUnion('kind', [
+  EngineeringBlueprintStepSchema, EngineeringExperimentalStepSchema
+])
 
 export const EngineeringProjectSchema = z.object({
   schemaVersion: z.literal(1),
@@ -156,12 +184,16 @@ export const EngineeringProjectUpdateRequestSchema = z.object({
   note: z.string().trim().max(1000).nullable()
 }).strict()
 
-export const EngineeringProjectStepCreateRequestSchema = z.object({
+const EngineeringBlueprintStepCreateRequestSchema = z.object({
   blueprintSymbol: z.string().trim().min(1),
   targetGrade: z.number().int().min(1).max(5),
   plannedRolls: z.number().int().min(1).max(100),
   note: z.string().trim().max(500).nullable().default(null)
 }).strict()
+
+export const EngineeringProjectStepCreateRequestSchema = z.union([
+  EngineeringBlueprintStepCreateRequestSchema, EngineeringExperimentalStepCreateRequestSchema
+])
 
 export const EngineeringProjectsResponseSchema = z.object({
   schemaVersion: z.literal(1),
@@ -198,6 +230,8 @@ export const EngineeringProjectsChangedSchema = z.object({
 }).strict()
 
 export type CommanderEngineerProgress = z.infer<typeof CommanderEngineerProgressSchema>
+export type EngineeringExperimentalEffectsResponse = z.infer<typeof EngineeringExperimentalEffectsResponseSchema>
+export type EngineeringExperimentalEffect = EngineeringExperimentalEffectsResponse['effects'][number]
 export type EngineeringEngineer = z.infer<typeof EngineeringEngineerSchema>
 export type EngineeringMaterial = z.infer<typeof EngineeringMaterialViewSchema>
 export type EngineeringBlueprintSummary = z.infer<typeof EngineeringBlueprintSummarySchema>

@@ -1,7 +1,8 @@
 import type { JsonObject, LocalTool } from '@jdu/llm-client'
+import { NEAREST_STATION_SERVICES } from '@phoenix/contracts'
 import type { StationQuery } from './tool-gateways.js'
 
-const services = ['black-market', 'interstellar-factors', 'material-trader', 'outfitting', 'refuel', 'repair', 'search-and-rescue', 'shipyard', 'technology-broker', 'universal-cartographics']
+const services = NEAREST_STATION_SERVICES
 
 export class StationsFindNearestTool implements LocalTool {
   public readonly definition = {

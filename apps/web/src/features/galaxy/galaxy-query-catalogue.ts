@@ -1,3 +1,4 @@
+import { MATERIAL_TRADER_SERVICES } from '@phoenix/contracts'
 import type { GalaxyQueryId } from '../../application/navigation/phoenix-route.js'
 
 export interface GalaxyQueryFieldOption {
@@ -97,7 +98,8 @@ const VOLCANISM_TYPES = options([
 
 const SERVICES: GalaxyQueryFieldOption[] = [
   ['interstellar-factors', 'Interstellar factors'],
-  ['material-trader', 'Material trader'],
+  ['material-trader', 'Material trader — any'],
+  ...Object.entries(MATERIAL_TRADER_SERVICES).map(([value, type]) => [value, `Material trader — ${type.toLowerCase()}`]),
   ['technology-broker', 'Technology broker'],
   ['black-market', 'Black market'],
   ['universal-cartographics', 'Universal Cartographics'],

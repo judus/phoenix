@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeAll, expect, test, vi } from 'vitest'
 import { act, create } from 'react-test-renderer'
 import { EngineeringAddBlueprintPage } from '../apps/web/src/features/engineering/engineering-add-blueprint-page.js'
+import { EngineeringEffectsPage } from '../apps/web/src/features/engineering/engineering-effects-page.js'
 import type { EngineeringControllerActions } from '../apps/web/src/features/engineering/use-engineering-controller.js'
 import type { EngineeringBlueprintDetail, EngineeringEngineer, EngineeringMaterial } from '@phoenix/contracts'
 import { EngineeringPage } from '../apps/web/src/features/engineering/engineering-page.js'
@@ -9,6 +10,28 @@ import { engineeringNavigationItems } from '../apps/web/src/features/engineering
 
 const onNavigate = () => undefined
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
+
+test('experimental applications allow empty drafts and submit exact effect and module identities', async () => {
+  const project = engineeringProject('00000000-0000-4000-8000-000000000001')
+  const addStep = vi.fn().mockResolvedValue(project)
+  let renderer: ReturnType<typeof create>
+  await act(async () => { renderer = create(<EngineeringEffectsPage
+    effects={[{ symbol: 'effect', name: 'Shared name', description: '', modules: [{ id: 'mc', name: 'Multi-cannon' }], components: [] }]}
+    selectedSymbol="effect" projects={[project]} actions={{ addStep } as unknown as EngineeringControllerActions} onNavigate={onNavigate}
+  />) })
+  const change = async (value: string) => act(async () => renderer.root.findByType('input').props.onChange({ target: { value } }))
+  const submit = async () => act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+  for (const invalid of ['', '0', '-1', '1.5', '101']) {
+    await change(invalid)
+    expect(renderer.root.findByType('input').props.value).toBe(invalid)
+    await submit()
+    expect(addStep).not.toHaveBeenCalled()
+  }
+  await change('3')
+  await submit()
+  expect(addStep).toHaveBeenCalledWith(project.id, { kind: 'experimental', effectSymbol: 'effect', moduleId: 'mc', applications: 3, note: null })
+  await act(async () => renderer.unmount())
+})
 
 test('planned rolls can be cleared and replaced, and invalid drafts cannot be submitted', async () => {
   const project = engineeringProject('00000000-0000-4000-8000-000000000001')
@@ -39,7 +62,7 @@ test('planned rolls can be cleared and replaced, and invalid drafts cannot be su
 
 test('Engineering exposes project planning and catalogue views through typed routes', () => {
   expect(engineeringNavigationItems.map(item => [item.label, item.href])).toEqual([
-    ['Projects', '#/engineering/projects'], ['Blueprints', '#/engineering/blueprints'], ['Engineers', '#/engineering/engineers'],
+    ['Projects', '#/engineering/projects'], ['Blueprints', '#/engineering/blueprints'], ['Experimental effects', '#/engineering/experimental-effects'], ['Engineers', '#/engineering/engineers'],
     ['Raw materials', '#/engineering/materials/raw'], ['Manufactured materials', '#/engineering/materials/manufactured'],
     ['Encoded materials', '#/engineering/materials/encoded'], ['Xeno materials', '#/engineering/materials/xeno']
   ])

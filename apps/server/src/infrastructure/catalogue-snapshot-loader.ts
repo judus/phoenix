@@ -14,6 +14,7 @@ export class CatalogueSnapshotLoader {
     return {
       engineering: new JsonEngineeringCatalogue({
         blueprints: join(paths.engineeringDirectory, 'blueprints.json'),
+        experimentalEffects: join(paths.engineeringDirectory, 'experimental-effects.json'),
         engineers: join(paths.engineeringDirectory, 'engineers.json'),
         materials: join(paths.engineeringDirectory, 'materials.json'),
         materialUses: join(paths.engineeringDirectory, 'material-uses.json')

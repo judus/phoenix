@@ -431,7 +431,20 @@ test('station and market query resolves current location, formats trade directio
   }
   const systems: SystemSearchSource = { findSystems: vi.fn(async () => [systemSearchResult()]) }
   const factions: FactionPresenceSearchSource = { findFactionPresences: vi.fn(async () => [factionPresence()]) }
-  const service = new DefaultStationMarketQuery(search, stock, shipyards, outfittingMarkets, stations, systems, factions, cartography(), runtime, new MemoryProviderCache(), () => new Date('2026-08-11T12:00:00Z'))
+  const traders = { findMaterialTraders: vi.fn(async () => [nearbyStation()]) }
+  const service = new DefaultStationMarketQuery(search, stock, shipyards, outfittingMarkets, stations, systems, factions, cartography(), runtime, new MemoryProviderCache(), () => new Date('2026-08-11T12:00:00Z'), traders)
+
+  for (const [suffix, traderType] of [['raw', 'Raw'], ['manufactured', 'Manufactured'], ['encoded', 'Encoded']]) {
+    const result = await service.findNearest({ service: `material-trader-${suffix}`, minimumPadSize: 'medium' })
+    expect(result.structuredContent).toMatchObject({ originSystem: 'Sol', service: `material-trader-${suffix}` })
+    expect(traders.findMaterialTraders).toHaveBeenLastCalledWith(expect.objectContaining({ traderType, minimumPadSize: 2, referencePosition: expect.any(Array) }))
+  }
+  await service.findNearest({ service: 'material-trader-raw', minimumPadSize: 'medium' })
+  expect(traders.findMaterialTraders).toHaveBeenCalledTimes(3)
+  expect(search.findNearestStations).not.toHaveBeenCalled()
+  await service.findNearest({ service: 'material-trader' })
+  expect(search.findNearestStations).toHaveBeenCalledWith({ service: 'material-trader', systemName: 'Sol', minimumPadSize: null })
+  await expect(service.findNearest({ service: 'material-trader-invalid' })).rejects.toThrow('Unsupported service')
 
   const firstTrade = await service.findBestTrade({ commodity: 'Gold', intent: 'buy' })
   await service.findBestTrade({ commodity: 'Gold', intent: 'buy' })
@@ -452,7 +465,7 @@ test('station and market query resolves current location, formats trade directio
   const toolFactions = await service.searchFactionPresences({ controlling: 'yes', factionName: 'Mother Gaia', minInfluencePercent: 25 })
 
   expect(search.findCommodityMarkets).toHaveBeenCalledTimes(2)
-  expect(search.findNearestStations).toHaveBeenCalledTimes(2)
+  expect(search.findNearestStations).toHaveBeenCalledTimes(3)
   expect(firstTrade.structuredContent).toMatchObject({ cache: 'refreshed', intent: 'buy', originSystem: 'Sol' })
   expect(firstTrade.content[0]).toMatchObject({ text: expect.stringContaining('91.5% below average') })
   expect(details.structuredContent).toMatchObject({ station: { name: 'Galileo' }, systemName: 'Sol' })

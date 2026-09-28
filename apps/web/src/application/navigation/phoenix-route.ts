@@ -35,6 +35,7 @@ export type InformationRoute =
   | { kind: 'information', section: 'galaxy', view: 'saved-queries' }
   | { kind: 'information', section: 'activities', view: 'missions' | 'objectives' | 'community-goals' | 'powerplay' | 'colonisation' }
   | { kind: 'information', section: 'engineering', view: 'blueprints', selectedBlueprintSymbol?: string }
+  | { kind: 'information', section: 'engineering', view: 'experimental-effects', selectedEffectSymbol?: string }
   | { kind: 'information', section: 'engineering', view: 'projects' | 'engineers' | 'materials-raw' | 'materials-manufactured' | 'materials-encoded' | 'materials-xeno' }
   | { kind: 'information', section: 'engineering', view: 'project-new', selectedBlueprintSymbol?: string }
   | { kind: 'information', section: 'engineering', view: 'project-detail', selectedProjectId: string }

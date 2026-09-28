@@ -1,4 +1,6 @@
 import {
+  EngineeringExperimentalEffectsResponseSchema,
+  type EngineeringExperimentalEffectsResponse,
   GalaxyOutfittingModuleNamesSchema,
   ActivityLogResponseSchema,
   CartographyLookupResponseSchema,
@@ -387,6 +389,10 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getEngineeringBlueprints(signal?: AbortSignal): Promise<EngineeringBlueprintsResponse> {
     return this.#get('/api/engineering/blueprints', EngineeringBlueprintsResponseSchema, signal)
+  }
+
+  async getEngineeringExperimentalEffects(signal?: AbortSignal): Promise<EngineeringExperimentalEffectsResponse> {
+    return this.#get('/api/engineering/experimental-effects', EngineeringExperimentalEffectsResponseSchema, signal)
   }
 
   async getEngineeringBlueprint(symbol: string, signal?: AbortSignal): Promise<EngineeringBlueprintDetail> {

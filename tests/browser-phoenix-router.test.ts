@@ -3,6 +3,11 @@ import { BrowserPhoenixRouter } from '../apps/web/src/platform/routing/browser-p
 import { parsePhoenixRoute, phoenixRouteHash } from '../apps/web/src/application/navigation/phoenix-router.js'
 
 describe('BrowserPhoenixRouter', () => {
+  test('experimental effect routes preserve exact recipe identity', () => {
+    const route = { kind: 'information', section: 'engineering', view: 'experimental-effects', selectedEffectSymbol: 'special_weapon_lightweight' } as const
+    expect(parsePhoenixRoute(phoenixRouteHash(route))).toEqual(route)
+    expect(phoenixRouteHash(route)).toBe('#/engineering/experimental-effects?symbol=special_weapon_lightweight')
+  })
   test('Galaxy routes preserve only typed feature state', () => {
     expect(parsePhoenixRoute('#/galaxy/system?name=Sol&selected=Earth&arbitrary=leak')).toEqual({
       kind: 'information', section: 'galaxy', view: 'system', systemName: 'Sol', selectedName: 'Earth'

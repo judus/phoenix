@@ -114,6 +114,8 @@ import { EdsmStationStockSource } from './infrastructure/edsm-station-stock-sour
 import { SpanshShipyardSearchSource } from './infrastructure/spansh-shipyard-search-source.js'
 import { SpanshOutfittingSearchSource } from './infrastructure/spansh-outfitting-search-source.js'
 import { SpanshStationLookupSource } from './infrastructure/spansh-station-lookup-source.js'
+import { SpanshMaterialTraderSource } from './infrastructure/spansh-material-trader-source.js'
+import type { MaterialTraderSearchSource } from './domain/station-market.js'
 import { SpanshSearchClient } from './infrastructure/spansh-search-client.js'
 import { SpanshSystemSearchSource } from './infrastructure/spansh-system-search-source.js'
 import { SpanshFactionPresenceSource } from './infrastructure/spansh-faction-presence-source.js'
@@ -156,6 +158,7 @@ export interface PhoenixApplicationOptions {
   shipyardSearchSource?: ShipyardSearchSource
   outfittingSearchSource?: OutfittingSearchSource
   stationLookupSource?: StationLookupSource
+  materialTraderSource?: MaterialTraderSearchSource
   systemSearchSource?: SystemSearchSource
   factionPresenceSource?: FactionPresenceSearchSource
   explorationTargetSource?: ExplorationTargetSearchSource
@@ -438,7 +441,9 @@ export class PhoenixApplication {
       options.factionPresenceSource ?? new SpanshFactionPresenceSource(spansh),
       cartography,
       this.stateStore,
-      this.database
+      this.database,
+      undefined,
+      options.materialTraderSource ?? new SpanshMaterialTraderSource(spansh)
     )
     const marketSignals = new MarketSignalService(stationSearchSource, this.database)
     const dashboardMarketSignals = new DashboardMarketSignalService(savedGalaxyQueries, marketSignals, this.stateStore)

@@ -184,14 +184,36 @@ test('engineering projects survive an application restart', async () => {
   try {
     let address = await application.start()
     const api = new PhoenixApiClient(`http://${address.host}:${address.port}`)
-    await api.createEngineeringProject({ name: 'Persistent refit', note: null, priority: 'normal' })
+    const project = await api.createEngineeringProject({ name: 'Persistent refit', note: null, priority: 'normal' })
+    const effects = await api.getEngineeringExperimentalEffects()
+    expect(effects.effects).toHaveLength(2)
+    await expect(api.addEngineeringProjectStep(project.id, {
+      kind: 'experimental', effectSymbol: 'special_test', moduleId: 't', applications: 3, note: null
+    })).rejects.toThrow()
+    await expect(api.addEngineeringProjectStep(project.id, {
+      kind: 'experimental', effectSymbol: 'unknown', moduleId: 'mc', applications: 3, note: null
+    })).rejects.toThrow()
+    await api.addEngineeringProjectStep(project.id, {
+      kind: 'experimental', effectSymbol: 'special_test', moduleId: 'mc', applications: 3, note: null
+    })
+    await api.addEngineeringProjectStep(project.id, {
+      blueprintSymbol: 'TestModule_Reinforced', targetGrade: 1, plannedRolls: 4, note: null
+    })
+    expect(await api.getEngineeringMaterialWatchlist()).toMatchObject({
+      materials: [expect.objectContaining({ materialId: 'TestWidgets', required: 10, stepCount: 2 })]
+    })
     await application.stop()
 
     application = new PhoenixApplication({ databasePath, eliteDirectory: null, host: '127.0.0.1', port: 0 })
     address = await application.start()
     const restarted = new PhoenixApiClient(`http://${address.host}:${address.port}`)
     expect((await restarted.getEngineeringProjects()).projects).toEqual([
-      expect.objectContaining({ name: 'Persistent refit', schemaVersion: 1, status: 'active' })
+      expect.objectContaining({ name: 'Persistent refit', schemaVersion: 1, status: 'active', steps: [
+        expect.objectContaining({ kind: 'experimental', applications: 3, moduleId: 'mc', requirements: [
+          expect.objectContaining({ required: 6, unitCost: 2 })
+        ] }),
+        expect.objectContaining({ kind: 'blueprint', plannedRolls: 4 })
+      ] })
     ])
   } finally {
     await application.stop().catch(() => undefined)

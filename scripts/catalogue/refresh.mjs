@@ -2,6 +2,7 @@ import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { selectJournalModuleRows } from './select-journal-module-rows.mjs'
+import { buildExperimentalEffects } from './build-experimental-effects.mjs'
 import {
   buildPersonalEquipmentCatalogue,
   PERSONAL_EQUIPMENT_SOURCE
@@ -29,14 +30,14 @@ const revisions = {
   coriolis: await latestRevision(repositories.coriolis)
 }
 const currentManifest = await readJsonIfPresent(manifestPath)
-if (!options.force && currentManifest?.schemaVersion === 5 && currentManifest?.sources?.fdevids === revisions.fdevids && currentManifest?.sources?.coriolis === revisions.coriolis && currentManifest?.sources?.personalEquipment === PERSONAL_EQUIPMENT_SOURCE.revision && await fileExists(join(outputDirectory, 'personal-equipment.json'))) {
+if (!options.force && currentManifest?.schemaVersion === 6 && currentManifest?.sources?.fdevids === revisions.fdevids && currentManifest?.sources?.coriolis === revisions.coriolis && currentManifest?.sources?.personalEquipment === PERSONAL_EQUIPMENT_SOURCE.revision && await fileExists(join(outputDirectory, 'personal-equipment.json')) && await fileExists(join(outputDirectory, 'engineering/experimental-effects.json'))) {
   await writeJsonAtomic(manifestPath, { ...currentManifest, checkedAt: new Date().toISOString() })
   console.log('Catalogue sources are already current.')
   process.exit(0)
 }
 
 console.log(`Refreshing catalogues from FDevIDs ${short(revisions.fdevids)}, Coriolis ${short(revisions.coriolis)}, and Almanac ${short(PERSONAL_EQUIPMENT_SOURCE.revision)}…`)
-const [outfittingCsv, commodityCsv, rareCommodityCsv, materialsCsv, engineersCsv, shipyardCsv, blueprintsSource, modifications, blueprintModules, shipPaths, personalEquipmentDocuments] = await Promise.all([
+const [outfittingCsv, commodityCsv, rareCommodityCsv, materialsCsv, engineersCsv, shipyardCsv, blueprintsSource, modifications, blueprintModules, shipPaths, personalEquipmentDocuments, specials] = await Promise.all([
   rawText(repositories.fdevids, revisions.fdevids, 'outfitting.csv'),
   rawText(repositories.fdevids, revisions.fdevids, 'commodity.csv'),
   rawText(repositories.fdevids, revisions.fdevids, 'rare_commodity.csv'),
@@ -50,7 +51,8 @@ const [outfittingCsv, commodityCsv, rareCommodityCsv, materialsCsv, engineersCsv
   Promise.all(PERSONAL_EQUIPMENT_SOURCE.paths.map(async path => [
     path,
     await rawText(repositories.almanac, PERSONAL_EQUIPMENT_SOURCE.revision, path)
-  ])).then(Object.fromEntries)
+  ])).then(Object.fromEntries),
+  rawJson(repositories.coriolis, revisions.coriolis, 'modifications/specials.json')
 ])
 const shipFiles = await mapConcurrent(shipPaths, 8, async path => [path, await rawJson(repositories.coriolis, revisions.coriolis, path)])
 
@@ -71,11 +73,15 @@ const files = {
   'personal-equipment.json': personalEquipment,
   'ships.json': buildShips(shipFiles, shipyard, revisions.coriolis, generatedAt),
   'engineering/blueprints.json': blueprints,
+  'engineering/experimental-effects.json': buildExperimentalEffects(specials, blueprintModules, materials, {
+    repository: 'https://github.com/EDCD/coriolis-data', revision: revisions.coriolis,
+    paths: ['modifications/specials.json', 'modifications/modules.json'], retrievedAt: generatedAt
+  }),
   'engineering/engineers.json': engineers,
   'engineering/materials.json': materials,
   'engineering/material-uses.json': buildMaterialUses(materials, blueprints),
   'manifest.json': {
-    schemaVersion: 5,
+    schemaVersion: 6,
     generatedAt,
     checkedAt: generatedAt,
     sources: {
@@ -122,7 +128,8 @@ function requiredValue (arguments_, index, option) {
 async function isFresh (path, maxAgeHours) {
   const manifest = await readJsonIfPresent(path)
   const checkedAt = Date.parse(manifest?.checkedAt ?? '')
-  return manifest?.schemaVersion === 5 &&
+  return manifest?.schemaVersion === 6 &&
+    await fileExists(join(dirname(path), 'engineering/experimental-effects.json')) &&
     manifest?.sources?.personalEquipment === PERSONAL_EQUIPMENT_SOURCE.revision &&
     await fileExists(join(dirname(path), 'personal-equipment.json')) &&
     Number.isFinite(checkedAt) && Date.now() - checkedAt < maxAgeHours * 3_600_000
@@ -355,6 +362,7 @@ function buildMaterialUses (materials, blueprints) {
 }
 
 function validate (files) {
+  if (!files['engineering/experimental-effects.json']?.effects.length) throw new Error('Experimental effect catalogue is empty.')
   const required = ['commodities.json', 'modules.json', 'personal-equipment.json', 'ships.json', 'engineering/blueprints.json', 'engineering/engineers.json', 'engineering/materials.json', 'engineering/material-uses.json']
   for (const path of required) if (!files[path]) throw new Error(`Catalogue output missing ${path}.`)
   if (files['ships.json'].ships.length < 40) throw new Error('Ship catalogue is unexpectedly small.')

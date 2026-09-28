@@ -28,6 +28,7 @@ import { engineeringProjectRoutes } from './engineering-navigation.js'
 import { EngineeringProjectDetailPage } from './engineering-project-detail-page.js'
 import { EngineeringProjectNewPage } from './engineering-project-new-page.js'
 import { EngineeringProjectsPage } from './engineering-projects-page.js'
+import { EngineeringEffectsPage } from './engineering-effects-page.js'
 
 export function EngineeringPage({ controller, onNavigate, route }: {
   controller: EngineeringControllerSnapshot
@@ -39,6 +40,7 @@ export function EngineeringPage({ controller, onNavigate, route }: {
   if (controller.status === 'idle' || controller.status === 'loading') return <EngineeringState title={title} />
   if (controller.status === 'error') return <EngineeringState error={controller.error ?? 'Engineering data unavailable.'} title={title} />
   if (view === 'projects') return <EngineeringProjectsPage onNavigate={onNavigate} projects={controller.projects?.projects ?? []} watchlist={controller.watchlist} />
+  if (route.view === 'experimental-effects') return <EngineeringEffectsPage effects={controller.effects?.effects ?? []} selectedSymbol={route.selectedEffectSymbol} projects={controller.projects?.projects ?? []} actions={controller.actions} onNavigate={onNavigate} />
   if (view === 'project-new') return <EngineeringProjectNewPage actions={controller.actions} onNavigate={onNavigate} selectedBlueprintSymbol={route.selectedBlueprintSymbol} />
   if (view === 'project-detail') {
     const project = controller.projects?.projects.find(candidate => candidate.id === route.selectedProjectId)
@@ -263,6 +265,7 @@ function BlueprintEngineers({ blueprint }: { blueprint: EngineeringBlueprintDeta
 }
 
 function pageTitle(view: EngineeringView): string {
+  if (view === 'experimental-effects') return 'Experimental effects'
   if (view === 'projects') return 'Engineering projects'
   if (view === 'project-new') return 'New project'
   if (view === 'project-detail') return 'Project'

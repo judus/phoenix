@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { z } from 'zod'
 
 const EngineerRecordSchema = z.object({
@@ -90,7 +90,15 @@ export interface EngineeringCatalogueBlueprint {
   }>
 }
 
+const ExperimentalEffectSchema = z.object({
+  symbol: z.string().min(1), name: z.string().min(1), description: z.string(),
+  modules: z.array(z.object({ id: z.string().min(1), name: z.string().min(1) })).min(1),
+  components: z.array(z.object({ name: z.string().min(1), cost: z.number().int().positive() })).min(1)
+})
+export type EngineeringCatalogueEffect = z.infer<typeof ExperimentalEffectSchema>
+
 export interface EngineeringCatalogue {
+  listExperimentalEffects(): EngineeringCatalogueEffect[]
   getBlueprint(symbol: string): EngineeringCatalogueBlueprint | null
   listBlueprints(): EngineeringCatalogueBlueprint[]
   listEngineers(): EngineeringCatalogueEngineer[]
@@ -98,11 +106,13 @@ export interface EngineeringCatalogue {
 }
 
 export class JsonEngineeringCatalogue implements EngineeringCatalogue {
+  private readonly effects: EngineeringCatalogueEffect[]
   private readonly blueprints: EngineeringCatalogueBlueprint[]
   private readonly engineers: EngineeringCatalogueEngineer[]
   private readonly materials: EngineeringCatalogueMaterial[]
 
   public constructor (paths: {
+    experimentalEffects?: string
     blueprints: string
     engineers: string
     materials: string
@@ -121,6 +131,9 @@ export class JsonEngineeringCatalogue implements EngineeringCatalogue {
       rarity: material.rarity,
       blueprintUses: uses.get(normalize(material.symbol)) ?? []
     }))
+    this.effects = paths.experimentalEffects && existsSync(paths.experimentalEffects)
+      ? z.object({ schemaVersion: z.literal(1), effects: z.array(ExperimentalEffectSchema) }).parse(readJson(paths.experimentalEffects)).effects
+      : []
     this.blueprints = z.array(BlueprintRecordSchema).parse(readJson(paths.blueprints)).map(blueprint => ({
       id: blueprint.id,
       fdname: blueprint.fdname,
@@ -142,6 +155,10 @@ export class JsonEngineeringCatalogue implements EngineeringCatalogue {
         }))
         .sort((left, right) => left.grade - right.grade)
     })).sort((left, right) => left.displayName.localeCompare(right.displayName))
+  }
+
+  public listExperimentalEffects (): EngineeringCatalogueEffect[] {
+    return structuredClone(this.effects)
   }
 
   public getBlueprint (symbol: string): EngineeringCatalogueBlueprint | null {

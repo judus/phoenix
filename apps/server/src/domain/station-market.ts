@@ -112,6 +112,14 @@ export interface NearestStationRequest {
   systemName: string
 }
 
+export interface MaterialTraderSearchSource {
+  findMaterialTraders(request: {
+    traderType: 'Raw' | 'Manufactured' | 'Encoded'
+    minimumPadSize: number | null
+    referencePosition: [number, number, number]
+  }): Promise<NearbyStation[]>
+}
+
 export interface CommodityMarketRequest {
   commodity: string
   includeFleetCarriers: boolean

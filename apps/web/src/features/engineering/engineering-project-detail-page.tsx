@@ -126,19 +126,19 @@ function ProjectSteps ({ actions, project }: { actions?: EngineeringControllerAc
   const [removing, setRemoving] = useState<string>()
   const [error, setError] = useState<string>()
   return (
-    <DataTableGroup contentGap="sm" meta={`${project.steps.length} ${project.steps.length === 1 ? 'step' : 'steps'}`} title="Planned blueprints">
+    <DataTableGroup contentGap="sm" meta={`${project.steps.length} ${project.steps.length === 1 ? 'step' : 'steps'}`} title="Planned engineering">
       {error ? <Status tone="danger" wrap>{error}</Status> : null}
       {project.steps.length > 0
         ? (
-            <DataTable density="compact" label={`${project.name} planned blueprints`} minimum="wide" narrow="priority" scheme="surface">
-              <thead><tr><th>Blueprint</th><th>Grade</th><th>Rolls</th><th>Materials</th><th aria-label="Actions" /></tr></thead>
+            <DataTable density="compact" label={`${project.name} planned engineering`} minimum="wide" narrow="priority" scheme="surface">
+              <thead><tr><th>Blueprint / effect</th><th>Grade</th><th>Rolls / applications</th><th>Materials</th><th aria-label="Actions" /></tr></thead>
               <tbody>{project.steps.map(step => (
                 <tr key={step.id}>
-                  <td className="wrap"><a href={`#/engineering/blueprints?symbol=${encodeURIComponent(step.blueprintSymbol)}`}><strong>{step.blueprintName}</strong></a><small>{step.moduleNames.join(', ')}</small></td>
-                  <td>Grade {step.targetGrade}</td>
-                  <td>{step.plannedRolls}</td>
+                  <td className="wrap"><a href={step.kind === 'blueprint' ? `#/engineering/blueprints?symbol=${encodeURIComponent(step.blueprintSymbol)}` : `#/engineering/experimental-effects?symbol=${encodeURIComponent(step.effectSymbol)}`}><strong>{step.kind === 'blueprint' ? step.blueprintName : step.effectName}</strong></a><small>{step.moduleNames.join(', ')}</small></td>
+                  <td>{step.kind === 'blueprint' ? `Grade ${step.targetGrade}` : 'Experimental'}</td>
+                  <td>{step.kind === 'blueprint' ? step.plannedRolls : step.applications}</td>
                   <td>{step.requirements.length} {step.requirements.length === 1 ? 'type' : 'types'}<small>{step.requirements.reduce((total, requirement) => total + requirement.required, 0)} units</small></td>
-                  <td className="col-fit"><IconButton busy={removing === step.id} disabled={!actions || removing !== undefined} label={`Remove ${step.blueprintName}`} size="sm" variant="danger" onClick={() => {
+                  <td className="col-fit"><IconButton busy={removing === step.id} disabled={!actions || removing !== undefined} label={`Remove ${step.kind === 'blueprint' ? step.blueprintName : step.effectName}`} size="sm" variant="danger" onClick={() => {
                     if (!actions) return
                     setRemoving(step.id)
                     setError(undefined)
@@ -150,7 +150,7 @@ function ProjectSteps ({ actions, project }: { actions?: EngineeringControllerAc
               ))}</tbody>
             </DataTable>
           )
-        : <Status tone="muted">No blueprints planned. Open a blueprint from the catalogue to add it to this project.</Status>}
+        : <Status tone="muted">No engineering planned. Open a blueprint or experimental effect from the catalogue to add it to this project.</Status>}
     </DataTableGroup>
   )
 }

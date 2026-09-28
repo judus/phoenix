@@ -70,6 +70,29 @@ export class EngineeringProjectService implements EngineeringProjects {
   public addStep (projectId: string, input: EngineeringProjectStepCreateRequest): EngineeringProject {
     const project = this.requiredProject(projectId)
     const validated = EngineeringProjectStepCreateRequestSchema.parse(input)
+    if ('effectSymbol' in validated) {
+      const effect = this.catalogue.listExperimentalEffects().find(candidate => candidate.symbol === validated.effectSymbol)
+      if (!effect) throw new Error('Experimental effect is unavailable in the local recipe catalogue.')
+      const module = effect.modules.find(candidate => candidate.id === validated.moduleId)
+      if (!module) throw new Error('This experimental effect is not compatible with the selected module type.')
+      const materials = materialIndex(this.engineeringData.getMaterials().materials)
+      const requirements = effect.components.map(component => {
+        const material = materials.get(normalize(component.name))
+        if (!material) throw new Error('Experimental recipe contains an unknown material. Refresh the catalogue before planning it.')
+        return {
+          materialId: material.id, materialName: material.name, category: material.category,
+          grade: material.grade, unitCost: component.cost, required: component.cost * validated.applications
+        }
+      })
+      return this.save(EngineeringProjectSchema.parse({
+        ...project,
+        steps: [...project.steps, {
+          ...validated, id: this.createId(), effectName: effect.name, moduleNames: [module.name],
+          requirements, createdAt: this.now().toISOString()
+        }],
+        updatedAt: this.now().toISOString()
+      }))
+    }
     const blueprint = this.catalogue.getBlueprint(validated.blueprintSymbol)
     if (!blueprint) throw new Error(`Engineering blueprint ${validated.blueprintSymbol} does not exist.`)
     const grade = blueprint.grades.find(candidate => candidate.grade === validated.targetGrade)

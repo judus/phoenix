@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type {
+  EngineeringExperimentalEffectsResponse,
   EngineeringBlueprintDetail,
   EngineeringBlueprintsResponse,
   EngineeringEngineersResponse,
@@ -28,6 +29,7 @@ export interface EngineeringControllerActions {
 }
 
 export interface EngineeringControllerSnapshot {
+  effects?: EngineeringExperimentalEffectsResponse
   actions?: EngineeringControllerActions
   blueprint?: EngineeringBlueprintDetail
   blueprints?: EngineeringBlueprintsResponse
@@ -113,10 +115,12 @@ export function useEngineeringController(
     const retained = readControllerSnapshot<EngineeringControllerSnapshot>(api, cacheKey)
     setSnapshot(current => ({ ...(retained ?? current), actions, status: retained?.status ?? (current.status === 'ready' ? 'ready' : 'loading') }))
     const projectView = view === 'projects' || view === 'project-detail'
-    const projects = (projectView || view === 'project-add-blueprint')
+    const projects = (projectView || view === 'project-add-blueprint' || view === 'experimental-effects')
       ? api.getEngineeringProjects(abort.signal)
       : undefined
-    const request = projectView
+    const request = view === 'experimental-effects'
+      ? Promise.all([api.getEngineeringExperimentalEffects(abort.signal), projects!]).then(([effects, projects]) => ({ effects, projects }))
+      : projectView
       ? Promise.all([projects!, api.getEngineeringMaterialWatchlist(abort.signal)]).then(([projects, watchlist]) => ({ projects, watchlist }))
       : view === 'project-new'
         ? Promise.resolve({})

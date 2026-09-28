@@ -777,6 +777,11 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/engineering/experimental-effects') {
+      this.writeJson(response, 200, this.options.engineering.getExperimentalEffects())
+      return
+    }
+
     const engineeringBlueprintMatch = url.pathname.match(/^\/api\/engineering\/blueprints\/([^/]+)$/u)
     if (request.method === 'GET' && engineeringBlueprintMatch) {
       const blueprint = this.options.engineering.getBlueprint(decodeURIComponent(engineeringBlueprintMatch[1]!))

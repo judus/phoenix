@@ -1,5 +1,18 @@
 import { z } from 'zod'
 
+export const MATERIAL_TRADER_SERVICES = {
+  'material-trader-raw': 'Raw',
+  'material-trader-manufactured': 'Manufactured',
+  'material-trader-encoded': 'Encoded'
+} as const
+
+export const NEAREST_STATION_SERVICES = [
+  'black-market', 'interstellar-factors', 'material-trader',
+  ...Object.keys(MATERIAL_TRADER_SERVICES),
+  'outfitting', 'refuel', 'repair', 'search-and-rescue', 'shipyard',
+  'technology-broker', 'universal-cartographics'
+]
+
 const nullableNumber = z.number().finite().nonnegative().nullable()
 const nullableString = z.string().min(1).nullable()
 
