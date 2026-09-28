@@ -29,6 +29,7 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
     }]
   }
   const shipyardSearchSource: ShipyardSearchSource = {
+    shipNames: async () => ['Type-11 Prospector'],
     findShipyards: async () => [{
       distanceLy: 4.2, distanceToArrivalLs: 300, marketId: 42, maxLandingPadSize: 3,
       price: 67861851, shipSymbol: 'LakonMiner', stationName: 'Test Exchange', stationType: 'Orbis',
@@ -91,6 +92,12 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
     const client = new PhoenixApiClient(`http://${address.host}:${address.port}`)
     const health = await client.getHealth()
 
+    const invalidSuggestion = await fetch(`http://${address.host}:${address.port}/api/galaxy/suggestions?kind=unknown&q=gold`)
+    expect(invalidSuggestion.status).toBe(400)
+    expect(await invalidSuggestion.json()).toMatchObject({ error: { code: 'invalid_request', message: 'Suggestion kind must be ship, module, or commodity.' } })
+    const longSuggestion = await fetch(`http://${address.host}:${address.port}/api/galaxy/suggestions?kind=commodity&q=${'a'.repeat(201)}`)
+    expect(longSuggestion.status).toBe(400)
+
     expect(health.status).toBe('ok')
     expect(health.apiVersion).toBe(PHOENIX_API_VERSION)
     expect(health.database).toEqual({ connected: true, engine: 'sqlite' })
@@ -118,7 +125,15 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
       .resolves.toMatchObject({ filters: { controlling: 'yes', factionName: 'Mother Gaia', minInfluencePercent: 25 }, presences: [{ controlling: true, influencePercent: 42.15, systemName: 'Alpha Centauri' }], provenance: 'Spansh community-reported system data' })
     await expect(client.findGalaxyFactionPresences({ states: ['War', 'Civil War'], systemName: 'Sol' }))
       .resolves.toMatchObject({ filters: { controlling: 'any', factionName: null, states: ['War', 'Civil War'] } })
-    await expect(client.getOutfittingModuleNames()).resolves.toEqual(['Point Defence', 'Guardian FSD Booster'])
+    await expect(client.getCatalogueSuggestions('module', 'point defense turret')).resolves.toEqual([
+      { label: 'Point Defence', value: 'Point Defence', source: 'Spansh' }
+    ])
+    await expect(client.getCatalogueSuggestions('ship', 'prospector')).resolves.toEqual([
+      { label: 'Type-11 Prospector', value: 'Type-11 Prospector', source: 'Spansh' }
+    ])
+    await expect(client.getCatalogueSuggestions('commodity', 'gold')).resolves.toContainEqual(
+      { label: 'Gold', value: 'Gold', source: 'Elite' }
+    )
   } finally {
     await application.stop()
   }

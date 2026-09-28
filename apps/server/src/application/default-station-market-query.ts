@@ -467,10 +467,6 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     }
   }
 
-  public outfittingModuleNames (): Promise<string[]> {
-    return this.outfittingSearchSource.moduleNames()
-  }
-
   public async searchOutfittingMarkets (
     input: {
       maxDaysAgo: number

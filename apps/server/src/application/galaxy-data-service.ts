@@ -13,7 +13,6 @@ import type { CommodityMarketRequest, FactionPresenceRequest, NearestStationRequ
 export const DEFAULT_GALAXY_RESULT_LIMIT = 100
 
 export interface GalaxyDataReader {
-  outfittingModuleNames(): Promise<string[]>
   searchCommodityMarkets(request: CommodityMarketRequest, limit?: number): Promise<GalaxyCommodityMarketsResponse>
   searchTradeOpportunities(request: TradeOpportunityRequest, limit?: number): Promise<GalaxyTradeOpportunitiesResponse>
   findSystems(request: Omit<SystemSearchRequest, 'referencePosition'> & { systemName: string }, limit?: number): Promise<GalaxySystemSearchResponse>

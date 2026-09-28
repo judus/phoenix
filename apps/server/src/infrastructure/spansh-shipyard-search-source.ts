@@ -14,6 +14,18 @@ import {
 } from './spansh-station-record.js'
 
 export class SpanshShipyardSearchSource implements ShipyardSearchSource {
+  private names: { expires: number, value: Promise<string[]> } | undefined
+
+  public shipNames (): Promise<string[]> {
+    if (!this.names || this.names.expires < Date.now()) {
+      const value = this.spansh.findFieldValues('stations', 'ships', '').catch(error => {
+        this.names = undefined
+        throw error
+      })
+      this.names = { expires: Date.now() + 86_400_000, value }
+    }
+    return this.names.value
+  }
   public constructor (private readonly spansh: SpanshSearchGateway) {}
 
   public async findShipyards (request: ShipyardSearchRequest): Promise<ShipyardSearchResult[]> {

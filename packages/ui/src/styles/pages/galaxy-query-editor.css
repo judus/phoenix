@@ -136,21 +136,6 @@
       overflow: hidden;
 
       .query-fields {
-        .module-suggestions {
-          list-style: none;
-          padding: 0;
-          margin: var(--spacing-xs) 0 0;
-          max-height: 14rem;
-          overflow-y: auto;
-          display: grid;
-          gap: var(--spacing-xxs);
-
-          .btn {
-            width: 100%;
-            text-align: left;
-            justify-content: flex-start;
-          }
-        }
         flex: 1 1 auto;
         display: grid;
         align-content: start;

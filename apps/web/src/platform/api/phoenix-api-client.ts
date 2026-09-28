@@ -1,7 +1,9 @@
 import {
   EngineeringExperimentalEffectsResponseSchema,
   type EngineeringExperimentalEffectsResponse,
-  GalaxyOutfittingModuleNamesSchema,
+  CatalogueSuggestionsSchema,
+  type CatalogueSuggestion,
+  type CatalogueSuggestionKind,
   ActivityLogResponseSchema,
   CartographyLookupResponseSchema,
   CommunicationsResponseSchema,
@@ -545,8 +547,8 @@ export class PhoenixApiClient implements PhoenixApi {
     return this.#get(`/api/galaxy/exploration-targets?${parameters({ ...filters, atmosphere: atmospheres, bodySubtype: bodySubtypes, system: systemName, volcanism: volcanismTypes })}`, GalaxyExplorationTargetsResponseSchema, signal)
   }
 
-  async getOutfittingModuleNames(signal?: AbortSignal): Promise<string[]> {
-    return this.#get('/api/galaxy/outfitting/module-names', GalaxyOutfittingModuleNamesSchema, signal)
+  async getCatalogueSuggestions(kind: CatalogueSuggestionKind, query: string, signal?: AbortSignal): Promise<CatalogueSuggestion[]> {
+    return this.#get(`/api/galaxy/suggestions?${new URLSearchParams({ kind, q: query })}`, CatalogueSuggestionsSchema, signal)
   }
 
   async findGalaxyFactionPresences(input: GalaxyFactionPresenceSearch, signal?: AbortSignal): Promise<GalaxyFactionPresencesResponse> {

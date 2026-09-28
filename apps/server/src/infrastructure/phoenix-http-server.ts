@@ -1,5 +1,7 @@
 import { createReadStream, existsSync, statSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
+import { CatalogueSuggestionKindSchema } from '@phoenix/contracts'
+import type { CatalogueSuggestionService } from '../application/catalogue-suggestion-service.js'
 import {
   createServer,
   type IncomingMessage,
@@ -148,6 +150,7 @@ export interface PhoenixHttpServerOptions {
   bookmarks: GalaxyBookmarks
   savedGalaxyQueries: SavedGalaxyQueries
   galaxyData: GalaxyDataReader
+  catalogueSuggestions: Pick<CatalogueSuggestionService, 'suggest'>
   marketSignals: MarketSignalReader
   galnet: GalnetNewsReader
   healthCheck: HealthCheck
@@ -580,8 +583,12 @@ export class PhoenixHttpServer {
       return
     }
 
-    if (request.method === 'GET' && url.pathname === '/api/galaxy/outfitting/module-names') {
-      this.writeJson(response, 200, await this.options.galaxyData.outfittingModuleNames())
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/suggestions') {
+      const kind = CatalogueSuggestionKindSchema.safeParse(requiredQuery(url, 'kind'))
+      if (!kind.success) throw new HttpRequestValidationError('Suggestion kind must be ship, module, or commodity.')
+      const query = optionalQuery(url, 'q') ?? ''
+      if (query.length > 200) throw new HttpRequestValidationError('Suggestion query must be at most 200 characters.')
+      this.writeJson(response, 200, await this.options.catalogueSuggestions.suggest(kind.data, query))
       return
     }
 

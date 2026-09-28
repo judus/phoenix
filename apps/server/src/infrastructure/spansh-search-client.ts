@@ -41,7 +41,7 @@ export class SpanshSearchClient implements SpanshSearchGateway {
     if (!response.ok) throw new Error(`Spansh field-value lookup failed with HTTP ${response.status}.`)
     const payload: unknown = await response.json()
     const raw = record(payload)
-    const values = index === 'stations' && field === 'modules' ? record(raw?.values)?.name : raw?.values
+    const values = index === 'stations' && (field === 'modules' || field === 'ships') ? record(raw?.values)?.name : raw?.values
     if (!Array.isArray(values)) throw new Error('Spansh returned an unexpected field-value response.')
     return [...new Set(values.map(stringValue).filter((value): value is string => value !== null))]
   }

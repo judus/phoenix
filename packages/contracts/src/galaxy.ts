@@ -52,7 +52,6 @@ export const GalaxySystemSearchResponseSchema = z.object({
   systems: z.array(GalaxySystemSearchResultSchema)
 })
 
-export const GalaxyOutfittingModuleNamesSchema = z.array(z.string().min(1))
 
 export const GalaxyFactionPresenceSchema = z.object({
   activeStates: z.array(z.string().min(1)),

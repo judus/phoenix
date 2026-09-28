@@ -1,3 +1,4 @@
+import type { CatalogueSuggestion, CatalogueSuggestionKind } from '@phoenix/contracts'
 import type {
   EngineeringExperimentalEffectsResponse,
   CopilotChatRequest,
@@ -175,7 +176,7 @@ export interface PhoenixApi {
   findGalaxyFactionPresences(input: GalaxyFactionPresenceSearch, signal?: AbortSignal): Promise<GalaxyFactionPresencesResponse>
   findGalaxyNearestStations(input: GalaxyNearestStationSearch, signal?: AbortSignal): Promise<GalaxyNearestStationsResponse>
   findGalaxyOutfitting(input: GalaxyOutfittingSearch, signal?: AbortSignal): Promise<GalaxyOutfittingResponse>
-  getOutfittingModuleNames(signal?: AbortSignal): Promise<string[]>
+  getCatalogueSuggestions(kind: CatalogueSuggestionKind, query: string, signal?: AbortSignal): Promise<CatalogueSuggestion[]>
   findGalaxyShipyards(input: GalaxyShipyardSearch, signal?: AbortSignal): Promise<GalaxyShipyardsResponse>
   findGalaxyStations(input: GalaxyStationLookupSearch, signal?: AbortSignal): Promise<GalaxyStationLookupResponse>
   findGalaxyTradeOpportunities(input: GalaxyTradeOpportunitySearch, signal?: AbortSignal): Promise<GalaxyTradeOpportunitiesResponse>

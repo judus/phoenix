@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { RoutePlotFeedback } from './route-plot-feedback.js'
-import { OutfittingModuleInput } from './outfitting-module-input.js'
+import { CatalogueSuggestionInput } from './catalogue-suggestion-input.js'
 import {
   ActionTile,
   Breadcrumbs,
@@ -556,7 +556,7 @@ function queryValues (definition: GalaxyQueryDefinition, parameters: SavedGalaxy
 
 function CatalogueField({ api, field, onChange, value, currentSystem, following, onFollow }: { api: PhoenixApi, field: GalaxyQueryField, onChange(value: GalaxyQueryValue): void, value: GalaxyQueryValue, currentSystem: string, following: boolean, onFollow(): void }) {
   const id = `query-${field.id}`
-  if (field.id === 'module') return <OutfittingModuleInput api={api} value={scalar(value)} onChange={onChange} />
+  if (field.id === 'module' || field.id === 'hull' || field.id === 'commodity') return <CatalogueSuggestionInput key={field.id} api={api} kind={field.id === 'hull' ? 'ship' : field.id} label={field.label} value={scalar(value)} onChange={onChange} />
   if (field.id === 'origin') return <Field htmlFor={id} label={field.label} hint={following ? `Following current system: ${currentSystem || 'unavailable'}` : 'Fixed reference. Select the location icon to follow your current system.'}>
     <TextInput id={id} placeholder={following ? currentSystem || 'Current system unavailable' : 'System name'} value={following ? '' : scalar(value)} required={!following && field.required} onChange={event => onChange(event.target.value)} action={<IconButton type="button" label="Follow current system" aria-pressed={following} className={`btn-toggle inset${following ? ' active' : ''}`} onClick={onFollow}><FollowSystemIcon /></IconButton>} />
   </Field>

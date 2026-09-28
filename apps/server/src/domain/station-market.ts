@@ -149,6 +149,7 @@ export interface StationStockSource {
 }
 
 export interface ShipyardSearchSource {
+  shipNames(): Promise<string[]>
   findShipyards(request: ShipyardSearchRequest): Promise<ShipyardSearchResult[]>
 }
 

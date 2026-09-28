@@ -121,6 +121,7 @@ import { SpanshSystemSearchSource } from './infrastructure/spansh-system-search-
 import { SpanshFactionPresenceSource } from './infrastructure/spansh-faction-presence-source.js'
 import { SpanshExplorationTargetSource } from './infrastructure/spansh-exploration-target-source.js'
 import { CatalogueSnapshotLoader } from './infrastructure/catalogue-snapshot-loader.js'
+import { CatalogueSuggestionService } from './application/catalogue-suggestion-service.js'
 import { ApplicationPaths } from './infrastructure/application-paths.js'
 import { FrontierGalnetSource } from './infrastructure/frontier-galnet-source.js'
 import type { PairingAccessController } from './infrastructure/pairing-access-controller.js'
@@ -432,11 +433,14 @@ export class PhoenixApplication {
     const stationSearchSource = options.stationSearchSource ?? new ArdentStationSearchSource({
       resolveCommodity: identifier => gameCatalogue.resolveCommodity(identifier)
     })
+    const shipyards = options.shipyardSearchSource ?? new SpanshShipyardSearchSource(spansh)
+    const outfitting = options.outfittingSearchSource ?? new SpanshOutfittingSearchSource(spansh)
+    const catalogueSuggestions = new CatalogueSuggestionService(gameCatalogue, shipyards, outfitting)
     const stationMarkets = new DefaultStationMarketQuery(
       stationSearchSource,
       options.stationStockSource ?? new EdsmStationStockSource(),
-      options.shipyardSearchSource ?? new SpanshShipyardSearchSource(spansh),
-      options.outfittingSearchSource ?? new SpanshOutfittingSearchSource(spansh),
+      shipyards,
+      outfitting,
       options.stationLookupSource ?? new SpanshStationLookupSource(spansh),
       options.systemSearchSource ?? new SpanshSystemSearchSource(spansh),
       options.factionPresenceSource ?? new SpanshFactionPresenceSource(spansh),
@@ -572,6 +576,7 @@ export class PhoenixApplication {
       explorationTargets,
       fleet,
       galaxyData: stationMarkets,
+      catalogueSuggestions,
       marketSignals,
       personalMaterials,
       personalEquipmentUpgrades,

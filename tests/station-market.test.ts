@@ -407,6 +407,7 @@ test('station and market query resolves current location, formats trade directio
     getShipyard: vi.fn(async () => [{ id: 1, name: 'Type-11 Prospector' }])
   }
   const shipyards: ShipyardSearchSource = {
+    shipNames: async () => [],
     findShipyards: vi.fn(async () => [{
       distanceLy: 4.2, distanceToArrivalLs: 321.5, marketId: 42, maxLandingPadSize: 3,
       price: 67861851, shipSymbol: 'LakonMiner', stationName: 'Test Exchange', stationType: 'Orbis',
@@ -536,7 +537,7 @@ test('station resolution returns corrective suggestions without silently selecti
 function stationMarketQuery (search: StationSearchSource, systemCartography = cartography()): DefaultStationMarketQuery {
   const runtime = new InMemoryRuntimeStateStore()
   const stock: StationStockSource = { getOutfitting: async () => [], getShipyard: async () => [] }
-  const shipyards: ShipyardSearchSource = { findShipyards: async () => [] }
+  const shipyards: ShipyardSearchSource = { shipNames: async () => [], findShipyards: async () => [] }
   const outfitting: OutfittingSearchSource = { findOutfitting: async () => [], moduleNames: async () => [] }
   const stations: StationLookupSource = { findStations: async () => [] }
   const systems: SystemSearchSource = { findSystems: async () => [] }

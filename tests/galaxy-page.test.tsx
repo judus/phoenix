@@ -9,6 +9,33 @@ import { galaxyContextForRoute, galaxyNavigationItems } from '../apps/web/src/fe
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
 
+test.each([
+  ['shipyards', 'hull', 'Cobra MkIII', 'findGalaxyShipyards', 'hullName'],
+  ['outfitting-stock', 'module', '5H Guardian FSD Booster', 'findGalaxyOutfitting', 'module'],
+  ['commodity-markets', 'commodity', 'AdvancedCatalysers', 'findGalaxyCommodityMarkets', 'commodity']
+] as const)('saved %s text remains executable without selecting a suggestion', async (queryId, field, value, method, argument) => {
+  const savedQuery = {
+    id: '00000000-0000-4000-8000-000000000002', name: 'Existing query',
+    createdAt: '2026-09-11T10:00:00.000Z', updatedAt: '2026-09-11T10:00:00.000Z',
+    parameters: { origin: 'Sol', originMode: 'fixed', [field]: value },
+    queryId, schemaVersion: 2, useOnDashboard: false
+  }
+  const execute = vi.fn().mockRejectedValue(new Error('Fixture'))
+  const suggestions = vi.fn()
+  let renderer: ReturnType<typeof create>
+  await act(async () => { renderer = create(<GalaxyPage
+    api={{ [method]: execute, getCatalogueSuggestions: suggestions, getSavedGalaxyQueries: async () => ({ queries: [savedQuery] }) } as unknown as PhoenixApi}
+    controller={{ status: 'idle' }} onNavigate={vi.fn()} querySessions={new GalaxyQuerySessionStore()}
+    route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: queryId, savedQueryId: savedQuery.id }}
+    runtime={{ state: createEmptyRuntimeState(), status: 'ready' }}
+  />) })
+  expect(renderer.root.findAllByType('input').find(node => node.props.role === 'combobox')!.props.value).toBe(value)
+  await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+  expect(execute).toHaveBeenCalledWith(expect.objectContaining({ [argument]: value }))
+  expect(suggestions).not.toHaveBeenCalled()
+  await act(async () => renderer.unmount())
+})
+
 test('faction state search accepts multiple states without a faction name', async () => {
   const findGalaxyFactionPresences = vi.fn().mockRejectedValue(new Error('Fixture'))
   const state = createEmptyRuntimeState()

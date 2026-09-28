@@ -40,6 +40,7 @@ const CommodityCatalogueSchema = z.object({
 export interface GameCatalogue {
   getShipCatalogueUpdatedAt(): string
   listShips(): ShipDefinition[]
+  listCommodities(): CommodityDefinition[]
   resolveCommodity(identifier: string): CommodityDefinition | null
   resolveShip(identifier: string): ShipDefinition | null
   resolveModule(journalId: string): ModuleDefinition
@@ -88,6 +89,11 @@ export class JsonGameCatalogue implements GameCatalogue {
 
   public resolveCommodity (identifier: string): CommodityDefinition | null {
     return this.commodities.get(normalizeCommodityId(identifier)) ?? null
+  }
+
+  public listCommodities (): CommodityDefinition[] {
+    return structuredClone([...new Map([...this.commodities.values()].map(item => [item.symbol, item])).values()]
+      .sort((a, b) => a.displayName.localeCompare(b.displayName)))
   }
 
   public resolveShip (identifier: string): ShipDefinition | null {
