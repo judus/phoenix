@@ -51,8 +51,8 @@ export type PhoenixRoute =
   | { kind: 'copilot', view: 'chat' | 'profiles' }
   | { kind: 'numpad' }
   | { kind: 'macros' }
-  | { kind: 'journal', view: 'journal' | 'credits' }
-  | { kind: 'developer', view: 'overview' | 'runtime' | 'elite' | 'health' | 'tests' | 'controls' }
+  | { kind: 'journal', view: 'commander' | 'credits' }
+  | { kind: 'developer', view: 'tools' | 'journal' }
   | { kind: 'settings', view: 'general' | 'pairing' | 'copilot' | 'help', topic?: string }
 
 export type PhoenixWorkspace =
@@ -62,6 +62,7 @@ export type PhoenixWorkspace =
   | 'telemetry'
   | 'macros'
   | 'journal'
+  | 'developer'
   | 'settings'
 
 export const DEFAULT_ROUTE: InformationRoute = {
@@ -82,6 +83,7 @@ export function isPhoenixWorkspace(value: string): value is PhoenixWorkspace {
     'telemetry',
     'macros',
     'journal',
+    'developer',
     'settings'
   ].includes(value)
 }
@@ -89,7 +91,6 @@ export function isPhoenixWorkspace(value: string): value is PhoenixWorkspace {
 export function workspaceForRoute(route: PhoenixRoute): PhoenixWorkspace {
   if (route.kind === 'information') return 'info'
   if (route.kind === 'numpad') return 'telemetry'
-  if (route.kind === 'developer') return 'journal'
   return route.kind
 }
 
@@ -115,7 +116,8 @@ export function defaultRouteForWorkspace(
     case 'copilot': return { kind: 'copilot', view: 'chat' }
     case 'telemetry': return { kind: 'numpad' }
     case 'macros': return { kind: 'macros' }
-    case 'journal': return { kind: 'journal', view: 'journal' }
+    case 'journal': return { kind: 'journal', view: 'commander' }
+    case 'developer': return { kind: 'developer', view: 'tools' }
     case 'settings': return { kind: 'settings', view: 'general' }
   }
 }

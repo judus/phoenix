@@ -23,6 +23,9 @@ export interface DesktopWorkspaceProps {
   informationContextLabel?: string
   informationCurrentContext?: string
   journal: ReactNode
+  developer?: ReactNode
+  developerContextItems?: NavigationItem[]
+  developerCurrentContext?: string
   journalContextItems?: NavigationItem[]
   journalCurrentContext?: string
   macros: ReactNode
@@ -49,6 +52,9 @@ export function DesktopWorkspace({
   informationCurrentContext = '',
   informationRoute,
   journal,
+  developer,
+  developerContextItems = emptyContextItems,
+  developerCurrentContext = '',
   journalContextItems = emptyContextItems,
   journalCurrentContext = '',
   macros,
@@ -175,6 +181,11 @@ export function DesktopWorkspace({
           id: 'system',
           initialDesktopId: 'settings',
           desktops: [
+            {
+              id: 'developer',
+              ariaLabel: 'Developer workspace',
+              children: <WorkspacePage contextItems={developerContextItems} contextLabel="Developer views" currentContext={developerCurrentContext} onNavigate={onNavigateRoute} swipeZone>{developer}</WorkspacePage>
+            },
             {
               id: 'settings',
               ariaLabel: 'Settings workspace',

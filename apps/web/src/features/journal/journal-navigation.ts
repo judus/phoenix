@@ -5,15 +5,19 @@ import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js
 type JournalNavigationItem = NavigationItem & { route: PhoenixRoute }
 
 export const journalNavigationItems: JournalNavigationItem[] = [
-  item('journal', 'Journal', 'JRN', { kind: 'journal', view: 'journal' }),
-  item('developer', 'Developer tools', 'DEV', { kind: 'developer', view: 'overview' }),
+  item('commander', 'Commander log', 'CMD', { kind: 'journal', view: 'commander' }),
   item('credits', 'Credits', 'CRD', { kind: 'journal', view: 'credits' })
 ]
 
+export const developerNavigationItems: JournalNavigationItem[] = [
+  item('journal', 'Raw journal', 'JRN', { kind: 'developer', view: 'journal' }),
+  item('tools', 'Copilot tool injection', 'TLS', { kind: 'developer', view: 'tools' })
+]
+
 export function journalContext(route: PhoenixRoute): string {
-  if (route.kind === 'developer') return 'developer'
+  if (route.kind === 'developer') return route.view === 'journal' ? 'journal' : 'tools'
   if (route.kind === 'journal') return route.view
-  return 'journal'
+  return 'commander'
 }
 
 function item(id: string, label: string, shortLabel: string, route: PhoenixRoute): JournalNavigationItem {

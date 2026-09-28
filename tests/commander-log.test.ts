@@ -18,6 +18,51 @@ const projector = new DefaultCommanderLogProjector(
   identifier => identifier === 'Engine_Dirty' ? 'Dirty Engine' : null
 )
 
+test('new milestones use explicit journal evidence, not scan steps or estimated earnings', () => {
+  const p = new DefaultCommanderLogProjector(noMissions, () => null, () => null)
+  const timestamp = '2026-09-27T22:00:00Z'
+  p.project({ timestamp, event: 'Docked', StarSystem: 'Wolf 363', StationName: 'Pirsan Station', MarketID: 42 })
+  const trade = { timestamp, event: 'MaterialTrade', MarketID: 42,
+    Paid: { Material_Localised: 'Shielding Sensors', Quantity: 36 },
+    Received: { Material_Localised: 'Conductive Polymers', Quantity: 1 } }
+  expect(p.project(trade)).toMatchObject({
+    kind: 'engineering.materials_traded', creditDelta: null,
+    detail: '36 × Shielding Sensors → 1 × Conductive Polymers · Pirsan Station · Wolf 363'
+  })
+  expect(p.project({ ...trade, Paid: {} })).toBeNull()
+  expect(p.project({ ...trade, MarketID: 99 })?.detail).not.toContain('Pirsan')
+  expect(p.project({ timestamp, event: 'SearchAndRescue', MarketID: 42, Name_Localised: 'Occupied Escape Pod', Count: 3, Reward: 90147 }))
+    .toMatchObject({ kind: 'finance.salvage_delivered', creditDelta: 90147, detail: '3 × Occupied Escape Pod · Pirsan Station · Wolf 363' })
+  p.project({ timestamp, event: 'SAAScanComplete', SystemAddress: 123, BodyID: 7, BodyName: 'Test A 7' })
+  const scan = { timestamp, event: 'ScanOrganic', ScanType: 'Analyse', Species_Localised: 'Fonticulua Fluctus', SystemAddress: 123, Body: 7 }
+  expect(p.project(scan)).toMatchObject({ kind: 'exploration.biological_analysis_completed', detail: 'Fonticulua Fluctus · Test A 7', creditDelta: null })
+  expect(p.project({ ...scan, ScanType: 'Sample' })).toBeNull()
+  expect(p.project({ ...scan, ScanType: 'Log' })).toBeNull()
+})
+
+test('engineering groups consecutive rolls by ship, module slot, blueprint and engineer without deleting raw events', () => {
+  const repository = new MemoryCommanderLogRepository()
+  const p = new DefaultCommanderLogProjector(noMissions, () => null, () => 'Overcharged')
+  const service = new CommanderLogService(repository, p)
+  service.ingest({ timestamp: '2026-09-27T10:00:00Z', event: 'LoadGame', ShipID: 21 }, 'historical')
+  const roll = { timestamp: '2026-09-27T10:01:00Z', event: 'EngineerCraft', Slot: 'MediumHardpoint1', Module: 'multicannon', BlueprintName: 'Weapon_Overcharged', Engineer: 'Tod', Level: 1 }
+  service.ingest(roll, 'historical')
+  service.ingest(roll, 'historical')
+  service.ingest({ ...roll, timestamp: '2026-09-27T10:01:10Z', Level: 2 }, 'historical')
+  expect(service.getRecent()).toMatchObject({ retained: 2, entries: [
+    expect.objectContaining({ title: 'Engineering applied', detail: 'Overcharged · MediumHardpoint1 · Grade 1 → 2 · 2 rolls · Tod' })
+  ] })
+  service.ingest({ ...roll, timestamp: '2026-09-27T10:01:20Z', Slot: 'MediumHardpoint2' })
+  expect(service.getRecent().entries).toHaveLength(2)
+  service.ingest({ ...roll, timestamp: '2026-09-27T10:10:00Z', Slot: 'MediumHardpoint2' })
+  expect(service.getRecent().entries).toHaveLength(3)
+  service.ingest({ timestamp: '2026-09-27T10:10:01Z', event: 'Loadout', ShipID: 22 })
+  service.ingest({ ...roll, timestamp: '2026-09-27T10:10:02Z', Slot: 'MediumHardpoint2' })
+  expect(service.getRecent().entries).toHaveLength(4)
+  const restarted = new CommanderLogService(repository, new DefaultCommanderLogProjector(noMissions, () => null, () => null))
+  expect(restarted.getRecent()).toEqual(service.getRecent())
+})
+
 test('Commander Log projects mission lifecycle and explicit credit evidence', () => {
   expect(projector.project({
     event: 'MissionCompleted',
@@ -155,7 +200,7 @@ test('Commander Log persistence is idempotent and historical replay stays quiet'
   expect(listener).toHaveBeenCalledOnce()
 })
 
-test('Commander Log projection migration replays previously checkpointed journals', () => {
+test.each([22, 24])('Commander Log projection migration %i replays previously checkpointed journals', version => {
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-commander-log-migration-'))
   const path = join(directory, 'phoenix.sqlite')
   const initial = new SqliteDatabase(path)
@@ -181,22 +226,22 @@ test('Commander Log projection migration replays previously checkpointed journal
   initial.close()
 
   const raw = new DatabaseSync(path)
-  raw.prepare('DELETE FROM schema_migrations WHERE version = 22').run()
+  raw.prepare('DELETE FROM schema_migrations WHERE version = ?').run(version)
   raw.close()
 
   const migrated = new SqliteDatabase(path)
   try {
     migrated.initialize()
     expect(migrated.getJournalCheckpoint('/journals/Journal.test.log')).toBeNull()
-    expect(migrated.commanderLog.countCommanderLogEntries()).toBe(0)
+    expect(migrated.commanderLog.countCommanderLogEntries()).toBe(version === 24 ? 1 : 0)
   } finally {
     migrated.close()
   }
 
   const verified = new DatabaseSync(path)
   try {
-    expect(verified.prepare('SELECT version FROM schema_migrations WHERE version = 22').get())
-      .toEqual({ version: 22 })
+    expect(verified.prepare('SELECT version FROM schema_migrations WHERE version = ?').get(version))
+      .toEqual({ version })
   } finally {
     verified.close()
     rmSync(directory, { force: true, recursive: true })

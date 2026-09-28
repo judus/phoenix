@@ -246,7 +246,8 @@ export class PhoenixApplication {
       new DefaultCommanderLogProjector(
         missions,
         identifier => gameCatalogue.resolveShip(identifier)?.displayName ?? null,
-        identifier => engineeringCatalogue.getBlueprint(identifier)?.displayName ?? null
+        identifier => engineeringCatalogue.getBlueprint(identifier)?.displayName ?? null,
+        identifier => gameCatalogue.resolveModule(identifier).displayName
       )
     )
     const commanderEquipment = new CommanderEquipmentService(

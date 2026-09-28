@@ -21,6 +21,9 @@ export interface PhoenixApplicationShellProps {
   informationContextLabel?: string
   informationCurrentContext?: string
   journal: ReactNode
+  developer?: ReactNode
+  developerContextItems?: NavigationItem[]
+  developerCurrentContext?: string
   journalContextItems?: NavigationItem[]
   journalCurrentContext?: string
   macros: ReactNode
@@ -48,6 +51,9 @@ export function PhoenixApplicationShell({
   informationCurrentContext,
   informationRoute,
   journal,
+  developer,
+  developerContextItems,
+  developerCurrentContext,
   journalContextItems,
   journalCurrentContext,
   macros,
@@ -107,6 +113,9 @@ export function PhoenixApplicationShell({
         {...(informationCurrentContext ? { informationCurrentContext } : {})}
         informationRoute={informationRoute}
         journal={journal}
+        developer={developer}
+        developerContextItems={developerContextItems}
+        developerCurrentContext={developerCurrentContext}
         {...(journalContextItems ? { journalContextItems } : {})}
         {...(journalCurrentContext ? { journalCurrentContext } : {})}
         macros={macros}

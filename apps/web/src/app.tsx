@@ -38,7 +38,8 @@ import { useControlsController } from './features/controls/use-controls-controll
 import { useMacroRuntime } from './features/macros/macro-runtime-provider.js'
 import { useNumpadController } from './features/numpad/use-numpad-controller.js'
 import { useJournalController } from './features/journal/use-journal-controller.js'
-import { journalContext, journalNavigationItems } from './features/journal/journal-navigation.js'
+import { developerNavigationItems, journalContext, journalNavigationItems } from './features/journal/journal-navigation.js'
+import { CommanderLogPage } from './features/journal/commander-log-page.js'
 import { settingsContext, settingsNavigationItems } from './features/settings/settings-navigation.js'
 
 const ActivitiesPage = lazy(() => import('./features/activities/activities-page.js').then(module => ({ default: module.ActivitiesPage })))
@@ -193,12 +194,15 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
                         : null}</FeatureBoundary>
         : null}
       journal={activeDesktop === 'journal'
-        ? <FeatureBoundary>{logRoute?.kind === 'developer'
-            ? <DeveloperPage api={application.api} />
-            : logRoute?.view === 'credits'
+        ? <FeatureBoundary>{logRoute?.view === 'credits'
               ? <CreditsPage />
-              : <JournalFeature application={application} />}</FeatureBoundary>
+              : <CommanderLogPage api={application.api} events={application.events} />}</FeatureBoundary>
         : null}
+      developer={activeDesktop === 'developer'
+        ? <FeatureBoundary>{logRoute?.view === 'journal' ? <JournalFeature application={application} /> : <DeveloperPage api={application.api} />}</FeatureBoundary>
+        : null}
+      developerContextItems={developerNavigationItems}
+      developerCurrentContext={journalContext(route)}
       journalContextItems={journalNavigationItems}
       journalCurrentContext={journalContext(route)}
       macros={activeDesktop === 'macros' ? <FeatureBoundary><MacrosFeature /></FeatureBoundary> : null}

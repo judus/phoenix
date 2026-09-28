@@ -6,6 +6,7 @@ import {
 import type { EliteJournalEvent } from '@phoenix/elite'
 import type { CommanderLogReader, CommanderLogRepository } from '../../domain/commander-log.js'
 import type { CommanderLogProjector } from './commander-log-projector.js'
+import { groupEngineeringRolls } from './group-engineering-rolls.js'
 
 export type CommanderLogProjectionMode = 'live' | 'historical'
 
@@ -32,7 +33,7 @@ export class CommanderLogService implements CommanderLogReader {
 
   public getRecent (limit = 24): CommanderLogResponse {
     const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), 250)
-    const entries = this.repository.getRecentCommanderLogEntries(boundedLimit)
+    const entries = groupEngineeringRolls(this.repository.getRecentCommanderLogEntries(5000)).slice(0, boundedLimit)
     return CommanderLogResponseSchema.parse({
       schemaVersion: 1,
       entries,

@@ -6,7 +6,8 @@ export const CommanderLogCategorySchema = z.enum([
   'finance',
   'fleet',
   'career',
-  'engineering'
+  'engineering',
+  'exploration'
 ])
 
 export const CommanderLogKindSchema = z.enum([
@@ -28,7 +29,10 @@ export const CommanderLogKindSchema = z.enum([
   'fleet.ship_destroyed',
   'career.promoted',
   'engineering.access_changed',
-  'engineering.blueprint_applied'
+  'engineering.blueprint_applied',
+  'engineering.materials_traded',
+  'finance.salvage_delivered',
+  'exploration.biological_analysis_completed'
 ])
 
 export const CommanderLogEntrySchema = z.object({
@@ -41,7 +45,14 @@ export const CommanderLogEntrySchema = z.object({
   detail: z.string().min(1).nullable(),
   creditDelta: z.number().int().nullable(),
   tone: z.enum(['neutral', 'positive', 'warning']),
-  sourceEvent: z.string().min(1)
+  sourceEvent: z.string().min(1),
+  engineeringRoll: z.object({
+    key: z.string().min(1),
+    blueprint: z.string().min(1),
+    module: z.string().min(1),
+    engineer: z.string().min(1),
+    grade: z.number().int().min(1).max(5)
+  }).strict().optional()
 }).strict()
 
 export const CommanderLogResponseSchema = z.object({

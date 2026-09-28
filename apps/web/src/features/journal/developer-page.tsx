@@ -30,9 +30,8 @@ export function DeveloperPage ({ api }: { api: PhoenixApi }) {
 
   return <PageFrame className="developer-page" layout="fit">
     <PageHeader
-      context={<Breadcrumbs items={[{ label: 'Log' }, { label: 'Developer tools' }]} />}
-      description="Inspect live PHOENIX runtime diagnostics."
-      title="Developer tools"
+      context={<Breadcrumbs items={[{ label: 'Developer' }, { label: 'Copilot tools' }]} />}
+      title="Copilot tool injection"
       variant="cockpit"
     />
     {error

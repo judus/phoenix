@@ -81,7 +81,7 @@ describe('BrowserPhoenixRouter', () => {
     const browser = new FakeBrowserWindow('#/fleet/catalogue')
     const router = new BrowserPhoenixRouter(browser as unknown as Window)
 
-    router.push({ kind: 'developer', view: 'overview' })
+    router.push({ kind: 'developer', view: 'tools' })
 
     expect(router.routeForWorkspace('info')).toEqual({
       kind: 'information',

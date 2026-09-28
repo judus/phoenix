@@ -14,7 +14,8 @@ export function utilityItems(fullscreen: { active: boolean, supported: boolean }
   return [
     routeItem('telemetry', 'Numpad', '011', { kind: 'numpad' }),
     routeItem('macros', 'Macros', 'MCR', { kind: 'macros' }),
-    routeItem('journal', 'Journal log', 'LOG', { kind: 'journal', view: 'journal' }),
+    routeItem('journal', 'Commander log', 'LOG', { kind: 'journal', view: 'commander' }),
+    routeItem('developer', 'Developer tools', 'DEV', { kind: 'developer', view: 'tools' }),
     routeItem('settings', 'Settings', 'STG', { kind: 'settings', view: 'general' }),
     {
       id: 'fullscreen',

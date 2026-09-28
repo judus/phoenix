@@ -44,7 +44,17 @@ describe('DesktopWorkspace routing integration', () => {
     await act(async () => {
       renderer = create(<RoutedDesktopWorkspace router={router} />)
     })
-    expect(renderer.root.findAll(element => element.props['data-deskplane-swipe-zone'] === 'horizontal')).toHaveLength(7)
+    expect(renderer.root.findAll(element => element.props['data-deskplane-swipe-zone'] === 'horizontal')).toHaveLength(8)
+    goTo.mockClear()
+
+    await act(async () => {
+      router.push({ kind: 'developer', view: 'journal' })
+    })
+    expect(goTo).toHaveBeenLastCalledWith('developer')
+    await act(async () => {
+      router.replace({ kind: 'information', section: 'commander', view: 'dashboard' })
+    })
+    browser.historyCalls.length = 1
     goTo.mockClear()
 
     await act(async () => {

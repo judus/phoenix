@@ -17,7 +17,7 @@ export function createCommanderLogViewModel (
   entries: readonly CommanderLogEntry[],
   locale = 'en-CH'
 ): CommanderLogItemViewModel[] {
-  return entries.slice(0, 10).reverse().map(entry => ({
+  return entries.slice(0, 20).reverse().map(entry => ({
     category: categoryLabel(entry.category),
     dateTime: formatPhoenixDateTime(entry.timestamp),
     detail: entry.detail,
@@ -36,7 +36,8 @@ function categoryLabel (category: CommanderLogEntry['category']): string {
     finance: 'Finance',
     fleet: 'Fleet',
     career: 'Career',
-    engineering: 'Engineering'
+    engineering: 'Engineering',
+    exploration: 'Exploration'
   }[category]
 }
 

@@ -6,7 +6,7 @@ import {
 import type { CommanderLogRepository } from '../domain/commander-log.js'
 
 const SCHEMA_MIGRATION = 18
-const PROJECTION_REBUILD_MIGRATIONS = [21, 22] as const
+const PROJECTION_REBUILD_MIGRATIONS = [21, 22, 24] as const
 
 export class SqliteCommanderLogRepository implements CommanderLogRepository {
   public constructor (private readonly connection: DatabaseSync) {}
@@ -56,10 +56,10 @@ export class SqliteCommanderLogRepository implements CommanderLogRepository {
 
     this.connection.exec('BEGIN IMMEDIATE')
     try {
-      this.connection.exec(`
-        DELETE FROM commander_log;
-        DELETE FROM elite_journal_checkpoints;
-      `)
+      // New entries/metadata can be replayed with the same event IDs. Keep records
+      // from journals that may no longer exist; only older migrations require a wipe.
+      if (pending.some(version => version === 21 || version === 22)) this.connection.exec('DELETE FROM commander_log;')
+      this.connection.exec('DELETE FROM elite_journal_checkpoints;')
       const recordMigration = this.connection.prepare(`
         INSERT INTO schema_migrations (version, applied_at)
         VALUES (?, datetime('now'))

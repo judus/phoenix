@@ -22,7 +22,9 @@ test('live dashboard evidence is not overwritten by stale initial queries', asyn
   const events = new FakeEventHub()
   const api = {
     getActions: vi.fn().mockResolvedValue({ actions: [], backend: { id: 'none', available: false, simulated: true, detail: 'Unavailable' }, bindingSource: { directory: null, filePath: null, presetNames: [], available: false, bindingCount: 0, keyboardBindingCount: 0, loadedAt: null, error: null } }),
-    getCommanderLog: vi.fn().mockReturnValue(new Promise(resolve => { resolveCommanderLog = resolve })),
+    getCommanderLog: vi.fn()
+      .mockReturnValueOnce(new Promise(resolve => { resolveCommanderLog = resolve }))
+      .mockResolvedValue({ schemaVersion: 1, entries: [commanderLogEntry('live')], retained: 1 }),
     getLocalTraffic: vi.fn().mockResolvedValue(localTraffic()),
     getEngineeringMaterialWatchlist: vi.fn().mockResolvedValue(materialWatchlist()),
     getDashboardMarketSignals: vi.fn().mockResolvedValue(marketSignals()),

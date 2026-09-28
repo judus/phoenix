@@ -54,16 +54,16 @@ const DISPLAY_PAGE_ROUTES = {
   'copilot.profiles': { kind: 'copilot', view: 'profiles' },
   numpad: { kind: 'numpad' },
   macros: { kind: 'macros' },
-  journal: { kind: 'journal', view: 'journal' },
+  journal: { kind: 'journal', view: 'commander' },
   credits: { kind: 'journal', view: 'credits' },
   settings: { kind: 'settings', view: 'general' },
   help: { kind: 'settings', view: 'help' },
-  'developer.overview': { kind: 'developer', view: 'overview' },
-  'developer.runtime': { kind: 'developer', view: 'runtime' },
-  'developer.elite': { kind: 'developer', view: 'elite' },
-  'developer.health': { kind: 'developer', view: 'health' },
-  'developer.tests': { kind: 'developer', view: 'tests' },
-  'developer.controls': { kind: 'developer', view: 'controls' }
+  'developer.overview': { kind: 'developer', view: 'tools' },
+  'developer.runtime': { kind: 'developer', view: 'tools' },
+  'developer.elite': { kind: 'developer', view: 'tools' },
+  'developer.health': { kind: 'developer', view: 'tools' },
+  'developer.tests': { kind: 'developer', view: 'tools' },
+  'developer.controls': { kind: 'developer', view: 'tools' }
 } as const satisfies Record<DisplayPageId, PhoenixRoute>
 
 export function routeForDisplayPage (pageId: DisplayPageId): PhoenixRoute {

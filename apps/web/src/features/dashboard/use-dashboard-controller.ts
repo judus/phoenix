@@ -45,13 +45,12 @@ export function useDashboardController(
     let routeRevision = 0
     let actionsRevision = 0
 
-    const unsubscribeCommanderLog = events.subscribe('commander-log-entry', entry => {
-      commanderLogRevision += 1
-      setSnapshot(current => ({
-        ...current,
-        commanderLog: mergeCommanderLogEntry(current.commanderLog, entry),
-        status: 'ready'
-      }))
+    const unsubscribeCommanderLog = events.subscribe('commander-log-entry', () => {
+      const revision = ++commanderLogRevision
+      void api.getCommanderLog(24, abort.signal).then(log => {
+        if (abort.signal.aborted || revision !== commanderLogRevision) return
+        setSnapshot(current => ({ ...current, commanderLog: log.entries, status: 'ready' }))
+      }).catch(() => undefined)
     })
     const loadLocalTraffic = (): void => {
       const revision = ++localTrafficRevision

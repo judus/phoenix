@@ -39,10 +39,9 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
   }
 
   if (section === 'macros') return { kind: 'macros' }
-  if (section === 'log' || section === 'journal' || (section === 'records' && ['journal', 'credits'].includes(rest[0] ?? ''))) {
-    const view = section === 'records' && rest[0] === 'credits' ? 'credits' : 'journal'
-    return { kind: 'journal', view }
-  }
+  if (section === 'log') return { kind: 'journal', view: rest[0] === 'credits' ? 'credits' : 'commander' }
+  if (section === 'journal' || (section === 'records' && rest[0] === 'journal')) return { kind: 'developer', view: 'journal' }
+  if (section === 'records' && rest[0] === 'credits') return { kind: 'journal', view: 'credits' }
 
   if (section === 'exploration' || (section === 'records' && rest[0] === 'exploration')) {
     const systemName = query.system?.trim()
@@ -62,7 +61,7 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
   }
 
   if (section === 'developer') {
-    const view = oneOf(rest[0], ['overview', 'runtime', 'elite', 'health', 'tests', 'controls'] as const) ?? 'overview'
+    const view = rest[0] === 'journal' ? 'journal' : 'tools'
     return { kind: 'developer', view }
   }
 
@@ -122,7 +121,7 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
     case 'copilot': path = `/copilot/${route.view}`; break
     case 'numpad': path = '/numpad'; break
     case 'macros': path = '/macros'; break
-    case 'journal': path = route.view === 'credits' ? '/records/credits' : '/records/journal'; break
+    case 'journal': path = `/log/${route.view}`; break
     case 'developer': path = `/developer/${route.view}`; break
     case 'settings': path = `/settings/${route.view}`; break
   }

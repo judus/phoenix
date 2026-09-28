@@ -142,7 +142,7 @@ export function DashboardPage({
               bodyRef={commanderLogBodyRef}
               className="dashboard-commander-log-widget"
               eyebrow="Commander log"
-              link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'journal', view: 'journal' }}>Open journal</RouteLink>}
+              link={<RouteLink hrefFor={hrefFor} onNavigate={onNavigate} route={{ kind: 'journal', view: 'commander' }}>Open commander log</RouteLink>}
               scrollable
             >
               {model.commanderLog.length === 0

@@ -42,8 +42,8 @@ export function JournalPage({ controller }: { controller: JournalControllerSnaps
   return <PageFrame className="journal-page" layout="fit">
     <PageHeader
       variant="cockpit"
-      context={<Breadcrumbs items={[{ label: 'Log' }, { label: 'Journal' }]} />}
-      title="Journal"
+      context={<Breadcrumbs items={[{ label: 'Developer' }, { label: 'Raw journal' }]} />}
+      title="Raw journal"
     />
     {controller.status === 'error'
       ? <Status tone="danger">{controller.error}</Status>

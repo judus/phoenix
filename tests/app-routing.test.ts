@@ -41,9 +41,10 @@ describe('PHOENIX route parsing and generation', () => {
     ['#/copilot/profiles', { kind: 'copilot', view: 'profiles' }, 'copilot'],
     ['#/numpad', { kind: 'numpad' }, 'telemetry'],
     ['#/macros', { kind: 'macros' }, 'macros'],
-    ['#/records/journal', { kind: 'journal', view: 'journal' }, 'journal'],
-    ['#/records/credits', { kind: 'journal', view: 'credits' }, 'journal'],
-    ['#/developer/runtime', { kind: 'developer', view: 'runtime' }, 'journal'],
+    ['#/log/commander', { kind: 'journal', view: 'commander' }, 'journal'],
+    ['#/log/credits', { kind: 'journal', view: 'credits' }, 'journal'],
+    ['#/developer/tools', { kind: 'developer', view: 'tools' }, 'developer'],
+    ['#/developer/journal', { kind: 'developer', view: 'journal' }, 'developer'],
     ['#/settings/general', { kind: 'settings', view: 'general' }, 'settings'],
     ['#/settings/pairing', { kind: 'settings', view: 'pairing' }, 'settings'],
     ['#/settings/copilot', { kind: 'settings', view: 'copilot' }, 'settings'],
@@ -193,7 +194,11 @@ describe('PHOENIX route parsing and generation', () => {
   })
 
   test.each([
-    ['#/log', '#/records/journal'],
+    ['#/log', '#/log/commander'],
+    ['#/records/journal', '#/developer/journal'],
+    ['#/journal', '#/developer/journal'],
+    ['#/records/credits', '#/log/credits'],
+    ['#/developer/overview', '#/developer/tools'],
     ['#/navigation/route', '#/galaxy/route'],
     ['#/operations/missions', '#/activities/missions'],
     ['#/ship/modules', '#/fleet/ships/current/loadout'],
