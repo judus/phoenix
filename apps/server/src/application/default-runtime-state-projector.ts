@@ -51,7 +51,9 @@ export class DefaultRuntimeStateProjector implements RuntimeStateProjector {
                   : current.commander,
       ship: event.type === 'ship.loadout_changed'
         ? this.shipLoadoutEnricher.enrich(event.payload)
-        : current.ship,
+        : event.type === 'ship.hull_health_changed'
+          ? { ...current.ship, hullHealth: event.payload.hullHealth }
+          : current.ship,
       inventory: event.type === 'inventory.cargo_changed'
         ? { ...current.inventory, cargo: event.payload }
         : event.type === 'inventory.materials_changed'

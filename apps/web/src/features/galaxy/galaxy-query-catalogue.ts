@@ -178,7 +178,7 @@ const GALAXY_QUERY_DEFINITIONS: GalaxyQueryDefinition[] = [
     title: 'Market signals'
   },
   {
-    defaults: { commodity: 'gold', intent: 'sell', maxDaysAgo: '30', maxDistance: '100', minVolume: '1', origin: '' },
+    defaults: { commodity: 'gold', fleetCarriers: 'no', intent: 'sell', maxDaysAgo: '30', maxDistance: '100', minVolume: '1', origin: '' },
     domain: 'Markets',
     fields: [
       ORIGIN,
@@ -186,6 +186,7 @@ const GALAXY_QUERY_DEFINITIONS: GalaxyQueryDefinition[] = [
       { id: 'intent', label: 'Commander intent', options: [{ label: 'Buy cargo', value: 'buy' }, { label: 'Sell cargo', value: 'sell' }], required: true, type: 'select' },
       { id: 'maxDistance', label: 'Maximum distance (ly)', min: 1, max: 500, required: true, type: 'number' },
       { id: 'minVolume', label: 'Minimum stock or demand', min: 1, required: true, type: 'number' },
+      { id: 'fleetCarriers', label: 'Include fleet carriers', options: [{ label: 'No', value: 'no' }, { label: 'Yes', value: 'yes' }], required: true, type: 'select' },
       MAX_AGE
     ],
     id: 'commodity-markets',

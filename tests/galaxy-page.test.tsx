@@ -9,6 +9,34 @@ import { galaxyContextForRoute, galaxyNavigationItems } from '../apps/web/src/fe
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
 
+test.each([undefined, 'yes', 'no'])('commodity markets restores carrier preference %s and allows changing it', async fleetCarriers => {
+  const savedQuery = {
+    id: '00000000-0000-4000-8000-000000000002', name: 'Modular Terminals',
+    createdAt: '2026-09-11T10:00:00.000Z', updatedAt: '2026-09-11T10:00:00.000Z',
+    parameters: { origin: 'Sirius', originMode: 'fixed', commodity: 'ModularTerminals', intent: 'buy', ...(fleetCarriers ? { fleetCarriers } : {}) },
+    queryId: 'commodity-markets', schemaVersion: 2, useOnDashboard: false
+  }
+  const execute = vi.fn().mockRejectedValue(new Error('Fixture'))
+  const sessions = new GalaxyQuerySessionStore()
+  let renderer: ReturnType<typeof create>
+  await act(async () => { renderer = create(<GalaxyPage
+    api={{ findGalaxyCommodityMarkets: execute, getSavedGalaxyQueries: async () => ({ queries: [savedQuery] }) } as unknown as PhoenixApi}
+    controller={{ status: 'idle' }} onNavigate={vi.fn()} querySessions={sessions}
+    route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'commodity-markets', savedQueryId: savedQuery.id }}
+    runtime={{ state: createEmptyRuntimeState(), status: 'ready' }}
+  />) })
+  const select = () => renderer.root.findByProps({ id: 'query-fleetCarriers' })
+  expect(select().props.value).toBe(fleetCarriers ?? 'no')
+  await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+  expect(execute).toHaveBeenLastCalledWith(expect.objectContaining({ commodity: 'ModularTerminals', intent: 'buy', fleetCarriers: fleetCarriers === 'yes' }))
+  const changed = fleetCarriers === 'yes' ? 'no' : 'yes'
+  await act(async () => select().props.onChange({ target: { value: changed } }))
+  expect(select().props.value).toBe(changed)
+  await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+  expect(execute).toHaveBeenLastCalledWith(expect.objectContaining({ fleetCarriers: changed === 'yes' }))
+  await act(async () => renderer.unmount())
+})
+
 test.each([
   ['shipyards', 'hull', 'Cobra MkIII', 'findGalaxyShipyards', 'hullName'],
   ['outfitting-stock', 'module', '5H Guardian FSD Booster', 'findGalaxyOutfitting', 'module'],

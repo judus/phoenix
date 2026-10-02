@@ -63,6 +63,7 @@ import { PersonalEquipmentPlannerService } from './application/personal-equipmen
 import { PersonalEquipmentReportService } from './application/personal-equipment-report-service.js'
 import { LoggedGameActions } from './application/logged-game-actions.js'
 import { DisplayCommandService } from './application/display-command-service.js'
+import { RouteCompletionDisplay } from './application/route-completion-display.js'
 import { NavigationDataService } from './application/navigation-data-service.js'
 import { EliteDestinationService } from './application/elite-destination-service.js'
 import { EngineeringDataService } from './application/engineering-data-service.js'
@@ -460,6 +461,9 @@ export class PhoenixApplication {
       navigationRoutes
     )
     const display = new DisplayCommandService(displayCommandUpdates, this.stateStore)
+    const routeCompletionDisplay = new RouteCompletionDisplay(this.stateStore.getCurrent(), display)
+    navigationRouteUpdates.subscribe(route => routeCompletionDisplay.routeChanged(route))
+    runtimeStateUpdates.subscribe(state => routeCompletionDisplay.runtimeChanged(state))
     const engineering = new EngineeringDataService(engineeringCatalogue, this.stateStore)
     const engineeringProjects = new EngineeringProjectService(
       this.database.engineeringProjects,

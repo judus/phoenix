@@ -1,12 +1,13 @@
 import type { JsonObject, LocalTool } from '@jdu/llm-client'
 import type { ShipModule } from '@phoenix/contracts'
+import { copilotModuleName, isOutfittingModule, modulePurpose, OUTFITTING_GUIDANCE } from '@phoenix/copilot'
 import type { RuntimeStateReader } from '../../domain/runtime-state.js'
 import { boundedLimit, json, optionalBooleanArgument, optionalIntegerArgument, optionalStringArgument, output } from './tool-support.js'
 
 export class ShipListModulesTool implements LocalTool {
   public readonly definition = {
     annotations: { readOnly: true },
-    description: 'List installed ship modules. Filter by category, name, engineering, or damage when needed.',
+    description: 'List current installed outfitting with exact catalogue names, sizes and ratings. Built-in ship infrastructure is excluded unless category=ship is explicitly requested. Filter by category, name, engineering, or damage. A truncated or unavailable loadout does not prove a module is absent.',
     inputSchema: {
       additionalProperties: false,
       properties: {
@@ -27,15 +28,21 @@ export class ShipListModulesTool implements LocalTool {
     const ship = this.runtimeState.getCurrent().ship
     const category = optionalStringArgument(arguments_, 'category')
     const query = optionalStringArgument(arguments_, 'query')?.toLowerCase()
-    const modules = ship.modules
+    const matched = ship.modules
+      .filter(module => category === 'ship' || isOutfittingModule(module))
       .filter(module => category === undefined || module.slotGroup === category)
       .filter(module => !(optionalBooleanArgument(arguments_, 'damagedOnly') ?? false) || (module.health !== null && module.health < 1))
       .filter(module => !(optionalBooleanArgument(arguments_, 'engineeredOnly') ?? false) || module.engineering !== null)
       .filter(module => query === undefined || moduleSearchText(module).includes(query))
-      .slice(0, boundedLimit(optionalIntegerArgument(arguments_, 'limit'), 20, 50))
+    const modules = matched.slice(0, boundedLimit(optionalIntegerArgument(arguments_, 'limit'), 50, 50))
     const hull = ship.definition?.displayName ?? ship.typeId ?? 'current ship'
-    const text = modules.length === 0 ? `No modules matched for ${hull}.` : [`Modules for ${hull}${ship.name ? ` "${ship.name}"` : ''}:`, ...modules.map(formatModule)].join('\n')
-    return output(text, json({ hull, modules }))
+    const available = ship.modules.length > 0
+    const truncated = modules.length < matched.length
+    const text = !available ? `Loadout unavailable for ${hull}; do not infer installed modules or their absence.`
+      : modules.length === 0 ? `No modules matched these filters for ${hull}.`
+      : [`Modules for ${hull}${ship.name ? ` "${ship.name}"` : ''}:`, OUTFITTING_GUIDANCE, ...modules.map(formatModule),
+        ...(truncated ? [`Showing ${modules.length} of ${matched.length} matches; omitted modules must not be treated as absent.`] : [])].join('\n')
+    return output(text, json({ hull, modules, available, matched: matched.length, returned: modules.length, truncated }))
   }
 }
 
@@ -44,13 +51,12 @@ function moduleSearchText (module: ShipModule): string {
 }
 
 function formatModule (module: ShipModule): string {
-  const name = module.definition?.displayName ?? module.moduleId
-  const size = module.moduleSize ?? module.slotSize
-  const rating = module.definition?.rating ?? (module.moduleClass === null ? null : String(module.moduleClass))
+  const name = copilotModuleName(module)
   const details = [
+    modulePurpose(module),
     module.health === null ? null : `health ${Math.round(module.health * 100)}%`,
     module.enabled === false ? 'disabled' : null,
     module.engineering ? `engineered ${module.engineering.blueprintName ?? 'unknown'} G${module.engineering.level ?? '?'}${module.engineering.experimentalEffectLabel ? ` / ${module.engineering.experimentalEffectLabel}` : ''}` : 'engineered no'
   ].filter(Boolean)
-  return `- ${module.slotId} (${module.slotGroup}${module.slotSize ? `, slot ${module.slotSize}` : ''}): ${size ?? '?'}${rating ?? '?'} ${name}; ${details.join('; ')}`
+  return `- ${name} (${module.slotGroup}, slot identifier: ${module.slotId}${module.slotSize ? `, slot capacity ${module.slotSize}` : ''}); ${details.join('; ')}`
 }

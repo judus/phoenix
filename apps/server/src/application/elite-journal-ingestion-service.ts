@@ -109,6 +109,8 @@ export class EliteJournalIngestionService {
 
     const ship = mapShip(event)
     if (ship) candidates.push({ type: 'ship.loadout_changed', gameTimestamp, payload: ship })
+    const hull = mapHullHealth(event)
+    if (hull) candidates.push({ type: 'ship.hull_health_changed', gameTimestamp, payload: hull })
 
     if (event.event === 'Cargo' && Array.isArray(event.Inventory)) {
       candidates.push({ type: 'inventory.cargo_changed', gameTimestamp, payload: parseCargoInventory(event) })
@@ -266,6 +268,31 @@ function normalizeMaterialCategory (
 ): EngineeringMaterialAdjustment['category'] | null {
   const normalized = value?.trim().toLowerCase()
   if (normalized === 'raw' || normalized === 'manufactured' || normalized === 'encoded') return normalized
+  return null
+}
+
+/** Frontier Journal manual: HullDamage, Repair/RepairAll and RepairDrone.
+ * RepairDrone reports repaired points, not resulting hull health. Invalidate the
+ * old percentage until a Loadout, HullDamage or full hull repair supplies evidence.
+ * Status.json Health is on-foot health, not a ship-hull measurement.
+ */
+function mapHullHealth (event: EliteJournalEvent): { hullHealth: number | null } | null {
+  if (event.event === 'HullDamage') {
+    if (booleanValue(event, 'Fighter') === true) return null
+    // PlayerPilot=false can describe the mothership taking damage while we're in an SRV.
+    const health = numberValue(event, 'Health')
+    return health !== null && health >= 0 && health <= 1 ? { hullHealth: health } : null
+  }
+  if (event.event === 'RepairAll') return { hullHealth: 1 }
+  if (event.event === 'Repair') {
+    const items = [event.Item, ...(Array.isArray(event.Items) ? event.Items : [])]
+    if (items.some(item => typeof item === 'string' && ['hull', 'all'].includes(item.trim().toLowerCase()))) {
+      return { hullHealth: 1 }
+    }
+  }
+  if (event.event === 'RepairDrone' && (numberValue(event, 'HullRepaired') ?? 0) > 0) {
+    return { hullHealth: null }
+  }
   return null
 }
 

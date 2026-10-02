@@ -7,6 +7,16 @@ import { SavedGalaxyQueryService } from '../apps/server/src/application/saved-ga
 import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
 import { resolveGalaxyQueryOrigin } from '@phoenix/contracts'
 
+test('commodity market queries persist the fleet carrier preference', () => {
+  const database = new SqliteDatabase(':memory:')
+  database.initialize()
+  const service = new SavedGalaxyQueryService(database.savedGalaxyQueries)
+  try {
+    const saved = service.create({ name: 'Modular Terminals', parameters: { commodity: 'ModularTerminals', fleetCarriers: 'yes' }, queryId: 'commodity-markets', useOnDashboard: false })
+    expect(service.getAll().queries.find(query => query.id === saved.id)?.parameters.fleetCarriers).toBe('yes')
+  } finally { database.close() }
+})
+
 test('saved dynamic references drop captured names and resolve each run; legacy references stay fixed', () => {
   const database = new SqliteDatabase(':memory:')
   database.initialize()

@@ -1,4 +1,5 @@
 import { COMMANDER_RANK_NAMES, type RuntimeState, type ShipModule } from '@phoenix/contracts'
+import { copilotModuleName, isOutfittingModule, modulePurpose, OUTFITTING_GUIDANCE } from './ship-module-presentation.js'
 
 const number = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 
@@ -163,18 +164,21 @@ function cargoText (state: RuntimeState): string | null {
 }
 
 function addOutfitting (sections: string[], modules: readonly ShipModule[]): void {
-  if (modules.length === 0) return
+  if (modules.length === 0) {
+    sections.push('', '### Current Outfitting', 'Loadout unavailable. Do not infer installed modules or their absence.')
+    return
+  }
   sections.push('', '### Current Outfitting')
+  sections.push(OUTFITTING_GUIDANCE)
   const groups: Array<[ShipModule['slotGroup'], string]> = [
     ['hardpoint', 'Hardpoints'],
     ['utility', 'Utility Mounts'],
     ['core', 'Core Internals'],
     ['optional', 'Optional Internals'],
-    ['ship', 'Ship Modules'],
     ['other', 'Other Modules']
   ]
   for (const [group, heading] of groups) {
-    const entries = modules.filter(module => module.slotGroup === group)
+    const entries = modules.filter(module => isOutfittingModule(module) && module.slotGroup === group)
     if (entries.length === 0) continue
     sections.push('', `#### ${heading}`)
     for (const module of entries) sections.push(`- ${moduleText(module)}`)
@@ -184,16 +188,14 @@ function addOutfitting (sections: string[], modules: readonly ShipModule[]): voi
 function moduleText (module: ShipModule): string {
   const slot = module.expectedSlot?.name ?? module.slotId
   const slotSize = module.slotSize === null ? '' : ` · Size ${module.slotSize}`
-  const rating = module.definition?.rating
-  const moduleSize = module.moduleSize ?? module.definition?.size
-  const grade = moduleSize === null || moduleSize === undefined || !rating ? null : `${moduleSize}${rating}`
-  const name = join(grade, module.definition?.displayName ?? module.moduleId) ?? module.moduleId
+  const name = copilotModuleName(module)
   const details = [
+    modulePurpose(module),
     module.enabled === false ? 'off' : null,
     module.health !== null && module.health < 1 ? `${number.format(module.health * 100)}% health` : null,
     engineeringText(module)
   ].filter((value): value is string => Boolean(value))
-  return `${slot}${slotSize}: ${name}${details.length > 0 ? `; ${details.join('; ')}` : ''}`
+  return `${name} (slot: ${slot}${slotSize})${details.length > 0 ? `; ${details.join('; ')}` : ''}`
 }
 
 function engineeringText (module: ShipModule): string {

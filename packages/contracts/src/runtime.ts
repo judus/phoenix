@@ -304,6 +304,10 @@ export const GameEventEnvelopeSchema = z.discriminatedUnion('type', [
     payload: CurrentShipSchema
   }),
   GameEventEnvelopeBaseSchema.extend({
+    type: z.literal('ship.hull_health_changed'),
+    payload: z.object({ hullHealth: z.number().min(0).max(1).nullable() })
+  }),
+  GameEventEnvelopeBaseSchema.extend({
     type: z.literal('game.status_changed'),
     payload: EliteGameStatusSchema
   })
