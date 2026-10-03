@@ -10,6 +10,7 @@ import type { GameActions } from './game-action-service.js'
 import { effectiveMacroRisk } from './macro-risk.js'
 import type { CommandRegistry, NavigationCommandDestination } from '../domain/commands.js'
 import type { MacroRepository } from '../domain/macros.js'
+import { navigationDestinations, type NavigationCommandDestinations } from '../domain/commands.js'
 
 export const PHOENIX_NAVIGATION_DESTINATIONS: readonly NavigationCommandDestination[] = [
   destination('commander.dashboard', 'Command dashboard', '#/commander/dashboard', 'Commander', 'Open the command dashboard.'),
@@ -25,9 +26,12 @@ export const PHOENIX_NAVIGATION_DESTINATIONS: readonly NavigationCommandDestinat
   destination('fleet.stored-modules', 'Stored modules', '#/fleet/stored-modules', 'Fleet', 'Open stored modules.'),
   destination('fleet.catalogue', 'Ship catalogue', '#/fleet/catalogue', 'Fleet', 'Open the ship catalogue.'),
   destination('galaxy.current-system', 'Current system', '#/galaxy/system', 'Galaxy', 'Open the current system schematic.'),
+  destination('galaxy.atlas', 'Galactic atlas', '#/galaxy/atlas', 'Galaxy', 'Open the galaxy overview, regions and landmarks.'),
   destination('galaxy.route', 'Plotted route', '#/galaxy/route', 'Galaxy', 'Open the plotted route.'),
   destination('galaxy.exobiology', 'Exobiology', '#/galaxy/exobiology', 'Galaxy', 'Open the exobiology tracker.'),
   destination('galaxy.database', 'Galaxy database', '#/galaxy/database', 'Galaxy', 'Open galaxy searches.'),
+  destination('galaxy.saved-queries', 'Saved queries', '#/galaxy/saved-queries', 'Galaxy', 'Open saved queries.'),
+  destination('galaxy.bookmarks', 'Bookmarks', '#/galaxy/bookmarks', 'Galaxy', 'Open galaxy bookmarks.'),
   destination('operations.overview', 'Operations', '#/operations/overview', 'Operations', 'Open current operations.'),
   destination('operations.missions', 'Missions', '#/operations/missions', 'Operations', 'Open current missions.'),
   destination('operations.objectives', 'Objectives', '#/operations/objectives', 'Operations', 'Open current objectives.'),
@@ -66,7 +70,7 @@ export const PHOENIX_NAVIGATION_DESTINATIONS: readonly NavigationCommandDestinat
 export class DefaultCommandRegistry implements CommandRegistry {
   public constructor (
     private readonly gameActions: GameActions,
-    private readonly destinations: readonly NavigationCommandDestination[] = PHOENIX_NAVIGATION_DESTINATIONS,
+    private readonly destinations: NavigationCommandDestinations = PHOENIX_NAVIGATION_DESTINATIONS,
     private readonly macros?: MacroRepository
   ) {}
 
@@ -98,7 +102,7 @@ export class DefaultCommandRegistry implements CommandRegistry {
         target
       }))
     }
-    for (const entry of this.destinations) {
+    for (const entry of navigationDestinations(this.destinations)) {
       const target = { type: 'navigation' as const, destinationId: entry.id }
       descriptors.set(commandTargetKey(target), CommandDescriptorSchema.parse({
         activation: 'open',

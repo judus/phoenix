@@ -248,32 +248,26 @@ function ModuleStatusWidget({ model, onNavigate }: { model: CurrentShipModel, on
   const { moduleStatus } = model
   return (
     <Widget
-      aria-label="Module power and health"
+      aria-label="Module health"
       autoHideScrollbar
       className="module-status-widget"
-      eyebrow="Module power and health"
+      eyebrow="Module health"
       link={<RouteLink label="Loadout" onNavigate={onNavigate} route={shipRoutes.loadout} />}
       scrollable
     >
+      <Status tone="muted">Last reported · not live</Status>
       <DescriptionList columns="two" density="compact">
         <DescriptionItem label={`Health ≤ ${moduleStatus.healthAlertThreshold}%`} value={String(moduleStatus.damaged.length)} />
-        <DescriptionItem label="Disabled" value={String(moduleStatus.disabled.length)} />
+        <DescriptionItem label="Unknown" value={String(moduleStatus.unknown)} />
       </DescriptionList>
-      {moduleStatus.damaged.length === 0 && moduleStatus.disabled.length === 0
-        ? <Status tone="muted">All reported modules nominal.</Status>
-        : <ItemList aria-label="Module power and health alerts" density="dense">
+      {moduleStatus.damaged.length === 0
+        ? <Status tone="muted">{moduleStatus.total === 0 ? 'No module health reported.' : 'No reported health alerts.'}</Status>
+        : <ItemList aria-label="Last reported module health alerts" density="dense">
             {moduleStatus.damaged.map(module => (
               <ItemListItem
                 key={`damaged:${module.id}`}
                 title={module.label}
-                trailing={`${module.condition} ${priorityLabel(module.priority)}`}
-              />
-            ))}
-            {moduleStatus.disabled.map(module => (
-              <ItemListItem
-                key={`disabled:${module.id}`}
-                title={module.label}
-                trailing={`Disabled ${priorityLabel(module.priority)}`}
+                trailing={module.condition}
               />
             ))}
           </ItemList>}
@@ -326,8 +320,4 @@ function CurrentShipLinks({ onNavigate }: { onNavigate(route: PhoenixRoute): voi
       <RouteLink label="Engineering" onNavigate={onNavigate} route={shipRoutes.engineering} />
     </span>
   )
-}
-
-function priorityLabel(priority: number | null): string {
-  return priority === null ? 'P—' : `P${priority}`
 }

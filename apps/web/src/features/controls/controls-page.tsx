@@ -23,7 +23,7 @@ import { ArmingController } from './arming-controller.js'
 import { ButtonEditor } from './button-editor.js'
 import { ControlSurface } from './control-surface.js'
 
-export function ControlsPage({ category, controller, editing, macros, runtime, variableFontSizes, onEditingChange, onExecuteAction, onSaveConfiguration }: {
+export function ControlsPage({ category, controller, editing, macros, runtime, variableFontSizes, onEditingChange, onExecuteAction, onExecuteNavigation, onSaveConfiguration }: {
   category: ControlCategory
   controller: ControlsControllerSnapshot
   editing: boolean
@@ -32,6 +32,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, v
   variableFontSizes: boolean
   onEditingChange(editing: boolean): void
   onExecuteAction(actionId: string, operation: GameActionOperation, leaseId?: string): Promise<unknown>
+  onExecuteNavigation?(target: Extract<CommandTarget, { type: 'navigation' }>): Promise<void>
   onSaveConfiguration(configuration: PhoenixControlDeckConfiguration): Promise<PhoenixControlDeckConfiguration>
 }) {
   const [error, setError] = useState<string>()
@@ -195,6 +196,41 @@ export function ControlsPage({ category, controller, editing, macros, runtime, v
               renderCommand={element => {
                 const position = (element.placement.row - 1) * deck.layout.columns + element.placement.column
                 const target = controlDeckTargetToPhoenixTarget(element.target)
+                if (target.type === 'navigation') {
+                  const command = controller.commands?.adapters.flatMap(adapter => adapter.commands)
+                    .find(command => command.id === element.target.commandId)
+                  const elementId = element.id
+                  const confirmation = element.interaction.confirmation
+                  const armed = armedElementId === elementId
+                  return <ControlDeckCommandTile
+                    appearance={element.appearance}
+                    binding={target.destinationId.startsWith('saved-query:') ? 'Run query' : 'Open'}
+                    label={element.appearance.label ?? command?.label ?? target.destinationId}
+                    interaction={armed || confirmation.kind !== 'arm-then-tap' ? 'tap' : 'arm'}
+                    selected={armed}
+                    unavailable={!command?.available || !onExecuteNavigation}
+                    disabled={!editing && (!command?.available || !onExecuteNavigation)}
+                    variableFontSizes={variableFontSizes}
+                    onClick={() => {
+                      if (editing) { setEditingPosition(position); return }
+                      if (!command?.available || !onExecuteNavigation) return
+                      if (confirmation.kind === 'arm-then-tap') {
+                        if (!confirmSafety(elementId)) return
+                      } else arming.cancel()
+                      void onExecuteNavigation(target).then(() => setError(undefined))
+                        .catch(cause => setError(cause instanceof Error ? cause.message : 'Unable to open shortcut.'))
+                    }}
+                    onContextMenu={event => event.preventDefault()}
+                    onPointerDown={event => {
+                      if (editing) return
+                      event.currentTarget.setPointerCapture?.(event.pointerId)
+                      if (confirmation.kind === 'arm-then-tap') beginSafetyHold(elementId, confirmation.armedForMs, event.pointerId)
+                      else arming.cancel()
+                    }}
+                    onPointerUp={event => finishSafetyHold(elementId, event.pointerId)}
+                    onPointerCancel={event => finishSafetyHold(elementId, event.pointerId)}
+                  />
+                }
                 if (target.type === 'macro') {
                   const macro = macros.library.macros.find(candidate => candidate.id === target.macroId)
                   const elementId = element.id

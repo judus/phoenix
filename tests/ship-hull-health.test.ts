@@ -25,6 +25,42 @@ function setup () {
   return { store, ingest, published }
 }
 
+test('module repairs update shared health without inventing power state', () => {
+  const { store, ingest, published } = setup()
+  ingest('Loadout', { Ship: 'explorer_nx', ShipID: 15, HullHealth: 0.63, Modules: [
+    { Slot: 'MainEngines', Item: 'int_engine_size7_class5_gravityoptimised_mkii', On: false, Health: 0.7, Priority: 0 },
+    { Slot: 'Slot08_Size4', Item: 'int_repairer_size4_class5', On: false, Health: 0.8, Priority: 0 }
+  ] })
+  expect(createCurrentShipModel(store.getCurrent()).moduleStatus.damaged).toHaveLength(2)
+  ingest('AfmuRepairs', { Module: '$int_engine_size7_class5_gravityoptimised_mkii_name;', Health: 0.95, FullyRepaired: false })
+  expect(store.getCurrent().ship.modules[0]).toMatchObject({ health: 0.95, enabled: false })
+  expect(published.at(-1)!.ship.modules[0]!.health).toBe(0.95)
+  for (const Health of [-1, 2, null, '1']) {
+    ingest('AfmuRepairs', { Module: '$int_engine_size7_class5_gravityoptimised_mkii_name;', Health })
+  }
+  expect(store.getCurrent().ship.modules[0]!.health).toBe(0.95)
+  ingest('Repair', { Items: ['Wear', 'Paint', 'Hull'] })
+  expect(store.getCurrent().ship.modules.map(module => module.health)).toEqual([0.95, 0.8])
+  ingest('Repair', { Item: 'int_repairer_size4_class5' })
+  expect(store.getCurrent().ship.modules[1]).toMatchObject({ health: 1, enabled: false })
+  ingest('RepairAll')
+  expect(store.getCurrent().ship.modules.map(module => module.health)).toEqual([1, 1])
+  expect(createCurrentShipModel(store.getCurrent()).moduleStatus.damaged).toEqual([])
+})
+
+test('slotless repairs do not falsely repair every identical installed module', () => {
+  const { store, ingest } = setup()
+  ingest('Loadout', { Ship: 'explorer_nx', ShipID: 15, Modules: [
+    { Slot: 'TinyHardpoint1', Item: 'hpt_heatsinklauncher_turret_tiny', Health: 0.5 },
+    { Slot: 'TinyHardpoint2', Item: 'hpt_heatsinklauncher_turret_tiny', Health: 0.8 }
+  ] })
+  ingest('AfmuRepairs', { Module: '$hpt_heatsinklauncher_turret_tiny_name;', Health: 1 })
+  expect(store.getCurrent().ship.modules.map(module => module.health)).toEqual([null, null])
+  expect(createCurrentShipModel(store.getCurrent()).moduleStatus.unknown).toBe(2)
+  ingest('Repair', { Items: ['all'] })
+  expect(store.getCurrent().ship.modules.map(module => module.health)).toEqual([1, 1])
+})
+
 test('real damage and repair sequence updates both dashboards through the shared runtime', () => {
   const { store, ingest, published } = setup()
   const assertHull = (health: number | null, label: string) => {

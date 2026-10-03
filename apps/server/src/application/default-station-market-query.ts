@@ -1,6 +1,6 @@
 import { ToolUsageError, type JsonObject } from '@jdu/llm-client'
 import { MATERIAL_TRADER_SERVICES, NEAREST_STATION_SERVICES } from '@phoenix/contracts'
-import type { MaterialTraderSearchSource } from '../domain/station-market.js'
+import type { MaterialTraderSearchSource, StationServiceSearchSource } from '../domain/station-market.js'
 import { stationNameSuggestions } from './station-name-suggestions.js'
 import type {
   CartographicStation,
@@ -94,7 +94,8 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     private readonly runtimeState: RuntimeStateReader,
     cache: ProviderResponseCache,
     private readonly now: () => Date = () => new Date(),
-    private readonly materialTraderSource?: MaterialTraderSearchSource
+    private readonly materialTraderSource?: MaterialTraderSearchSource,
+    private readonly stationServiceSource?: StationServiceSearchSource
   ) {
     this.providerQueries = new ProviderQueryCache(cache, now)
   }
@@ -362,18 +363,25 @@ export class DefaultStationMarketQuery implements FactionPresenceQuery, StationQ
     const traderType = MATERIAL_TRADER_SERVICES[request.service as keyof typeof MATERIAL_TRADER_SERVICES]
     let load = () => this.searchSource.findNearestStations(request)
     let key = stableKey(request)
-    if (traderType) {
-      const source = this.materialTraderSource
-      if (!source) throw new Error('Material trader search provider is unavailable.')
+    const stationService = request.service === 'vista-genomics' ? 'Vista Genomics' : null
+    if (traderType || stationService) {
       const origin = await this.cartography.getSystem(request.systemName)
       const referencePosition = origin.system.position
       if (!referencePosition) throw new ToolUsageError('stations.find_nearest_service', 'Reference system coordinates are unavailable.', 'Choose a known reference system in systemName.')
-      const filters = { traderType, minimumPadSize: request.minimumPadSize, referencePosition }
+      const filters = { minimumPadSize: request.minimumPadSize, referencePosition }
       key = stableKey({ ...request, referencePosition })
-      load = () => source.findMaterialTraders(filters)
+      if (traderType) {
+        const source = this.materialTraderSource
+        if (!source) throw new Error('Material trader search provider is unavailable.')
+        load = () => source.findMaterialTraders({ ...filters, traderType })
+      } else if (stationService) {
+        const source = this.stationServiceSource
+        if (!source) throw new Error('Station service search provider is unavailable.')
+        load = () => source.findStationsWithService({ ...filters, service: stationService })
+      }
     }
     const cached = await this.providerQueries.get(
-      traderType ? 'spansh-material-trader' : 'ardent-nearest',
+      traderType ? 'spansh-material-trader' : stationService ? 'spansh-station-service' : 'ardent-nearest',
       key,
       NEAREST_CACHE_MS,
       load,

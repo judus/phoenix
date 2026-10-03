@@ -2,7 +2,7 @@ import { lazy, memo, Suspense, useMemo, useState, useSyncExternalStore, type Rea
 import type { ApplicationNavigationItem } from '@phoenix/ui'
 import { PhoenixApplicationShell } from './components/shell/phoenix-application-shell.js'
 import { isInformationRoute, workspaceForRoute } from './application/navigation/phoenix-route.js'
-import type { PhoenixRouter } from './application/navigation/phoenix-router.js'
+import { parsePhoenixRoute, type PhoenixRouter } from './application/navigation/phoenix-router.js'
 import { usePhoenixRoute } from './application/navigation/use-phoenix-route.js'
 import { usePhoenixEventConnection } from './application/events/use-phoenix-event-connection.js'
 import { useRuntimeState } from './application/runtime/use-runtime-state.js'
@@ -274,6 +274,11 @@ const ControlsFeature = memo(function ControlsFeature({ application, category, e
     runtime={runtime.status === 'ready' ? runtime.state : undefined}
     variableFontSizes={devicePreferences.variableCommandLabelSizes}
     onExecuteAction={(actionId, operation, leaseId) => application.api.executeAction(actionId, operation, { leaseId })}
+    onExecuteNavigation={async target => {
+      const result = await application.api.executeCommand(target)
+      if (result.status !== 'accepted' || !result.navigationHref) throw new Error(result.message)
+      application.router.push(parsePhoenixRoute(result.navigationHref))
+    }}
     onSaveConfiguration={configuration => application.api.saveControlDeckConfiguration(configuration)}
   />
 })

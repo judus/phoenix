@@ -433,7 +433,8 @@ test('station and market query resolves current location, formats trade directio
   const systems: SystemSearchSource = { findSystems: vi.fn(async () => [systemSearchResult()]) }
   const factions: FactionPresenceSearchSource = { findFactionPresences: vi.fn(async () => [factionPresence()]) }
   const traders = { findMaterialTraders: vi.fn(async () => [nearbyStation()]) }
-  const service = new DefaultStationMarketQuery(search, stock, shipyards, outfittingMarkets, stations, systems, factions, cartography(), runtime, new MemoryProviderCache(), () => new Date('2026-08-11T12:00:00Z'), traders)
+  const services = { findStationsWithService: vi.fn(async () => [nearbyStation()]) }
+  const service = new DefaultStationMarketQuery(search, stock, shipyards, outfittingMarkets, stations, systems, factions, cartography(), runtime, new MemoryProviderCache(), () => new Date('2026-08-11T12:00:00Z'), traders, services)
 
   for (const [suffix, traderType] of [['raw', 'Raw'], ['manufactured', 'Manufactured'], ['encoded', 'Encoded']]) {
     const result = await service.findNearest({ service: `material-trader-${suffix}`, minimumPadSize: 'medium' })
@@ -442,6 +443,12 @@ test('station and market query resolves current location, formats trade directio
   }
   await service.findNearest({ service: 'material-trader-raw', minimumPadSize: 'medium' })
   expect(traders.findMaterialTraders).toHaveBeenCalledTimes(3)
+  expect(search.findNearestStations).not.toHaveBeenCalled()
+  const vista = await service.findNearest({ service: 'vista-genomics', minimumPadSize: 'large' })
+  expect(vista.structuredContent).toMatchObject({ originSystem: 'Sol', service: 'vista-genomics' })
+  expect(services.findStationsWithService).toHaveBeenCalledWith({ service: 'Vista Genomics', minimumPadSize: 3, referencePosition: expect.any(Array) })
+  await service.findNearest({ service: 'vista-genomics', minimumPadSize: 'large' })
+  expect(services.findStationsWithService).toHaveBeenCalledTimes(1)
   expect(search.findNearestStations).not.toHaveBeenCalled()
   await service.findNearest({ service: 'material-trader' })
   expect(search.findNearestStations).toHaveBeenCalledWith({ service: 'material-trader', systemName: 'Sol', minimumPadSize: null })

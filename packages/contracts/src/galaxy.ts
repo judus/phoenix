@@ -10,7 +10,7 @@ export const NEAREST_STATION_SERVICES = [
   'black-market', 'interstellar-factors', 'material-trader',
   ...Object.keys(MATERIAL_TRADER_SERVICES),
   'outfitting', 'refuel', 'repair', 'search-and-rescue', 'shipyard',
-  'technology-broker', 'universal-cartographics'
+  'technology-broker', 'universal-cartographics', 'vista-genomics'
 ]
 
 const nullableNumber = z.number().finite().nonnegative().nullable()

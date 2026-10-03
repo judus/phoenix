@@ -209,7 +209,7 @@ function parseFleetRoute(rest: string[], query: RawRouteQuery): InformationRoute
 }
 
 function parseGalaxyRoute(rest: string[], query: RawRouteQuery): InformationRoute {
-  const view = oneOf(rest[0], ['system', 'route', 'database', 'saved-queries', 'exobiology', 'bookmarks'] as const) ?? 'system'
+  const view = oneOf(rest[0], ['system', 'atlas', 'route', 'database', 'saved-queries', 'exobiology', 'bookmarks'] as const) ?? 'system'
   if (view === 'system') {
     const { name, selected } = query
     return {

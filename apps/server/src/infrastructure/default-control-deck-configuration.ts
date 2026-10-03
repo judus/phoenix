@@ -40,7 +40,9 @@ const SHIP_ELEMENTS = [
   element(39, 'EjectAllCargo', 2)
 ]
 
-const DEFINITIONS: ReadonlyArray<{ category: GameActionCategory, label: string }> = [
+type DeckCategory = GameActionCategory | 'quick'
+const DEFINITIONS: ReadonlyArray<{ category: DeckCategory, label: string }> = [
+  { category: 'quick', label: 'Quick access' },
   { category: 'ship', label: 'Ship' },
   { category: 'combat', label: 'Combat' },
   { category: 'navigation', label: 'Navigation' },
@@ -69,20 +71,31 @@ export const BLANK_CONTROL_DECK_CONFIGURATION: PhoenixControlDeckConfiguration =
   }))
 })
 
-function group ({ category, label }: { category: GameActionCategory, label: string }): ControlDeckDeckGroup {
+function group ({ category, label }: { category: DeckCategory, label: string }): ControlDeckDeckGroup {
   return { id: category, name: label, description: '' }
 }
 
-function deck ({ category }: { category: GameActionCategory }): ControlDeckGridDeck {
+function deck ({ category }: { category: DeckCategory }): ControlDeckGridDeck {
   return {
     id: category,
     groupId: category,
-    name: 'S1',
+    name: category === 'quick' ? 'Quick access' : 'S1',
     description: '',
     context: `phoenix:${category}`,
     ...(category === 'ship' ? { layoutPresetId: 'phoenix.ship' } : {}),
-    layout: { kind: 'grid', columns: 8, rows: 5 },
-    elements: category === 'ship' ? SHIP_ELEMENTS : []
+    layout: { kind: 'grid', columns: category === 'quick' ? 4 : 8, rows: category === 'quick' ? 3 : 5 },
+    elements: category === 'quick' ? [
+      ['galaxy.current-system', 'System schematic'],
+      ['galaxy.route', 'Plotted route'],
+      ['engineering.materials-raw', 'Material inventory'],
+      ['galaxy.saved-queries', 'Saved queries'],
+      ['galaxy.bookmarks', 'Bookmarks']
+    ].map(([destinationId, label], index) => ({
+      ...element(index + 1, ''),
+      target: phoenixTargetToControlDeckTarget({ type: 'navigation', destinationId: destinationId! }),
+      appearance: { label: label!, icon: null, foregroundColor: null, backgroundColor: null },
+      placement: { kind: 'grid', column: index % 4 + 1, row: Math.floor(index / 4) + 1, columnSpan: 1, rowSpan: 1 }
+    })) : category === 'ship' ? SHIP_ELEMENTS : []
   }
 }
 

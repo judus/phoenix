@@ -111,6 +111,8 @@ export class EliteJournalIngestionService {
     if (ship) candidates.push({ type: 'ship.loadout_changed', gameTimestamp, payload: ship })
     const hull = mapHullHealth(event)
     if (hull) candidates.push({ type: 'ship.hull_health_changed', gameTimestamp, payload: hull })
+    const moduleHealth = mapModuleHealth(event)
+    if (moduleHealth) candidates.push({ type: 'ship.module_health_changed', gameTimestamp, payload: moduleHealth })
 
     if (event.event === 'Cargo' && Array.isArray(event.Inventory)) {
       candidates.push({ type: 'inventory.cargo_changed', gameTimestamp, payload: parseCargoInventory(event) })
@@ -294,6 +296,24 @@ function mapHullHealth (event: EliteJournalEvent): { hullHealth: number | null }
     return { hullHealth: null }
   }
   return null
+}
+
+function mapModuleHealth (event: EliteJournalEvent): { moduleIds: string[] | null, health: number } | null {
+  if (event.event === 'RepairAll') return { moduleIds: null, health: 1 }
+  if (event.event === 'AfmuRepairs') {
+    const moduleId = stringValue(event, 'Module')
+    const health = numberValue(event, 'Health')
+    return moduleId && health !== null && health >= 0 && health <= 1
+      ? { moduleIds: [moduleId], health }
+      : null
+  }
+  if (event.event !== 'Repair') return null
+  const items = [event.Item, ...(Array.isArray(event.Items) ? event.Items : [])]
+    .filter((item): item is string => typeof item === 'string')
+    .map(item => item.trim().toLowerCase())
+  if (items.includes('all')) return { moduleIds: null, health: 1 }
+  const moduleIds = items.filter(item => item && !['hull', 'wear', 'paint'].includes(item))
+  return moduleIds.length ? { moduleIds, health: 1 } : null
 }
 
 function mapShip (event: EliteJournalEvent): CurrentShip | null {

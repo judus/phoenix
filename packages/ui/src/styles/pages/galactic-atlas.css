@@ -1,0 +1,121 @@
+/* Unique, bounded cartographic instrument; all colour/type roles follow the active theme. */
+.galactic-atlas-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.galactic-atlas {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-block-size: 0;
+  gap: var(--spacing-xs);
+
+  .atlas-map {
+    position: relative;
+    flex: 1;
+    min-block-size: 0;
+    min-inline-size: 0;
+  }
+
+  .atlas-viewport {
+    block-size: 100%;
+    overflow: hidden;
+    background: var(--color-surface);
+    touch-action: none;
+    user-select: none;
+    cursor: grab;
+    &:active { cursor: grabbing; }
+    > svg { display: block; }
+  }
+
+  .atlas-zoom {
+    position: absolute;
+    inset-block-end: var(--spacing-md);
+    inset-inline-end: var(--spacing-md);
+    display: flex;
+    gap: var(--spacing-xxs);
+  }
+
+  svg text {
+    font-family: var(--font-family-display);
+    font-size: var(--font-size-xs);
+    fill: var(--color-text-muted);
+    text-shadow: var(--text-bloom-subtle);
+    pointer-events: none;
+    paint-order: stroke fill;
+    stroke: var(--color-surface);
+    stroke-width: 3px;
+    stroke-linejoin: round;
+  }
+
+  .atlas-grid {
+    fill: none;
+    stroke: color-mix(in srgb, var(--color-information) 10%, transparent);
+    stroke-width: 1px;
+  }
+
+  .atlas-regions {
+    fill: color-mix(in srgb, var(--color-action) 3%, var(--color-surface));
+    path.active { fill: color-mix(in srgb, var(--color-information) 12%, var(--color-surface)); }
+  }
+
+  .atlas-boundaries {
+    fill: none;
+    stroke: color-mix(in srgb, var(--color-action) 42%, transparent);
+    stroke-width: 1px;
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+
+  .atlas-region-label {
+    text-anchor: middle;
+    font-size: var(--font-size-xxs);
+    &.active { fill: var(--color-information); }
+  }
+
+  .atlas-marker {
+    cursor: pointer;
+    fill: var(--color-action);
+    stroke: var(--color-action);
+    stroke-width: 1.5px;
+    .hit-area { fill: transparent; stroke: none; }
+    .cluster-ring { fill: none; opacity: 0.6; }
+    text { fill: var(--color-text); }
+    &.commander { fill: var(--color-information); stroke: var(--color-information); }
+    &.bookmark { fill: var(--color-information); stroke: var(--color-information); }
+    &.nebula { fill: none; }
+    &.active .hit-area, &:focus-visible .hit-area { stroke: var(--color-information); stroke-dasharray: 3 3; }
+    &:focus { outline: none; }
+  }
+
+  .atlas-scale {
+    fill: none;
+    stroke: var(--color-text-muted);
+    stroke-width: 1px;
+    pointer-events: none;
+    text { font-size: var(--font-size-xxs); }
+  }
+
+  .atlas-orientation { text-anchor: end; font-size: var(--font-size-xxs); }
+
+  .atlas-inspector, .atlas-telemetry {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--font-size-xs);
+  }
+
+  .atlas-inspector {
+    padding-block: var(--spacing-xs);
+    border-block-start: 1px solid var(--color-border);
+    select { max-inline-size: 100%; }
+  }
+
+  .atlas-telemetry {
+    color: var(--color-text-muted);
+    strong { color: var(--color-information); }
+  }
+}

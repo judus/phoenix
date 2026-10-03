@@ -241,17 +241,16 @@ function CurrentEngineering({ model }: { model: CurrentShipModel }) {
         <Stack className="fleet-scroll-content" gap="lg" tabIndex={0}>
           <DataTableGroup meta={`${modules.length} engineered`} title="Applied blueprints">
             <DataTable density="compact" label="Engineering applied to the current ship" minimum="wide" narrow="priority" scheme="surface">
-              <thead><tr><th>Module</th><th>Blueprint</th><th>Grade</th><th>Engineer</th><th>Experimental effect</th><th>Condition</th></tr></thead>
+              <thead><tr><th>Module</th><th>Blueprint</th><th>Grade</th><th>Engineer</th><th>Experimental effect</th></tr></thead>
               <tbody>{modules.length === 0
-                ? <tr><td className="text-muted" colSpan={6}>No engineered modules observed on the current ship.</td></tr>
+                ? <tr><td className="text-muted" colSpan={5}>No engineered modules observed on the current ship.</td></tr>
                 : modules.map(item => (
-                    <tr className={moduleClassName(item)} key={item.id}>
+                    <tr className={moduleClassName(item, false)} key={item.id}>
                       <td><strong>{item.module}</strong><small>{item.slot} · {item.slotDetail}</small></td>
                       <td>{item.engineeringBlueprint ?? '—'}</td>
                       <td>{item.engineeringGrade === null ? '—' : `G${item.engineeringGrade}`}</td>
                       <td>{item.engineeringEngineer ?? '—'}</td>
                       <td>{item.engineeringExperimentalEffect ?? '—'}</td>
-                      <td className="numeric"><strong>{item.condition}</strong><small>{item.state}</small></td>
                     </tr>
                   ))}</tbody>
             </DataTable>
@@ -313,11 +312,11 @@ function ModuleGrid({ group }: { group: CurrentShipModel['modules'][number] }) {
   )
 }
 
-function moduleClassName(item: CurrentShipModel['modules'][number]['items'][number]): string | undefined {
+function moduleClassName(item: CurrentShipModel['modules'][number]['items'][number], includeStatus = true): string | undefined {
   return [
     item.empty && 'empty',
     item.engineering !== 'Standard' && (item.engineering.endsWith('G5') ? 'engineered-max' : 'engineered'),
-    item.status
+    includeStatus && item.status
   ].filter(Boolean).join(' ') || undefined
 }
 

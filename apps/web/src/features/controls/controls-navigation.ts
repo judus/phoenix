@@ -6,6 +6,7 @@ import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js
 type ControlsNavigationItem = NavigationItem & { route: { kind: 'controls', category: ControlCategory } }
 
 const categories: Array<{ id: ControlCategory, icon: string, label: string }> = [
+  { id: 'quick', icon: 'QCK', label: 'Quick access' },
   { id: 'ship', icon: 'SHP', label: 'Ship' },
   { id: 'combat', icon: 'CBT', label: 'Combat' },
   { id: 'navigation', icon: 'NAV', label: 'Navigation' },

@@ -6,6 +6,7 @@ type GalaxyNavigationItem = NavigationItem & { route: InformationRoute }
 
 const routes = {
   system: { kind: 'information', section: 'galaxy', view: 'system' },
+  atlas: { kind: 'information', section: 'galaxy', view: 'atlas' },
   route: { kind: 'information', section: 'galaxy', view: 'route' },
   database: { kind: 'information', section: 'galaxy', view: 'database' },
   'saved-queries': { kind: 'information', section: 'galaxy', view: 'saved-queries' },
@@ -15,6 +16,7 @@ const routes = {
 
 export const galaxyNavigationItems: GalaxyNavigationItem[] = [
   item('system', 'Current system', 'SYS'),
+  item('atlas', 'Galactic atlas', 'ATL'),
   item('route', 'Plotted route', 'RTE'),
   item('exobiology', 'Exobiology', 'EXO'),
   item('database', 'Galaxy database', 'DBS'),

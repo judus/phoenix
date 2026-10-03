@@ -4,7 +4,7 @@ import type {
   CartographicStation,
   CartographicSystem
 } from '@phoenix/contracts'
-import { Button, IconButton } from '@phoenix/ui'
+import { Button, IconButton, ToggleButton } from '@phoenix/ui'
 import {
   buildSystemHierarchy,
   type AttachedInstallation,
@@ -29,7 +29,11 @@ export interface SystemSchematicProps {
 }
 
 export function SystemSchematic ({ actions, commanderName, onBookmarkBody, onBookmarkStation, onSelect, selected, system }: SystemSchematicProps) {
-  const hierarchy = buildSystemHierarchy(system)
+  const [showFleetCarriers, setShowFleetCarriers] = useState(true)
+  const hierarchy = buildSystemHierarchy(showFleetCarriers ? system : {
+    ...system,
+    stations: system.stations.filter(station => !isFleetCarrier(station))
+  })
   const layout = layoutSystemHierarchy(hierarchy.roots)
   const viewportRef = useRef<HTMLDivElement>(null)
   const focalPointRef = useRef<{ x: number, y: number } | null>(null)
@@ -101,6 +105,15 @@ export function SystemSchematic ({ actions, commanderName, onBookmarkBody, onBoo
         </div>
         <div className="system-schematic__controls">
           {actions}
+          <ToggleButton
+            pressed={showFleetCarriers}
+            className="btn-sm"
+            title={showFleetCarriers ? 'Hide fleet carriers' : 'Show fleet carriers'}
+            onClick={() => {
+              if (showFleetCarriers && selected && isStation(selected) && isFleetCarrier(selected)) onSelect()
+              setShowFleetCarriers(!showFleetCarriers)
+            }}
+          >Fleet carriers</ToggleButton>
           <div className="system-schematic__zoom" aria-label="Schematic zoom controls">
             <IconButton
               className="system-schematic__zoom-step"
@@ -626,6 +639,10 @@ function isRinged (body: CartographicBody): boolean {
 
 function isStation (selection: CartographicSelection): selection is CartographicStation {
   return 'services' in selection
+}
+
+function isFleetCarrier (station: CartographicStation): boolean {
+  return station.type?.replace(/[\s_-]/g, '').toLowerCase() === 'fleetcarrier'
 }
 
 function bodyKey (body: CartographicBody): string | number {

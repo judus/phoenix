@@ -16,12 +16,13 @@ import type {
   NavigationCommandExecutor
 } from '../domain/commands.js'
 import type { MacroCommandExecutor } from '../domain/macros.js'
+import { navigationDestinations, type NavigationCommandDestinations } from '../domain/commands.js'
 
 export class DefaultCommandDispatcher implements Commands {
   public constructor (
     private readonly registry: CommandRegistry,
     private readonly gameActions: GameActions,
-    private readonly destinations: readonly NavigationCommandDestination[],
+    private readonly destinations: NavigationCommandDestinations,
     private readonly navigation: NavigationCommandExecutor = new BrowserNavigationCommandExecutor(),
     private readonly macros?: MacroCommandExecutor
   ) {}
@@ -59,7 +60,7 @@ export class DefaultCommandDispatcher implements Commands {
     }
     if (request.target.type === 'navigation') {
       const destinationId = request.target.destinationId
-      const destination = this.destinations.find(entry => entry.id === destinationId)
+      const destination = navigationDestinations(this.destinations).find(entry => entry.id === destinationId)
       if (!destination) {
         return this.result(requestId, correlationId, descriptor.id, request.target, request.operation, origin, 'rejected', 'Navigation destination unavailable.')
       }

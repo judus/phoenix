@@ -34,6 +34,7 @@ import { DefaultSystemDetailsQuery } from './application/default-system-details-
 import { ControlDeckEliteGameActionGateway } from './application/control-deck-elite-game-action-gateway.js'
 import { DefaultCommandDispatcher } from './application/command-dispatcher.js'
 import { DefaultCommandRegistry, PHOENIX_NAVIGATION_DESTINATIONS } from './application/default-command-registry.js'
+import { shortcutNavigationDestinations } from './application/shortcut-navigation-destinations.js'
 import { CommandCatalogueService } from './application/command-catalogue-service.js'
 import { createPhoenixControlDeckCommandIntegration } from './application/create-phoenix-control-deck-command-integration.js'
 import { DefaultNumpadCommands, NumpadTreeProjector } from './application/numpad-command-service.js'
@@ -116,7 +117,8 @@ import { SpanshShipyardSearchSource } from './infrastructure/spansh-shipyard-sea
 import { SpanshOutfittingSearchSource } from './infrastructure/spansh-outfitting-search-source.js'
 import { SpanshStationLookupSource } from './infrastructure/spansh-station-lookup-source.js'
 import { SpanshMaterialTraderSource } from './infrastructure/spansh-material-trader-source.js'
-import type { MaterialTraderSearchSource } from './domain/station-market.js'
+import type { MaterialTraderSearchSource, StationServiceSearchSource } from './domain/station-market.js'
+import { SpanshStationServiceSource } from './infrastructure/spansh-station-service-source.js'
 import { SpanshSearchClient } from './infrastructure/spansh-search-client.js'
 import { SpanshSystemSearchSource } from './infrastructure/spansh-system-search-source.js'
 import { SpanshFactionPresenceSource } from './infrastructure/spansh-faction-presence-source.js'
@@ -161,6 +163,7 @@ export interface PhoenixApplicationOptions {
   outfittingSearchSource?: OutfittingSearchSource
   stationLookupSource?: StationLookupSource
   materialTraderSource?: MaterialTraderSearchSource
+  stationServiceSource?: StationServiceSearchSource
   systemSearchSource?: SystemSearchSource
   factionPresenceSource?: FactionPresenceSearchSource
   explorationTargetSource?: ExplorationTargetSearchSource
@@ -175,6 +178,7 @@ export class PhoenixApplication {
   private readonly controlDeck: ControlDeckIntegration
   private readonly eliteControls: ControlDeckCommandService
   private readonly database: SqliteDatabase
+  private readonly initializeShortcuts: () => void
   private readonly eventIngestion: GameEventIngestionService
   private readonly journalSource: EliteJournalFileSource
   private readonly journalBackfill: EliteJournalHistoryBackfill
@@ -210,8 +214,13 @@ export class PhoenixApplication {
     const missions = new MissionDataService(this.database)
     const communications = new CommunicationDataService(this.database, communicationUpdates)
     const localTraffic = new LocalTrafficService(this.database)
-    const bookmarks = new GalaxyBookmarkService(this.database)
-    const savedGalaxyQueries = new SavedGalaxyQueryService(this.database.savedGalaxyQueries)
+    const shortcutsChanged = () => commandCatalogueChanges.publish({ source: 'shortcuts' })
+    const bookmarks = new GalaxyBookmarkService(this.database, undefined, undefined, shortcutsChanged)
+    const savedGalaxyQueries = new SavedGalaxyQueryService(this.database.savedGalaxyQueries, undefined, undefined, shortcutsChanged)
+    let shortcutsReady = false
+    const navigationDestinations = () => shortcutsReady
+      ? shortcutNavigationDestinations(bookmarks, savedGalaxyQueries)
+      : PHOENIX_NAVIGATION_DESTINATIONS
     const runtimeCatalogueDirectory = resolve(paths.user.data, 'runtime/catalogue')
     const engineeringCatalogueDirectory = resolveProjectPath(projectRoot,
       options.engineeringCatalogueDirectory ?? process.env.PHOENIX_ENGINEERING_CATALOGUE_PATH ?? resolve(runtimeCatalogueDirectory, 'engineering'))
@@ -272,7 +281,7 @@ export class PhoenixApplication {
     const projector = new DefaultRuntimeStateProjector(
       this.stateStore,
       runtimeStateUpdates,
-      new CatalogueShipLoadoutEnricher(gameCatalogue)
+      new CatalogueShipLoadoutEnricher(gameCatalogue, engineeringCatalogue)
     )
     gameEvents.subscribe(event => {
       projector.project(event)
@@ -390,14 +399,18 @@ export class PhoenixApplication {
     )
     const commandRegistry = new DefaultCommandRegistry(
       gameActions,
-      PHOENIX_NAVIGATION_DESTINATIONS,
+      navigationDestinations,
       macroRepository
     )
     const commandCatalogue = new CommandCatalogueService(commandRegistry, commandCatalogueChanges)
+    this.initializeShortcuts = () => {
+      shortcutsReady = true
+      shortcutsChanged()
+    }
     const commands = new DefaultCommandDispatcher(
       commandCatalogue,
       gameActions,
-      PHOENIX_NAVIGATION_DESTINATIONS,
+      navigationDestinations,
       undefined,
       macros
     )
@@ -449,7 +462,8 @@ export class PhoenixApplication {
       this.stateStore,
       this.database,
       undefined,
-      options.materialTraderSource ?? new SpanshMaterialTraderSource(spansh)
+      options.materialTraderSource ?? new SpanshMaterialTraderSource(spansh),
+      options.stationServiceSource ?? new SpanshStationServiceSource(spansh)
     )
     const marketSignals = new MarketSignalService(stationSearchSource, this.database)
     const dashboardMarketSignals = new DashboardMarketSignalService(savedGalaxyQueries, marketSignals, this.stateStore)
@@ -598,6 +612,7 @@ export class PhoenixApplication {
 
   public async start (): Promise<{ host: string, port: number }> {
     this.database.initialize()
+    this.initializeShortcuts()
     try {
       await this.controlDeck.start()
       await this.eliteControls.start()

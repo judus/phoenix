@@ -38,7 +38,7 @@ export interface CurrentShipModel {
     total: number
     healthAlertThreshold: number
     damaged: Array<{ id: string, label: string, condition: string, priority: number | null }>
-    disabled: Array<{ id: string, label: string, condition: string, priority: number | null }>
+    unknown: number
   }
   modules: Array<{
     capacity: number
@@ -122,9 +122,8 @@ export function createCurrentShipModel(
   const modules = moduleGroups.map(group => moduleGroupModel(ship, group)).filter(group => group.capacity > 0)
   const observedModules = ship.modules.map(module => moduleModel(module))
   const damaged = observedModules.filter(module =>
-    module.enabled !== false && module.health !== null && module.health <= moduleHealthAlertThreshold
+    module.health !== null && module.health <= moduleHealthAlertThreshold
   )
-  const disabled = observedModules.filter(module => module.enabled === false)
 
   return {
     title: ship.name ?? ship.definition?.displayName ?? ship.typeId ?? 'Current ship',
@@ -198,12 +197,7 @@ export function createCurrentShipModel(
         condition: module.condition,
         priority: module.priority
       })),
-      disabled: disabled.map(module => ({
-        id: module.id,
-        label: module.module,
-        condition: module.condition,
-        priority: module.priority
-      }))
+      unknown: observedModules.filter(module => module.health === null).length
     },
     modules
   }
@@ -328,9 +322,9 @@ function moduleModel(
     slotDetail: `Size ${module.slotSize ?? module.expectedSlot?.size ?? '—'}`,
     module: displayName ? `${moduleClass ? `${moduleClass} ` : ''}${displayName}` : module.moduleId,
     moduleDetail: type,
-    engineering: engineering ? `${engineering.blueprintName ?? 'Engineered'}${engineering.level ? ` G${engineering.level}` : ''}` : 'Standard',
+    engineering: engineering ? `${engineering.blueprintDisplayName ?? engineering.blueprintName ?? 'Engineered'}${engineering.level ? ` G${engineering.level}` : ''}` : 'Standard',
     engineeringDetail: engineering?.experimentalEffectLabel ?? engineering?.experimentalEffect ?? engineering?.engineer ?? 'Configuration',
-    engineeringBlueprint: engineering?.blueprintName ?? null,
+    engineeringBlueprint: engineering?.blueprintDisplayName ?? engineering?.blueprintName ?? null,
     engineeringGrade: engineering?.level ?? null,
     engineeringEngineer: engineering?.engineer ?? null,
     engineeringExperimentalEffect: engineering?.experimentalEffectLabel ?? engineering?.experimentalEffect ?? null,

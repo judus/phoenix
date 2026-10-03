@@ -4,7 +4,7 @@ import type {
   ShipModule,
   ShipSlotDefinition
 } from '@phoenix/contracts'
-import type { GameCatalogue } from '@phoenix/elite'
+import type { EngineeringCatalogue, GameCatalogue } from '@phoenix/elite'
 import type { ShipLoadoutEnricher } from '../domain/ship-loadout.js'
 
 const coreSlotIndexes: Record<string, number> = {
@@ -18,7 +18,10 @@ const coreSlotIndexes: Record<string, number> = {
 }
 
 export class CatalogueShipLoadoutEnricher implements ShipLoadoutEnricher {
-  public constructor (private readonly catalogue: GameCatalogue) {}
+  public constructor (
+    private readonly catalogue: GameCatalogue,
+    private readonly engineeringCatalogue?: EngineeringCatalogue
+  ) {}
 
   public enrich (ship: CurrentShip): CurrentShip {
     const definition = ship.typeId ? this.catalogue.resolveShip(ship.typeId) : null
@@ -28,9 +31,25 @@ export class CatalogueShipLoadoutEnricher implements ShipLoadoutEnricher {
       definition,
       modules: ship.modules.map(module => ({
         ...module,
+        engineering: this.enrichEngineering(module.engineering),
         definition: this.catalogue.resolveModule(module.moduleId),
         expectedSlot: expectedSlots.get(module.slotId) ?? null
       }))
+    }
+  }
+
+  private enrichEngineering (engineering: ShipModule['engineering']): ShipModule['engineering'] {
+    if (!engineering || !this.engineeringCatalogue) return engineering
+    const blueprints = this.engineeringCatalogue.listBlueprints()
+    const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const matches = engineering.blueprintId !== null
+      ? blueprints.filter(blueprint => blueprint.id === engineering.blueprintId)
+      : blueprints.filter(blueprint => engineering.blueprintName &&
+        [blueprint.fdname, blueprint.symbol].some(name => normalize(name) === normalize(engineering.blueprintName!)))
+    return {
+      ...engineering,
+      // Keep the journal identifier intact; ambiguous internal names are not a match.
+      blueprintDisplayName: matches.length === 1 ? matches[0]!.displayName : null
     }
   }
 }

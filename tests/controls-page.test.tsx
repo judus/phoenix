@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { act, create } from 'react-test-renderer'
 import { afterEach, beforeAll, expect, test, vi } from 'vitest'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
+import { ControlDeckCommandCatalogueSchema } from 'control-deck/core'
 import { applyControlDeckTheme, controlPickerActionLabel, ControlsPage, resizeDeck } from '../apps/web/src/features/controls/controls-page.js'
 import type { MacroRuntime } from '../apps/web/src/application/macros/macro-runtime.js'
 import { DEFAULT_CONTROL_DECK_CONFIGURATION } from '../apps/server/src/infrastructure/default-control-deck-configuration.js'
@@ -295,6 +296,41 @@ test('PHOENIX uses the shared hold-to-arm interaction before executing a safety 
 
   expect(execute).toHaveBeenCalledOnce()
   expect(execute).toHaveBeenCalledWith('elite.EjectAllCargo', 'tap', undefined)
+})
+
+test('Quick access navigation executes locally and missing targets remain editable', async () => {
+  const onExecuteNavigation = vi.fn(async () => {})
+  const onExecuteAction = vi.fn(async () => {})
+  const quick = DEFAULT_CONTROL_DECK_CONFIGURATION.decks.find(deck => deck.context === 'phoenix:quick')!
+  const commands = ControlDeckCommandCatalogueSchema.parse({ adapters: [{
+    id: 'phoenix.commands', version: '1', label: 'PHOENIX', available: true, simulated: false,
+    detail: 'Ready', platformRequirements: [], holdOwner: 'adapter',
+    commands: quick.elements.filter(element => element.kind === 'command').map(element => ({
+      id: element.target.commandId, label: element.appearance.label, description: 'Open page', category: 'Pages',
+      available: true, unavailableReason: null, risk: 'safe', simulated: false, operations: ['tap'], configurationSchema: {}
+    }))
+  }] })
+  const props = {
+    category: 'quick' as const, editing: false, macros: emptyMacroRuntime(), variableFontSizes: true,
+    controller: { status: 'ready' as const, configuration: DEFAULT_CONTROL_DECK_CONFIGURATION, commands },
+    onEditingChange: vi.fn(), onExecuteAction, onExecuteNavigation,
+    onSaveConfiguration: async (configuration: typeof DEFAULT_CONTROL_DECK_CONFIGURATION) => configuration
+  }
+  let renderer: ReturnType<typeof create>
+  await act(async () => { renderer = create(<ControlsPage {...props} />) })
+  const button = () => renderer.root.findAllByType('button').find(node => node.props['aria-label'] === 'System schematic, Open')!
+  await act(async () => button().props.onClick())
+  expect(onExecuteNavigation).toHaveBeenCalledWith({ type: 'navigation', destinationId: 'galaxy.current-system' })
+  expect(onExecuteAction).not.toHaveBeenCalled()
+  const missing = { ...props, controller: { ...props.controller, commands: { adapters: [] } } }
+  await act(async () => renderer.update(<ControlsPage {...missing} />))
+  expect(button().props.disabled).toBe(true)
+  await act(async () => renderer.update(<ControlsPage {...missing} editing />))
+  expect(button().props.disabled).toBe(false)
+  await act(async () => button().props.onClick())
+  expect(renderer.root.findAll(node => node.children.includes('Button Slot 1:1'))).not.toHaveLength(0)
+  expect(onExecuteNavigation).toHaveBeenCalledTimes(1)
+  await act(async () => renderer.unmount())
 })
 
 function emptyMacroRuntime (): MacroRuntime {

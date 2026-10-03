@@ -112,6 +112,14 @@ export interface NearestStationRequest {
   systemName: string
 }
 
+export interface StationServiceSearchSource {
+  findStationsWithService(request: {
+    service: string
+    minimumPadSize: number | null
+    referencePosition: [number, number, number]
+  }): Promise<NearbyStation[]>
+}
+
 export interface MaterialTraderSearchSource {
   findMaterialTraders(request: {
     traderType: 'Raw' | 'Manufactured' | 'Encoded'

@@ -17,6 +17,23 @@ import {
   type ShipLoadoutEnricher
 } from '../domain/ship-loadout.js'
 
+function updateModuleHealth (
+  modules: RuntimeState['ship']['modules'],
+  update: { moduleIds: string[] | null, health: number }
+): RuntimeState['ship']['modules'] {
+  if (update.moduleIds === null) return modules.map(module => ({ ...module, health: update.health }))
+  const normalize = (id: string) => id.trim().toLowerCase().replace(/^\$/, '').replace(/_name;$/, '')
+  const targets = new Set(update.moduleIds.map(normalize))
+  return modules.map(module => {
+    const id = normalize(module.moduleId)
+    if (!targets.has(id)) return module
+    // Repair events identify a module type, not a slot. Identical installations
+    // cannot be disambiguated: invalidate their old readings instead of guessing.
+    const matches = modules.filter(candidate => normalize(candidate.moduleId) === id)
+    return { ...module, health: matches.length === 1 ? update.health : null }
+  })
+}
+
 export class DefaultRuntimeStateProjector implements RuntimeStateProjector {
   public constructor (
     private readonly store: RuntimeStateReader & RuntimeStateWriter,
@@ -53,6 +70,8 @@ export class DefaultRuntimeStateProjector implements RuntimeStateProjector {
         ? this.shipLoadoutEnricher.enrich(event.payload)
         : event.type === 'ship.hull_health_changed'
           ? { ...current.ship, hullHealth: event.payload.hullHealth }
+          : event.type === 'ship.module_health_changed'
+            ? { ...current.ship, modules: updateModuleHealth(current.ship.modules, event.payload) }
           : current.ship,
       inventory: event.type === 'inventory.cargo_changed'
         ? { ...current.inventory, cargo: event.payload }

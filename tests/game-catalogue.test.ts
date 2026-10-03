@@ -1,7 +1,9 @@
 import { fileURLToPath } from 'node:url'
 import { expect, test } from 'vitest'
 import type { CurrentShip } from '@phoenix/contracts'
-import { JsonGameCatalogue } from '@phoenix/elite'
+import { JsonGameCatalogue, JsonEngineeringCatalogue } from '@phoenix/elite'
+import { createCurrentShipModel } from '../apps/web/src/features/fleet/fleet-view-model.js'
+import { createEmptyRuntimeState } from '@phoenix/contracts'
 import { CatalogueShipLoadoutEnricher } from '../apps/server/src/application/catalogue-ship-loadout-enricher.js'
 
 const projectRoot = fileURLToPath(new URL('../', import.meta.url))
@@ -89,6 +91,33 @@ test('loadout enrichment keeps observed fields separate from expected hull slots
     { slotId: 'TinyHardpoint1', observedSize: null, expectedSize: 0, expectedName: undefined, source: 'inferred' },
     { slotId: 'Slot01_Size3', observedSize: 3, expectedSize: undefined, expectedName: undefined, source: 'inferred' }
   ])
+})
+
+test('ship engineering uses catalogue display names while preserving raw journal identity', () => {
+  const directory = `${projectRoot}tests/fixtures/catalogue/engineering`
+  const engineeringCatalogue = new JsonEngineeringCatalogue({
+    blueprints: `${directory}/blueprints.json`, engineers: `${directory}/engineers.json`,
+    materials: `${directory}/materials.json`, materialUses: `${directory}/material-uses.json`
+  })
+  const ship = emptyShip('testhopper')
+  const module = emptyModule('PowerPlant', 'int_testpowerplant_size4_class5', 'core', 4)
+  module.engineering = {
+    engineer: null, engineerId: null, blueprintId: 800001, blueprintName: 'TestModule_Reinforced',
+    level: 1, quality: null, experimentalEffect: null, experimentalEffectLabel: null, modifiers: []
+  }
+  ship.modules = [module]
+  const enricher = new CatalogueShipLoadoutEnricher(catalogue, engineeringCatalogue)
+  const enriched = enricher.enrich(ship)
+  const name = engineeringCatalogue.getBlueprint('TestModule_Reinforced')!.displayName
+  expect(enriched.modules[0]!.engineering).toMatchObject({ blueprintName: 'TestModule_Reinforced', blueprintDisplayName: name })
+  const model = createCurrentShipModel({ ...createEmptyRuntimeState(), ship: enriched })
+  expect(model.modules.flatMap(group => group.items).find(item => item.id === 'PowerPlant')).toMatchObject({
+    engineeringBlueprint: name, engineering: `${name} G1`
+  })
+  module.engineering.blueprintId = 999999
+  expect(enricher.enrich(ship).modules[0]!.engineering!.blueprintDisplayName).toBeNull()
+  module.engineering.blueprintId = null
+  expect(enricher.enrich(ship).modules[0]!.engineering!.blueprintDisplayName).toBe(name)
 })
 
 function emptyShip (typeId: string): CurrentShip {

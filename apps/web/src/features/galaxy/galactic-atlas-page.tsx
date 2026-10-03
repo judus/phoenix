@@ -1,0 +1,227 @@
+import { useEffect, useMemo, useRef, useState, type PointerEvent, type KeyboardEvent } from 'react'
+import { Breadcrumbs, Button, ControlContext, IconButton, PageFrame, PageHeader, Select, Status, ToggleButton } from '@phoenix/ui'
+import type { PhoenixApi } from '../../application/api/phoenix-api.js'
+import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
+import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
+import { atlasBoundaries, atlasRegions } from './atlas-region-data.js'
+import { ATLAS_LANDMARKS, LY_PER_MAP_UNIT, WHOLE_GALAXY, atlasScale, clusterAtlasMarkers, distanceLy, galacticRegion, projectGalacticPosition, screenPoint, zoomAtlas, type AtlasCamera, type AtlasMarker, type AtlasPoint, type GalacticPosition } from './galactic-atlas-model.js'
+import { useAtlasBookmarks } from './use-atlas-bookmarks.js'
+
+export function GalacticAtlasPage({ api, onNavigate, runtime }: {
+  api: PhoenixApi
+  onNavigate(route: PhoenixRoute): void
+  runtime: RuntimeStateSnapshot
+}) {
+  const [showBookmarks, setShowBookmarks] = useState(true)
+  const bookmarks = useAtlasBookmarks(api, showBookmarks)
+  const system = runtime.status === 'ready' ? runtime.state.system : undefined
+  return <GalacticAtlas
+    bookmarks={showBookmarks ? bookmarks.markers : []}
+    bookmarkStatus={bookmarks.error ?? (bookmarks.pending ? `Locating ${bookmarks.pending} bookmark${bookmarks.pending === 1 ? '' : 's'}…` : bookmarks.unresolved ? `${bookmarks.unresolved} bookmark${bookmarks.unresolved === 1 ? '' : 's'} without coordinates` : undefined)}
+    onNavigate={onNavigate}
+    onToggleBookmarks={() => setShowBookmarks(value => !value)}
+    position={system?.position ?? null}
+    showBookmarks={showBookmarks}
+    systemName={system?.name ?? null}
+  />
+}
+
+/** Unique cartographic instrument. SVG coordinates/transforms are runtime geometry, not layout styling. */
+export function GalacticAtlas({ bookmarks, bookmarkStatus, onNavigate, onToggleBookmarks, position, showBookmarks, systemName }: {
+  bookmarks: AtlasMarker[]
+  bookmarkStatus?: string
+  onNavigate(route: PhoenixRoute): void
+  onToggleBookmarks(): void
+  position: GalacticPosition | null
+  showBookmarks: boolean
+  systemName: string | null
+}) {
+  const [camera, setCamera] = useState<AtlasCamera>(WHOLE_GALAXY)
+  const [size, setSize] = useState({ width: 900, height: 600 })
+  const [showRegions, setShowRegions] = useState(true)
+  const [showLandmarks, setShowLandmarks] = useState(true)
+  const [selection, setSelection] = useState<string[]>([])
+  const [selectedId, setSelectedId] = useState<string>()
+  const viewport = useRef<HTMLDivElement>(null)
+  const pointers = useRef(new Map<number, AtlasPoint>())
+  const movement = useRef(0)
+  const currentRegion = position ? galacticRegion(position) : undefined
+  const markers = useMemo(() => [
+    ...(position && systemName ? [{ id: 'commander', kind: 'commander' as const, label: systemName, systemName, position }] : []),
+    ...(showLandmarks ? ATLAS_LANDMARKS : []),
+    ...bookmarks
+  ], [bookmarks, position, showLandmarks, systemName])
+  const selected = markers.find(marker => marker.id === selectedId)
+  const options = selection.map(id => markers.find(marker => marker.id === id)).filter((marker): marker is AtlasMarker => !!marker)
+  const clusters = clusterAtlasMarkers(markers, camera, size.width, size.height)
+  const scale = atlasScale(size.width, size.height, camera.zoom)
+  const centre = { x: size.width / 2, y: size.height / 2 }
+  const changeZoom = (factor: number) => setCamera(value => zoomAtlas(value, factor, centre, size.width, size.height))
+  const locate = (target: GalacticPosition, zoom = Math.max(4, camera.zoom)) => setCamera({ ...projectGalacticPosition(target), zoom })
+
+  useEffect(() => {
+    const element = viewport.current
+    if (!element || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry.contentRect.width && entry.contentRect.height) setSize({ width: entry.contentRect.width, height: entry.contentRect.height })
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    const element = viewport.current
+    if (!element) return
+    const wheel = (event: WheelEvent) => {
+      event.preventDefault()
+      const rect = element.getBoundingClientRect()
+      setCamera(value => zoomAtlas(value, Math.exp(-Math.max(-150, Math.min(150, event.deltaY)) * 0.005), { x: event.clientX - rect.left, y: event.clientY - rect.top }, size.width, size.height))
+    }
+    element.addEventListener('wheel', wheel, { passive: false })
+    return () => element.removeEventListener('wheel', wheel)
+  }, [size])
+
+  const localPoint = (event: PointerEvent) => {
+    const rect = viewport.current!.getBoundingClientRect()
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top }
+  }
+  const pointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    if (!pointers.current.size) movement.current = 0
+    pointers.current.set(event.pointerId, localPoint(event))
+    if (pointers.current.size > 1) movement.current = 10
+    const target = event.target as Element
+    target.setPointerCapture?.(event.pointerId)
+  }
+  const pointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const oldPoint = pointers.current.get(event.pointerId)
+    if (!oldPoint) return
+    const before = [...pointers.current.values()]
+    const point = localPoint(event)
+    movement.current += Math.hypot(point.x - oldPoint.x, point.y - oldPoint.y)
+    pointers.current.set(event.pointerId, point)
+    const after = [...pointers.current.values()]
+    const a = midpoint(before), b = midpoint(after)
+    setCamera(value => {
+      const zoomed = before.length === 2 && separation(before) > 1
+        ? zoomAtlas(value, separation(after) / separation(before), a, size.width, size.height) : value
+      const scale = atlasScale(size.width, size.height, zoomed.zoom)
+      return { ...zoomed, x: zoomed.x - (b.x - a.x) / scale, y: zoomed.y - (b.y - a.y) / scale }
+    })
+  }
+  const keyboard = (event: KeyboardEvent<SVGSVGElement>) => {
+    if (event.target !== event.currentTarget) return
+    if (event.key === '+' || event.key === '=') changeZoom(1.5)
+    else if (event.key === '-') changeZoom(1 / 1.5)
+    else if (event.key === 'Home') setCamera(WHOLE_GALAXY)
+    else if (event.key.startsWith('Arrow')) setCamera(value => ({ ...value,
+      x: value.x + (event.key === 'ArrowLeft' ? -80 : event.key === 'ArrowRight' ? 80 : 0) / scale,
+      y: value.y + (event.key === 'ArrowUp' ? -80 : event.key === 'ArrowDown' ? 80 : 0) / scale
+    }))
+    else return
+    event.preventDefault()
+  }
+
+  // Collision boxes are screen-space so labels never grow into each other when zooming.
+  const occupied: { x: number, y: number, width: number, height: number }[] = []
+  function labelFits(point: AtlasPoint, text: string, centered = false) {
+    const width = text.length * 7.5 + 12
+    const box = { x: point.x - (centered ? width / 2 : 0), y: point.y - 14, width, height: 22 }
+    if (box.x < 4 || box.y < 4 || box.x + width > size.width - 4 || box.y + box.height > size.height - 4) return false
+    if (occupied.some(other => box.x < other.x + other.width && box.x + width > other.x && box.y < other.y + other.height && box.y + box.height > other.y)) return false
+    occupied.push(box)
+    return true
+  }
+  const scaleLy = niceScale(120 / scale * LY_PER_MAP_UNIT)
+
+  return <PageFrame layout="fit" className="galactic-atlas-page">
+    <PageHeader title="Galactic atlas" variant="compact" context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Galactic atlas' }]} />} actions={<>
+        <Button variant="outline" onClick={() => setCamera(WHOLE_GALAXY)}>Whole galaxy</Button>
+        <Button variant="outline" disabled={!position} onClick={() => position && locate(position)}>Locate me</Button>
+        <ToggleButton pressed={showRegions} onClick={() => setShowRegions(value => !value)}>Regions</ToggleButton>
+        <ToggleButton pressed={showLandmarks} onClick={() => setShowLandmarks(value => !value)}>Landmarks</ToggleButton>
+        <ToggleButton pressed={showBookmarks} onClick={onToggleBookmarks}>Bookmarks</ToggleButton>
+    </>} />
+    <section className="galactic-atlas" aria-label="Galactic atlas" data-deskplane-no-swipe>
+      <div className="atlas-map">
+      <div className="atlas-viewport" ref={viewport} onPointerDown={pointerDown} onPointerMove={pointerMove}
+        onPointerUp={event => pointers.current.delete(event.pointerId)} onPointerCancel={event => pointers.current.delete(event.pointerId)}
+        onLostPointerCapture={event => pointers.current.delete(event.pointerId)}
+        onClickCapture={event => { if (movement.current > 5 && event.detail !== 0) { event.preventDefault(); event.stopPropagation() } }}>
+        <svg width="100%" height="100%" viewBox={`0 0 ${size.width} ${size.height}`} tabIndex={0} role="group"
+          aria-label="Top-down galaxy map. Drag to pan, pinch or use plus and minus to zoom. Arrow keys pan; Home shows the whole galaxy."
+          onKeyDown={keyboard}>
+          <g transform={`translate(${centre.x - camera.x * scale} ${centre.y - camera.y * scale}) scale(${scale})`}>
+            <g className="atlas-grid" aria-hidden="true">
+              {[0, 500, 1000, 1500, 2000].map(value => <path key={value} d={`M${value},0V2048M0,${value}H2048`} vectorEffect="non-scaling-stroke" />)}
+            </g>
+            <g className="atlas-regions">
+              {atlasRegions.map(region => <path key={region.id} d={region.path} className={showRegions && region.id === currentRegion?.id ? 'active' : undefined}><title>{region.name}</title></path>)}
+            </g>
+            {showRegions && <path className="atlas-boundaries" d={atlasBoundaries} vectorEffect="non-scaling-stroke" />}
+          </g>
+          {clusters.map(cluster => {
+            const marker = cluster.markers[0]
+            const active = cluster.markers.some(marker => marker.id === selectedId)
+            const commander = cluster.markers.some(marker => marker.kind === 'commander')
+            const text = `${commander ? 'YOU · ' : ''}${marker.label}${cluster.markers.length > 1 ? ` +${cluster.markers.length - 1}` : ''}`
+            const point = { x: cluster.point.x + 16, y: cluster.point.y - 10 }
+            const visibleLabel = labelFits(point, text)
+            const choose = () => { setSelection(cluster.markers.map(marker => marker.id)); setSelectedId(marker.id) }
+            return <g key={marker.id} className={`atlas-marker ${commander ? 'commander' : marker.kind}${active ? ' active' : ''}`}
+              transform={`translate(${cluster.point.x} ${cluster.point.y})`} role="button" tabIndex={0}
+              aria-label={cluster.markers.length > 1 ? `${cluster.markers.length} locations near ${marker.label}` : `${commander ? 'Your position: ' : ''}${marker.label}`}
+              onClick={choose} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose() } }}>
+              <title>{cluster.markers.map(marker => marker.label).join(' · ')}</title>
+              <circle className="hit-area" r={22} />
+              {commander ? <path d="M0,-10L7,7L0,3L-7,7Z" /> : marker.kind === 'bookmark' ? <path d="M-5,-7H5V8L0,4L-5,8Z" /> : <circle r={cluster.markers.length > 1 ? 7 : 4} />}
+              {cluster.markers.length > 1 && <circle className="cluster-ring" r={12} />}
+              {visibleLabel && <text x={16} y={-10}>{text}</text>}
+            </g>
+          })}
+          {showRegions && [...atlasRegions].sort((a, b) => Number(b.id === currentRegion?.id) - Number(a.id === currentRegion?.id)).map(region => {
+            const point = screenPoint({ x: region.label[0], y: region.label[1] }, camera, size.width, size.height)
+            if (camera.zoom < 1.8 && region.id !== currentRegion?.id && region.id !== 1 && region.id % 3 !== 0) return null
+            if (!labelFits(point, region.name, true)) return null
+            return <text key={region.id} x={point.x} y={point.y} className={`atlas-region-label${region.id === currentRegion?.id ? ' active' : ''}`}>{region.name}</text>
+          })}
+          <g className="atlas-scale" transform={`translate(20 ${size.height - 22})`} aria-label={`Scale ${scaleLy.toLocaleString('en-GB')} light years`}>
+            <path d={`M0,-5V0H${scaleLy / LY_PER_MAP_UNIT * scale}V-5`} />
+            <text x={0} y={-12}>{scaleLy.toLocaleString('en-GB')} LY</text>
+          </g>
+          <text className="atlas-orientation" x={size.width - 16} y={24}>+Z ↑ · X/Z</text>
+        </svg>
+      </div>
+        <div className="atlas-zoom" role="group" aria-label="Atlas zoom controls">
+          <IconButton variant="outline" size="sm" label="Zoom out" disabled={camera.zoom <= 1} onClick={() => changeZoom(1 / 1.5)}>−</IconButton>
+          <IconButton variant="outline" size="sm" label="Zoom in" disabled={camera.zoom >= 64} onClick={() => changeZoom(1.5)}>+</IconButton>
+        </div>
+      </div>
+      {selected && <aside className="atlas-inspector" aria-label="Selected atlas location">
+        {options.length > 1 ? <Select aria-label="Locations in this group" value={selectedId} onChange={event => setSelectedId(event.target.value)}>
+          {options.map(marker => <option key={marker.id} value={marker.id}>{marker.kind === 'commander' ? 'You · ' : ''}{marker.label}</option>)}
+        </Select> : <strong>{selected.label}</strong>}
+        <span className="text-muted">{selected.systemName}{position ? ` · ${formatLy(distanceLy(position, selected.position))} LY` : ''}</span>
+        <ControlContext context="toolbar" density="compact">
+          <Button variant="outline" onClick={() => locate(selected.position, Math.min(64, Math.max(4, camera.zoom * 2)))}>Zoom here</Button>
+          <Button variant="outline" onClick={() => onNavigate({ kind: 'information', section: 'galaxy', view: 'system', systemName: selected.systemName, ...(selected.selectedName ? { selectedName: selected.selectedName } : {}) })}>Open system schematic</Button>
+          <IconButton variant="outline" label="Close atlas selection" onClick={() => { setSelection([]); setSelectedId(undefined) }}>×</IconButton>
+        </ControlContext>
+      </aside>}
+      <footer className="atlas-telemetry">
+        {position ? <>
+          <strong>{systemName ?? 'Position known'}</strong>
+          <span>{currentRegion?.name ?? 'Outside mapped regions'}</span>
+          <span>Sol · {formatLy(distanceLy(position, [0, 0, 0]))} LY</span>
+          <span>{formatLy(Math.abs(position[1]))} LY {position[1] < 0 ? 'below' : 'above'} plane</span>
+        </> : <Status tone="muted">Current position unavailable — waiting for journal coordinates.</Status>}
+        {showBookmarks && bookmarkStatus && <small role="status">{bookmarkStatus}</small>}
+      </footer>
+    </section>
+  </PageFrame>
+}
+
+function midpoint(points: AtlasPoint[]): AtlasPoint { return { x: points.reduce((n, p) => n + p.x, 0) / points.length, y: points.reduce((n, p) => n + p.y, 0) / points.length } }
+function separation(points: AtlasPoint[]): number { return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y) }
+function formatLy(value: number): string { return value.toLocaleString('en-GB', { maximumFractionDigits: 0 }) }
+function niceScale(value: number): number { const power = 10 ** Math.floor(Math.log10(value)); return ([5, 2, 1].find(step => step * power <= value) ?? 1) * power }

@@ -112,6 +112,21 @@ export class InMemorySystemSettingsRepository implements SystemSettingsRepositor
 function withFreshControlDeckIfNeeded (candidate: unknown): unknown {
   if (!isRecord(candidate) || !isRecord(candidate.controls)) return candidate
   if (PhoenixControlDeckConfigurationSchema.safeParse(candidate.controls.deckConfiguration).success) return candidate
+  const previous = candidate.controls.deckConfiguration
+  if (isRecord(previous) && Array.isArray(previous.decks) && (previous.groups === undefined || Array.isArray(previous.groups)) &&
+    previous.decks.length === 9 && !previous.decks.some(deck => isRecord(deck) && deck.context === 'phoenix:quick')) {
+    const groups = previous.groups ?? []
+    const usedIds = new Set([...previous.decks, ...groups].filter(isRecord).map(item => item.id))
+    let quickId = 'quick'
+    for (let suffix = 1; usedIds.has(quickId); suffix += 1) quickId = `quick-${suffix}`
+    const migrated = PhoenixControlDeckConfigurationSchema.safeParse({
+      ...previous,
+      revision: typeof previous.revision === 'number' ? previous.revision + 1 : previous.revision,
+      groups: [...groups, { ...DEFAULT_CONTROL_DECK_CONFIGURATION.groups!.find(group => group.id === 'quick'), id: quickId }],
+      decks: [...previous.decks, { ...DEFAULT_CONTROL_DECK_CONFIGURATION.decks.find(deck => deck.context === 'phoenix:quick'), id: quickId, groupId: quickId }]
+    })
+    if (migrated.success) return { ...candidate, controls: { ...candidate.controls, deckConfiguration: migrated.data } }
+  }
   return {
     ...candidate,
     controls: {

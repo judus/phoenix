@@ -17,6 +17,7 @@ export type CommandCatalogueChangeSource =
   | 'control-deck'
   | 'macros'
   | 'module-settings'
+  | 'shortcuts'
 
 export interface CommandCatalogueChange {
   source: CommandCatalogueChangeSource
@@ -44,6 +45,12 @@ export interface NavigationCommandDestination {
   id: string
   label: string
   risk?: CommandDescriptor['risk']
+}
+
+export type NavigationCommandDestinations = readonly NavigationCommandDestination[] | (() => readonly NavigationCommandDestination[])
+
+export function navigationDestinations (source: NavigationCommandDestinations): readonly NavigationCommandDestination[] {
+  return typeof source === 'function' ? source() : source
 }
 
 export interface NavigationCommandExecutor {

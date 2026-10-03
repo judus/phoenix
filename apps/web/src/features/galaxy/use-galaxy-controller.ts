@@ -17,7 +17,7 @@ export interface GalaxyControllerSnapshot {
 export function useGalaxyController(
   api: PhoenixApi,
   events: PhoenixEventHub,
-  view: 'system' | 'route' | 'database' | 'saved-queries' | 'exobiology' | 'bookmarks',
+  view: 'system' | 'atlas' | 'route' | 'database' | 'saved-queries' | 'exobiology' | 'bookmarks',
   systemName?: string
 ): GalaxyControllerSnapshot {
   const cacheKey = `galaxy:${view}:${systemName ?? ''}`
@@ -26,7 +26,7 @@ export function useGalaxyController(
   )
 
   useEffect(() => {
-    if (view === 'database' || view === 'saved-queries' || view === 'bookmarks') {
+    if (view === 'database' || view === 'saved-queries' || view === 'bookmarks' || view === 'atlas') {
       setSnapshot({ status: 'ready' })
       return
     }

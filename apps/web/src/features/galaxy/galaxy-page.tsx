@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { lazy, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { RoutePlotFeedback } from './route-plot-feedback.js'
 import { CatalogueSuggestionInput } from './catalogue-suggestion-input.js'
 import {
@@ -40,6 +40,7 @@ import { useSystemBookmarkStatus } from './use-system-bookmark-status.js'
 import type { GalaxyControllerSnapshot } from './use-galaxy-controller.js'
 
 type GalaxyRoute = Extract<InformationRoute, { section: 'galaxy' }>
+const GalacticAtlasPage = lazy(() => import('./galactic-atlas-page.js').then(module => ({ default: module.GalacticAtlasPage })))
 
 export function GalaxyPage({ api, controller, onNavigate, querySessions, route, runtime }: {
   api: PhoenixApi
@@ -49,7 +50,8 @@ export function GalaxyPage({ api, controller, onNavigate, querySessions, route, 
   route: GalaxyRoute
   runtime: RuntimeStateSnapshot
 }) {
-  if (route.view === 'database') return <QueryConsole api={api} onNavigate={onNavigate} querySessions={querySessions} route={route} runtime={runtime} />
+  if (route.view === 'atlas') return <GalacticAtlasPage api={api} onNavigate={onNavigate} runtime={runtime} />
+  if (route.view === 'database') return <QueryConsole key={route.savedQueryRunId ?? 'editor'} api={api} onNavigate={onNavigate} querySessions={querySessions} route={route} runtime={runtime} />
   if (route.view === 'saved-queries') return <SavedGalaxyQueriesPage api={api} onNavigate={onNavigate} />
   if (route.view === 'exobiology') return <ExobiologyPage controller={controller} />
   if (route.view === 'bookmarks') return <BookmarksPage api={api} onNavigate={onNavigate} route={route} />
@@ -401,7 +403,9 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, executionId, onBack
   const sessionId = savedQuery?.id ?? definition.id
   const retained = querySessions.get(sessionId)
   const executeOnMount = executionId !== undefined && retained?.executionId !== executionId
-  const initial = (): Record<string, GalaxyQueryValue> => retained
+  const initial = (): Record<string, GalaxyQueryValue> => executeOnMount && savedQuery
+    ? queryValues(definition, savedQuery.parameters)
+    : retained
     ? { ...retained.values }
     : queryValues(definition, savedQuery?.parameters)
   const [values, setValues] = useState<Record<string, GalaxyQueryValue>>(initial)

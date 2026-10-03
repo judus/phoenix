@@ -18,6 +18,8 @@ import type {
   CopilotVoiceHostHeartbeat,
   CopilotVoiceHostSnapshot,
   CommandCatalogResponse,
+  CommandExecutionResult,
+  CommandTarget,
   CommanderLogResponse,
   CommanderEquipmentResponse,
   PersonalEquipmentUpgradesResponse,
@@ -158,6 +160,7 @@ export interface PhoenixApi {
   getControlDeckConfiguration(signal?: AbortSignal): Promise<PhoenixControlDeckConfiguration>
   getControlDeckCommands(signal?: AbortSignal): Promise<ControlDeckCommandCatalogue>
   getCommands(signal?: AbortSignal): Promise<CommandCatalogResponse>
+  executeCommand(target: CommandTarget, signal?: AbortSignal): Promise<CommandExecutionResult>
   getCommanderLog(limit?: number, signal?: AbortSignal): Promise<CommanderLogResponse>
   getCommanderEquipment(signal?: AbortSignal): Promise<CommanderEquipmentResponse>
   getPersonalEquipmentUpgrades(signal?: AbortSignal): Promise<PersonalEquipmentUpgradesResponse>

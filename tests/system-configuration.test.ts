@@ -128,6 +128,27 @@ test('noncanonical deck data is discarded instead of imported', () => {
   expect(JSON.parse(readFileSync(path, 'utf8')).controls).not.toHaveProperty('layout')
 })
 
+test('Quick access migration preserves the nine existing decks and runs only once', () => {
+  const path = join(temporaryDirectory(), 'settings.json')
+  const settings = structuredClone(DEFAULT_PHOENIX_SETTINGS)
+  const configuration = settings.controls.deckConfiguration
+  configuration.decks = configuration.decks.filter(deck => deck.context !== 'phoenix:quick')
+  configuration.groups = configuration.groups!.filter(group => group.id !== 'quick')
+  configuration.revision = 17
+  configuration.decks[0]!.name = 'My customised ship deck'
+  configuration.decks[0]!.appearance = { colorScheme: 'blue' }
+  // Even a legacy deck whose ID happens to be quick must survive unchanged.
+  configuration.decks[0]!.id = 'quick'
+  writeFileSync(path, JSON.stringify(settings))
+  const repository = new JsonSystemSettingsRepository(path)
+  const migrated = repository.loadOrCreate().controls.deckConfiguration
+  expect(migrated.decks.filter(deck => deck.context !== 'phoenix:quick')).toEqual(configuration.decks)
+  expect(migrated.groups!.slice(0, configuration.groups.length)).toEqual(configuration.groups)
+  expect(migrated.revision).toBe(18)
+  expect(migrated.decks.find(deck => deck.context === 'phoenix:quick')).toMatchObject({ id: 'quick-1', layout: { columns: 4, rows: 3 } })
+  expect(repository.loadOrCreate().controls.deckConfiguration).toEqual(migrated)
+})
+
 test('automatic Linux startup selects xdotool and produces runtime diagnostics', () => {
   const result = bootstrapControlOutput(DEFAULT_PHOENIX_SETTINGS, {
     createPlatformOutput: () => new StubKeyboardOutput({

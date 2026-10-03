@@ -12,7 +12,8 @@ export class GalaxyBookmarkService implements GalaxyBookmarks {
   public constructor (
     private readonly repository: GalaxyBookmarkRepository,
     private readonly now: () => Date = () => new Date(),
-    private readonly createId: () => string = randomUUID
+    private readonly createId: () => string = randomUUID,
+    private readonly onChange: () => void = () => {}
   ) {}
 
   public create (input: GalaxyBookmarkWriteRequest): GalaxyBookmark {
@@ -27,11 +28,13 @@ export class GalaxyBookmarkService implements GalaxyBookmarks {
       updatedAt: timestamp
     })
     this.repository.putGalaxyBookmark(bookmark)
+    this.onChange()
     return bookmark
   }
 
   public delete (id: string): void {
     this.repository.deleteGalaxyBookmark(id)
+    this.onChange()
   }
 
   public getAll (): GalaxyBookmarksResponse {
@@ -53,6 +56,7 @@ export class GalaxyBookmarkService implements GalaxyBookmarks {
       updatedAt: this.now().toISOString()
     })
     this.repository.putGalaxyBookmark(bookmark)
+    this.onChange()
     return bookmark
   }
 }

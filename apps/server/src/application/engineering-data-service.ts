@@ -182,7 +182,10 @@ export class EngineeringDataService implements EngineeringDataReader {
       rarity: rarityNames[definition.rarity as keyof typeof rarityNames],
       count: current?.count ?? 0,
       maxCount: materialLimits[definition.rarity as keyof typeof materialLimits],
-      blueprintUses: definition.blueprintUses
+      blueprintUses: definition.blueprintUses.map(use => ({
+        ...use,
+        name: this.catalogue.getBlueprint(use.symbol)?.displayName ?? use.name
+      }))
     }
   }
 }
@@ -192,9 +195,9 @@ function appliedModules (blueprint: EngineeringCatalogueBlueprint, state: Runtim
   return state.ship.modules.filter(module => {
     const engineering = module.engineering
     return engineering !== null && (
-      engineering.blueprintId === blueprint.id ||
-      (engineering.blueprintName !== null && identifiers.includes(normalize(engineering.blueprintName)))
-    )
+      engineering.blueprintId !== null
+        ? engineering.blueprintId === blueprint.id
+        : engineering.blueprintName !== null && identifiers.includes(normalize(engineering.blueprintName)))
   })
 }
 

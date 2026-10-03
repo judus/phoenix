@@ -103,6 +103,7 @@ const SERVICES: GalaxyQueryFieldOption[] = [
   ['technology-broker', 'Technology broker'],
   ['black-market', 'Black market'],
   ['universal-cartographics', 'Universal Cartographics'],
+  ['vista-genomics', 'Vista Genomics'],
   ['refuel', 'Refuel'],
   ['repair', 'Repair'],
   ['shipyard', 'Shipyard'],

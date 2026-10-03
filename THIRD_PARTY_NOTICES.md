@@ -1,5 +1,21 @@
 # Third-party notices
 
+## Galactic atlas region map
+
+The bundled region geometry and coordinate lookup are derived from
+[EliteDangerousRegionMap](https://github.com/klightspeed/EliteDangerousRegionMap), revision
+`6c1191a58e1e593966f44f16235ab39d1ad24d84`, MIT licensed, Copyright (c) 2020 Ben Peddell.
+The full licence is included in `licenses/EliteDangerousRegionMap.txt`.
+`scripts/catalogue/build-galactic-atlas.mjs` regenerates the data: contours are simplified for
+display while region lookup retains the original grid. No upstream styles or executable scripts
+are loaded in the browser. Region classification follows physical coordinates, not the potentially
+different system-boxel region recorded by the Codex.
+
+The small landmark coordinate list was verified against EDSM's `api-v1/systems` endpoint on
+2026-10-03. Nebula markers identify reference systems, not measured nebula boundaries. The Bubble
+is anchored at Sol; no territorial or population boundary is asserted. Elite Dangerous names and
+game data remain subject to Frontier's rights, as described below.
+
 ## Control Deck PHOENIX runtime
 
 Official PHOENIX builds include a purpose-built compiled subset of Control Deck. It is not licensed

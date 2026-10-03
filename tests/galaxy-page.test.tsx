@@ -292,6 +292,15 @@ test('saved queries run fresh with their stored parameters', async () => {
     route={nextRunRoute as Extract<PhoenixRoute, { kind: 'information', section: 'galaxy' }>}
   />))
   expect(findGalaxySystems).toHaveBeenCalledTimes(2)
+  // A deck shortcut can run again while the information workspace stays mounted.
+  getSavedGalaxyQueries.mockResolvedValue({ queries: [{ ...savedQuery, parameters: { ...savedQuery.parameters, originMode: 'current', origin: '', radius: '75' } }] })
+  await act(async () => renderer.update(<GalaxyPage
+    {...common}
+    runtime={{ status: 'ready', state: { ...createEmptyRuntimeState(), system: { ...createEmptyRuntimeState().system, name: 'Achenar' } } }}
+    route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'system-search', savedQueryId: savedQuery.id, savedQueryRunId: 'shortcut-run-3' }}
+  />))
+  expect(findGalaxySystems).toHaveBeenCalledTimes(3)
+  expect(findGalaxySystems).toHaveBeenLastCalledWith(expect.objectContaining({ system: 'Achenar', maxDistance: 75 }))
   await act(async () => renderer.unmount())
 })
 

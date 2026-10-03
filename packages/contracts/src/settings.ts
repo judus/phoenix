@@ -16,6 +16,7 @@ export const DEFAULT_MODULE_HEALTH_ALERT_THRESHOLD = 90
 export const PhoenixControlDeckThemeSchema = z.union([z.literal('phoenix'), ControlDeckColorSchemeSchema])
 export const PHOENIX_CONTROL_DECK_ADAPTER_ID = 'phoenix.commands'
 export const PHOENIX_CONTROL_CONTEXTS = [
+  'phoenix:quick',
   'phoenix:ship',
   'phoenix:combat',
   'phoenix:navigation',
@@ -32,7 +33,7 @@ export const PhoenixControlDeckConfigurationSchema = ControlDeckConfigurationSch
   const expectedContexts = new Set<string>(PHOENIX_CONTROL_CONTEXTS)
   const actualContexts = new Set(configuration.decks.map(deck => deck.context))
   if (configuration.decks.length !== expectedContexts.size || actualContexts.size !== expectedContexts.size) {
-    context.addIssue({ code: 'custom', message: 'PHOENIX requires exactly one deck for each Elite control context.' })
+    context.addIssue({ code: 'custom', message: 'PHOENIX requires exactly one deck for each PHOENIX control context.' })
   }
   for (const expected of expectedContexts) {
     if (!actualContexts.has(expected)) context.addIssue({ code: 'custom', message: `Missing PHOENIX control context ${expected}.` })

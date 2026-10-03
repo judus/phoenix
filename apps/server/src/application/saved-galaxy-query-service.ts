@@ -13,7 +13,8 @@ export class SavedGalaxyQueryService implements SavedGalaxyQueries {
   public constructor (
     private readonly repository: SavedGalaxyQueryRepository,
     private readonly now: () => Date = () => new Date(),
-    private readonly createId: () => string = randomUUID
+    private readonly createId: () => string = randomUUID,
+    private readonly onChange: () => void = () => {}
   ) {}
 
   public create (input: SavedGalaxyQueryWriteRequest): SavedGalaxyQuery {
@@ -31,6 +32,7 @@ export class SavedGalaxyQueryService implements SavedGalaxyQueries {
 
   public delete (id: string): void {
     this.repository.deleteSavedGalaxyQuery(id)
+    this.onChange()
   }
 
   public getAll (): SavedGalaxyQueriesResponse {
@@ -67,6 +69,7 @@ export class SavedGalaxyQueryService implements SavedGalaxyQueries {
       }
     }
     this.repository.putSavedGalaxyQuery(query)
+    this.onChange()
   }
 }
 

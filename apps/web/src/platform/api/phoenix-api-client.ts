@@ -26,6 +26,8 @@ import {
   CopilotVoiceHostSnapshotSchema,
   PhoenixControlDeckConfigurationSchema,
   CommandCatalogResponseSchema,
+  CommandExecutionResultSchema,
+  type CommandTarget,
   CommanderLogResponseSchema,
   CommanderEquipmentResponseSchema,
   PersonalEquipmentUpgradesResponseSchema,
@@ -455,6 +457,10 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getCommands(signal?: AbortSignal): Promise<CommandCatalogResponse> {
     return this.#get('/api/commands', CommandCatalogResponseSchema, signal)
+  }
+
+  async executeCommand(target: CommandTarget, signal?: AbortSignal) {
+    return this.#json('/api/commands/execute', 'POST', { target, operation: 'tap' }, CommandExecutionResultSchema, signal)
   }
 
   async getNumpadSnapshot(signal?: AbortSignal): Promise<NumpadTreeSnapshot> {

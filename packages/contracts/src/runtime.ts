@@ -175,6 +175,7 @@ export const ShipModuleSchema = z.object({
     engineerId: z.number().int().nonnegative().nullable(),
     blueprintId: z.number().int().nonnegative().nullable(),
     blueprintName: z.string().min(1).nullable(),
+    blueprintDisplayName: z.string().min(1).nullable().optional(),
     level: z.number().int().positive().nullable(),
     quality: z.number().finite().nullable(),
     experimentalEffect: z.string().min(1).nullable(),
@@ -306,6 +307,13 @@ export const GameEventEnvelopeSchema = z.discriminatedUnion('type', [
   GameEventEnvelopeBaseSchema.extend({
     type: z.literal('ship.hull_health_changed'),
     payload: z.object({ hullHealth: z.number().min(0).max(1).nullable() })
+  }),
+  GameEventEnvelopeBaseSchema.extend({
+    type: z.literal('ship.module_health_changed'),
+    payload: z.object({
+      moduleIds: z.array(z.string()).nullable(),
+      health: z.number().min(0).max(1)
+    })
   }),
   GameEventEnvelopeBaseSchema.extend({
     type: z.literal('game.status_changed'),

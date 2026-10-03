@@ -130,6 +130,9 @@ export class NumpadTreeProjector {
     const configuration = this.configurations.getConfiguration()
     const groups = new Map((configuration.groups ?? []).map(group => [group.id, group]))
     for (const deck of configuration.decks) {
+      // Quick access is a CTR workspace, not a new Numpy address. Preserve the
+      // existing ten numeric selectors (nine Elite contexts plus macros).
+      if (deck.context === 'phoenix:quick') continue
       const category = GameActionCategorySchema.parse(deck.context?.slice('phoenix:'.length))
       const selector = CONTROL_SELECTORS[category]
       if (!selector) {
