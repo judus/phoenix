@@ -18,7 +18,7 @@ afterEach(async () => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
-// The Windows native launcher is provided by Control Deck and needs its own host-native checks.
+// The PHOENIX Windows tray launcher is exercised by the native installer smoke test.
 test.skipIf(process.platform === 'win32')('launcher does not mistake another HTTP service for its own server', async () => {
   const server = createServer((_request, response) => { response.writeHead(200); response.end('{}') })
   await new Promise<void>(resolveListen => server.listen(0, '127.0.0.1', resolveListen))

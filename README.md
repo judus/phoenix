@@ -5,6 +5,17 @@
 
 PHOENIX is a local-first companion application and ship-computer interface for Elite Dangerous. It turns live telemetry, journal history, control bindings, public galaxy data, and an optional AI Copilot into one cockpit for desktop, tablet, and auxiliary displays.
 
+## Downloads
+
+Windows x64 and Debian/Ubuntu-family Linux x64 installers will be available from
+**[GitHub Releases](https://github.com/judus/phoenix/releases)**. The first preview is being prepared;
+there is no published installer release yet. Source installation instructions remain below.
+Installers bundle Node.js; no Git or developer tools are required. Preview builds may have rough
+edges, and the Windows installer is currently unsigned.
+
+Development happens on `dev`; `main` is the release-ready branch. See
+[development and release workflow](docs/releases.md) for CI, releases and maintainer instructions.
+
 
 ![PHOENIX commander dashboard](docs/screens/img.webp)
 

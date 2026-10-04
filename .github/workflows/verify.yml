@@ -1,0 +1,67 @@
+name: Native verification
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        default: ''
+      installers:
+        type: boolean
+        default: false
+      release-assets:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    env:
+      PHOENIX_EDDN_TEST_MODE: '0'
+      PHOENIX_RELEASE_CHANNEL: ${{ inputs.release-assets && 'preview' || 'development' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.14.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run check
+      # check already built the application; stage that exact output without rebuilding it.
+      - if: inputs.installers
+        run: node scripts/package/build-payload.mjs
+      - if: inputs.installers
+        run: npm run payload:verify
+      - if: inputs.installers && runner.os == 'Linux'
+        run: node scripts/package/build-linux-deb.mjs
+      - if: inputs.installers && runner.os == 'Linux'
+        run: npm run installer:linux:verify
+      - if: inputs.installers && runner.os == 'Windows'
+        run: choco install innosetup --yes --no-progress
+      - if: inputs.installers && runner.os == 'Windows'
+        run: node scripts/package/build-windows-installer.mjs
+      - if: inputs.installers && runner.os == 'Windows'
+        run: npm run installer:windows:verify
+      - if: inputs.release-assets
+        run: node scripts/release/assets.mjs stage
+      - if: inputs.release-assets
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: installer-${{ runner.os }}
+          path: dist/release/*
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+          overwrite: true

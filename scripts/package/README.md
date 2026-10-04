@@ -58,34 +58,36 @@ tray open/quit controls.
 
 The verifier silently installs into an isolated directory, verifies the installed payload,
 exercises the native launcher, duplicate launch, clean stop, and writable user-state boundary, then
-runs the uninstaller. Windows game input still requires a separate real Elite validation; an
+runs the uninstaller. Automated native launches use `Phoenix.exe --non-interactive` to suppress
+blocking error dialogs (including the intentional corrupt-settings case); failures still return
+nonzero and write the launcher log. Normal launches retain their error dialogs.
+Windows game input still requires a separate real Elite validation; an
 installer smoke test cannot prove `SendInput` behavior.
 
-## Optional GitHub Actions proof
+## CI and draft releases
 
-The manual `Payload proof` workflow runs the checks and native installer build on Linux and Windows.
-It uploads the two installers as seven-day engineering artifacts, not public releases. GitHub
-Actions is optional: use the local commands above when Actions minutes or artifact storage are
-constrained. Check account-level Actions usage before dispatching the workflow because repository
-artifact and cache listings do not expose the complete account quota.
+`CI` checks Linux and Windows on pushes/PRs to `dev` and `main`. Promotion to `main` also verifies
+both native installers. `Draft release` validates version tags on `main`, builds verified installers
+and checksums, and creates a draft preview release. It never publishes automatically. Only release
+builds upload intermediate artifacts, with one-day retention; ordinary CI retains none.
 
-These remain test installers rather than public releases.
+See [the release workflow](../../docs/releases.md) for branching, approval, permanent download
+links and the native local-build fallback if Actions storage or runners are unavailable.
 
 ## Current-build Windows acceptance
 
-As of 2026-10-04, the development host is Linux and no native Windows device/session is
-available for this pass. Historical GitHub Actions Windows builds and real Windows/Elite use
-were successful; that is not fresh acceptance of the current source revision. The existing
-manual workflow already runs native Windows checks, builds the installer, and verifies its
-installed launcher. It remains a viable build alternative, but no fresh run was dispatched
-and the earlier account-level Actions quota warning is unresolved. Check usage and obtain
-authorization before dispatching. CI smoke tests use simulated input, not Elite.
+The development host is Linux; native Windows build/installer verification runs in GitHub
+Actions. Check the [CI and release runs](https://github.com/judus/phoenix/actions) for the exact
+revision being evaluated. A green check proves the automated gates below, not live gameplay:
+CI smoke tests use simulated input, not Elite. Historical Windows/Elite success does not
+replace acceptance of the current release. No real Windows/Elite test session is available
+for the 2026-10-04 release-pipeline setup.
 
 For the exact revision intended for release, record the commit, Windows/Node/toolchain versions,
 artifact SHA-256 and results of these gates:
 
 - Run `npm.cmd ci`, `npm.cmd run check`, `npm.cmd run installer:windows` and
-  `npm.cmd run installer:windows:verify` on native x64 Windows (or use the manual workflow's
+  `npm.cmd run installer:windows:verify` on native x64 Windows (or use the native workflow's
   equivalent gates). Preserve the artifact and its payload manifest.
 - On a real Windows machine, verify install, upgrade, tray open/quit, duplicate launch,
   failed-start recovery, restart and uninstall. Existing settings, pairing, macros, projects
@@ -103,6 +105,6 @@ artifact SHA-256 and results of these gates:
 - Record antivirus/SmartScreen results and the signing/distribution decision before a public
   release. Do not represent a successful unsigned CI installer as certified gameplay support.
 
-Native build/installer checks and real Elite acceptance are **pending**, not failed. Windows
-builds may be obtained through an authorized Actions run without a local Windows build host;
-live Elite/input acceptance still requires access to a Windows machine running the game.
+Real Elite/input acceptance remains **pending**, not failed, until recorded on a Windows
+machine running the game. Release manifests and checksums identify the exact automated build;
+retain the manual acceptance evidence alongside that release before publishing it.
