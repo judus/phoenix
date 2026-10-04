@@ -7,6 +7,9 @@ The installation preference is **on by default**, including older settings witho
 Settings → General → Community data exposes the toggle, pending count, last success and diagnostic.
 
 **Production uploads are gated off in this build.** There is no live-mode environment switch.
+**EDMC parity is not complete. Keep an existing uploader enabled.** The native implementation
+now handles all 21 journal/file event families in the pinned EDMC dispatch, but CAPI and the
+remaining field/delivery/acceptance review are open. See [parity register](eddn-parity.md).
 The UI distinguishes the enabled preference from unavailable delivery. Developers can explicitly
 set `PHOENIX_EDDN_TEST_MODE=1` for the official EDDN **test** schemas; this still transmits observations
 externally, so use it only during an authorized test. The normal build sends nothing. Automated
@@ -20,11 +23,15 @@ with development safeguards and a new application version. Do not simply remove 
 ## Ownership and data flow
 
 - `packages/elite`: existing journal reader emits source identity and a startup-replay marker
-  after successful normal projection. `EliteStationSnapshotReader` reads only the three named
-  game-owned station snapshot files; 2 MiB maximum, no partial or changing reads accepted.
+  after successful normal projection. `EliteJournalSnapshotReader` reads only the five named
+  game-owned files: Market, Outfitting, Shipyard, NavRoute and FCMaterials; 2 MiB maximum,
+  no partial or changing reads accepted. Existing Status ingestion supplies Codex body context.
 - `domain/eddn-message-builder.ts`: explicit field allowlists and chronological journal context.
-  Only `FSDJump`, `Location`, `Docked`, `Scan`, `Market`, `Outfitting`, and `Shipyard` are submitted.
-  `Fileheader`, `LoadGame`, `CarrierJump`, `StartJump`, `Undocked`, and `Shutdown` maintain context.
+  Journal: FSDJump, Location, Docked, Scan, CarrierJump, SAASignalsFound. Dedicated schemas:
+  FSSDiscoveryScan, NavBeaconScan, FSSAllBodiesFound, FSSBodySignals, ScanBaryCentre,
+  ApproachSettlement, CodexEntry, DockingGranted, DockingDenied, FSSSignalDiscovered.
+  Snapshots: Market, Outfitting, Shipyard, NavRoute, FCMaterials.
+  Session, movement, body and crew events maintain context without being submitted themselves.
   Unknown fields are not forwarded. Context is reset on session boundaries; uncertain evidence
   is skipped rather than reconstructed from external providers or current dashboard state.
 - `EddnSchemaValidator`: locally pinned official schemas and draft-04 validation. No schema fetch
@@ -35,11 +42,35 @@ with development safeguards and a new application version. Do not simply remove 
 - `SqliteEddnOutbox`: dedicated tables on the existing SQLite connection. No extra database or
   general-purpose message bus. Table initialization failure disables contribution without failing
   the application's startup.
-- `EddnHttpTransport`: HTTP/1.1 JSON POST, fixed official HTTPS gateway, 15-second timeout,
+- `EddnHttpTransport`: HTTP/1.1 gzip-compressed JSON POST, fixed official HTTPS gateway, 15-second timeout,
   abortable shutdown. Only a numeric-loopback HTTP endpoint can replace it for tests.
 
 Settings/status use the existing paired HTTP boundary at `GET/PUT /api/settings/eddn`.
 There is no arbitrary-message submission endpoint or Copilot submission tool.
+
+## DEV submission log
+
+DEV → EDDN (`#/developer/eddn`) shows up to the most recent 100 upload attempts, retained for up to
+seven days and 16 MiB of payloads across restarts. Each row includes observation/system, time, attempt number, outcome
+and HTTP status when received. Selecting it retrieves the exact filtered JSON upload, including
+the commander uploader ID; it never exposes the unfiltered journal or remote response body.
+History remains locally visible after opting out; disabling still clears only pending uploads.
+
+Outcomes distinguish sending, accepted, retry scheduled, rejected and interrupted/unknown.
+Accepted means an EDDN HTTP success, not confirmation that EDSM or other consumers ingested it.
+Every retry has its own entry. A start record and durable retry reservation are written together
+before network I/O; a crash can leave an attempt recorded without proof that bytes were sent.
+Unfinished attempts become interrupted on restart, never assumed successful. Retry times describe
+the decision at that attempt, not a guarantee of future delivery after expiry or disabling.
+
+The paired endpoints are `GET /api/developer/eddn` (status and small summaries) and
+`GET /api/developer/eddn/:id` (selected payload, 404 after retention expires). The page polls
+summaries serially every five seconds and aborts reads on unmount; full payloads are not polled.
+Retention bounds stored payload data to at most 16 MiB plus metadata. The log records
+upload attempts, not bootstrap replays or observations skipped before queueing.
+
+For an authorized local development run, add `PHOENIX_EDDN_TEST_MODE=1` to the ignored `.env`
+and restart the server. The normal default and packaged release gate remain unchanged.
 
 ## Evidence, privacy and replay policy
 
@@ -56,6 +87,22 @@ observed station/system. Invalid, missing, changing or mismatched snapshots are 
 the relevant station service can produce fresh evidence. Market messages omit illegal and
 non-marketable goods. Outfitting filters cosmetics, personal SKU unlocks and the approach suite.
 Shipyard accepts the documented `PriceList` and observed `Pricelist` spellings at the input boundary.
+Outfitting/Shipyard use a known snapshot Horizons flag; missing flags are omitted, not guessed.
+Commodity includes station type/carrier docking access when present. Unchanged stock is suppressed
+per schema within the current process; opt-out/session changes reset suppression. Rejected stock
+can be observed again. Source receipts remain the durable deduplication mechanism.
+
+FSSSignalDiscovered is buffered for a contiguous journal run, with incoming arrival context used
+for Odyssey's pre-arrival ordering. Mission targets, localised strings and TimeRemaining are not
+forwarded. Bootstrap, opt-out, commander and crew boundaries discard pending runs; a normal stop
+can enqueue a run only against established context. Pending runs are memory-only until closed;
+a crash can lose one. Oversized runs are dropped with a diagnostic, never truncated into a false
+complete observation. No observations are submitted while joined to another captain's crew.
+
+Codex uses explicit journal BodyID when present. A missing ID is inferred only when journal and
+Status body names agree. Stale Status from before a location boundary cannot augment a new system.
+Public discovery/site coordinates belong to Codex/settlement schemas; ordinary Location/Docked
+coordinates remain excluded. The settings disclosure includes routes, signals and discoveries.
 
 Startup rereads rebuild context but **do not submit** those historical lines. Historical backfill
 is never connected to contribution. This intentionally does not backfill observations from while
@@ -74,7 +121,7 @@ repeat an interrupted attempt.
 
 ## Limits and failure behavior
 
-- Maximum message: 128 KiB serialized JSON.
+- Maximum message: 2 MiB serialized JSON; gzip on the wire. Long routes are not truncated.
 - Pending queue: 1,000 messages / 16 MiB; receipts: 100,000.
 - Queue/receipt retention: 24 hours. Observation timestamps older than 24 hours or more than
   five minutes in the future are not accepted. No timestamp rewriting.
@@ -102,9 +149,95 @@ EliteDangerousCore implementation was copied.
 - [Shipyard rules](https://github.com/EDCD/EDDN/blob/live/schemas/shipyard-README.md)
 
 Recheck upstream schema and privacy rules before updating a pin or extending the event allowlist.
-EDSM account sync, CAPI authentication and bulk historical uploads remain out of scope.
+Machine-readable provenance and hashes: `resources/eddn/upstream.json`. A later read-only drift
+checker will flag revisions for review, not auto-update production schemas or message mappings.
+EDSM account sync and bulk historical uploads remain out of scope. CAPI is now an explicit
+parity requirement, not silently excluded: it needs PHOENIX's own Frontier app registration and
+an authenticated, separately validated source path. The user confirmed no registration exists.
+
+## Native parity expansion (2026-10-04)
+
+- Added 12 pinned schemas and 14 journal/file event families, bringing dispatch coverage to 21
+  across 16 schemas. This is **not** a claim of full field/source/behaviour parity.
+- Fixed station metadata, snapshot Horizons, module prefix normalization, stock suppression,
+  Codex/body/crew context and batched signal ordering. Extended DEV summaries for SystemName,
+  System and CarrierName without adding invalid fields to the wire format.
+- Increased message capacity, gzip transport, independent history byte cap; retained test-only
+  enforcement, opt-out, replay exclusion and privacy allowlists.
+- Root app version is now 0.1.3 because EDDN requires softwareVersion to change when submitted
+  content changes. No dependency versions changed.
+- Read-only review of Frontier v38 travel/scan/Codex fields supplements the EDMC/schema audit.
+  EDDN's permissive journal schema cannot prove every current game field is covered; the remaining
+  field-level checks and delivery-policy differences are listed in the parity register.
+- Full check passed: 202 files / 1005 tests, production typechecks/builds. Focused changed server
+  tests also pass strict TypeScript. Socket tests use an isolated loopback gateway; no synthetic
+  observations are sent to EDDN. Real-game acceptance of newly added families remains pending.
+- Final mapping follow-up: five focused files / 75 tests and strict checks of six EDDN test files
+  pass. Linux 0.1.3 payload build, 103-checksum verification and isolated installed-mode smoke
+  pass. All 12 added schema files byte-match the pinned upstream source. No new installer or
+  native Windows run is claimed.
 
 ## Verification (2026-10-04)
+
+Real-game/test-stream acceptance follow-up:
+
+- Read-only inspection of the running DEV log found 42 attempts: two `FSDJump` and 40 `Scan`,
+  all accepted with HTTP 200, queue empty, no current contribution error. These came from actual
+  gameplay after the user's explicit test-mode opt-in, not replay or injected fixtures.
+- All 42 stored uploads revalidated against the pinned test schemas. A recursive supplementary
+  check found none of the excluded commander/private or `_Localised` fields in their messages.
+  No raw player payloads or uploader names were copied into documentation or test fixtures.
+- SHA-256 comparison of all four pinned schema files with the current upstream `live` files
+  matched exactly. Re-read developer, journal, commodity, outfitting and shipyard rules.
+- Rebuilt Linux x64 payload with the DEV page: **90 checksums**, verification and installed-mode
+  smoke pass. Smoke now checks unauthenticated log rejection, authenticated empty history and
+  missing-payload 404 in addition to default-on/gated settings and persisted opt-out. This was
+  an isolated payload test, not a new `.deb` installer or native Windows acceptance.
+
+Remaining real-game checks (keep PHOENIX running with test mode and contribution enabled):
+
+Station follow-up: Docked, commodity (355 entries) and outfitting (790 module symbols) were
+accepted with HTTP 200 at Clark Landing, submission IDs 134–136. Queue empty, no current error.
+All 100 retained attempts pass schema revalidation and the supplementary excluded-field check.
+This is a rolling history, not a lifetime count. The station had no shipyard. The on-foot weapon
+merchant is outside this implementation's event/schema allowlist; visiting it does not test ship
+outfitting and does not produce a supported weapon-stock upload.
+
+| Event/schema | Evidence so far | Trigger still needed |
+| --- | --- | --- |
+| `FSDJump` | 2 accepted | None for basic acceptance |
+| `Scan` | 40 accepted | None for basic acceptance |
+| `Location` | Automated only | Return to the main menu and re-enter the game |
+| `Docked` | Accepted HTTP 200 | None for basic acceptance |
+| Commodity | 355 entries accepted HTTP 200 | None for basic acceptance |
+| Outfitting | 790 module symbols accepted HTTP 200 | None for basic acceptance |
+| Shipyard | Automated only | Open Shipyard at a station that offers it |
+
+No purchase, sale, ship transfer or game-setting change is necessary. Station checks can wait
+until a convenient visit; a location relog can also wait. Check the DEV row and selected payload
+against the just-visited station/system and original snapshot timestamp. A rejected or skipped
+event is not a reason to force a historical resend or weaken identity checks. Session changes
+and real opt-out/re-enable can be verified later; automated coverage already exists.
+
+Before live release, native Windows packaging/runtime acceptance and maintainer coordination
+remain open. Prepare PHOENIX's software identity/version, supported schemas/events, privacy
+filters, test acceptance evidence, queue/retry policy and contact details for coordination.
+Do not contact maintainers or enable live publishing without explicit authorization.
+
+DEV log follow-up:
+
+- Full `npm run check`: 201 test files / 961 tests; typechecks and builds pass.
+- Added persistence/retention and interruption coverage, retry/rejection history, on-demand
+  payload API coverage, DEV route/navigation, UI polling/selection races and paired-route checks.
+- Strict checks pass for the modified EDDN service/storage/API tests and new page test.
+- Isolated real-shell preview with synthetic submission history: PHOENIX/Elite landscape,
+  Elite 900×1280 and 768×1024 portrait, native keyboard selection, selected JSON, internal scrolling
+  and no horizontal clipping verified. Fixture forces contribution unavailable, even when the
+  invoking environment opts into test uploads. No fake observation is sent externally.
+- Local `.env` now opts into test-stream delivery at the user's request. This does not enable
+  live publishing or establish real-game/test-stream acceptance. No historical backfill.
+
+Initial contribution implementation:
 
 - `npm run check`: 200 test files / 955 tests, production typechecks and builds pass.
 - Eight new test files also pass direct strict TypeScript checks (NodeNext for server/API tests,

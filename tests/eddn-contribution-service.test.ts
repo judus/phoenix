@@ -48,6 +48,10 @@ describe('EDDN contribution lifecycle', () => {
     f.service.observe(f.event, { id: 'jump', replayed: false })
     expect(f.outbox.status()).toEqual({ queued: 0, lastSuccessAt: new Date(startTime).toISOString() })
     expect(f.send).toHaveBeenCalledOnce()
+    const log = f.service.submissionLog()
+    expect(log.entries).toHaveLength(1)
+    expect(log.entries[0]).toMatchObject({ event: 'FSDJump', system: 'Sol', attempt: 1, outcome: 'accepted', httpStatus: 200 })
+    expect(f.service.submission(log.entries[0].id)?.payload).toEqual(f.send.mock.calls[0][0])
   })
 
   test('queue and receipts survive service restart', async () => {
@@ -79,6 +83,10 @@ describe('EDDN contribution lifecycle', () => {
     f.advance(60_000)
     await f.service.flush()
     expect(f.send).toHaveBeenCalledTimes(2)
+    expect(f.service.submissionLog().entries).toMatchObject([
+      { attempt: 2, outcome: 'retry', httpStatus: status || null, retryAt: new Date(startTime + 180_000).toISOString() },
+      { attempt: 1, outcome: 'retry', httpStatus: status || null }
+    ])
   })
 
   test.each([400, 401, 403, 413, 426])('discards permanent status %i without blocking following messages', async status => {
@@ -90,6 +98,9 @@ describe('EDDN contribution lifecycle', () => {
     await f.service.flush()
     expect(f.outbox.status().queued).toBe(0)
     expect(f.send).toHaveBeenCalledTimes(2)
+    expect(f.service.submissionLog().entries).toMatchObject([
+      { outcome: 'accepted', httpStatus: 200 }, { outcome: 'rejected', httpStatus: status }
+    ])
   })
 
   test('disable cancels in-flight work, clears queue, and late completion cannot undo opt-out', async () => {
@@ -107,6 +118,7 @@ describe('EDDN contribution lifecycle', () => {
     complete({ status: 200 })
     await pending
     expect(f.outbox.status().lastSuccessAt).toBeNull()
+    expect(f.service.submissionLog().entries[0]).toMatchObject({ outcome: 'interrupted', httpStatus: 200 })
     f.service.observe(f.event, { id: 'old', replayed: false })
     expect(f.outbox.status().queued).toBe(0)
     f.service.observe({ ...f.event, timestamp: new Date(startTime + 1000).toISOString() }, { id: 'new', replayed: false })
@@ -158,5 +170,6 @@ describe('EDDN contribution lifecycle', () => {
     expect(f.outbox.status().queued).toBe(1)
     expect(f.outbox.next(startTime)).toBeUndefined()
     expect(f.outbox.next(startTime + 75_000)).toMatchObject({ id: 'one', attempts: 1 })
+    expect(f.service.submissionLog().entries[0]).toMatchObject({ outcome: 'interrupted', httpStatus: null })
   })
 })

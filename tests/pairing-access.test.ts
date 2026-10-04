@@ -45,6 +45,8 @@ test('browser pairing sessions authorize independently and can be revoked per de
 
     const rejected = await fetch(`${baseUrl}/api/health`)
     expect(rejected.status).toBe(401)
+    expect((await fetch(`${baseUrl}/api/developer/eddn`)).status).toBe(401)
+    expect((await fetch(`${baseUrl}/api/developer/eddn/1`)).status).toBe(401)
 
     const claim = await fetch(`${baseUrl}/api/pairing/claim`, {
       body: JSON.stringify({ code: accessControl.pairingCode.toLowerCase().replace('-', ' ') }),

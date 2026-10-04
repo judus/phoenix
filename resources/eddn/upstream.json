@@ -1,0 +1,35 @@
+{
+  "eddn": {
+    "repository": "EDCD/EDDN",
+    "branch": "live",
+    "revision": "4ad669bb7bbe1eae080e4c354e786dca4db91f35"
+  },
+  "edmc": {
+    "repository": "EDCD/EDMarketConnector",
+    "branch": "main",
+    "revision": "89f410c9c75c16ff564068ab5201ed3d65ba68ce",
+    "reviewPaths": [
+      "plugins/eddn.py",
+      "monitor.py",
+      "companion.py"
+    ]
+  },
+  "schemas": {
+    "approachsettlement-v1.0.json": "e66a99522b40705712a225a21811b3639278a53ee18b36d96384c89dc193730b",
+    "codexentry-v1.0.json": "ca63292ffd95ca732fa3e553787cfe5593871eccaf038e5a7ffc313edb0b991b",
+    "commodity-v3.0.json": "315a3a8ba7a6c4d6f3e7cc272db5bee8fcfb3458049a04467774e39fae74209b",
+    "dockingdenied-v1.0.json": "c19a1239ed5d368759f12318605c0f82fcb9fb414a5ccbc624a6ccb1e42a5aa9",
+    "dockinggranted-v1.0.json": "67c2fa0f113915327e6ee4874908ef4765cdadc0ef00ea3f85978fcc28e75ba4",
+    "fcmaterials_journal-v1.0.json": "b5017a5f7f7d2022eea0d4e58dd34d6f0d2fe528f5700a24d9e9d6d3499cfa55",
+    "fssallbodiesfound-v1.0.json": "ccd1e0c376bad5e0676ec30d158639da40b7cd07beecb10f336c4e1ca2459fe2",
+    "fssbodysignals-v1.0.json": "103f1c15a49ab25120f772a5d5f5ab70e4c575d45bbd16a6e09df55100d4279d",
+    "fssdiscoveryscan-v1.0.json": "6fc9a06ecd15fb9cde44f1dd480a708707e510d34351163a3037639be210c176",
+    "fsssignaldiscovered-v1.0.json": "376a1dae079ce85c1b510ec9d9883321957b4e202c1f3bbb784107ba98f7e982",
+    "journal-v1.0.json": "5fe73b26eda01b219248b3de64ad84cebc77b262969f6271e9303c97afac5857",
+    "navbeaconscan-v1.0.json": "4d9f39a1650b684d736536158f7c2114a54f1f8dd3713c2bc75129d5976d47b6",
+    "navroute-v1.0.json": "9dbae6360779794f31cd2812f706966b34e859069bc67b058b53d6fe2abaaf8c",
+    "outfitting-v2.0.json": "6590d8ff496f3773de303d28bcf99cd8f553d560f919b01d5d1be72f726a7e43",
+    "scanbarycentre-v1.0.json": "ca4b1d2065f674f73fb17a6a82f36b88fc2e7272329a56823c73ad9f664546b3",
+    "shipyard-v2.0.json": "5234674fd56b7ee65c898d8a2c1bb10b25e4a06d414bbba2cdd07538f86e2f0e"
+  }
+}

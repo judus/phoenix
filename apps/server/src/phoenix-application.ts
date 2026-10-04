@@ -23,7 +23,7 @@ import {
   EliteDataDirectoryLocator,
   EliteInventoryFileSource,
   EliteJournalFileSource,
-  EliteStationSnapshotReader,
+  EliteJournalSnapshotReader,
   EliteJournalHistoryBackfill,
   EliteNavigationRouteFileSource,
   EliteStatusFileSource
@@ -355,6 +355,7 @@ export class PhoenixApplication {
       configuredEliteDirectory,
       status => {
         statusIngestion.ingest(status)
+        this.eddn.observeStatus(status)
       }
     )
     this.inventorySource = new EliteInventoryFileSource(
@@ -387,7 +388,7 @@ export class PhoenixApplication {
       options.systemSettingsRepository ?? new InMemorySystemSettingsRepository(),
       commandCatalogueChanges
     )
-    const stationSnapshots = new EliteStationSnapshotReader(configuredEliteDirectory)
+    const journalSnapshots = new EliteJournalSnapshotReader(configuredEliteDirectory)
     let eddnValidator: EddnSchemaValidator | undefined
     this.eddn = new EddnContributionService({
       mode: eddnMode(process.env.PHOENIX_EDDN_TEST_MODE),
@@ -396,7 +397,7 @@ export class PhoenixApplication {
       settings: systemSettings,
       transport: new EddnHttpTransport(),
       valid: message => (eddnValidator ??= new EddnSchemaValidator(resolve(paths.installRoot, 'resources/eddn'))).valid(message),
-      readSnapshot: event => stationSnapshots.read(event)
+      readSnapshot: event => journalSnapshots.read(event)
     })
     const openAiConfiguration = new OpenAiConfigurationService(
       options.openAiSecretRepository ?? new InMemoryOpenAiSecretRepository(),

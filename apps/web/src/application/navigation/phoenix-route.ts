@@ -54,7 +54,7 @@ export type PhoenixRoute =
   | { kind: 'numpad' }
   | { kind: 'macros' }
   | { kind: 'journal', view: 'commander' | 'credits' }
-  | { kind: 'developer', view: 'tools' | 'journal' }
+  | { kind: 'developer', view: 'tools' | 'journal' | 'eddn' }
   | { kind: 'settings', view: 'general' | 'pairing' | 'copilot' | 'help', topic?: string }
 
 export type PhoenixWorkspace =

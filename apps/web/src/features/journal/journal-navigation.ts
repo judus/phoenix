@@ -11,11 +11,12 @@ export const journalNavigationItems: JournalNavigationItem[] = [
 
 export const developerNavigationItems: JournalNavigationItem[] = [
   item('journal', 'Raw journal', 'JRN', { kind: 'developer', view: 'journal' }),
-  item('tools', 'Copilot tool injection', 'TLS', { kind: 'developer', view: 'tools' })
+  item('tools', 'Copilot tool injection', 'TLS', { kind: 'developer', view: 'tools' }),
+  item('eddn', 'EDDN submissions', 'EDDN', { kind: 'developer', view: 'eddn' })
 ]
 
 export function journalContext(route: PhoenixRoute): string {
-  if (route.kind === 'developer') return route.view === 'journal' ? 'journal' : 'tools'
+  if (route.kind === 'developer') return route.view
   if (route.kind === 'journal') return route.view
   return 'commander'
 }

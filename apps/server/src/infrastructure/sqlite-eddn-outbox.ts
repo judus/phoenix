@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite'
+import type { EddnSubmission, EddnSubmissionDetail } from '@phoenix/contracts'
 import { EDDN_MAX_AGE_MS, type EddnMessage, type EddnOutbox, type EddnPendingMessage } from '../domain/eddn.js'
 
 export class SqliteEddnOutbox implements EddnOutbox {
@@ -16,6 +17,12 @@ export class SqliteEddnOutbox implements EddnOutbox {
       CREATE INDEX IF NOT EXISTS eddn_outbox_due ON eddn_outbox(next_attempt);
       CREATE TABLE IF NOT EXISTS eddn_status (id INTEGER PRIMARY KEY CHECK(id = 1), last_success_at TEXT) STRICT;
       INSERT OR IGNORE INTO eddn_status(id) VALUES (1);
+      CREATE TABLE IF NOT EXISTS eddn_submissions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, observation_id TEXT NOT NULL,
+        document TEXT NOT NULL, started_at INTEGER NOT NULL, completed_at TEXT,
+        attempt INTEGER NOT NULL, outcome TEXT NOT NULL, http_status INTEGER, retry_at TEXT
+      ) STRICT;
+      UPDATE eddn_submissions SET outcome = 'interrupted' WHERE outcome = 'sending';
     `)
   }
 
@@ -67,14 +74,60 @@ export class SqliteEddnOutbox implements EddnOutbox {
   }
 
   public discard (id: string): void { this.connection.prepare('DELETE FROM eddn_outbox WHERE id = ?').run(id) }
-  public beginAttempt (id: string, nextAttempt: number): void {
-    this.connection.prepare('UPDATE eddn_outbox SET attempts = attempts + 1, next_attempt = ? WHERE id = ?').run(nextAttempt, id)
+  public beginAttempt (id: string, nextAttempt: number, now: number): number {
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      this.connection.prepare('UPDATE eddn_outbox SET attempts = attempts + 1, next_attempt = ? WHERE id = ?').run(nextAttempt, id)
+      const result = this.connection.prepare(`INSERT INTO eddn_submissions(observation_id, document, started_at, attempt, outcome)
+        SELECT id, document, ?, attempts, 'sending' FROM eddn_outbox WHERE id = ?`).run(now, id)
+      if (result.changes !== 1) throw new Error('Queued observation is missing.')
+      this.pruneSubmissions(now)
+      this.connection.exec('COMMIT')
+      return Number(result.lastInsertRowid)
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
+    }
+  }
+  public finishAttempt (id: number, outcome: Exclude<EddnSubmission['outcome'], 'sending'>, httpStatus: number | null, now: number, retryAt?: number): void {
+    this.connection.prepare('UPDATE eddn_submissions SET outcome = ?, http_status = ?, completed_at = ?, retry_at = ? WHERE id = ?')
+      .run(outcome, httpStatus, new Date(now).toISOString(), retryAt === undefined ? null : new Date(retryAt).toISOString(), id)
+  }
+  public submissions (now: number): EddnSubmission[] {
+    this.pruneSubmissions(now)
+    // Return summaries only; potentially large stock payloads are fetched on selection.
+    const rows = this.connection.prepare(`SELECT id, observation_id AS observationId, started_at AS startedAt,
+      completed_at AS completedAt, attempt, outcome, http_status AS httpStatus, retry_at AS retryAt,
+      json_extract(document, '$.$schemaRef') AS schemaRef,
+      json_extract(document, '$.message.event') AS event,
+      COALESCE(json_extract(document, '$.message.StarSystem'), json_extract(document, '$.message.systemName'),
+        json_extract(document, '$.message.SystemName'), json_extract(document, '$.message.System')) AS system,
+      COALESCE(json_extract(document, '$.message.StationName'), json_extract(document, '$.message.stationName'),
+        json_extract(document, '$.message.CarrierName')) AS station
+      FROM eddn_submissions ORDER BY id DESC`).all() as unknown as Array<Omit<EddnSubmission, 'startedAt'> & { startedAt: number }>
+    return rows.map(row => ({ ...row, startedAt: new Date(row.startedAt).toISOString() }))
+  }
+  public submission (id: number, now: number): EddnSubmissionDetail | undefined {
+    this.pruneSubmissions(now)
+    const row = this.connection.prepare('SELECT document FROM eddn_submissions WHERE id = ?').get(id) as { document: string } | undefined
+    return row ? { payload: JSON.parse(row.document) as Record<string, unknown> } : undefined
+  }
+  private pruneSubmissions (now: number): void {
+    this.connection.prepare('DELETE FROM eddn_submissions WHERE started_at <= ?').run(now - 7 * EDDN_MAX_AGE_MS)
+    this.connection.exec('DELETE FROM eddn_submissions WHERE id IN (SELECT id FROM eddn_submissions ORDER BY id DESC LIMIT -1 OFFSET 100)')
+    // The inner window preserves the newest contiguous history within a byte budget.
+    this.connection.exec(`DELETE FROM eddn_submissions WHERE id IN (
+      SELECT id FROM (
+        SELECT id, SUM(length(CAST(document AS BLOB))) OVER (ORDER BY id DESC) AS bytes FROM eddn_submissions
+      ) WHERE bytes > 16777216
+    )`)
   }
   public retry (id: string, nextAttempt: number): void {
     this.connection.prepare('UPDATE eddn_outbox SET next_attempt = ? WHERE id = ?').run(nextAttempt, id)
   }
   public clear (): void { this.connection.exec('DELETE FROM eddn_outbox') }
   public prune (now: number): void {
+    this.pruneSubmissions(now)
     // Delete explicitly as well: callers/tests need not enable SQLite foreign keys.
     this.connection.prepare('DELETE FROM eddn_outbox WHERE created_at <= ?').run(now - EDDN_MAX_AGE_MS)
     this.connection.prepare('DELETE FROM eddn_receipts WHERE created_at <= ?').run(now - EDDN_MAX_AGE_MS)

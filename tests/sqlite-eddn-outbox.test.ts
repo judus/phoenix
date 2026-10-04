@@ -18,12 +18,15 @@ test('pending data, retry reservations, receipts and acknowledgement survive dat
     let outbox = new SqliteEddnOutbox(connection)
     outbox.initialize()
     expect(outbox.enqueue('one', message, now)).toBe(true)
-    outbox.beginAttempt('one', now + 75_000)
+    outbox.beginAttempt('one', now + 75_000, now)
     connection.close()
     connection = new DatabaseSync(path)
     outbox = new SqliteEddnOutbox(connection)
     outbox.initialize()
     expect(outbox.next(now)).toBeUndefined()
+    const interrupted = outbox.submissions(now)[0]
+    expect(interrupted).toMatchObject({ outcome: 'interrupted', completedAt: null, httpStatus: null })
+    expect(outbox.submission(interrupted.id, now)?.payload).toEqual(message)
     expect(outbox.next(now + 75_000)).toMatchObject({ id: 'one', attempts: 1, message })
     outbox.acknowledge('one', now + 75_000)
     connection.close()
@@ -37,4 +40,50 @@ test('pending data, retry reservations, receipts and acknowledgement survive dat
     expect(outbox.status().queued).toBe(0)
     expect((connection.prepare('SELECT COUNT(*) AS count FROM eddn_receipts').get() as { count: number }).count).toBe(0)
   } finally { connection.close(); rmSync(directory, { recursive: true, force: true }) }
+})
+
+test('attempt history is newest-first, bounded, independent of pending uploads and expires', () => {
+  const connection = new DatabaseSync(':memory:')
+  const outbox = new SqliteEddnOutbox(connection)
+  const now = Date.parse('2026-10-04T18:00:00Z')
+  const message: EddnMessage = { $schemaRef: 'https://eddn.edcd.io/schemas/commodity/3/test',
+    header: { softwareName: 'PHOENIX', softwareVersion: '0.1.2', uploaderID: 'Test', gameversion: '4.0', gamebuild: 'r1' },
+    message: { systemName: 'Sol', stationName: 'Galileo', timestamp: new Date(now).toISOString(), commodities: [] } }
+  try {
+    outbox.initialize()
+    outbox.enqueue('stock', message, now)
+    let latest = 0
+    for (let index = 0; index < 105; index++) {
+      latest = outbox.beginAttempt('stock', now + 75_000, now)
+      outbox.finishAttempt(latest, 'retry', 503, now, now + 60_000)
+    }
+    outbox.clear()
+    const entries = outbox.submissions(now)
+    expect(entries).toHaveLength(100)
+    expect(entries[0]).toMatchObject({ id: latest, attempt: 105, system: 'Sol', station: 'Galileo', event: null })
+    expect(outbox.submission(1, now)).toBeUndefined()
+    expect(outbox.submission(latest, now)?.payload).toEqual(message)
+    expect(outbox.submissions(now + 7 * EDDN_MAX_AGE_MS)).toEqual([])
+    expect(outbox.submission(latest, now + 7 * EDDN_MAX_AGE_MS)).toBeUndefined()
+  } finally { connection.close() }
+})
+
+test('history byte budget retains the newest attempts and summaries support dedicated system fields', () => {
+  const connection = new DatabaseSync(':memory:')
+  const outbox = new SqliteEddnOutbox(connection)
+  const now = Date.parse('2026-10-04T18:00:00Z')
+  const message: EddnMessage = { $schemaRef: 'https://eddn.edcd.io/schemas/codexentry/1/test',
+    header: { softwareName: 'PHOENIX', softwareVersion: '0.1.3', uploaderID: 'Synthetic', gameversion: '4.0', gamebuild: '' },
+    message: { event: 'CodexEntry', System: 'Sol', timestamp: new Date(now).toISOString(), Name: 'a'.repeat(1024 * 1024) } }
+  try {
+    outbox.initialize()
+    outbox.enqueue('codex', message, now)
+    for (let i = 0; i < 20; i++) outbox.beginAttempt('codex', now + 60_000, now)
+    expect(outbox.submissions(now)).toHaveLength(15)
+    expect(outbox.submissions(now)[0]).toMatchObject({ system: 'Sol', attempt: 20 })
+    expect(outbox.submission(5, now)).toBeUndefined()
+    expect(outbox.submission(20, now)?.payload).toEqual(message)
+    const bytes = connection.prepare('SELECT SUM(length(CAST(document AS BLOB))) AS bytes FROM eddn_submissions').get() as { bytes: number }
+    expect(bytes.bytes).toBeLessThanOrEqual(16 * 1024 * 1024)
+  } finally { connection.close() }
 })

@@ -2,12 +2,12 @@ import { closeSync, fstatSync, openSync, readSync } from 'node:fs'
 import { join } from 'node:path'
 import type { EliteJournalEvent } from './elite-journal-file-source.js'
 
-/** Read only game-owned station snapshots, never provider/cache data. */
-export class EliteStationSnapshotReader {
+/** Read only journal-triggered game snapshots, never provider/cache data. */
+export class EliteJournalSnapshotReader {
   public constructor (private readonly directory: string | null) {}
 
   public read (event: EliteJournalEvent): Record<string, unknown> | undefined {
-    if (!this.directory || !['Market', 'Outfitting', 'Shipyard'].includes(event.event)) return undefined
+    if (!this.directory || !['Market', 'Outfitting', 'Shipyard', 'NavRoute', 'FCMaterials'].includes(event.event)) return undefined
     let file: number | undefined
     try {
       file = openSync(join(this.directory, `${event.event}.json`), 'r')
@@ -21,7 +21,7 @@ export class EliteStationSnapshotReader {
       if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return undefined
       return snapshot as Record<string, unknown>
     } catch {
-      // Missing, partial or replaced snapshots are not evidence of station stock.
+      // Missing, partial or replaced snapshots are not observation evidence.
       return undefined
     } finally {
       if (file !== undefined) closeSync(file)

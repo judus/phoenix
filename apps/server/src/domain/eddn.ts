@@ -1,4 +1,6 @@
-export type EddnSchema = 'journal' | 'commodity' | 'outfitting' | 'shipyard'
+import type { EddnSubmission, EddnSubmissionDetail } from '@phoenix/contracts'
+
+export type EddnSchema = keyof typeof EDDN_SCHEMA_VERSIONS
 export type EddnMode = 'unavailable' | 'test'
 
 // Live publishing requires a reviewed release change, not an environment switch.
@@ -6,9 +8,16 @@ export function eddnMode (testMode: string | undefined): EddnMode {
   return testMode === '1' ? 'test' : 'unavailable'
 }
 
-export const EDDN_SCHEMA_VERSIONS = { journal: 1, commodity: 3, outfitting: 2, shipyard: 2 } as const
+export const EDDN_SCHEMA_VERSIONS = {
+  journal: 1, commodity: 3, outfitting: 2, shipyard: 2,
+  fssdiscoveryscan: 1, navbeaconscan: 1, codexentry: 1, scanbarycentre: 1,
+  navroute: 1, fcmaterials_journal: 1, approachsettlement: 1,
+  fssallbodiesfound: 1, fssbodysignals: 1, fsssignaldiscovered: 1,
+  dockingdenied: 1, dockinggranted: 1
+} as const
 export const EDDN_MAX_AGE_MS = 24 * 60 * 60 * 1000
-export const EDDN_MAX_MESSAGE_BYTES = 128 * 1024
+// Long plotted routes and busy-system signal batches routinely exceed the initial 128 KiB cap.
+export const EDDN_MAX_MESSAGE_BYTES = 2 * 1024 * 1024
 export const EDDN_REQUEST_TIMEOUT_MS = 15_000
 
 export interface EddnMessage {
@@ -34,7 +43,10 @@ export interface EddnOutbox {
   next(now: number): EddnPendingMessage | undefined
   acknowledge(id: string, now: number): void
   discard(id: string): void
-  beginAttempt(id: string, retryAt: number): void
+  beginAttempt(id: string, retryAt: number, now: number): number
+  finishAttempt(id: number, outcome: Exclude<EddnSubmission['outcome'], 'sending'>, httpStatus: number | null, now: number, retryAt?: number): void
+  submissions(now: number): EddnSubmission[]
+  submission(id: number, now: number): EddnSubmissionDetail | undefined
   retry(id: string, nextAttempt: number): void
   clear(): void
   prune(now: number): void

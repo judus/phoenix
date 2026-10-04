@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { EddnMessageBuilder } from '../apps/server/src/domain/eddn-message-builder.js'
 import { EddnSchemaValidator } from '../apps/server/src/infrastructure/eddn-schema-validator.js'
+import { EDDN_MAX_MESSAGE_BYTES } from '../apps/server/src/domain/eddn.js'
 
 const validator = new EddnSchemaValidator('resources/eddn')
 const timestamp = '2026-10-04T18:00:00Z'
@@ -51,7 +52,7 @@ describe('EDDN message boundary', () => {
     for (const invalid of [{ timestamp: 'bad' }, { StarPos: [1, 2] }, { Wanted: true }]) {
       expect(validator.valid({ ...message, message: { ...message.message, ...invalid } })).toBe(false)
     }
-    expect(validator.valid({ ...message, message: { ...message.message, StarSystem: 'a'.repeat(140_000) } })).toBe(false)
+    expect(validator.valid({ ...message, message: { ...message.message, StarSystem: 'a'.repeat(EDDN_MAX_MESSAGE_BYTES) } })).toBe(false)
   })
 
   test('matches stock snapshots to the observed dock, event and timestamp', () => {

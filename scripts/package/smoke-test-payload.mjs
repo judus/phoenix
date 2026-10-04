@@ -98,6 +98,15 @@ try {
   if (!contributionResponse.ok || contribution.enabled !== true || contribution.mode !== 'unavailable' || contribution.queued !== 0) {
     throw new Error('Payload contribution preference or production release gate is incorrect.')
   }
+  const anonymousLog = await fetch(`http://127.0.0.1:${port}/api/developer/eddn`)
+  if (anonymousLog.status !== 401) throw new Error('Payload submission history is not protected by pairing.')
+  const logResponse = await fetch(`http://127.0.0.1:${port}/api/developer/eddn`, { headers: { cookie } })
+  const log = await logResponse.json()
+  if (!logResponse.ok || log.status.mode !== 'unavailable' || !Array.isArray(log.entries) || log.entries.length !== 0) {
+    throw new Error('Payload submission history is unavailable or contains unexpected attempts.')
+  }
+  const absentSubmission = await fetch(`http://127.0.0.1:${port}/api/developer/eddn/1`, { headers: { cookie } })
+  if (absentSubmission.status !== 404) throw new Error('Payload does not report an absent submission correctly.')
   const optOut = await fetch(`http://127.0.0.1:${port}/api/settings/eddn`, {
     method: 'PUT', headers: { cookie, 'content-type': 'application/json' }, body: JSON.stringify({ enabled: false })
   })

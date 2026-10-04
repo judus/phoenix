@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, test } from 'vitest'
-import { EliteStationSnapshotReader } from '@phoenix/elite'
+import { EliteJournalSnapshotReader } from '@phoenix/elite'
 import { EddnMessageBuilder } from '../apps/server/src/domain/eddn-message-builder.js'
 import { EddnSchemaValidator } from '../apps/server/src/infrastructure/eddn-schema-validator.js'
 
@@ -19,7 +19,7 @@ function builder () {
 
 test('snapshot reader limits size and event paths and refuses partial files', () => {
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-eddn-stock-'))
-  const reader = new EliteStationSnapshotReader(directory)
+  const reader = new EliteJournalSnapshotReader(directory)
   const event = { event: 'Market', timestamp, MarketID: 42 }
   try {
     expect(reader.read(event)).toBeUndefined()
@@ -30,7 +30,7 @@ test('snapshot reader limits size and event paths and refuses partial files', ()
     writeFileSync(join(directory, 'Market.json'), JSON.stringify({ ...dock, ...event, Items: [] }))
     expect(reader.read(event)).toMatchObject({ event: 'Market', MarketID: 42 })
     expect(reader.read({ ...event, event: '../Market' })).toBeUndefined()
-    expect(new EliteStationSnapshotReader(null).read(event)).toBeUndefined()
+    expect(new EliteJournalSnapshotReader(null).read(event)).toBeUndefined()
   } finally { rmSync(directory, { recursive: true, force: true }) }
 })
 
@@ -58,7 +58,7 @@ test('outfitting excludes cosmetics, personal unlocks and approach suite, and de
   ] }
   const message = builder().stock(event, snapshot)!
   expect(validator.valid(message)).toBe(true)
-  expect(message.message.modules).toEqual(['int_engine_size3_class5', 'int_buggybay_size2_class1'])
+  expect(message.message.modules).toEqual(['Int_buggybay_size2_class1', 'Int_engine_size3_class5'])
   expect(validator.valid(builder().stock(event, { ...snapshot, Items: [] })!)).toBe(false)
 })
 
@@ -68,5 +68,5 @@ test.each(['PriceList', 'Pricelist'])('shipyard reads journal %s and sends only 
     { ShipType: 'sidewinder', ShipPrice: 100, id: 7 }, { ShipType: 'sidewinder' }, { ShipType: 'adder' }
   ] })!
   expect(validator.valid(message)).toBe(true)
-  expect(message.message.ships).toEqual(['sidewinder', 'adder'])
+  expect(message.message.ships).toEqual(['adder', 'sidewinder'])
 })

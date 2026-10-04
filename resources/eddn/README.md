@@ -11,3 +11,8 @@ No runtime schema download. Review upstream documentation and tests when updatin
 
 Mapping code is PHOENIX's explicit allowlist implementation of the documented protocol;
 no EDMC or EliteDangerousCore source has been copied.
+
+Sixteen schemas are now pinned. `upstream.json` records the EDMC behavioural reference
+revision and SHA-256 hashes of each unmodified schema for future drift checks. It is
+maintenance metadata only; runtime never fetches upstream or loads this as executable policy.
+See `docs/eddn-parity.md` for coverage and the unresolved CAPI/acceptance gates.

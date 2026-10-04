@@ -40,5 +40,5 @@ test('LOG and DEV have independent top rail buttons and contextual pages', () =>
   expect(items.find(item => item.id === 'journal')).toMatchObject({ shortLabel: 'LOG', href: '#/log/commander' })
   expect(items.find(item => item.id === 'developer')).toMatchObject({ shortLabel: 'DEV', href: '#/developer/tools' })
   expect(journalNavigationItems.map(item => item.shortLabel)).toEqual(['CMD', 'CRD'])
-  expect(developerNavigationItems.map(item => item.shortLabel)).toEqual(['JRN', 'TLS'])
+  expect(developerNavigationItems.map(item => item.shortLabel)).toEqual(['JRN', 'TLS', 'EDDN'])
 })

@@ -27,6 +27,17 @@ errors must be investigated. Stop both fixture and diagnostic Chrome after the r
 This accelerated desktop-browser test does not prove physical-tablet stability. Re-test on the
 affected tablet during a sustained gameplay session before closing the reported lag/crash issue.
 
+## EDDN submission log
+
+For EDDN log layout and selection checks, use `--eddn-submissions` and open `#/developer/eddn`.
+This variant seeds 30 synthetic accepted/retry/rejected/interrupted attempts in a temporary
+SQLite database (removed on normal shutdown). It never sends them. All preview variants force
+EDDN delivery off regardless of the invoking environment's test-mode setting.
+
+```sh
+node --import tsx scripts/diagnostics/isolated-browser-preview.mjs --eddn-submissions
+```
+
 ## Live-update performance profile
 
 The separate profile measures unnecessary live-update work, not a crash diagnosis. Start the

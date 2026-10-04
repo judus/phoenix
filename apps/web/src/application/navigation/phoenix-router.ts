@@ -61,7 +61,7 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
   }
 
   if (section === 'developer') {
-    const view = rest[0] === 'journal' ? 'journal' : 'tools'
+    const view = oneOf(rest[0], ['journal', 'tools', 'eddn'] as const) ?? 'tools'
     return { kind: 'developer', view }
   }
 

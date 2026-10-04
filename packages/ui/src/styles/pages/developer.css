@@ -45,6 +45,8 @@
     min-block-size: 0;
     overflow: hidden;
 
+    &.single { grid-template-rows: minmax(0, 1fr); }
+
     > section {
       display: grid;
       grid-template-rows: max-content minmax(0, 1fr);

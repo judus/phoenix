@@ -1,5 +1,9 @@
 import {
   EddnStatusSchema,
+  EddnSubmissionLogSchema,
+  EddnSubmissionDetailSchema,
+  type EddnSubmissionLog,
+  type EddnSubmissionDetail,
   EddnSettingsUpdateSchema,
   type EddnStatus,
   type EddnSettingsUpdate,
@@ -267,6 +271,14 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getEddnStatus(signal?: AbortSignal): Promise<EddnStatus> {
     return this.#get('/api/settings/eddn', EddnStatusSchema, signal)
+  }
+
+  async getEddnSubmissions(signal?: AbortSignal): Promise<EddnSubmissionLog> {
+    return this.#get('/api/developer/eddn', EddnSubmissionLogSchema, signal)
+  }
+
+  async getEddnSubmission(id: number, signal?: AbortSignal): Promise<EddnSubmissionDetail> {
+    return this.#get(`/api/developer/eddn/${id}`, EddnSubmissionDetailSchema, signal)
   }
 
   async saveEddnSettings(settings: EddnSettingsUpdate): Promise<EddnStatus> {

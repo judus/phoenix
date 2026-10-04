@@ -173,7 +173,7 @@ export interface PhoenixHttpServerOptions {
   runtimeState: RuntimeStateReader
   runtimeStateUpdates: Subscribable<RuntimeState>
   systemSettings: SystemSettingsRepository
-  eddn: Pick<EddnContributionService, 'status' | 'setEnabled'>
+  eddn: Pick<EddnContributionService, 'status' | 'setEnabled' | 'submissionLog' | 'submission'>
   webPort?: number
   webRoot: string
 }
@@ -1052,6 +1052,18 @@ export class PhoenixHttpServer {
     const copilotConversationMatch = url.pathname.match(/^\/api\/copilot\/conversations\/([^/]+)$/u)
     if (request.method === 'GET' && copilotConversationMatch) {
       await this.handleCopilotHistory(response, decodeURIComponent(copilotConversationMatch[1]!))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/developer/eddn') {
+      this.writeJson(response, 200, this.options.eddn.submissionLog())
+      return
+    }
+
+    const eddnSubmission = /^\/api\/developer\/eddn\/(\d+)$/.exec(url.pathname)
+    if (request.method === 'GET' && eddnSubmission) {
+      const entry = this.options.eddn.submission(Number(eddnSubmission[1]))
+      this.writeJson(response, entry ? 200 : 404, entry ?? { error: { code: 'eddn_submission_not_found', message: 'This submission is no longer retained.' } })
       return
     }
 

@@ -1,6 +1,8 @@
 import type { CatalogueSuggestion, CatalogueSuggestionKind } from '@phoenix/contracts'
 import type {
   EddnStatus,
+  EddnSubmissionLog,
+  EddnSubmissionDetail,
   EddnSettingsUpdate,
   EngineeringExperimentalEffectsResponse,
   CopilotChatRequest,
@@ -188,6 +190,8 @@ export interface PhoenixApi {
   getHealth(signal?: AbortSignal): Promise<HealthResponse>
   getGeneralSettings(signal?: AbortSignal): Promise<GeneralSettings>
   getEddnStatus(signal?: AbortSignal): Promise<EddnStatus>
+  getEddnSubmissions(signal?: AbortSignal): Promise<EddnSubmissionLog>
+  getEddnSubmission(id: number, signal?: AbortSignal): Promise<EddnSubmissionDetail>
   saveEddnSettings(settings: EddnSettingsUpdate): Promise<EddnStatus>
   getCopilotSettings(signal?: AbortSignal): Promise<CopilotSettings>
   getCopilotToolDiagnostics(signal?: AbortSignal): Promise<CopilotToolDiagnosticsResponse>

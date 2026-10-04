@@ -54,7 +54,7 @@ export function CommunityDataSettings ({ api }: { api: PhoenixApi }) {
   return <Section title="Community data" description="Shared by every paired device. Enabled by default.">
     <SettingsList>
       <SettingRow title="Contribute observations to EDDN" scope="Installation"
-        description="Share observed systems, scans and station stock with community databases, including location, observation time, commander uploader ID and game/app versions. Personal journal fields are filtered out. Turning this off clears pending uploads; transmitted data cannot be recalled.">
+        description="Share observed systems, scans, signals, Codex discoveries, plotted routes and station stock with community databases, including location, observation time, commander uploader ID and game/app versions. Personal journal fields are filtered out. Turning this off clears pending uploads; transmitted data cannot be recalled.">
         <SettingToggle checked={status?.enabled ?? true} disabled={!status || pending} label={status?.enabled === false ? 'Off' : 'On'} onChange={() => void save()} />
       </SettingRow>
       {status && <SettingRow title="Contribution status" description={status.detail}>

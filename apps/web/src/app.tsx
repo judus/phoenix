@@ -52,6 +52,7 @@ const CopilotFeature = lazy(() => import('./features/copilot/copilot-feature.js'
 const CreditsPage = lazy(() => import('./features/journal/credits-page.js').then(module => ({ default: module.CreditsPage })))
 const DashboardPage = lazy(() => import('./features/dashboard/dashboard-page.js').then(module => ({ default: module.DashboardPage })))
 const DeveloperPage = lazy(() => import('./features/journal/developer-page.js').then(module => ({ default: module.DeveloperPage })))
+const EddnPage = lazy(() => import('./features/journal/eddn-page.js').then(module => ({ default: module.EddnPage })))
 const EngineeringPage = lazy(() => import('./features/engineering/engineering-page.js').then(module => ({ default: module.EngineeringPage })))
 const EquipmentPage = lazy(() => import('./features/equipment/equipment-page.js').then(module => ({ default: module.EquipmentPage })))
 const EquipmentMaterialsPage = lazy(() => import('./features/equipment/equipment-materials-page.js').then(module => ({ default: module.EquipmentMaterialsPage })))
@@ -128,7 +129,7 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
               : <CommanderLogPage api={application.api} events={application.events} />}</FeatureBoundary>
         : null}
       developer={activeDesktop === 'developer'
-        ? <FeatureBoundary>{logRoute?.view === 'journal' ? <JournalFeature application={application} /> : <DeveloperPage api={application.api} />}</FeatureBoundary>
+        ? <FeatureBoundary>{logRoute?.view === 'journal' ? <JournalFeature application={application} /> : logRoute?.view === 'eddn' ? <EddnPage api={application.api} /> : <DeveloperPage api={application.api} />}</FeatureBoundary>
         : null}
       developerContextItems={developerNavigationItems}
       developerCurrentContext={journalContext(route)}

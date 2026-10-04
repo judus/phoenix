@@ -1,8 +1,11 @@
 import { request as httpsRequest } from 'node:https'
 import { request as httpRequest } from 'node:http'
+import { gzip } from 'node:zlib'
+import { promisify } from 'node:util'
 import { EDDN_REQUEST_TIMEOUT_MS, type EddnMessage, type EddnTransport } from '../domain/eddn.js'
 
 const UPLOAD_URL = 'https://eddn.edcd.io:4430/upload/'
+const compress = promisify(gzip)
 
 export class EddnHttpTransport implements EddnTransport {
   private readonly endpoint: URL
@@ -14,14 +17,17 @@ export class EddnHttpTransport implements EddnTransport {
     }
   }
 
-  public send (message: EddnMessage, signal: AbortSignal): Promise<{ status: number }> {
-    if (!message.$schemaRef.endsWith('/test')) return Promise.reject(new Error('Production EDDN publishing is not enabled in this build.'))
-    const body = JSON.stringify(message)
+  public async send (message: EddnMessage, signal: AbortSignal): Promise<{ status: number }> {
+    if (!message.$schemaRef.endsWith('/test')) throw new Error('Production EDDN publishing is not enabled in this build.')
+    signal.throwIfAborted()
+    const body = await compress(JSON.stringify(message))
+    signal.throwIfAborted()
     return new Promise((resolve, reject) => {
       const request = this.endpoint.protocol === 'https:' ? httpsRequest : httpRequest
       const pending = request(this.endpoint, {
         method: 'POST', signal: AbortSignal.any([signal, AbortSignal.timeout(EDDN_REQUEST_TIMEOUT_MS)]),
-        headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(body) }
+        headers: { 'content-type': 'application/json', 'content-encoding': 'gzip', 'content-length': body.length,
+          'user-agent': `PHOENIX/${message.header.softwareVersion}` }
       }, response => {
         // Do not retain or expose remote response bodies (which may echo observations).
         response.destroy()
