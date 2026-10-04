@@ -30,6 +30,21 @@ redistribution requires separate written permission from the Control Deck copyri
 Source checkouts carry the complete runtime licence and its third-party notices inside the vendored
 runtime package. Installed payloads expose copies under `licenses/`.
 
+## Linux AppImage components
+
+PHOENIX's Linux tray uses `dbus-native` 0.15.2 (MIT) and its dependencies. Their complete licence
+texts are shipped in `licenses/Control-Deck-Third-Party-Notices.md`, since the same libraries are
+also included in the embedded runtime. The tray implementation itself belongs to PHOENIX.
+
+PHOENIX AppImages also embed a separately versioned, unmodified Control Deck Wayland keymap
+reader under the same PHOENIX Runtime Licence; see `vendor/control-deck/README.md` for provenance.
+The standalone Control Deck application and launcher are not included.
+
+The AppImage type-2 runtime (revision `caf24f9f712084686bfc24a70b75e50df0aefb9c`) and
+xdotool/libxdo 3.20160805.1-4 retain their own licences. Complete upstream notices are included
+in `licenses/AppImage-THIRD-PARTY-NOTICES.md`; URLs and binary/runtime hashes are pinned in
+`scripts/package/appimage-resources.json`. The build tool itself is not part of the shipped image.
+
 ## IBM Plex Sans font
 
 PHOENIX bundles the IBM Plex Sans variable font by IBM Corp. IBM Plex Sans is licensed under the SIL Open Font License, Version 1.1. The copyright notice and complete license are included in `licenses/IBMPlexSans-OFL.txt`.

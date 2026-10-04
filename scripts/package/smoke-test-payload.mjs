@@ -1,9 +1,10 @@
-import { spawn } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, chmodSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { PERSONAL_EQUIPMENT_SOURCE } from '../catalogue/build-personal-equipment-catalogue.mjs'
 
 const projectRoot = fileURLToPath(new URL('../../', import.meta.url))
 const payloadRoot = process.env.PHOENIX_PAYLOAD_ROOT
@@ -23,18 +24,39 @@ const dataRoot = process.platform === 'win32'
 const launcherStateRoot = process.platform === 'win32'
   ? resolve(windowsUserRoot, 'Logs')
   : resolve(userRoot, 'state/phoenix/logs')
+const liveCatalogue = process.env.PHOENIX_SMOKE_LIVE_CATALOGUE === '1'
 let child
 
 try {
   cpSync(payloadRoot, installRoot, { recursive: true })
   makeReadOnly(installRoot)
+  // Run the actual packaged worker, not its source equivalent. A fresh snapshot
+  // keeps this gate offline while still loading every bundled dependency.
+  const catalogueProbe = resolve(temporaryRoot, 'catalogue-probe')
+  cpSync(resolve(projectRoot, 'tests/fixtures/catalogue'), catalogueProbe, { recursive: true })
+  writeFileSync(resolve(catalogueProbe, 'manifest.json'), JSON.stringify({
+    schemaVersion: 6, checkedAt: new Date().toISOString(),
+    sources: { personalEquipment: PERSONAL_EQUIPMENT_SOURCE.revision }
+  }))
+  const refreshOutput = execFileSync(resolve(installRoot, 'runtime', runtimeName), [
+    resolve(installRoot, 'scripts/catalogue/refresh.mjs'), '--output', catalogueProbe
+  ], { cwd: temporaryRoot, encoding: 'utf8', timeout: 15_000 })
+  if (!refreshOutput.includes('Catalogue check skipped;')) throw new Error('Packaged catalogue worker did not accept the fresh snapshot.')
+  console.log('Payload smoke: packaged catalogue worker dependency loading passed.')
+  if (liveCatalogue) {
+    // Reproduce an upgrade from an old installation, never the player's data.
+    const legacyCatalogue = resolve(dataRoot, 'runtime/catalogue')
+    mkdirSync(legacyCatalogue, { recursive: true })
+    writeFileSync(resolve(legacyCatalogue, 'manifest.json'), JSON.stringify({ schemaVersion: 1 }))
+    console.log('Payload smoke: live catalogue upgrade enabled (downloads community catalogues).')
+  }
   const port = await availablePort()
   const nativeLauncher = process.env.PHOENIX_SMOKE_LAUNCHER
     ? resolve(process.env.PHOENIX_SMOKE_LAUNCHER)
     : null
   const launcherRuntime = nativeLauncher ?? resolve(installRoot, 'runtime', runtimeName)
   const launcherScript = resolve(installRoot, 'scripts/package/launcher.mjs')
-  const launcherArguments = nativeLauncher ? ['--non-interactive'] : [launcherScript]
+  const launcherArguments = nativeLauncher ? ['--non-interactive'] : [launcherScript, '--non-interactive']
   // Never inherit developer path overrides, provider credentials, or real Elite inputs.
   const inheritedEnvironment = Object.fromEntries(Object.entries(process.env).filter(([name]) => (
     !name.startsWith('PHOENIX_') && !name.startsWith('OPENAI_')
@@ -44,7 +66,7 @@ try {
   const launcherEnvironment = {
     ...inheritedEnvironment,
     LOCALAPPDATA: resolve(userRoot, 'local-app-data'),
-    PHOENIX_CATALOGUE_REFRESH: 'false',
+    PHOENIX_CATALOGUE_REFRESH: liveCatalogue ? 'true' : 'false',
     PHOENIX_HOST: '127.0.0.1',
     PHOENIX_ELITE_DIRECTORY: eliteRoot,
     PHOENIX_ELITE_BINDINGS_DIRECTORY: eliteRoot,
@@ -61,6 +83,13 @@ try {
   const output = startLauncher()
   const response = await waitForServer(`http://127.0.0.1:${port}/api/pairing/status`, child, output)
   if (response.status !== 200) throw new Error(`Payload health probe returned ${response.status}.`)
+  if (liveCatalogue) {
+    const upgraded = JSON.parse(readFileSync(resolve(dataRoot, 'runtime/catalogue/manifest.json'), 'utf8'))
+    if (upgraded.schemaVersion !== 6 || !existsSync(resolve(dataRoot, 'runtime/catalogue/personal-equipment.json'))) {
+      throw new Error('Installed startup did not upgrade the legacy catalogue.')
+    }
+    console.log('Payload smoke: installed startup upgraded schema-1 catalogue to schema 6.')
+  }
 
   const duplicate = spawn(launcherRuntime, launcherArguments, { cwd: installRoot, env: launcherEnvironment, stdio: 'ignore' })
   const duplicateExit = await waitForExit(duplicate, 5_000, 'duplicate launch')
@@ -212,7 +241,7 @@ async function availablePort () {
 }
 
 async function waitForServer (url, process, output) {
-  const deadline = Date.now() + 15_000
+  const deadline = Date.now() + (liveCatalogue ? 60_000 : 15_000)
   while (Date.now() < deadline) {
     if (process.exitCode !== null) throw new Error(`Payload exited during startup (${process.exitCode}).\n${output.join('')}`)
     try {
