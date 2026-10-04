@@ -72,6 +72,97 @@ test('missing journal position never becomes a fabricated Sol position', async (
   await act(async () => renderer.unmount())
 })
 
+test('marker taps keep their native target and do not move the camera before a drag', async () => {
+  let renderer: ReturnType<typeof create>
+  await act(async () => {
+    renderer = create(<GalacticAtlas bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={null} showBookmarks systemName={null} />)
+  })
+  const viewport = () => renderer.root.findByProps({ className: 'atlas-viewport' })
+  const transform = () => renderer.root.findAllByType('g')[0].props.transform
+  const marker = renderer.root.findAllByProps({ role: 'button' }).find(node => node.props['aria-label'] === 'Colonia')!
+  const target = { setPointerCapture: vi.fn() }
+  const element = { getBoundingClientRect: () => ({ left: 0, top: 0 }), setPointerCapture: vi.fn() }
+  const event = (x: number) => ({ pointerId: 1, pointerType: 'touch', button: 0, clientX: x, clientY: 100, currentTarget: element, target })
+  const original = transform()
+  await act(async () => viewport().props.onPointerDown(event(100)))
+  await act(async () => viewport().props.onPointerMove(event(103)))
+  await act(async () => viewport().props.onPointerUp(event(103)))
+  const click = { detail: 1, preventDefault: vi.fn(), stopPropagation: vi.fn() }
+  viewport().props.onClickCapture(click)
+  expect(click.stopPropagation).not.toHaveBeenCalled()
+  expect(element.setPointerCapture).not.toHaveBeenCalled()
+  expect(target.setPointerCapture).not.toHaveBeenCalled()
+  expect(transform()).toBe(original)
+  await act(async () => marker.props.onClick())
+  expect(renderer.root.findByProps({ 'aria-label': 'Selected atlas location' }).findByType('strong').children).toEqual(['Colonia'])
+  await act(async () => renderer.unmount())
+})
+
+test('drag capture stays on the viewport when markers disappear and clears after capture loss', async () => {
+  let renderer: ReturnType<typeof create>
+  await act(async () => {
+    renderer = create(<GalacticAtlas bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={null} showBookmarks systemName={null} />)
+  })
+  const viewport = () => renderer.root.findByProps({ className: 'atlas-viewport' })
+  const transform = () => renderer.root.findAllByType('g')[0].props.transform
+  const target = { setPointerCapture: vi.fn() }
+  const element = { getBoundingClientRect: () => ({ left: 0, top: 0 }), setPointerCapture: vi.fn() }
+  const event = (x: number, pointerId = 1) => ({ pointerId, pointerType: 'mouse', button: 0, clientX: x, clientY: 100, currentTarget: element, target })
+  await act(async () => viewport().props.onPointerDown(event(100)))
+  await act(async () => viewport().props.onPointerMove(event(1800)))
+  expect(element.setPointerCapture).toHaveBeenCalledWith(1)
+  expect(target.setPointerCapture).not.toHaveBeenCalled()
+  expect(renderer.root.findAllByProps({ role: 'button' })).toHaveLength(0)
+  const dragged = transform()
+  // Losing a child's implicit capture while transferring it must not end the gesture.
+  await act(async () => viewport().props.onLostPointerCapture(event(1800)))
+  await act(async () => viewport().props.onPointerMove(event(1850)))
+  expect(transform()).not.toBe(dragged)
+  const continued = transform()
+  await act(async () => viewport().props.onLostPointerCapture({ ...event(1850), target: element }))
+  await act(async () => viewport().props.onPointerMove(event(1900)))
+  expect(transform()).toBe(continued)
+  const click = { detail: 1, preventDefault: vi.fn(), stopPropagation: vi.fn() }
+  viewport().props.onClickCapture(click)
+  expect(click.stopPropagation).toHaveBeenCalledOnce()
+  await act(async () => viewport().props.onPointerDown(event(100, 2)))
+  await act(async () => viewport().props.onPointerMove(event(150, 2)))
+  expect(transform()).not.toBe(continued)
+  await act(async () => renderer.unmount())
+})
+
+test('pinch captures both pointers on the viewport and remaining fingers continue to pan', async () => {
+  let renderer: ReturnType<typeof create>
+  await act(async () => {
+    renderer = create(<GalacticAtlas bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={null} showBookmarks systemName={null} />)
+  })
+  const viewport = () => renderer.root.findByProps({ className: 'atlas-viewport' })
+  const transform = () => renderer.root.findAllByType('g')[0].props.transform as string
+  const element = { getBoundingClientRect: () => ({ left: 0, top: 0 }), setPointerCapture: vi.fn() }
+  const target = { setPointerCapture: vi.fn() }
+  const event = (pointerId: number, x: number) => ({ pointerId, pointerType: 'touch', button: 0, clientX: x, clientY: 100, currentTarget: element, target })
+  const original = transform()
+  await act(async () => viewport().props.onPointerDown(event(1, 100)))
+  await act(async () => viewport().props.onPointerDown(event(2, 200)))
+  expect(element.setPointerCapture.mock.calls).toEqual([[1], [2]])
+  await act(async () => viewport().props.onPointerMove(event(1, 80)))
+  const pinched = transform()
+  expect(pinched).not.toBe(original)
+  const scale = pinched.match(/scale\(([^)]+)\)/)![1]
+  await act(async () => viewport().props.onPointerUp(event(2, 200)))
+  await act(async () => viewport().props.onPointerMove(event(1, 60)))
+  expect(transform()).not.toBe(pinched)
+  expect(transform()).toContain(`scale(${scale})`)
+  await act(async () => viewport().props.onPointerCancel(event(1, 60)))
+  await act(async () => viewport().props.onPointerDown(event(3, 100)))
+  await act(async () => viewport().props.onPointerMove(event(3, 130)))
+  expect(transform()).toContain(`scale(${scale})`)
+  const keyboardClick = { detail: 0, preventDefault: vi.fn(), stopPropagation: vi.fn() }
+  viewport().props.onClickCapture(keyboardClick)
+  expect(keyboardClick.stopPropagation).not.toHaveBeenCalled()
+  await act(async () => renderer.unmount())
+})
+
 test('bookmarks deduplicate system lookups, preserve station/body targets and report missing coordinates', async () => {
   const bookmark = (id: string, target: object) => ({ id, target, tags: [], note: null, createdAt: '', updatedAt: '' })
   const api = {

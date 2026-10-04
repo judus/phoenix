@@ -4,6 +4,7 @@ import type {
   OutfittingSearchSource
 } from '../domain/station-market.js'
 import type { SpanshSearchGateway } from './spansh-search-client.js'
+import { searchSpanshStations } from './spansh-station-search.js'
 import {
   sameSpanshName,
   spanshInteger,
@@ -35,14 +36,13 @@ export class SpanshOutfittingSearchSource implements OutfittingSearchSource {
     if (request.moduleRating !== null) moduleFilter.rating = [request.moduleRating]
     const filters: Record<string, unknown> = {
       distance: { max: String(request.maxDistanceLy), min: 0 },
-      modules: moduleFilter
+      modules: moduleFilter,
+      outfitting_updated_at: { comparison: '<=>', value: [request.reportedAfter, request.reportedBefore] }
     }
-    if (request.minimumPadSize === 3) filters.has_large_pad = { value: true }
-
-    const candidates = await this.spansh.search('stations', {
+    const candidates = await searchSpanshStations(this.spansh, {
       filters,
       referencePosition: request.referencePosition
-    })
+    }, request.minimumPadSize)
     return candidates.flatMap(candidate => mapStation(candidate, request))
   }
 }

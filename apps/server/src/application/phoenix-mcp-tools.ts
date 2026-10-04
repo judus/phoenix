@@ -45,6 +45,7 @@ import type { CommunicationDataReader } from '../domain/communications.js'
 import type { FleetDataReader } from '../domain/fleet.js'
 import type { WebSearchSource } from '../domain/web-search.js'
 import type { PersonalEquipmentReportReader } from '../domain/personal-equipment-report.js'
+import { withToolErrorBoundary } from './mcp-tools/tool-error-boundary.js'
 
 export interface PhoenixMcpToolDependencies {
   commands: Commands
@@ -111,5 +112,5 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new SystemsGetDetailsTool(dependencies.systems),
     new SystemsSearchTool(dependencies.systemSearch),
     new WebSearchTool(dependencies.webSearch)
-  ]
+  ].map(withToolErrorBoundary)
 }

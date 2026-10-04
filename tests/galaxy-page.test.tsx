@@ -1,4 +1,5 @@
 import { act, create } from 'react-test-renderer'
+import { StrictMode } from 'react'
 import { createEmptyRuntimeState, type CartographicSystem } from '@phoenix/contracts'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
@@ -8,6 +9,94 @@ import { GalaxyQuerySessionStore } from '../apps/web/src/features/galaxy/galaxy-
 import { galaxyContextForRoute, galaxyNavigationItems } from '../apps/web/src/features/galaxy/galaxy-navigation.js'
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
+
+test.each(['edit', 'reset', 'unmount'] as const)('a delayed query cannot overwrite a later %s', async action => {
+  let resolve!: (value: Awaited<ReturnType<PhoenixApi['findGalaxySystems']>>) => void
+  const findGalaxySystems = vi.fn(() => new Promise<Awaited<ReturnType<PhoenixApi['findGalaxySystems']>>>(done => { resolve = done }))
+  const state = createEmptyRuntimeState()
+  state.system.name = 'Sol'
+  const sessions = new GalaxyQuerySessionStore()
+  let renderer!: ReturnType<typeof create>
+  await act(async () => { renderer = create(<GalaxyPage
+    api={{ findGalaxySystems } as unknown as PhoenixApi}
+    controller={{ status: 'idle' }} onNavigate={vi.fn()} querySessions={sessions}
+    route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'system-search' }}
+    runtime={{ state, status: 'ready' }}
+  />) })
+  await act(async () => renderer.root.findByProps({ id: 'query-origin' }).props.onChange({ target: { value: 'Colonia' } }))
+  await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+  if (action === 'edit') await act(async () => renderer.root.findByProps({ id: 'query-origin' }).props.onChange({ target: { value: 'Achenar' } }))
+  if (action === 'reset') await act(async () => renderer.root.findAllByType('button').find(button => button.props.children === 'Reset query')!.props.onClick())
+  if (action === 'unmount') await act(async () => renderer.unmount())
+  const retained = sessions.get('system-search')
+  await act(async () => resolve(emptySystemQueryResult('Colonia')))
+  expect(sessions.get('system-search')).toEqual(retained)
+  expect(sessions.get('system-search')?.result).toBeUndefined()
+  if (action !== 'unmount') {
+    expect(renderer.root.findAllByType('form')).toHaveLength(1)
+    expect(renderer.root.findByProps({ id: 'query-origin' }).props.value).toBe(action === 'edit' ? 'Achenar' : '')
+    await act(async () => renderer.unmount())
+  }
+})
+
+test('an obsolete failure cannot finish or replace a newer query', async () => {
+  let rejectOld!: (cause: Error) => void
+  let resolveNew!: (value: Awaited<ReturnType<PhoenixApi['findGalaxySystems']>>) => void
+  const findGalaxySystems = vi.fn()
+    .mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectOld = reject }))
+    .mockImplementationOnce(() => new Promise(resolve => { resolveNew = resolve }))
+  const state = createEmptyRuntimeState()
+  state.system.name = 'Sol'
+  const sessions = new GalaxyQuerySessionStore()
+  let renderer!: ReturnType<typeof create>
+  await act(async () => { renderer = create(<GalaxyPage
+    api={{ findGalaxySystems } as unknown as PhoenixApi}
+    controller={{ status: 'idle' }} onNavigate={vi.fn()} querySessions={sessions}
+    route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'system-search' }}
+    runtime={{ state, status: 'ready' }}
+  />) })
+  const submit = () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} })
+  await act(async () => submit())
+  await act(async () => renderer.root.findByProps({ id: 'query-origin' }).props.onChange({ target: { value: 'Colonia' } }))
+  await act(async () => submit())
+  await act(async () => rejectOld(new Error('Obsolete provider failure')))
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('Obsolete provider failure')
+  expect(renderer.root.findByProps({ type: 'submit' }).props.disabled).toBe(true)
+  await act(async () => resolveNew(emptySystemQueryResult('Colonia')))
+  expect(sessions.get('system-search')).toMatchObject({ values: { origin: 'Colonia' }, result: { value: { originSystem: 'Colonia' } } })
+  expect(renderer.root.findAllByType('form')).toHaveLength(0)
+  await act(async () => renderer.unmount())
+})
+
+function emptySystemQueryResult (originSystem: string): Awaited<ReturnType<PhoenixApi['findGalaxySystems']>> {
+  return {
+    cache: 'fresh',
+    filters: { allegiance: null, economy: null, government: null, maxDistanceLy: 100, maxPopulation: null, minPopulation: null, population: 'any', security: null },
+    originSystem,
+    systems: []
+  }
+}
+
+test('automatic saved queries survive StrictMode effect replay', async () => {
+  const savedQuery = {
+    id: '00000000-0000-4000-8000-000000000003', name: 'Nearest systems',
+    createdAt: '2026-09-11T10:00:00.000Z', updatedAt: '2026-09-11T10:00:00.000Z',
+    parameters: { origin: 'Sol', originMode: 'fixed' }, queryId: 'system-search', schemaVersion: 2, useOnDashboard: false
+  }
+  const findGalaxySystems = vi.fn().mockResolvedValue(emptySystemQueryResult('Sol'))
+  const sessions = new GalaxyQuerySessionStore()
+  let renderer!: ReturnType<typeof create>
+  await act(async () => { renderer = create(<StrictMode><GalaxyPage
+    api={{ findGalaxySystems, getSavedGalaxyQueries: async () => ({ queries: [savedQuery] }) } as unknown as PhoenixApi}
+    controller={{ status: 'idle' }} onNavigate={vi.fn()} querySessions={sessions}
+    route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'system-search', savedQueryId: savedQuery.id, savedQueryRunId: 'strict-mode-run' }}
+    runtime={{ state: createEmptyRuntimeState(), status: 'ready' }}
+  /></StrictMode>) })
+  expect(findGalaxySystems).toHaveBeenCalledTimes(1)
+  expect(sessions.get(savedQuery.id)?.result?.value.originSystem).toBe('Sol')
+  expect(renderer.root.findAllByType('form')).toHaveLength(0)
+  await act(async () => renderer.unmount())
+})
 
 test.each([undefined, 'yes', 'no'])('commodity markets restores carrier preference %s and allows changing it', async fleetCarriers => {
   const savedQuery = {

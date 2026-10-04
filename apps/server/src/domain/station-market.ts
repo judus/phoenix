@@ -104,6 +104,8 @@ export interface OutfittingSearchRequest extends OutfittingModuleSpec {
   maxDistanceLy: number
   minimumPadSize: number | null
   referencePosition: [number, number, number]
+  reportedAfter: string
+  reportedBefore: string
 }
 
 export interface NearestStationRequest {

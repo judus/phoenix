@@ -5,6 +5,7 @@ import type {
   StationLookupSource
 } from '../domain/station-market.js'
 import type { SpanshSearchGateway } from './spansh-search-client.js'
+import { searchSpanshStations } from './spansh-station-search.js'
 import { spanshIsoString, spanshNames, spanshStationRecord, spanshString } from './spansh-station-record.js'
 
 const ORBITAL_TYPES = [
@@ -37,12 +38,10 @@ export class SpanshStationLookupSource implements StationLookupSource {
     if (request.maxDistanceLy !== null) filters.distance = { max: String(request.maxDistanceLy), min: 0 }
     const stationTypes = providerTypes(request.stationType)
     if (stationTypes) filters.type = { value: stationTypes }
-    if (request.minimumPadSize === 3) filters.has_large_pad = { value: true }
-
-    const candidates = await this.spansh.search('stations', {
+    const candidates = await searchSpanshStations(this.spansh, {
       filters,
       referencePosition: request.referencePosition
-    })
+    }, request.minimumPadSize)
     return candidates.flatMap(candidate => mapStation(candidate, request))
   }
 }

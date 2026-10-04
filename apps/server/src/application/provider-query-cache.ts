@@ -24,10 +24,10 @@ export class ProviderQueryCache {
     if (existing && validate(existing.value) && this.now().getTime() - Date.parse(existing.fetchedAt) <= maxAgeMs) {
       return { cache: 'fresh', value: existing.value }
     }
-    const inFlightKey = `${namespace}:${key}`
+    const inFlightKey = JSON.stringify([namespace, key])
     const active = this.inFlight.get(inFlightKey)
     try {
-      const value = active ? await active : await this.refresh(inFlightKey, load)
+      const value = active ? await active : await this.refresh(namespace, key, inFlightKey, load, validate)
       if (!validate(value)) throw new Error(`Invalid cached provider response for ${namespace}.`)
       return { cache: 'refreshed', value }
     } catch (cause) {
@@ -36,13 +36,20 @@ export class ProviderQueryCache {
     }
   }
 
-  private refresh<T> (key: string, load: () => Promise<T>): Promise<T> {
-    const request = load().then(value => {
-      const [namespace, ...parts] = key.split(':')
-      this.cache.putProviderResponse(namespace!, parts.join(':'), this.now().toISOString(), value)
+  private refresh<T> (
+    namespace: string,
+    key: string,
+    inFlightKey: string,
+    load: () => Promise<T>,
+    validate: (candidate: unknown) => candidate is T
+  ): Promise<T> {
+    const request = Promise.resolve().then(load).then(value => {
+      // Preserve the last good response when a provider returns malformed data.
+      if (!validate(value)) throw new Error(`Invalid cached provider response for ${namespace}.`)
+      this.cache.putProviderResponse(namespace, key, this.now().toISOString(), value)
       return value
-    }).finally(() => this.inFlight.delete(key))
-    this.inFlight.set(key, request)
+    }).finally(() => this.inFlight.delete(inFlightKey))
+    this.inFlight.set(inFlightKey, request)
     return request
   }
 }

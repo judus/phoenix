@@ -72,8 +72,43 @@ test('route clearing during the final jump still allows arrival, but jump cancel
   tracker.runtimeChanged(state('Alioth', null, true))
   tracker.routeChanged(route())
   tracker.runtimeChanged(state('Alioth', null, false))
+  tracker.runtimeChanged(state('Alioth', null, true))
   tracker.runtimeChanged(state('Achenar'))
   expect(commands).toHaveLength(1)
+})
+
+test('a late journal arrival still completes after the status jump flag clears', () => {
+  const { tracker, commands } = fixture(state('Sol', null, true))
+  tracker.routeChanged(route('Sol', 'Alioth'))
+  tracker.routeChanged(route())
+  tracker.runtimeChanged(state('Sol', null, false))
+  tracker.runtimeChanged(state('Sol', null, false))
+  expect(commands).toHaveLength(0)
+  tracker.runtimeChanged(state('Alioth'))
+  tracker.runtimeChanged(state('Alioth'))
+  expect(commands).toHaveLength(1)
+})
+
+test('journal hyperspace entry cancels a pending cleared journey even with stale status', () => {
+  const { tracker, commands } = fixture(state('Sol', null, true))
+  tracker.routeChanged(route('Sol', 'Alioth'))
+  tracker.routeChanged(route())
+  tracker.runtimeChanged(state('Sol'))
+  const nextJump = state('Sol')
+  nextJump.location.state = 'hyperspace'
+  tracker.runtimeChanged(nextJump)
+  tracker.runtimeChanged(state('Alioth'))
+  expect(commands).toHaveLength(0)
+})
+
+test('an arrival at another system consumes a cleared route without opening a later destination', () => {
+  const { tracker, commands } = fixture(state('Sol', null, true))
+  tracker.routeChanged(route('Sol', 'Alioth'))
+  tracker.routeChanged(route())
+  tracker.runtimeChanged(state('Sol'))
+  tracker.runtimeChanged(state('Achenar'))
+  tracker.runtimeChanged(state('Alioth'))
+  expect(commands).toHaveLength(0)
 })
 
 test('system address takes precedence; names are a case-insensitive fallback', () => {

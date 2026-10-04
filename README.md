@@ -30,7 +30,8 @@ other browsers, and other devices still need broader testing.
 
 - **Customizable control deck:** remotely control the ship and Elite Dangerous interface using the
   commander's real bindings. Arrange commands freely, record reusable macros, and keep dangerous
-  actions visibly distinct.
+  actions visibly distinct. Build a Quick access deck from internal pages, saved queries, and
+  bookmarked locations alongside game commands.
 - **Commander dashboard and records:** keep the current location, ship, plotted route, engineering
   material watchlist, local market signals, notable journal events, and system traffic together.
   Inspect career progress, statistics, personal stores, suit loadouts, missions, objectives, and
@@ -44,8 +45,9 @@ other browsers, and other devices still need broader testing.
 - **On-foot equipment:** reconstruct observed suits, personal weapons, and loadouts from retained
   journals. Browse upgrade recipes, material requirements, and equipment specialists, and prepare
   suit and weapon upgrade plans.
-- **Galaxy, exploration, and market intelligence:** use symbolic system cartography, plotted-route
-  and exobiology views, bookmarks, reusable queries, and local market signals. Search systems,
+- **Galaxy, exploration, and market intelligence:** use symbolic system cartography, a galactic
+  atlas with regions and your observed position, plotted-route and exobiology views, bookmarks,
+  reusable queries, and local market signals. Search systems,
   stations, shipyards, outfitting, commodities, factions, and community-sourced intelligence.
 - **Activities and communications:** review missions, objectives, community goals, Powerplay,
   colonisation, local traffic, correspondents, GalNet, and radio from dedicated cockpit sections.

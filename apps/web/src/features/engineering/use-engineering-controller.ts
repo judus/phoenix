@@ -134,7 +134,7 @@ export function useEngineeringController(
             ? api.getEngineeringBlueprint(selectedBlueprintSymbol, abort.signal).then(blueprint => ({ blueprint }))
             : api.getEngineeringBlueprints(abort.signal).then(blueprints => ({ blueprints }))
     void request.then(result => {
-      if (!abort.signal.aborted) setSnapshot(storeControllerSnapshot(api, cacheKey, { ...result, actions, status: 'ready' }))
+      if (!abort.signal.aborted) setSnapshot(storeControllerSnapshot(api, cacheKey, { ...result, status: 'ready' }))
     }).catch(cause => {
       if (!abort.signal.aborted) {
         const error = cause instanceof Error ? cause.message : 'Engineering data unavailable.'

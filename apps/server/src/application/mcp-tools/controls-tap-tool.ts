@@ -1,6 +1,7 @@
 import type { JsonObject, LocalTool } from '@jdu/llm-client'
 import type { GameActions } from '../game-action-service.js'
 import { json, output, stringArgument } from './tool-support.js'
+import { assertControlExecution } from './control-execution-errors.js'
 
 export class ControlsTapTool implements LocalTool {
   public readonly definition = {
@@ -14,6 +15,7 @@ export class ControlsTapTool implements LocalTool {
 
   public readonly execute = async (arguments_: JsonObject) => {
     const result = await this.gameActions.execute({ actionId: stringArgument(arguments_, 'actionId'), operation: 'tap' }, 'copilot')
+    assertControlExecution(this.definition.name, result)
     return output(result.message, json(result))
   }
 }

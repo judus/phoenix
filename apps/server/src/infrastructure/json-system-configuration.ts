@@ -77,8 +77,12 @@ export class JsonSystemSettingsRepository implements SystemSettingsRepository, C
     restrictPrivateFileSync(this.path)
 
     const candidate: unknown = JSON.parse(readFileSync(this.path, 'utf8'))
-    const normalized = withFreshControlDeckIfNeeded(migrateSettings(candidate))
-    const settings = PhoenixSettingsSchema.parse(normalized)
+    const normalized = migrateControlDeckConfiguration(migrateSettings(candidate))
+    const validated = PhoenixSettingsSchema.safeParse(normalized)
+    if (!validated.success) {
+      throw new Error(`Invalid PHOENIX settings at ${this.path}: ${validated.error.message}`)
+    }
+    const settings = validated.data
     if (normalized !== candidate) this.save(settings)
     return settings
   }
@@ -109,7 +113,7 @@ export class InMemorySystemSettingsRepository implements SystemSettingsRepositor
   public save (settings: PhoenixSettings): void { this.settings = PhoenixSettingsSchema.parse(settings) }
 }
 
-function withFreshControlDeckIfNeeded (candidate: unknown): unknown {
+function migrateControlDeckConfiguration (candidate: unknown): unknown {
   if (!isRecord(candidate) || !isRecord(candidate.controls)) return candidate
   if (PhoenixControlDeckConfigurationSchema.safeParse(candidate.controls.deckConfiguration).success) return candidate
   const previous = candidate.controls.deckConfiguration
@@ -127,13 +131,19 @@ function withFreshControlDeckIfNeeded (candidate: unknown): unknown {
     })
     if (migrated.success) return { ...candidate, controls: { ...candidate.controls, deckConfiguration: migrated.data } }
   }
-  return {
-    ...candidate,
-    controls: {
-      ...candidate.controls,
-      deckConfiguration: BLANK_CONTROL_DECK_CONFIGURATION
+  // Only the retired page/cell layout is deliberately replaced by a blank deck.
+  // Invalid current configurations must survive on disk for diagnosis/recovery.
+  const legacyLayout = candidate.controls.layout
+  if (previous === undefined && isRecord(legacyLayout) && legacyLayout.version === 1 && Array.isArray(legacyLayout.pages)) {
+    return {
+      ...candidate,
+      controls: {
+        ...candidate.controls,
+        deckConfiguration: BLANK_CONTROL_DECK_CONFIGURATION
+      }
     }
   }
+  return candidate
 }
 
 function migrateSettings (candidate: unknown): unknown {
@@ -149,9 +159,13 @@ function migrateSettings (candidate: unknown): unknown {
 function migratePermissionPolicies (candidate: unknown): unknown {
   if (!isRecord(candidate) || !isRecord(candidate.copilot)) return candidate
   const permissions = migratePermissionPolicy(candidate.copilot.permissions)
-  const profiles = isRecord(candidate.copilot.profilePermissions)
-    ? Object.fromEntries(Object.entries(candidate.copilot.profilePermissions).map(([id, policy]) => [id, migratePermissionPolicy(policy)]))
-    : candidate.copilot.profilePermissions
+  const currentProfiles = candidate.copilot.profilePermissions
+  let profiles = currentProfiles
+  if (isRecord(currentProfiles)) {
+    const entries = Object.entries(currentProfiles).map(([id, policy]) => [id, migratePermissionPolicy(policy)] as const)
+    if (entries.some(([id, policy]) => policy !== currentProfiles[id])) profiles = Object.fromEntries(entries)
+  }
+  if (permissions === candidate.copilot.permissions && profiles === currentProfiles) return candidate
   return {
     ...candidate,
     copilot: {

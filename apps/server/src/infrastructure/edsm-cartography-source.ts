@@ -5,6 +5,8 @@ import {
   type CartographicSystem
 } from '@phoenix/contracts'
 import type { ExternalCartographySource } from '../domain/cartography.js'
+import { ProviderQueryError } from '../domain/provider-query-error.js'
+import { fetchProviderJson } from './fetch-provider-json.js'
 
 const ASTRONOMICAL_UNIT_KILOMETRES = 149_597_870.7
 const SECONDS_PER_DAY = 86_400
@@ -41,14 +43,22 @@ export class EdsmCartographySource implements ExternalCartographySource {
       this.get('api-system-v1/bodies', { systemName: name }),
       this.get('api-system-v1/stations', { systemName: name })
     ])
+    for (const raw of [systemRaw, bodiesRaw, stationsRaw]) {
+      if (!nullableRecord(raw) && !(Array.isArray(raw) && raw.length === 0)) throw new ProviderQueryError('EDSM', 'malformed_response')
+    }
     const system = record(systemRaw)
     const bodiesResponse = record(bodiesRaw)
     const stationsResponse = record(stationsRaw)
+    if ((bodiesResponse.bodies !== undefined && !Array.isArray(bodiesResponse.bodies)) ||
+      (stationsResponse.stations !== undefined && !Array.isArray(stationsResponse.stations))) throw new ProviderQueryError('EDSM', 'malformed_response')
     const resolvedName = stringValue(system.name) ?? stringValue(bodiesResponse.name) ?? stringValue(stationsResponse.name)
-    if (!resolvedName) throw new Error(`No cartography record for "${name}".`)
+    if (!resolvedName) {
+      const empty = [system, bodiesResponse, stationsResponse].every(raw => Object.keys(raw).length === 0)
+      throw new ProviderQueryError('EDSM', empty ? 'not_found' : 'malformed_response')
+    }
     const information = record(system.information)
 
-    return CartographicSystemSchema.parse({
+    const normalized = CartographicSystemSchema.safeParse({
       schemaVersion: 5,
       name: resolvedName,
       address: integerValue(system.id64) ?? integerValue(bodiesResponse.id64) ?? integerValue(stationsResponse.id64),
@@ -77,17 +87,17 @@ export class EdsmCartographySource implements ExternalCartographySource {
       provenance: { edsm: { fetchedAt: this.now().toISOString() }, journal: null },
       raw: { system, bodies: bodiesResponse, stations: stationsResponse }
     })
+    if (!normalized.success) throw new ProviderQueryError('EDSM', 'malformed_response', { cause: normalized.error })
+    return normalized.data
   }
 
   private async get (path: string, parameters: Record<string, string>): Promise<unknown> {
     const url = new URL(path, this.baseUrl)
     for (const [name, value] of Object.entries(parameters)) url.searchParams.set(name, value)
-    const response = await this.fetcher(url, {
+    return fetchProviderJson('EDSM', this.fetcher, url, {
       headers: { accept: 'application/json', 'user-agent': 'phoenix-terminal/0.1' },
       signal: AbortSignal.timeout(this.timeoutMs)
     })
-    if (!response.ok) throw new Error(`EDSM ${path} request failed with HTTP ${response.status}.`)
-    return await response.json()
   }
 }
 

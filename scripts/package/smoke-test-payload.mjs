@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, chmodSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, chmodSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -35,12 +35,20 @@ try {
   const launcherRuntime = nativeLauncher ?? resolve(installRoot, 'runtime', runtimeName)
   const launcherScript = resolve(installRoot, 'scripts/package/launcher.mjs')
   const launcherArguments = nativeLauncher ? [] : [launcherScript]
+  // Never inherit developer path overrides, provider credentials, or real Elite inputs.
+  const inheritedEnvironment = Object.fromEntries(Object.entries(process.env).filter(([name]) => (
+    !name.startsWith('PHOENIX_') && !name.startsWith('OPENAI_')
+  )))
+  const eliteRoot = resolve(userRoot, 'empty-elite')
+  mkdirSync(eliteRoot, { recursive: true })
   const launcherEnvironment = {
-    ...process.env,
-    HOME: resolve(userRoot, 'home'),
+    ...inheritedEnvironment,
     LOCALAPPDATA: resolve(userRoot, 'local-app-data'),
     PHOENIX_CATALOGUE_REFRESH: 'false',
     PHOENIX_HOST: '127.0.0.1',
+    PHOENIX_ELITE_DIRECTORY: eliteRoot,
+    PHOENIX_ELITE_BINDINGS_DIRECTORY: eliteRoot,
+    PHOENIX_INPUT_BACKEND: 'recording',
     PHOENIX_LAUNCHER_OPEN_BROWSER: 'false',
     PHOENIX_OPENAI_API_KEY: 'sk-phoenix-payload-smoke-test-not-a-real-key',
     PHOENIX_PATH_MODE: 'installed',
@@ -50,15 +58,7 @@ try {
     XDG_DATA_HOME: resolve(userRoot, 'data'),
     XDG_STATE_HOME: resolve(userRoot, 'state')
   }
-  child = spawn(launcherRuntime, launcherArguments, {
-    cwd: installRoot,
-    env: launcherEnvironment,
-    stdio: ['ignore', 'pipe', 'pipe']
-  })
-
-  const output = []
-  child.stdout.on('data', chunk => output.push(chunk.toString()))
-  child.stderr.on('data', chunk => output.push(chunk.toString()))
+  const output = startLauncher()
   const response = await waitForServer(`http://127.0.0.1:${port}/api/pairing/status`, child, output)
   if (response.status !== 200) throw new Error(`Payload health probe returned ${response.status}.`)
 
@@ -108,21 +108,68 @@ try {
     throw new Error('Payload did not persist the Copilot profile under writable user data.')
   }
 
-  const stopArguments = nativeLauncher ? ['--stop'] : [launcherScript, '--stop']
-  const stop = spawn(launcherRuntime, stopArguments, { cwd: installRoot, env: launcherEnvironment, stdio: 'ignore' })
-  const stopExit = await waitForExit(stop, 5_000)
-  if (stopExit.code !== 0) throw new Error(`Launcher stop command exited with ${stopExit.code ?? stopExit.signal}.`)
-  await waitForExit(child, 7_000)
+  await stopLauncher()
+
+  const settingsPath = resolve(configRoot, 'settings.json')
+  const legacy = JSON.parse(readFileSync(settingsPath, 'utf8'))
+  legacy.version = 2
+  delete legacy.copilot.profilePermissions
+  legacy.controls.deckConfiguration.decks[0].name = 'Retained smoke customization'
+  writeFileSync(settingsPath, JSON.stringify(legacy))
+  const migratedOutput = startLauncher()
+  await waitForServer(`http://127.0.0.1:${port}/api/pairing/status`, child, migratedOutput)
+  await stopLauncher()
+  const migratedText = readFileSync(settingsPath, 'utf8')
+  const migrated = JSON.parse(migratedText)
+  if (migrated.version !== 3 || migrated.controls.deckConfiguration.decks[0].name !== 'Retained smoke customization') {
+    throw new Error('Installed startup did not migrate settings while preserving customization.')
+  }
+  if (JSON.parse(readFileSync(resolve(configRoot, 'pairing.json'), 'utf8')).pairingCode !== pairing.pairingCode) {
+    throw new Error('Installed restart replaced pairing identity.')
+  }
+  if (!readFileSync(resolve(dataRoot, 'copilot/agents/marin/character.text.md'), 'utf8').includes('Payload smoke edit.')) {
+    throw new Error('Installed restart lost the edited Copilot profile.')
+  }
+
+  const corruptText = '{"version":'
+  writeFileSync(settingsPath, corruptText)
+  startLauncher()
+  const failed = await waitForExit(child, 15_000)
+  if (failed.code === 0) throw new Error('Installed startup accepted corrupt settings.')
+  if (readFileSync(settingsPath, 'utf8') !== corruptText) throw new Error('Installed startup overwrote corrupt settings.')
+  if (existsSync(resolve(launcherStateRoot, 'launcher.lock')) || existsSync(resolve(launcherStateRoot, 'runtime.txt'))) {
+    throw new Error('Failed startup retained stale launcher state.')
+  }
+  writeFileSync(settingsPath, migratedText)
+  const recoveredOutput = startLauncher()
+  await waitForServer(`http://127.0.0.1:${port}/api/pairing/status`, child, recoveredOutput)
+  await stopLauncher()
 
   const installationMode = process.platform === 'win32' ? 'isolated installation' : 'read-only installation'
-  console.log(`PHOENIX payload smoke test passed: ${installationMode}, single instance, clean stop, isolated writable user state.`)
+  console.log(`PHOENIX payload smoke test passed: ${installationMode}, single instance, clean stop, isolated writable user state, retained data, settings migration and corrupt-settings recovery.`)
+
+  function startLauncher () {
+    const output = []
+    child = spawn(launcherRuntime, launcherArguments, { cwd: installRoot, env: launcherEnvironment, stdio: ['ignore', 'pipe', 'pipe'] })
+    child.stdout.on('data', chunk => output.push(chunk.toString()))
+    child.stderr.on('data', chunk => output.push(chunk.toString()))
+    return output
+  }
+
+  async function stopLauncher () {
+    const stopArguments = nativeLauncher ? ['--stop'] : [launcherScript, '--stop']
+    const stop = spawn(launcherRuntime, stopArguments, { cwd: installRoot, env: launcherEnvironment, stdio: 'ignore' })
+    const stopExit = await waitForExit(stop, 5_000)
+    if (stopExit.code !== 0) throw new Error(`Launcher stop command exited with ${stopExit.code ?? stopExit.signal}.`)
+    await waitForExit(child, 7_000)
+  }
 } finally {
   if (child !== undefined && child.exitCode === null && child.signalCode === null) {
     child.kill('SIGTERM')
-    await Promise.race([
-      new Promise(resolveExit => child.once('exit', resolveExit)),
-      new Promise(resolveTimeout => setTimeout(resolveTimeout, 2_000))
-    ])
+    // The launcher gives its server five seconds before forcing shutdown. Do not
+    // delete the sandbox while that server may still own files or hold the port.
+    // If shutdown cannot be confirmed, preserve the sandbox for diagnosis.
+    await waitForExit(child, 7_000)
   }
   makeWritable(installRoot)
   rmSync(temporaryRoot, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 })
@@ -145,7 +192,7 @@ async function waitForServer (url, process, output) {
   while (Date.now() < deadline) {
     if (process.exitCode !== null) throw new Error(`Payload exited during startup (${process.exitCode}).\n${output.join('')}`)
     try {
-      return await fetch(url)
+      return await fetch(url, { signal: AbortSignal.timeout(1_000) })
     } catch {
       await new Promise(resolveDelay => setTimeout(resolveDelay, 100))
     }
@@ -155,10 +202,14 @@ async function waitForServer (url, process, output) {
 
 async function waitForExit (process, timeout) {
   if (process.exitCode !== null || process.signalCode !== null) return { code: process.exitCode, signal: process.signalCode }
-  return await Promise.race([
-    new Promise(resolveExit => process.once('exit', (code, signal) => resolveExit({ code, signal }))),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Process did not exit before the smoke-test deadline.')), timeout))
-  ])
+  return await new Promise((resolveExit, reject) => {
+    const onExit = (code, signal) => { clearTimeout(timer); resolveExit({ code, signal }) }
+    const timer = setTimeout(() => {
+      process.off('exit', onExit)
+      reject(new Error('Process did not exit before the smoke-test deadline.'))
+    }, timeout)
+    process.once('exit', onExit)
+  })
 }
 
 function makeReadOnly (directory) {

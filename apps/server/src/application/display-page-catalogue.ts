@@ -1,4 +1,5 @@
 import type { DisplayPageId } from '@phoenix/contracts'
+import { ToolArgumentError } from './mcp-tools/tool-support.js'
 
 interface DisplayPageDefinition {
   readonly label: string
@@ -72,16 +73,16 @@ export const DISPLAY_PAGE_CATALOGUE = {
 
 export function resolveDisplayPage (input: string): { id: DisplayPageId, label: string } {
   const requested = normalize(input)
-  if (!requested) throw new Error('Provide the PHOENIX page to open.')
+  if (!requested) throw new ToolArgumentError('Provide the PHOENIX page to open.', 'Set page to an exact PHOENIX page ID or label.')
 
   const matches = (Object.entries(DISPLAY_PAGE_CATALOGUE) as Array<[DisplayPageId, DisplayPageDefinition]>)
     .filter(([id, definition]) => [id, definition.label, ...definition.aliases].some(candidate => normalize(candidate) === requested))
 
   if (matches.length === 1) return { id: matches[0]![0], label: matches[0]![1].label }
   if (matches.length > 1) {
-    throw new Error(`The page name "${input}" is ambiguous: ${matches.map(([, definition]) => definition.label).join(', ')}.`)
+    throw new ToolArgumentError('The PHOENIX page name is ambiguous.', `Set page to one of these exact IDs: ${matches.map(([id]) => id).join(', ')}.`)
   }
-  throw new Error(`No PHOENIX page matches "${input}".`)
+  throw new ToolArgumentError('No PHOENIX page matches the requested name.', `Set page to an exact supported ID: ${Object.keys(DISPLAY_PAGE_CATALOGUE).join(', ')}.`)
 }
 
 function page (label: string, ...aliases: string[]): DisplayPageDefinition {

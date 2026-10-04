@@ -1,4 +1,5 @@
 import {
+  AiError,
   ToolRegistry,
   type LocalTool,
   type ToolCall,
@@ -24,7 +25,10 @@ export class CopilotToolRegistry extends ToolRegistry {
 
   public override execute (call: ToolCall, context: ToolExecutionContext) {
     if (!this.capabilities.isToolEnabled(call.name)) {
-      return Promise.reject(new Error(`Copilot capability ${call.name} is disabled in Settings.`))
+      return Promise.reject(new AiError('authorization', 'This Copilot tool is disabled in Settings. Ask the user to review its permissions; do not retry unchanged.', {
+        code: 'copilot_tool_disabled',
+        retryable: false
+      }))
     }
     return super.execute(call, context)
   }

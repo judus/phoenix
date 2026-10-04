@@ -1,7 +1,8 @@
-import type { JsonObject, LocalTool } from '@jdu/llm-client'
+import { AiError, type JsonObject, type LocalTool } from '@jdu/llm-client'
 import type { StatefulGameActionService } from '../stateful-game-action-service.js'
 import type { Commands } from '../../domain/commands.js'
 import { booleanArgument, json, output, stringArgument } from './tool-support.js'
+import { assertControlExecution } from './control-execution-errors.js'
 
 export class ControlsSetSwitchTool implements LocalTool {
   public readonly definition = {
@@ -27,9 +28,12 @@ export class ControlsSetSwitchTool implements LocalTool {
       command.kind === 'game-action' && command.target.type === 'game-action' && command.target.actionId === actionId
     ))
     if (!enabled) {
-      return output('This Copilot capability is disabled in Settings.', json({ actionId, status: 'rejected' }))
+      throw new AiError('authorization', 'This Copilot control is not allowed. Use controls.find_actions for permitted controls, or ask the user to enable the requested capability in Settings. Do not substitute or execute another action.', {
+        code: 'copilot_capability_disabled', retryable: false
+      })
     }
     const result = await this.statefulActions.setSwitch({ actionId, enabled: booleanArgument(arguments_, 'enabled') }, context.signal)
+    assertControlExecution(this.definition.name, result)
     return output(result.message, json(result))
   }
 }

@@ -1,4 +1,6 @@
 import type { StationStockSource, StockItem } from '../domain/station-market.js'
+import { ProviderQueryError } from '../domain/provider-query-error.js'
+import { fetchProviderJson } from './fetch-provider-json.js'
 
 const DEFAULT_BASE_URL = 'https://www.edsm.net/'
 const DEFAULT_TIMEOUT_MS = 10_000
@@ -31,14 +33,15 @@ export class EdsmStationStockSource implements StationStockSource {
   private async getStock (path: string, field: string, marketId: number): Promise<StockItem[]> {
     const url = new URL(path, this.baseUrl)
     url.searchParams.set('marketId', String(marketId))
-    const response = await this.fetcher(url, {
+    const raw = await fetchProviderJson('EDSM', this.fetcher, url, {
       headers: { accept: 'application/json', 'user-agent': 'phoenix-terminal/0.1' },
       signal: AbortSignal.timeout(this.timeoutMs)
     })
-    if (!response.ok) throw new Error(`EDSM ${field} request failed with HTTP ${response.status}.`)
-    const payload = record(await response.json())
-    const stock = payload?.[field]
-    if (!Array.isArray(stock)) return []
+    const payload = record(raw)
+    if (!payload) throw new ProviderQueryError('EDSM', 'malformed_response')
+    const stock = payload[field]
+    if (stock === undefined) return []
+    if (!Array.isArray(stock)) throw new ProviderQueryError('EDSM', 'malformed_response')
     return stock.map(mapStockItem).filter(isPresent)
   }
 }

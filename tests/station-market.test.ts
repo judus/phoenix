@@ -219,7 +219,9 @@ test('Spansh source searches and normalizes stations stocking a requested module
     moduleClass: 6,
     moduleName: 'Power Plant',
     moduleRating: 'A',
-    referencePosition: [1, 2, 3]
+    referencePosition: [1, 2, 3],
+    reportedAfter: '2026-08-01T00:00:00.000Z',
+    reportedBefore: '2026-08-16T00:00:00.000Z'
   })).resolves.toEqual([{
     category: 'standard', distanceLy: 4.2, distanceToArrivalLs: 321.5, marketId: 42,
     maxLandingPadSize: 3, moduleClass: 6, moduleName: 'Power Plant', moduleRating: 'A',
@@ -231,7 +233,8 @@ test('Spansh source searches and normalizes stations stocking a requested module
     filters: {
       distance: { max: '100', min: 0 },
       has_large_pad: { value: true },
-      modules: { class: ['6'], name: ['Power Plant'], rating: ['A'] }
+      modules: { class: ['6'], name: ['Power Plant'], rating: ['A'] },
+      outfitting_updated_at: { comparison: '<=>', value: ['2026-08-01T00:00:00.000Z', '2026-08-16T00:00:00.000Z'] }
     },
     reference_coords: { x: 1, y: 2, z: 3 }
   })
@@ -287,6 +290,47 @@ test('Spansh source resolves partial station names and normalizes station metada
   })
 })
 
+test('outfitting freshness filters before the candidate limit and cache reuse respects the age policy', async () => {
+  const row = {
+    distance: 1, has_large_pad: true, name: 'Old report', system_name: 'Nearby',
+    modules: [{ class: 6, name: 'Power Plant', rating: 'A' }],
+    outfitting_updated_at: '2026-08-01T00:00:00Z'
+  }
+  const candidates = [
+    ...Array.from({ length: 100 }, (_, index) => ({ ...row, distance: index + 1 })),
+    { ...row, distance: 101, name: 'Fresh report', outfitting_updated_at: '2026-08-16T10:00:00Z' }
+  ]
+  const fetcher = vi.fn(async (_input: unknown, init?: RequestInit) => {
+    const query = JSON.parse(String(init?.body))
+    const [after, before] = query.filters.outfitting_updated_at?.value ?? ['', '']
+    return response({ results: candidates
+      .filter(station => !after || (Date.parse(station.outfitting_updated_at) >= Date.parse(after) && Date.parse(station.outfitting_updated_at) <= Date.parse(before)))
+      .slice(0, query.size) })
+  })
+  const source = new SpanshOutfittingSearchSource(new SpanshSearchClient({ fetch: fetcher as typeof fetch }))
+  let now = new Date('2026-08-16T12:00:00Z')
+  const service = stationMarketQuery({
+    findCommodityMarkets: async () => [], findSystemExports: async () => [], findSystemImports: async () => [],
+    getCommodityReports: async () => [], findNearestStations: async () => []
+  }, cartography(), source, () => now)
+  const input = { maxDaysAgo: 1, maxDistanceLy: 500, minimumPadSize: 3, query: '6A Power Plant', systemName: 'Sol' }
+
+  const fresh = await service.searchOutfittingMarkets(input)
+  expect(fresh.matches.map(match => match.stationName)).toEqual(['Fresh report'])
+  expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body)).filters.outfitting_updated_at).toEqual({
+    comparison: '<=>', value: ['2026-08-15T12:00:00.000Z', '2026-08-16T12:00:00.000Z']
+  })
+  now = new Date('2026-08-16T12:15:00Z')
+  expect((await service.searchOutfittingMarkets(input)).cache).toBe('fresh')
+  expect(fetcher).toHaveBeenCalledTimes(1)
+  const older = await service.searchOutfittingMarkets({ ...input, maxDaysAgo: 30 })
+  expect(older.matches[0]?.stationName).toBe('Old report')
+  expect(fetcher).toHaveBeenCalledTimes(2)
+  expect(JSON.parse(String(fetcher.mock.calls[1]?.[1]?.body)).filters.outfitting_updated_at).toEqual({
+    comparison: '<=>', value: ['2026-07-17T12:15:00.000Z', '2026-08-16T12:15:00.000Z']
+  })
+})
+
 test('name-only lookup keeps distant and unknown-pad stations without a reference system', async () => {
   const search = vi.fn(async () => [
     { name: 'Sweet Terminal', system_name: 'Far Away', distance: 8000, type: 'Settlement' },
@@ -326,7 +370,7 @@ test('Spansh source filters systems and reports the actual main-star subtype', a
   expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toMatchObject({
     filters: {
       allegiance: { value: ['Federation'] }, distance: { max: '100', min: '0' },
-      government: { value: ['Democracy'] }, population: { max: '500000', min: '100000' },
+      government: { value: ['Democracy'] }, population: { comparison: '<=>', value: [100000, 500000] },
       primary_economy: { value: ['High Tech'] }, security: { value: ['High'] }
     },
     reference_coords: { x: 1, y: 2, z: 3 }
@@ -541,11 +585,15 @@ test('station resolution returns corrective suggestions without silently selecti
   await expect(service.getDetails({ stationName: 'Vonarburg Co-op' })).rejects.toMatchObject({ code: 'station_system_required' })
 })
 
-function stationMarketQuery (search: StationSearchSource, systemCartography = cartography()): DefaultStationMarketQuery {
+function stationMarketQuery (
+  search: StationSearchSource,
+  systemCartography = cartography(),
+  outfitting: OutfittingSearchSource = { findOutfitting: async () => [], moduleNames: async () => [] },
+  now: () => Date = () => new Date('2026-08-16T12:00:00Z')
+): DefaultStationMarketQuery {
   const runtime = new InMemoryRuntimeStateStore()
   const stock: StationStockSource = { getOutfitting: async () => [], getShipyard: async () => [] }
   const shipyards: ShipyardSearchSource = { shipNames: async () => [], findShipyards: async () => [] }
-  const outfitting: OutfittingSearchSource = { findOutfitting: async () => [], moduleNames: async () => [] }
   const stations: StationLookupSource = { findStations: async () => [] }
   const systems: SystemSearchSource = { findSystems: async () => [] }
   const factions: FactionPresenceSearchSource = { findFactionPresences: async () => [] }
@@ -560,7 +608,7 @@ function stationMarketQuery (search: StationSearchSource, systemCartography = ca
     systemCartography,
     runtime,
     new MemoryProviderCache(),
-    () => new Date('2026-08-16T12:00:00Z')
+    now
   )
 }
 

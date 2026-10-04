@@ -2,6 +2,8 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  statSync,
+  utimesSync,
   writeFileSync
 } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -52,6 +54,37 @@ test('invalid JSON settings fail validation instead of being silently overwritte
   writeFileSync(path, '{"version":1,"controls":{"enabled":"yes","backend":"auto"}}\n')
 
   expect(() => new JsonSystemSettingsRepository(path).loadOrCreate()).toThrow()
+})
+
+test('reading canonical settings preserves the file without rewriting it', () => {
+  const path = join(temporaryDirectory(), 'settings.json')
+  const original = `${JSON.stringify(DEFAULT_PHOENIX_SETTINGS)}\n`
+  writeFileSync(path, original)
+  const timestamp = new Date('2020-01-01T00:00:00Z')
+  utimesSync(path, timestamp, timestamp)
+  const modifiedAt = statSync(path).mtimeMs
+  const repository = new JsonSystemSettingsRepository(path)
+
+  expect(repository.loadOrCreate()).toEqual(DEFAULT_PHOENIX_SETTINGS)
+  expect(repository.getConfiguration()).toEqual(DEFAULT_PHOENIX_SETTINGS.controls.deckConfiguration)
+  expect(readFileSync(path, 'utf8')).toBe(original)
+  expect(statSync(path).mtimeMs).toBe(modifiedAt)
+})
+
+test.each([false, true])('invalid customized deck configuration is preserved (nine-deck legacy: %s)', legacy => {
+  const path = join(temporaryDirectory(), 'settings.json')
+  const settings = structuredClone(DEFAULT_PHOENIX_SETTINGS)
+  const configuration = settings.controls.deckConfiguration
+  if (legacy) {
+    configuration.decks = configuration.decks.filter(deck => deck.context !== 'phoenix:quick')
+  }
+  configuration.decks[0]!.name = 'My customized deck'
+  configuration.decks[0]!.layout.columns = 0
+  const original = JSON.stringify(settings)
+  writeFileSync(path, original)
+
+  expect(() => new JsonSystemSettingsRepository(path).loadOrCreate()).toThrow('Invalid PHOENIX settings')
+  expect(readFileSync(path, 'utf8')).toBe(original)
 })
 
 test('version one settings migrate once to the capability permission schema', () => {
@@ -108,6 +141,29 @@ test('capability permission version one migrates renamed tool identifiers once',
   expect(JSON.parse(readFileSync(path, 'utf8')).copilot.permissions.version).toBe(2)
 })
 
+test('profile permission migrations persist once without rewriting current policies afterward', () => {
+  const path = join(temporaryDirectory(), 'settings.json')
+  writeFileSync(path, JSON.stringify({
+    ...DEFAULT_PHOENIX_SETTINGS,
+    copilot: {
+      ...DEFAULT_PHOENIX_SETTINGS.copilot,
+      profilePermissions: { marin: { version: 1, enabledCapabilityIds: ['tool:controls.execute'] } }
+    }
+  }))
+  const repository = new JsonSystemSettingsRepository(path)
+  expect(repository.loadOrCreate().copilot.profilePermissions.marin).toEqual({
+    version: 2, enabledCapabilityIds: ['tool:controls.execute_command']
+  })
+  const migrated = readFileSync(path, 'utf8')
+  const timestamp = new Date('2020-01-01T00:00:00Z')
+  utimesSync(path, timestamp, timestamp)
+  const modifiedAt = statSync(path).mtimeMs
+
+  repository.loadOrCreate()
+  expect(readFileSync(path, 'utf8')).toBe(migrated)
+  expect(statSync(path).mtimeMs).toBe(modifiedAt)
+})
+
 test('noncanonical deck data is discarded instead of imported', () => {
   const directory = temporaryDirectory()
   const path = join(directory, 'settings.json')
@@ -146,7 +202,11 @@ test('Quick access migration preserves the nine existing decks and runs only onc
   expect(migrated.groups!.slice(0, configuration.groups.length)).toEqual(configuration.groups)
   expect(migrated.revision).toBe(18)
   expect(migrated.decks.find(deck => deck.context === 'phoenix:quick')).toMatchObject({ id: 'quick-1', layout: { columns: 4, rows: 3 } })
+  const timestamp = new Date('2020-01-01T00:00:00Z')
+  utimesSync(path, timestamp, timestamp)
+  const modifiedAt = statSync(path).mtimeMs
   expect(repository.loadOrCreate().controls.deckConfiguration).toEqual(migrated)
+  expect(statSync(path).mtimeMs).toBe(modifiedAt)
 })
 
 test('automatic Linux startup selects xdotool and produces runtime diagnostics', () => {

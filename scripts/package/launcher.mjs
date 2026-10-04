@@ -184,8 +184,15 @@ async function waitForReady (url, serverProcess, timeout) {
   while (Date.now() < deadline) {
     if ((serverProcess?.exitCode !== null && serverProcess?.exitCode !== undefined) || serverProcess?.signalCode) return false
     try {
-      const response = await fetch(`${url}/api/pairing/status`)
-      if (response.ok) return true
+      // An unrelated HTTP service can occupy the port. Require this launcher's
+      // server readiness file as well as a successful health probe before opening it.
+      const status = readFileSync(runtimeStatusPath, 'utf8').split(/\r?\n/)
+      const pid = Number(status.find(line => line.startsWith('Process: '))?.slice('Process: '.length))
+      if (status[0] === 'PHOENIX READY' && status.includes(`This computer: ${url}`) &&
+        Number.isInteger(pid) && pid > 0 && (serverProcess ? pid === serverProcess.pid : processExists(pid))) {
+        const response = await fetch(`${url}/api/pairing/status`, { signal: AbortSignal.timeout(1_000) })
+        if (response.ok && (serverProcess === undefined || (serverProcess.exitCode === null && serverProcess.signalCode === null))) return true
+      }
     } catch {}
     await new Promise(resolveDelay => setTimeout(resolveDelay, 100))
   }

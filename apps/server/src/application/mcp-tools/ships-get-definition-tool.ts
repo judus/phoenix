@@ -1,7 +1,7 @@
 import type { JsonObject, LocalTool } from '@jdu/llm-client'
 import type { ShipDefinition, ShipSlotDefinition } from '@phoenix/contracts'
 import type { GameCatalogue } from '@phoenix/elite'
-import { json, optionalStringArgument, output, stringArgument } from './tool-support.js'
+import { json, optionalStringArgument, output, stringArgument, ToolArgumentError } from './tool-support.js'
 
 export class ShipsGetDefinitionTool implements LocalTool {
   public readonly definition = {
@@ -21,7 +21,7 @@ export class ShipsGetDefinitionTool implements LocalTool {
   public readonly execute = (arguments_: JsonObject) => {
     const identifier = stringArgument(arguments_, 'identifier')
     const ship = this.catalogue.resolveShip(identifier)
-    if (!ship) return output(`No canonical ship definition matches "${identifier}".`, { identifier, ship: null })
+    if (!ship) throw new ToolArgumentError('identifier does not match a canonical ship definition.', 'Provide an exact Elite ship name, game identifier, or known catalogue alias. Ask the user to clarify the hull if its name is unknown.')
     const lines = identityLines(ship)
     if ((optionalStringArgument(arguments_, 'detail') ?? 'summary') === 'layout') lines.push(...layoutLines(ship))
     return output(lines.join('\n'), json(ship))

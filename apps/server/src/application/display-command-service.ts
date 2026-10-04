@@ -4,7 +4,7 @@ import { DisplayCommandSchema, type DisplayCommand } from '@phoenix/contracts'
 import type { Publisher, Subscribable, Unsubscribe } from '../domain/publisher.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type { DisplayCommands } from './mcp-tools/tool-gateways.js'
-import { optionalStringArgument, output, stringArgument } from './mcp-tools/tool-support.js'
+import { optionalStringArgument, output, stringArgument, ToolArgumentError } from './mcp-tools/tool-support.js'
 import { resolveDisplayPage } from './display-page-catalogue.js'
 
 export class DisplayCommandService implements DisplayCommands, Subscribable<DisplayCommand> {
@@ -64,7 +64,7 @@ export class DisplayCommandService implements DisplayCommands, Subscribable<Disp
 
   private resolveSystemName (requested: string | undefined): string {
     const systemName = requested ?? this.runtimeState.getCurrent().system.name
-    if (!systemName) throw new Error('The current system is unknown; provide systemName.')
+    if (!systemName) throw new ToolArgumentError('The current system is unknown; provide systemName.', 'Provide systemName explicitly, or wait until the current system is reported.')
     return systemName
   }
 }

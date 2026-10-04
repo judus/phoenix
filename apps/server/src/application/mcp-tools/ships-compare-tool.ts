@@ -1,7 +1,7 @@
 import type { JsonObject, LocalTool } from '@jdu/llm-client'
 import type { ShipDefinition, ShipSlotDefinition } from '@phoenix/contracts'
 import type { GameCatalogue } from '@phoenix/elite'
-import { json, output, stringArrayArgument } from './tool-support.js'
+import { json, output, stringArrayArgument, ToolArgumentError } from './tool-support.js'
 
 export class ShipsCompareTool implements LocalTool {
   public readonly definition = {
@@ -20,10 +20,10 @@ export class ShipsCompareTool implements LocalTool {
 
   public readonly execute = (arguments_: JsonObject) => {
     const identifiers = stringArrayArgument(arguments_, 'identifiers')
-    if (identifiers.length < 2 || identifiers.length > 4) throw new Error('identifiers must contain 2 to 4 ships.')
+    if (identifiers.length < 2 || identifiers.length > 4) throw new ToolArgumentError('identifiers must contain 2 to 4 ships.', 'Provide between two and four canonical ship names or catalogue identifiers.')
     const resolved = identifiers.map(identifier => ({ identifier, ship: this.catalogue.resolveShip(identifier) }))
     const missing = resolved.filter(result => result.ship === null).map(result => result.identifier)
-    if (missing.length > 0) return output(`No canonical ship definition matches: ${missing.join(', ')}.`, { missing, ships: [] })
+    if (missing.length > 0) throw new ToolArgumentError('One or more identifiers do not match a canonical ship definition.', 'Use exact Elite ship names or catalogue identifiers; verify each ship with ships.get_ship_definition before comparing.')
     const ships = resolved.map(result => result.ship as ShipDefinition)
     const text = [
       '| Ship | Pad | Hull mass | Armour | Shields | Speed / boost | Hardpoints | Utilities | Optional internals |',

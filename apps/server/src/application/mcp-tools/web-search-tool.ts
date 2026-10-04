@@ -1,6 +1,6 @@
 import type { JsonObject, LocalTool } from '@jdu/llm-client'
 import type { WebSearchSource } from '../../domain/web-search.js'
-import { json, output, stringArgument } from './tool-support.js'
+import { json, output, stringArgument, ToolArgumentError } from './tool-support.js'
 
 export class WebSearchTool implements LocalTool {
   public readonly definition: LocalTool['definition'] = {
@@ -21,7 +21,7 @@ export class WebSearchTool implements LocalTool {
 
   public readonly execute: LocalTool['execute'] = async (arguments_: JsonObject, context) => {
     const query = stringArgument(arguments_, 'query')
-    if (query.length > 500) throw new Error('query must contain at most 500 characters.')
+    if (query.length > 500) throw new ToolArgumentError('query must contain at most 500 characters.', 'Shorten query to at most 500 characters.')
     const result = await this.source.search(query, context.signal)
     const sources = result.sources.slice(0, 8)
     const sourceLines = sources.map(source => `- ${source.title}: ${source.url}`)

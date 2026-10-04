@@ -417,7 +417,26 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, executionId, onBack
   const [savedName, setSavedName] = useState(savedQuery?.name ?? '')
   const [useOnDashboard, setUseOnDashboard] = useState(savedQuery?.useOnDashboard ?? false)
   const automaticExecutionStarted = useRef(false)
+  const requestRevision = useRef(0)
+  const currentValues = useRef(values)
+  const mounted = useRef(false)
+  useEffect(() => {
+    mounted.current = true
+    return () => { mounted.current = false }
+  }, [])
+  const changeValues = (update: (current: Record<string, GalaxyQueryValue>) => Record<string, GalaxyQueryValue>) => {
+    // A response belongs to the parameters submitted, never to a later edit or reset.
+    requestRevision.current += 1
+    const next = update(currentValues.current)
+    currentValues.current = next
+    querySessions.set(sessionId, { values: next })
+    setValues(next)
+    setLoading(false)
+    setError(undefined)
+  }
   const runQuery = async (nextValues: Record<string, GalaxyQueryValue>) => {
+    const revision = ++requestRevision.current
+    const isCurrent = () => mounted.current && requestRevision.current === revision
     setLoading(true)
     setError(undefined)
     try {
@@ -428,12 +447,13 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, executionId, onBack
           : 'Enter a reference system or select Follow current system.')
       }
       const nextResult = await executeGalaxyQuery(api, definition.id, { ...nextValues, origin })
+      if (!isCurrent()) return
       querySessions.set(sessionId, { ...(executionId ? { executionId } : {}), result: nextResult, values: nextValues })
       setResult(nextResult)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Galaxy query failed.')
+      if (isCurrent()) setError(cause instanceof Error ? cause.message : 'Galaxy query failed.')
     } finally {
-      setLoading(false)
+      if (isCurrent()) setLoading(false)
     }
   }
   useEffect(() => {
@@ -487,23 +507,24 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, executionId, onBack
                   </aside>
                   <div className="query-parameters">
                     <div className="query-fields">
-                      <FormGrid>{definition.fields.map(field => <CatalogueField api={api} field={field} key={field.id} currentSystem={defaultOrigin} following={galaxyQueryOriginMode(values) === 'current'} onFollow={() => setValues(current => {
-                        const next = { ...current, origin: '', originMode: 'current' }
-                        querySessions.set(sessionId, { values: next })
-                        return next
-                      })} value={values[field.id] ?? ''} onChange={value => setValues(current => {
-                        const next = { ...current, [field.id]: value, ...(field.id === 'origin' ? { originMode: 'fixed' } : {}) }
-                        querySessions.set(sessionId, { values: next })
-                        return next
-                      })} />)}</FormGrid>
+                      <FormGrid>{definition.fields.map(field => <CatalogueField
+                        api={api}
+                        field={field}
+                        key={field.id}
+                        currentSystem={defaultOrigin}
+                        following={galaxyQueryOriginMode(values) === 'current'}
+                        onFollow={() => changeValues(current => ({ ...current, origin: '', originMode: 'current' }))}
+                        value={values[field.id] ?? ''}
+                        onChange={value => changeValues(current => ({
+                          ...current,
+                          [field.id]: value,
+                          ...(field.id === 'origin' ? { originMode: 'fixed' } : {})
+                        }))}
+                      />)}</FormGrid>
                     </div>
                     {saveOpen && <SaveQueryPanel dashboardEligible={definition.id === 'market-signals'} name={savedName} saving={saving} useOnDashboard={useOnDashboard} onCancel={() => setSaveOpen(false)} onChange={setSavedName} onDashboardChange={setUseOnDashboard} onSave={() => void save()} />}
                     <FormActions className="query-actions" layout="columns" message={error ? <Status tone="danger" wrap>{error}</Status> : undefined}>
-                      <FormActionGroup columns="two"><Button alignment="start" variant="outline" size="lg" type="button" onClick={onBack}>Back</Button><Button alignment="start" variant="outline" size="lg" type="button" onClick={() => {
-                        const reset = queryValues(definition, undefined)
-                        querySessions.set(sessionId, { values: reset })
-                        setValues(reset)
-                      }}>Reset query</Button></FormActionGroup>
+                      <FormActionGroup columns="two"><Button alignment="start" variant="outline" size="lg" type="button" onClick={onBack}>Back</Button><Button alignment="start" variant="outline" size="lg" type="button" onClick={() => changeValues(() => queryValues(definition, undefined))}>Reset query</Button></FormActionGroup>
                       <FormActionGroup columns="two"><Button alignment="start" variant="outline" size="lg" type="button" onClick={() => setSaveOpen(true)}>{savedQuery ? 'Update saved query' : 'Save query'}</Button><Button alignment="start" variant="accent" size="lg" type="submit" disabled={loading}>{loading ? 'Executing…' : 'Execute query'}</Button></FormActionGroup>
                     </FormActions>
                   </div>

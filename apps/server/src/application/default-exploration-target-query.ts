@@ -8,8 +8,9 @@ import type { ExplorationTargetSearchRequest, ExplorationTargetSearchResult, Exp
 import type { ProviderResponseCache } from '../domain/station-market.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type { ExplorationTargetQuery } from './mcp-tools/tool-gateways.js'
-import { boundedLimit, json, optionalIntegerArgument, optionalStringArgument, output } from './mcp-tools/tool-support.js'
+import { boundedLimit, json, optionalIntegerArgument, optionalStringArgument, output, ToolArgumentError } from './mcp-tools/tool-support.js'
 import { DEFAULT_GALAXY_RESULT_LIMIT } from './galaxy-data-service.js'
+import { ProviderQueryCache } from './provider-query-cache.js'
 
 const CACHE_MS = 30 * 60 * 1000
 // Earlier caches used unenforced numeric filters and collapsed missing signals to zero.
@@ -37,15 +38,17 @@ export interface ExplorationTargetReader {
 }
 
 export class DefaultExplorationTargetQuery implements ExplorationTargetReader, ExplorationTargetQuery {
-  private readonly inFlight = new Map<string, Promise<ExplorationTargetSearchResult[]>>()
+  private readonly providerQueries: ProviderQueryCache
 
   public constructor (
     private readonly source: ExplorationTargetSearchSource,
     private readonly cartography: SystemCartography,
     private readonly runtimeState: RuntimeStateReader,
-    private readonly cache: ProviderResponseCache,
-    private readonly now: () => Date = () => new Date()
-  ) {}
+    cache: ProviderResponseCache,
+    now: () => Date = () => new Date()
+  ) {
+    this.providerQueries = new ProviderQueryCache(cache, now)
+  }
 
   public async searchTargets (arguments_: JsonObject) {
     const result = await this.searchExplorationTargets({
@@ -76,7 +79,13 @@ export class DefaultExplorationTargetQuery implements ExplorationTargetReader, E
     const origin = await this.resolveOrigin(input.systemName)
     const { systemName: _systemName, ...providerFilters } = input
     const request: ExplorationTargetSearchRequest = { ...providerFilters, referencePosition: origin.position }
-    const cached = await this.cached(stableKey({ ...request, systemName: origin.name }), () => this.source.findTargets(request))
+    const cached = await this.providerQueries.get(
+      CACHE_NAMESPACE,
+      stableKey({ ...request, systemName: origin.name }),
+      CACHE_MS,
+      () => this.source.findTargets(request),
+      isSourceResults
+    )
     const targets = cached.value
       .filter(target => meetsSignalMinimum(target.biologicalSignals, input.minBiologicalSignals)
         && meetsSignalMinimum(target.geologicalSignals, input.minGeologicalSignals))
@@ -97,7 +106,7 @@ export class DefaultExplorationTargetQuery implements ExplorationTargetReader, E
 
   private currentSystem (): string {
     const name = this.runtimeState.getCurrent().system.name
-    if (!name) throw new Error('Current system is unavailable; provide systemName.')
+    if (!name) throw new ToolArgumentError('Current system is unavailable; provide systemName.', 'Provide systemName explicitly, or wait until the current system is reported.')
     return name
   }
 
@@ -106,29 +115,10 @@ export class DefaultExplorationTargetQuery implements ExplorationTargetReader, E
     const current = this.runtimeState.getCurrent().system
     if (current.name && current.position && same(current.name, requested)) return { name: current.name, position: current.position }
     const external = await this.cartography.getSystem(requested)
-    if (!external.system.position) throw new Error(`Coordinates for ${requested} are unavailable.`)
+    if (!external.system.position) throw new ToolArgumentError('Reference system coordinates are unavailable.', 'Choose a known reference system in systemName.')
     return { name: external.system.name, position: external.system.position }
   }
 
-  private async cached (key: string, load: () => Promise<ExplorationTargetSearchResult[]>): Promise<{ cache: 'fresh' | 'refreshed' | 'stale', value: ExplorationTargetSearchResult[] }> {
-    const namespace = CACHE_NAMESPACE
-    const existing = this.cache.getProviderResponse(namespace, key)
-    if (existing && isSourceResults(existing.value) && this.now().getTime() - Date.parse(existing.fetchedAt) <= CACHE_MS) return { cache: 'fresh', value: existing.value }
-    try {
-      const active = this.inFlight.get(key)
-      const value = active ?? load().then(value => {
-        this.cache.putProviderResponse(namespace, key, this.now().toISOString(), value)
-        return value
-      }).finally(() => this.inFlight.delete(key))
-      if (!active) this.inFlight.set(key, value)
-      const resolved = await value
-      if (!isSourceResults(resolved)) throw new Error('Invalid exploration target provider response.')
-      return { cache: 'refreshed', value: resolved }
-    } catch (cause) {
-      if (existing && isSourceResults(existing.value)) return { cache: 'stale', value: existing.value }
-      throw cause
-    }
-  }
 }
 
 function same (left: string, right: string): boolean { return left.trim().toLocaleLowerCase() === right.trim().toLocaleLowerCase() }
@@ -140,14 +130,39 @@ function stableKey (value: object): string { return JSON.stringify(Object.fromEn
 function isSourceResults (value: unknown): value is ExplorationTargetSearchResult[] { return Array.isArray(value) && value.every(item => GalaxyExplorationTargetSchema.safeParse(item).success) }
 function meetsSignalMinimum (count: number | null, minimum: number): boolean { return minimum === 0 || (count !== null && count >= minimum) }
 function boundedInteger (value: number | undefined, fallback: number, min: number, max: number): number { return value === undefined ? fallback : Math.min(Math.max(value, min), max) }
-function optionalNumber (arguments_: JsonObject, key: string): number | null { const value = arguments_[key]; if (value === undefined || value === null) return null; if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) throw new Error(`${key} must be a non-negative number.`); return value }
-function optionalStringArrayArgument (arguments_: JsonObject, key: string): string[] { const value = arguments_[key]; if (value === undefined || value === null) return []; if (!Array.isArray(value) || value.some(item => typeof item !== 'string' || !item.trim())) throw new Error(`${key} must be an array of non-empty strings.`); return [...new Set(value.map(item => String(item).trim()))] }
-function optionalDateArgument (arguments_: JsonObject, key: string): string | null { const value = arguments_[key]; if (value === undefined || value === null) return null; if (typeof value !== 'string' || !validDate(value)) throw new Error(`${key} must be a date in YYYY-MM-DD format.`); return value }
-function landableArgument (value: unknown): ExplorationLandableFilter { if (value === undefined || value === null) return 'any'; if (value === 'any' || value === 'yes' || value === 'no') return value; throw new Error('landable must be any, yes, or no.') }
+function optionalNumber (arguments_: JsonObject, key: string): number | null {
+  const value = arguments_[key]
+  if (value === undefined || value === null) return null
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    throw new ToolArgumentError(`${key} must be a non-negative number.`, `Set ${key} to a finite number greater than or equal to zero, or omit it.`)
+  }
+  return value
+}
+function optionalStringArrayArgument (arguments_: JsonObject, key: string): string[] {
+  const value = arguments_[key]
+  if (value === undefined || value === null) return []
+  if (!Array.isArray(value) || value.some(item => typeof item !== 'string' || !item.trim())) {
+    throw new ToolArgumentError(`${key} must be an array of non-empty strings.`, `Provide ${key} as an array of supported Spansh names, or omit it.`)
+  }
+  return [...new Set(value.map(item => String(item).trim()))]
+}
+function optionalDateArgument (arguments_: JsonObject, key: string): string | null {
+  const value = arguments_[key]
+  if (value === undefined || value === null) return null
+  if (typeof value !== 'string' || !validDate(value)) {
+    throw new ToolArgumentError(`${key} must be a date in YYYY-MM-DD format.`, `Set ${key} to a real calendar date such as 2020-08-01, or omit it.`)
+  }
+  return value
+}
+function landableArgument (value: unknown): ExplorationLandableFilter {
+  if (value === undefined || value === null) return 'any'
+  if (value === 'any' || value === 'yes' || value === 'no') return value
+  throw new ToolArgumentError('landable must be any, yes, or no.', 'Set landable to any, yes, or no, or omit it.')
+}
 function validateRanges (input: ExplorationTargetSearchInput): void {
-  if (input.minGravityG !== null && input.maxGravityG !== null && input.minGravityG > input.maxGravityG) throw new Error('minGravityG must not exceed maxGravityG.')
-  if (input.minTemperatureK !== null && input.maxTemperatureK !== null && input.minTemperatureK > input.maxTemperatureK) throw new Error('minTemperatureK must not exceed maxTemperatureK.')
-  if (input.lastReportedBefore !== null && !validDate(input.lastReportedBefore)) throw new Error('lastReportedBefore must be a date in YYYY-MM-DD format.')
+  if (input.minGravityG !== null && input.maxGravityG !== null && input.minGravityG > input.maxGravityG) throw new ToolArgumentError('minGravityG must not exceed maxGravityG.', 'Lower minGravityG or increase maxGravityG so the minimum is no greater than the maximum.')
+  if (input.minTemperatureK !== null && input.maxTemperatureK !== null && input.minTemperatureK > input.maxTemperatureK) throw new ToolArgumentError('minTemperatureK must not exceed maxTemperatureK.', 'Lower minTemperatureK or increase maxTemperatureK so the minimum is no greater than the maximum.')
+  if (input.lastReportedBefore !== null && !validDate(input.lastReportedBefore)) throw new ToolArgumentError('lastReportedBefore must be a date in YYYY-MM-DD format.', 'Provide a real calendar date in YYYY-MM-DD format, or omit lastReportedBefore.')
 }
 function validDate (value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false

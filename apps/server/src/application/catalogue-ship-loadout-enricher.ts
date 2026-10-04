@@ -26,32 +26,41 @@ export class CatalogueShipLoadoutEnricher implements ShipLoadoutEnricher {
   public enrich (ship: CurrentShip): CurrentShip {
     const definition = ship.typeId ? this.catalogue.resolveShip(ship.typeId) : null
     const expectedSlots = definition ? expectedSlotsFor(ship.modules, definition) : new Map<string, ShipSlotDefinition>()
+    const blueprints = ship.modules.some(module => module.engineering)
+      ? this.engineeringCatalogue?.listBlueprints() ?? []
+      : []
     return {
       ...ship,
       definition,
       modules: ship.modules.map(module => ({
         ...module,
-        engineering: this.enrichEngineering(module.engineering),
+        engineering: this.enrichEngineering(module.engineering, blueprints),
         definition: this.catalogue.resolveModule(module.moduleId),
         expectedSlot: expectedSlots.get(module.slotId) ?? null
       }))
     }
   }
 
-  private enrichEngineering (engineering: ShipModule['engineering']): ShipModule['engineering'] {
+  private enrichEngineering (
+    engineering: ShipModule['engineering'],
+    blueprints: ReturnType<EngineeringCatalogue['listBlueprints']>
+  ): ShipModule['engineering'] {
     if (!engineering || !this.engineeringCatalogue) return engineering
-    const blueprints = this.engineeringCatalogue.listBlueprints()
-    const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const name = engineering.blueprintName ? normalizeBlueprintName(engineering.blueprintName) : null
     const matches = engineering.blueprintId !== null
       ? blueprints.filter(blueprint => blueprint.id === engineering.blueprintId)
-      : blueprints.filter(blueprint => engineering.blueprintName &&
-        [blueprint.fdname, blueprint.symbol].some(name => normalize(name) === normalize(engineering.blueprintName!)))
+      : blueprints.filter(blueprint => name !== null &&
+        [blueprint.fdname, blueprint.symbol].some(candidate => normalizeBlueprintName(candidate) === name))
     return {
       ...engineering,
       // Keep the journal identifier intact; ambiguous internal names are not a match.
       blueprintDisplayName: matches.length === 1 ? matches[0]!.displayName : null
     }
   }
+}
+
+function normalizeBlueprintName (value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '')
 }
 
 function expectedSlotsFor (

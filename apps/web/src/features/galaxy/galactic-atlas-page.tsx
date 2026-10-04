@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent, type KeyboardEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { Breadcrumbs, Button, ControlContext, IconButton, PageFrame, PageHeader, Select, Status, ToggleButton } from '@phoenix/ui'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
@@ -6,6 +6,7 @@ import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-sta
 import { atlasBoundaries, atlasRegions } from './atlas-region-data.js'
 import { ATLAS_LANDMARKS, LY_PER_MAP_UNIT, WHOLE_GALAXY, atlasScale, clusterAtlasMarkers, distanceLy, galacticRegion, projectGalacticPosition, screenPoint, zoomAtlas, type AtlasCamera, type AtlasMarker, type AtlasPoint, type GalacticPosition } from './galactic-atlas-model.js'
 import { useAtlasBookmarks } from './use-atlas-bookmarks.js'
+import { useAtlasPointerGestures } from './use-atlas-pointer-gestures.js'
 
 export function GalacticAtlasPage({ api, onNavigate, runtime }: {
   api: PhoenixApi
@@ -43,8 +44,7 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, onNavigate, onToggleB
   const [selection, setSelection] = useState<string[]>([])
   const [selectedId, setSelectedId] = useState<string>()
   const viewport = useRef<HTMLDivElement>(null)
-  const pointers = useRef(new Map<number, AtlasPoint>())
-  const movement = useRef(0)
+  const pointerGestures = useAtlasPointerGestures(setCamera, size)
   const currentRegion = position ? galacticRegion(position) : undefined
   const markers = useMemo(() => [
     ...(position && systemName ? [{ id: 'commander', kind: 'commander' as const, label: systemName, systemName, position }] : []),
@@ -81,34 +81,6 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, onNavigate, onToggleB
     return () => element.removeEventListener('wheel', wheel)
   }, [size])
 
-  const localPoint = (event: PointerEvent) => {
-    const rect = viewport.current!.getBoundingClientRect()
-    return { x: event.clientX - rect.left, y: event.clientY - rect.top }
-  }
-  const pointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === 'mouse' && event.button !== 0) return
-    if (!pointers.current.size) movement.current = 0
-    pointers.current.set(event.pointerId, localPoint(event))
-    if (pointers.current.size > 1) movement.current = 10
-    const target = event.target as Element
-    target.setPointerCapture?.(event.pointerId)
-  }
-  const pointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    const oldPoint = pointers.current.get(event.pointerId)
-    if (!oldPoint) return
-    const before = [...pointers.current.values()]
-    const point = localPoint(event)
-    movement.current += Math.hypot(point.x - oldPoint.x, point.y - oldPoint.y)
-    pointers.current.set(event.pointerId, point)
-    const after = [...pointers.current.values()]
-    const a = midpoint(before), b = midpoint(after)
-    setCamera(value => {
-      const zoomed = before.length === 2 && separation(before) > 1
-        ? zoomAtlas(value, separation(after) / separation(before), a, size.width, size.height) : value
-      const scale = atlasScale(size.width, size.height, zoomed.zoom)
-      return { ...zoomed, x: zoomed.x - (b.x - a.x) / scale, y: zoomed.y - (b.y - a.y) / scale }
-    })
-  }
   const keyboard = (event: KeyboardEvent<SVGSVGElement>) => {
     if (event.target !== event.currentTarget) return
     if (event.key === '+' || event.key === '=') changeZoom(1.5)
@@ -144,10 +116,7 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, onNavigate, onToggleB
     </>} />
     <section className="galactic-atlas" aria-label="Galactic atlas" data-deskplane-no-swipe>
       <div className="atlas-map">
-      <div className="atlas-viewport" ref={viewport} onPointerDown={pointerDown} onPointerMove={pointerMove}
-        onPointerUp={event => pointers.current.delete(event.pointerId)} onPointerCancel={event => pointers.current.delete(event.pointerId)}
-        onLostPointerCapture={event => pointers.current.delete(event.pointerId)}
-        onClickCapture={event => { if (movement.current > 5 && event.detail !== 0) { event.preventDefault(); event.stopPropagation() } }}>
+      <div className="atlas-viewport" ref={viewport} {...pointerGestures}>
         <svg width="100%" height="100%" viewBox={`0 0 ${size.width} ${size.height}`} tabIndex={0} role="group"
           aria-label="Top-down galaxy map. Drag to pan, pinch or use plus and minus to zoom. Arrow keys pan; Home shows the whole galaxy."
           onKeyDown={keyboard}>
@@ -221,7 +190,5 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, onNavigate, onToggleB
   </PageFrame>
 }
 
-function midpoint(points: AtlasPoint[]): AtlasPoint { return { x: points.reduce((n, p) => n + p.x, 0) / points.length, y: points.reduce((n, p) => n + p.y, 0) / points.length } }
-function separation(points: AtlasPoint[]): number { return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y) }
 function formatLy(value: number): string { return value.toLocaleString('en-GB', { maximumFractionDigits: 0 }) }
 function niceScale(value: number): number { const power = 10 ** Math.floor(Math.log10(value)); return ([5, 2, 1].find(step => step * power <= value) ?? 1) * power }

@@ -1,4 +1,7 @@
-import { expect, test } from 'vitest'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { expect, test, vi } from 'vitest'
 import {
   AiError,
   createAiClient,
@@ -12,6 +15,41 @@ import { InMemorySystemSettingsRepository } from '../apps/server/src/infrastruct
 import { InMemoryMacroRepository } from '../apps/server/src/infrastructure/macro-repositories.js'
 import { RecordingKeyboardOutput } from 'control-deck/adapter-keyboard'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
+import { JsonConversationStore } from '../apps/server/src/infrastructure/json-conversation-store.js'
+
+test('handler corrections support a corrected MCP call and survive persisted text history safely', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-tool-history-'))
+  const conversations = new JsonConversationStore(directory)
+  const search = vi.fn(async (query: string) => {
+    if (query === 'corrected') return { answer: 'Verified answer.', sources: [] }
+    throw new Error('secret-provider-token and private backend stack')
+  })
+  const application = new PhoenixApplication({ databasePath: ':memory:', eliteDirectory: null,
+    host: '127.0.0.1', port: 0, webSearchSource: { search } })
+  const address = await application.start()
+  const provider = configuredProvider([
+    response('bad-handler-input', [{ arguments: { query: '   ' }, callId: 'blank', name: 'phoenix__web_search_web', type: 'tool_call' }], 'tool_calls'),
+    response('corrected-input', [{ arguments: { query: 'corrected' }, callId: 'fixed', name: 'phoenix__web_search_web', type: 'tool_call' }], 'tool_calls'),
+    response('private-failure', [{ arguments: { query: 'fail' }, callId: 'internal', name: 'phoenix__web_search_web', type: 'tool_call' }], 'tool_calls'),
+    response('done', [{ source: 'generated', text: 'Done.', type: 'text' }], 'stop')
+  ])
+  const client = createAiClient({ history: { repository: conversations },
+    mcp: [{ name: 'phoenix', url: `http://${address.host}:${address.port}/mcp` }], provider })
+  try {
+    const result = await client.chat('mcp-test').user('Test corrective feedback.').run()
+    expect(JSON.stringify(provider.requests[1]?.messages)).toContain('Provide query as a string containing non-whitespace text')
+    expect(JSON.stringify(provider.requests[2]?.messages)).toContain('Verified answer.')
+    expect(search).toHaveBeenCalledTimes(2)
+    const persisted = JSON.stringify(await conversations.snapshot(result.chatId))
+    expect(persisted).toContain('Correction:')
+    expect(persisted).toContain('do not guess different arguments or repeat the operation')
+    expect(persisted).not.toContain('secret-provider-token')
+    expect(persisted).not.toContain('private backend stack')
+  } finally {
+    await application.stop()
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
 
 test('Copilot receives correction hints and public execution errors through MCP', async () => {
   const application = new PhoenixApplication({

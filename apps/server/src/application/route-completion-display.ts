@@ -7,6 +7,7 @@ type Destination = NavigationRoute['route'][number]
 export class RouteCompletionDisplay {
   private destination: Destination | null = null
   private clearedDuringJump = false
+  private clearedJumpEnded = false
 
   public constructor(
     private state: RuntimeState,
@@ -16,11 +17,12 @@ export class RouteCompletionDisplay {
   public routeChanged(route: NavigationRoute): void {
     const destination = route.route.at(-1) ?? null
     // The route file can clear before the journal reports the last jump's arrival.
-    if (!destination && this.state.gameStatus?.flags.fsdJump && this.destination) {
+    if (!destination && inHyperspace(this.state) && this.destination) {
       this.clearedDuringJump = true
       return
     }
     this.clearedDuringJump = false
+    this.clearedJumpEnded = false
     this.destination = destination && !atDestination(this.state, destination) ? destination : null
   }
 
@@ -32,20 +34,41 @@ export class RouteCompletionDisplay {
     if (atDestination(state, destination)) {
       this.destination = null
       this.clearedDuringJump = false
+      this.clearedJumpEnded = false
       if (previous.system.name && !atDestination(previous, destination)) {
         this.display.showSystem({ systemName: state.system.name ?? destination.system })
       }
       return
     }
-    // A cancelled jump must not leave a cleared route armed for a later journey.
-    if (this.clearedDuringJump && !state.gameStatus?.flags.fsdJump) {
-      this.destination = null
-      this.clearedDuringJump = false
+    if (this.clearedDuringJump) {
+      // Status.json can finish a jump before its journal arrival is projected.
+      // Keep that arrival pending, but never carry it into another journey.
+      const systemChanged = previous.system.name !== null && state.system.name !== null &&
+        !sameSystem(state.system, previous.system)
+      if (systemChanged || (this.clearedJumpEnded && inHyperspace(state))) {
+        this.destination = null
+        this.clearedDuringJump = false
+        this.clearedJumpEnded = false
+      } else if (!inHyperspace(state)) {
+        this.clearedJumpEnded = true
+      }
     }
   }
 }
 
+function inHyperspace(state: RuntimeState): boolean {
+  return state.gameStatus?.flags.fsdJump === true || state.location.state === 'hyperspace'
+}
+
 function atDestination(state: RuntimeState, destination: Destination): boolean {
-  if (state.system.address !== null && destination.address !== null) return state.system.address === destination.address
-  return state.system.name?.trim().toLowerCase() === destination.system.trim().toLowerCase()
+  return sameSystem(state.system, { address: destination.address, name: destination.system })
+}
+
+function sameSystem(
+  left: Pick<RuntimeState['system'], 'address' | 'name'>,
+  right: Pick<RuntimeState['system'], 'address' | 'name'>
+): boolean {
+  if (left.address !== null && right.address !== null) return left.address === right.address
+  return left.name !== null && right.name !== null &&
+    left.name.trim().toLowerCase() === right.name.trim().toLowerCase()
 }

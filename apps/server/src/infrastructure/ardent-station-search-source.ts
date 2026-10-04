@@ -7,6 +7,8 @@ import type {
   StationSearchSource,
   TradeOpportunityRequest
 } from '../domain/station-market.js'
+import { ProviderQueryError } from '../domain/provider-query-error.js'
+import { fetchProviderJson } from './fetch-provider-json.js'
 
 const DEFAULT_BASE_URL = 'https://api.ardent-insight.com/v2/'
 const DEFAULT_TIMEOUT_MS = 10_000
@@ -91,13 +93,11 @@ export class ArdentStationSearchSource implements StationSearchSource {
     for (const [key, value] of Object.entries(query)) {
       if (value !== null) url.searchParams.set(key, String(value))
     }
-    const response = await this.fetcher(url, {
+    const payload = await fetchProviderJson('Ardent', this.fetcher, url, {
       headers: { accept: 'application/json', 'user-agent': 'phoenix-terminal/0.1' },
       signal: AbortSignal.timeout(this.timeoutMs)
     })
-    if (!response.ok) throw new Error(`Ardent request failed with HTTP ${response.status}.`)
-    const payload: unknown = await response.json()
-    if (!Array.isArray(payload)) throw new Error('Ardent returned an unexpected response.')
+    if (!Array.isArray(payload)) throw new ProviderQueryError('Ardent', 'malformed_response')
     return payload
   }
 }

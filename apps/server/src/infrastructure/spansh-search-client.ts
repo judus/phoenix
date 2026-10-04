@@ -1,6 +1,9 @@
+import { ProviderQueryError } from '../domain/provider-query-error.js'
+import { fetchProviderJson } from './fetch-provider-json.js'
+
 const DEFAULT_BASE_URL = 'https://spansh.co.uk/api/'
 const DEFAULT_TIMEOUT_MS = 30_000
-const DEFAULT_RESULT_SIZE = 100
+export const SPANSH_SEARCH_CANDIDATE_LIMIT = 100
 
 export type SpanshSearchIndex = 'bodies' | 'stations' | 'systems'
 
@@ -34,20 +37,18 @@ export class SpanshSearchClient implements SpanshSearchGateway {
   public async findFieldValues (index: SpanshSearchIndex, field: string, query: string): Promise<string[]> {
     const url = new URL(`${index}/field_values/${encodeURIComponent(field)}`, this.baseUrl)
     url.searchParams.set('q', query)
-    const response = await this.fetcher(url, {
+    const payload = await fetchProviderJson('Spansh', this.fetcher, url, {
       headers: { accept: 'application/json', 'user-agent': 'phoenix-terminal/0.1' },
       signal: AbortSignal.timeout(this.timeoutMs)
     })
-    if (!response.ok) throw new Error(`Spansh field-value lookup failed with HTTP ${response.status}.`)
-    const payload: unknown = await response.json()
     const raw = record(payload)
     const values = index === 'stations' && (field === 'modules' || field === 'ships') ? record(raw?.values)?.name : raw?.values
-    if (!Array.isArray(values)) throw new Error('Spansh returned an unexpected field-value response.')
+    if (!Array.isArray(values)) throw new ProviderQueryError('Spansh', 'malformed_response')
     return [...new Set(values.map(stringValue).filter((value): value is string => value !== null))]
   }
 
   public async search (index: SpanshSearchIndex, request: SpanshSearchRequest): Promise<unknown[]> {
-    const response = await this.fetcher(new URL(`${index}/search`, this.baseUrl), {
+    const payload = await fetchProviderJson('Spansh', this.fetcher, new URL(`${index}/search`, this.baseUrl), {
       body: JSON.stringify({
         filters: request.filters,
         page: 0,
@@ -56,7 +57,7 @@ export class SpanshSearchClient implements SpanshSearchGateway {
           y: request.referencePosition[1],
           z: request.referencePosition[2]
         } } : {}),
-        size: DEFAULT_RESULT_SIZE,
+        size: SPANSH_SEARCH_CANDIDATE_LIMIT,
         ...(request.referencePosition ? { sort: [{ distance: { direction: 'asc' } }] } : {})
       }),
       headers: {
@@ -67,10 +68,8 @@ export class SpanshSearchClient implements SpanshSearchGateway {
       method: 'POST',
       signal: AbortSignal.timeout(this.timeoutMs)
     })
-    if (!response.ok) throw new Error(`Spansh request failed with HTTP ${response.status}.`)
-    const payload: unknown = await response.json()
     const raw = record(payload)
-    if (!raw || !Array.isArray(raw.results)) throw new Error(`Spansh returned an unexpected ${index} search response.`)
+    if (!raw || !Array.isArray(raw.results)) throw new ProviderQueryError('Spansh', 'malformed_response')
     return raw.results
   }
 }

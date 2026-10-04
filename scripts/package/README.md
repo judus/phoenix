@@ -13,6 +13,11 @@ executing the build.
 `npm run payload:verify` checks every staged file against `manifest.json`. `npm run payload:smoke`
 starts a temporary copy in installed mode and verifies that mutable state is written to isolated
 platform user directories. Linux additionally makes the temporary installation read-only.
+The smoke test also checks duplicate launch, clean stop, retained pairing/profile data across
+restart, a version-two settings migration that preserves customization, and failed startup with
+corrupt settings followed by recovery. It removes developer PHOENIX path/provider overrides from
+the child environment and uses an empty Elite directory and simulated input backend. It never
+repairs or resets the player's configuration.
 
 ## Linux x64 test installer
 

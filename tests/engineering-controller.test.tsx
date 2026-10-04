@@ -1,6 +1,7 @@
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
+import { readControllerSnapshot } from '../apps/web/src/application/cache/controller-snapshot-cache.js'
 import { useEngineeringController, type EngineeringControllerSnapshot, type EngineeringRoute } from '../apps/web/src/features/engineering/use-engineering-controller.js'
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
@@ -57,6 +58,8 @@ test('Engineering retains a successful page snapshot while a revisit refreshes',
   let renderer = await act(async () => create(<Probe />))
   expect(snapshot).toMatchObject({ blueprints, status: 'ready' })
   await act(async () => renderer.unmount())
+
+  expect(readControllerSnapshot(api, 'engineering:blueprints::')).toEqual({ blueprints, status: 'ready' })
 
   vi.mocked(api.getEngineeringBlueprints).mockImplementationOnce(() => new Promise(() => undefined))
   renderer = await act(async () => create(<Probe />))

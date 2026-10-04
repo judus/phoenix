@@ -117,6 +117,22 @@ describe('BrowserPhoenixEventHub', () => {
       error: 'EventSource unavailable.'
     })
   })
+
+  test('repeated stale subscription cleanup does not remove a newer subscription', () => {
+    const source = new FakeEventSource()
+    const hub = new BrowserPhoenixEventHub(apiStub(), () => source)
+    const removed = vi.fn()
+    const active = vi.fn()
+    const unsubscribe = hub.subscribe('runtime-state', removed)
+    unsubscribe()
+    hub.subscribe('runtime-state', active)
+    unsubscribe()
+    hub.start()
+    source.emit('runtime-state', { ...createEmptyRuntimeState(), revision: 8 })
+    expect(removed).not.toHaveBeenCalled()
+    expect(active).toHaveBeenCalledWith(expect.objectContaining({ revision: 8 }))
+    hub.stop()
+  })
 })
 
 class FakeEventSource implements PhoenixBrowserEventSource {

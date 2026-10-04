@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
+import { AiError } from '@jdu/llm-client'
 import type {
   ConversationMessage,
   ConversationStore,
@@ -129,7 +130,9 @@ export class CopilotRealtimeService implements CopilotRealtime {
   ): Promise<ToolExecutionOutput> {
     const name = this.options.tools.definitions
       .find(definition => realtimeToolName(definition.name) === request.name)?.name
-    if (!name) throw new Error(`Unknown Realtime tool: ${request.name}`)
+    if (!name) throw new AiError('tool_validation', 'The requested voice tool is not available. Choose a tool from the current session definitions; do not guess a name or retry unchanged.', {
+      code: 'realtime_tool_unavailable', retryable: false
+    })
     return this.options.tools.execute(
       { arguments: request.arguments as JsonObject, id: randomUUID(), name },
       {

@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url'
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import type { CurrentShip } from '@phoenix/contracts'
 import { JsonGameCatalogue, JsonEngineeringCatalogue } from '@phoenix/elite'
 import { createCurrentShipModel } from '../apps/web/src/features/fleet/fleet-view-model.js'
@@ -107,7 +107,10 @@ test('ship engineering uses catalogue display names while preserving raw journal
   }
   ship.modules = [module]
   const enricher = new CatalogueShipLoadoutEnricher(catalogue, engineeringCatalogue)
+  const listBlueprints = vi.spyOn(engineeringCatalogue, 'listBlueprints')
+  ship.modules.push({ ...module, slotId: 'FrameShiftDrive' })
   const enriched = enricher.enrich(ship)
+  expect(listBlueprints).toHaveBeenCalledTimes(1)
   const name = engineeringCatalogue.getBlueprint('TestModule_Reinforced')!.displayName
   expect(enriched.modules[0]!.engineering).toMatchObject({ blueprintName: 'TestModule_Reinforced', blueprintDisplayName: name })
   const model = createCurrentShipModel({ ...createEmptyRuntimeState(), ship: enriched })

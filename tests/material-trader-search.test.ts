@@ -9,7 +9,7 @@ import type { StationQuery } from '../apps/server/src/application/mcp-tools/tool
 test.each(['Raw', 'Manufactured', 'Encoded'] as const)('Spansh filters %s traders explicitly and retains only suitable pads', async traderType => {
   const row = { name: 'Trader', system_name: 'Nearby', material_trader: traderType, distance: 10, large_pads: 1, market_id: 42 }
   const search = vi.fn(async () => [
-    row, { ...row, name: 'Closer', distance: 2 },
+    row, { ...row, name: 'Closer', distance: 2, market_id: 43 },
     { ...row, material_trader: 'Other' }, { ...row, material_trader: undefined },
     { ...row, large_pads: 0, small_pads: 1 }, { ...row, distance: undefined }
   ])
@@ -20,10 +20,13 @@ test.each(['Raw', 'Manufactured', 'Encoded'] as const)('Spansh filters %s trader
     referencePosition: [1, 2, 3]
   })
   expect(results.map(row => row.stationName)).toEqual(['Closer', 'Trader'])
-  expect(results[0]).toMatchObject({ marketId: 42, maxLandingPadSize: 3, distanceLy: 2 })
+  expect(results[0]).toMatchObject({ marketId: 43, maxLandingPadSize: 3, distanceLy: 2 })
   search.mockClear()
   await source.findMaterialTraders({ traderType, minimumPadSize: 2, referencePosition: [0, 0, 0] })
-  expect(search.mock.calls[0]?.[1].filters).not.toHaveProperty('has_large_pad')
+  expect(search.mock.calls.map(call => call[1].filters)).toEqual([
+    { material_trader: { value: [traderType] }, has_large_pad: { value: true } },
+    { material_trader: { value: [traderType] }, medium_pads: { comparison: '>=', value: 1 } }
+  ])
 })
 
 test('console and Copilot expose all trader types while preserving the any identifier', () => {
@@ -41,7 +44,7 @@ test('console and Copilot expose all trader types while preserving the any ident
 test('Vista Genomics search filters services, validates pads and orders by distance', async () => {
   const row = { name: 'Vista', system_name: 'Nearby', services: [{ name: 'Vista Genomics' }], distance: 10, large_pads: 1, market_id: 42 }
   const search = vi.fn(async () => [
-    row, { ...row, name: 'Closer', distance: 2 },
+    row, { ...row, name: 'Closer', distance: 2, market_id: 43 },
     { ...row, services: [{ name: 'Universal Cartographics' }] },
     { ...row, services: undefined }, { ...row, distance: undefined },
     { ...row, large_pads: 0, small_pads: 1 }

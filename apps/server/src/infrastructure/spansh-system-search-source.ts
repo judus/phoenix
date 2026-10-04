@@ -13,7 +13,11 @@ export class SpanshSystemSearchSource implements SystemSearchSource {
       filters: providerFilters(request),
       referencePosition: request.referencePosition
     })
-    return candidates.map(mapSystem).filter(isPresent)
+    return candidates.map(mapSystem).filter(isPresent).filter(system =>
+      (request.population !== 'inhabited' || system.population > 0) &&
+      (request.population !== 'uninhabited' || system.population === 0) &&
+      (request.minPopulation === null || system.population >= request.minPopulation) &&
+      (request.maxPopulation === null || system.population <= request.maxPopulation))
   }
 }
 
@@ -26,12 +30,11 @@ function providerFilters (request: SystemSearchRequest): Record<string, unknown>
   if (request.government) filters.government = { value: [request.government] }
   if (request.security) filters.security = { value: [request.security] }
 
-  const population: Record<string, string> = {}
-  if (request.population === 'inhabited') population.min = '1'
-  if (request.population === 'uninhabited') population.max = '0'
-  if (request.minPopulation !== null) population.min = String(request.minPopulation)
-  if (request.maxPopulation !== null) population.max = String(request.maxPopulation)
-  if (Object.keys(population).length > 0) filters.population = population
+  const minimum = request.population === 'inhabited' ? Math.max(1, request.minPopulation ?? 1) : request.minPopulation
+  const maximum = request.population === 'uninhabited' ? 0 : request.maxPopulation
+  if (minimum !== null && maximum !== null) filters.population = { comparison: '<=>', value: [minimum, maximum] }
+  else if (minimum !== null) filters.population = { comparison: '>=', value: minimum }
+  else if (maximum !== null) filters.population = { comparison: '<=', value: maximum }
   return filters
 }
 

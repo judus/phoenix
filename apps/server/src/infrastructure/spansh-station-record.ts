@@ -1,3 +1,5 @@
+import type { NearbyStation } from '../domain/station-market.js'
+
 export interface SpanshStationRecord {
   distanceLy: number
   distanceToArrivalLs: number | null
@@ -26,6 +28,20 @@ export function spanshStationRecord (candidate: unknown, allowMissingDistance = 
     stationName,
     stationType: spanshString(raw.type),
     systemName
+  }
+}
+
+export function spanshNearbyStation (station: SpanshStationRecord, minimumPadSize: number | null): (NearbyStation & { distanceLy: number }) | null {
+  if (minimumPadSize !== null && (station.maxLandingPadSize === null || station.maxLandingPadSize < minimumPadSize)) return null
+  const { raw, ...location } = station
+  return {
+    ...location,
+    allegiance: spanshString(raw.allegiance),
+    controllingFaction: spanshString(raw.controlling_minor_faction),
+    government: spanshString(raw.government),
+    primaryEconomy: spanshString(raw.primary_economy),
+    secondaryEconomy: spanshString(raw.secondary_economy),
+    updatedAt: spanshIsoString(raw.updated_at)
   }
 }
 

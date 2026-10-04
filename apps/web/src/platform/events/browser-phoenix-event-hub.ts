@@ -121,7 +121,7 @@ export class BrowserPhoenixEventHub implements PhoenixEventHub {
     this.#listeners.set(eventName, listeners)
     return () => {
       listeners.delete(wrapped)
-      if (listeners.size === 0) this.#listeners.delete(eventName)
+      if (listeners.size === 0 && this.#listeners.get(eventName) === listeners) this.#listeners.delete(eventName)
     }
   }
 
