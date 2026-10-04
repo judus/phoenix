@@ -1,0 +1,13 @@
+# Pinned EDDN schemas
+
+Unmodified upstream JSON from EDCD/EDDN `live`, revision
+`4ad669bb7bbe1eae080e4c354e786dca4db91f35` (retrieved 2026-10-04).
+
+Source: https://github.com/EDCD/EDDN/tree/4ad669bb7bbe1eae080e4c354e786dca4db91f35/schemas
+
+BSD-3-Clause; full notice in `licenses/EDDN-BSD-3-Clause.txt` in PHOENIX's root.
+The runtime compiles local copies as test schemas (only id and `$schemaRef` change).
+No runtime schema download. Review upstream documentation and tests when updating the pin.
+
+Mapping code is PHOENIX's explicit allowlist implementation of the documented protocol;
+no EDMC or EliteDangerousCore source has been copied.

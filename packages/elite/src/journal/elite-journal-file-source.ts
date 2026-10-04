@@ -7,6 +7,7 @@ import {
   readdirSync
 } from 'node:fs'
 import { join } from 'node:path'
+import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import {
   EliteJournalSourceDiagnosticsSchema,
@@ -23,6 +24,12 @@ export type EliteJournalListener = (event: EliteJournalEvent) => void | Promise<
 
 export interface EliteJournalFileSourceOptions {
   pollInterval?: number
+  onObservation?: (event: EliteJournalEvent, source: EliteJournalObservationSource) => void
+}
+
+export interface EliteJournalObservationSource {
+  id: string
+  replayed: boolean
 }
 
 export class EliteJournalFileSource {
@@ -32,11 +39,12 @@ export class EliteJournalFileSource {
   private currentOffset = 0
   private refreshQueue: Promise<boolean> = Promise.resolve(false)
   private diagnostics: EliteJournalSourceDiagnostics
+  private bootstrap: { path: string, end: number } | undefined
 
   public constructor (
     private readonly directory: string | null,
     private readonly listener: EliteJournalListener,
-    options: EliteJournalFileSourceOptions = {}
+    private readonly options: EliteJournalFileSourceOptions = {}
   ) {
     this.pollInterval = options.pollInterval ?? 500
     this.diagnostics = {
@@ -99,6 +107,7 @@ export class EliteJournalFileSource {
       let contents: Buffer
       try {
         const size = fstatSync(file).size
+        this.bootstrap ??= { path: latestFile, end: size }
         if (size < this.currentOffset) {
           this.currentOffset = 0
         }
@@ -143,6 +152,10 @@ export class EliteJournalFileSource {
         }
         try {
           await this.listener(event)
+          this.options.onObservation?.(event, {
+            id: createHash('sha256').update(`${latestFile}\n${nextOffset}\n${line}`).digest('hex'),
+            replayed: latestFile === this.bootstrap!.path && nextOffset <= this.bootstrap!.end
+          })
           this.currentOffset = nextOffset
           processedLines++
           this.diagnostics = {

@@ -11,6 +11,8 @@
     "@phoenix/copilot": "*",
     "@phoenix/elite": "*",
     "@xmldom/xmldom": "^0.9.12",
+    "ajv": "^8.20.0",
+    "ajv-draft-04": "^1.0.0",
     "control-deck": "file:../../vendor/control-deck/control-deck-phoenix-runtime-0.1.10.tgz",
     "qrcode": "^1.5.4"
   },
