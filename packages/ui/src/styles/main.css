@@ -76,8 +76,7 @@
   }
 
   html,
-  body,
-  #storybook-root {
+  body {
     min-block-size: 100%;
   }
 
@@ -121,12 +120,6 @@
 
   *::-webkit-scrollbar-thumb:hover {
     background: var(--scrollbar-thumb-hover);
-  }
-
-  .storybook-root {
-    min-block-size: 100vh;
-    color: var(--color-text);
-    background: var(--color-canvas);
   }
 
   .controls-toolbar {

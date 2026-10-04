@@ -22,8 +22,8 @@ Reference-system, station and faction names are not a local game-item catalogue.
   are unchanged. No migration or catalogue refresh is required by this feature.
 
 The UI debounces requests, aborts superseded requests, and supports pointer selection,
-arrow-key selection, Enter, and Escape. Shell/Catalogue suggestions in Storybook exercises
-the actual query editor in the PHOENIX workspace, with deterministic provider fixtures.
+arrow-key selection, Enter, and Escape. Visual and interaction checks should use the actual
+query editor in the PHOENIX workspace, not a separate preview shell.
 
 Catalogue files loaded by the existing readers are cached for the process lifetime. This
 slice does not introduce hot reload, an encyclopedia, descriptions, or a SQL reference store.

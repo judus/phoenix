@@ -24,8 +24,6 @@
     "installer:linux:verify": "node scripts/package/verify-linux-deb.mjs",
     "installer:windows": "npm run payload:build && node scripts/package/build-windows-installer.mjs",
     "installer:windows:verify": "node scripts/package/verify-windows-installer.mjs",
-    "storybook": "npm run storybook --workspace @phoenix/storybook",
-    "storybook:build": "npm run build-storybook --workspace @phoenix/storybook",
     "pretest": "npm run build --workspace @phoenix/contracts && npm run build --workspace @phoenix/elite && npm run build --workspace @phoenix/copilot",
     "payload:build": "npm run build && node scripts/package/build-payload.mjs",
     "payload:smoke": "node scripts/package/smoke-test-payload.mjs",

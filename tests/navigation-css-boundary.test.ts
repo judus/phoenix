@@ -29,7 +29,7 @@ function cssFiles(directory: string): string[] {
   const files: string[] = []
 
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === 'storybook-static' || entry.name === '.git') continue
+    if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === '.git') continue
     const path = join(directory, entry.name)
     if (entry.isDirectory()) files.push(...cssFiles(path))
     else if (entry.isFile() && entry.name.endsWith('.css')) files.push(path)

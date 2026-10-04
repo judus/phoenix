@@ -1,6 +1,8 @@
 # Complexity and defensive-programming audit — 2026-10-04
 
-Baseline: PHOENIX `95b502a`, clean `main`, with `origin/main` aligned. This audit follows callers, runtime boundaries, normalization and temporal invariants before selecting changes. It is not a blanket guard-removal or line-count exercise. The independent Control Deck repository and pinned vendor runtime are unchanged. Changes remain uncommitted for review.
+Baseline: PHOENIX `95b502a`, clean `main`, with `origin/main` aligned. This audit follows callers, runtime boundaries, normalization and temporal invariants before selecting changes. It is not a blanket guard-removal or line-count exercise. The independent Control Deck repository and pinned vendor runtime are unchanged.
+
+Subsequent disposition: the audit was committed as `1521f56` at the user's request, before removing the unused Storybook workspace. The file inventories and Storybook evidence below describe the audited baseline, not a requirement to retain or recreate Storybook. After retirement, all 182 test files / 781 tests and production typechecks/builds still pass; future visual acceptance uses the actual PHOENIX workspace.
 
 ## Scope and review ledger
 
@@ -59,6 +61,6 @@ Final validation on the completed production changes:
 - Separate Storybook typecheck and static build pass. Existing unresolved-at-build favicon and large-chunk warnings remain; no styling changes were made.
 - `npm run installer:linux` and `npm run installer:linux:verify` pass: 80 payload checksums, read-only installed startup, single-instance handling, clean shutdown, isolated writable state, retained data, settings migration and corrupt-settings refusal/recovery.
 - Linux artifact: `dist/installer/phoenix_0.1.2_amd64.deb`, SHA-256 `807f378d2eafb1f6aa99962078808989a3f208f730bc76167d0fc528ee8153a3`.
-- `git diff --check` passes. Control Deck and the pinned runtime remain unchanged. No commit or push was requested or performed.
+- `git diff --check` passes. Control Deck and the pinned runtime remain unchanged. At audit completion, no commit or push had been requested or performed; the subsequent authorized audit commit is recorded above. No push was requested.
 
 No live player database, Elite input, external provider query, production server restart, native Windows install or GitHub Actions dispatch is used by this audit. Extracted installed-mode verification is not a system-wide install/uninstall test. Unit/isolated transport tests do not prove physical-tablet or live-game behavior. Vitest transpiles tests; production compiler checks do not typecheck the test suite. Generated/binary/catalogue assets are outside manual source coverage as described above.
