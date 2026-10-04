@@ -34,7 +34,7 @@ try {
     : null
   const launcherRuntime = nativeLauncher ?? resolve(installRoot, 'runtime', runtimeName)
   const launcherScript = resolve(installRoot, 'scripts/package/launcher.mjs')
-  const launcherArguments = nativeLauncher ? [] : [launcherScript]
+  const launcherArguments = nativeLauncher ? ['--non-interactive'] : [launcherScript]
   // Never inherit developer path overrides, provider credentials, or real Elite inputs.
   const inheritedEnvironment = Object.fromEntries(Object.entries(process.env).filter(([name]) => (
     !name.startsWith('PHOENIX_') && !name.startsWith('OPENAI_')
@@ -63,7 +63,7 @@ try {
   if (response.status !== 200) throw new Error(`Payload health probe returned ${response.status}.`)
 
   const duplicate = spawn(launcherRuntime, launcherArguments, { cwd: installRoot, env: launcherEnvironment, stdio: 'ignore' })
-  const duplicateExit = await waitForExit(duplicate, 5_000)
+  const duplicateExit = await waitForExit(duplicate, 5_000, 'duplicate launch')
   if (duplicateExit.code !== 0) throw new Error(`Duplicate launcher exited with ${duplicateExit.code ?? duplicateExit.signal}.`)
   if (child.exitCode !== null || child.signalCode !== null) throw new Error('The primary launcher exited after a duplicate launch attempt.')
 
@@ -129,6 +129,7 @@ try {
   }
 
   await stopLauncher()
+  console.log('Payload smoke: startup, pairing, settings, duplicate launch and clean stop passed.')
 
   const settingsPath = resolve(configRoot, 'settings.json')
   const legacy = JSON.parse(readFileSync(settingsPath, 'utf8'))
@@ -151,11 +152,12 @@ try {
   if (!readFileSync(resolve(dataRoot, 'copilot/agents/marin/character.text.md'), 'utf8').includes('Payload smoke edit.')) {
     throw new Error('Installed restart lost the edited Copilot profile.')
   }
+  console.log('Payload smoke: retained data and settings migration passed.')
 
   const corruptText = '{"version":'
   writeFileSync(settingsPath, corruptText)
   startLauncher()
-  const failed = await waitForExit(child, 15_000)
+  const failed = await waitForExit(child, 15_000, 'corrupt-settings startup')
   if (failed.code === 0) throw new Error('Installed startup accepted corrupt settings.')
   if (readFileSync(settingsPath, 'utf8') !== corruptText) throw new Error('Installed startup overwrote corrupt settings.')
   if (existsSync(resolve(launcherStateRoot, 'launcher.lock')) || existsSync(resolve(launcherStateRoot, 'runtime.txt'))) {
@@ -180,9 +182,10 @@ try {
   async function stopLauncher () {
     const stopArguments = nativeLauncher ? ['--stop'] : [launcherScript, '--stop']
     const stop = spawn(launcherRuntime, stopArguments, { cwd: installRoot, env: launcherEnvironment, stdio: 'ignore' })
-    const stopExit = await waitForExit(stop, 5_000)
+    const stopExit = await waitForExit(stop, 5_000, 'stop command')
     if (stopExit.code !== 0) throw new Error(`Launcher stop command exited with ${stopExit.code ?? stopExit.signal}.`)
-    await waitForExit(child, 7_000)
+    const stopped = await waitForExit(child, 7_000, 'launcher shutdown')
+    if (stopped.code !== 0) throw new Error(`Launcher did not stop cleanly (${stopped.code ?? stopped.signal}).`)
   }
 } finally {
   if (child !== undefined && child.exitCode === null && child.signalCode === null) {
@@ -190,7 +193,7 @@ try {
     // The launcher gives its server five seconds before forcing shutdown. Do not
     // delete the sandbox while that server may still own files or hold the port.
     // If shutdown cannot be confirmed, preserve the sandbox for diagnosis.
-    await waitForExit(child, 7_000)
+    await waitForExit(child, 7_000, 'smoke-test cleanup')
   }
   makeWritable(installRoot)
   rmSync(temporaryRoot, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 })
@@ -221,13 +224,13 @@ async function waitForServer (url, process, output) {
   throw new Error(`Payload did not become ready.\n${output.join('')}`)
 }
 
-async function waitForExit (process, timeout) {
+async function waitForExit (process, timeout, phase) {
   if (process.exitCode !== null || process.signalCode !== null) return { code: process.exitCode, signal: process.signalCode }
   return await new Promise((resolveExit, reject) => {
     const onExit = (code, signal) => { clearTimeout(timer); resolveExit({ code, signal }) }
     const timer = setTimeout(() => {
       process.off('exit', onExit)
-      reject(new Error('Process did not exit before the smoke-test deadline.'))
+      reject(new Error(`Process did not exit before the smoke-test deadline (${phase}).`))
     }, timeout)
     process.once('exit', onExit)
   })

@@ -58,7 +58,10 @@ tray open/quit controls.
 
 The verifier silently installs into an isolated directory, verifies the installed payload,
 exercises the native launcher, duplicate launch, clean stop, and writable user-state boundary, then
-runs the uninstaller. Windows game input still requires a separate real Elite validation; an
+runs the uninstaller. Automated native launches use `Phoenix.exe --non-interactive` to suppress
+blocking error dialogs (including the intentional corrupt-settings case); failures still return
+nonzero and write the launcher log. Normal launches retain their error dialogs.
+Windows game input still requires a separate real Elite validation; an
 installer smoke test cannot prove `SendInput` behavior.
 
 ## CI and draft releases

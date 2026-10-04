@@ -152,6 +152,8 @@ LRESULT CALLBACK windowProcedure(HWND window, UINT message, WPARAM wParam, LPARA
 }
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR commandLine, int) {
+  // Automation must observe failures without waiting for a modal dialog to be dismissed.
+  const bool interactive = std::wstring(commandLine).find(L"--non-interactive") == std::wstring::npos;
   if (std::wstring(commandLine).find(L"--stop") != std::wstring::npos) {
     HANDLE existingStopEvent = OpenEventW(EVENT_MODIFY_STATE, FALSE, L"Local\\PhoenixLauncherStop");
     if (existingStopEvent) {
@@ -185,7 +187,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR commandLine, int) {
   if (!window) return 1;
 
   if (!startLauncher()) {
-    MessageBoxW(nullptr, L"PHOENIX could not start its background launcher.", L"PHOENIX", MB_OK | MB_ICONERROR);
+    if (interactive) MessageBoxW(nullptr, L"PHOENIX could not start its background launcher.", L"PHOENIX", MB_OK | MB_ICONERROR);
     CloseHandle(instanceMutex);
     return 1;
   }
@@ -206,12 +208,14 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR commandLine, int) {
 
   MSG message{};
   bool running = true;
+  DWORD exitCode = 0;
   while (running) {
     HANDLE handles[] = {launcherProcess.hProcess, stopEvent};
     const DWORD wait = MsgWaitForMultipleObjects(2, handles, FALSE, INFINITE, QS_ALLINPUT);
     if (wait == WAIT_OBJECT_0) {
       if (!quitting) {
-        MessageBoxW(nullptr, L"PHOENIX stopped unexpectedly. Check the PHOENIX log directory for details.", L"PHOENIX", MB_OK | MB_ICONERROR);
+        if (!GetExitCodeProcess(launcherProcess.hProcess, &exitCode) || exitCode == 0) exitCode = 1;
+        if (interactive) MessageBoxW(nullptr, L"PHOENIX stopped unexpectedly. Check the PHOENIX log directory for details.", L"PHOENIX", MB_OK | MB_ICONERROR);
       }
       DestroyWindow(window);
       break;
@@ -230,5 +234,5 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR commandLine, int) {
 
   CloseHandle(stopEvent);
   CloseHandle(instanceMutex);
-  return static_cast<int>(message.wParam);
+  return static_cast<int>(exitCode);
 }
