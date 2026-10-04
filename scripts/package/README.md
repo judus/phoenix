@@ -61,22 +61,22 @@ exercises the native launcher, duplicate launch, clean stop, and writable user-s
 runs the uninstaller. Windows game input still requires a separate real Elite validation; an
 installer smoke test cannot prove `SendInput` behavior.
 
-## Optional GitHub Actions proof
+## CI and draft releases
 
-The manual `Payload proof` workflow runs the checks and native installer build on Linux and Windows.
-It uploads the two installers as seven-day engineering artifacts, not public releases. GitHub
-Actions is optional: use the local commands above when Actions minutes or artifact storage are
-constrained. Check account-level Actions usage before dispatching the workflow because repository
-artifact and cache listings do not expose the complete account quota.
+`CI` checks Linux and Windows on pushes/PRs to `dev` and `main`. Promotion to `main` also verifies
+both native installers. `Draft release` validates version tags on `main`, builds verified installers
+and checksums, and creates a draft preview release. It never publishes automatically. Only release
+builds upload intermediate artifacts, with one-day retention; ordinary CI retains none.
 
-These remain test installers rather than public releases.
+See [the release workflow](../../docs/releases.md) for branching, approval, permanent download
+links and the native local-build fallback if Actions storage or runners are unavailable.
 
 ## Current-build Windows acceptance
 
 As of 2026-10-04, the development host is Linux and no native Windows device/session is
 available for this pass. Historical GitHub Actions Windows builds and real Windows/Elite use
-were successful; that is not fresh acceptance of the current source revision. The existing
-manual workflow already runs native Windows checks, builds the installer, and verifies its
+were successful; that is not fresh acceptance of the current source revision. The native
+workflow runs Windows checks, builds the installer, and verifies its
 installed launcher. It remains a viable build alternative, but no fresh run was dispatched
 and the earlier account-level Actions quota warning is unresolved. Check usage and obtain
 authorization before dispatching. CI smoke tests use simulated input, not Elite.
