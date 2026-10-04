@@ -58,7 +58,7 @@ PHOENIX records the source and revision of each locally fetched catalogue where 
 ## JSONC Parser
 
 PHOENIX's catalogue refresh utility includes `jsonc-parser` by Microsoft to read the pinned Almanac source documents. It is licensed under the MIT License. The complete license is included in `licenses/jsonc-parser-MIT.txt`.
-# EDDN contribution dependencies
+## EDDN contribution dependencies
 
 PHOENIX includes the EDDN journal/1, commodity/3, outfitting/2 and shipyard/2 JSON schemas
 from EDCD/EDDN revision `4ad669bb7bbe1eae080e4c354e786dca4db91f35`, copyright (c) 2018 EDDN,

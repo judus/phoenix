@@ -9,6 +9,7 @@ export function eddnMode (testMode: string | undefined): EddnMode {
 export const EDDN_SCHEMA_VERSIONS = { journal: 1, commodity: 3, outfitting: 2, shipyard: 2 } as const
 export const EDDN_MAX_AGE_MS = 24 * 60 * 60 * 1000
 export const EDDN_MAX_MESSAGE_BYTES = 128 * 1024
+export const EDDN_REQUEST_TIMEOUT_MS = 15_000
 
 export interface EddnMessage {
   $schemaRef: string
@@ -24,7 +25,7 @@ export interface EddnMessage {
 
 export interface EddnPendingMessage {
   id: string
-  message: EddnMessage
+  message: unknown
   attempts: number
 }
 
@@ -33,6 +34,7 @@ export interface EddnOutbox {
   next(now: number): EddnPendingMessage | undefined
   acknowledge(id: string, now: number): void
   discard(id: string): void
+  beginAttempt(id: string, retryAt: number): void
   retry(id: string, nextAttempt: number): void
   clear(): void
   prune(now: number): void

@@ -15,6 +15,7 @@ import {
 import type { GeneralSettings, PhoenixModules } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { DevicePreferences } from '../../application/settings/device-preferences.js'
+import { CommunityDataSettings } from './community-data-settings.js'
 
 export function SettingsPage ({ api, devicePreferences }: { api: PhoenixApi, devicePreferences: DevicePreferences }) {
   const preferences = useSyncExternalStore(devicePreferences.subscribe, devicePreferences.getSnapshot, devicePreferences.getSnapshot)
@@ -168,6 +169,7 @@ export function SettingsPage ({ api, devicePreferences }: { api: PhoenixApi, dev
               </SettingsList>}
           {error && settings && modules && <Status tone="danger">{error}</Status>}
         </Section>
+        <CommunityDataSettings api={api} />
       </div>
     </PageFrame>
   )

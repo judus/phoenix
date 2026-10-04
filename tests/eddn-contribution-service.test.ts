@@ -134,4 +134,29 @@ describe('EDDN contribution lifecycle', () => {
     expect(f.outbox.status().queued).toBe(0)
     expect(f.send).not.toHaveBeenCalled()
   })
+
+  test.each(['null', '{}', '{broken'])('a corrupt queued document (%s) cannot block later observations', async document => {
+    const f = fixture()
+    f.service.observe(f.event, { id: 'one', replayed: false })
+    f.service.observe(f.event, { id: 'two', replayed: false })
+    f.connection.prepare('UPDATE eddn_outbox SET document = ? WHERE id = ?').run(document, 'one')
+    await f.service.flush()
+    await f.service.flush()
+    expect(f.outbox.status().queued).toBe(0)
+    expect(f.send).toHaveBeenCalledOnce()
+  })
+
+  test('shutdown aborts a send and preserves its durable retry deadline', async () => {
+    const f = fixture()
+    f.send.mockImplementation((_, signal: AbortSignal) => new Promise((resolve, reject) => {
+      signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true })
+    }))
+    f.service.observe(f.event, { id: 'one', replayed: false })
+    const sending = f.service.flush()
+    await f.service.stop()
+    await sending
+    expect(f.outbox.status().queued).toBe(1)
+    expect(f.outbox.next(startTime)).toBeUndefined()
+    expect(f.outbox.next(startTime + 75_000)).toMatchObject({ id: 'one', attempts: 1 })
+  })
 })

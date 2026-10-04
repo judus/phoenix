@@ -85,6 +85,9 @@ test('saved OpenAI configuration clearly reports that PHOENIX must restart', asy
 
 function settingsApi (openAi: Awaited<ReturnType<PhoenixApi['getCopilotSettings']>>['openAi'] = { configured: false, source: 'none', stored: false, restartRequired: false }): PhoenixApi {
   return {
+    async getEddnStatus() {
+      return { enabled: true, mode: 'unavailable', queued: 0, lastSuccessAt: null, detail: 'Release review pending.', error: null }
+    },
     async getGeneralSettings() {
       return { controlsEnabled: true }
     },

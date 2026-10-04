@@ -1,4 +1,8 @@
 import {
+  EddnStatusSchema,
+  EddnSettingsUpdateSchema,
+  type EddnStatus,
+  type EddnSettingsUpdate,
   EngineeringExperimentalEffectsResponseSchema,
   type EngineeringExperimentalEffectsResponse,
   CatalogueSuggestionsSchema,
@@ -259,6 +263,14 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getGeneralSettings(signal?: AbortSignal): Promise<GeneralSettings> {
     return this.#get('/api/settings/general', GeneralSettingsSchema, signal)
+  }
+
+  async getEddnStatus(signal?: AbortSignal): Promise<EddnStatus> {
+    return this.#get('/api/settings/eddn', EddnStatusSchema, signal)
+  }
+
+  async saveEddnSettings(settings: EddnSettingsUpdate): Promise<EddnStatus> {
+    return this.#json('/api/settings/eddn', 'PUT', EddnSettingsUpdateSchema.parse(settings), EddnStatusSchema)
   }
 
   async saveGeneralSettings(

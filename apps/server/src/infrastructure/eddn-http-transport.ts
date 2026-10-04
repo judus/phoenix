@@ -1,6 +1,6 @@
 import { request as httpsRequest } from 'node:https'
 import { request as httpRequest } from 'node:http'
-import type { EddnMessage, EddnTransport } from '../domain/eddn.js'
+import { EDDN_REQUEST_TIMEOUT_MS, type EddnMessage, type EddnTransport } from '../domain/eddn.js'
 
 const UPLOAD_URL = 'https://eddn.edcd.io:4430/upload/'
 
@@ -20,7 +20,7 @@ export class EddnHttpTransport implements EddnTransport {
     return new Promise((resolve, reject) => {
       const request = this.endpoint.protocol === 'https:' ? httpsRequest : httpRequest
       const pending = request(this.endpoint, {
-        method: 'POST', signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]),
+        method: 'POST', signal: AbortSignal.any([signal, AbortSignal.timeout(EDDN_REQUEST_TIMEOUT_MS)]),
         headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(body) }
       }, response => {
         // Do not retain or expose remote response bodies (which may echo observations).

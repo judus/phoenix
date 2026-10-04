@@ -1,7 +1,7 @@
 import type { EddnStatus } from '@phoenix/contracts'
 import type { EliteJournalEvent, EliteJournalObservationSource } from '@phoenix/elite'
 import { EddnMessageBuilder } from '../domain/eddn-message-builder.js'
-import { EDDN_MAX_AGE_MS, type EddnMessage, type EddnMode, type EddnOutbox, type EddnTransport } from '../domain/eddn.js'
+import { EDDN_MAX_AGE_MS, EDDN_REQUEST_TIMEOUT_MS, type EddnMessage, type EddnMode, type EddnOutbox, type EddnTransport } from '../domain/eddn.js'
 import type { SystemSettingsRepository } from '../domain/system-configuration.js'
 
 interface Options {
@@ -10,7 +10,7 @@ interface Options {
   outbox: EddnOutbox & { initialize(): void }
   settings: SystemSettingsRepository
   transport: EddnTransport
-  valid(message: EddnMessage): boolean
+  valid(message: unknown): message is EddnMessage
   readSnapshot(event: EliteJournalEvent): Record<string, unknown> | undefined
   now?: () => number
 }
@@ -63,13 +63,12 @@ export class EddnContributionService {
   public setEnabled (enabled: boolean): EddnStatus {
     const settings = this.options.settings.loadOrCreate()
     if (enabled === this.enabled) return this.status()
-    this.options.settings.save({ ...settings, community: { eddnEnabled: enabled, eddnChangedAt: this.now() } })
-    if (enabled !== this.enabled) {
-      this.enabled = enabled
-      this.enabledSince = this.now()
-      this.inflight?.abort()
-      try { if (this.ready) this.options.outbox.clear() } catch { this.storageFailure() }
-    }
+    const changedAt = this.now()
+    this.options.settings.save({ ...settings, community: { eddnEnabled: enabled, eddnChangedAt: changedAt } })
+    this.enabled = enabled
+    this.enabledSince = changedAt
+    this.inflight?.abort()
+    try { if (this.ready) this.options.outbox.clear() } catch { this.storageFailure() }
     return this.status()
   }
 
@@ -119,13 +118,15 @@ export class EddnContributionService {
       this.options.outbox.prune(this.now())
       const next = this.options.outbox.next(this.now())
       if (!next) return
-      if (!this.fresh(next.message.message.timestamp) || Date.parse(String(next.message.message.timestamp)) < this.enabledSince || !this.options.valid(next.message)) {
+      if (!this.options.valid(next.message) || !this.fresh(next.message.message.timestamp) || Date.parse(String(next.message.message.timestamp)) < this.enabledSince) {
         this.options.outbox.discard(next.id)
         this.error = 'An expired or invalid queued observation was discarded.'
         return
       }
       const abort = new AbortController()
       this.inflight = abort
+      // Reserve a retry deadline before I/O: a crash or shutdown must not cause an immediate resend.
+      this.options.outbox.beginAttempt(next.id, this.now() + EDDN_REQUEST_TIMEOUT_MS + 60_000)
       let status = 0
       try { status = (await this.options.transport.send(next.message, abort.signal)).status } catch { /* Retry transport failures below. */ }
       if (!this.active() || abort.signal.aborted) return

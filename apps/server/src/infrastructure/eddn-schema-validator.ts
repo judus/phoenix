@@ -21,7 +21,8 @@ export class EddnSchemaValidator {
     }
   }
 
-  public valid (message: EddnMessage): boolean {
+  public valid (message: unknown): message is EddnMessage {
+    if (!message || typeof message !== 'object' || !('$schemaRef' in message) || typeof message.$schemaRef !== 'string') return false
     return Buffer.byteLength(JSON.stringify(message)) <= EDDN_MAX_MESSAGE_BYTES &&
       this.validators.get(message.$schemaRef)?.(message) === true
   }

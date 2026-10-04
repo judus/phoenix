@@ -93,6 +93,17 @@ try {
   if (!claim.ok) throw new Error(`Payload pairing claim returned ${claim.status}.`)
   const cookie = claim.headers.get('set-cookie')?.split(';')[0]
   if (!cookie) throw new Error('Payload pairing claim did not return a session cookie.')
+  const contributionResponse = await fetch(`http://127.0.0.1:${port}/api/settings/eddn`, { headers: { cookie } })
+  const contribution = await contributionResponse.json()
+  if (!contributionResponse.ok || contribution.enabled !== true || contribution.mode !== 'unavailable' || contribution.queued !== 0) {
+    throw new Error('Payload contribution preference or production release gate is incorrect.')
+  }
+  const optOut = await fetch(`http://127.0.0.1:${port}/api/settings/eddn`, {
+    method: 'PUT', headers: { cookie, 'content-type': 'application/json' }, body: JSON.stringify({ enabled: false })
+  })
+  if (!optOut.ok || JSON.parse(readFileSync(resolve(configRoot, 'settings.json'), 'utf8')).community.eddnEnabled !== false) {
+    throw new Error('Payload did not persist the contribution opt-out.')
+  }
   const profileResponse = await fetch(`http://127.0.0.1:${port}/api/copilot/profiles/marin`, {
     headers: { cookie }
   })
@@ -121,6 +132,7 @@ try {
   await stopLauncher()
   const migratedText = readFileSync(settingsPath, 'utf8')
   const migrated = JSON.parse(migratedText)
+  if (migrated.community.eddnEnabled !== false) throw new Error('Installed restart lost the EDDN opt-out.')
   if (migrated.version !== 3 || migrated.controls.deckConfiguration.decks[0].name !== 'Retained smoke customization') {
     throw new Error('Installed startup did not migrate settings while preserving customization.')
   }

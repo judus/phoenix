@@ -47,7 +47,7 @@ export class SqliteEddnOutbox implements EddnOutbox {
       .get(now) as { id: string, document: string, attempts: number } | undefined
     if (!row) return undefined
     try {
-      return { id: row.id, attempts: row.attempts, message: JSON.parse(row.document) as EddnMessage }
+      return { id: row.id, attempts: row.attempts, message: JSON.parse(row.document) as unknown }
     } catch {
       this.discard(row.id)
       throw new Error('An unreadable queued observation was discarded.')
@@ -67,8 +67,11 @@ export class SqliteEddnOutbox implements EddnOutbox {
   }
 
   public discard (id: string): void { this.connection.prepare('DELETE FROM eddn_outbox WHERE id = ?').run(id) }
-  public retry (id: string, nextAttempt: number): void {
+  public beginAttempt (id: string, nextAttempt: number): void {
     this.connection.prepare('UPDATE eddn_outbox SET attempts = attempts + 1, next_attempt = ? WHERE id = ?').run(nextAttempt, id)
+  }
+  public retry (id: string, nextAttempt: number): void {
+    this.connection.prepare('UPDATE eddn_outbox SET next_attempt = ? WHERE id = ?').run(nextAttempt, id)
   }
   public clear (): void { this.connection.exec('DELETE FROM eddn_outbox') }
   public prune (now: number): void {
