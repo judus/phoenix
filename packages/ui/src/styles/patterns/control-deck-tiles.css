@@ -250,7 +250,6 @@
     inset-inline-start: 50%;
     color: var(--command-meta);
     font-size: min(9rem, 42cqi, 68cqb);
-    font-weight: var(--font-weight-bold);
     line-height: 1;
     opacity: .09;
     content: attr(data-watermark);

@@ -20,6 +20,7 @@ export function usePersonalEquipmentPlannerController (
   api: PhoenixApi,
   active: boolean
 ): PersonalEquipmentPlannerControllerSnapshot {
+  const [previewRequests] = useState(() => new LatestRequest())
   const [snapshot, setSnapshot] = useState<Omit<PersonalEquipmentPlannerControllerSnapshot, 'createPreview'>>({
     previewing: false,
     status: 'idle'
@@ -40,22 +41,28 @@ export function usePersonalEquipmentPlannerController (
         status: 'error'
       })
     })
-    return () => latest.cancel()
-  }, [active, api])
+    return () => {
+      latest.cancel()
+      previewRequests.cancel()
+    }
+  }, [active, api, previewRequests])
 
   const createPreview = useCallback(async (request: PersonalEquipmentPlanPreviewRequest) => {
+    if (!active) return
+    const signal = previewRequests.start()
     setSnapshot(current => ({ ...current, error: undefined, previewing: true, preview: undefined }))
     try {
-      const preview = await api.previewPersonalEquipmentPlan(request)
-      setSnapshot(current => ({ ...current, preview, previewing: false, status: 'ready' }))
+      const preview = await api.previewPersonalEquipmentPlan(request, signal)
+      if (previewRequests.isCurrent(signal)) setSnapshot(current => ({ ...current, preview, previewing: false, status: 'ready' }))
     } catch (cause) {
+      if (!previewRequests.isCurrent(signal)) return
       setSnapshot(current => ({
         ...current,
         error: cause instanceof Error ? cause.message : 'Upgrade preview could not be created.',
         previewing: false
       }))
     }
-  }, [api])
+  }, [active, api, previewRequests])
 
   return { ...snapshot, createPreview }
 }

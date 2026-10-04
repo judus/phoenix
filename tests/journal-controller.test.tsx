@@ -52,6 +52,49 @@ test('Journal retains live events when its initial snapshot fails', async () => 
   await act(async () => renderer.unmount())
 })
 
+test.each([0, 2, 498, 500, 700])('Journal snapshot merge preserves duplicate/order/identity semantics with %i retained rows', async count => {
+  let resolveLog!: (value: { entries: ActivityLogEntry[], retained: number }) => void
+  const api = { getActivityLog: vi.fn().mockReturnValue(new Promise(resolve => { resolveLog = resolve })) } as unknown as PhoenixApi
+  const events = new FakeEventHub()
+  let snapshot!: JournalControllerSnapshot
+  function Probe() { snapshot = useJournalController(api, events); return null }
+  const renderer = await act(async () => create(<Probe />))
+  try {
+    const first = activity('live-a')
+    const second = activity('live-b')
+    const updatedFirst = { ...first, data: { revision: 2 } }
+    await act(async () => {
+      events.emit('activity-entry', first)
+      events.emit('activity-entry', second)
+      events.emit('activity-entry', updatedFirst)
+    })
+    const live = [updatedFirst, second]
+    const retained = Array.from({ length: count }, (_, index) => activity(index % 4 === 0 ? 'live-a' : index % 4 === 1 ? 'duplicate' : `retained-${index}`))
+    // Original semantics suppress only IDs present in live; duplicates within the snapshot are retained.
+    const expected = [...live, ...retained.filter(entry => !live.some(candidate => candidate.id === entry.id))].slice(0, 500)
+    await act(async () => { resolveLog({ entries: retained, retained: Math.max(10, count) }) })
+    expect(snapshot.entries).toEqual(expected)
+    expect(snapshot.entries).toHaveLength(Math.min(500, expected.length))
+    snapshot.entries.forEach((entry, index) => { expect(entry).toBe(expected[index]) })
+    expect(snapshot.retained).toBe(Math.max(10, count))
+    if (count > 5) expect(snapshot.entries.filter(entry => entry.id === 'duplicate').length).toBeGreaterThan(1)
+  } finally { await act(async () => { renderer.unmount() }) }
+})
+
+test('Journal preserves duplicate snapshot rows even without live events', async () => {
+  const first = activity('same-id')
+  const second = { ...first, data: { other: true } }
+  const api = { getActivityLog: vi.fn().mockResolvedValue({ entries: [first, second], retained: 2 }) } as unknown as PhoenixApi
+  let snapshot!: JournalControllerSnapshot
+  const events = new FakeEventHub()
+  function StableProbe() { snapshot = useJournalController(api, events); return null }
+  const renderer = await act(async () => create(<StableProbe />))
+  expect(snapshot.entries).toEqual([first, second])
+  expect(snapshot.entries[0]).toBe(first)
+  expect(snapshot.entries[1]).toBe(second)
+  await act(async () => { renderer.unmount() })
+})
+
 function activity(id: string): ActivityLogEntry {
   return { actionable: false, data: {}, event: id, id, importance: 'notable', ingestedAt: '2026-08-17T12:00:00.000Z', source: 'runtime', timestamp: '2026-08-17T12:00:00.000Z' }
 }

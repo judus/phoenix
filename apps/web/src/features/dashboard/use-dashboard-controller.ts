@@ -121,25 +121,25 @@ export function useDashboardController(
     loadMarketSignals()
     void Promise.allSettled([
       api.getCommanderLog(24, abort.signal).then(log => {
-        if (commanderLogAtRequest === commanderLogRevision) {
+        if (!abort.signal.aborted && commanderLogAtRequest === commanderLogRevision) {
           setSnapshot(current => ({ ...current, commanderLog: log.entries }))
         }
       }),
       api.getLocalTraffic(5, abort.signal).then(localTraffic => {
-        if (localTrafficAtRequest === localTrafficRevision) {
+        if (!abort.signal.aborted && localTrafficAtRequest === localTrafficRevision) {
           setSnapshot(current => ({ ...current, localTraffic }))
         }
       }),
       api.getEngineeringMaterialWatchlist(abort.signal).then(materialWatchlist => {
-        if (materialWatchlistAtRequest === materialWatchlistRevision) {
+        if (!abort.signal.aborted && materialWatchlistAtRequest === materialWatchlistRevision) {
           setSnapshot(current => ({ ...current, materialWatchlist }))
         }
       }),
       api.getNavigationRoute(abort.signal).then(route => {
-        if (routeAtRequest === routeRevision) setSnapshot(current => ({ ...current, route }))
+        if (!abort.signal.aborted && routeAtRequest === routeRevision) setSnapshot(current => ({ ...current, route }))
       }),
       api.getActions(abort.signal).then(actions => {
-        if (actionsAtRequest === actionsRevision) setSnapshot(current => ({ ...current, actions }))
+        if (!abort.signal.aborted && actionsAtRequest === actionsRevision) setSnapshot(current => ({ ...current, actions }))
       })
     ]).then(results => {
       if (abort.signal.aborted) return

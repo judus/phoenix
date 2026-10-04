@@ -125,7 +125,12 @@
         }
       }
 
-      &:focus-visible { outline: none; }
+      &:focus-visible {
+        outline: 2px solid var(--color-focus);
+        outline-offset: -4px;
+        /* A flat contrast band keeps the ring visible on cyan tiles, without bloom. */
+        box-shadow: inset 0 0 0 4px var(--color-canvas);
+      }
       &:hover:not(:disabled) { filter: none; }
 
       &:active:not(:disabled) {

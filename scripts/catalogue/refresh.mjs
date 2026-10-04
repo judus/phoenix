@@ -3,6 +3,7 @@ import { dirname, join, resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { selectJournalModuleRows } from './select-journal-module-rows.mjs'
 import { buildExperimentalEffects } from './build-experimental-effects.mjs'
+import { validateBlueprintGradeKeys } from './validate-blueprint-grade-keys.mjs'
 import {
   buildPersonalEquipmentCatalogue,
   PERSONAL_EQUIPMENT_SOURCE
@@ -54,6 +55,7 @@ const [outfittingCsv, commodityCsv, rareCommodityCsv, materialsCsv, engineersCsv
   ])).then(Object.fromEntries),
   rawJson(repositories.coriolis, revisions.coriolis, 'modifications/specials.json')
 ])
+validateBlueprintGradeKeys(blueprintsSource)
 const shipFiles = await mapConcurrent(shipPaths, 8, async path => [path, await rawJson(repositories.coriolis, revisions.coriolis, path)])
 
 const outfitting = parseCsv(outfittingCsv)

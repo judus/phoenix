@@ -25,25 +25,36 @@ export function MacroRuntimeProvider ({
   const [playback, setPlayback] = useState<MacroPlayback>()
   const [error, setError] = useState<string>()
   const clientId = useRef(clientIdentity.forScope('macros'))
+  const activeRecordingId = useRef<string | undefined>(undefined)
+  const recordingLifetime = useRef<{ api: PhoenixApi, signal: AbortSignal } | undefined>(undefined)
 
   useEffect(() => {
     const abort = new AbortController()
+    recordingLifetime.current = { api, signal: abort.signal }
     void api.getMacros(abort.signal)
       .then(result => { if (!abort.signal.aborted) setLibrary(result) })
       .catch(cause => { if (!abort.signal.aborted) setError(message(cause, 'Macro module unavailable.')) })
-    return () => abort.abort()
+    return () => {
+      abort.abort()
+      activeRecordingId.current = undefined
+    }
   }, [api])
 
   const runtime = useMemo<MacroRuntime>(() => ({
     abort: async () => { setPlayback(await api.abortMacroPlayback() ?? undefined) },
     cancelRecording: async () => {
-      if (!recording) return
+      const lifetime = recordingLifetime.current
+      if (!recording || !lifetime || lifetime.api !== api || lifetime.signal.aborted || activeRecordingId.current !== recording.id) return
       try {
         await api.cancelMacroRecording(recording.id, clientId.current)
+        if (lifetime.signal.aborted || activeRecordingId.current !== recording.id) return
+        activeRecordingId.current = undefined
         setRecording(undefined)
         setError(undefined)
         router.push({ kind: 'macros' })
-      } catch (cause) { setError(message(cause, 'Unable to cancel recording.')) }
+      } catch (cause) {
+        if (!lifetime.signal.aborted && activeRecordingId.current === recording.id) setError(message(cause, 'Unable to cancel recording.'))
+      }
     },
     deleteMacro: async id => {
       try {
@@ -76,12 +87,15 @@ export function MacroRuntimeProvider ({
       }
     },
     recordAction: async (actionId, operation) => {
-      if (!recording) return
+      const lifetime = recordingLifetime.current
+      if (!recording || !lifetime || lifetime.api !== api || lifetime.signal.aborted || activeRecordingId.current !== recording.id) return
       try {
-        setRecording(await api.recordMacroAction(recording.id, clientId.current, actionId, operation))
+        const updated = await api.recordMacroAction(recording.id, clientId.current, actionId, operation)
+        if (lifetime.signal.aborted || activeRecordingId.current !== recording.id) return
+        setRecording(updated)
         setError(undefined)
       } catch (cause) {
-        setError(message(cause, 'Unable to record macro action.'))
+        if (!lifetime.signal.aborted && activeRecordingId.current === recording.id) setError(message(cause, 'Unable to record macro action.'))
         throw cause
       }
     },
@@ -98,29 +112,52 @@ export function MacroRuntimeProvider ({
       }
     },
     startRecording: async () => {
+      const lifetime = recordingLifetime.current
+      if (!lifetime || lifetime.api !== api || lifetime.signal.aborted) return
       try {
-        setRecording(await api.startMacroRecording(clientId.current))
+        const started = await api.startMacroRecording(clientId.current)
+        if (lifetime.signal.aborted) return
+        activeRecordingId.current = started.id
+        setRecording(started)
         setError(undefined)
         router.push({ kind: 'controls', category: 'ship' })
-      } catch (cause) { setError(message(cause, 'Unable to start recording.')) }
+      } catch (cause) { if (!lifetime.signal.aborted) setError(message(cause, 'Unable to start recording.')) }
     },
     stopRecording: async () => {
-      if (!recording) return
+      const lifetime = recordingLifetime.current
+      if (!recording || !lifetime || lifetime.api !== api || lifetime.signal.aborted || activeRecordingId.current !== recording.id) return
+      let closedCurrentRecording = false
       try {
         const stopped = await api.stopMacroRecording(recording.id, clientId.current)
-        setRecording(undefined)
+        if (!lifetime.signal.aborted && activeRecordingId.current === recording.id) {
+          closedCurrentRecording = true
+          activeRecordingId.current = undefined
+          setRecording(undefined)
+        }
         const macro = macroDefinitionFromRecording(nextMacroName(library), stopped)
         if (macro.steps.length === 0) {
-          setError('No usable actions were recorded. The macro was not saved.')
-          router.push({ kind: 'macros' })
+          if (!lifetime.signal.aborted && closedCurrentRecording && activeRecordingId.current === undefined) {
+            setError('No usable actions were recorded. The macro was not saved.')
+            router.push({ kind: 'macros' })
+          }
           return
         }
+        // Saving the captured recording remains required even if a new session owns the toolbar.
         const saved = await api.saveMacro(macro)
-        setLibrary(await api.getMacros())
-        setLastSavedMacroId(saved.id)
-        setError(undefined)
-        router.push({ kind: 'macros' })
-      } catch (cause) { setError(message(cause, 'Unable to stop recording.')) }
+        const updatedLibrary = await api.getMacros()
+        if (!lifetime.signal.aborted) {
+          setLibrary(updatedLibrary)
+          setLastSavedMacroId(saved.id)
+          if (closedCurrentRecording && activeRecordingId.current === undefined) {
+            setError(undefined)
+            router.push({ kind: 'macros' })
+          }
+        }
+      } catch (cause) {
+        if (!lifetime.signal.aborted && (activeRecordingId.current === recording.id || (closedCurrentRecording && activeRecordingId.current === undefined))) {
+          setError(message(cause, 'Unable to stop recording.'))
+        }
+      }
     }
   }), [api, error, lastSavedMacroId, library, playback, recording, router])
 

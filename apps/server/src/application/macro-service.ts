@@ -14,7 +14,7 @@ import { withEffectiveMacroRisk } from './macro-risk.js'
 
 interface HeldAction {
   leaseId: string
-  renewal: NodeJS.Timeout
+  renewal?: NodeJS.Timeout
 }
 
 interface ActiveRecording extends MacroRecording {
@@ -67,17 +67,20 @@ export class MacroService implements Macros {
     const leaseId = request.operation === 'press'
       ? held?.leaseId ?? randomUUID()
       : request.operation === 'release' ? held?.leaseId : undefined
+    if (request.operation === 'press' && !held) recording.held.set(request.actionId, { leaseId: leaseId! })
+    if (request.operation === 'release' && held) {
+      clearInterval(held.renewal)
+      recording.held.delete(request.actionId)
+    }
     const result = await this.gameActions.execute({
       actionId: request.actionId,
       operation: request.operation,
       ...(leaseId ? { leaseId } : {})
     }, 'ui')
-    if (result.status === 'accepted' && request.operation === 'press' && !held) {
+    const pending = recording.held.get(request.actionId)
+    // A concurrent release or stop may already have consumed this attempted press.
+    if (result.status === 'accepted' && request.operation === 'press' && pending?.leaseId === leaseId && pending?.renewal === undefined) {
       recording.held.set(request.actionId, this.holdAction(request.actionId, leaseId!, 'ui'))
-    }
-    if (request.operation === 'release' && held) {
-      clearInterval(held.renewal)
-      recording.held.delete(request.actionId)
     }
     recording.lastCompletedAt = this.now().getTime()
     recording.entries.push({
@@ -128,9 +131,16 @@ export class MacroService implements Macros {
         if (step.type === 'wait') {
           await abortableWait(step.durationMs, signal)
         } else {
+          const action = held.get(step.actionId)
           const leaseId = step.operation === 'press'
-            ? held.get(step.actionId)?.leaseId ?? randomUUID()
-            : step.operation === 'release' ? held.get(step.actionId)?.leaseId : undefined
+            ? action?.leaseId ?? randomUUID()
+            : step.operation === 'release' ? action?.leaseId : undefined
+          // Input may succeed before result logging throws. Reserve its safety release first.
+          if (step.operation === 'press' && !action) held.set(step.actionId, { leaseId: leaseId! })
+          if (step.operation === 'release' && action) {
+            clearInterval(action.renewal)
+            held.delete(step.actionId)
+          }
           const result = await this.gameActions.execute({
             actionId: step.actionId,
             operation: step.operation,
@@ -139,13 +149,8 @@ export class MacroService implements Macros {
           if (!['accepted', 'confirmed', 'unconfirmed', 'already_satisfied'].includes(result.status)) {
             throw new Error(result.message)
           }
-          if (step.operation === 'press' && !held.has(step.actionId)) {
+          if (step.operation === 'press' && !action) {
             held.set(step.actionId, this.holdAction(step.actionId, leaseId!, origin))
-          }
-          if (step.operation === 'release') {
-            const released = held.get(step.actionId)
-            if (released) clearInterval(released.renewal)
-            held.delete(step.actionId)
           }
         }
         state.completedSteps += 1
@@ -159,8 +164,15 @@ export class MacroService implements Macros {
         ? 'Macro playback timed out.'
         : signal.aborted ? 'Macro playback aborted.' : cause instanceof Error ? cause.message : 'Macro playback failed.'
     } finally {
-      await this.releaseHeldActions(held, origin)
-      this.activeRun = undefined
+      try {
+        await this.releaseHeldActions(held, origin)
+      } catch (cause) {
+        if (state.status === 'completed') throw cause
+        const message = cause instanceof Error ? cause.message : 'Unknown cleanup failure.'
+        state.message += ` Held-action cleanup failed: ${message}`
+      } finally {
+        this.activeRun = undefined
+      }
     }
     return MacroPlaybackSchema.parse(state)
   }
@@ -190,12 +202,19 @@ export class MacroService implements Macros {
   }
 
   private async releaseHeldActions (held: Map<string, HeldAction>, origin: GameActionOrigin): Promise<void> {
-    const releases = [...held].map(([actionId, action]) => {
-      clearInterval(action.renewal)
-      return this.gameActions.execute({ actionId, leaseId: action.leaseId, operation: 'release' }, origin)
-    })
+    const actions = [...held]
     held.clear()
-    await Promise.all(releases)
+    const releases = actions.map(async ([actionId, action]) => {
+      clearInterval(action.renewal)
+      await this.gameActions.execute({ actionId, leaseId: action.leaseId, operation: 'release' }, origin)
+    })
+    try {
+      await Promise.all(releases)
+    } catch (cause) {
+      // Do not unlock playback while other release attempts are still in flight, or retry them.
+      await Promise.allSettled(releases)
+      throw cause
+    }
   }
 }
 

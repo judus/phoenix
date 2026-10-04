@@ -4,6 +4,8 @@ Baseline: PHOENIX `95b502a`, clean `main`, with `origin/main` aligned. This audi
 
 Subsequent disposition: the audit was committed as `1521f56` at the user's request, before removing the unused Storybook workspace. The file inventories and Storybook evidence below describe the audited baseline, not a requirement to retain or recreate Storybook. After retirement, all 182 test files / 781 tests and production typechecks/builds still pass; future visual acceptance uses the actual PHOENIX workspace.
 
+The audit and Storybook retirement (`69a0fbe`) were subsequently pushed to `origin/main` at the user's request. The authorized follow-up fixes, their boundary/compatibility decisions and fresh validation are recorded in [the follow-up report](complexity-2026-10-04-follow-up.md).
+
 ## Scope and review ledger
 
 The baseline executable inventory contains 679 tracked TS/TSX/JS/MJS/CJS/SQL files, including tests, Storybook and build scripts. Supplemental review includes styles, HTML, compiler/package configuration, the Windows installer template and CI workflow. Generated output, third-party runtime internals, binary assets, catalogue contents and historical/local context archives are not claimed as audited source. Generated atlas geometry is checked as a data/provenance artifact, not manually validated coordinate by coordinate.
@@ -47,6 +49,8 @@ Two narrow defects were also corrected with regression evidence: default install
 - Large HTTP/application files were not rewritten into generic dispatch frameworks solely because of their length. Public planner checks remain domain rules, not redundant form validation.
 
 ## Follow-ups requiring separate behavior decisions
+
+These were the audit's original deferred candidates. Their subsequent fixes and the retained-catalogue compatibility decision are documented in [the follow-up report](complexity-2026-10-04-follow-up.md); the baseline evidence below is retained for provenance.
 
 1. Macro finalization can leave `activeRun` set if releasing held actions rejects. Production activity persistence/listeners can throw after input dispatch. A future fix must report uncertain input/cleanup outcomes without blindly retrying side effects; see Application D1.
 2. Personal-equipment preview request ordering and some dashboard bootstrap callbacks need dedicated cancellation/latest-result tests before changing state behavior; see the frontend ledger.

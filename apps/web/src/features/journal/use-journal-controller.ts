@@ -47,7 +47,8 @@ function mergeEntries(
   live: readonly ActivityLogEntry[],
   snapshot: readonly ActivityLogEntry[]
 ): readonly ActivityLogEntry[] {
-  return [...live, ...snapshot.filter(entry => !live.some(candidate => candidate.id === entry.id))].slice(0, 500)
+  const liveIds = new Set(live.map(entry => entry.id))
+  return [...live, ...snapshot.filter(entry => !liveIds.has(entry.id))].slice(0, 500)
 }
 
 function message(cause: unknown): string {

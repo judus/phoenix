@@ -95,6 +95,43 @@ test('an obsolete catalogue failure cannot taint a newer successful refresh', as
   await act(async () => renderer.unmount())
 })
 
+test.each([
+  ['getCommanderLog', 'commanderLog'],
+  ['getLocalTraffic', 'localTraffic'],
+  ['getEngineeringMaterialWatchlist', 'materialWatchlist'],
+  ['getNavigationRoute', 'route'],
+  ['getActions', 'actions']
+] as const)('a noncooperative initial %s cannot overwrite a replacement controller session', async (method, field) => {
+  let resolveOld!: (value: unknown) => void
+  const previous = dashboardApi('old')
+  const current = dashboardApi('current')
+  const oldValue = await previous[method]()
+  const currentValue = await current[method]()
+  previous[method].mockReturnValueOnce(new Promise(resolve => { resolveOld = resolve }))
+  const events = new FakeEventHub()
+  let snapshot!: DashboardControllerSnapshot
+  function Probe({ api }: { api: PhoenixApi }) { snapshot = useDashboardController(api, events); return null }
+  const renderer = await act(async () => create(<Probe api={previous as unknown as PhoenixApi} />))
+  try {
+    await act(async () => { renderer.update(<Probe api={current as unknown as PhoenixApi} />) })
+    expect(snapshot[field]).toEqual(field === 'commanderLog' ? currentValue.entries : currentValue)
+    const before = snapshot
+    await act(async () => { resolveOld(oldValue) })
+    expect(snapshot).toBe(before)
+  } finally { await act(async () => { renderer.unmount() }) }
+})
+
+function dashboardApi(marker: string) {
+  return {
+    getActions: vi.fn().mockResolvedValue({ actions: [], backend: { id: marker, available: false, simulated: true, detail: marker }, bindingSource: { directory: null, filePath: null, presetNames: [], available: false, bindingCount: 0, keyboardBindingCount: 0, loadedAt: null, error: null } }),
+    getCommanderLog: vi.fn().mockResolvedValue({ schemaVersion: 1, entries: [commanderLogEntry(marker)], retained: 1 }),
+    getLocalTraffic: vi.fn().mockResolvedValue({ ...localTraffic(), messages: [{ ...communicationMessage(), message: marker }] }),
+    getEngineeringMaterialWatchlist: vi.fn().mockResolvedValue({ ...materialWatchlist(), activeProjectCount: marker === 'old' ? 1 : 2 }),
+    getDashboardMarketSignals: vi.fn().mockResolvedValue(marketSignals()),
+    getNavigationRoute: vi.fn().mockResolvedValue(route(marker))
+  }
+}
+
 function commanderLogEntry(id: string): CommanderLogEntry {
   return {
     category: 'mission',

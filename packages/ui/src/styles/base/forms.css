@@ -208,7 +208,8 @@
     font-size: var(--font-size-sm);
 
     &:focus-visible {
-      outline: none;
+      outline: 2px solid var(--color-focus);
+      outline-offset: -4px;
     }
 
     &:disabled {
