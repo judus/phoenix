@@ -131,8 +131,8 @@ test('the frontend API client communicates with the PHOENIX backend', async () =
     await expect(client.getCatalogueSuggestions('ship', 'prospector')).resolves.toEqual([
       { label: 'Type-11 Prospector', value: 'Type-11 Prospector', source: 'Spansh' }
     ])
-    await expect(client.getCatalogueSuggestions('commodity', 'gold')).resolves.toContainEqual(
-      { label: 'Gold', value: 'Gold', source: 'Elite' }
+    await expect(client.getCatalogueSuggestions('commodity', 'catalys')).resolves.toContainEqual(
+      { label: 'Advanced Catalysers', value: 'AdvancedCatalysers', source: 'Elite' }
     )
   } finally {
     await application.stop()

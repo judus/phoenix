@@ -73,19 +73,18 @@ links and the native local-build fallback if Actions storage or runners are unav
 
 ## Current-build Windows acceptance
 
-As of 2026-10-04, the development host is Linux and no native Windows device/session is
-available for this pass. Historical GitHub Actions Windows builds and real Windows/Elite use
-were successful; that is not fresh acceptance of the current source revision. The native
-workflow runs Windows checks, builds the installer, and verifies its
-installed launcher. It remains a viable build alternative, but no fresh run was dispatched
-and the earlier account-level Actions quota warning is unresolved. Check usage and obtain
-authorization before dispatching. CI smoke tests use simulated input, not Elite.
+The development host is Linux; native Windows build/installer verification runs in GitHub
+Actions. Check the [CI and release runs](https://github.com/judus/phoenix/actions) for the exact
+revision being evaluated. A green check proves the automated gates below, not live gameplay:
+CI smoke tests use simulated input, not Elite. Historical Windows/Elite success does not
+replace acceptance of the current release. No real Windows/Elite test session is available
+for the 2026-10-04 release-pipeline setup.
 
 For the exact revision intended for release, record the commit, Windows/Node/toolchain versions,
 artifact SHA-256 and results of these gates:
 
 - Run `npm.cmd ci`, `npm.cmd run check`, `npm.cmd run installer:windows` and
-  `npm.cmd run installer:windows:verify` on native x64 Windows (or use the manual workflow's
+  `npm.cmd run installer:windows:verify` on native x64 Windows (or use the native workflow's
   equivalent gates). Preserve the artifact and its payload manifest.
 - On a real Windows machine, verify install, upgrade, tray open/quit, duplicate launch,
   failed-start recovery, restart and uninstall. Existing settings, pairing, macros, projects
@@ -103,6 +102,6 @@ artifact SHA-256 and results of these gates:
 - Record antivirus/SmartScreen results and the signing/distribution decision before a public
   release. Do not represent a successful unsigned CI installer as certified gameplay support.
 
-Native build/installer checks and real Elite acceptance are **pending**, not failed. Windows
-builds may be obtained through an authorized Actions run without a local Windows build host;
-live Elite/input acceptance still requires access to a Windows machine running the game.
+Real Elite/input acceptance remains **pending**, not failed, until recorded on a Windows
+machine running the game. Release manifests and checksums identify the exact automated build;
+retain the manual acceptance evidence alongside that release before publishing it.
