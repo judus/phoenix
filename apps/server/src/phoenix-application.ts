@@ -1,4 +1,9 @@
 import { randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
+import { EddnContributionService } from './application/eddn-contribution-service.js'
+import { EddnHttpTransport } from './infrastructure/eddn-http-transport.js'
+import { EddnSchemaValidator } from './infrastructure/eddn-schema-validator.js'
+import { eddnMode } from './domain/eddn.js'
 import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { CartographyUpdate, CommunicationMessage, DisplayCommand, EngineeringProjectsChanged, GameEventEnvelope, NavigationRoute, PhoenixControlDeckConfiguration, RuntimeState } from '@phoenix/contracts'
@@ -18,6 +23,7 @@ import {
   EliteDataDirectoryLocator,
   EliteInventoryFileSource,
   EliteJournalFileSource,
+  EliteStationSnapshotReader,
   EliteJournalHistoryBackfill,
   EliteNavigationRouteFileSource,
   EliteStatusFileSource
@@ -175,6 +181,7 @@ export interface PhoenixApplicationOptions {
 }
 
 export class PhoenixApplication {
+  private readonly eddn: EddnContributionService
   private readonly controlDeck: ControlDeckIntegration
   private readonly eliteControls: ControlDeckCommandService
   private readonly database: SqliteDatabase
@@ -327,7 +334,8 @@ export class PhoenixApplication {
     ])
     this.journalSource = new EliteJournalFileSource(
       configuredEliteDirectory,
-      event => liveJournalProjections.project(event)
+      event => liveJournalProjections.project(event),
+      { onObservation: (event, source) => this.eddn.observe(event, source) }
     )
     this.journalBackfill = new EliteJournalHistoryBackfill(
       configuredEliteDirectory,
@@ -379,6 +387,17 @@ export class PhoenixApplication {
       options.systemSettingsRepository ?? new InMemorySystemSettingsRepository(),
       commandCatalogueChanges
     )
+    const stationSnapshots = new EliteStationSnapshotReader(configuredEliteDirectory)
+    let eddnValidator: EddnSchemaValidator | undefined
+    this.eddn = new EddnContributionService({
+      mode: eddnMode(process.env.PHOENIX_EDDN_TEST_MODE),
+      version: JSON.parse(readFileSync(resolve(projectRoot, 'package.json'), 'utf8')).version,
+      outbox: this.database.eddnOutbox,
+      settings: systemSettings,
+      transport: new EddnHttpTransport(),
+      valid: message => (eddnValidator ??= new EddnSchemaValidator(resolve(paths.installRoot, 'resources/eddn'))).valid(message),
+      readSnapshot: event => stationSnapshots.read(event)
+    })
     const openAiConfiguration = new OpenAiConfigurationService(
       options.openAiSecretRepository ?? new InMemoryOpenAiSecretRepository(),
       options.openAiEnvironmentKey === undefined
@@ -605,6 +624,7 @@ export class PhoenixApplication {
       navigationRouteUpdates,
       numpad,
       openAiConfiguration,
+      eddn: this.eddn,
       webPort: options.webPort ?? optionalPort(process.env.PHOENIX_WEB_PORT),
       webRoot: resolveProjectPath(projectRoot, options.webRoot ?? paths.resources.web)
     })
@@ -614,6 +634,7 @@ export class PhoenixApplication {
     this.database.initialize()
     this.initializeShortcuts()
     try {
+      this.eddn.start()
       await this.controlDeck.start()
       await this.eliteControls.start()
       await this.journalSource.start()
@@ -624,6 +645,7 @@ export class PhoenixApplication {
       void this.journalBackfill.start()
       return address
     } catch (cause) {
+      await this.eddn.stop()
       this.journalSource.stop()
       this.statusSource.stop()
       this.inventorySource.stop()
@@ -637,6 +659,7 @@ export class PhoenixApplication {
 
   public async stop (): Promise<void> {
     this.journalSource.stop()
+    await this.eddn.stop()
     this.statusSource.stop()
     this.inventorySource.stop()
     this.navigationRouteSource.stop()

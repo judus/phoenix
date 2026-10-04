@@ -32,6 +32,7 @@ export * from './personal-equipment-report.js'
 export * from './runtime.js'
 export * from './saved-galaxy-queries.js'
 export * from './settings.js'
+export * from './eddn.js'
 
 export const PHOENIX_API_VERSION = '1' as const
 

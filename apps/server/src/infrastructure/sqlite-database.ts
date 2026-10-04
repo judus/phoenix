@@ -44,8 +44,10 @@ import { SqliteCommanderLogRepository } from './sqlite-commander-log-repository.
 import { SqliteCommanderEquipmentRepository } from './sqlite-commander-equipment-repository.js'
 import { SqliteEngineeringProjectRepository } from './sqlite-engineering-project-repository.js'
 import { SqliteSavedGalaxyQueryRepository } from './sqlite-saved-galaxy-query-repository.js'
+import { SqliteEddnOutbox } from './sqlite-eddn-outbox.js'
 
 export class SqliteDatabase implements Database, CartographyRepository, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository, CommunicationRepository, FleetRepository, GalaxyBookmarkRepository {
+  public readonly eddnOutbox: SqliteEddnOutbox
   public readonly commanderEquipment: SqliteCommanderEquipmentRepository
   public readonly commanderLog: SqliteCommanderLogRepository
   public readonly engineeringProjects: SqliteEngineeringProjectRepository
@@ -57,6 +59,7 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     this.path = path
     if (path !== ':memory:') ensurePrivateDirectorySync(dirname(path))
     this.connection = new DatabaseSync(path)
+    this.eddnOutbox = new SqliteEddnOutbox(this.connection)
     this.commanderEquipment = new SqliteCommanderEquipmentRepository(this.connection)
     this.commanderLog = new SqliteCommanderLogRepository(this.connection)
     this.engineeringProjects = new SqliteEngineeringProjectRepository(this.connection)

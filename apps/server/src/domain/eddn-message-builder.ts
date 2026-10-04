@@ -110,6 +110,8 @@ export class EddnMessageBuilder {
   public journal (event: EliteJournalEvent): EddnMessage | undefined {
     const fields = eventFields[event.event]
     if (!fields || !this.matchesSystem(event)) return undefined
+    if (event.event === 'Scan' && (typeof event.BodyName !== 'string' || !event.BodyName)) return undefined
+    if (event.event === 'Docked' && !stationContext(event)) return undefined
     return this.envelope('journal', {
       ...pick(event, fields), timestamp: event.timestamp, event: event.event,
       ...this.system, ...this.flags
@@ -136,7 +138,8 @@ export class EddnMessageBuilder {
       }))
       return this.envelope('commodity', message)
     }
-    const items = event.event === 'Shipyard' ? snapshot.PriceList : snapshot.Items
+    // The schema README calls it PriceList; journal consumers also observe Pricelist.
+    const items = event.event === 'Shipyard' ? snapshot.PriceList ?? snapshot.Pricelist : snapshot.Items
     if (!Array.isArray(items) || !items.every(isRecord)) return undefined
     if (event.event === 'Outfitting') {
       message.modules = [...new Set(items.filter(item => typeof item.Name === 'string' &&

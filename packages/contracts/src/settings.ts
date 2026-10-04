@@ -91,6 +91,10 @@ export function controlDeckTargetToPhoenixTarget (target: ControlDeckCommandTarg
 
 export const PhoenixSettingsSchema = z.object({
   version: z.literal(3),
+  community: z.object({
+    eddnEnabled: z.boolean().default(true),
+    eddnChangedAt: z.number().int().nonnegative().default(0)
+  }).default({ eddnEnabled: true, eddnChangedAt: 0 }),
   copilot: z.object({
     activeProfileId: z.string().regex(/^[a-z][a-z0-9_-]*$/u).default('marin'),
     provider: CopilotAiProviderSchema.default('openai'),

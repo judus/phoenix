@@ -56,6 +56,16 @@ test('invalid JSON settings fail validation instead of being silently overwritte
   expect(() => new JsonSystemSettingsRepository(path).loadOrCreate()).toThrow()
 })
 
+test('pre-contribution settings default on while an explicit opt-out survives disk reload', () => {
+  const path = join(temporaryDirectory(), 'settings.json')
+  const { community, ...previous } = DEFAULT_PHOENIX_SETTINGS
+  writeFileSync(path, JSON.stringify(previous))
+  const repository = new JsonSystemSettingsRepository(path)
+  expect(repository.loadOrCreate().community).toEqual({ eddnEnabled: true, eddnChangedAt: 0 })
+  repository.save({ ...repository.loadOrCreate(), community: { eddnEnabled: false, eddnChangedAt: 123 } })
+  expect(new JsonSystemSettingsRepository(path).loadOrCreate().community).toEqual({ eddnEnabled: false, eddnChangedAt: 123 })
+})
+
 test('reading canonical settings preserves the file without rewriting it', () => {
   const path = join(temporaryDirectory(), 'settings.json')
   const original = `${JSON.stringify(DEFAULT_PHOENIX_SETTINGS)}\n`

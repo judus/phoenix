@@ -31,6 +31,7 @@ import {
 
 export const DEFAULT_PHOENIX_SETTINGS: PhoenixSettings = {
   version: 3,
+  community: { eddnEnabled: true, eddnChangedAt: 0 },
   copilot: {
     activeProfileId: 'marin',
     provider: 'openai',

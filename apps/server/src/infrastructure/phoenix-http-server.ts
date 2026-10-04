@@ -1,5 +1,7 @@
 import { createReadStream, existsSync, statSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
+import { EddnSettingsUpdateSchema } from '@phoenix/contracts'
+import type { EddnContributionService } from '../application/eddn-contribution-service.js'
 import { CatalogueSuggestionKindSchema } from '@phoenix/contracts'
 import type { CatalogueSuggestionService } from '../application/catalogue-suggestion-service.js'
 import {
@@ -171,6 +173,7 @@ export interface PhoenixHttpServerOptions {
   runtimeState: RuntimeStateReader
   runtimeStateUpdates: Subscribable<RuntimeState>
   systemSettings: SystemSettingsRepository
+  eddn: Pick<EddnContributionService, 'status' | 'setEnabled'>
   webPort?: number
   webRoot: string
 }
@@ -1049,6 +1052,21 @@ export class PhoenixHttpServer {
     const copilotConversationMatch = url.pathname.match(/^\/api\/copilot\/conversations\/([^/]+)$/u)
     if (request.method === 'GET' && copilotConversationMatch) {
       await this.handleCopilotHistory(response, decodeURIComponent(copilotConversationMatch[1]!))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/settings/eddn') {
+      this.writeJson(response, 200, this.options.eddn.status())
+      return
+    }
+
+    if (request.method === 'PUT' && url.pathname === '/api/settings/eddn') {
+      const input = EddnSettingsUpdateSchema.safeParse(await readJsonBody(request))
+      if (!input.success) {
+        this.writeJson(response, 400, { error: { code: 'invalid_eddn_settings', message: 'Provide enabled as a boolean.' } })
+      } else {
+        this.writeJson(response, 200, this.options.eddn.setEnabled(input.data.enabled))
+      }
       return
     }
 
