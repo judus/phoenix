@@ -91,6 +91,8 @@ export function CopilotVoiceProvider ({
   events: PhoenixEventHub
 }) {
   const clientIdRef = useRef(clientIdentity.forScope('copilot'))
+  const lifetimeRef = useRef<{ api: PhoenixApi, abort: AbortController } | undefined>(undefined)
+  const profileEventRevision = useRef(0)
   const [connected, setConnected] = useState(false)
   const [armed, setArmed] = useState(false)
   const [voiceHost, setVoiceHost] = useState<CopilotVoiceHostSnapshot>({
@@ -560,6 +562,7 @@ export function CopilotVoiceProvider ({
     let eventRevision = 0
     const unsubscribe = events.subscribe('copilot-profiles', result => {
       eventRevision += 1
+      profileEventRevision.current += 1
       setProfiles(result.profiles)
       setActiveProfileId(result.activeProfileId)
     })
@@ -600,6 +603,7 @@ export function CopilotVoiceProvider ({
 
   useEffect(() => {
     if (!armed) return
+    const abort = new AbortController()
     const hostId = clientIdRef.current
     const publish = (): void => {
       const current = hostStateRef.current
@@ -612,6 +616,7 @@ export function CopilotVoiceProvider ({
         hostId,
         phase: voiceHostPhase(current.status, current.connected, current.error)
       }).then(snapshot => {
+        if (abort.signal.aborted) return
         setVoiceHost(snapshot)
         reconcileVoiceHost(snapshot)
       }).catch(() => {})
@@ -623,6 +628,7 @@ export function CopilotVoiceProvider ({
       if (connectionStateRef.current.acceptCommand(command)) applyDesiredVoiceState(command.desiredConnected)
     })
     return () => {
+      abort.abort()
       clearInterval(heartbeat)
       unsubscribeCommands()
       void api.releaseCopilotVoiceHost(hostId).catch(() => {})
@@ -631,6 +637,7 @@ export function CopilotVoiceProvider ({
 
   useEffect(() => {
     if (!armed) return
+    const abort = new AbortController()
     void api.updateCopilotVoiceHost({
       appliedRevision: connectionStateRef.current.appliedRevision,
       armed: true,
@@ -640,12 +647,25 @@ export function CopilotVoiceProvider ({
       hostId: clientIdRef.current,
       phase: voiceHostPhase(status, connected, error)
     }).then(snapshot => {
+      if (abort.signal.aborted) return
       setVoiceHost(snapshot)
       reconcileVoiceHost(snapshot)
     }).catch(() => {})
+    return () => abort.abort()
   }, [api, armed, connected, error, status])
 
-  useEffect(() => () => disconnectLocalRef.current(false), [])
+  useEffect(() => {
+    const abort = new AbortController()
+    lifetimeRef.current = { api, abort }
+    setConnected(false)
+    setStatus('Offline')
+    setAudioStatus(undefined)
+    setToolStatus(undefined)
+    return () => {
+      abort.abort()
+      disconnectLocal(false)
+    }
+  }, [api])
 
   const remoteHost = !armed && voiceHost.host?.hostId !== clientIdRef.current
     ? voiceHost.host
@@ -656,28 +676,33 @@ export function CopilotVoiceProvider ({
     ? voiceHost.desiredConnected !== remoteHost.connected
     : status === 'Connecting'
   const connect = async (): Promise<void> => {
+    const owner = lifetimeRef.current
+    if (!owner || owner.api !== api || owner.abort.signal.aborted) return
     setError(undefined)
     if (remoteHost) {
       try {
         await api.requestCopilotVoiceHostState(true)
       } catch (cause) {
-        setError(errorMessage(cause))
+        if (!owner.abort.signal.aborted) setError(errorMessage(cause))
       }
       return
     }
     connectionStateRef.current.noteLocalIntent(voiceHost.desiredRevision)
     const started = await connectLocal()
-    if (!started) return
+    if (!started || owner.abort.signal.aborted) return
     void api.requestCopilotVoiceHostState(true)
       .then(({ command }) => {
+        if (owner.abort.signal.aborted) return
         connectionStateRef.current.confirmLocalIntent(command)
       })
-      .catch(cause => setError(errorMessage(cause)))
+      .catch(cause => { if (!owner.abort.signal.aborted) setError(errorMessage(cause)) })
   }
   const disconnect = (): void => {
+    const owner = lifetimeRef.current
+    if (!owner || owner.api !== api || owner.abort.signal.aborted) return
     setError(undefined)
     if (remoteHost) {
-      void api.requestCopilotVoiceHostState(false).catch(cause => setError(errorMessage(cause)))
+      void api.requestCopilotVoiceHostState(false).catch(cause => { if (!owner.abort.signal.aborted) setError(errorMessage(cause)) })
       return
     }
     connectionStateRef.current.noteLocalIntent(voiceHost.desiredRevision)
@@ -685,14 +710,19 @@ export function CopilotVoiceProvider ({
     if (armed) {
       void api.requestCopilotVoiceHostState(false)
         .then(({ command }) => {
+          if (owner.abort.signal.aborted) return
           connectionStateRef.current.confirmLocalIntent(command)
         })
-        .catch(cause => setError(errorMessage(cause)))
+        .catch(cause => { if (!owner.abort.signal.aborted) setError(errorMessage(cause)) })
     }
   }
   const selectProfile = async (profileId: string): Promise<void> => {
+    const owner = lifetimeRef.current
+    if (!owner || owner.api !== api || owner.abort.signal.aborted) return
     if (publicConnected || transitioning) throw new Error('Disconnect voice before changing Copilot profile.')
+    const revision = profileEventRevision.current
     const result = await api.selectCopilotProfile(profileId)
+    if (owner.abort.signal.aborted || revision !== profileEventRevision.current) return
     setProfiles(result.profiles)
     setActiveProfileId(result.activeProfileId)
   }

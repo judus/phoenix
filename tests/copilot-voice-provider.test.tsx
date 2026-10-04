@@ -63,11 +63,12 @@ test('local disconnect cancels an in-progress microphone connection and acknowle
   let voice: CopilotVoiceState | undefined
 
   function Probe() { voice = useCopilotVoice(); return null }
-  const renderer = await act(async () => create(
+  let renderer!: ReturnType<typeof create>
+  await act(async () => { renderer = create(
     <CopilotVoiceProvider api={api} clientIdentity={{ forScope: () => 'desktop-client' }} devicePreferences={new FakeDevicePreferences()} events={events}>
       <Probe />
     </CopilotVoiceProvider>
-  ))
+  ) })
 
   let connection!: Promise<void>
   await act(async () => {
@@ -120,7 +121,8 @@ test('voice lifecycle observes the shared event hub and controls a remote host t
     return null
   }
 
-  const renderer = await act(async () => create(
+  let renderer!: ReturnType<typeof create>
+  await act(async () => { renderer = create(
     <CopilotVoiceProvider
       api={api}
       clientIdentity={{ forScope: () => 'tablet-client' }}
@@ -129,7 +131,7 @@ test('voice lifecycle observes the shared event hub and controls a remote host t
     >
       <Probe />
     </CopilotVoiceProvider>
-  ))
+  ) })
 
   await act(async () => events.emit('voice-host', {
     desiredConnected: false,
@@ -170,11 +172,12 @@ test('live profile and host events cannot be overwritten by stale initial snapsh
   let voice: CopilotVoiceState | undefined
 
   function Probe() { voice = useCopilotVoice(); return null }
-  const renderer = await act(async () => create(
+  let renderer!: ReturnType<typeof create>
+  await act(async () => { renderer = create(
     <CopilotVoiceProvider api={api} clientIdentity={{ forScope: () => 'tablet-client' }} devicePreferences={new FakeDevicePreferences()} events={events}>
       <Probe />
     </CopilotVoiceProvider>
-  ))
+  ) })
 
   await act(async () => {
     events.emit('copilot-profiles', {
@@ -212,11 +215,12 @@ test('voice audio selection follows the device preference owner', async () => {
   let voice: CopilotVoiceState | undefined
 
   function Probe() { voice = useCopilotVoice(); return null }
-  const renderer = await act(async () => create(
+  let renderer!: ReturnType<typeof create>
+  await act(async () => { renderer = create(
     <CopilotVoiceProvider api={api} clientIdentity={{ forScope: () => 'tablet-client' }} devicePreferences={preferences} events={events}>
       <Probe />
     </CopilotVoiceProvider>
-  ))
+  ) })
 
   await act(async () => preferences.update({ audioInputId: 'mic-1', audioOutputId: 'speaker-1' }))
   expect(voice?.inputId).toBe('mic-1')
@@ -233,6 +237,99 @@ function deferred<T>() {
   const promise = new Promise<T>(accept => { resolve = accept })
   return { promise, resolve }
 }
+
+function baseApi(patch: Partial<PhoenixApi> = {}): PhoenixApi {
+  return {
+    requestCopilotVoiceHostState: vi.fn().mockResolvedValue({ accepted: true, command: { revision: 1, desiredConnected: true, hostId: 'desktop-client', issuedAt: '2026-10-04T12:00:00Z', requestId: 'test' } }),
+    getCopilotProfiles: vi.fn().mockResolvedValue({ activeProfileId: 'marin', profiles: [{ description: '', id: 'marin', mark: 'M', name: 'Marin', voice: 'marin' }] }),
+    getCopilotVoiceHost: vi.fn().mockResolvedValue({ desiredConnected: false, desiredRevision: 0, host: null }),
+    updateCopilotVoiceHost: vi.fn().mockImplementation(async input => ({ desiredConnected: false, desiredRevision: 0, host: { ...input, lastSeenAt: '2026-10-04T12:00:00Z' } })),
+    releaseCopilotVoiceHost: vi.fn().mockResolvedValue(undefined),
+    createCopilotRealtimeToken: vi.fn().mockResolvedValue({ model: 'test', value: 'token' }),
+    getCopilotAudioProcessing: vi.fn().mockResolvedValue({}),
+    ...patch
+  } as unknown as PhoenixApi
+}
+
+test('disposed local host does not reconcile a delayed heartbeat into a new connection', async () => {
+  const heartbeat = deferred<Awaited<ReturnType<PhoenixApi['updateCopilotVoiceHost']>>>()
+  const api = baseApi({ updateCopilotVoiceHost: vi.fn().mockReturnValue(heartbeat.promise) })
+  vi.stubGlobal('window', { isSecureContext: true })
+  vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [] }), enumerateDevices: vi.fn().mockResolvedValue([]) } })
+  vi.stubGlobal('WebSocket', class { close = vi.fn() })
+  let renderer!: ReturnType<typeof create>
+  await act(async () => { renderer = create(<CopilotVoiceProvider api={api} clientIdentity={{ forScope: () => 'desktop-client' }} devicePreferences={new FakeDevicePreferences()} events={new FakeEventHub()}>{null}</CopilotVoiceProvider>) })
+  await act(async () => renderer.unmount())
+  await act(async () => heartbeat.resolve({ desiredConnected: true, desiredRevision: 1, host: { appliedRevision: 0, armed: true, clientId: 'desktop-client', connected: false, hostId: 'desktop-client', lastSeenAt: '2026-10-04T12:00:00Z', phase: 'ready' } }))
+  expect(api.releaseCopilotVoiceHost).toHaveBeenCalledOnce()
+  expect(api.createCopilotRealtimeToken).not.toHaveBeenCalled()
+})
+
+test('API replacement cancels an old token attempt before it opens the microphone', async () => {
+  const token = deferred<Awaited<ReturnType<PhoenixApi['createCopilotRealtimeToken']>>>()
+  const old = baseApi({ createCopilotRealtimeToken: vi.fn().mockReturnValue(token.promise) })
+  const current = baseApi()
+  const events = new FakeEventHub()
+  const preferences = new FakeDevicePreferences()
+  const getUserMedia = vi.fn().mockResolvedValue({ getTracks: () => [] })
+  vi.stubGlobal('window', { isSecureContext: true })
+  vi.stubGlobal('navigator', { mediaDevices: { getUserMedia, enumerateDevices: vi.fn().mockResolvedValue([]) } })
+  vi.stubGlobal('WebSocket', class { close = vi.fn() })
+  let voice!: CopilotVoiceState
+  function Probe() { voice = useCopilotVoice(); return null }
+  const page = (api: PhoenixApi) => <CopilotVoiceProvider api={api} clientIdentity={{ forScope: () => 'desktop-client' }} devicePreferences={preferences} events={events}><Probe /></CopilotVoiceProvider>
+  let renderer!: ReturnType<typeof create>
+  await act(async () => { renderer = create(page(old)) })
+  try {
+    let connect!: Promise<void>
+    act(() => { connect = voice.connect() })
+    await act(async () => renderer.update(page(current)))
+    await act(async () => { token.resolve({ model: 'test', value: 'token' }); await connect })
+    expect(getUserMedia).not.toHaveBeenCalled()
+    expect(current.requestCopilotVoiceHostState).not.toHaveBeenCalled()
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('profile selection response cannot overwrite a newer live profile event', async () => {
+  const selection = deferred<Awaited<ReturnType<PhoenixApi['selectCopilotProfile']>>>()
+  const api = baseApi({ selectCopilotProfile: vi.fn().mockReturnValue(selection.promise) })
+  const events = new FakeEventHub()
+  let voice!: CopilotVoiceState
+  function Probe() { voice = useCopilotVoice(); return null }
+  let renderer!: ReturnType<typeof create>
+  await act(async () => { renderer = create(<CopilotVoiceProvider api={api} clientIdentity={{ forScope: () => 'tablet-client' }} devicePreferences={new FakeDevicePreferences()} events={events}><Probe /></CopilotVoiceProvider>) })
+  try {
+    let select!: Promise<void>
+    act(() => { select = voice.selectProfile('operator') })
+    await act(async () => events.emit('copilot-profiles', { activeProfileId: 'live', profiles: [{ id: 'live', name: 'Live', mark: 'L', description: '', voice: 'marin' }] }))
+    await act(async () => { selection.resolve({ activeProfileId: 'operator', profiles: [{ id: 'operator', name: 'Operator', mark: 'O', description: '', voice: 'marin' }] }); await select })
+    expect(voice.activeProfile.id).toBe('live')
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test.each(['unmount', 'replace'] as const)('retained connection controls cannot act after %s', async change => {
+  const old = baseApi()
+  const current = baseApi()
+  const events = new FakeEventHub()
+  const preferences = new FakeDevicePreferences()
+  vi.stubGlobal('window', { isSecureContext: true })
+  vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [] }), enumerateDevices: vi.fn().mockResolvedValue([]) } })
+  vi.stubGlobal('WebSocket', class { close = vi.fn() })
+  let voice!: CopilotVoiceState
+  function Probe() { voice = useCopilotVoice(); return null }
+  const page = (api: PhoenixApi) => <CopilotVoiceProvider api={api} clientIdentity={{ forScope: () => 'desktop-client' }} devicePreferences={preferences} events={events}><Probe /></CopilotVoiceProvider>
+  let renderer!: ReturnType<typeof create>
+  await act(async () => { renderer = create(page(old)) })
+  const retained = voice
+  try {
+    if (change === 'unmount') await act(async () => renderer.unmount())
+    else await act(async () => renderer.update(page(current)))
+    await act(async () => retained.connect())
+    act(() => retained.disconnect())
+    expect(old.createCopilotRealtimeToken).not.toHaveBeenCalled()
+    expect(old.requestCopilotVoiceHostState).not.toHaveBeenCalled()
+  } finally { if (change !== 'unmount') await act(async () => renderer.unmount()) }
+})
 
 class FakeEventHub implements PhoenixEventHub {
   readonly #listeners = new Map<PhoenixEventName, Set<(payload: unknown) => void>>()

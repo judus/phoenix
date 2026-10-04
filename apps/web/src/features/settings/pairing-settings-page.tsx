@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Breadcrumbs,
   Button,
@@ -21,17 +21,22 @@ export function PairingSettingsPage ({ api }: { api: PhoenixApi }) {
   const [devices, setDevices] = useState<PairingDeviceList>()
   const [pending, setPending] = useState<string>()
   const [error, setError] = useState<string>()
+  const lifetime = useRef<{ api: PhoenixApi, abort: AbortController } | undefined>(undefined)
 
   useEffect(() => {
     const abort = new AbortController()
+    lifetime.current = { api, abort }
+    setPending(undefined)
     void api.getPairingStatus(abort.signal)
       .then(async nextStatus => {
+        if (abort.signal.aborted) return
         setStatus(nextStatus)
         if (!nextStatus.serverDevice) return
         const [nextInfo, nextDevices] = await Promise.all([
           api.getPairingInfo(abort.signal),
           api.getPairingDevices(abort.signal)
         ])
+        if (abort.signal.aborted) return
         setInfo(nextInfo)
         setDevices(nextDevices)
       })
@@ -40,38 +45,45 @@ export function PairingSettingsPage ({ api }: { api: PhoenixApi }) {
   }, [api])
 
   const rotateCode = async (): Promise<void> => {
+    const owner = lifetime.current
+    if (!owner || owner.api !== api || owner.abort.signal.aborted) return
     setPending('code')
     setError(undefined)
     try {
-      setInfo(await api.rotatePairingCode())
+      const result = await api.rotatePairingCode()
+      if (!owner.abort.signal.aborted) setInfo(result)
     } catch (cause) {
-      setError(message(cause))
+      if (!owner.abort.signal.aborted) setError(message(cause))
     } finally {
-      setPending(undefined)
+      if (!owner.abort.signal.aborted) setPending(undefined)
     }
   }
 
   const revokeDevice = async (deviceId: string): Promise<void> => {
+    const owner = lifetime.current
+    if (!owner || owner.api !== api || owner.abort.signal.aborted) return
     setPending(deviceId)
     setError(undefined)
     try {
-      setDevices(await api.revokePairingDevice(deviceId))
+      const result = await api.revokePairingDevice(deviceId)
+      if (!owner.abort.signal.aborted) setDevices(result)
     } catch (cause) {
-      setError(message(cause))
+      if (!owner.abort.signal.aborted) setError(message(cause))
     } finally {
-      setPending(undefined)
+      if (!owner.abort.signal.aborted) setPending(undefined)
     }
   }
 
   const revokeAll = async (): Promise<void> => {
+    const owner = lifetime.current
+    if (!owner || owner.api !== api || owner.abort.signal.aborted) return
     setPending('all')
     setError(undefined)
     try {
       await api.revokeAllPairingDevices()
       globalThis.location?.reload()
     } catch (cause) {
-      setError(message(cause))
-      setPending(undefined)
+      if (!owner.abort.signal.aborted) { setError(message(cause)); setPending(undefined) }
     }
   }
 
@@ -135,8 +147,11 @@ export function PairingSettingsPage ({ api }: { api: PhoenixApi }) {
                 size="sm"
                 variant="danger"
                 onClick={() => {
+                  const owner = lifetime.current
+                  if (!owner || owner.api !== api || owner.abort.signal.aborted) return
                   setPending('release')
                   void api.releasePairing().then(() => globalThis.location?.reload()).catch(cause => {
+                    if (owner.abort.signal.aborted) return
                     setError(message(cause))
                     setPending(undefined)
                   })

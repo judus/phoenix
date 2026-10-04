@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type {
   EngineeringExperimentalEffectsResponse,
   EngineeringBlueprintDetail,
@@ -44,7 +44,7 @@ export interface EngineeringControllerSnapshot {
 export function useEngineeringController(
   api: PhoenixApi,
   route: EngineeringRoute,
-  revision?: number,
+  refreshKey?: number | string,
   events?: PhoenixEventHub
 ): EngineeringControllerSnapshot {
   const { view } = route
@@ -56,6 +56,8 @@ export function useEngineeringController(
     : undefined
   const cacheKey = `engineering:${view}:${selectedBlueprintSymbol ?? ''}:${selectedProjectId ?? ''}`
   const [projectRevision, setProjectRevision] = useState(0)
+  const [retryRevision, setRetryRevision] = useState(0)
+  const failedRequest = useRef(false)
   const [snapshot, setSnapshot] = useState<EngineeringControllerSnapshot>(() =>
     readControllerSnapshot(api, cacheKey) ?? { status: 'idle' }
   )
@@ -109,9 +111,17 @@ export function useEngineeringController(
   }
 
   useEffect(() => events?.subscribe('engineering-projects-changed', () => setProjectRevision(value => value + 1)), [events])
+  useEffect(() => events?.subscribe('runtime-state', () => {
+    // Preserve recovery on the next live event after a transient failure. Clear
+    // synchronously so a burst cannot queue retries while one request is pending.
+    if (!failedRequest.current) return
+    failedRequest.current = false
+    setRetryRevision(value => value + 1)
+  }), [events])
 
   useEffect(() => {
     const abort = new AbortController()
+    failedRequest.current = false
     const retained = readControllerSnapshot<EngineeringControllerSnapshot>(api, cacheKey)
     setSnapshot(current => ({ ...(retained ?? current), actions, status: retained?.status ?? (current.status === 'ready' ? 'ready' : 'loading') }))
     const request = loadEngineeringView(api, route, abort.signal)
@@ -119,14 +129,19 @@ export function useEngineeringController(
       if (!abort.signal.aborted) setSnapshot(storeControllerSnapshot(api, cacheKey, { ...result, status: 'ready' }))
     }).catch(cause => {
       if (!abort.signal.aborted) {
+        failedRequest.current = true
         const error = cause instanceof Error ? cause.message : 'Engineering data unavailable.'
         setSnapshot(current => current.status === 'ready' ? { ...current, actions, error } : { actions, error, status: 'error' })
       }
     })
-    return () => abort.abort()
-  // The application API object is stable; project events and runtime revision explicitly drive refreshes.
+    return () => {
+      abort.abort()
+      failedRequest.current = false
+    }
+  // The application supplies a view-specific runtime fingerprint. Project events
+  // independently refresh repository-backed data; route/API lifetimes are unchanged.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [api, cacheKey, projectRevision, revision, selectedBlueprintSymbol, selectedProjectId, view])
+  }, [api, cacheKey, projectRevision, refreshKey, retryRevision, selectedBlueprintSymbol, selectedProjectId, view])
 
   return { ...snapshot, actions }
 }

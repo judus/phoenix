@@ -33,6 +33,7 @@ import { commsContextForRoute, commsNavigationItems } from './features/comms/com
 import { useCommsController } from './features/comms/use-comms-controller.js'
 import { engineeringContextForRoute, engineeringNavigationItems } from './features/engineering/engineering-navigation.js'
 import { useEngineeringController } from './features/engineering/use-engineering-controller.js'
+import { engineeringRuntimeFingerprint } from './features/engineering/engineering-runtime-fingerprint.js'
 import { controlsContext, controlsNavigationItems } from './features/controls/controls-navigation.js'
 import { useControlsController } from './features/controls/use-controls-controller.js'
 import { useMacroRuntime } from './features/macros/macro-runtime-provider.js'
@@ -279,7 +280,7 @@ const EngineeringFeature = memo(function EngineeringFeature({ application, route
   const controller = useEngineeringController(
     application.api,
     route,
-    runtime.status === 'ready' ? runtime.state.revision : undefined,
+    runtime.status === 'ready' ? engineeringRuntimeFingerprint(route, runtime.state) : undefined,
     application.events
   )
   return <EngineeringPage controller={controller} onNavigate={application.router.push} route={route} />

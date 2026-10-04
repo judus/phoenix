@@ -1,5 +1,4 @@
 import type { MacroDefinition, MacroRecording } from '@phoenix/contracts'
-import { createClientId } from '../identity/client-identity.js'
 
 export function macroDefinitionFromRecording(name: string, recording: MacroRecording): MacroDefinition {
   const entries = recording.entries.filter(entry => successfulRecording(entry.status))
@@ -16,17 +15,12 @@ export function macroDefinitionFromRecording(name: string, recording: MacroRecor
     assumptions: [],
     description: '',
     enabled: true,
-    id: macroId(name),
+    id: `macro-${recording.id}`,
     name,
     risk: 'safe',
     steps,
     version: 1
   }
-}
-
-function macroId(name: string): string {
-  const normalized = name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/gu, '-').replace(/^-|-$/gu, '')
-  return /^[a-z]/u.test(normalized) ? normalized : `macro-${normalized || createClientId().slice(-8)}`
 }
 
 function successfulRecording(status: MacroRecording['entries'][number]['status']): boolean {

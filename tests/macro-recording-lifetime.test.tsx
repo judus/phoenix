@@ -101,7 +101,7 @@ test.each([
     expect(harness.push).toHaveBeenCalledTimes(navigationCalls)
     if (operation === 'stop' && settlement === 'resolve') {
       expect(api.saveMacro).toHaveBeenCalledWith(expect.objectContaining({ steps: [{ type: 'game-action', actionId: 'elite.One', operation: 'tap' }] }))
-      expect(harness.runtime().lastSavedMacroId).toBe('macro-1')
+      expect(harness.runtime().lastSavedMacroId).toBe(`macro-${OLD_ID}`)
     } else expect(api.saveMacro).not.toHaveBeenCalled()
     await act(async () => { await harness.runtime().recordAction('elite.One', 'tap') })
     expect(api.recordMacroAction).toHaveBeenLastCalledWith(NEW_ID, 'macro-browser', 'elite.One', 'tap')

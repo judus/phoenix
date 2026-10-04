@@ -4,6 +4,7 @@ import { Button, CommandTile, DescriptionItem, DescriptionList, Field, Form, For
 import type { PhoenixApi, CopilotStreamEvent } from '../../application/api/phoenix-api.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
 import type { ClientIdentity } from '../../application/identity/client-identity.js'
+import { LatestRequest } from '../../application/requests/latest-request.js'
 import { CopilotMarkdown } from './copilot-markdown.js'
 import { CopilotPermissionEditor } from '../../components/copilot-permission-editor.js'
 import { CopilotVoiceToggle } from './copilot-voice-toggle.js'
@@ -30,6 +31,21 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
   const clientId = useRef(clientIdentity.forScope('copilot'))
   const historyRequest = useRef<AbortController | undefined>(undefined)
   const streamRequest = useRef<AbortController | undefined>(undefined)
+  const [profileRequest] = useState(() => new LatestRequest())
+  const lifetime = useRef<{ api: PhoenixApi, abort: AbortController } | undefined>(undefined)
+  const profileRevision = useRef(0)
+  const draftRef = useRef<ProfileDraft | undefined>(undefined)
+  const updateDraft = (next: ProfileDraft): void => { draftRef.current = next; setDraft(next) }
+  useEffect(() => {
+    const abort = new AbortController()
+    lifetime.current = { api, abort }
+    profileRevision.current += 1
+    setSaving(false)
+    setPermissionsPending(false)
+    setPending(false)
+    setToolStatus(undefined)
+    return () => { abort.abort(); profileRequest.cancel() }
+  }, [api, profileRequest])
   const loadHistory = useCallback(async () => {
     historyRequest.current?.abort()
     const abort = new AbortController()
@@ -50,7 +66,7 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
     })
     return () => historyRequest.current?.abort()
   }, [loadHistory, voice.historyVersion])
-  useEffect(() => () => streamRequest.current?.abort(), [])
+  useEffect(() => () => streamRequest.current?.abort(), [api])
   useEffect(() => events.subscribe('conversation-event', event => {
     if (event.clientId === clientId.current || event.conversationId !== CONVERSATION_ID) return
     if (event.type === 'turn.started') setRemoteTurns(turns => ({ ...turns, [event.turnId]: { assistantText: '', id: event.turnId, userText: event.userText } }))
@@ -62,6 +78,8 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
   }), [events, loadHistory])
 
   const submit = async (candidate: string) => {
+    const owner = lifetime.current
+    if (!owner || owner.api !== api || owner.abort.signal.aborted) return
     const text = candidate.trim()
     if (!text || pending) return
     if (voice.canSendRealtimeText) { try { voice.sendText(text); setError(undefined) } catch (cause) { setError(message(cause, 'Realtime message failed.')) }; return }
@@ -73,62 +91,104 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
     const abort = new AbortController()
     streamRequest.current = abort
     try {
-      await api.streamCopilotMessage({ clientId: clientId.current, conversationId: CONVERSATION_ID, message: text, turnId }, event => applyStream(event, assistantId, setMessages, setToolStatus), abort.signal)
-      await loadHistory()
+      await api.streamCopilotMessage({ clientId: clientId.current, conversationId: CONVERSATION_ID, message: text, turnId }, event => {
+        if (!abort.signal.aborted && streamRequest.current === abort) applyStream(event, assistantId, setMessages, setToolStatus)
+      }, abort.signal)
+      if (!abort.signal.aborted && streamRequest.current === abort) await loadHistory()
     } catch (cause) { if (!abort.signal.aborted) { setMessages(current => current.filter(item => item.id !== assistantId || item.text)); setError(message(cause, 'Copilot request failed.')) } }
     finally { if (streamRequest.current === abort) streamRequest.current = undefined; if (!abort.signal.aborted) { setPending(false); setToolStatus(undefined) } }
   }
   const edit = async (id: string) => {
+    const owner = lifetime.current
+    if (!owner || owner.api !== api || owner.abort.signal.aborted) return
+    const signal = profileRequest.start()
+    profileRevision.current += 1
+    setSaving(false)
+    setPermissionsPending(false)
     try {
       const [document, capabilities] = await Promise.all([
-        api.getCopilotProfile(id),
-        api.getCopilotProfileCapabilities(id)
+        api.getCopilotProfile(id, signal),
+        api.getCopilotProfileCapabilities(id, signal)
       ])
-      setDraft(toDraft(document))
+      if (!profileRequest.isCurrent(signal)) return
+      profileRevision.current += 1
+      setSaving(false)
+      setPermissionsPending(false)
+      updateDraft(toDraft(document))
       setProfileCapabilities(capabilities)
       setError(undefined)
     } catch (cause) {
-      setError(message(cause, 'Unable to load Copilot profile.'))
+      if (profileRequest.isCurrent(signal)) setError(message(cause, 'Unable to load Copilot profile.'))
     }
   }
   const create = async () => {
+    const owner = lifetime.current
+    if (!owner || owner.api !== api || owner.abort.signal.aborted) return
+    const signal = profileRequest.start()
+    profileRevision.current += 1
+    setSaving(false)
+    setPermissionsPending(false)
     try {
       const [source, capabilities] = await Promise.all([
-        api.getCopilotProfile(voice.activeProfile.id),
-        api.getCopilotProfileCapabilities(voice.activeProfile.id)
+        api.getCopilotProfile(voice.activeProfile.id, signal),
+        api.getCopilotProfileCapabilities(voice.activeProfile.id, signal)
       ])
-      setDraft({ ...toDraft(source), id: '', mark: '?', name: '', description: '', templateProfileId: source.profile.id })
+      if (!profileRequest.isCurrent(signal)) return
+      profileRevision.current += 1
+      setSaving(false)
+      setPermissionsPending(false)
+      updateDraft({ ...toDraft(source), id: '', mark: '?', name: '', description: '', templateProfileId: source.profile.id })
       setProfileCapabilities(capabilities)
       setError(undefined)
     } catch (cause) {
-      setError(message(cause, 'Unable to prepare a new profile.'))
+      if (profileRequest.isCurrent(signal)) setError(message(cause, 'Unable to prepare a new profile.'))
     }
   }
   const save = async (next: ProfileDraft) => {
+    const owner = lifetime.current
+    if (!owner || owner.api !== api || owner.abort.signal.aborted) return
+    const revision = profileRevision.current
+    const ownsSelection = (): boolean => !owner.abort.signal.aborted && revision === profileRevision.current
     setSaving(true)
     try {
       const creating = next.templateProfileId !== undefined
       const input = { characterSpeech: next.characterSpeech, characterText: next.characterText, profile: { description: next.description, id: creating ? profileId(next.name) : next.id, mark: creating ? next.name.trim().charAt(0).toUpperCase() || '?' : next.mark, name: next.name, voice: next.voice }, ...(next.templateProfileId ? { templateProfileId: next.templateProfileId } : {}) }
       const document = creating ? await api.createCopilotProfile(input) : await api.updateCopilotProfile(next.id, input)
-      setDraft(toDraft(document))
-      if (creating) setProfileCapabilities(await api.getCopilotProfileCapabilities(document.profile.id))
+      if (!ownsSelection()) return
+      let savedDraft = toDraft(document)
+      if (draftRef.current !== next) {
+        if (!creating || !draftRef.current) return
+        savedDraft = { ...draftRef.current, id: document.profile.id, mark: document.profile.mark }
+        delete savedDraft.templateProfileId
+      }
+      updateDraft(savedDraft)
+      if (creating) {
+        const capabilities = await api.getCopilotProfileCapabilities(document.profile.id, owner.abort.signal)
+        if (!ownsSelection()) return
+        setProfileCapabilities(capabilities)
+      }
       setError(undefined)
     } catch (cause) {
-      setError(message(cause, 'Unable to save Copilot profile.'))
+      if (ownsSelection()) setError(message(cause, 'Unable to save Copilot profile.'))
     } finally {
-      setSaving(false)
+      if (ownsSelection()) setSaving(false)
     }
   }
   const saveProfilePermissions = async (permissions: CopilotPermissionPolicy): Promise<void> => {
-    if (!draft || draft.templateProfileId !== undefined) return
+    const owner = lifetime.current
+    if (!draft || draft.templateProfileId !== undefined || !owner || owner.api !== api || owner.abort.signal.aborted) return
+    const revision = profileRevision.current
+    const ownsSelection = (): boolean => !owner.abort.signal.aborted && revision === profileRevision.current
     setPermissionsPending(true)
     try {
-      setProfileCapabilities(await api.updateCopilotProfileCapabilities(draft.id, permissions))
+      const capabilities = await api.updateCopilotProfileCapabilities(draft.id, permissions)
+      if (!ownsSelection()) return
+      setProfileCapabilities(capabilities)
       setError(undefined)
     } catch (cause) {
-      setError(message(cause, 'Unable to save profile permissions.'))
+      if (ownsSelection()) setError(message(cause, 'Unable to save profile permissions.'))
     } finally {
-      setPermissionsPending(false)
+      if (ownsSelection()) setPermissionsPending(false)
     }
   }
 
@@ -175,7 +235,7 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
             </div>
           </div>
         </div>
-      : <div className="copilot-profiles"><aside><ul>{voice.profiles.map(profile => <li key={profile.id}><Button alignment="start" variant={profile.id === voice.activeProfile.id ? 'accent' : 'quiet'} onClick={() => void edit(profile.id)}>{profile.name}</Button></li>)}</ul><Button variant="outline" onClick={() => void create()}>New profile</Button></aside>{draft ? <ProfileEditor capabilities={profileCapabilities} draft={draft} permissionsPending={permissionsPending} saving={saving} onChange={setDraft} onSave={save} onSavePermissions={saveProfilePermissions} /> : <Status tone="muted">Select a profile to inspect its character prompts.</Status>}</div>}
+      : <div className="copilot-profiles"><aside><ul>{voice.profiles.map(profile => <li key={profile.id}><Button alignment="start" variant={profile.id === voice.activeProfile.id ? 'accent' : 'quiet'} onClick={() => void edit(profile.id)}>{profile.name}</Button></li>)}</ul><Button variant="outline" onClick={() => void create()}>New profile</Button></aside>{draft ? <ProfileEditor capabilities={profileCapabilities} draft={draft} permissionsPending={permissionsPending} saving={saving} onChange={updateDraft} onSave={save} onSavePermissions={saveProfilePermissions} /> : <Status tone="muted">Select a profile to inspect its character prompts.</Status>}</div>}
   </PageFrame>
 }
 

@@ -2,6 +2,8 @@
 
 Baseline: `69a0fbe` on `main`, aligned with `origin/main` after the authorized audit and Storybook-retirement push. This pass implements the [original audit's](complexity-2026-10-04.md) proven follow-ups. It does not repeat its file inventory or treat all defensive checks as redundant. Control Deck and its pinned runtime remain unchanged.
 
+Subsequent disposition: this pass was committed as `ea91f70` before the next authorized slice. The completion-time evidence below is historical; the [next reliability pass](reliability-2026-10-04-next-pass.md) records the recording-identity fix, Settings/Copilot ownership, measured refresh work and current release limits. At audit closure, the user authorized committing the next pass and pushing both commits beyond `origin/main` at `69a0fbe`.
+
 ## Candidate proofs and disposition
 
 ### Application D1: macro input and cleanup ownership

@@ -33,7 +33,7 @@ test('macro recording uses the shared API, browser identity, and typed router', 
     status: 'stopped'
   }
   const saved: MacroDefinition = {
-    assumptions: [], description: '', enabled: true, id: 'macro-1', name: 'Macro 1', risk: 'safe', version: 1,
+    assumptions: [], description: '', enabled: true, id: `macro-${recording.id}`, name: 'Macro 1', risk: 'safe', version: 1,
     steps: [{ type: 'game-action', actionId: 'elite.ShipSpotLightToggle', operation: 'tap' }]
   }
   const api = {
@@ -71,7 +71,7 @@ test('macro recording uses the shared API, browser identity, and typed router', 
   expect(api.stopMacroRecording).toHaveBeenCalledWith(recording.id, 'macro-browser')
   expect(api.saveMacro).toHaveBeenCalledWith(saved)
   expect(push).toHaveBeenLastCalledWith({ kind: 'macros' })
-  expect(runtime?.lastSavedMacroId).toBe('macro-1')
+  expect(runtime?.lastSavedMacroId).toBe(saved.id)
 
   await act(async () => renderer.unmount())
 })

@@ -25,6 +25,7 @@ export function usePersonalMaterialsController(
   useEffect(() => {
     if (!active) return
     const latest = new LatestRequest()
+    let observedInventory: string | undefined
     const retained = readControllerSnapshot<PersonalMaterialsControllerSnapshot>(api, CACHE_KEY)
     const publish = (next: PersonalMaterialsControllerSnapshot) => {
       setSnapshot(storeControllerSnapshot(api, CACHE_KEY, next))
@@ -36,13 +37,22 @@ export function usePersonalMaterialsController(
         if (latest.isCurrent(signal)) publish({ inventory, status: 'ready' })
       }).catch((cause: unknown) => {
         if (!latest.isCurrent(signal)) return
+        // A transient failure must not prevent the next identical event retrying.
+        observedInventory = undefined
         const error = cause instanceof Error ? cause.message : 'Personal materials unavailable.'
         setSnapshot(current => current.status === 'ready' ? { ...current, error } : { error, status: 'error' })
       })
     }
 
     load(true)
-    const unsubscribe = events.subscribe('runtime-state', () => load())
+    const unsubscribe = events.subscribe('runtime-state', state => {
+      // Includes contents AND timestamps, preserving equal-time material changes
+      // and unknown-store coverage across freshly parsed SSE objects.
+      const fingerprint = JSON.stringify([state.inventory.shipLocker, state.inventory.backpack])
+      if (fingerprint === observedInventory) return
+      observedInventory = fingerprint
+      load()
+    })
     return () => {
       latest.cancel()
       unsubscribe()

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Breadcrumbs,
   Button,
@@ -29,69 +29,84 @@ export interface AudioSettingsController {
 export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: AudioSettingsController }) {
   const [settings, setSettings] = useState<CopilotSettings>()
   const [apiKey, setApiKey] = useState('')
-  const [pending, setPending] = useState<string>()
+  const [permissionsPending, setPermissionsPending] = useState(false)
+  const [providerPending, setProviderPending] = useState(false)
+  const [keyPending, setKeyPending] = useState(false)
+  const pending = permissionsPending || providerPending || keyPending
   const [error, setError] = useState<string>()
+  const lifetime = useRef<{ api: PhoenixApi, abort: AbortController } | undefined>(undefined)
 
   useEffect(() => {
     const abort = new AbortController()
+    lifetime.current = { api, abort }
+    setPermissionsPending(false)
+    setProviderPending(false)
+    setKeyPending(false)
     void api.getCopilotSettings(abort.signal)
-      .then(setSettings)
+      .then(result => { if (!abort.signal.aborted) setSettings(result) })
       .catch(cause => { if (!abort.signal.aborted) setError(message(cause)) })
     return () => abort.abort()
   }, [api])
 
   const savePermissions = async (permissions: CopilotPermissionPolicy): Promise<void> => {
-    if (!settings) return
-    setPending('permissions')
+    const owner = lifetime.current
+    if (!settings || !owner || owner.api !== api || owner.abort.signal.aborted) return
+    setPermissionsPending(true)
     setError(undefined)
     try {
-      setSettings(await api.saveCopilotSettings({ provider: settings.provider, permissions }))
+      const saved = await api.saveCopilotSettings({ provider: settings.provider, permissions })
+      if (!owner.abort.signal.aborted) setSettings(current => ({ ...saved, openAi: current?.openAi ?? saved.openAi }))
     } catch (cause) {
-      setError(message(cause))
+      if (!owner.abort.signal.aborted) setError(message(cause))
     } finally {
-      setPending(undefined)
+      if (!owner.abort.signal.aborted) setPermissionsPending(false)
     }
   }
 
   const saveProvider = async (provider: CopilotAiProvider): Promise<void> => {
-    if (!settings) return
-    setPending('provider')
+    const owner = lifetime.current
+    if (!settings || !owner || owner.api !== api || owner.abort.signal.aborted) return
+    setProviderPending(true)
     setError(undefined)
     try {
-      setSettings(await api.saveCopilotSettings({ provider, permissions: settings.permissions }))
+      const saved = await api.saveCopilotSettings({ provider, permissions: settings.permissions })
+      if (!owner.abort.signal.aborted) setSettings(current => ({ ...saved, openAi: current?.openAi ?? saved.openAi }))
     } catch (cause) {
-      setError(message(cause))
+      if (!owner.abort.signal.aborted) setError(message(cause))
     } finally {
-      setPending(undefined)
+      if (!owner.abort.signal.aborted) setProviderPending(false)
     }
   }
 
   const saveKey = async (): Promise<void> => {
-    if (!settings) return
-    setPending('api-key')
+    const owner = lifetime.current
+    if (!settings || !owner || owner.api !== api || owner.abort.signal.aborted) return
+    setKeyPending(true)
     setError(undefined)
     try {
       const openAi = await api.saveOpenAiApiKey(apiKey)
-      setSettings({ ...settings, openAi })
-      setApiKey('')
+      if (owner.abort.signal.aborted) return
+      setSettings(current => current ? { ...current, openAi } : current)
+      setApiKey(current => current === apiKey ? '' : current)
     } catch (cause) {
-      setError(message(cause))
+      if (!owner.abort.signal.aborted) setError(message(cause))
     } finally {
-      setPending(undefined)
+      if (!owner.abort.signal.aborted) setKeyPending(false)
     }
   }
 
   const removeKey = async (): Promise<void> => {
-    if (!settings) return
-    setPending('api-key')
+    const owner = lifetime.current
+    if (!settings || !owner || owner.api !== api || owner.abort.signal.aborted) return
+    setKeyPending(true)
     setError(undefined)
     try {
       const openAi = await api.removeOpenAiApiKey()
-      setSettings({ ...settings, openAi })
+      if (!owner.abort.signal.aborted) setSettings(current => current ? { ...current, openAi } : current)
     } catch (cause) {
-      setError(message(cause))
+      if (!owner.abort.signal.aborted) setError(message(cause))
     } finally {
-      setPending(undefined)
+      if (!owner.abort.signal.aborted) setKeyPending(false)
     }
   }
 
@@ -110,7 +125,7 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
                 <SettingRow description="Only OpenAI is integrated currently." scope="Installation" title="Provider">
                   <Select
                     aria-label="AI provider"
-                    disabled={pending !== undefined}
+                    disabled={pending}
                     value={settings.provider}
                     onChange={event => void saveProvider(event.target.value as CopilotAiProvider)}
                   >
@@ -126,8 +141,8 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
                 >
                   <div className="setting-key-action">
                     <TextInput aria-label={settings.openAi.stored ? 'Replacement OpenAI API key' : 'OpenAI API key'} autoComplete="off" placeholder={settings.openAi.stored ? 'Enter replacement key' : 'Enter API key'} type="password" value={apiKey} onChange={event => setApiKey(event.target.value)} />
-                    <Button busy={pending === 'api-key'} disabled={apiKey.trim().length < 20} size="sm" variant="primary" onClick={() => void saveKey()}>{settings.openAi.stored ? 'Replace' : 'Save'}</Button>
-                    {settings.openAi.stored && <Button disabled={pending !== undefined} size="sm" variant="danger" onClick={() => void removeKey()}>Remove</Button>}
+                    <Button busy={keyPending} disabled={apiKey.trim().length < 20} size="sm" variant="primary" onClick={() => void saveKey()}>{settings.openAi.stored ? 'Replace' : 'Save'}</Button>
+                    {settings.openAi.stored && <Button disabled={pending} size="sm" variant="danger" onClick={() => void removeKey()}>Remove</Button>}
                   </div>
                 </SettingRow>
               </SettingsList>}
@@ -156,7 +171,7 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
             ? <Status tone="muted">Loading permissions…</Status>
             : <CopilotPermissionEditor
                 capabilities={settings.capabilities}
-                disabled={pending !== undefined}
+                disabled={pending}
                 permissions={settings.permissions}
                 onChange={permissions => void savePermissions(permissions)}
               />}

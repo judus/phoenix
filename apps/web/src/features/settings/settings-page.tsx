@@ -22,16 +22,23 @@ export function SettingsPage ({ api, devicePreferences }: { api: PhoenixApi, dev
   const [modules, setModules] = useState<PhoenixModules>()
   const [threshold, setThreshold] = useState(90)
   const [uiScalePercent, setUiScalePercent] = useState(preferences.uiScalePercent)
-  const [pending, setPending] = useState<string>()
+  const [controlsPending, setControlsPending] = useState(false)
+  const [thresholdPending, setThresholdPending] = useState(false)
+  const pending = controlsPending || thresholdPending
   const [error, setError] = useState<string>()
   const uiScaleDragging = useRef(false)
+  const lifetime = useRef<{ api: PhoenixApi, abort: AbortController } | undefined>(undefined)
 
   useEffect(() => setUiScalePercent(preferences.uiScalePercent), [preferences.uiScalePercent])
 
   useEffect(() => {
     const abort = new AbortController()
+    lifetime.current = { api, abort }
+    setControlsPending(false)
+    setThresholdPending(false)
     void Promise.all([api.getGeneralSettings(abort.signal), api.getModuleSettings(abort.signal)])
       .then(([nextSettings, nextModules]) => {
+        if (abort.signal.aborted) return
         setSettings(nextSettings)
         setModules(nextModules)
         setThreshold(nextModules.currentShip.moduleHealthAlertThreshold)
@@ -41,32 +48,37 @@ export function SettingsPage ({ api, devicePreferences }: { api: PhoenixApi, dev
   }, [api])
 
   const saveControls = async (enabled: boolean): Promise<void> => {
-    setPending('controls')
+    const owner = lifetime.current
+    if (!owner || owner.api !== api || owner.abort.signal.aborted) return
+    setControlsPending(true)
     setError(undefined)
     try {
-      setSettings(await api.saveGeneralSettings({ controlsEnabled: enabled }))
+      const saved = await api.saveGeneralSettings({ controlsEnabled: enabled })
+      if (!owner.abort.signal.aborted) setSettings(saved)
     } catch (cause) {
-      setError(message(cause))
+      if (!owner.abort.signal.aborted) setError(message(cause))
     } finally {
-      setPending(undefined)
+      if (!owner.abort.signal.aborted) setControlsPending(false)
     }
   }
 
   const saveThreshold = async (): Promise<void> => {
-    if (!modules) return
-    setPending('threshold')
+    const owner = lifetime.current
+    if (!modules || !owner || owner.api !== api || owner.abort.signal.aborted) return
+    setThresholdPending(true)
     setError(undefined)
     try {
       const saved = await api.saveModuleSettings({
         ...modules,
         currentShip: { moduleHealthAlertThreshold: threshold }
       })
+      if (owner.abort.signal.aborted) return
       setModules(saved)
-      setThreshold(saved.currentShip.moduleHealthAlertThreshold)
+      setThreshold(current => current === threshold ? saved.currentShip.moduleHealthAlertThreshold : current)
     } catch (cause) {
-      setError(message(cause))
+      if (!owner.abort.signal.aborted) setError(message(cause))
     } finally {
-      setPending(undefined)
+      if (!owner.abort.signal.aborted) setThresholdPending(false)
     }
   }
 
@@ -144,13 +156,13 @@ export function SettingsPage ({ api, devicePreferences }: { api: PhoenixApi, dev
             ? <Status tone={error ? 'danger' : 'muted'}>{error ?? 'Loading installation settings…'}</Status>
             : <SettingsList>
                 <SettingRow description="Allow PHOENIX to send configured inputs to Elite. A restart may be required." scope="Installation" title="Game controls">
-                  <SettingToggle checked={settings.controlsEnabled} disabled={pending !== undefined} label={settings.controlsEnabled ? 'On' : 'Off'} onChange={() => void saveControls(!settings.controlsEnabled)} />
+                  <SettingToggle checked={settings.controlsEnabled} disabled={pending} label={settings.controlsEnabled ? 'On' : 'Off'} onChange={() => void saveControls(!settings.controlsEnabled)} />
                 </SettingRow>
                 <SettingRow description="Show ship modules whose reported health is at or below this percentage." scope="Installation" title="Module health warning">
                   <div className="setting-number-action">
                     <NumberInput aria-label="Module health warning threshold" max={99} min={1} step={1} value={threshold} onChange={event => setThreshold(Math.max(1, Math.min(99, Number(event.target.value))))} />
                     <span>%</span>
-                    <Button busy={pending === 'threshold'} disabled={threshold === modules.currentShip.moduleHealthAlertThreshold} size="sm" variant="outline" onClick={() => void saveThreshold()}>Save</Button>
+                    <Button busy={thresholdPending} disabled={threshold === modules.currentShip.moduleHealthAlertThreshold} size="sm" variant="outline" onClick={() => void saveThreshold()}>Save</Button>
                   </div>
                 </SettingRow>
               </SettingsList>}

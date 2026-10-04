@@ -46,7 +46,7 @@ test('recorded delays become editable macro steps', () => {
     ]
   })
 
-  expect(macro.id).toBe('launch-sequence')
+  expect(macro.id).toBe('macro-65f4df62-c90c-4f4a-904e-4728d5554a78')
   expect(macro.steps).toEqual([
     { type: 'game-action', actionId: 'elite.LandingGearToggle', operation: 'tap' },
     { type: 'wait', durationMs: 750 },
