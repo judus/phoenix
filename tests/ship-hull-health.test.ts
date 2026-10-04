@@ -61,6 +61,20 @@ test('slotless repairs do not falsely repair every identical installed module', 
   expect(store.getCurrent().ship.modules.map(module => module.health)).toEqual([1, 1])
 })
 
+test('multiple repair targets count normalized duplicate IDs without changing untargeted health', () => {
+  const { store, ingest } = setup()
+  ingest('Loadout', { Ship: 'explorer_nx', ShipID: 15, Modules: [
+    { Slot: 'TinyHardpoint1', Item: 'HPT_HEATSINK', Health: 0.5 },
+    { Slot: 'TinyHardpoint2', Item: '$hpt_heatsink_name;', Health: 0.8 },
+    { Slot: 'MainEngines', Item: 'int_engine', Health: 0.6 },
+    { Slot: 'Sensors', Item: 'int_sensors', Health: 0.4 }
+  ] })
+  ingest('Repair', { Items: ['$HPT_HEATSINK_name;', 'INT_ENGINE', 'missing_module'] })
+  expect(store.getCurrent().ship.modules.map(module => module.health)).toEqual([null, null, 1, 0.4])
+  ingest('RepairAll')
+  expect(store.getCurrent().ship.modules.map(module => module.health)).toEqual([1, 1, 1, 1])
+})
+
 test('real damage and repair sequence updates both dashboards through the shared runtime', () => {
   const { store, ingest, published } = setup()
   const assertHull = (health: number | null, label: string) => {

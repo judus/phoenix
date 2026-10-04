@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import type { LocalTool } from '@jdu/llm-client'
 import {
   CommandDescriptorSchema,
@@ -220,3 +220,43 @@ function executionContext () {
     signal: new AbortController().signal
   }
 }
+
+test('control tool checks read one current policy, not one policy per command', () => {
+  const descriptors = Array.from({ length: 100 }, (_, index) => command(`command.elite.Action${index}`, `elite.Action${index}`, `Action ${index}`))
+  const settings = new InMemorySystemSettingsRepository()
+  saveCapabilities(settings, ['command.elite.Action99'])
+  const read = vi.spyOn(settings, 'loadOrCreate')
+  const capabilities = new DefaultCopilotCapabilityService(() => [], new StubCommandRegistry(descriptors), settings)
+  expect(capabilities.isToolEnabled('controls.execute_command')).toBe(true)
+  expect(read).toHaveBeenCalledTimes(1)
+  saveCapabilities(settings, [])
+  read.mockClear()
+  expect(capabilities.isToolEnabled('controls.execute_command')).toBe(false)
+  expect(read).toHaveBeenCalledTimes(1)
+})
+
+test('empty and navigation-only command catalogues do not read settings for control tools', () => {
+  const navigation = CommandDescriptorSchema.parse({
+    id: 'command.navigation.galaxy', kind: 'navigation', activation: 'open', label: 'Galaxy',
+    category: 'Galaxy', available: true, risk: 'safe', target: { type: 'navigation', destinationId: 'galaxy.current-system' }
+  })
+  for (const descriptors of [[], [navigation]]) {
+    const settings = new InMemorySystemSettingsRepository()
+    const read = vi.spyOn(settings, 'loadOrCreate').mockImplementation(() => { throw new Error('Settings must not be read.') })
+    const capabilities = new DefaultCopilotCapabilityService(() => [], new StubCommandRegistry(descriptors), settings)
+    for (const name of ['controls.find_actions', 'controls.execute_command', 'controls.set_control_state']) {
+      expect(capabilities.isToolEnabled(name)).toBe(false)
+    }
+    expect(read).not.toHaveBeenCalled()
+  }
+})
+
+test('macro-only permissions enable generic execution but not switch-state controls', () => {
+  const macro = command('command.macro.departure', 'departure', 'Departure', 'macro')
+  const settings = new InMemorySystemSettingsRepository()
+  saveCapabilities(settings, [macro.id])
+  const capabilities = new DefaultCopilotCapabilityService(() => [], new StubCommandRegistry([macro]), settings)
+  expect(capabilities.isToolEnabled('controls.execute_command')).toBe(true)
+  expect(capabilities.isToolEnabled('controls.find_actions')).toBe(true)
+  expect(capabilities.isToolEnabled('controls.set_control_state')).toBe(false)
+})

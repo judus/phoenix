@@ -142,9 +142,11 @@ export class DefaultCopilotCapabilityService implements CopilotCapabilities {
 
   public isToolEnabled (name: string): boolean {
     if (CONTROL_TOOL_NAMES.has(name)) {
-      const enabledCommands = this.commands.getCatalog().commands.filter(command => this.isDescriptorEnabled(command))
-      if (name === 'controls.set_control_state') return enabledCommands.some(command => command.kind === 'game-action')
-      return enabledCommands.length > 0
+      const commands = this.commands.getCatalog().commands.filter(command => command.kind !== 'navigation')
+      if (commands.length === 0) return false
+      const enabled = this.enabledIds()
+      return commands.some(command => enabled.has(command.id) &&
+        (name !== 'controls.set_control_state' || command.kind === 'game-action'))
     }
     return this.enabledIds().has(toolCapabilityId(name))
   }

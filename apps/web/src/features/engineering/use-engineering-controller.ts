@@ -114,25 +114,7 @@ export function useEngineeringController(
     const abort = new AbortController()
     const retained = readControllerSnapshot<EngineeringControllerSnapshot>(api, cacheKey)
     setSnapshot(current => ({ ...(retained ?? current), actions, status: retained?.status ?? (current.status === 'ready' ? 'ready' : 'loading') }))
-    const projectView = view === 'projects' || view === 'project-detail'
-    const projects = (projectView || view === 'project-add-blueprint' || view === 'experimental-effects')
-      ? api.getEngineeringProjects(abort.signal)
-      : undefined
-    const request = view === 'experimental-effects'
-      ? Promise.all([api.getEngineeringExperimentalEffects(abort.signal), projects!]).then(([effects, projects]) => ({ effects, projects }))
-      : projectView
-      ? Promise.all([projects!, api.getEngineeringMaterialWatchlist(abort.signal)]).then(([projects, watchlist]) => ({ projects, watchlist }))
-      : view === 'project-new'
-        ? Promise.resolve({})
-        : view === 'project-add-blueprint'
-          ? Promise.all([api.getEngineeringBlueprint(selectedBlueprintSymbol!, abort.signal), projects!]).then(([blueprint, projects]) => ({ blueprint, projects }))
-      : view === 'engineers'
-        ? api.getEngineeringEngineers(abort.signal).then(engineers => ({ engineers }))
-        : view.startsWith('materials-')
-          ? api.getEngineeringMaterials(view.slice('materials-'.length) as 'raw' | 'manufactured' | 'encoded' | 'xeno', abort.signal).then(materials => ({ materials }))
-          : selectedBlueprintSymbol
-            ? api.getEngineeringBlueprint(selectedBlueprintSymbol, abort.signal).then(blueprint => ({ blueprint }))
-            : api.getEngineeringBlueprints(abort.signal).then(blueprints => ({ blueprints }))
+    const request = loadEngineeringView(api, route, abort.signal)
     void request.then(result => {
       if (!abort.signal.aborted) setSnapshot(storeControllerSnapshot(api, cacheKey, { ...result, status: 'ready' }))
     }).catch(cause => {
@@ -147,4 +129,37 @@ export function useEngineeringController(
   }, [api, cacheKey, projectRevision, revision, selectedBlueprintSymbol, selectedProjectId, view])
 
   return { ...snapshot, actions }
+}
+
+function loadEngineeringView(
+  api: PhoenixApi,
+  route: EngineeringRoute,
+  signal: AbortSignal
+): Promise<Omit<EngineeringControllerSnapshot, 'actions' | 'error' | 'status'>> {
+  switch (route.view) {
+    case 'projects':
+    case 'project-detail': {
+      const projects = api.getEngineeringProjects(signal)
+      return Promise.all([projects, api.getEngineeringMaterialWatchlist(signal)]).then(([projects, watchlist]) => ({ projects, watchlist }))
+    }
+    case 'experimental-effects': {
+      const projects = api.getEngineeringProjects(signal)
+      return Promise.all([api.getEngineeringExperimentalEffects(signal), projects]).then(([effects, projects]) => ({ effects, projects }))
+    }
+    case 'project-add-blueprint': {
+      const projects = api.getEngineeringProjects(signal)
+      return Promise.all([api.getEngineeringBlueprint(route.selectedBlueprintSymbol, signal), projects]).then(([blueprint, projects]) => ({ blueprint, projects }))
+    }
+    case 'project-new': return Promise.resolve({})
+    case 'engineers': return api.getEngineeringEngineers(signal).then(engineers => ({ engineers }))
+    case 'materials-raw':
+    case 'materials-manufactured':
+    case 'materials-encoded':
+    case 'materials-xeno':
+      return api.getEngineeringMaterials(route.view.slice('materials-'.length) as 'raw' | 'manufactured' | 'encoded' | 'xeno', signal).then(materials => ({ materials }))
+    case 'blueprints':
+      return route.selectedBlueprintSymbol
+        ? api.getEngineeringBlueprint(route.selectedBlueprintSymbol, signal).then(blueprint => ({ blueprint }))
+        : api.getEngineeringBlueprints(signal).then(blueprints => ({ blueprints }))
+  }
 }

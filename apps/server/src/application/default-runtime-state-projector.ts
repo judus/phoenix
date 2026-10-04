@@ -24,13 +24,17 @@ function updateModuleHealth (
   if (update.moduleIds === null) return modules.map(module => ({ ...module, health: update.health }))
   const normalize = (id: string) => id.trim().toLowerCase().replace(/^\$/, '').replace(/_name;$/, '')
   const targets = new Set(update.moduleIds.map(normalize))
+  const multiplicities = new Map<string, number>()
+  for (const module of modules) {
+    const id = normalize(module.moduleId)
+    multiplicities.set(id, (multiplicities.get(id) ?? 0) + 1)
+  }
   return modules.map(module => {
     const id = normalize(module.moduleId)
     if (!targets.has(id)) return module
     // Repair events identify a module type, not a slot. Identical installations
     // cannot be disambiguated: invalidate their old readings instead of guessing.
-    const matches = modules.filter(candidate => normalize(candidate.moduleId) === id)
-    return { ...module, health: matches.length === 1 ? update.health : null }
+    return { ...module, health: multiplicities.get(id) === 1 ? update.health : null }
   })
 }
 

@@ -31,7 +31,7 @@ export class CartographyObservationIngestionService {
     const reportedBodyCount = SYSTEM_EVENTS.has(event.event)
       ? integerValue(event.BodyCount) ?? current.reportedBodyCount
       : current.reportedBodyCount
-    const bodyId = event.event === 'ScanOrganic' ? integerCandidate(event.Body) : integerValue(event.BodyID)
+    const bodyId = event.event === 'ScanOrganic' ? integerValue(event.Body) : integerValue(event.BodyID)
     const runtimePlace = this.runtimeState.getCurrent().location.place
     const bodyName = stringValue(event.BodyName) ?? stringValue(event.Body)
       ?? current.bodies.find(body => bodyId !== null && body.bodyId === bodyId)?.bodyName
@@ -176,10 +176,6 @@ function stringValue (candidate: unknown): string | null {
 }
 
 function integerValue (candidate: unknown): number | null {
-  return typeof candidate === 'number' && Number.isSafeInteger(candidate) && candidate >= 0 ? candidate : null
-}
-
-function integerCandidate (candidate: unknown): number | null {
   return typeof candidate === 'number' && Number.isSafeInteger(candidate) && candidate >= 0 ? candidate : null
 }
 

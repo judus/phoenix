@@ -1,4 +1,5 @@
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
+import { getEventListeners } from 'node:events'
 import type {
   GameActionCatalogResponse,
   GameActionOrigin,
@@ -7,6 +8,19 @@ import type {
 import { MacroService } from '../apps/server/src/application/macro-service.js'
 import type { GameActions } from '../apps/server/src/application/game-action-service.js'
 import { InMemoryMacroRepository } from '../apps/server/src/infrastructure/macro-repositories.js'
+
+test('completed wait steps release their composed-signal abort listeners', async () => {
+  const any = vi.spyOn(AbortSignal, 'any')
+  try {
+    const repository = new InMemoryMacroRepository()
+    repository.save({ assumptions: [], description: '', enabled: true, id: 'waits', name: 'Waits', risk: 'safe',
+      steps: Array.from({ length: 12 }, () => ({ type: 'wait' as const, durationMs: 1 })), version: 1 })
+    const playback = await new MacroService(repository, new StubGameActions()).execute('waits', 'ui')
+    expect(playback).toMatchObject({ completedSteps: 12, status: 'completed' })
+    const signal = any.mock.results[0]!.value as AbortSignal
+    expect(getEventListeners(signal, 'abort')).toHaveLength(0)
+  } finally { any.mockRestore() }
+})
 
 test('aborting playback releases every held action', async () => {
   const actions = new StubGameActions()

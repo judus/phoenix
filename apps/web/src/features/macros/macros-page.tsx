@@ -103,7 +103,7 @@ function MacroEditor({ macro, onSave }: {
   onSave(macro: MacroDefinition): Promise<void>
 }) {
   const [draft, setDraft] = useState(macro)
-  const [steps, setSteps] = useState(() => editorSteps(macro))
+  const [steps, setSteps] = useState<MacroStep[]>(() => macro?.steps.map(step => ({ ...step })) ?? [])
   const onSaveRef = useRef(onSave)
   const saveQueue = useRef(Promise.resolve())
   const savedFingerprint = useRef(macro ? macroFingerprint(macro) : '')
@@ -136,15 +136,14 @@ function MacroEditor({ macro, onSave }: {
     </DataTableGroup>
   }
 
-  const updateStep = (index: number, step: EditorStep) => setSteps(current => current.map((candidate, candidateIndex) => candidateIndex === index ? step : candidate))
+  const updateStep = (index: number, step: MacroStep) => setSteps(current => current.map((candidate, candidateIndex) => candidateIndex === index ? step : candidate))
   const deleteStep = (index: number) => setSteps(current => current.filter((_, candidateIndex) => candidateIndex !== index))
-  const usableSteps = steps.filter(step => step.usable).length
 
   return <DataTableGroup
     className="macro-editor"
     contentGap="sm"
     fill
-    meta={`${usableSteps} usable · ${steps.length} recorded`}
+    meta={`${steps.length} usable · ${steps.length} recorded`}
     title="Macro steps"
   >
     <Stack className="macro-editor-content" fill gap="sm">
@@ -158,16 +157,14 @@ function MacroEditor({ macro, onSave }: {
       </ControlContext>
       <DataTable className="macro-step-table" density="compact" label={`${draft.name} steps`} narrow="priority" scheme="surface" stickyHeader>
         <thead><tr><th className="col-fit">Step</th><th className="col-fill">Action</th><th className="col-fit">Operation</th><th className="col-fit">Status</th><th className="col-fit">Duration ms</th><th className="col-fit" aria-label="Step actions" /></tr></thead>
-        <tbody>{steps.map((step, index) => <tr className={step.usable ? undefined : 'disabled'} key={`${index}:${editorStepKey(step)}`}>
+        <tbody>{steps.map((step, index) => <tr key={`${index}:${editorStepKey(step)}`}>
           <td className="col-fit">{index + 1}</td>
           <th className="col-fill" scope="row">{step.type === 'wait' ? 'Wait' : actionLabel(step.actionId)}</th>
           <td className="col-fit">{step.type === 'wait' ? 'Delay' : titleCase(step.operation)}</td>
           <td className="col-fit">Ready</td>
           <td className="col-fit">{step.type === 'wait'
             ? <DurationInput index={index} value={step.durationMs} onChange={durationMs => updateStep(index, { ...step, durationMs })} />
-            : step.recorded
-              ? <DurationInput index={index} value={step.delayBeforeMs} onChange={delayBeforeMs => updateStep(index, { ...step, delayBeforeMs })} />
-              : '—'}</td>
+            : '—'}</td>
           <td className="col-fit macro-step-action"><IconButton label={`Delete step ${index + 1}`} size="sm" variant="danger" onClick={() => deleteStep(index)}><DeleteIcon /></IconButton></td>
         </tr>)}</tbody>
       </DataTable>
@@ -183,40 +180,15 @@ function boundedMilliseconds(value: string): number {
   return Math.max(0, Math.min(30_000, Number(value) || 0))
 }
 
-type EditorStep =
-  | { type: 'wait', durationMs: number, usable: true }
-  | {
-      type: 'command'
-      actionId: string
-      delayBeforeMs: number
-      operation: 'tap' | 'press' | 'release'
-      recorded: boolean
-      usable: boolean
-    }
-
 function DurationInput({ index, onChange, value }: { index: number, onChange(value: number): void, value: number }) {
   return <NumberInput aria-label={`Step ${index + 1} duration in milliseconds`} className="form-mini" max="30000" min="0" step="50" value={value} onChange={event => onChange(boundedMilliseconds(event.target.value))} />
 }
 
-function editorSteps(macro?: MacroDefinition): EditorStep[] {
-  return macro?.steps.map(step => step.type === 'wait'
-    ? { ...step, usable: true }
-    : { type: 'command', actionId: step.actionId, operation: step.operation, delayBeforeMs: 0, recorded: false, usable: true }) ?? []
-}
-
-function normalizeMacro(macro: MacroDefinition, editorSteps: EditorStep[]): MacroDefinition {
+function normalizeMacro(macro: MacroDefinition, editorSteps: MacroStep[]): MacroDefinition {
   const name = macro.name.trim()
-  const steps: MacroStep[] = []
-  editorSteps.filter(step => step.usable).forEach(step => {
-    if (step.type === 'wait') {
-      steps.push({ type: 'wait', durationMs: step.durationMs })
-      return
-    }
-    if (step.recorded && step.delayBeforeMs > 0 && steps.length > 0) {
-      steps.push({ type: 'wait', durationMs: step.delayBeforeMs })
-    }
-    steps.push({ type: 'game-action', actionId: step.actionId, operation: step.operation })
-  })
+  const steps: MacroStep[] = editorSteps.map(step => step.type === 'wait'
+    ? { type: 'wait', durationMs: step.durationMs }
+    : { type: 'game-action', actionId: step.actionId, operation: step.operation })
   return {
     ...macro,
     description: macro.description.trim(),
@@ -225,7 +197,7 @@ function normalizeMacro(macro: MacroDefinition, editorSteps: EditorStep[]): Macr
   }
 }
 
-function editorStepKey(step: EditorStep): string {
+function editorStepKey(step: MacroStep): string {
   return step.type === 'wait' ? `wait:${step.durationMs}` : `${step.actionId}:${step.operation}`
 }
 

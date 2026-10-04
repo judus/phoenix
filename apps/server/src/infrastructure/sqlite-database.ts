@@ -233,10 +233,10 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
       this.connection.exec('DELETE FROM elite_journal_checkpoints;')
     }
     this.migrateCartographyRecords()
-    this.migrateCartographicBodyModel()
+    this.migrateExternalCartographyDocuments(12)
     this.migrateCartographyObservationMeaning()
-    this.migrateCartographicBodyAttribution()
-    this.migrateCartographicBodyDetails()
+    this.migrateExternalCartographyDocuments(14)
+    this.migrateExternalCartographyDocuments(15)
     this.migrateGalaxyBookmarks()
     const equipmentProjectionCreated = this.commanderEquipment.initialize()
     if (equipmentProjectionCreated) this.connection.exec('DELETE FROM elite_journal_checkpoints;')
@@ -679,8 +679,8 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     }
   }
 
-  private migrateCartographicBodyModel (): void {
-    const applied = this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = 12').get()
+  private migrateExternalCartographyDocuments (version: 12 | 14 | 15): void {
+    const applied = this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = ?').get(version)
     if (applied) return
     this.connection.exec('BEGIN IMMEDIATE')
     try {
@@ -692,10 +692,8 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
       for (const row of rows) {
         this.putExternalSystem(upgradeExternalSystem(row.external_document, row.external_fetched_at))
       }
-      this.connection.exec(`
-        INSERT INTO schema_migrations (version, applied_at) VALUES (12, datetime('now'));
-        COMMIT;
-      `)
+      this.connection.prepare("INSERT INTO schema_migrations (version, applied_at) VALUES (?, datetime('now'))").run(version)
+      this.connection.exec('COMMIT')
     } catch (cause) {
       this.connection.exec('ROLLBACK')
       throw cause
@@ -717,52 +715,6 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
       }
       this.connection.exec(`
         INSERT INTO schema_migrations (version, applied_at) VALUES (13, datetime('now'));
-        COMMIT;
-      `)
-    } catch (cause) {
-      this.connection.exec('ROLLBACK')
-      throw cause
-    }
-  }
-
-  private migrateCartographicBodyAttribution (): void {
-    const applied = this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = 14').get()
-    if (applied) return
-    this.connection.exec('BEGIN IMMEDIATE')
-    try {
-      const rows = this.connection.prepare(`
-        SELECT external_fetched_at, external_document
-        FROM cartography_records
-        WHERE external_document IS NOT NULL
-      `).all() as Array<{ external_fetched_at: string, external_document: string }>
-      for (const row of rows) {
-        this.putExternalSystem(upgradeExternalSystem(row.external_document, row.external_fetched_at))
-      }
-      this.connection.exec(`
-        INSERT INTO schema_migrations (version, applied_at) VALUES (14, datetime('now'));
-        COMMIT;
-      `)
-    } catch (cause) {
-      this.connection.exec('ROLLBACK')
-      throw cause
-    }
-  }
-
-  private migrateCartographicBodyDetails (): void {
-    const applied = this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = 15').get()
-    if (applied) return
-    this.connection.exec('BEGIN IMMEDIATE')
-    try {
-      const rows = this.connection.prepare(`
-        SELECT external_fetched_at, external_document
-        FROM cartography_records
-        WHERE external_document IS NOT NULL
-      `).all() as Array<{ external_fetched_at: string, external_document: string }>
-      for (const row of rows) {
-        this.putExternalSystem(upgradeExternalSystem(row.external_document, row.external_fetched_at))
-      }
-      this.connection.exec(`
-        INSERT INTO schema_migrations (version, applied_at) VALUES (15, datetime('now'));
         COMMIT;
       `)
     } catch (cause) {

@@ -1,7 +1,6 @@
 import { z } from 'zod'
 import {
   CargoInventorySchema,
-  EliteInventoryFileSnapshotSchema,
   MicroResourceInventorySchema,
   type CargoInventory,
   type EliteInventoryFileSnapshot,
@@ -74,16 +73,16 @@ export function parseMicroResourceInventory (candidate: unknown): MicroResourceI
 export function parseEliteInventoryFile (candidate: unknown): EliteInventoryFileSnapshot {
   const event = z.object({ event: z.string().min(1) }).parse(candidate).event
   if (event === 'Cargo') {
-    return EliteInventoryFileSnapshotSchema.parse({ kind: 'cargo', payload: parseCargoInventory(candidate) })
+    return { kind: 'cargo', payload: parseCargoInventory(candidate) }
   }
   if (event === 'ShipLocker') {
-    return EliteInventoryFileSnapshotSchema.parse({
+    return {
       kind: 'ship_locker',
       payload: parseMicroResourceInventory(candidate)
-    })
+    }
   }
   if (event === 'Backpack' || event === 'BackpackMaterials') {
-    return EliteInventoryFileSnapshotSchema.parse({ kind: 'backpack', payload: parseMicroResourceInventory(candidate) })
+    return { kind: 'backpack', payload: parseMicroResourceInventory(candidate) }
   }
   throw new Error(`Unsupported Elite inventory file event: ${event}.`)
 }

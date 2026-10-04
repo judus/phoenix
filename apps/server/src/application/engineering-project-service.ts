@@ -145,7 +145,7 @@ export class EngineeringProjectService implements EngineeringProjects {
     const projects = this.repository.listProjects().filter(project => project.status === 'active')
     const observed = this.engineeringData.getMaterials()
     const owned = new Map(observed.materials.map(material => [normalize(material.id), material.count]))
-    const aggregate = new Map<string, EngineeringMaterialWatchItem>()
+    const aggregate = new Map<string, Omit<EngineeringMaterialWatchItem, 'missing'>>()
     for (const project of projects) {
       for (const step of project.steps) {
         for (const requirement of step.requirements) {
@@ -160,7 +160,6 @@ export class EngineeringProjectService implements EngineeringProjects {
             grade: requirement.grade,
             owned: owned.get(key) ?? 0,
             required: (current?.required ?? 0) + requirement.required,
-            missing: 1,
             projectCount: projectsById.size,
             stepCount: (current?.stepCount ?? 0) + 1,
             highestPriority: !current || priorityRank[project.priority] < priorityRank[current.highestPriority]

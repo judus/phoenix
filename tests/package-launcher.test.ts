@@ -36,14 +36,14 @@ test.skipIf(process.platform === 'win32')('launcher does not mistake another HTT
   }
 })
 
-test.skipIf(process.platform === 'win32')('launcher requires readiness from the spawned process and supports clean stop', async () => {
+test.skipIf(process.platform === 'win32').each(['127.0.0.1', 'localhost'])('launcher accepts %s readiness from its spawned process and supports clean stop', async advertisedHost => {
   const fixture = installation(`
     import { createServer } from 'node:http'
     import { writeFileSync, unlinkSync } from 'node:fs'
     const port = Number(process.env.PHOENIX_PORT)
     const server = createServer((_request, response) => { response.writeHead(200); response.end('{}') })
     server.listen(port, '127.0.0.1', () => writeFileSync(process.env.PHOENIX_RUNTIME_STATUS_PATH,
-      'PHOENIX READY\\nProcess: ' + process.pid + '\\nThis computer: http://127.0.0.1:' + port))
+      'PHOENIX READY\\nProcess: ' + process.pid + '\\nThis computer: http://${advertisedHost}:' + port))
     process.stdin.resume()
     process.stdin.on('end', () => {
       unlinkSync(process.env.PHOENIX_RUNTIME_STATUS_PATH)
@@ -64,6 +64,29 @@ test.skipIf(process.platform === 'win32')('launcher requires readiness from the 
   expect(await exit(stopper)).toBe(0)
   expect(await exit(launcher)).toBe(0)
   expect(readFileSync(logPath, 'utf8')).toContain('PHOENIX stopped cleanly')
+})
+
+test.skipIf(process.platform === 'win32').each(['wrong-port', 'foreign-host', 'wrong-pid'])('launcher rejects %s readiness despite a healthy HTTP listener', async mismatch => {
+  const fixture = installation(`
+    import { createServer } from 'node:http'
+    import { writeFileSync } from 'node:fs'
+    const port = Number(process.env.PHOENIX_PORT)
+    const server = createServer((_request, response) => { response.writeHead(200); response.end('{}') })
+    server.listen(port, '127.0.0.1', () => {
+      const pid = ${mismatch === 'wrong-pid' ? 'process.pid + 1' : 'process.pid'}
+      const advertisedPort = ${mismatch === 'wrong-port' ? 'port === 65535 ? 65534 : port + 1' : 'port'}
+      writeFileSync(process.env.PHOENIX_RUNTIME_STATUS_PATH,
+        'PHOENIX READY\\nProcess: ' + pid + '\\nThis computer: http://${mismatch === 'foreign-host' ? 'provider.invalid' : 'localhost'}:' + advertisedPort)
+      setTimeout(() => process.exit(1), 400)
+    })
+  `)
+  const reservation = createServer()
+  await new Promise<void>(resolveListen => reservation.listen(0, '127.0.0.1', resolveListen))
+  const address = reservation.address()
+  if (!address || typeof address === 'string') throw new Error('Missing fixture port')
+  await new Promise<void>(resolveClose => reservation.close(() => resolveClose()))
+  expect(await exit(launch(fixture, address.port))).toBe(1)
+  expect(readFileSync(join(fixture.state, 'phoenix/logs/phoenix.log'), 'utf8')).not.toContain('PHOENIX is ready')
 })
 
 function installation (serverCode: string) {

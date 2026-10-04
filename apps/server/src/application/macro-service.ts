@@ -202,10 +202,14 @@ export class MacroService implements Macros {
 async function abortableWait (durationMs: number, signal: AbortSignal): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     if (signal.aborted) return reject(signal.reason)
-    const timer = setTimeout(resolve, durationMs)
-    signal.addEventListener('abort', () => {
+    const onAbort = () => {
       clearTimeout(timer)
       reject(signal.reason)
-    }, { once: true })
+    }
+    const timer = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort)
+      resolve()
+    }, durationMs)
+    signal.addEventListener('abort', onAbort, { once: true })
   })
 }

@@ -92,6 +92,5 @@ function humanize (value: string): string {
     .replace(/_class[1-5]$/u, '')
     .replace(/^wpn_[ms]_/u, '')
     .replaceAll('_', ' ')
-    .replace(/([a-z])([A-Z])/gu, '$1 $2')
     .replace(/\b\w/gu, letter => letter.toUpperCase())
 }

@@ -102,29 +102,29 @@ export function PhoenixApplicationShell({
       <DesktopWorkspace
         activeDesktop={activeDesktop}
         controls={controls}
-        {...(controlsContextItems ? { controlsContextItems } : {})}
-        {...(controlsCurrentContext ? { controlsCurrentContext } : {})}
+        controlsContextItems={controlsContextItems}
+        controlsCurrentContext={controlsCurrentContext}
         copilot={copilot}
-        {...(copilotContextItems ? { copilotContextItems } : {})}
-        {...(copilotCurrentContext ? { copilotCurrentContext } : {})}
+        copilotContextItems={copilotContextItems}
+        copilotCurrentContext={copilotCurrentContext}
         information={information}
-        {...(informationContextItems ? { informationContextItems } : {})}
-        {...(informationContextLabel ? { informationContextLabel } : {})}
-        {...(informationCurrentContext ? { informationCurrentContext } : {})}
+        informationContextItems={informationContextItems}
+        informationContextLabel={informationContextLabel || undefined}
+        informationCurrentContext={informationCurrentContext}
         informationRoute={informationRoute}
         journal={journal}
         developer={developer}
         developerContextItems={developerContextItems}
         developerCurrentContext={developerCurrentContext}
-        {...(journalContextItems ? { journalContextItems } : {})}
-        {...(journalCurrentContext ? { journalCurrentContext } : {})}
+        journalContextItems={journalContextItems}
+        journalCurrentContext={journalCurrentContext}
         macros={macros}
         onControlsContextAction={onControlsContextAction}
         onNavigateRoute={onNavigateRoute}
         onNavigateWorkspace={onNavigateWorkspace}
         settings={settings}
-        {...(settingsContextItems ? { settingsContextItems } : {})}
-        {...(settingsCurrentContext ? { settingsCurrentContext } : {})}
+        settingsContextItems={settingsContextItems}
+        settingsCurrentContext={settingsCurrentContext}
         telemetry={telemetry}
       />
       <BottomBar>

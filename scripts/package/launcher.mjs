@@ -181,6 +181,10 @@ function removeFile (path) {
 
 async function waitForReady (url, serverProcess, timeout) {
   const deadline = Date.now() + timeout
+  // Wildcard-host servers advertise localhost, while this launcher probes IPv4 loopback.
+  // Both identify this computer; the expected port and child PID still must match.
+  const localReadyLines = [url, url.replace('http://127.0.0.1:', 'http://localhost:')]
+    .map(local => `This computer: ${local}`)
   while (Date.now() < deadline) {
     if ((serverProcess?.exitCode !== null && serverProcess?.exitCode !== undefined) || serverProcess?.signalCode) return false
     try {
@@ -188,7 +192,7 @@ async function waitForReady (url, serverProcess, timeout) {
       // server readiness file as well as a successful health probe before opening it.
       const status = readFileSync(runtimeStatusPath, 'utf8').split(/\r?\n/)
       const pid = Number(status.find(line => line.startsWith('Process: '))?.slice('Process: '.length))
-      if (status[0] === 'PHOENIX READY' && status.includes(`This computer: ${url}`) &&
+      if (status[0] === 'PHOENIX READY' && localReadyLines.some(line => status.includes(line)) &&
         Number.isInteger(pid) && pid > 0 && (serverProcess ? pid === serverProcess.pid : processExists(pid))) {
         const response = await fetch(`${url}/api/pairing/status`, { signal: AbortSignal.timeout(1_000) })
         if (response.ok && (serverProcess === undefined || (serverProcess.exitCode === null && serverProcess.signalCode === null))) return true

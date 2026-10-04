@@ -1,7 +1,7 @@
 import { lazy, memo, Suspense, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
 import type { ApplicationNavigationItem } from '@phoenix/ui'
 import { PhoenixApplicationShell } from './components/shell/phoenix-application-shell.js'
-import { isInformationRoute, workspaceForRoute } from './application/navigation/phoenix-route.js'
+import { isInformationRoute, workspaceForRoute, type InformationRoute } from './application/navigation/phoenix-route.js'
 import { parsePhoenixRoute, type PhoenixRouter } from './application/navigation/phoenix-router.js'
 import { usePhoenixRoute } from './application/navigation/use-phoenix-route.js'
 import { usePhoenixEventConnection } from './application/events/use-phoenix-event-connection.js'
@@ -84,13 +84,6 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
   const route = usePhoenixRoute(router)
   const activeDesktop = workspaceForRoute(route)
   const informationRoute = isInformationRoute(route) ? route : router.getRememberedInformationRoute()
-  const commanderRoute = informationRoute.section === 'commander' ? informationRoute : undefined
-  const fleetRoute = informationRoute.section === 'fleet' ? informationRoute : undefined
-  const galaxyRoute = informationRoute.section === 'galaxy' ? informationRoute : undefined
-  const activitiesRoute = informationRoute.section === 'activities' ? informationRoute : undefined
-  const commsRoute = informationRoute.section === 'comms' ? informationRoute : undefined
-  const engineeringRoute = informationRoute.section === 'engineering' ? informationRoute : undefined
-  const equipmentRoute = informationRoute.section === 'equipment' ? informationRoute : undefined
   const controlsRoute = route.kind === 'controls' ? route : undefined
   const logRoute = route.kind === 'journal' || route.kind === 'developer' ? route : undefined
   const [controlsEditing, setControlsEditing] = useState(false)
@@ -105,49 +98,7 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       pressed: controlsEditing
     }
   ], [controlsEditing])
-  const informationContext = commanderRoute
-    ? {
-        informationContextItems: commanderNavigationItems,
-        informationContextLabel: 'Commander views',
-        informationCurrentContext: commanderContextForRoute(commanderRoute)
-      }
-    : fleetRoute
-      ? {
-          informationContextItems: fleetNavigationItems,
-          informationContextLabel: 'Fleet views',
-          informationCurrentContext: fleetContextForRoute(fleetRoute)
-        }
-      : galaxyRoute
-        ? {
-            informationContextItems: galaxyNavigationItems,
-            informationContextLabel: 'Galaxy views',
-            informationCurrentContext: galaxyContextForRoute(galaxyRoute)
-          }
-        : activitiesRoute
-          ? {
-              informationContextItems: activitiesNavigationItems,
-              informationContextLabel: 'Activity views',
-              informationCurrentContext: activitiesContextForRoute(activitiesRoute)
-            }
-          : commsRoute
-            ? {
-                informationContextItems: commsNavigationItems,
-                informationContextLabel: 'Comms views',
-                informationCurrentContext: commsContextForRoute(commsRoute)
-              }
-            : engineeringRoute
-              ? {
-                  informationContextItems: engineeringNavigationItems,
-                  informationContextLabel: 'Engineering views',
-                  informationCurrentContext: engineeringContextForRoute(engineeringRoute)
-                }
-              : equipmentRoute
-                ? {
-                    informationContextItems: equipmentNavigationItems,
-                    informationContextLabel: 'Equipment views',
-                    informationCurrentContext: equipmentContextForRoute(equipmentRoute)
-                  }
-      : undefined
+  const informationContext = informationContextForRoute(informationRoute)
 
   return (
     <PhoenixApplicationShell
@@ -168,30 +119,7 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       copilotContextItems={copilotNavigationItems}
       copilotCurrentContext={copilotContext(route)}
       information={activeDesktop === 'info'
-        ? <FeatureBoundary>{commanderRoute
-            ? commanderRoute.view === 'dashboard'
-              ? <DashboardFeature application={application} />
-              : commanderRoute.view === 'loadouts'
-                ? <PersonalEquipmentFeature application={application} view="loadouts" />
-                : <CommanderFeature application={application} view={commanderRoute.view} />
-              : fleetRoute
-                ? <FleetFeature key={router.href(fleetRoute)} application={application} route={fleetRoute} />
-                : galaxyRoute
-                  ? <GalaxyFeature key={galaxyRoute.view} application={application} route={galaxyRoute} />
-                  : activitiesRoute
-                    ? <ActivitiesFeature key={router.href(activitiesRoute)} application={application} route={activitiesRoute} />
-                    : commsRoute
-                      ? <CommsFeature key={router.href(commsRoute)} application={application} route={commsRoute} />
-                      : engineeringRoute
-                        ? <EngineeringFeature key={router.href(engineeringRoute)} application={application} route={engineeringRoute} />
-                        : equipmentRoute
-                          ? <PersonalEquipmentFeature
-                              application={application}
-                              selectedSpecialistId={equipmentRoute.view === 'specialists' ? equipmentRoute.selectedSpecialistId : undefined}
-                              selectedUpgradeId={equipmentRoute.view === 'upgrades' ? equipmentRoute.selectedUpgradeId : undefined}
-                              view={equipmentRoute.view}
-                            />
-                        : null}</FeatureBoundary>
+        ? <FeatureBoundary>{renderInformationFeature(application, informationRoute)}</FeatureBoundary>
         : null}
       journal={activeDesktop === 'journal'
         ? <FeatureBoundary>{logRoute?.view === 'credits'
@@ -216,6 +144,66 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
         : null}
     />
   )
+}
+
+function informationContextForRoute(route: InformationRoute) {
+  switch (route.section) {
+    case 'commander': return {
+      informationContextItems: commanderNavigationItems,
+      informationContextLabel: 'Commander views',
+      informationCurrentContext: commanderContextForRoute(route)
+    }
+    case 'fleet': return {
+      informationContextItems: fleetNavigationItems,
+      informationContextLabel: 'Fleet views',
+      informationCurrentContext: fleetContextForRoute(route)
+    }
+    case 'galaxy': return {
+      informationContextItems: galaxyNavigationItems,
+      informationContextLabel: 'Galaxy views',
+      informationCurrentContext: galaxyContextForRoute(route)
+    }
+    case 'activities': return {
+      informationContextItems: activitiesNavigationItems,
+      informationContextLabel: 'Activity views',
+      informationCurrentContext: activitiesContextForRoute(route)
+    }
+    case 'comms': return {
+      informationContextItems: commsNavigationItems,
+      informationContextLabel: 'Comms views',
+      informationCurrentContext: commsContextForRoute(route)
+    }
+    case 'engineering': return {
+      informationContextItems: engineeringNavigationItems,
+      informationContextLabel: 'Engineering views',
+      informationCurrentContext: engineeringContextForRoute(route)
+    }
+    case 'equipment': return {
+      informationContextItems: equipmentNavigationItems,
+      informationContextLabel: 'Equipment views',
+      informationCurrentContext: equipmentContextForRoute(route)
+    }
+  }
+}
+
+function renderInformationFeature(application: PhoenixApplicationServices, route: InformationRoute): ReactNode {
+  switch (route.section) {
+    case 'commander':
+      if (route.view === 'dashboard') return <DashboardFeature application={application} />
+      if (route.view === 'loadouts') return <PersonalEquipmentFeature application={application} view="loadouts" />
+      return <CommanderFeature application={application} view={route.view} />
+    case 'fleet': return <FleetFeature key={application.router.href(route)} application={application} route={route} />
+    case 'galaxy': return <GalaxyFeature key={route.view} application={application} route={route} />
+    case 'activities': return <ActivitiesFeature key={application.router.href(route)} application={application} route={route} />
+    case 'comms': return <CommsFeature key={application.router.href(route)} application={application} route={route} />
+    case 'engineering': return <EngineeringFeature key={application.router.href(route)} application={application} route={route} />
+    case 'equipment': return <PersonalEquipmentFeature
+      application={application}
+      selectedSpecialistId={route.view === 'specialists' ? route.selectedSpecialistId : undefined}
+      selectedUpgradeId={route.view === 'upgrades' ? route.selectedUpgradeId : undefined}
+      view={route.view}
+    />
+  }
 }
 
 function FeatureBoundary({ children }: { children: ReactNode }) {
