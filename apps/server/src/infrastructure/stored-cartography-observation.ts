@@ -32,6 +32,7 @@ const StoredBodyObservationSchema = z.object({
 })
 
 const StoredSystemObservationSchema: z.ZodType<LocalSystemCartographyObservation> = z.object({
+  position: z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]).nullable(),
   allBodiesFound: z.boolean().default(false),
   bodies: z.array(StoredBodyObservationSchema),
   reportedBodyCount: z.number().int().nonnegative().nullable(),
@@ -64,5 +65,5 @@ export function upgradeStoredCartographyObservation (document: string): LocalSys
         }
       })
     : candidate.bodies
-  return StoredSystemObservationSchema.parse({ ...candidate, bodies })
+  return StoredSystemObservationSchema.parse({ ...candidate, position: candidate.position ?? null, bodies })
 }

@@ -400,6 +400,43 @@ test('local journal cartography remains readable when EDSM has no system record'
   }
 })
 
+test.each(['Location', 'FSDJump', 'CarrierJump'])('arrival %s retains coordinates after leaving a system and ignores malformed updates', async event => {
+  const repository = new MemoryRepository()
+  const runtime = new InMemoryRuntimeStateStore()
+  const ingestion = new CartographyObservationIngestionService(repository, runtime, new InProcessPublisher<CartographyUpdate>())
+  ingestion.ingest({ event, timestamp: '2026-08-11T12:00:00Z', StarSystem: 'Visited', StarPos: [12, -5, 90] })
+  ingestion.ingest({ event: 'Scan', timestamp: '2026-08-11T12:01:00Z', StarSystem: 'Visited', BodyName: 'Visited A', StarType: 'G' })
+  ingestion.ingest({ event, timestamp: '2026-08-11T12:02:00Z', StarSystem: 'Visited', StarPos: [12, 'bad', 90] })
+  ingestion.ingest({ event, timestamp: '2026-08-11T12:03:00Z', StarSystem: 'Elsewhere', StarPos: [0, 0, 0] })
+  const source = { fetchSystem: vi.fn(async () => { throw new Error('Unavailable') }) }
+  const result = await new SystemCartographyService(source, repository, runtime).getSystem('Visited')
+  expect(result.system.position).toEqual([12, -5, 90])
+  expect(result.system.bodies.map(body => body.name)).toEqual(['Visited A'])
+  expect(repository.findRecord('Elsewhere')?.local?.position).toEqual([0, 0, 0])
+})
+
+test('historical jumps fill missing coordinates without regressing later survey data', () => {
+  const repository = new MemoryRepository()
+  const ingestion = new CartographyObservationIngestionService(repository, new InMemoryRuntimeStateStore(), new InProcessPublisher<CartographyUpdate>())
+  ingestion.ingest({ event: 'Scan', timestamp: '2026-08-11T12:01:00Z', StarSystem: 'Visited', BodyName: 'Visited A', StarType: 'G' })
+  const survey = repository.findRecord('Visited')!.local!
+  ingestion.ingest({ event: 'FSDJump', timestamp: '2026-08-11T12:00:00Z', StarSystem: 'Visited', StarPos: [12, -5, 90] })
+  expect(repository.findRecord('Visited')?.local).toEqual({ ...survey, position: [12, -5, 90] })
+  ingestion.ingest({ event: 'Location', timestamp: '2026-08-10T12:00:00Z', StarSystem: 'Visited', StarPos: [1, 2, 3] })
+  expect(repository.findRecord('Visited')?.local?.position).toEqual([12, -5, 90])
+})
+
+test('provider failure uses coordinates ingested while the lookup was pending', async () => {
+  const repository = new MemoryRepository()
+  let reject!: (cause: Error) => void
+  const source = { fetchSystem: () => new Promise<CartographicSystem>((_, fail) => { reject = fail }) }
+  const runtime = new InMemoryRuntimeStateStore()
+  const lookup = new SystemCartographyService(source, repository, runtime).getSystem('Visited')
+  new CartographyObservationIngestionService(repository, runtime, new InProcessPublisher<CartographyUpdate>()).ingest({ event: 'FSDJump', timestamp: '2026-08-11T12:00:00Z', StarSystem: 'Visited', StarPos: [12, -5, 90] })
+  reject(new Error('Unavailable'))
+  expect((await lookup).system.position).toEqual([12, -5, 90])
+})
+
 class MemoryRepository implements CartographyRepository {
   private readonly records = new Map<string, CartographyRecord>()
   public findRecord (systemName: string) { return this.records.get(systemName.trim().toLocaleLowerCase()) ?? null }
@@ -439,6 +476,7 @@ function fixtureSystem (): CartographicSystem {
 
 function fixtureObservation (systemName: string): LocalSystemCartographyObservation {
   return {
+    position: null,
     allBodiesFound: false,
     bodies: [],
     reportedBodyCount: null,

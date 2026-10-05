@@ -68,6 +68,7 @@ class ObservationStore implements CartographyRepository {
 
 function observation (systemName: string, updatedAt: string): LocalSystemCartographyObservation {
   return {
+    position: null,
     allBodiesFound: true,
     systemName,
     systemAddress: 42,

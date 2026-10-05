@@ -47,8 +47,13 @@ test('atlas selection opens the correct system and supports keyboard zoom and re
   let renderer: ReturnType<typeof create>
   await act(async () => { renderer = create(<GalacticAtlas bookmarks={[]} onNavigate={onNavigate} onToggleBookmarks={vi.fn()} position={[0, 0, 0]} showBookmarks systemName="Sol" />) })
   const map = () => renderer.root.findAllByType('svg').find(node => node.props.role === 'group')!
-  expect(renderer.root.findByType('header').props.className).toContain('page-header-cockpit')
-  expect(renderer.root.findByType('header').findAllByType('button')).toHaveLength(3)
+  const pageHeader = renderer.root.findAllByType('header')[0]
+  expect(pageHeader.props.className).toContain('page-header-cockpit')
+  expect(pageHeader.findAllByType('button')).toHaveLength(3)
+  const currentSystem = renderer.root.findByType('footer').findByType('a')
+  expect(parsePhoenixRoute(currentSystem.props.href)).toEqual({ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Sol' })
+  await act(async () => currentSystem.props.onClick({ button: 0, preventDefault() {} }))
+  expect(onNavigate).toHaveBeenCalledWith({ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Sol' })
   const zoomControls = renderer.root.findByProps({ 'aria-label': 'Atlas zoom controls' })
   expect(zoomControls.findAllByType('button').map(button => button.props['aria-label'])).toEqual(['Zoom out', 'Zoom in'])
   expect(renderer.root.findByProps({ className: 'atlas-viewport' }).findAllByType('button')).toHaveLength(0)
@@ -57,13 +62,22 @@ test('atlas selection opens the correct system and supports keyboard zoom and re
   const original = renderer.root.findAllByType('g')[0].props.transform
   expect(initial).not.toBe(original)
   await act(async () => renderer.root.findAllByProps({ role: 'button' }).find(node => node.props['aria-label'] === 'Colonia')!.props.onClick())
-  await act(async () => renderer.root.findAllByType('button').find(node => node.children.includes('Open system schematic'))!.props.onClick())
+  const inspector = renderer.root.findByProps({ 'aria-label': 'Selected atlas location' })
+  expect(renderer.root.findByProps({ 'aria-label': 'Galactic atlas' }).props.className).toContain('has-selection')
+  await act(async () => inspector.findByType('a').props.onClick({ button: 0, preventDefault() {} }))
   expect(onNavigate).toHaveBeenCalledWith({ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Colonia' })
   await act(async () => map().props.onKeyDown({ target: 1, currentTarget: 1, key: '+', preventDefault() {} }))
   expect(renderer.root.findAllByType('g')[0].props.transform).not.toBe(original)
   await act(async () => map().props.onKeyDown({ target: 1, currentTarget: 1, key: 'Home', preventDefault() {} }))
   expect(renderer.root.findAllByType('g')[0].props.transform).toBe(original)
-  expect(renderer.root.findByProps({ className: 'galactic-atlas' }).props['data-deskplane-no-swipe']).toBe(true)
+  expect(renderer.root.findByProps({ 'aria-label': 'Galactic atlas' }).props['data-deskplane-no-swipe']).toBe(true)
+  expect(inspector.findAllByType('button').some(button => button.props['aria-label'] === 'Close atlas selection')).toBe(false)
+  const viewport = renderer.root.findByProps({ className: 'atlas-viewport' })
+  await act(async () => viewport.props.onClick({ target: { closest: () => ({}) } }))
+  expect(renderer.root.findAllByType('aside')).toHaveLength(1)
+  await act(async () => viewport.props.onClick({ target: { closest: () => null } }))
+  expect(renderer.root.findAllByType('aside')).toHaveLength(0)
+  expect(renderer.root.findByProps({ 'aria-label': 'Galactic atlas' }).props.className).not.toContain('has-selection')
   await act(async () => renderer.unmount())
 })
 
@@ -130,7 +144,7 @@ test('marker taps keep their native target and do not move the camera before a d
   expect(target.setPointerCapture).not.toHaveBeenCalled()
   expect(transform()).toBe(original)
   await act(async () => marker.props.onClick())
-  expect(renderer.root.findByProps({ 'aria-label': 'Selected atlas location' }).findByType('strong').children).toEqual(['Colonia'])
+  expect(renderer.root.findByProps({ 'aria-label': 'Selected atlas location' }).findByType('h2').children).toEqual(['Colonia'])
   await act(async () => renderer.unmount())
 })
 
@@ -205,21 +219,26 @@ test('bookmarks deduplicate system lookups, preserve station/body targets and re
     getGalaxyBookmarks: vi.fn().mockResolvedValue({ bookmarks: [
       bookmark('station', { kind: 'station', systemName: 'Example', stationName: 'Test Port' }),
       bookmark('body', { kind: 'body', systemName: 'Example', bodyName: 'Example 2' }),
-      bookmark('missing', { kind: 'system', systemName: 'Unresolved' })
+      bookmark('missing', { kind: 'system', systemName: 'Unresolved' }),
+      bookmark('unknown', { kind: 'system', systemName: 'Unknown coordinates' })
     ] }),
     getSystemCartography: vi.fn(async (name: string) => {
       if (name === 'Unresolved') throw new Error('Offline')
+      if (name === 'Unknown coordinates') return { system: { position: null } }
       return { system: { position: [18000, 50, 40000] } }
     })
   } as unknown as PhoenixApi
   const onNavigate = vi.fn()
   let renderer: ReturnType<typeof create>
   await act(async () => { renderer = create(<GalacticAtlasPage api={api} onNavigate={onNavigate} runtime={{ status: 'ready', state: createEmptyRuntimeState() }} />) })
-  expect(api.getSystemCartography).toHaveBeenCalledTimes(2)
-  expect(JSON.stringify(renderer.toJSON())).toContain('1 bookmark without coordinates')
+  expect(api.getSystemCartography).toHaveBeenCalledTimes(3)
+  expect(JSON.stringify(renderer.toJSON())).toContain('Bookmark lookup failed')
+  expect(JSON.stringify(renderer.toJSON())).toContain('Unresolved: Offline')
+  expect(JSON.stringify(renderer.toJSON())).toContain('1 bookmark without coordinates: Unknown coordinates')
   await act(async () => renderer.root.findAllByProps({ role: 'button' }).find(node => node.props['aria-label'] === '2 locations near Test Port')!.props.onClick())
   await act(async () => renderer.root.findByType('select').props.onChange({ target: { value: 'body' } }))
-  await act(async () => renderer.root.findAllByType('button').find(node => node.children.includes('Open system schematic'))!.props.onClick())
+  expect(renderer.root.findByType('select').props.className).toContain('form-mini')
+  await act(async () => renderer.root.findByProps({ 'aria-label': 'Selected atlas location' }).findByType('a').props.onClick({ button: 0, preventDefault() {} }))
   expect(onNavigate).toHaveBeenCalledWith(expect.objectContaining({ systemName: 'Example', selectedName: 'Example 2' }))
   await act(async () => renderer.unmount())
 })

@@ -32,7 +32,7 @@ function systemFromObservation (observation: LocalSystemCartographyObservation |
     schemaVersion: 5,
     name: observation.systemName,
     address: observation.systemAddress,
-    position: null,
+    position: observation.position,
     permitRequired: null,
     permitName: null,
     information: emptyInformation(),
@@ -84,6 +84,7 @@ function mergeObservation (
   return {
     ...system,
     address: observation.systemAddress ?? system.address,
+    position: observation.position ?? system.position,
     bodies,
     scanProgress: scanProgress(bodies.length, observation.reportedBodyCount),
     provenance: { ...system.provenance, journal: { updatedAt: observation.updatedAt } }

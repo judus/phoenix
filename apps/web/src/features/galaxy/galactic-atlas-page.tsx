@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type SetState
 import { Breadcrumbs, Button, ControlContext, IconButton, Inline, PageFrame, PageHeader, Select, Status, ToggleButton } from '@phoenix/ui'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
+import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
 import { atlasBoundaries, atlasRegions } from './atlas-region-data.js'
 import { ATLAS_LANDMARKS, LY_PER_MAP_UNIT, WHOLE_GALAXY, atlasScale, clusterAtlasMarkers, distanceLy, galacticRegion, projectGalacticPosition, screenPoint, zoomAtlas, type AtlasCamera, type AtlasMarker, type AtlasPoint, type GalacticPosition } from './galactic-atlas-model.js'
@@ -18,7 +19,10 @@ export function GalacticAtlasPage({ api, onNavigate, runtime }: {
   const system = runtime.status === 'ready' ? runtime.state.system : undefined
   return <GalacticAtlas
     bookmarks={showBookmarks ? bookmarks.markers : []}
-    bookmarkStatus={bookmarks.error ?? (bookmarks.pending ? `Locating ${bookmarks.pending} bookmark${bookmarks.pending === 1 ? '' : 's'}…` : bookmarks.unresolved ? `${bookmarks.unresolved} bookmark${bookmarks.unresolved === 1 ? '' : 's'} without coordinates` : undefined)}
+    bookmarkStatus={bookmarks.error ?? (bookmarks.pending ? `Locating ${bookmarks.pending} bookmark${bookmarks.pending === 1 ? '' : 's'}…` : [
+      bookmarks.unresolved ? `${bookmarks.unresolved} bookmark${bookmarks.unresolved === 1 ? '' : 's'} without coordinates: ${bookmarks.missingSystems.join(', ')}` : '',
+      bookmarks.failures.length ? `Bookmark lookup failed — ${bookmarks.failures.join('; ')}` : ''
+    ].filter(Boolean).join(' · ') || undefined)}
     onNavigate={onNavigate}
     onToggleBookmarks={() => setShowBookmarks(value => !value)}
     position={system?.position ?? null}
@@ -124,9 +128,13 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, onNavigate, onToggleB
         <ToggleButton className="display" pressed={showLandmarks} onClick={() => setShowLandmarks(value => !value)}>Landmarks</ToggleButton>
         <ToggleButton className="display" pressed={showBookmarks} onClick={onToggleBookmarks}>Bookmarks</ToggleButton>
     </Inline></ControlContext>} />
-    <section className="galactic-atlas" aria-label="Galactic atlas" data-deskplane-no-swipe>
+    <section className={`galactic-atlas${selected ? ' has-selection' : ''}`} aria-label="Galactic atlas" data-deskplane-no-swipe>
       <div className="atlas-map">
-      <div className="atlas-viewport" ref={viewport} {...pointerGestures}>
+      <div className="atlas-viewport" ref={viewport} {...pointerGestures} onClick={event => {
+        if ((event.target as Element).closest('[role="button"]')) return
+        setSelection([])
+        setSelectedId(undefined)
+      }}>
         <svg width="100%" height="100%" viewBox={`0 0 ${size.width} ${size.height}`} tabIndex={0} role="group"
           aria-label="Top-down galaxy map. Drag to pan, pinch or use plus and minus to zoom. Arrow keys pan; Home shows the whole galaxy."
           onKeyDown={keyboard}>
@@ -177,19 +185,23 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, onNavigate, onToggleB
         </div>
       </div>
       {selected && <aside className="atlas-inspector" aria-label="Selected atlas location">
-        {options.length > 1 ? <Select aria-label="Locations in this group" value={selectedId} onChange={event => setSelectedId(event.target.value)}>
+        <header>
+          <span>Selected location</span>
+        </header>
+        {options.length > 1 ? <Select className="form-mini" aria-label="Locations in this group" value={selectedId} onChange={event => setSelectedId(event.target.value)}>
           {options.map(marker => <option key={marker.id} value={marker.id}>{marker.kind === 'commander' ? 'You · ' : ''}{marker.label}</option>)}
-        </Select> : <strong>{selected.label}</strong>}
-        <span className="text-muted">{selected.systemName}{position ? ` · ${formatLy(distanceLy(position, selected.position))} LY` : ''}</span>
+        </Select> : <h2>{selected.label}</h2>}
+        <dl>
+          <div><dt>System</dt><dd><AtlasSystemLink systemName={selected.systemName} selectedName={selected.selectedName} onNavigate={onNavigate} /></dd></div>
+          {position && <div><dt>Distance from you</dt><dd>{formatLy(distanceLy(position, selected.position))} LY</dd></div>}
+        </dl>
         <ControlContext context="toolbar" density="compact">
-          <Button variant="outline" onClick={() => locate(selected.position, Math.min(64, Math.max(4, camera.zoom * 2)))}>Zoom here</Button>
-          <Button variant="outline" onClick={() => onNavigate({ kind: 'information', section: 'galaxy', view: 'system', systemName: selected.systemName, ...(selected.selectedName ? { selectedName: selected.selectedName } : {}) })}>Open system schematic</Button>
-          <IconButton variant="outline" label="Close atlas selection" onClick={() => { setSelection([]); setSelectedId(undefined) }}>×</IconButton>
+          <Button className="display" variant="outline" onClick={() => locate(selected.position, Math.min(64, Math.max(4, camera.zoom * 2)))}>Zoom here</Button>
         </ControlContext>
       </aside>}
       <footer className="atlas-telemetry">
         {position ? <>
-          <strong>{systemName ?? 'Position known'}</strong>
+          {systemName ? <AtlasSystemLink systemName={systemName} onNavigate={onNavigate} /> : <strong>Position known</strong>}
           <span>{currentRegion?.name ?? 'Outside mapped regions'}</span>
           <span>Sol · {formatLy(distanceLy(position, [0, 0, 0]))} LY</span>
           <span>{formatLy(Math.abs(position[1]))} LY {position[1] < 0 ? 'below' : 'above'} plane</span>
@@ -198,6 +210,15 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, onNavigate, onToggleB
       </footer>
     </section>
   </PageFrame>
+}
+
+function AtlasSystemLink({ systemName, selectedName, onNavigate }: { systemName: string, selectedName?: string, onNavigate(route: PhoenixRoute): void }) {
+  const route: PhoenixRoute = { kind: 'information', section: 'galaxy', view: 'system', systemName, ...(selectedName ? { selectedName } : {}) }
+  return <a className="atlas-system-link" href={phoenixRouteHash(route)} onClick={event => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    event.preventDefault()
+    onNavigate(route)
+  }}>{systemName}</a>
 }
 
 function formatLy(value: number): string { return value.toLocaleString('en-GB', { maximumFractionDigits: 0 }) }

@@ -49,6 +49,7 @@ export interface LocalOrganicSampleObservation {
 }
 
 export interface LocalSystemCartographyObservation {
+  position: [number, number, number] | null
   allBodiesFound?: boolean
   bodies: LocalBodyCartographyObservation[]
   reportedBodyCount: number | null

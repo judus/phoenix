@@ -4,6 +4,12 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Retain journal system coordinates for Atlas bookmarks, including visited systems absent from
+  EDSM; rebuild retained coordinates from journals and distinguish lookup errors from unknown positions.
+- Atlas selection details use a side panel (below the map on narrow screens); system names link
+  directly to their schematics, with a compact current-position footer.
+- Align cartography sidebars with a subtle gradient and map/panel spacing; tap empty Atlas map
+  space to dismiss selection, retaining panels while panning or pinching.
 - Galaxy opens on the Atlas, initially centred and zoomed around your position. Remove the
   redundant Whole galaxy/Locate me buttons; keep keyboard Home for the whole-galaxy view.
 - Move fleet-carrier visibility into the schematic header and give carriers a distinct shared icon.

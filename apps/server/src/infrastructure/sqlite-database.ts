@@ -241,6 +241,7 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     this.migrateExternalCartographyDocuments(14)
     this.migrateExternalCartographyDocuments(15)
     this.migrateGalaxyBookmarks()
+    this.migrateCartographyCoordinates()
     const equipmentProjectionCreated = this.commanderEquipment.initialize()
     if (equipmentProjectionCreated) this.connection.exec('DELETE FROM elite_journal_checkpoints;')
     this.commanderLog.initialize()
@@ -718,6 +719,24 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
       }
       this.connection.exec(`
         INSERT INTO schema_migrations (version, applied_at) VALUES (13, datetime('now'));
+        COMMIT;
+      `)
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
+    }
+  }
+
+  private migrateCartographyCoordinates (): void {
+    if (this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = 25').get()) return
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      const rows = this.connection.prepare('SELECT local_document FROM cartography_records WHERE local_document IS NOT NULL').all() as Array<{ local_document: string }>
+      for (const row of rows) this.putLocalObservation(upgradeStoredCartographyObservation(row.local_document))
+      // Rebuild through normal journal ingestion, rather than a separate coordinate recovery path.
+      this.connection.exec(`
+        DELETE FROM elite_journal_checkpoints;
+        INSERT INTO schema_migrations (version, applied_at) VALUES (25, datetime('now'));
         COMMIT;
       `)
     } catch (cause) {
