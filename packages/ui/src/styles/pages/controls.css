@@ -86,12 +86,36 @@
     }
 
     .control-deck-slot {
+      position: relative;
+      isolation: isolate;
       min-inline-size: 0;
       min-block-size: 0;
 
       > * {
         inline-size: 100%;
         block-size: 100%;
+      }
+
+      &.moving { outline: var(--control-border-width) dashed var(--color-information); outline-offset: calc(-1 * var(--control-border-width)); }
+      &.drop-target { outline: var(--control-border-width) solid var(--color-information); outline-offset: calc(-1 * var(--control-border-width)); }
+
+      > .control-deck-move-handle {
+        position: absolute;
+        z-index: 2;
+        inset-inline-end: 0;
+        inset-block-end: 0;
+        inline-size: var(--control-block-size);
+        block-size: var(--control-block-size);
+        padding: 0;
+        border: var(--control-border-width) solid var(--color-information);
+        background: var(--color-canvas);
+        color: var(--color-information);
+        font-size: var(--font-size-lg);
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
+
+        &:active { cursor: grabbing; }
       }
     }
 

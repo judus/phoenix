@@ -116,6 +116,7 @@ export function HelpPage({ topic }: { topic?: string }) {
           </ManualSection>
 
           <ManualSection id="control-deck" title="Control Deck and application focus">
+            <p>To rearrange a grid, enable Edit layout and drag a button’s bottom-right grip. An empty slot receives the button; an occupied slot swaps the two buttons. You can also select the grip, then tap or keyboard-activate the destination. Escape cancels the move. Use Save and finish editing to keep the layout, or Cancel layout editing to discard it.</p>
             <Status tone="warning" wrap>PHOENIX cannot know which application currently has keyboard focus. A Control Deck button intended for Elite can affect another focused application, including triggering destructive shortcuts.</Status>
             <h3>Bindings define availability</h3>
             <p>PHOENIX reads the active Elite Dangerous keyboard bindings. A control is unavailable when no compatible keyboard binding can be resolved.</p>

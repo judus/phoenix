@@ -1,5 +1,10 @@
 # Embedded Control Deck artifacts
 
+The JavaScript runtime is now `control-deck-phoenix-runtime-0.1.11.tgz`, built with
+`npm run package:phoenix` in the owning repository. It adds the core grid move/swap operation.
+The native Linux helper remains at 0.1.10; its input behavior is unchanged. The npm lockfile pins
+the runtime archive integrity. No standalone Control Deck UI is bundled in this runtime.
+
 The JS runtime is consumed through the existing locked npm dependency. The Linux AppImage also
 uses `control-deck-phoenix-linux-helper-0.1.10-x64.tgz`, a narrow native artifact containing only
 the Wayland keymap reader, its manifest and the PHOENIX Runtime Licence. It does not include or
