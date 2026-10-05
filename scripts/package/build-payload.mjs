@@ -15,7 +15,7 @@ rmSync(outputRoot, { recursive: true, force: true })
 mkdirSync(outputRoot, { recursive: true })
 
 copy('apps/web/dist')
-copy('agents')
+copy('resources/copilots')
 copy('LICENSE')
 copy('NOTICE')
 copy('THIRD_PARTY_NOTICES.md')

@@ -14,6 +14,7 @@ import { BrowserPhoenixRouter } from '../platform/routing/browser-phoenix-router
 import { BrowserDevicePreferences } from '../platform/storage/browser-device-preferences.js'
 import { BrowserClientIdentity } from '../platform/storage/browser-client-identity.js'
 import { GalaxyQuerySessionStore } from '../features/galaxy/galaxy-query-session-store.js'
+import { NumpadRuntime } from '../features/numpad/numpad-runtime.js'
 
 export interface PhoenixApplicationServices {
   initialPairingCode?: string
@@ -23,6 +24,7 @@ export interface PhoenixApplicationServices {
   events: PhoenixEventHub
   galaxyQueries: GalaxyQuerySessionStore
   numpadRouteSession: NumpadRouteSession
+  numpad: NumpadRuntime
   router: PhoenixRouter
   runtime: RuntimeStateStore
 }
@@ -55,6 +57,7 @@ export function createPhoenixApplication(
     sessionStorage = unavailableStorage()
   }
   const router = new BrowserPhoenixRouter(browserWindow)
+  const numpadRouteSession = new RouterNumpadRouteSession(router, sessionStorage)
   return {
     initialPairingCode,
     api,
@@ -62,7 +65,8 @@ export function createPhoenixApplication(
     devicePreferences: new BrowserDevicePreferences(localStorage),
     events,
     galaxyQueries: new GalaxyQuerySessionStore(),
-    numpadRouteSession: new RouterNumpadRouteSession(router, sessionStorage),
+    numpadRouteSession,
+    numpad: new NumpadRuntime(api, events, router, numpadRouteSession),
     router,
     runtime: new RuntimeStateStore(api, events)
   }

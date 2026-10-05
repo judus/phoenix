@@ -12,6 +12,7 @@ import { GalaxyQuerySessionStore } from '../apps/web/src/features/galaxy/galaxy-
 import { PhoenixProviders } from '../apps/web/src/bootstrap/providers.js'
 import { BrowserPhoenixRouter } from '../apps/web/src/platform/routing/browser-phoenix-router.js'
 import { BrowserDevicePreferences } from '../apps/web/src/platform/storage/browser-device-preferences.js'
+import { numpadRuntimeFixture } from './support/numpad-runtime-fixture.js'
 
 beforeAll(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
@@ -31,6 +32,7 @@ test('providers start global services and route allowed display commands through
     devicePreferences,
     events,
     galaxyQueries: new GalaxyQuerySessionStore(),
+    numpad: numpadRuntimeFixture().runtime,
     numpadRouteSession: {
       acknowledge() {},
       arm() {},

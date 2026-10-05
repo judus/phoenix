@@ -22,17 +22,19 @@ export function PhoenixProviders({
       application.router.push(routeForDisplayCommand(command))
     })
     application.runtime.start()
+    application.numpad.start()
     application.events.start()
     return () => {
       unsubscribeDisplay()
       application.runtime.stop()
+      application.numpad.stop()
       application.events.stop()
     }
   }, [application, devicePreferences])
 
   return (
     <PhoenixApplicationContext.Provider value={application}>
-      <NumpadActivation devicePreferences={devicePreferences} routeSession={application.numpadRouteSession} router={application.router} />
+      <NumpadActivation devicePreferences={devicePreferences} runtime={application.numpad} />
       <CopilotVoiceProvider
         api={application.api}
         clientIdentity={application.clientIdentity}

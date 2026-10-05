@@ -24,8 +24,7 @@ export const PHOENIX_CONTROL_CONTEXTS = [
   'phoenix:srv',
   'phoenix:on_foot',
   'phoenix:radio',
-  'phoenix:emote',
-  'phoenix:misc'
+  'phoenix:emote'
 ] as const
 export const PhoenixControlDeckConfigurationSchema = ControlDeckConfigurationSchema.safeExtend({
   decks: z.array(ControlDeckGridDeckSchema).max(256)

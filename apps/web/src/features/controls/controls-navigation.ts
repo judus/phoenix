@@ -14,8 +14,7 @@ const categories: Array<{ id: ControlCategory, icon: string, label: string }> = 
   { id: 'srv', icon: 'SRV', label: 'SRV' },
   { id: 'on_foot', icon: 'OFT', label: 'On Foot' },
   { id: 'radio', icon: 'RAD', label: 'Radio' },
-  { id: 'emote', icon: 'EMO', label: 'Emotes' },
-  { id: 'misc', icon: 'MSC', label: 'Miscellaneous' }
+  { id: 'emote', icon: 'EMO', label: 'Emotes' }
 ]
 
 export const controlsNavigationItems: ControlsNavigationItem[] = categories.map(category => {
@@ -30,5 +29,5 @@ export function controlsCategoryLabel(category: ControlCategory): string {
 }
 
 export function gameActionCategoryLabel(category: GameActionCategory): string {
-  return category === 'system' ? 'System' : controlsCategoryLabel(category)
+  return category === 'system' ? 'System' : category === 'misc' ? 'Miscellaneous' : controlsCategoryLabel(category)
 }

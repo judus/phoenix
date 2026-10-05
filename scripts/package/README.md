@@ -10,6 +10,12 @@ so it cannot be produced correctly from Linux.
 compiled application code, curated resources, production dependencies, and the Node runtime
 executing the build.
 
+Bundled Copilot profiles live in `resources/copilots/`. On startup they seed writable profiles
+under the existing user-data path `copilot/agents/`; character edits and user-created profiles
+survive upgrades. `PHOENIX_AGENTS_PATH` retains its existing role as a bundled-profile override.
+The repository's `AGENTS.md` and `.agents/skills/` are coding instructions, not runtime resources,
+and are not included in the payload.
+
 `npm run payload:verify` checks every staged file against `manifest.json`. `npm run payload:smoke`
 starts a temporary copy in installed mode and verifies that mutable state is written to isolated
 platform user directories. Linux additionally makes the temporary installation read-only.

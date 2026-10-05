@@ -22,7 +22,7 @@ import { JsonConversationStore } from '../apps/server/src/infrastructure/json-co
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 
 const projectRoot = fileURLToPath(new URL('../', import.meta.url))
-const audioProcessing = readCopilotAudioProcessing(join(projectRoot, 'agents/marin/audio.json'))
+const audioProcessing = readCopilotAudioProcessing(join(projectRoot, 'resources/copilots/marin/audio.json'))
 
 test('Realtime composition shares profiles, telemetry, tools, and conversation persistence', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-realtime-'))
@@ -44,7 +44,7 @@ test('Realtime composition shares profiles, telemetry, tools, and conversation p
     conversations,
     gateway,
     model: 'gpt-realtime-test',
-    prompts: new AgentPromptComposer(new FileAgentProfileRepository(join(projectRoot, 'agents'))),
+    prompts: new AgentPromptComposer(new FileAgentProfileRepository(join(projectRoot, 'resources/copilots'))),
     runtimeContext: new RuntimeContextRenderer(),
     runtimeState: new InMemoryRuntimeStateStore(),
     tools,

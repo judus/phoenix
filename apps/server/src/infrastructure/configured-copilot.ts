@@ -56,7 +56,8 @@ export function createConfiguredCopilot (
   if (!apiKey) return undefined
 
   const profilesDirectory = prepareWritableAgentProfiles(
-    resolve(paths.resources.agents, options.agentsDirectory ?? '.'),
+    resolve(paths.resources.copilots, options.agentsDirectory ?? '.'),
+    // Keep the persisted location: moving bundled resources must not reset edited profiles.
     resolve(paths.user.data, options.profilesDirectory ?? 'copilot/agents')
   )
 
