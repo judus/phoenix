@@ -37,3 +37,12 @@ export function ChevronRightIcon () {
     </svg>
   )
 }
+
+export function ChevronDownIcon () {
+  return <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="m5 9 7 7 7-7" strokeWidth="1.75" /></svg>
+}
+
+/** Original PHOENIX carrier silhouette, shared by map markers and the visibility toggle. */
+export function FleetCarrierIcon () {
+  return <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M2 11h20l-3 5H5l-3-5Zm5 0V8h10v3M10 8V5h4v3M5 16v3m14-3v3M8 13h8" strokeWidth="1.5" /></svg>
+}

@@ -256,8 +256,7 @@ function ModuleStatusWidget({ model, onNavigate }: { model: CurrentShipModel, on
       scrollable
     >
       <Status tone="muted">Last reported · not live</Status>
-      <DescriptionList columns="two" density="compact">
-        <DescriptionItem label={`Health ≤ ${moduleStatus.healthAlertThreshold}%`} value={String(moduleStatus.damaged.length)} />
+      <DescriptionList columns="one" density="compact">
         <DescriptionItem label="Unknown" value={String(moduleStatus.unknown)} />
       </DescriptionList>
       {moduleStatus.damaged.length === 0

@@ -13,6 +13,11 @@ export function NumpadPage({ runtime, devicePreferences }: { runtime: NumpadRunt
   const parent = tree?.nodes.find(node => node.id === session.pathIds.at(-1))
 
   return <PageFrame className="numpad-page" layout="fit">
-    {map.error ? <Status tone="danger">{map.error}</Status> : map.status === 'loading' || !tree ? <Status tone="muted">Loading command map…</Status> : <div className="numpad-console"><header><div><small>Address</small><strong>{displayedControlDeckNumpadAddress(tree, session)}</strong></div><div><small>Context</small><strong>{parent?.label ?? 'Command root'}</strong></div><div><small>Status</small><strong>{session.message ?? (session.active ? session.status : 'Press Numpad 0')}</strong></div><Button variant="quiet" onClick={runtime.controller.cancel}>Cancel ·</Button></header><NumpadTileGrid columns={parent?.columns ?? (parent ? undefined : 3)} rows={parent?.rows} nodes={controlDeckNumpadChildren(tree, parent?.id ?? null)} pendingDigits={session.pendingDigits} variableFontSizes={deviceSettings.variableCommandLabelSizes} onSelect={runtime.controller.select} /></div>}
+    {map.error ? <Status tone="danger">{map.error}</Status> : map.status === 'loading' || !tree ? <Status tone="muted">Loading command map…</Status> : <div className="numpad-console"><header>
+      <div><small>Address</small><strong>{displayedControlDeckNumpadAddress(tree, session)}</strong></div>
+      <div><small>Context</small><strong>{parent?.label ?? 'Command root'}</strong></div>
+      <div><small>Status</small><strong>{session.message ?? (session.active ? session.status : 'Press Numpad 0')}</strong></div>
+      <div><small>Cancel</small><Button aria-label="Cancel Numpy (Escape or decimal point)" variant="quiet" onClick={runtime.controller.cancel}><strong>Esc / .</strong></Button></div>
+    </header><NumpadTileGrid columns={parent?.columns ?? (parent ? undefined : 3)} rows={parent?.rows} nodes={controlDeckNumpadChildren(tree, parent?.id ?? null)} pendingDigits={session.pendingDigits} variableFontSizes={deviceSettings.variableCommandLabelSizes} onSelect={runtime.controller.select} /></div>}
   </PageFrame>
 }

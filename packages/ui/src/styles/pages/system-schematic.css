@@ -10,16 +10,17 @@
   }
 
   .system-cartography {
+    container-type: size;
     block-size: 100%;
     min-block-size: 0;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) auto;
-    background: var(--color-surface);
     overflow: hidden;
   }
 
   .system-cartography.has-selection {
+    column-gap: var(--spacing-xs);
     grid-template-columns: minmax(0, 1fr) clamp(19rem, 24vw, 28rem);
   }
 
@@ -36,8 +37,11 @@
     background:
       linear-gradient(color-mix(in srgb, var(--color-information) 3%, transparent) 1px, transparent 1px),
       linear-gradient(90deg, color-mix(in srgb, var(--color-information) 3%, transparent) 1px, transparent 1px),
-      radial-gradient(circle at 42% 40%, color-mix(in srgb, var(--color-information) 5%, transparent), transparent 48%);
-    background-size: 2.5rem 2.5rem, 2.5rem 2.5rem, auto;
+      radial-gradient(circle at 42% 40%, color-mix(in srgb, var(--color-information) 5%, transparent), transparent 48%),
+      var(--color-surface);
+    /* Keep the glow anchored to the full instrument when selection narrows the map. */
+    background-size: 2.5rem 2.5rem, 2.5rem 2.5rem, 100cqw 100cqh;
+    background-repeat: repeat, repeat, no-repeat;
     overflow: hidden;
   }
 
@@ -629,6 +633,7 @@
   @media (width < 42rem) {
     .system-cartography.has-selection {
       overflow: auto;
+      gap: var(--spacing-xs);
       grid-template-columns: 1fr;
       grid-template-rows: minmax(24rem, 1fr) auto auto;
     }

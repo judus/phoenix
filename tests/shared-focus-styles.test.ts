@@ -5,6 +5,29 @@ import { expect, test } from 'vitest'
 const styles = resolve(import.meta.dirname, '../packages/ui/src/styles')
 const read = (path: string) => readFileSync(resolve(styles, path), 'utf8')
 
+test('schematic background layers belong to the map surface, not the layout containing its sidebar gap', () => {
+  const source = read('pages/system-schematic.css')
+  const layout = source.match(/\.system-cartography\s*\{([^}]+)/u)?.[1]
+  const map = source.match(/\.system-schematic\s*\{([^}]+)/u)?.[1]
+  expect(layout).not.toMatch(/background(?:-color|-image)?\s*:/u)
+  expect(layout).toContain('container-type: size')
+  expect(map).toContain('linear-gradient(')
+  expect(map).toContain('radial-gradient(')
+  expect(map).toContain('var(--color-surface)')
+  expect(map).toContain('100cqw 100cqh')
+  expect(map).toContain('background-repeat: repeat, repeat, no-repeat')
+})
+
+test('inputs and selects share their field surface rather than inheriting dropdown-wrapper styles', () => {
+  const source = read('base/forms.css')
+  const fields = source.match(/\.form-control\s*,\s*\.form-select\s*\{([^}]+)/u)?.[1]
+  expect(fields).toContain('inline-size: 100%')
+  expect(fields).toContain('min-block-size: var(--control-block-size)')
+  expect(fields).toContain('border: var(--control-border-width) solid var(--field-border)')
+  expect(fields).toContain('background: var(--field-background)')
+  expect(source).not.toMatch(/\.form-control\s*,\s*\.select-control/u)
+})
+
 test('shared fields keep an inset keyboard focus ring separate from invalid borders', () => {
   const source = read('base/forms.css')
   const focus = source.match(/&:focus-visible\s*\{([^}]+)\}/u)?.[1]

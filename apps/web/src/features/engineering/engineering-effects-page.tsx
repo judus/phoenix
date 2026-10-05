@@ -17,14 +17,14 @@ export function EngineeringEffectsPage({ effects, selectedSymbol, projects, acti
   return <PageFrame layout="fit"><Stack fill gap="sm">
     <EngineeringHeader title="Experimental effects" trail={[{ label: 'Experimental effects' }]} />
     {selectedSymbol && <Status tone="warning">This effect is unavailable in the current recipe catalogue.</Status>}
-    <Field label="Filter effects or modules" htmlFor="effect-filter"><TextInput id="effect-filter" value={filter} onChange={event => setFilter(event.target.value)} /></Field>
+    <Field label="Filter effects or modules" htmlFor="effect-filter"><TextInput className="form-mini" id="effect-filter" value={filter} onChange={event => setFilter(event.target.value)} /></Field>
     <Stack className="engineering-scroll-content" gap="sm">
       {effects.length === 0 ? <Status tone="muted" wrap>No experimental recipes available. Refresh the catalogue and restart PHOENIX.</Status>
         : <DataTableGroup title="Experimental effects" meta={String(shown.length)}>
           <DataTable density="compact" label="Experimental effects" minimum="wide" narrow="scroll" scheme="surface">
             <thead><tr><th>Effect</th><th>Compatible modules</th><th>Materials per application</th></tr></thead>
             <tbody>{shown.map(effect => <tr key={effect.symbol}>
-              <td className="wrap"><a href={`#/engineering/experimental-effects?symbol=${encodeURIComponent(effect.symbol)}`}>{effect.name}</a></td>
+              <td className="wrap"><a href={`#/engineering/experimental-effects?symbol=${encodeURIComponent(effect.symbol)}`}><strong>{effect.name}</strong></a></td>
               <td className="wrap">{effect.modules.map(module => module.name).join(', ')}</td>
               <td className="wrap">{effect.components.map(component => `${component.cost} × ${component.name}`).join(', ')}</td>
             </tr>)}</tbody>

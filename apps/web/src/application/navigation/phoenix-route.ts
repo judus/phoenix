@@ -99,7 +99,7 @@ export function defaultRouteForInformationSection(section: InformationPrimarySec
   switch (section) {
     case 'commander': return DEFAULT_ROUTE
     case 'fleet': return { kind: 'information', section, view: 'current-overview' }
-    case 'galaxy': return { kind: 'information', section, view: 'system' }
+    case 'galaxy': return { kind: 'information', section, view: 'atlas' }
     case 'activities': return { kind: 'information', section, view: 'missions' }
     case 'engineering': return { kind: 'information', section, view: 'blueprints' }
     case 'equipment': return { kind: 'information', section, view: 'gear' }

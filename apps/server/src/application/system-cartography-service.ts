@@ -41,11 +41,13 @@ export class SystemCartographyService implements SystemCartography {
         system: projectCartographicSystem(refreshed, this.runtimeState.getCurrent().system)
       }
     } catch (cause) {
-      if (record?.external) {
-        return { cache: 'stale', system: projectCartographicSystem(record, this.runtimeState.getCurrent().system) }
+      // Journal ingestion/backfill may have supplied local data while the provider was pending.
+      const available = this.repository.findRecord(name)
+      if (available?.external) {
+        return { cache: 'stale', system: projectCartographicSystem(available, this.runtimeState.getCurrent().system) }
       }
-      if (record?.local) {
-        return { cache: 'local', system: projectCartographicSystem(record, this.runtimeState.getCurrent().system) }
+      if (available?.local) {
+        return { cache: 'local', system: projectCartographicSystem(available, this.runtimeState.getCurrent().system) }
       }
       throw cause
     }

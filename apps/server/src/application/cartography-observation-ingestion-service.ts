@@ -13,6 +13,7 @@ import { projectCartographicSystem } from './cartographic-system-projector.js'
 
 const BODY_EVENTS = new Set(['Disembark', 'Scan', 'FSSBodySignals', 'SAASignalsFound', 'SAAScanComplete', 'ScanOrganic'])
 const SYSTEM_EVENTS = new Set(['FSSDiscoveryScan', 'FSSAllBodiesFound'])
+const POSITION_EVENTS = new Set(['Location', 'FSDJump', 'CarrierJump'])
 
 export class CartographyObservationIngestionService {
   public constructor (
@@ -22,12 +23,17 @@ export class CartographyObservationIngestionService {
   ) {}
 
   public ingest (event: EliteJournalEvent): void {
-    if (!BODY_EVENTS.has(event.event) && !SYSTEM_EVENTS.has(event.event)) return
+    if (!BODY_EVENTS.has(event.event) && !SYSTEM_EVENTS.has(event.event) && !POSITION_EVENTS.has(event.event)) return
     if (event.event === 'Disembark' && event.OnPlanet !== true) return
     const systemName = stringValue(event.SystemName) ?? stringValue(event.StarSystem) ?? this.runtimeState.getCurrent().system.name
     if (!systemName) return
     const current = this.repository.findRecord(systemName)?.local ?? emptyObservation(systemName, event)
-    if (event.timestamp < current.updatedAt) return
+    const position = POSITION_EVENTS.has(event.event) ? coordinates(event.StarPos) : null
+    // Historical arrival events can restore missing coordinates without regressing later surveys.
+    if (event.timestamp < current.updatedAt) {
+      if (position && !current.position) this.repository.putLocalObservation({ ...current, position })
+      return
+    }
     const reportedBodyCount = SYSTEM_EVENTS.has(event.event)
       ? integerValue(event.BodyCount) ?? current.reportedBodyCount
       : current.reportedBodyCount
@@ -37,9 +43,10 @@ export class CartographyObservationIngestionService {
       ?? current.bodies.find(body => bodyId !== null && body.bodyId === bodyId)?.bodyName
       ?? (runtimePlace?.kind === 'body' && (bodyId === null || runtimePlace.id === bodyId) ? runtimePlace.name : null)
     const currentBodies = current.bodies.filter(hasCartographicBodyEvidence)
-    const bodies = bodyName ? mergeBody(currentBodies, bodyName, bodyId, event) : currentBodies
+    const bodies = !POSITION_EVENTS.has(event.event) && bodyName ? mergeBody(currentBodies, bodyName, bodyId, event) : currentBodies
     const observation = {
       ...current,
+      position: position ?? current.position,
       allBodiesFound: event.event === 'FSSAllBodiesFound' || current.allBodiesFound === true,
       systemAddress: integerValue(event.SystemAddress) ?? current.systemAddress,
       reportedBodyCount,
@@ -59,6 +66,7 @@ export class CartographyObservationIngestionService {
 
 function emptyObservation (systemName: string, event: EliteJournalEvent): LocalSystemCartographyObservation {
   return {
+    position: null,
     allBodiesFound: event.event === 'FSSAllBodiesFound',
     systemName,
     systemAddress: integerValue(event.SystemAddress),
@@ -181,4 +189,10 @@ function integerValue (candidate: unknown): number | null {
 
 function booleanValue (candidate: unknown): boolean | null {
   return typeof candidate === 'boolean' ? candidate : null
+}
+
+function coordinates(candidate: unknown): [number, number, number] | null {
+  if (!Array.isArray(candidate) || candidate.length !== 3 ||
+    !candidate.every(value => typeof value === 'number' && Number.isFinite(value))) return null
+  return [candidate[0], candidate[1], candidate[2]]
 }

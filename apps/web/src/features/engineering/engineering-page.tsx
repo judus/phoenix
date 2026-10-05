@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type {
   EngineeringBlueprintDetail,
   EngineeringBlueprintSummary,
@@ -11,11 +11,13 @@ import {
   DataTableGroup,
   DescriptionItem,
   DescriptionList,
+  Field,
   Meter,
   PageFrame,
   Section,
   Stack,
   Status,
+  TextInput,
   ThirdsGrid
 } from '@phoenix/ui'
 import { SystemLocationLink } from '../../components/system-location-link.js'
@@ -162,11 +164,19 @@ function MaterialGroup({ entries, group }: { entries: EngineeringMaterial[], gro
 }
 
 function Blueprints({ blueprints }: { blueprints: EngineeringBlueprintSummary[] }) {
+  const [filter, setFilter] = useState('')
+  const query = filter.trim().toLowerCase()
+  const shown = blueprints.filter(blueprint =>
+    [blueprint.name, blueprint.originalName, ...blueprint.moduleNames].join(' ').toLowerCase().includes(query)
+  )
   return (
     <PageFrame layout="fit">
       <Stack fill gap="sm">
         <EngineeringHeader title="Blueprints" trail={[{ label: 'Blueprints' }]} />
-        <BlueprintGroup blueprints={blueprints} title="Blueprints" />
+        <Field label="Filter blueprints or modules" htmlFor="blueprint-filter">
+          <TextInput className="form-mini" id="blueprint-filter" value={filter} onChange={event => setFilter(event.target.value)} />
+        </Field>
+        <BlueprintGroup blueprints={shown} title="Blueprints" />
       </Stack>
     </PageFrame>
   )

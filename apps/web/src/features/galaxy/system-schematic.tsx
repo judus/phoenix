@@ -4,7 +4,7 @@ import type {
   CartographicStation,
   CartographicSystem
 } from '@phoenix/contracts'
-import { Button, IconButton, ToggleButton } from '@phoenix/ui'
+import { Button, FleetCarrierIcon, IconButton } from '@phoenix/ui'
 import {
   buildSystemHierarchy,
   type AttachedInstallation,
@@ -25,11 +25,11 @@ export interface SystemSchematicProps {
   onBookmarkStation?(name: string): void
   onSelect(name?: string): void
   selected?: CartographicSelection | null
+  showFleetCarriers?: boolean
   system: CartographicSystem
 }
 
-export function SystemSchematic ({ actions, commanderName, onBookmarkBody, onBookmarkStation, onSelect, selected, system }: SystemSchematicProps) {
-  const [showFleetCarriers, setShowFleetCarriers] = useState(true)
+export function SystemSchematic ({ actions, commanderName, onBookmarkBody, onBookmarkStation, onSelect, selected, showFleetCarriers = true, system }: SystemSchematicProps) {
   const hierarchy = buildSystemHierarchy(showFleetCarriers ? system : {
     ...system,
     stations: system.stations.filter(station => !isFleetCarrier(station))
@@ -105,15 +105,6 @@ export function SystemSchematic ({ actions, commanderName, onBookmarkBody, onBoo
         </div>
         <div className="system-schematic__controls">
           {actions}
-          <ToggleButton
-            pressed={showFleetCarriers}
-            className="btn-sm"
-            title={showFleetCarriers ? 'Hide fleet carriers' : 'Show fleet carriers'}
-            onClick={() => {
-              if (showFleetCarriers && selected && isStation(selected) && isFleetCarrier(selected)) onSelect()
-              setShowFleetCarriers(!showFleetCarriers)
-            }}
-          >Fleet carriers</ToggleButton>
           <div className="system-schematic__zoom" aria-label="Schematic zoom controls">
             <IconButton
               className="system-schematic__zoom-step"
@@ -305,7 +296,7 @@ function InstallationNode ({
       title={`${station.type ?? 'Installation'} · parent ${source === 'explicit' ? 'reported' : 'inferred'}`}
       type="button"
     >
-      <StationGlyph />
+      {isFleetCarrier(station) ? <FleetCarrierIcon /> : <StationGlyph />}
       <span><strong>{station.name}</strong><small>{station.type ?? 'Installation'}</small></span>
     </button>
   )
@@ -641,7 +632,7 @@ function isStation (selection: CartographicSelection): selection is Cartographic
   return 'services' in selection
 }
 
-function isFleetCarrier (station: CartographicStation): boolean {
+export function isFleetCarrier (station: CartographicStation): boolean {
   return station.type?.replace(/[\s_-]/g, '').toLowerCase() === 'fleetcarrier'
 }
 

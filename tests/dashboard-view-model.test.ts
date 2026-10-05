@@ -77,7 +77,7 @@ test('dashboard view model derives commander, situation, ship, route, and notabl
   })
 })
 
-test('Commander Log dashboard view shows the latest twenty entries in chronological order', () => {
+test('Commander Log dashboard view shows the latest twenty entries newest first', () => {
   const entries = Array.from({ length: 24 }, (_, index): CommanderLogEntry => ({
     category: 'mission',
     creditDelta: null,
@@ -92,6 +92,6 @@ test('Commander Log dashboard view shows the latest twenty entries in chronologi
   }))
 
   expect(createCommanderLogViewModel(entries).map(entry => entry.id)).toEqual(
-    entries.slice(0, 20).reverse().map(entry => entry.id)
+    entries.slice(0, 20).map(entry => entry.id)
   )
 })

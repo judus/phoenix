@@ -22,7 +22,6 @@ import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-sta
 import type { DashboardControllerSnapshot } from './use-dashboard-controller.js'
 import type { DashboardViewModel } from './dashboard-view-model.js'
 import { DashboardCommandControls, type DashboardCommandVoice } from './dashboard-command-controls.js'
-import { bottomAlignedRowTailSpace } from './scrollable-log.js'
 
 export interface DashboardVoiceModel extends DashboardCommandVoice {
   error?: string
@@ -51,21 +50,13 @@ export function DashboardPage({
 }) {
   const commanderLogBodyRef = useRef<HTMLDivElement>(null)
   const [dismissedAttention, setDismissedAttention] = useState<string | null>(null)
-  const latestCommanderLogId = model.commanderLog.at(-1)?.id
+  const latestCommanderLogId = model.commanderLog[0]?.id
 
   useLayoutEffect(() => {
     const body = commanderLogBodyRef.current
     if (!body) return
 
-    const alignRows = () => alignCommanderLogRows(body)
-    alignRows()
-    if (typeof ResizeObserver === 'undefined') return
-
-    const resizeObserver = new ResizeObserver(alignRows)
-    resizeObserver.observe(body)
-    const list = body.querySelector<HTMLElement>(':scope > .item-list')
-    if (list) resizeObserver.observe(list)
-    return () => resizeObserver.disconnect()
+    body.scrollTop = 0
   }, [latestCommanderLogId])
 
   const attention = [
@@ -288,26 +279,6 @@ export function DashboardPage({
       </DashboardGrid>
     </PageFrame>
   )
-}
-
-function alignCommanderLogRows(body: HTMLDivElement): void {
-  const list = body.querySelector<HTMLElement>(':scope > .item-list')
-  if (!list) {
-    body.scrollTop = body.scrollHeight
-    return
-  }
-
-  const listTop = list.getBoundingClientRect().top
-  const rowBounds = Array.from(list.children, row => {
-    const bounds = row.getBoundingClientRect()
-    return { start: bounds.top - listTop, end: bounds.bottom - listTop }
-  })
-  const tailSpace = bottomAlignedRowTailSpace(body.clientHeight, rowBounds)
-  const value = `${tailSpace}px`
-  if (list.style.getPropertyValue('--dashboard-log-tail-space') !== value) {
-    list.style.setProperty('--dashboard-log-tail-space', value)
-  }
-  body.scrollTop = body.scrollHeight
 }
 
 function RouteLink({
