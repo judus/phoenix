@@ -7,6 +7,7 @@ import { ControlDeckCommandCatalogueSchema } from 'control-deck/core'
 import { applyControlDeckTheme, controlPickerActionLabel, ControlsPage, resizeDeck } from '../apps/web/src/features/controls/controls-page.js'
 import type { MacroRuntime } from '../apps/web/src/application/macros/macro-runtime.js'
 import { DEFAULT_CONTROL_DECK_CONFIGURATION } from '../apps/server/src/infrastructure/default-control-deck-configuration.js'
+import { ControlSurface } from '../apps/web/src/features/controls/control-surface.js'
 
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
 afterEach(() => vi.useRealTimers())
@@ -330,6 +331,35 @@ test('Quick access navigation executes locally and missing targets remain editab
   await act(async () => button().props.onClick())
   expect(renderer.root.findAll(node => node.children.includes('Button Slot 1:1'))).not.toHaveLength(0)
   expect(onExecuteNavigation).toHaveBeenCalledTimes(1)
+  await act(async () => renderer.unmount())
+})
+
+test('button relocation stays in the editing draft until saved, and cancelling discards it', async () => {
+  const save = vi.fn(async (configuration: typeof DEFAULT_CONTROL_DECK_CONFIGURATION) => configuration)
+  const props = {
+    category: 'quick' as const, editing: false, macros: emptyMacroRuntime(), variableFontSizes: true,
+    controller: { status: 'ready' as const, configuration: DEFAULT_CONTROL_DECK_CONFIGURATION },
+    onEditingChange: vi.fn(), onExecuteAction: vi.fn(), onExecuteNavigation: vi.fn(), onSaveConfiguration: save
+  }
+  let renderer: ReturnType<typeof create>
+  await act(async () => { renderer = create(<ControlsPage {...props} />) })
+  const surface = () => renderer.root.findByType(ControlSurface)
+  const original = surface().props.deck
+  const source = original.elements.find((element: { kind: string }) => element.kind === 'command')
+  expect(surface().props.onMove).toBeUndefined()
+  await act(async () => renderer.update(<ControlsPage {...props} editing />))
+  await act(async () => surface().props.onMove(source.id, 2, 1))
+  expect(surface().props.deck.elements.find((element: { id: string }) => element.id === source.id).placement.column).toBe(2)
+  expect(save).not.toHaveBeenCalled()
+  await act(async () => renderer.update(<ControlsPage {...props} />))
+  expect(surface().props.deck).toEqual(original)
+  await act(async () => renderer.update(<ControlsPage {...props} editing />))
+  await act(async () => surface().props.onMove(source.id, 2, 1))
+  await act(async () => renderer.root.findAllByType('button').find(button => button.props['aria-label'] === 'Save and finish editing')!.props.onClick())
+  expect(save).toHaveBeenCalledOnce()
+  expect(save.mock.calls[0]![0].decks.find(deck => deck.id === original.id)!.elements.find(element => element.id === source.id)!.placement.column).toBe(2)
+  expect(props.onExecuteAction).not.toHaveBeenCalled()
+  expect(props.onExecuteNavigation).not.toHaveBeenCalled()
   await act(async () => renderer.unmount())
 })
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type ButtonHTMLAttributes, type CSSProperties } from 'react'
 import {
   applyControlDeckLayoutPreset,
+  moveControlDeckGridElement,
   removeControlDeckElement,
   replaceControlDeck,
   replaceControlDeckGroup,
@@ -187,6 +188,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, v
               aria-label={`${controlsCategoryLabel(category)} command grid`}
               className="controls controls-command control-deck"
               deck={deck}
+              onMove={editing ? (elementId, column, row) => setDraft(replaceControlDeck(activeConfiguration, moveControlDeckGridElement(deck, elementId, { column, row }))) : undefined}
               renderEmpty={({ column, row }) => {
                 const position = (row - 1) * deck.layout.columns + column
                 return editing
