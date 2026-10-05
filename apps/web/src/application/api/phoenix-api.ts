@@ -206,6 +206,7 @@ export interface PhoenixApi {
   getPairingStatus(signal?: AbortSignal): Promise<PairingStatus>
   getRuntimeState(signal?: AbortSignal): Promise<RuntimeState>
   getSavedGalaxyQueries(signal?: AbortSignal): Promise<SavedGalaxyQueriesResponse>
+  importPredefinedGalaxyQueries(signal?: AbortSignal): Promise<SavedGalaxyQueriesResponse>
   getShipCatalogue(signal?: AbortSignal): Promise<ShipCatalogueResponse>
   getSystemCartography(systemName?: string, signal?: AbortSignal): Promise<CartographyLookupResponse>
   persistCopilotRealtimeTurn(input: CopilotRealtimeTurnRequest, signal?: AbortSignal): Promise<void>

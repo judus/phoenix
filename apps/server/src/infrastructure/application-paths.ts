@@ -28,6 +28,7 @@ export class ApplicationPaths {
   public readonly installRoot: string
   public readonly resources: Readonly<{
     copilots: string
+    queries: string
     web: string
   }>
   public readonly user: Readonly<{
@@ -49,6 +50,7 @@ export class ApplicationPaths {
 
     this.resources = Object.freeze({
       copilots: resolvePath(this.installRoot, environment.PHOENIX_AGENTS_PATH ?? 'resources/copilots'),
+      queries: resolve(this.installRoot, 'resources/queries'),
       web: resolvePath(this.installRoot, environment.PHOENIX_WEB_ROOT ?? 'apps/web/dist')
     })
     this.user = Object.freeze({

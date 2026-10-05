@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Correct pre-Odyssey exploration guidance and ship an editable Stratum candidate saved query for new profiles.
+  Existing profiles can add predefined queries from the Saved Queries header without overwriting their edits.
 - Restore workspace swipes across page and table scroll surfaces; CTR and CPT now remember
   their last pages, while a first visit to CTR uses the first configured deck.
 - Allow workspace swipes starting on ordinary control-deck tap buttons without firing commands;

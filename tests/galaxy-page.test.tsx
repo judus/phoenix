@@ -7,8 +7,42 @@ import type { PhoenixRoute } from '../apps/web/src/application/navigation/phoeni
 import { GalaxyPage } from '../apps/web/src/features/galaxy/galaxy-page.js'
 import { GalaxyQuerySessionStore } from '../apps/web/src/features/galaxy/galaxy-query-session-store.js'
 import { galaxyContextForRoute, galaxyNavigationItems } from '../apps/web/src/features/galaxy/galaxy-navigation.js'
+import { loadPredefinedGalaxyQueries } from '../apps/server/src/infrastructure/predefined-galaxy-queries.js'
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
+
+test('predefined prospecting saved query follows the current system and resets to reported-target defaults', async () => {
+  const findGalaxyExplorationTargets = vi.fn().mockRejectedValue(new Error('Synthetic offline provider'))
+  const state = createEmptyRuntimeState()
+  state.system.name = 'Sol'
+  const savedQuery = { ...loadPredefinedGalaxyQueries('resources/queries')[0]!, schemaVersion: 2, createdAt: '2026-10-06T10:00:00Z', updatedAt: '2026-10-06T10:00:00Z' }
+  let renderer!: ReturnType<typeof create>
+  await act(async () => { renderer = create(<GalaxyPage
+    api={{ findGalaxyExplorationTargets, getSavedGalaxyQueries: async () => ({ queries: [savedQuery] }) } as unknown as PhoenixApi}
+    controller={{ status: 'idle' }} onNavigate={vi.fn()} querySessions={new GalaxyQuerySessionStore()}
+    route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'exploration-targets', savedQueryId: savedQuery.id }}
+    runtime={{ state, status: 'ready' }}
+  />) })
+  const field = (id: string) => renderer.root.findByProps({ id: `query-${id}` })
+  const button = (text: string) => renderer.root.findAllByType('button').find(button => button.props.children === text)!
+  try {
+    expect(field('landable').props.value).toBe('any')
+    expect(field('minBiologicalSignals').props.value).toBe('0')
+    expect(field('maxDistance').props.value).toBe('500')
+    expect(field('maxGravityG').props.value).toBe('')
+    await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+    expect(findGalaxyExplorationTargets).toHaveBeenCalledWith(expect.objectContaining({
+      systemName: 'Sol', maxDistance: 500, landable: 'any', lastReportedBefore: '2021-05-18',
+      minBiologicalSignals: 0, minGeologicalSignals: 0, minTemperatureK: 165, maxGravityG: undefined,
+      bodySubtypes: ['High metal content world'],
+      atmospheres: ['Thin Ammonia', 'Thin Carbon dioxide', 'Thin Carbon dioxide-rich', 'Thin Oxygen', 'Thin Sulphur dioxide', 'Thin Water', 'Thin Water-rich']
+    }))
+    await act(async () => button('Reset query').props.onClick())
+    expect(field('landable').props.value).toBe('yes')
+    expect(field('minBiologicalSignals').props.value).toBe('1')
+    expect(field('lastReportedBefore').props.value).toBe('')
+  } finally { await act(async () => renderer.unmount()) }
+})
 
 test.each(['edit', 'reset', 'unmount'] as const)('a delayed query cannot overwrite a later %s', async action => {
   let resolve!: (value: Awaited<ReturnType<PhoenixApi['findGalaxySystems']>>) => void

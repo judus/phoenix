@@ -12,6 +12,15 @@ import { withToolErrorBoundary } from '../apps/server/src/application/mcp-tools/
 import type { ProviderResponseCache } from '../apps/server/src/domain/station-market.js'
 import { InMemoryRuntimeStateStore } from '../apps/server/src/infrastructure/in-memory-runtime-state-store.js'
 
+test('Copilot prospecting guidance uses the cutoff and unconstrained landability/signal semantics', async () => {
+  const { execute, findTargets } = explorationFixture()
+  const description = new ExplorationSearchTargetsTool({ searchTargets: vi.fn() }).definition.inputSchema.properties.lastReportedBefore.description
+  for (const wording of ['2021-05-18', 'landable="any"', 'minBiologicalSignals=0', 'not exactly zero', 'do not prove']) expect(description).toContain(wording)
+  expect(description).not.toContain('2021-05-19')
+  await execute({ lastReportedBefore: '2021-05-18', landable: 'any', minBiologicalSignals: 0 })
+  expect(findTargets).toHaveBeenCalledWith(expect.objectContaining({ lastReportedBefore: '2021-05-18', landable: 'any', minBiologicalSignals: 0 }))
+})
+
 test('display system correction stops publishing until an explicit system is supplied', async () => {
   const publish = vi.fn()
   const display = new DisplayCommandService({ publish, subscribe: () => () => {} }, new InMemoryRuntimeStateStore())

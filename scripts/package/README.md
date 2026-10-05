@@ -16,6 +16,11 @@ survive upgrades. `PHOENIX_AGENTS_PATH` retains its existing role as a bundled-p
 The repository's `AGENTS.md` and `.agents/skills/` are coding instructions, not runtime resources,
 and are not included in the payload.
 
+Bundled saved-query definitions live in `resources/queries/predefined.json`. A new user database
+receives editable copies once. Upgrades never overwrite edits or restore deleted queries; existing
+profiles can explicitly use **Add predefined queries** in Saved Queries. Definitions have stable
+IDs, so repeated imports preserve existing copies, irrespective of their names.
+
 `npm run payload:verify` checks every staged file against `manifest.json`. `npm run payload:smoke`
 starts a temporary copy in installed mode and verifies that mutable state is written to isolated
 platform user directories. Linux additionally makes the temporary installation read-only.

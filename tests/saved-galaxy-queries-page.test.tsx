@@ -6,6 +6,22 @@ import { SavedGalaxyQueriesPage } from '../apps/web/src/features/galaxy/saved-ga
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
 
+test.each([false, true])('explicit predefined import updates the list or exposes its error (%s)', async fail => {
+  const query: SavedGalaxyQuery = { schemaVersion: 2, id: 'predefined', name: 'Pre-Odyssey Stratum candidates', queryId: 'exploration-targets', parameters: { origin: '', originMode: 'current' }, useOnDashboard: false, createdAt: '', updatedAt: '' }
+  const importPredefinedGalaxyQueries = fail ? vi.fn().mockRejectedValue(new Error('Import unavailable')) : vi.fn().mockResolvedValue({ queries: [query] })
+  const api = { getSavedGalaxyQueries: vi.fn().mockResolvedValue({ queries: [] }), importPredefinedGalaxyQueries } as unknown as PhoenixApi
+  let renderer!: ReturnType<typeof create>
+  await act(async () => { renderer = create(<SavedGalaxyQueriesPage api={api} onNavigate={vi.fn()} />) })
+  try {
+    const button = renderer.root.findAllByType('button').find(button => button.children.includes('Add predefined queries'))!
+    expect(button.props.disabled).toBe(false)
+    await act(async () => button.props.onClick())
+    expect(importPredefinedGalaxyQueries).toHaveBeenCalledTimes(1)
+    expect(JSON.stringify(renderer.toJSON())).toContain(fail ? 'Import unavailable' : query.name)
+    expect(JSON.stringify(renderer.toJSON())).toContain(fail ? 'No saved queries.' : 'Current system (dynamic)')
+  } finally { await act(async () => renderer.unmount()) }
+})
+
 test('saved-query text and type filters combine without modifying saved parameters', async () => {
   const queries: SavedGalaxyQuery[] = [
     { schemaVersion: 2, id: 'raw', name: 'Raw trader', queryId: 'facilities', parameters: { origin: 'Sol', service: 'material-trader-raw' }, useOnDashboard: false, createdAt: '', updatedAt: '' },
