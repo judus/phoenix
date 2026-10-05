@@ -18,8 +18,9 @@ Only PHOENIX is covered here; Control Deck has its own independent repository/re
 `ci.yml` runs on pushes and pull requests to `dev`/`main`, and manual dispatch. It calls the same
 native verification workflow on Ubuntu 24.04 x64 and Windows Server 2022 x64 with Node 24.14.0.
 Every run executes `npm ci` and `npm run check`. Promotions to `main`, pushes to `main`, and manual
-CI runs additionally verify the native installers: Linux extracts/checks the `.deb` and smoke-tests
-its payload; Windows installs, smoke-tests its native launcher, then uninstalls. Ordinary
+CI runs additionally verify the native packages: Linux verifies the pinned AppImage runtime,
+helpers and file hashes, then smoke-tests AppRun and the image's extract-and-run lifecycle;
+Windows installs, smoke-tests its native launcher, then uninstalls. Ordinary
 CI retains no installer artifacts or dependency caches. Superseded CI runs are cancelled.
 
 `release.yml` runs for `v*` version tags or a manual retry specifying an existing tag. It:
@@ -27,7 +28,8 @@ CI retains no installer artifacts or dependency caches. Superseded CI runs are c
 1. Checks that the tag exactly matches the root package/lock versions and belongs to `main`.
 2. Checks out the same immutable commit on both native platforms and reruns verification.
 3. Builds and verifies both installers with `preview` payload metadata and EDDN uploads off.
-4. Stages stable download filenames, build manifests (source SHA/runtime/payload checksums) and
+4. Stages stable download filenames, build manifests (source SHA/runtime/payload checksums and
+   Linux AppImage dependency/file provenance) and
    retains intermediate workflow artifacts for **one day**.
 5. Verifies both assets against the expected version/source/hash, generates `SHA256SUMS`, and
    creates a **draft prerelease** with generated notes. Only this final job has release write access.
@@ -39,15 +41,15 @@ Actions are pinned by full commit SHA; monthly Dependabot PRs target `dev` for r
 ## Preparing a release
 
 Update `package.json` and both root version entries in `package-lock.json` together through `dev`.
-Use three numeric components (for example `0.1.3`), compatible with Debian and Inno Setup. The
+Use three numeric components (for example `0.1.4`), compatible with Inno Setup and the optional Debian fallback. The
 GitHub prerelease flag and payload channel identify preview builds. After promotion:
 
 ```sh
 git fetch origin
 git switch main
 git pull --ff-only origin main
-git tag -a v0.1.3 -m 'PHOENIX 0.1.3 preview'
-git push origin v0.1.3
+git tag -a v0.1.4 -m 'PHOENIX 0.1.4 preview'
+git push origin v0.1.4
 ```
 
 Use the actual next version; never reuse or move a release tag. Wait for `Draft release` to
@@ -70,10 +72,11 @@ README for each version:
 
 ```text
 https://github.com/judus/phoenix/releases/latest/download/PHOENIX-windows-x64-setup.exe
-https://github.com/judus/phoenix/releases/latest/download/PHOENIX-linux-x64.deb
+https://github.com/judus/phoenix/releases/latest/download/PHOENIX-linux-x64.AppImage
 ```
 
-Linux `.deb` targets Debian/Ubuntu-family x64, not every distribution. Source installation remains
+The Linux AppImage targets modern glibc-based x64 desktops; see the packaging guide for runtime
+libraries and manual acceptance. The `.deb` is a frozen fallback, not a release asset. Source installation remains
 available. Do not link Actions artifacts as the public download: they require authentication and expire.
 
 ## Quota or runner failures

@@ -1,8 +1,8 @@
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { closeSync, mkdirSync, openSync, readFileSync, unlinkSync, writeFileSync, writeSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const installRoot = fileURLToPath(new URL('../../', import.meta.url))
 const runtime = resolve(installRoot, 'runtime', process.platform === 'win32' ? 'node.exe' : 'node')
@@ -36,6 +36,8 @@ let child
 let requestedStop = false
 let forceStopTimer
 let stopPoll
+let failureMessage
+let tray
 
 try {
   removeFile(stopPath)
@@ -79,6 +81,24 @@ try {
   }
 
   logLine(log, `PHOENIX is ready at ${localUrl}.`)
+  if (process.platform === 'linux' && !process.argv.includes('--non-interactive') &&
+    process.env.PHOENIX_DESKTOP_INTEGRATION !== 'false' && process.env.DBUS_SESSION_BUS_ADDRESS) {
+    try {
+      const { createLinuxTray } = await import('./linux-tray.mjs')
+      tray = await createLinuxTray({
+        iconPath: resolve(installRoot, 'resources/phoenix.svg'),
+        actions: {
+          open: () => openBrowser(localUrl),
+          pair: () => openBrowser(`${localUrl}/#/settings/pairing`),
+          logs: () => openBrowser(pathToFileURL(logPath).href),
+          quit: requestStop
+        },
+        onError: message => logLine(log, message)
+      })
+    } catch (error) {
+      logLine(log, `PHOENIX tray unavailable: ${error instanceof Error ? error.message : error}`)
+    }
+  }
   if (process.env.PHOENIX_LAUNCHER_OPEN_BROWSER !== 'false') openBrowser(localUrl)
 
   const result = await waitForExit(child)
@@ -88,17 +108,36 @@ try {
   }
   logLine(log, 'PHOENIX stopped cleanly.')
 } catch (error) {
-  logLine(log, error instanceof Error ? error.message : String(error))
-  console.error(error instanceof Error ? error.message : error)
+  failureMessage = error instanceof Error ? error.message : String(error)
+  logLine(log, failureMessage)
+  console.error(failureMessage)
   process.exitCode = 1
 } finally {
   if (forceStopTimer) clearTimeout(forceStopTimer)
   if (stopPoll) clearInterval(stopPoll)
   if (child?.exitCode === null && child?.signalCode === null) child.kill('SIGKILL')
+  await tray?.close()
   removeFile(stopPath)
   removeFile(runtimeStatusPath)
   releaseLock()
   closeSync(log)
+}
+// Release the server and single-instance lock before invoking desktop tools.
+if (failureMessage) showFailure(failureMessage)
+
+function showFailure (message) {
+  if (process.platform !== 'linux' || process.argv.includes('--non-interactive') ||
+    (!process.env.DISPLAY && !process.env.WAYLAND_DISPLAY)) return
+  const options = { stdio: 'ignore', timeout: 5_000 }
+  const notification = spawnSync('notify-send', [
+    '--app-name=PHOENIX', '--urgency=critical', '--expire-time=0', '--',
+    'PHOENIX could not start or stopped unexpectedly', message
+  ], options)
+  if (notification.status === 0) return
+  // Minimal desktops may not have libnotify or a notification daemon. Let their
+  // normal text viewer display the diagnostic log instead; never invoke a shell.
+  const viewer = spawnSync('xdg-open', [logPath], options)
+  if (viewer.status !== 0) console.error(`Could not display the startup error. Open ${logPath} for details.`)
 }
 
 function platformLauncherRoot () {

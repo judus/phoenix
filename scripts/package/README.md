@@ -19,9 +19,20 @@ corrupt settings followed by recovery. It removes developer PHOENIX path/provide
 the child environment and uses an empty Elite directory and simulated input backend. It never
 repairs or resets the player's configuration.
 
-## Linux x64 test installer
+Every smoke run also executes the **bundled** catalogue worker against a fresh isolated snapshot,
+so missing/incompatible bundled dependencies fail the packaging gate without a network dependency.
+To exercise a real legacy-catalogue upgrade during startup, run
+`PHOENIX_SMOKE_LIVE_CATALOGUE=1 npm run payload:smoke` on Linux (PowerShell: set
+`$env:PHOENIX_SMOKE_LIVE_CATALOGUE = '1'` before the command). This opt-in check downloads community
+catalogues into temporary user data, beginning with a schema-1 manifest; it never uses player data.
+Set `PHOENIX_SMOKE_LAUNCHER` to the absolute AppImage path to test its actual entrypoint too.
 
-On a Debian-family build host with `dpkg-deb` available:
+## Linux x64 AppImage
+
+Build on Linux x64 with Node 24.14, GNU tar, `dpkg-deb`, `desktop-file-validate` (desktop-file-utils),
+`dbus-run-session`/`dbus-daemon` for isolated tray verification, and the desktop runtime libraries
+below. `dpkg-deb` extracts pinned build dependencies; it does
+not restrict which distributions can run the resulting AppImage. No root installation is performed.
 
 ```sh
 npm ci
@@ -29,15 +40,57 @@ npm run installer:linux
 npm run installer:linux:verify
 ```
 
-The build wraps the current Linux payload in `dist/installer/phoenix_<version>_amd64.deb`. It
-installs immutable application files under `/opt/phoenix`, provides `/usr/bin/phoenix`, and
-registers a no-terminal desktop launcher. The verifier extracts the generated package, checks its
-metadata, launcher, desktop entry, runtime permissions, and payload checksums, then runs the
-installed-mode smoke test against the extracted package.
+Output: `dist/installer/PHOENIX-<version>-x86_64.AppImage`, plus a packaging manifest sidecar.
+The image bundles PHOENIX's existing payload and Node runtime, pinned xdotool/libxdo for X11,
+and the versioned Control Deck Wayland keymap reader. Builds verify download/artifact hashes;
+`appimage-resources.json` pins the tool, embedded runtime and input helpers. Build manifests
+record dependencies and all AppDir hashes. Third-party notices and the helper licence travel
+inside the image. No sibling Control Deck checkout, system Node or compiler is needed to run it.
 
-`xdg-utils` opens the local application in the default browser. `xdotool` is recommended for Elite
-input on X11 or XWayland. Native Wayland input uses `xkbcli` and the desktop's XDG RemoteDesktop
-portal implementation.
+Runtime baseline: Linux x86-64 with glibc >= 2.34, libstdc++ supporting the bundled Node runtime,
+`xdg-open`/a browser, and desktop libraries (`libX11.so.6`, `libXtst.so.6`, `libXinerama.so.1` on
+X11; `libwayland-client.so.0` on Wayland). Wayland controls require a working XDG RemoteDesktop
+portal with keyboard support and user permission. No host `xkbcli` is required by the AppImage.
+This targets modern Ubuntu/Mint, Fedora and Arch desktops, not musl/Alpine or every Linux release.
+
+```sh
+chmod +x PHOENIX-0.1.4-x86_64.AppImage
+./PHOENIX-0.1.4-x86_64.AppImage
+# Quit the background server:
+./PHOENIX-0.1.4-x86_64.AppImage --stop
+# If mounting through FUSE is unavailable:
+./PHOENIX-0.1.4-x86_64.AppImage --appimage-extract-and-run
+```
+
+The launcher opens the browser and offers a PHOENIX tray icon with Open, Pair device, Open logs,
+and Quit actions. It uses the session D-Bus StatusNotifier protocol (including dbusmenu), not a
+desktop framework. A compatible tray host is required; desktops without one still run PHOENIX
+and can stop it with `--stop`. `--non-interactive` or `PHOENIX_DESKTOP_INTEGRATION=false` disables
+the tray. No desktop shortcuts or auto-update are installed. User data
+stays in the existing XDG config/data/state roots; replace the stopped image to upgrade, or delete
+the stopped image to remove the application without deleting user data. Do not downgrade stored
+data without a backup. See [AppImage's FUSE guidance](https://docs.appimage.org/user-guide/troubleshooting/fuse.html).
+
+Linux startup failures are logged to `$XDG_STATE_HOME/phoenix/logs/phoenix.log` (default
+`~/.local/state/phoenix/logs/phoenix.log`) and shown through `notify-send` when available. If desktop
+notifications fail or are unavailable, the launcher asks `xdg-open` to display that log in the
+default viewer. Neither desktop tool is invoked in headless sessions or with `--non-interactive`.
+The log/stderr remains the fallback when no working desktop handler is installed.
+
+The verifier exercises tray registration, menu properties, host restart, and action dispatch on a
+private D-Bus session. It also launches the actual AppImage with isolated user roots and checks
+Open/Pair/Logs destinations, duplicate launch and clean shutdown from the Quit menu item. No real
+browser or game input is triggered. This does not replace visual testing on the target desktop.
+
+The verifier checks the pinned ELF runtime, every AppDir file, helper executability, the desktop
+entry and payload hashes. It then exercises both the extracted AppRun and the actual image using
+extract-and-run, with isolated settings/data, no portal requests and no real input. FUSE mounting,
+browser/LAN pairing, desktop portals and live Elite/Proton controls still require manual tests.
+Previous Arch/KDE and Fedora/GNOME acceptance covered **Control Deck**, not this PHOENIX AppImage.
+
+The old `.deb` packager remains a frozen fallback (`installer:deb`, `installer:deb:verify`),
+not a release asset. The existing v0.1.3 draft still contains that older format; do not reuse or
+move its tag to publish the AppImage. Start a new release after the normal checked promotion.
 
 ## Windows x64 test installer
 

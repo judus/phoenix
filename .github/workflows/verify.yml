@@ -38,6 +38,8 @@ jobs:
           node-version: 24.14.0
           package-manager-cache: false
       - run: npm ci
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes dbus-daemon
       - run: npm run check
       # check already built the application; stage that exact output without rebuilding it.
       - if: inputs.installers
@@ -45,7 +47,9 @@ jobs:
       - if: inputs.installers
         run: npm run payload:verify
       - if: inputs.installers && runner.os == 'Linux'
-        run: node scripts/package/build-linux-deb.mjs
+        run: sudo apt-get update && sudo apt-get install --yes desktop-file-utils libwayland-client0 libx11-6 libxtst6 libxinerama1
+      - if: inputs.installers && runner.os == 'Linux'
+        run: node scripts/package/build-linux-appimage.mjs
       - if: inputs.installers && runner.os == 'Linux'
         run: npm run installer:linux:verify
       - if: inputs.installers && runner.os == 'Windows'

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "tool": {
+    "version": "1.9.1",
+    "runtimeCommit": "caf24f9f712084686bfc24a70b75e50df0aefb9c",
+    "appImageArchitecture": "x86_64",
+    "url": "https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage",
+    "sha256": "ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0",
+    "runtimeOffset": 944632,
+    "runtimeSha256": "d30a3ba1388ef57be73faabf606e0d326682f48c87f666106a3c8d6b35b58b4f",
+    "runtimeDigestOffset": 932096,
+    "embeddedRuntimeSha256": "27ddd3f78e483fc5f7856e413d7c17092917f8c35bfe3318a0d378aa9435ad17"
+  },
+  "xdotool": {
+    "version": "3.20160805.1-4",
+    "url": "https://deb.debian.org/debian/pool/main/x/xdotool/xdotool_3.20160805.1-4_amd64.deb",
+    "sha256": "4e502894c71523bc3e2a293493b8f8557fff5af58d837da507d287695e846fe0",
+    "installedSha256": "40eb12c65b613e55ee7af325d8c6846451140f166f223d71f5392509af7baf42"
+  },
+  "libxdo": {
+    "version": "3.20160805.1-4",
+    "url": "https://deb.debian.org/debian/pool/main/x/xdotool/libxdo3_3.20160805.1-4_amd64.deb",
+    "sha256": "41a462b25bb2fe5e562649eb0dc5cfaf9c2a7cafac4cfdb96b9032a0acbeb395",
+    "installedSha256": "c2b6f8d1cd34a1870d0ad5204e5817c2bd96dcf0f6681e6bfa3badb0c59803aa"
+  },
+  "helper": {
+    "path": "vendor/control-deck/control-deck-phoenix-linux-helper-0.1.10-x64.tgz",
+    "sha256": "09e692bc9600988488dc508b7df18f52e1b2f586419a6ed95e7abae8d4974734"
+  }
+}
