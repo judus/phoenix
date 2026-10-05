@@ -3,6 +3,8 @@ import { beforeAll, expect, test, vi } from 'vitest'
 import { act, create } from 'react-test-renderer'
 import { EngineeringAddBlueprintPage } from '../apps/web/src/features/engineering/engineering-add-blueprint-page.js'
 import { EngineeringEffectsPage } from '../apps/web/src/features/engineering/engineering-effects-page.js'
+import { EngineeringProjectsPage } from '../apps/web/src/features/engineering/engineering-projects-page.js'
+import { EngineeringProjectDetailPage } from '../apps/web/src/features/engineering/engineering-project-detail-page.js'
 import type { EngineeringControllerActions } from '../apps/web/src/features/engineering/use-engineering-controller.js'
 import type { EngineeringBlueprintDetail, EngineeringEngineer, EngineeringMaterial } from '@phoenix/contracts'
 import { EngineeringPage } from '../apps/web/src/features/engineering/engineering-page.js'
@@ -123,10 +125,64 @@ test('Engineering project detail owns settings, blueprint steps, and its materia
     status: 'ready',
     watchlist: { activeProjectCount: 1, materials: [{ category: 'raw', grade: 2, highestPriority: 'high', materialId: 'Arsenic', materialName: 'Arsenic', missing: 4, owned: 2, projectCount: 1, projects: [{ id: projectId, name: 'Explorer refit' }], required: 6, stepCount: 1 }], observedAt: '2026-09-13T12:00:00Z', schemaVersion: 1
   }}} onNavigate={onNavigate} route={{ kind: 'information', section: 'engineering', view: 'project-detail', selectedProjectId: projectId }} />)
-  expect(markup).toContain('Project settings')
+  expect(markup).toContain('Project details')
+  expect(markup).toContain('Edit project')
+  expect(markup).not.toContain('<form')
   expect(markup).toContain('Long Range FSD')
   expect(markup).toContain('Project material plan')
   expect(markup).toContain('<td>6</td><td class="text-danger">4</td>')
+})
+
+test('New project belongs to the page header and navigates from an empty ledger', async () => {
+  const navigate = vi.fn()
+  let renderer: ReturnType<typeof create>
+  await act(async () => { renderer = create(<EngineeringProjectsPage onNavigate={navigate} projects={[]} />) })
+  try {
+    const header = renderer.root.findByProps({ className: 'page-header page-header-cockpit' })
+    const button = header.findByType('button')
+    expect(button.children).toEqual(['New project'])
+    await act(async () => button.props.onClick())
+    expect(navigate).toHaveBeenCalledWith({ kind: 'information', section: 'engineering', view: 'project-new' })
+    expect(renderer.root.findAllByType('button')).toHaveLength(1)
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('project header editing cancels drafts, retains errors and closes only after a successful save', async () => {
+  const project = engineeringProject('00000000-0000-4000-8000-000000000001')
+  const updateProject = vi.fn().mockRejectedValueOnce(new Error('Save failed')).mockResolvedValue(project)
+  const actions: EngineeringControllerActions = {
+    addStep: vi.fn().mockResolvedValue(project), createProject: vi.fn().mockResolvedValue(project),
+    deleteProject: vi.fn().mockResolvedValue(undefined), deleteStep: vi.fn().mockResolvedValue(project), updateProject
+  }
+  const navigate = vi.fn()
+  let renderer: ReturnType<typeof create>
+  await act(async () => { renderer = create(<EngineeringProjectDetailPage actions={actions} onNavigate={navigate} project={project} />) })
+  const edit = () => renderer.root.findByProps({ className: 'page-header page-header-cockpit' }).findByType('button')
+  const name = () => renderer.root.findByProps({ id: 'engineering-project-name' })
+  const cancel = () => renderer.root.findAllByType('button').find(button => button.children.includes('Cancel'))!
+  const submit = () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} })
+  try {
+    expect(renderer.root.findAllByType('form')).toHaveLength(0)
+    await act(async () => edit().props.onClick())
+    await act(async () => name().props.onChange({ target: { value: 'Discard me' } }))
+    await act(async () => cancel().props.onClick())
+    expect(updateProject).not.toHaveBeenCalled()
+    expect(navigate).not.toHaveBeenCalled()
+    await act(async () => edit().props.onClick())
+    expect(name().props.value).toBe(project.name)
+    await act(async () => name().props.onChange({ target: { value: 'New name' } }))
+    await act(async () => submit())
+    expect(renderer.root.findAllByType('form')).toHaveLength(1)
+    expect(name().props.value).toBe('New name')
+    expect(renderer.root.findAllByType('span').some(span => span.children.includes('Save failed'))).toBe(true)
+    await act(async () => submit())
+    expect(updateProject).toHaveBeenLastCalledWith(project.id, { name: 'New name', note: null, priority: 'high', status: 'active' })
+    expect(renderer.root.findAllByType('form')).toHaveLength(0)
+    await act(async () => edit().props.onClick())
+    await act(async () => renderer.root.findByProps({ 'aria-label': `Delete ${project.name}` }).props.onClick())
+    expect(actions.deleteProject).toHaveBeenCalledWith(project.id)
+    expect(navigate).toHaveBeenCalledWith({ kind: 'information', section: 'engineering', view: 'projects' })
+  } finally { await act(async () => renderer.unmount()) }
 })
 
 test('Engineer tables retain access grouping and system navigation', () => {

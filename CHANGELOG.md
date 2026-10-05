@@ -20,7 +20,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 - Preview previously visited systems in a plotted route without changing in-game targeting.
 - Add compact blueprint search and saved-query text/type filters; use display labels for effects.
 - Show the commander dashboard log newest first, without scrolling to the oldest entry.
-- Put Projects last in Engineering and Equipment navigation, using PRJ for both.
+- Put Projects last in Engineering navigation; keep Equipment's preview-only Upgrade planner last as PLN.
+- Move Engineering's New project action to the page header and show project settings only when Edit project is selected.
 - Open the active Copilot profile editor immediately; keep manual selection and unsaved edits safe.
 - Inset dropdown chevrons, reduce the visible edit grip without shrinking its touch target, and
   show Numpy cancellation keys beneath a Cancel label.
