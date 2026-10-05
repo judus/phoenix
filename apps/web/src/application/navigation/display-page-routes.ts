@@ -49,7 +49,6 @@ const DISPLAY_PAGE_ROUTES = {
   'controls.on-foot': { kind: 'controls', category: 'on_foot' },
   'controls.radio': { kind: 'controls', category: 'radio' },
   'controls.emote': { kind: 'controls', category: 'emote' },
-  'controls.misc': { kind: 'controls', category: 'misc' },
   'copilot.chat': { kind: 'copilot', view: 'chat' },
   'copilot.profiles': { kind: 'copilot', view: 'profiles' },
   numpad: { kind: 'numpad' },

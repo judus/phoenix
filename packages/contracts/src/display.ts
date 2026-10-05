@@ -48,7 +48,6 @@ export const DISPLAY_PAGE_IDS = [
   'controls.on-foot',
   'controls.radio',
   'controls.emote',
-  'controls.misc',
   'copilot.chat',
   'copilot.profiles',
   'numpad',

@@ -50,8 +50,7 @@ const DEFINITIONS: ReadonlyArray<{ category: DeckCategory, label: string }> = [
   { category: 'srv', label: 'SRV' },
   { category: 'on_foot', label: 'On Foot' },
   { category: 'radio', label: 'Radio' },
-  { category: 'emote', label: 'Emotes' },
-  { category: 'misc', label: 'Miscellaneous' }
+  { category: 'emote', label: 'Emotes' }
 ]
 
 export const DEFAULT_CONTROL_DECK_CONFIGURATION: PhoenixControlDeckConfiguration = PhoenixControlDeckConfigurationSchema.parse({

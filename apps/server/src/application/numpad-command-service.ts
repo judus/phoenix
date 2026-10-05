@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto'
 import {
-  GameActionCategorySchema,
   NumpadExecuteRequestSchema,
   NumpadExecutionResultSchema,
   NumpadTreeSnapshotSchema,
@@ -28,19 +27,6 @@ interface MenuDefinition {
   label: string
   selector: string
   destinations: Array<{ destinationId: string, selector: string }>
-}
-
-const CONTROL_SELECTORS: Readonly<Record<string, string>> = {
-  ship: '1',
-  combat: '2',
-  navigation: '3',
-  vessel: '4',
-  srv: '5',
-  on_foot: '6',
-  radio: '7',
-  emote: '8',
-  misc: '9',
-  macros: '0'
 }
 
 const INFORMATION_MENUS: readonly MenuDefinition[] = [
@@ -84,6 +70,8 @@ const INFORMATION_MENUS: readonly MenuDefinition[] = [
 ]
 
 export class NumpadTreeProjector {
+  private snapshot?: NumpadTreeSnapshot
+
   public constructor (
     private readonly catalogues: CommandCatalogueSnapshots,
     private readonly configurations: ControlDeckConfigurationRepository<PhoenixControlDeckConfiguration>
@@ -91,6 +79,11 @@ export class NumpadTreeProjector {
 
   public getSnapshot (): NumpadTreeSnapshot {
     const catalogue = this.catalogues.getSnapshot()
+    // Successful saved-source mutations advance the catalogue revision. Draft
+    // edits never reach this boundary; clients and execution share the same map.
+    if (this.snapshot?.revision === catalogue.revision) {
+      return NumpadTreeSnapshotSchema.parse(this.snapshot)
+    }
     const descriptors = new Map(catalogue.commands.map(command => [commandTargetKey(command.target), command]))
     const nodes: ControlDeckNumpadContributionNode[] = []
     const diagnostics: string[] = []
@@ -98,7 +91,6 @@ export class NumpadTreeProjector {
     const controls = branch(nodes, null, 'desktop.controls', '1', 'Controls')
     const information = branch(nodes, null, 'desktop.info', '2', 'Info')
     appendDestination(nodes, descriptors, null, '3', 'copilot.channel', diagnostics)
-    appendDestination(nodes, descriptors, null, '4', 'macros.library', diagnostics)
     appendDestination(nodes, descriptors, null, '5', 'log.journal', diagnostics)
     appendDestination(nodes, descriptors, null, '6', 'settings.dashboard', diagnostics)
 
@@ -113,12 +105,13 @@ export class NumpadTreeProjector {
     const tree = aggregateControlDeckNumpadTrees([
       ControlDeckNumpadTreeContributionSchema.parse({ id: 'phoenix', nodes })
     ])
-    return NumpadTreeSnapshotSchema.parse({
+    this.snapshot = NumpadTreeSnapshotSchema.parse({
       ...tree,
       diagnostics,
       generatedAt: catalogue.generatedAt,
       revision: catalogue.revision
     })
+    return NumpadTreeSnapshotSchema.parse(this.snapshot)
   }
 
   private appendControls (
@@ -129,16 +122,8 @@ export class NumpadTreeProjector {
   ): void {
     const configuration = this.configurations.getConfiguration()
     const groups = new Map((configuration.groups ?? []).map(group => [group.id, group]))
-    for (const deck of configuration.decks) {
-      // Quick access is a CTR workspace, not a new Numpy address. Preserve the
-      // existing ten numeric selectors (nine Elite contexts plus macros).
-      if (deck.context === 'phoenix:quick') continue
-      const category = GameActionCategorySchema.parse(deck.context?.slice('phoenix:'.length))
-      const selector = CONTROL_SELECTORS[category]
-      if (!selector) {
-        diagnostics.push(`Control deck ${deck.id} has no Numpy selector.`)
-        continue
-      }
+    for (const [index, deck] of configuration.decks.entries()) {
+      const selector = String(index + 1)
       const label = groups.get(deck.groupId ?? '')?.name ?? deck.name
       const parent = branch(nodes, controls.id, `controls.${deck.id}`, selector, label, {
         columns: deck.layout.columns,
@@ -158,6 +143,7 @@ export class NumpadTreeProjector {
           descriptor.activation === 'hold' ? 'hold' : 'tap'
         )
         leaf(nodes, parent.id, `controls.${deck.id}.${element.id}`, String(position), descriptor, {
+          label: element.appearance.label ?? descriptor.label,
           confirm: element.interaction.confirmation.kind !== 'none',
           interactionHint: interaction.interactionHint,
           position,
@@ -165,16 +151,6 @@ export class NumpadTreeProjector {
           rowSpan: element.placement.rowSpan
         })
       }
-    }
-
-    const macros = [...descriptors.values()]
-      .filter(descriptor => descriptor.kind === 'macro')
-      .sort((left, right) => left.label.localeCompare(right.label))
-    if (macros.length > 0) {
-      const parent = branch(nodes, controls.id, 'controls.macros', CONTROL_SELECTORS.macros!, 'Macros')
-      macros.forEach((descriptor, index) => {
-        leaf(nodes, parent.id, `controls.macros.${descriptor.id}`, String(index + 1), descriptor)
-      })
     }
   }
 }
@@ -266,6 +242,7 @@ function leaf (
   selector: string,
   descriptor: CommandDescriptor,
   layout: {
+    label?: string
     confirm?: boolean
     interactionHint?: ControlDeckNumpadContributionNode['interactionHint']
     position?: number
