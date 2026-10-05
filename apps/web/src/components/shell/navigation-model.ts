@@ -47,11 +47,11 @@ export const primaryItems: RouteNavigationItem[] = [
 
 export const emptyContextItems: NavigationItem[] = []
 
-export function workspaceItems(informationRoute: InformationRoute): RouteNavigationItem[] {
+export function workspaceItems(informationRoute: InformationRoute, controlsRoute = defaultRouteForWorkspace('controls'), copilotRoute = defaultRouteForWorkspace('copilot')): RouteNavigationItem[] {
   return [
-    routeItem('controls', 'Controls', 'CTR', defaultRouteForWorkspace('controls')),
+    routeItem('controls', 'Controls', 'CTR', controlsRoute),
     routeItem('info', 'Info', 'INF', informationRoute),
-    routeItem('copilot', 'Copilot', 'CPT', defaultRouteForWorkspace('copilot'))
+    routeItem('copilot', 'Copilot', 'CPT', copilotRoute)
   ]
 }
 

@@ -112,7 +112,7 @@ export function defaultRouteForWorkspace(
   rememberedInformation: InformationRoute = DEFAULT_ROUTE
 ): PhoenixRoute {
   switch (workspace) {
-    case 'controls': return { kind: 'controls', category: 'ship' }
+    case 'controls': return { kind: 'controls', category: 'quick' }
     case 'info': return rememberedInformation
     case 'copilot': return { kind: 'copilot', view: 'chat' }
     case 'telemetry': return { kind: 'numpad' }

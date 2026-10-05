@@ -5,7 +5,7 @@ import { beforeAll, expect, test, vi } from 'vitest'
 import { App } from '../apps/web/src/app.js'
 import type { PhoenixApplicationServices } from '../apps/web/src/bootstrap/create-application.js'
 import type { PhoenixApplicationShellProps } from '../apps/web/src/components/shell/phoenix-application-shell.js'
-import type { PhoenixRoute } from '../apps/web/src/application/navigation/phoenix-route.js'
+import { defaultRouteForWorkspace, type PhoenixRoute } from '../apps/web/src/application/navigation/phoenix-route.js'
 import { phoenixRouteHash } from '../apps/web/src/application/navigation/phoenix-router.js'
 
 const lifecycle = vi.hoisted(() => ({ next: 0, mounted: [] as number[], unmounted: [] as number[] }))
@@ -28,6 +28,7 @@ vi.mock('../apps/web/src/components/shell/phoenix-application-shell.js', () => (
 vi.mock('../apps/web/src/application/runtime/use-runtime-state.js', () => ({ useRuntimeState: () => ({ status: 'idle' }) }))
 vi.mock('../apps/web/src/features/galaxy/use-galaxy-controller.js', () => ({ useGalaxyController: () => ({ status: 'idle' }) }))
 vi.mock('../apps/web/src/features/fleet/use-fleet-controller.js', () => ({ useFleetController: () => ({ status: 'idle' }) }))
+vi.mock('../apps/web/src/features/controls/use-controls-controller.js', () => ({ useControlsController: () => ({ status: 'loading' }) }))
 vi.mock('../apps/web/src/features/galaxy/galaxy-page.js', () => ({ GalaxyPage: () => <PageProbe /> }))
 vi.mock('../apps/web/src/features/fleet/fleet-page.js', () => ({ FleetPage: () => <PageProbe /> }))
 
@@ -42,6 +43,7 @@ test('mounted App preserves Galaxy view instances, href-keyed Fleet remounts and
       getSnapshot: () => route,
       getRememberedInformationRoute: () => remembered,
       href: phoenixRouteHash,
+      routeForWorkspace: defaultRouteForWorkspace,
       subscribe: (listener: () => void) => { listeners.add(listener); return () => listeners.delete(listener) }
     }
   } as unknown as PhoenixApplicationServices

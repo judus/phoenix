@@ -5,6 +5,14 @@ import { expect, test } from 'vitest'
 const styles = resolve(import.meta.dirname, '../packages/ui/src/styles')
 const read = (path: string) => readFileSync(resolve(styles, path), 'utf8')
 
+test('workspace touch policy reaches nested scrolling surfaces without overriding map/edit owners', () => {
+  const source = read('app-shell.css')
+  expect(source).toContain(':where(.deskplane-swipe-zone *) { touch-action: inherit; }')
+  expect(source).toContain(':where(.deskplane-swipe-zone [data-deskplane-no-swipe]) { touch-action: auto; }')
+  expect(read('pages/galactic-atlas.css')).toContain('touch-action: none')
+  expect(read('pages/controls.css')).toContain('touch-action: none')
+})
+
 test('schematic background layers belong to the map surface, not the layout containing its sidebar gap', () => {
   const source = read('pages/system-schematic.css')
   const layout = source.match(/\.system-cartography\s*\{([^}]+)/u)?.[1]

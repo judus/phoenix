@@ -287,10 +287,12 @@ test('PHOENIX uses the shared hold-to-arm interaction before executing a safety 
     variableFontSizes
   />) })
   const button = renderer.root.findAllByType('button').find(candidate => candidate.findAllByType('strong').some(label => label.children.includes('Eject all cargo')))!
+  expect(button.props['data-deskplane-swipe-through']).toBeUndefined()
 
   act(() => button.props.onPointerDown({ pointerId: 1, currentTarget: { setPointerCapture: vi.fn() } }))
   act(() => vi.advanceTimersByTime(650))
   expect(button.findAllByType('small').some(meta => meta.children.includes('tap'))).toBe(true)
+  expect(button.props['data-deskplane-swipe-through']).toBeUndefined()
   act(() => button.props.onPointerUp({ pointerId: 1 }))
   act(() => vi.advanceTimersByTime(0))
   act(() => button.props.onClick({ detail: 1 }))
@@ -320,6 +322,7 @@ test('Quick access navigation executes locally and missing targets remain editab
   let renderer: ReturnType<typeof create>
   await act(async () => { renderer = create(<ControlsPage {...props} />) })
   const button = () => renderer.root.findAllByType('button').find(node => node.props['aria-label'] === 'System schematic, Open')!
+  expect(button().props['data-deskplane-swipe-through']).toBe('')
   await act(async () => button().props.onClick())
   expect(onExecuteNavigation).toHaveBeenCalledWith({ type: 'navigation', destinationId: 'galaxy.current-system' })
   expect(onExecuteAction).not.toHaveBeenCalled()
@@ -327,10 +330,44 @@ test('Quick access navigation executes locally and missing targets remain editab
   await act(async () => renderer.update(<ControlsPage {...missing} />))
   expect(button().props.disabled).toBe(true)
   await act(async () => renderer.update(<ControlsPage {...missing} editing />))
+  expect(button().props['data-deskplane-swipe-through']).toBeUndefined()
   expect(button().props.disabled).toBe(false)
   await act(async () => button().props.onClick())
   expect(renderer.root.findAll(node => node.children.includes('Button Slot 1:1'))).not.toHaveLength(0)
   expect(onExecuteNavigation).toHaveBeenCalledTimes(1)
+  await act(async () => renderer.unmount())
+})
+
+test.each(['tap', 'hold'] as const)('game-action buttons opt into swipes only for tap activation: %s', async inputMode => {
+  const lights = action('elite.ShipSpotLightToggle', 'ShipSpotLightToggle', 'Ship Lights', 'L')
+  const props = {
+    category: 'ship' as const, editing: false, macros: emptyMacroRuntime(), variableFontSizes: true,
+    controller: {
+      status: 'ready' as const, configuration: DEFAULT_CONTROL_DECK_CONFIGURATION,
+      actions: {
+        backend: { id: 'test', available: true, simulated: true, detail: 'ready' },
+        bindingSource: {
+          directory: '/bindings', filePath: '/bindings/test.binds', presetNames: ['Test'],
+          available: true, bindingCount: 1, keyboardBindingCount: 1,
+          loadedAt: '2026-10-06T00:00:00.000Z', error: null
+        },
+        actions: [{ ...lights, definition: { ...lights.definition, inputMode } }]
+      }
+    },
+    onEditingChange: vi.fn(), onExecuteAction: vi.fn(async () => {}),
+    onSaveConfiguration: async (configuration: typeof DEFAULT_CONTROL_DECK_CONFIGURATION) => configuration
+  }
+  let renderer!: ReturnType<typeof create>
+  await act(async () => { renderer = create(<ControlsPage {...props} />) })
+  const button = () => renderer.root.findAllByType('button').find(node => node.props['aria-label'] === 'Ship Lights, L')!
+  expect(button().props['data-deskplane-swipe-through']).toBe(inputMode === 'tap' ? '' : undefined)
+  await act(async () => button().props.onPointerDown({ pointerId: 1, currentTarget: { setPointerCapture: vi.fn() } }))
+  if (inputMode === 'hold') expect(props.onExecuteAction).toHaveBeenCalledWith('elite.ShipSpotLightToggle', 'press', expect.any(String))
+  else expect(props.onExecuteAction).not.toHaveBeenCalled()
+  await act(async () => button().props.onPointerUp({ pointerId: 1 }))
+  if (inputMode === 'hold') expect(props.onExecuteAction).toHaveBeenCalledWith('elite.ShipSpotLightToggle', 'release', expect.any(String))
+  await act(async () => renderer.update(<ControlsPage {...props} editing />))
+  expect(button().props['data-deskplane-swipe-through']).toBeUndefined()
   await act(async () => renderer.unmount())
 })
 

@@ -6,10 +6,12 @@ import { PhoenixBrand } from './phoenix-brand.js'
 import { isRouteNavigationItem, utilityItems, workspaceItems } from './navigation-model.js'
 import { useWorkspaceFocus } from './use-workspace-focus.js'
 import { useFullscreen } from '../../platform/fullscreen/use-fullscreen.js'
-import type { InformationRoute, PhoenixRoute, PhoenixWorkspace } from '../../application/navigation/phoenix-route.js'
+import { isPhoenixWorkspace, type InformationRoute, type PhoenixRoute, type PhoenixWorkspace } from '../../application/navigation/phoenix-route.js'
 
 export interface PhoenixApplicationShellProps {
   activeDesktop: PhoenixWorkspace
+  controlsDestination?: PhoenixRoute
+  copilotDestination?: PhoenixRoute
   controls: ReactNode
   controlsContextItems?: ApplicationNavigationItem[]
   controlsCurrentContext?: string
@@ -38,6 +40,8 @@ export interface PhoenixApplicationShellProps {
 }
 
 export function PhoenixApplicationShell({
+  controlsDestination,
+  copilotDestination,
   activeDesktop,
   controls,
   controlsContextItems,
@@ -134,9 +138,9 @@ export function PhoenixApplicationShell({
           selection="subtle"
           label="Workspaces"
           current={activeDesktop}
-          items={workspaceItems(informationRoute)}
+          items={workspaceItems(informationRoute, controlsDestination, copilotDestination)}
           onItemSelect={(item) => {
-            if (isRouteNavigationItem(item)) onNavigateRoute(item.route)
+            if (isPhoenixWorkspace(item.id)) onNavigateWorkspace(item.id)
           }}
         />
       </BottomBar>

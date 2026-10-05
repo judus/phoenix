@@ -1,6 +1,6 @@
-import type { GameActionCategory } from '@phoenix/contracts'
+import type { GameActionCategory, PhoenixControlDeckConfiguration } from '@phoenix/contracts'
 import type { NavigationItem } from '@phoenix/ui'
-import type { ControlCategory } from '../../application/navigation/phoenix-route.js'
+import { CONTROL_CATEGORIES, type ControlCategory } from '../../application/navigation/phoenix-route.js'
 import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js'
 
 type ControlsNavigationItem = NavigationItem & { route: { kind: 'controls', category: ControlCategory } }
@@ -23,6 +23,11 @@ export const controlsNavigationItems: ControlsNavigationItem[] = categories.map(
 })
 
 export function controlsContext(category: ControlCategory): string { return category }
+
+export function firstControlCategory(configuration?: PhoenixControlDeckConfiguration): ControlCategory {
+  const context = configuration?.decks[0]?.context
+  return CONTROL_CATEGORIES.find(category => context === `phoenix:${category}`) ?? 'quick'
+}
 
 export function controlsCategoryLabel(category: ControlCategory): string {
   return categories.find(candidate => candidate.id === category)?.label ?? category

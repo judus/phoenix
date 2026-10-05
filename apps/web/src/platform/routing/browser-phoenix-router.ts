@@ -3,6 +3,7 @@ import {
   defaultRouteForWorkspace,
   isInformationRoute,
   workspaceForRoute,
+  type ControlCategory,
   type InformationRoute,
   type PhoenixRoute,
   type PhoenixWorkspace
@@ -23,6 +24,7 @@ export class BrowserPhoenixRouter implements PhoenixRouter {
   readonly #handleBrowserNavigation = (): void => this.#synchronizeFromBrowser()
   #route: PhoenixRoute
   #rememberedInformation: InformationRoute
+  readonly #rememberedWorkspaces = new Map<PhoenixWorkspace, PhoenixRoute>()
 
   constructor(browserWindow: BrowserWindow) {
     this.#window = browserWindow
@@ -32,6 +34,17 @@ export class BrowserPhoenixRouter implements PhoenixRouter {
       browserWindow.history.replaceState(null, '', canonicalHash)
     }
     this.#rememberedInformation = this.#readRememberedInformation(this.#route)
+    for (const workspace of ['controls', 'copilot'] as const) {
+      try {
+        const hash = browserWindow.sessionStorage.getItem(`phoenix.desktop.${workspace}-route`)
+        if (!hash) continue
+        const route = parsePhoenixRoute(hash)
+        if (workspaceForRoute(route) === workspace) this.#rememberedWorkspaces.set(workspace, route)
+      } catch {
+        // Session preferences may be unavailable; in-memory recall still works.
+      }
+    }
+    this.#rememberWorkspace(this.#route)
     if (isInformationRoute(this.#route)) this.#rememberInformation(this.#route)
   }
 
@@ -45,8 +58,11 @@ export class BrowserPhoenixRouter implements PhoenixRouter {
 
   replace = (route: PhoenixRoute): void => this.#navigate(route, true)
 
-  routeForWorkspace = (workspace: PhoenixWorkspace): PhoenixRoute => {
+  routeForWorkspace = (workspace: PhoenixWorkspace, firstControlCategory: ControlCategory = 'quick'): PhoenixRoute => {
     if (workspaceForRoute(this.#route) === workspace) return this.#route
+    const remembered = this.#rememberedWorkspaces.get(workspace)
+    if (remembered) return remembered
+    if (workspace === 'controls') return { kind: 'controls', category: firstControlCategory }
     return defaultRouteForWorkspace(workspace, this.#rememberedInformation)
   }
 
@@ -81,6 +97,7 @@ export class BrowserPhoenixRouter implements PhoenixRouter {
 
   #setRoute(route: PhoenixRoute): void {
     this.#route = route
+    this.#rememberWorkspace(route)
     if (isInformationRoute(route)) this.#rememberInformation(route)
     for (const listener of this.#listeners) listener()
   }
@@ -104,6 +121,16 @@ export class BrowserPhoenixRouter implements PhoenixRouter {
       this.#window.sessionStorage.setItem(INFORMATION_ROUTE_STORAGE_KEY, phoenixRouteHash(route))
     } catch {
       // Browser storage is an optional preference; routing remains authoritative without it.
+    }
+  }
+
+  #rememberWorkspace(route: PhoenixRoute): void {
+    if (route.kind !== 'controls' && route.kind !== 'copilot') return
+    this.#rememberedWorkspaces.set(route.kind, route)
+    try {
+      this.#window.sessionStorage.setItem(`phoenix.desktop.${route.kind}-route`, phoenixRouteHash(route))
+    } catch {
+      // Browser storage is optional; retain this session's in-memory destination.
     }
   }
 }

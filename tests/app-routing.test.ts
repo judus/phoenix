@@ -215,7 +215,7 @@ describe('PHOENIX route parsing and generation', () => {
   })
 
   test('workspace destinations use explicit defaults', () => {
-    expect(defaultRouteForWorkspace('controls')).toEqual({ kind: 'controls', category: 'ship' })
+    expect(defaultRouteForWorkspace('controls')).toEqual({ kind: 'controls', category: 'quick' })
     expect(defaultRouteForWorkspace('info')).toEqual(DEFAULT_ROUTE)
     expect(defaultRouteForWorkspace('telemetry')).toEqual({ kind: 'numpad' })
   })
