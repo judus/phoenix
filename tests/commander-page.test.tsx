@@ -56,8 +56,9 @@ test('commander loadouts and equipment gear share observed state without duplica
     ['Upgrades', '#/equipment/upgrades'],
     ['Specialists', '#/equipment/specialists'],
     ['Materials', '#/equipment/materials'],
-    ['Projects', '#/equipment/planner']
+    ['Upgrade planner', '#/equipment/planner']
   ])
+  expect(equipmentNavigationItems.at(-1)?.shortLabel).toBe('PLN')
   expect(loadouts).toContain('<h1>Suit Loadouts</h1>')
   expect(loadouts).toContain('EXPEDITION')
   expect(loadouts).toContain('Equipped')

@@ -14,12 +14,13 @@ export function EngineeringProjectsPage ({ onNavigate, projects, watchlist }: {
   return (
     <PageFrame layout="fit">
       <Stack fill gap="sm">
-        <EngineeringHeader title="Engineering projects" trail={[{ label: 'Projects' }]} />
+        <EngineeringHeader
+          actions={<Button size="sm" variant="outline" onClick={() => onNavigate(engineeringProjectRoutes.new())}>New project</Button>}
+          title="Engineering projects"
+          trail={[{ label: 'Projects' }]}
+        />
         <Stack className="engineering-scroll-content" gap="sm">
-          <DataTableGroup
-            actions={<Button size="sm" variant="outline" onClick={() => onNavigate(engineeringProjectRoutes.new())}>New project</Button>}
-            title="Project ledger"
-          >
+          <DataTableGroup title="Project ledger">
             {projects.length > 0
               ? (
                   <DataTable density="compact" label="Engineering projects" minimum="wide" narrow="priority" scheme="surface">
