@@ -24,7 +24,7 @@ test('the numpad API projects and executes the current authoritative command map
       ...DEFAULT_CONTROL_DECK_CONFIGURATION,
       decks: DEFAULT_CONTROL_DECK_CONFIGURATION.decks.map(deck => ({
         ...deck,
-        elements: deck.elements.map(element => element.id === 'cell_15'
+        elements: deck.elements.map(element => element.kind !== 'command' ? element : element.id === 'cell_15'
           ? { ...element, interaction: { ...element.interaction, confirmation: { kind: 'arm-then-tap', armedForMs: 5_000 } } }
           : element.id === 'cell_33'
             ? {
@@ -37,7 +37,9 @@ test('the numpad API projects and executes the current authoritative command map
     })
     const initial = await client.getNumpadSnapshot()
     expect(initial.nodes).toContainEqual(expect.objectContaining({ id: 'phoenix:desktop.controls', address: '1' }))
-    expect(initial.nodes).toContainEqual(expect.objectContaining({ id: 'phoenix:navigation.macros.library', address: '4', label: 'Macros' }))
+    expect(initial.nodes.some(node => node.id === 'phoenix:navigation.macros.library')).toBe(false)
+    expect(initial.nodes).toContainEqual(expect.objectContaining({ id: 'phoenix:controls.quick', address: '11', label: 'Quick access' }))
+    expect(initial.nodes).toContainEqual(expect.objectContaining({ id: 'phoenix:controls.ship', address: '12', label: 'Ship' }))
     expect(initial.nodes).toContainEqual(expect.objectContaining({ id: 'phoenix:navigation.log.journal', address: '5', label: 'Log' }))
     expect(initial.nodes).toContainEqual(expect.objectContaining({ id: 'phoenix:navigation.settings.dashboard', address: '6', label: 'Settings' }))
     expect(initial.nodes.find(node => node.action?.type === 'command' && node.action.target.commandId === 'command.elite.ShipSpotLightToggle'))
@@ -70,6 +72,14 @@ test('the numpad API projects and executes the current authoritative command map
 
     const stale = await client.executeNumpadAddress(currentDestination.address, current.revision + 1)
     expect(stale.status).toBe('stale')
+
+    const configuration = await client.getControlDeckConfiguration()
+    await client.saveControlDeckConfiguration({ ...configuration, decks: [...configuration.decks].reverse() })
+    const reordered = await client.getNumpadSnapshot()
+    expect(reordered.revision).toBeGreaterThan(current.revision)
+    expect(reordered.nodes).toContainEqual(expect.objectContaining({ id: 'phoenix:controls.emote', address: '11' }))
+    expect((await client.executeNumpadAddress(hold!.address, initial.revision)).status).toBe('stale')
+    expect(inputBackend.getRecordedInputs()).toHaveLength(2)
 
   } finally {
     await application.stop()

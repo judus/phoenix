@@ -1,13 +1,17 @@
-import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
+import { constants, copyFileSync, existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import {
   ControlDeckConfigurationConflictError,
+  ControlDeckGridConfigurationSchema,
+  removeControlDeck,
   type ControlDeckConfiguration,
   type ControlDeckConfigurationRepository
 } from 'control-deck/core'
 import {
   DEFAULT_MODULE_HEALTH_ALERT_THRESHOLD,
   PhoenixControlDeckConfigurationSchema,
+  PHOENIX_CONTROL_CONTEXTS,
   PhoenixSettingsSchema,
   RuntimeSystemSnapshotSchema,
   type PhoenixSettings,
@@ -84,7 +88,15 @@ export class JsonSystemSettingsRepository implements SystemSettingsRepository, C
       throw new Error(`Invalid PHOENIX settings at ${this.path}: ${validated.error.message}`)
     }
     const settings = validated.data
-    if (normalized !== candidate) this.save(settings)
+    if (normalized !== candidate) {
+      // Retiring MSC can remove configured buttons. Keep the original private
+      // settings recoverable, and refuse the migration if the backup fails.
+      const previous = isRecord(candidate) && isRecord(candidate.controls) ? candidate.controls.deckConfiguration : undefined
+      if (isRecord(previous) && Array.isArray(previous.decks) && previous.decks.some(deck => isRecord(deck) && deck.context === 'phoenix:misc')) {
+        copyFileSync(this.path, `${this.path}.before-deck-migration-${randomUUID()}.bak`, constants.COPYFILE_EXCL)
+      }
+      this.save(settings)
+    }
     return settings
   }
 
@@ -118,20 +130,8 @@ function migrateControlDeckConfiguration (candidate: unknown): unknown {
   if (!isRecord(candidate) || !isRecord(candidate.controls)) return candidate
   if (PhoenixControlDeckConfigurationSchema.safeParse(candidate.controls.deckConfiguration).success) return candidate
   const previous = candidate.controls.deckConfiguration
-  if (isRecord(previous) && Array.isArray(previous.decks) && (previous.groups === undefined || Array.isArray(previous.groups)) &&
-    previous.decks.length === 9 && !previous.decks.some(deck => isRecord(deck) && deck.context === 'phoenix:quick')) {
-    const groups = previous.groups ?? []
-    const usedIds = new Set([...previous.decks, ...groups].filter(isRecord).map(item => item.id))
-    let quickId = 'quick'
-    for (let suffix = 1; usedIds.has(quickId); suffix += 1) quickId = `quick-${suffix}`
-    const migrated = PhoenixControlDeckConfigurationSchema.safeParse({
-      ...previous,
-      revision: typeof previous.revision === 'number' ? previous.revision + 1 : previous.revision,
-      groups: [...groups, { ...DEFAULT_CONTROL_DECK_CONFIGURATION.groups!.find(group => group.id === 'quick'), id: quickId }],
-      decks: [...previous.decks, { ...DEFAULT_CONTROL_DECK_CONFIGURATION.decks.find(deck => deck.context === 'phoenix:quick'), id: quickId, groupId: quickId }]
-    })
-    if (migrated.success) return { ...candidate, controls: { ...candidate.controls, deckConfiguration: migrated.data } }
-  }
+  const migrated = migrateLegacyDecks(previous)
+  if (migrated) return { ...candidate, controls: { ...candidate.controls, deckConfiguration: migrated } }
   // Only the retired page/cell layout is deliberately replaced by a blank deck.
   // Invalid current configurations must survive on disk for diagnosis/recovery.
   const legacyLayout = candidate.controls.layout
@@ -145,6 +145,38 @@ function migrateControlDeckConfiguration (candidate: unknown): unknown {
     }
   }
   return candidate
+}
+
+function migrateLegacyDecks (candidate: unknown): PhoenixControlDeckConfiguration | undefined {
+  const parsed = ControlDeckGridConfigurationSchema.safeParse(candidate)
+  if (!parsed.success) return undefined
+  const previous = parsed.data
+  // Only the known nine-deck (before Quick access) or ten-deck configurations
+  // are eligible. Malformed or unrelated configurations must fail, not reset.
+  const required = [...PHOENIX_CONTROL_CONTEXTS.filter(context => context !== 'phoenix:quick'), 'phoenix:misc']
+  const contexts = new Set(previous.decks.map(deck => deck.context))
+  if (contexts.size !== previous.decks.length || !required.every(context => contexts.has(context)) ||
+    previous.decks.some(deck => deck.context !== 'phoenix:quick' && !required.includes(deck.context ?? ''))) return undefined
+
+  const misc = previous.decks.find(deck => deck.context === 'phoenix:misc')!
+  const configuration = removeControlDeck(previous, misc.id).configuration
+  let quick = configuration.decks.find(deck => deck.context === 'phoenix:quick')
+  if (!quick) {
+    const groups = configuration.groups ?? []
+    const usedIds = new Set([...configuration.decks, ...groups].map(item => item.id))
+    let quickId = 'quick'
+    for (let suffix = 1; usedIds.has(quickId); suffix += 1) quickId = `quick-${suffix}`
+    quick = { ...DEFAULT_CONTROL_DECK_CONFIGURATION.decks.find(deck => deck.context === 'phoenix:quick')!, id: quickId, groupId: quickId }
+    configuration.groups = [...groups, { ...DEFAULT_CONTROL_DECK_CONFIGURATION.groups!.find(group => group.id === 'quick')!, id: quickId }]
+  }
+  // The old migration appended Quick access, while CTR always showed it first.
+  // Correct that once; subsequent saved order is authoritative for Numpy.
+  const migrated = PhoenixControlDeckConfigurationSchema.safeParse({
+    ...configuration,
+    revision: previous.revision + 1,
+    decks: [quick, ...configuration.decks.filter(deck => deck.context !== 'phoenix:quick')]
+  })
+  return migrated.success ? migrated.data : undefined
 }
 
 function migrateSettings (candidate: unknown): unknown {

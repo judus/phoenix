@@ -1,6 +1,7 @@
 import {
   mkdtempSync,
   readFileSync,
+  readdirSync,
   rmSync,
   statSync,
   utimesSync,
@@ -81,12 +82,13 @@ test('reading canonical settings preserves the file without rewriting it', () =>
   expect(statSync(path).mtimeMs).toBe(modifiedAt)
 })
 
-test.each([false, true])('invalid customized deck configuration is preserved (nine-deck legacy: %s)', legacy => {
+test.each([false, true])('invalid customized deck configuration is preserved (legacy: %s)', legacy => {
   const path = join(temporaryDirectory(), 'settings.json')
   const settings = structuredClone(DEFAULT_PHOENIX_SETTINGS)
   const configuration = settings.controls.deckConfiguration
   if (legacy) {
     configuration.decks = configuration.decks.filter(deck => deck.context !== 'phoenix:quick')
+    addLegacyMiscDeck(settings)
   }
   configuration.decks[0]!.name = 'My customized deck'
   configuration.decks[0]!.layout.columns = 0
@@ -194,12 +196,13 @@ test('noncanonical deck data is discarded instead of imported', () => {
   expect(JSON.parse(readFileSync(path, 'utf8')).controls).not.toHaveProperty('layout')
 })
 
-test('Quick access migration preserves the nine existing decks and runs only once', () => {
+test('pre-Quick migration retires MSC, preserves the other decks and runs only once', () => {
   const path = join(temporaryDirectory(), 'settings.json')
   const settings = structuredClone(DEFAULT_PHOENIX_SETTINGS)
   const configuration = settings.controls.deckConfiguration
   configuration.decks = configuration.decks.filter(deck => deck.context !== 'phoenix:quick')
   configuration.groups = configuration.groups!.filter(group => group.id !== 'quick')
+  addLegacyMiscDeck(settings)
   configuration.revision = 17
   configuration.decks[0]!.name = 'My customised ship deck'
   configuration.decks[0]!.appearance = { colorScheme: 'blue' }
@@ -208,8 +211,9 @@ test('Quick access migration preserves the nine existing decks and runs only onc
   writeFileSync(path, JSON.stringify(settings))
   const repository = new JsonSystemSettingsRepository(path)
   const migrated = repository.loadOrCreate().controls.deckConfiguration
-  expect(migrated.decks.filter(deck => deck.context !== 'phoenix:quick')).toEqual(configuration.decks)
-  expect(migrated.groups!.slice(0, configuration.groups.length)).toEqual(configuration.groups)
+  expect(migrated.decks.filter(deck => deck.context !== 'phoenix:quick')).toEqual(configuration.decks.filter(deck => deck.context !== 'phoenix:misc'))
+  expect(migrated.groups!.filter(group => group.id !== 'quick-1')).toEqual(configuration.groups!.filter(group => group.id !== 'misc'))
+  expect(migrated.decks[0]!.context).toBe('phoenix:quick')
   expect(migrated.revision).toBe(18)
   expect(migrated.decks.find(deck => deck.context === 'phoenix:quick')).toMatchObject({ id: 'quick-1', layout: { columns: 4, rows: 3 } })
   const timestamp = new Date('2020-01-01T00:00:00Z')
@@ -217,6 +221,47 @@ test('Quick access migration preserves the nine existing decks and runs only onc
   const modifiedAt = statSync(path).mtimeMs
   expect(repository.loadOrCreate().controls.deckConfiguration).toEqual(migrated)
   expect(statSync(path).mtimeMs).toBe(modifiedAt)
+})
+
+test('ten-deck migration moves existing Quick access first and backs up retired MSC buttons', () => {
+  const directory = temporaryDirectory()
+  const path = join(directory, 'settings.json')
+  const settings = structuredClone(DEFAULT_PHOENIX_SETTINGS)
+  addLegacyMiscDeck(settings)
+  const configuration = settings.controls.deckConfiguration
+  const quick = configuration.decks.shift()!
+  quick.name = 'My shortcuts'
+  configuration.decks.push(quick)
+  const misc = configuration.decks.find(deck => deck.context === 'phoenix:misc')!
+  misc.elements = structuredClone(quick.elements)
+  const original = `${JSON.stringify(settings)}\n`
+  writeFileSync(path, original)
+  const repository = new JsonSystemSettingsRepository(path)
+
+  const migrated = repository.loadOrCreate().controls.deckConfiguration
+  expect(migrated.decks).toEqual([quick, ...configuration.decks.filter(deck => !['phoenix:quick', 'phoenix:misc'].includes(deck.context!))])
+  expect(migrated.decks).toHaveLength(9)
+  expect(migrated.groups!.some(group => group.id === 'misc')).toBe(false)
+  expect(migrated.revision).toBe(configuration.revision + 1)
+  const backups = readdirSync(directory).filter(name => name.endsWith('.bak'))
+  expect(backups).toHaveLength(1)
+  expect(readFileSync(join(directory, backups[0]!), 'utf8')).toBe(original)
+  if (process.platform !== 'win32') expect(statSync(join(directory, backups[0]!)).mode & 0o777).toBe(0o600)
+
+  repository.saveConfiguration({ ...migrated, decks: [...migrated.decks].reverse() })
+  expect(repository.getConfiguration().decks).toEqual([...migrated.decks].reverse())
+  expect(readdirSync(directory).filter(name => name.endsWith('.bak'))).toEqual(backups)
+})
+
+test('invalid retired MSC data is not silently removed during migration', () => {
+  const path = join(temporaryDirectory(), 'settings.json')
+  const settings = structuredClone(DEFAULT_PHOENIX_SETTINGS)
+  addLegacyMiscDeck(settings)
+  settings.controls.deckConfiguration.decks.find(deck => deck.context === 'phoenix:misc')!.layout.columns = 0
+  const original = JSON.stringify(settings)
+  writeFileSync(path, original)
+  expect(() => new JsonSystemSettingsRepository(path).loadOrCreate()).toThrow('Invalid PHOENIX settings')
+  expect(readFileSync(path, 'utf8')).toBe(original)
 })
 
 test('automatic Linux startup selects xdotool and produces runtime diagnostics', () => {
@@ -387,4 +432,13 @@ function temporaryDirectory (): string {
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-settings-'))
   temporaryDirectories.push(directory)
   return directory
+}
+
+function addLegacyMiscDeck (settings: PhoenixSettings): void {
+  const configuration = settings.controls.deckConfiguration
+  configuration.decks.push({
+    ...structuredClone(configuration.decks.find(deck => deck.context === 'phoenix:emote')!),
+    id: 'misc', groupId: 'misc', context: 'phoenix:misc'
+  })
+  configuration.groups!.push({ id: 'misc', name: 'Miscellaneous', description: '' })
 }

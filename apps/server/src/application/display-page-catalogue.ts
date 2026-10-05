@@ -54,7 +54,6 @@ export const DISPLAY_PAGE_CATALOGUE = {
   'controls.on-foot': page('On-foot controls', 'on foot controls'),
   'controls.radio': page('Radio controls', 'radio control deck'),
   'controls.emote': page('Emote controls', 'emotes'),
-  'controls.misc': page('Miscellaneous controls', 'misc controls'),
   'copilot.chat': page('Copilot', 'copilot chat'),
   'copilot.profiles': page('Copilot profiles', 'profiles'),
   numpad: page('Numpy', 'numpad', 'numeric navigation'),

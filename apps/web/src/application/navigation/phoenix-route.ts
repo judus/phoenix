@@ -7,8 +7,7 @@ export const CONTROL_CATEGORIES = [
   'srv',
   'on_foot',
   'radio',
-  'emote',
-  'misc'
+  'emote'
 ] as const
 
 export type ControlCategory = typeof CONTROL_CATEGORIES[number]
