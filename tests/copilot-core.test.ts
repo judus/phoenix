@@ -39,8 +39,8 @@ test('agent prompts compose mode-specific character and dynamic runtime context'
   })).compose({ mode: 'text', profileId: 'marin' })).toThrow('Unknown agent prompt placeholder')
 })
 
-test('tracked agent profile files compose and reject unsafe profile IDs', () => {
-  const repository = new FileAgentProfileRepository(resolve('agents'))
+test('bundled Copilot profile files compose and reject unsafe profile IDs', () => {
+  const repository = new FileAgentProfileRepository(resolve('resources/copilots'))
   const composer = new AgentPromptComposer(repository)
 
   const prompt = composer.compose({

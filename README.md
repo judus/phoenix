@@ -1,30 +1,27 @@
 # PHOENIX
 
-> **Active development:** PHOENIX is functional but not finished. Expect rough edges,
-> breaking changes, and the occasional suspicious red button.
+An Elite Dangerous companion for your desktop, tablet, or spare screen. Check your ship and
+materials, plan engineering, find your next stop, and build a panel of buttons for the things
+you actually use while playing. There’s an optional AI Copilot, too.
 
-PHOENIX is a local-first companion application and ship-computer interface for Elite Dangerous. It turns live telemetry, journal history, control bindings, public galaxy data, and an optional AI Copilot into one cockpit for desktop, tablet, and auxiliary displays.
+PHOENIX runs on your gaming computer and reads Elite’s journals and status files. Open it in a
+browser on that computer, or pair a tablet over your local network.
 
-## Downloads
+> Still under active development. Expect rough edges, breaking changes, and the occasional
+> suspicious red button. Back up your PHOENIX data before upgrading.
 
-Windows x64 installers and Linux x64 AppImages will be available from
-**[GitHub Releases](https://github.com/judus/phoenix/releases)**. The first preview is being prepared;
-there is no published installer release yet. Source installation instructions remain below.
-Installers bundle Node.js; no Git or developer tools are required. Preview builds may have rough
-edges, and the Windows installer is currently unsigned.
-The Linux AppImage targets modern glibc-based desktop distributions, including Ubuntu/Mint,
-Fedora and Arch; it is not limited to Debian-family systems. See the
-[AppImage requirements and acceptance notes](scripts/package/README.md#linux-x64-appimage).
+## Download
 
-Development happens on `dev`; `main` is the release-ready branch. See
-[development and release workflow](docs/releases.md) for CI, releases and maintainer instructions.
+Download the pre-release installer:
 
+- Windows installer: [PHOENIX-windows-x64-setup.exe](https://github.com/judus/phoenix/releases/download/v0.1.4/PHOENIX-windows-x64-setup.exe)
+- AppImage for Linux: [PHOENIX-linux-x64.AppImage](https://github.com/judus/phoenix/releases/download/v0.1.4/PHOENIX-linux-x64.AppImage)
 
 ![PHOENIX commander dashboard](docs/screens/img.webp)
 
-![PHOENIX currentship dashboard](docs/screens/img_1.webp)
+![PHOENIX current ship dashboard](docs/screens/img_1.webp)
 
-![PHOENIX system schematics](docs/screens/img_6.webp)
+![PHOENIX system schematic](docs/screens/img_6.webp)
 
 ![PHOENIX plotted route](docs/screens/img_3.webp)
 
@@ -32,252 +29,108 @@ Development happens on `dev`; `main` is the release-ready branch. See
 
 ![PHOENIX Copilot conversation](docs/screens/img_5.webp)
 
-## Current status
+## What it can do
 
-PHOENIX runs on **Linux x64 and Windows x64**. Its telemetry, controls, galaxy tools, Copilot,
-and multi-device cockpit are usable today, but the project remains under active development.
+- **Control decks and shortcuts.** Arrange buttons for Elite commands, record macros, and use
+  your saved keyboard bindings. Mix game controls with links to pages, saved searches, and
+  bookmarks in a Quick access deck. Numpad sequences give you another way to reach them.
+- **Commander dashboard and log.** See your location, ship, route, material watchlist, market
+  signals, and local traffic. Browse gameplay events, career progress, statistics, and missions.
+- **Ships and modules.** Check the current ship’s status, cargo, warnings, modules, and engineering.
+  Browse your stored ships and modules, carrier information, and the ship catalogue.
+- **Engineering plans.** Look up blueprints and experimental effects, choose grades and planned
+  rolls, and see the materials you have and still need. Track several upgrades in one project.
+- **On-foot equipment.** Browse observed suits, weapons, and loadouts, along with upgrade recipes,
+  modifications, materials, and specialists. Preview the cost of a suit or weapon upgrade plan.
+- **System schematics and galactic atlas.** Explore the current system, follow a plotted route,
+  hide fleet carriers, or zoom out to see the galactic regions and your position in the galaxy.
+- **Searches for your next stop.** Find stations, ships, modules, commodities, exploration targets,
+  and faction states. Look for a raw, manufactured, or encoded Material Trader—or Vista Genomics.
+  Use name suggestions, bookmark systems and stations, and save searches that follow your current
+  system instead of a fixed location.
+- **Activities and news.** Check missions, objectives, community goals, Powerplay, colonisation,
+  GalNet, and radio without leaving PHOENIX.
+- **Optional Copilot.** Chat by text or realtime voice, with separate profiles and conversation
+  history. Let it look things up, open pages on your screens, or use controls and macros you’ve
+  explicitly allowed. It can also just chat, which is occasionally safer for everyone involved.
+- **A setup for each screen.** Pair multiple browsers without making them all show the same page.
+  Choose the compact PHOENIX or Elite-inspired theme, adjust the scale, use fullscreen or the
+  chrome-free F13 focus view, and switch workspaces with touch gestures.
+- **Desktop tray.** Open PHOENIX, pair another device, or quit the background app from the tray on
+  Windows and supported Linux desktops. The Linux tray also provides access to logs.
 
-The interface has been optimized primarily for **Chrome on an Android tablet**. Desktop layouts,
-other browsers, and other devices still need broader testing.
+## Getting started
 
-## Implemented features
+1. Launch Elite and enter your commander session at least once, so it creates the journal and
+   status files PHOENIX reads.
+2. Assign keyboard bindings in Elite for the commands you want PHOENIX to control, then save them.
+   Controller-only bindings aren’t enough. Restart PHOENIX after changing Elite’s bindings.
+3. Install and launch PHOENIX. On Linux, mark the AppImage executable first:
 
-- **Customizable control deck:** remotely control the ship and Elite Dangerous interface using the
-  commander's real bindings. Arrange commands freely, record reusable macros, and keep dangerous
-  actions visibly distinct. Build a Quick access deck from internal pages, saved queries, and
-  bookmarked locations alongside game commands.
-- **Commander dashboard and records:** keep the current location, ship, plotted route, engineering
-  material watchlist, local market signals, notable journal events, and system traffic together.
-  Inspect career progress, statistics, personal stores, suit loadouts, missions, objectives, and
-  retained journal history when more detail is needed.
-- **Fleet and ship operations:** inspect the active ship's telemetry, cargo, modules, engineering,
-  power distribution, warnings, and control bindings. Browse stored ships and modules, fleet
-  carriers, and the ship catalogue without leaving the cockpit interface.
-- **Engineering project planning:** browse blueprints, engineers, and material inventories; build
-  multi-step upgrade projects; choose grades and planned rolls; and track stock, requirements, and
-  missing materials through the dashboard watchlist.
-- **On-foot equipment:** reconstruct observed suits, personal weapons, and loadouts from retained
-  journals. Browse upgrade recipes, material requirements, and equipment specialists, and prepare
-  suit and weapon upgrade plans.
-- **Galaxy, exploration, and market intelligence:** use symbolic system cartography, a galactic
-  atlas with regions and your observed position, plotted-route and exobiology views, bookmarks,
-  reusable queries, and local market signals. Search systems,
-  stations, shipyards, outfitting, commodities, factions, and community-sourced intelligence.
-- **Activities and communications:** review missions, objectives, community goals, Powerplay,
-  colonisation, local traffic, correspondents, GalNet, and radio from dedicated cockpit sections.
-- **Customizable AI Copilot:** create distinct Copilot profiles and converse through persistent text
-  chat or realtime voice. The Copilot can query PHOENIX and configured external data sources, reason
-  over live commander context, navigate the application across connected displays, and—with
-  explicit permission—operate configured controls and macros. It can also just chat, which is
-  occasionally safer for everyone involved.
-- **Numpad command shortcuts:** assign commands and application destinations to memorable
-  Numpad sequences. Navigate PHOENIX or issue controls without hunting through menus, because muscle
-  memory is how you survive a pirate ambush.
-- **Coordinated multi-device cockpit:** pair browsers, synchronize display commands, choose which
-  screen follows Copilot navigation, and coordinate the active voice host without turning every
-  connected display into the same screen.
-- **Per-display presentation:** select the compact PHOENIX or Elite-inspired presentation, adjust UI
-  scale and command-label sizing, enter fullscreen or focused F13 mode, and move between workspaces
-  with touch gestures.
+   ```sh
+   chmod +x PHOENIX-linux-x64.AppImage
+   ./PHOENIX-linux-x64.AppImage
+   ```
 
-## Installation
+4. Your browser opens automatically. If needed, open `http://localhost:3400` yourself.
+5. To add a tablet or another screen, choose **Pair device** from the tray and scan the QR code.
+   Keep both devices on the same local network.
 
-**PHOENIX is under active development. Expect breaking changes.**
+Closing the browser doesn’t stop PHOENIX. Use **Quit** in the tray. If your Linux desktop has no
+tray host, run the AppImage with `--stop`.
 
-Manual installation currently requires Git and Node.js 24.14+.
+Keep Elite focused when sending controls. On Wayland, the desktop will ask permission to send
+keyboard input. Online searches, catalogue refreshes, and Copilot need an internet connection.
 
-The first launch requires an internet connection to fetch the upstream game catalogues into local
-runtime storage; PHOENIX does not distribute those third-party catalogue snapshots.
+### Copilot setup
 
-### Before the first PHOENIX start
+Copilot is optional. It currently uses OpenAI and needs your own API key; API usage may cost money.
+Set `PHOENIX_OPENAI_API_KEY` in the environment used to start PHOENIX, or use `OPENAI_API_KEY`
+as a fallback. See the [setup guide](docs/installation.md#copilot) for details.
 
-1. Start Elite Dangerous and enter the commander session at least once. For the clearest first-run
-   result, leave the game running while PHOENIX starts. This ensures Elite has created its local
-   data files and emitted the initial journal, status, and inventory events.
-2. In Elite's Controls settings, assign keyboard keys to every game command you want PHOENIX to
-   operate, then apply/save the bindings at least once. Controller-only bindings cannot be executed
-   by PHOENIX's keyboard input backends.
-3. Start PHOENIX after saving the bindings. PHOENIX reads the active `.binds` file at server startup;
-   restart PHOENIX after changing bindings in Elite.
+For realtime voice, keep PHOENIX open at `http://localhost:3400` on the gaming computer, allow
+microphone access, then return focus to Elite. A paired tablet can control that voice session.
 
-PHOENIX can start while Elite is closed, but it cannot display state that Elite has never written
-to local files. Journals are local to each computer and are event-driven; they are not a complete
-commander database synchronized between installations. Some screens therefore remain unsynchronized
-until Elite emits the relevant snapshot. For example, entering a commander session publishes the
-mission manifest, opening Shipyard publishes stored ships, and opening Outfitting publishes stored
-modules.
+## Things to know
 
-### Windows with PowerShell
+- The interface is mainly tested in Chrome on an Android tablet. Other browsers and screen sizes
+  need more testing.
+- Journals aren’t a complete, live inventory of everything you own. Some information updates only
+  after you enter the game or open a relevant screen, such as Shipyard or Outfitting. On-foot gear
+  is reconstructed from the journals PHOENIX has seen.
+- Community search results can be old. Reported market stock isn’t a guarantee it will still be
+  there when you arrive.
+- EDDN submission support and a submission log are implemented, but **production uploads are
+  not enabled yet**. Don’t rely on PHOENIX as your EDDN uploader for now.
 
-Install the required tools from the command line:
+## Development and feedback
 
-```powershell
-winget install --id OpenJS.NodeJS.LTS -e --source winget
-winget install --id Git.Git -e --source winget
-```
+Bug reports, ideas, and contributions are welcome. [Open an issue](https://github.com/judus/phoenix/issues)
+and tell us what happened—or what would make PHOENIX more useful during a session. Don’t include
+API keys, pairing codes, or private journal data.
 
-Close and reopen PowerShell so the new commands are on `PATH`, then install and start PHOENIX:
+For code changes, start with [the contribution guide](CONTRIB.md). Please discuss big changes
+before spending a weekend implementing them.
 
-```powershell
-node --version
-npm.cmd --version
-git --version
+- [Source installation and Copilot setup](docs/installation.md)
+- [Building and testing installers](scripts/package/README.md)
+- [Branches, CI, and releases](docs/releases.md)
+- [Environment options](.env.example)
 
-cd $HOME
-git clone https://github.com/judus/phoenix.git
-cd .\phoenix
-npm.cmd install
-npm.cmd run build
-npm.cmd start
-```
-
-Open `http://localhost:3400`. Stop PHOENIX with `Ctrl+C`. To update later:
-
-```powershell
-cd $HOME\phoenix
-git pull --ff-only
-npm.cmd install
-npm.cmd run build
-npm.cmd start
-```
-
-Using `npm.cmd` avoids PowerShell execution-policy problems without changing the machine's policy.
-Windows controls send the commander's saved keyboard bindings to the active window, so keep Elite
-focused. PHOENIX does not modify Elite or its game files.
-
-### Linux
-
-PHOENIX sends configured keyboard bindings through `xdotool` on X11 and through the XDG
-RemoteDesktop portal on Wayland. A source installation therefore needs the input helper for its
-desktop session:
-
-- **X11:** `xdotool`
-- **Wayland:** `xkbcli` and an XDG RemoteDesktop portal implementation with keyboard support.
-  GNOME and KDE installations normally include the appropriate portal backend already.
-
-Install the helpers for both session types if you switch between X11 and Wayland:
-
-```sh
-# Debian, Ubuntu, Linux Mint
-sudo apt install xdotool libxkbcommon-tools
-
-# Fedora
-sudo dnf install xdotool libxkbcommon-utils
-
-# Arch Linux
-sudo pacman -S xdotool libxkbcommon
-```
-
-On Wayland, PHOENIX asks the desktop for permission when it first sends an input. If controls remain
-unavailable, check `data/runtime/system.json`; its `controls.detail` field reports a missing keymap
-reader or portal. Install `xdg-desktop-portal` and the matching GNOME or KDE portal backend if the
-desktop does not provide one.
-
-```sh
-git clone https://github.com/judus/phoenix.git
-cd phoenix
-npm install
-npm run build
-npm start
-```
-
-Update an existing checkout manually:
-
-```sh
-git pull --ff-only
-npm install
-npm run build
-npm start
-```
-
-Open `http://localhost:3400`. Developers who want the live development servers can instead run:
-
-```sh
-npm run dev
-```
-
-### Building test installers
-
-Installer builds are host-native: build the AppImage on Linux x64 and the Windows installer
-on Windows x64. The local build and verification commands do not require GitHub Actions:
-
-```sh
-# Linux x64 with dpkg-deb, tar and desktop-file-utils
-npm ci
-npm run installer:linux
-npm run installer:linux:verify
-```
-
-```powershell
-# Windows x64 with Visual C++ Build Tools and Inno Setup 6 or 7
-npm.cmd ci
-npm.cmd run installer:windows
-npm.cmd run installer:windows:verify
-```
-
-See [the packaging guide](scripts/package/README.md) for prerequisites, outputs, verification scope,
-and the GitHub Actions verification/release workflows. These are preview packages while PHOENIX
-remains in active development.
-
-### Embedded Control Deck runtime
-
-PHOENIX owns its cockpit UI and consumes only a compiled Control Deck runtime containing the core,
-host, keyboard adapter, and Elite Dangerous integration. The versioned tarball lives in
-`vendor/control-deck/`; installing PHOENIX does not require access to the private Control Deck
-repository, GitHub credentials, or a package registry.
-
-To update it, run `npm run package:phoenix` in the Control Deck repository, replace the versioned
-tarball, update the three `control-deck` file dependencies in PHOENIX, and run `npm install` followed
-by `npm run check`. Do not add Control Deck UI or standalone-product exports to this artifact.
-
-### Copilot configuration
-
-Copilot is optional and remains disabled when no API key is available. Use
-`PHOENIX_OPENAI_API_KEY` for an app-specific key; if unset, PHOENIX falls back to `OPENAI_API_KEY`
-from the server environment. The PHOENIX-specific variable takes precedence. See
-[`.env.example`](.env.example) for ports, paths, models, input backends, and other overrides.
-OpenAI wire logging is disabled by default because it can contain prompts, responses, and tool data.
-The same configured API key enables the Copilot's bounded public-web search tool for typed and
-realtime voice conversations. `PHOENIX_OPENAI_WEB_SEARCH_MODEL` can select a separate Responses API
-model for those searches; it defaults to `PHOENIX_OPENAI_MODEL`.
-PHOENIX restricts its user-state directories and files to `0700` and `0600` on POSIX systems. On
-Windows, keep custom state/log paths inside a user-profile directory with an equivalent private ACL.
-
-Realtime voice requires PHOENIX to remain open in a browser on the computer running the server.
-Open it through `http://localhost:3400`, connect voice once, allow microphone access, then return
-focus to Elite while keeping the browser open. Paired auxiliary displays can control that voice
-host over the network; for practical cockpit use, Realtime voice therefore requires at least one
-auxiliary display. Select the intended microphone and output under Voice audio, avoid Stereo Mix or
-other loopback inputs, and use headphones if speaker bleed would make Copilot respond to game audio.
-
-## Next steps
-
-1. Add more Copilot providers. OpenAI is currently the only supported provider. PHOENIX is not
-   committing to provider exclusivity without a very persuasive sponsorship agreement.
-2. Broaden Windows verification across more machines, Elite installations, and control bindings.
-3. Continue improving the tablet interface first.
-4. Adapt and visually verify the interface for desktop and other auxiliary displays.
-
-## Feedback and contributions
-
-Bug reports, constructive criticism, and feature requests are very welcome. Feel free to open an
-issue—real-world use cases and detailed reports are especially useful. See
-[CONTRIB.md](CONTRIB.md) for the current contribution and licensing policy.
-
-Code contributions are welcome. Please discuss substantial product or architectural changes before
-investing in an implementation, preserve the package boundaries described in the contribution
-guide, and include focused validation with behavioral changes.
+Development happens on `dev`; releases come from `main`. More Copilot providers, broader desktop
+and Windows testing, and continued tablet improvements are on the list.
 
 ## License
 
-PHOENIX source code and documentation are open source under the [Apache License 2.0](LICENSE).
-Copyright and attribution notices must be retained as required by the licence and [NOTICE](NOTICE).
+PHOENIX’s source and documentation use the [Apache License 2.0](LICENSE); retain the required
+[copyright notices](NOTICE).
 
-Official distributions include a purpose-built, separately licensed Control Deck runtime. That
-unmodified runtime may accompany PHOENIX and genuine PHOENIX derivatives distributed without
-charge; payment may not be required for access, features, or updates. Voluntary donations and
-sponsorship not tied to access remain permitted. See [Third-party notices](THIRD_PARTY_NOTICES.md)
-and the runtime licence included with the package for the complete boundary.
+The included Control Deck runtime has a separate licence. It may be shipped unmodified with
+free PHOENIX distributions and derivatives; charging for access, features, or updates requires
+separate permission. Voluntary donations are welcome. See [third-party notices](THIRD_PARTY_NOTICES.md)
+and the runtime’s included licence for the full terms.
+
+PHOENIX is an unofficial companion, not affiliated with Frontier Developments.
 
 ## Screenshots
 

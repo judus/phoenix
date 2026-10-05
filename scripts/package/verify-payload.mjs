@@ -20,7 +20,8 @@ accessSync(runtime, constants.X_OK)
 for (const required of [
   'apps/server/dist/main.js',
   'apps/web/dist/index.html',
-  'agents/marin/agent.md',
+  'resources/copilots/marin/agent.md',
+  'resources/copilots/ash/agent.md',
   'LICENSE',
   'NOTICE',
   'THIRD_PARTY_NOTICES.md',
