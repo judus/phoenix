@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process'
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -89,6 +89,44 @@ test.skipIf(process.platform === 'win32').each(['wrong-port', 'foreign-host', 'w
   expect(readFileSync(join(fixture.state, 'phoenix/logs/phoenix.log'), 'utf8')).not.toContain('PHOENIX is ready')
 })
 
+test.skipIf(process.platform !== 'linux').each([0, 1])('failed startup displays a desktop error (notification exit %s)', async notificationExit => {
+  const fixture = installation('process.exit(1)')
+  const bin = join(fixture.root, 'bin')
+  mkdirSync(bin)
+  for (const command of ['notify-send', 'xdg-open']) {
+    writeFileSync(join(bin, command), `#!${process.execPath}
+import { appendFileSync, existsSync } from 'node:fs'
+appendFileSync(${JSON.stringify(join(fixture.root, 'desktop.jsonl'))}, JSON.stringify({
+  command: ${JSON.stringify(command)}, args: process.argv.slice(2),
+  locked: existsSync(${JSON.stringify(join(fixture.state, 'phoenix/logs/launcher.lock'))})
+}) + '\\n')
+process.exit(${command === 'notify-send' ? notificationExit : 0})
+`, { mode: 0o755 })
+  }
+  const launcher = launch(fixture, 34001, [], { PATH: bin, DISPLAY: ':fixture' })
+  expect(await exit(launcher)).toBe(1)
+  const calls = readFileSync(join(fixture.root, 'desktop.jsonl'), 'utf8').trim().split('\n').map(line => JSON.parse(line))
+  expect(calls.map(call => call.command)).toEqual(notificationExit === 0 ? ['notify-send'] : ['notify-send', 'xdg-open'])
+  expect(calls.every(call => call.locked === false)).toBe(true)
+  expect(calls[0].args).toContain('PHOENIX could not start or stopped unexpectedly')
+  expect(calls[0].args.at(-1)).toContain('phoenix.log')
+  if (notificationExit !== 0) expect(calls[1].args).toEqual([join(fixture.state, 'phoenix/logs/phoenix.log')])
+})
+
+test.skipIf(process.platform !== 'linux').each(['headless', 'non-interactive'])('startup failure stays non-interactive for %s launch', async mode => {
+  const fixture = installation('process.exit(1)')
+  const bin = join(fixture.root, 'bin')
+  mkdirSync(bin)
+  for (const command of ['notify-send', 'xdg-open']) {
+    writeFileSync(join(bin, command), `#!${process.execPath}\nimport { writeFileSync } from 'node:fs'; writeFileSync(${JSON.stringify(join(fixture.root, 'unexpected'))}, '')`, { mode: 0o755 })
+  }
+  const launcher = launch(fixture, 34001, mode === 'non-interactive' ? ['--non-interactive'] : [], {
+    PATH: bin, DISPLAY: mode === 'headless' ? '' : ':fixture', WAYLAND_DISPLAY: ''
+  })
+  expect(await exit(launcher)).toBe(1)
+  expect(existsSync(join(fixture.root, 'unexpected'))).toBe(false)
+})
+
 function installation (serverCode: string) {
   const root = mkdtempSync(join(tmpdir(), 'phoenix-launcher-test-'))
   roots.push(root)
@@ -100,9 +138,9 @@ function installation (serverCode: string) {
   return { root, state: join(root, 'state') }
 }
 
-function launch (fixture: ReturnType<typeof installation>, port: number, args: string[] = []) {
+function launch (fixture: ReturnType<typeof installation>, port: number, args: string[] = ['--non-interactive'], environment: NodeJS.ProcessEnv = {}) {
   const child = spawn(process.execPath, [join(fixture.root, 'scripts/package/launcher.mjs'), ...args], {
-    env: { ...process.env, XDG_STATE_HOME: fixture.state, PHOENIX_PORT: String(port), PHOENIX_LAUNCHER_OPEN_BROWSER: 'false' },
+    env: { ...process.env, XDG_STATE_HOME: fixture.state, PHOENIX_PORT: String(port), PHOENIX_LAUNCHER_OPEN_BROWSER: 'false', ...environment },
     stdio: 'ignore'
   })
   children.push(child)

@@ -3,6 +3,7 @@ import { cpSync, chmodSync, mkdirSync, readFileSync, readdirSync, rmSync, statSy
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
+import { buildCatalogueWorker } from './build-catalogue-worker.mjs'
 
 const projectRoot = fileURLToPath(new URL('../../', import.meta.url))
 const packageJson = JSON.parse(readFileSync(resolve(projectRoot, 'package.json'), 'utf8'))
@@ -28,16 +29,21 @@ copy('scripts/catalogue')
 copy('scripts/package/launcher.mjs')
 copy('package.json')
 
-await build({
-  bundle: true,
-  entryPoints: [resolve(projectRoot, 'scripts/catalogue/refresh.mjs')],
-  format: 'esm',
-  legalComments: 'none',
-  logLevel: 'warning',
-  outfile: resolve(outputRoot, 'scripts/catalogue/refresh.mjs'),
-  platform: 'node',
-  target: 'node24'
-})
+await buildCatalogueWorker(resolve(outputRoot, 'scripts/catalogue/refresh.mjs'))
+
+if (process.platform === 'linux') {
+  await build({
+    banner: { js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);" },
+    bundle: true,
+    entryPoints: [resolve(projectRoot, 'scripts/package/linux-tray.mjs')],
+    format: 'esm',
+    legalComments: 'none',
+    logLevel: 'warning',
+    outfile: resolve(outputRoot, 'scripts/package/linux-tray.mjs'),
+    platform: 'node',
+    target: 'node24'
+  })
+}
 
 const serverEntrypoint = resolve(outputRoot, 'apps/server/dist/main.js')
 mkdirSync(dirname(serverEntrypoint), { recursive: true })

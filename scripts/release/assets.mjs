@@ -5,7 +5,7 @@ import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const platforms = {
-  linux: { name: 'linux-x64', filename: 'PHOENIX-linux-x64.deb', installer: version => `phoenix_${version}_amd64.deb` },
+  linux: { name: 'linux-x64', filename: 'PHOENIX-linux-x64.AppImage', installer: version => `PHOENIX-${version}-x86_64.AppImage` },
   win32: { name: 'windows-x64', filename: 'PHOENIX-windows-x64-setup.exe', installer: version => `PHOENIX-${version}-windows-x64-setup.exe` }
 }
 const hash = file => createHash('sha256').update(readFileSync(file)).digest('hex')
@@ -14,7 +14,8 @@ export function stageAssets (root, platform = process.platform, architecture = p
   const target = platforms[platform]
   if (!target || architecture !== 'x64') throw new Error('Release installers support Linux/Windows x64 only.')
   const { version } = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'))
-  const manifest = JSON.parse(readFileSync(resolve(root, `dist/payload/${platform}-x64/manifest.json`), 'utf8'))
+  const manifestPath = resolve(root, `dist/payload/${platform}-x64/manifest.json`)
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
   if (manifest.version !== version || manifest.platform !== platform || manifest.architecture !== architecture || manifest.channel !== 'preview') {
     throw new Error('Payload identity or preview channel does not match this release.')
   }
@@ -23,7 +24,14 @@ export function stageAssets (root, platform = process.platform, architecture = p
   const destination = resolve(output, target.filename)
   copyFileSync(resolve(root, 'dist/installer', target.installer(version)), destination)
   const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim()
-  const metadata = { ...manifest, commit, installer: { filename: target.filename, sha256: hash(destination), bytes: statSync(destination).size } }
+  const packaging = platform === 'linux'
+    ? JSON.parse(readFileSync(resolve(root, 'dist/installer', `${target.installer(version)}.json`), 'utf8'))
+    : undefined
+  if (packaging && (packaging.version !== version || packaging.channel !== manifest.channel || packaging.architecture !== architecture ||
+    packaging.files['usr/lib/phoenix/manifest.json'] !== hash(manifestPath))) {
+    throw new Error('AppImage packaging metadata does not match the payload.')
+  }
+  const metadata = { ...manifest, commit, ...(packaging ? { packaging } : {}), installer: { filename: target.filename, sha256: hash(destination), bytes: statSync(destination).size } }
   writeFileSync(resolve(output, `PHOENIX-${target.name}-build.json`), `${JSON.stringify(metadata, null, 2)}\n`)
 }
 
@@ -35,6 +43,10 @@ export function verifyAssets (directory, version, commit) {
   for (const [platform, target] of Object.entries(platforms)) {
     const metadata = JSON.parse(readFileSync(resolve(directory, `PHOENIX-${target.name}-build.json`), 'utf8'))
     const installer = resolve(directory, target.filename)
+    if (platform === 'linux' && (!metadata.packaging || metadata.packaging.version !== version ||
+      metadata.packaging.architecture !== 'x64' || metadata.packaging.channel !== 'preview')) {
+      throw new Error('Release AppImage packaging identity mismatch.')
+    }
     if (metadata.version !== version || metadata.commit !== commit || metadata.platform !== platform ||
       metadata.architecture !== 'x64' || metadata.channel !== 'preview' || metadata.installer.filename !== target.filename ||
       metadata.installer.bytes !== statSync(installer).size || metadata.installer.sha256 !== hash(installer)) {

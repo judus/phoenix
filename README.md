@@ -7,11 +7,14 @@ PHOENIX is a local-first companion application and ship-computer interface for E
 
 ## Downloads
 
-Windows x64 and Debian/Ubuntu-family Linux x64 installers will be available from
+Windows x64 installers and Linux x64 AppImages will be available from
 **[GitHub Releases](https://github.com/judus/phoenix/releases)**. The first preview is being prepared;
 there is no published installer release yet. Source installation instructions remain below.
 Installers bundle Node.js; no Git or developer tools are required. Preview builds may have rough
 edges, and the Windows installer is currently unsigned.
+The Linux AppImage targets modern glibc-based desktop distributions, including Ubuntu/Mint,
+Fedora and Arch; it is not limited to Debian-family systems. See the
+[AppImage requirements and acceptance notes](scripts/package/README.md#linux-x64-appimage).
 
 Development happens on `dev`; `main` is the release-ready branch. See
 [development and release workflow](docs/releases.md) for CI, releases and maintainer instructions.
@@ -195,11 +198,11 @@ npm run dev
 
 ### Building test installers
 
-Installer builds are host-native: build the Debian package on Linux x64 and the Windows installer
+Installer builds are host-native: build the AppImage on Linux x64 and the Windows installer
 on Windows x64. The local build and verification commands do not require GitHub Actions:
 
 ```sh
-# Linux x64 with dpkg-deb
+# Linux x64 with dpkg-deb, tar and desktop-file-utils
 npm ci
 npm run installer:linux
 npm run installer:linux:verify
@@ -213,7 +216,7 @@ npm.cmd run installer:windows:verify
 ```
 
 See [the packaging guide](scripts/package/README.md) for prerequisites, outputs, verification scope,
-and the optional manual GitHub Actions proof workflow. These are test installers while PHOENIX
+and the GitHub Actions verification/release workflows. These are preview packages while PHOENIX
 remains in active development.
 
 ### Embedded Control Deck runtime
