@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { Breadcrumbs, Button, ControlContext, IconButton, PageFrame, PageHeader, Select, Status, ToggleButton } from '@phoenix/ui'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type SetStateAction } from 'react'
+import { Breadcrumbs, Button, ControlContext, IconButton, Inline, PageFrame, PageHeader, Select, Status, ToggleButton } from '@phoenix/ui'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
@@ -37,14 +37,19 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, onNavigate, onToggleB
   showBookmarks: boolean
   systemName: string | null
 }) {
-  const [camera, setCamera] = useState<AtlasCamera>(WHOLE_GALAXY)
+  const [camera, setCamera] = useState<AtlasCamera>(() => position ? { ...projectGalacticPosition(position), zoom: 4 } : WHOLE_GALAXY)
+  const initialCameraApplied = useRef(position !== null)
+  const updateCamera = (next: SetStateAction<AtlasCamera>) => {
+    initialCameraApplied.current = true
+    setCamera(next)
+  }
   const [size, setSize] = useState({ width: 900, height: 600 })
   const [showRegions, setShowRegions] = useState(true)
   const [showLandmarks, setShowLandmarks] = useState(true)
   const [selection, setSelection] = useState<string[]>([])
   const [selectedId, setSelectedId] = useState<string>()
   const viewport = useRef<HTMLDivElement>(null)
-  const pointerGestures = useAtlasPointerGestures(setCamera, size)
+  const pointerGestures = useAtlasPointerGestures(updateCamera, size)
   const currentRegion = position ? galacticRegion(position) : undefined
   const markers = useMemo(() => [
     ...(position && systemName ? [{ id: 'commander', kind: 'commander' as const, label: systemName, systemName, position }] : []),
@@ -56,8 +61,14 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, onNavigate, onToggleB
   const clusters = clusterAtlasMarkers(markers, camera, size.width, size.height)
   const scale = atlasScale(size.width, size.height, camera.zoom)
   const centre = { x: size.width / 2, y: size.height / 2 }
-  const changeZoom = (factor: number) => setCamera(value => zoomAtlas(value, factor, centre, size.width, size.height))
-  const locate = (target: GalacticPosition, zoom = Math.max(4, camera.zoom)) => setCamera({ ...projectGalacticPosition(target), zoom })
+  const changeZoom = (factor: number) => updateCamera(value => zoomAtlas(value, factor, centre, size.width, size.height))
+  const locate = (target: GalacticPosition, zoom = Math.max(4, camera.zoom)) => updateCamera({ ...projectGalacticPosition(target), zoom })
+
+  useEffect(() => {
+    if (!position || initialCameraApplied.current) return
+    initialCameraApplied.current = true
+    setCamera({ ...projectGalacticPosition(position), zoom: 4 })
+  }, [position])
 
   useEffect(() => {
     const element = viewport.current
@@ -74,6 +85,7 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, onNavigate, onToggleB
     if (!element) return
     const wheel = (event: WheelEvent) => {
       event.preventDefault()
+      initialCameraApplied.current = true
       const rect = element.getBoundingClientRect()
       setCamera(value => zoomAtlas(value, Math.exp(-Math.max(-150, Math.min(150, event.deltaY)) * 0.005), { x: event.clientX - rect.left, y: event.clientY - rect.top }, size.width, size.height))
     }
@@ -85,8 +97,8 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, onNavigate, onToggleB
     if (event.target !== event.currentTarget) return
     if (event.key === '+' || event.key === '=') changeZoom(1.5)
     else if (event.key === '-') changeZoom(1 / 1.5)
-    else if (event.key === 'Home') setCamera(WHOLE_GALAXY)
-    else if (event.key.startsWith('Arrow')) setCamera(value => ({ ...value,
+    else if (event.key === 'Home') updateCamera(WHOLE_GALAXY)
+    else if (event.key.startsWith('Arrow')) updateCamera(value => ({ ...value,
       x: value.x + (event.key === 'ArrowLeft' ? -80 : event.key === 'ArrowRight' ? 80 : 0) / scale,
       y: value.y + (event.key === 'ArrowUp' ? -80 : event.key === 'ArrowDown' ? 80 : 0) / scale
     }))
@@ -107,13 +119,11 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, onNavigate, onToggleB
   const scaleLy = niceScale(120 / scale * LY_PER_MAP_UNIT)
 
   return <PageFrame layout="fit" className="galactic-atlas-page">
-    <PageHeader title="Galactic atlas" variant="compact" context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Galactic atlas' }]} />} actions={<>
-        <Button variant="outline" onClick={() => setCamera(WHOLE_GALAXY)}>Whole galaxy</Button>
-        <Button variant="outline" disabled={!position} onClick={() => position && locate(position)}>Locate me</Button>
-        <ToggleButton pressed={showRegions} onClick={() => setShowRegions(value => !value)}>Regions</ToggleButton>
-        <ToggleButton pressed={showLandmarks} onClick={() => setShowLandmarks(value => !value)}>Landmarks</ToggleButton>
-        <ToggleButton pressed={showBookmarks} onClick={onToggleBookmarks}>Bookmarks</ToggleButton>
-    </>} />
+    <PageHeader title="Galactic atlas" variant="cockpit" context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/atlas' }, { label: 'Galactic atlas' }]} />} actions={<ControlContext context="toolbar" density="compact"><Inline gap="xs">
+        <ToggleButton className="display" pressed={showRegions} onClick={() => setShowRegions(value => !value)}>Regions</ToggleButton>
+        <ToggleButton className="display" pressed={showLandmarks} onClick={() => setShowLandmarks(value => !value)}>Landmarks</ToggleButton>
+        <ToggleButton className="display" pressed={showBookmarks} onClick={onToggleBookmarks}>Bookmarks</ToggleButton>
+    </Inline></ControlContext>} />
     <section className="galactic-atlas" aria-label="Galactic atlas" data-deskplane-no-swipe>
       <div className="atlas-map">
       <div className="atlas-viewport" ref={viewport} {...pointerGestures}>

@@ -62,9 +62,9 @@ test('planned rolls can be cleared and replaced, and invalid drafts cannot be su
 
 test('Engineering exposes project planning and catalogue views through typed routes', () => {
   expect(engineeringNavigationItems.map(item => [item.label, item.href])).toEqual([
-    ['Projects', '#/engineering/projects'], ['Blueprints', '#/engineering/blueprints'], ['Experimental effects', '#/engineering/experimental-effects'], ['Engineers', '#/engineering/engineers'],
+    ['Blueprints', '#/engineering/blueprints'], ['Experimental effects', '#/engineering/experimental-effects'], ['Engineers', '#/engineering/engineers'],
     ['Raw materials', '#/engineering/materials/raw'], ['Manufactured materials', '#/engineering/materials/manufactured'],
-    ['Encoded materials', '#/engineering/materials/encoded'], ['Xeno materials', '#/engineering/materials/xeno']
+    ['Encoded materials', '#/engineering/materials/encoded'], ['Xeno materials', '#/engineering/materials/xeno'], ['Projects', '#/engineering/projects']
   ])
 })
 
@@ -77,6 +77,27 @@ test('Blueprint catalogue is independent from current-ship application and keeps
   expect(markup).not.toContain('Current ship')
   expect(markup).toContain('#/engineering/blueprints?symbol=dirty-drive')
   expect(markup).not.toContain('1 fitted')
+})
+
+test('blueprint search matches names, catalogue aliases and modules without changing detail links', async () => {
+  let renderer: ReturnType<typeof create>
+  await act(async () => { renderer = create(<EngineeringPage controller={{ status: 'ready', blueprints: { blueprints: [
+    { appliedModuleCount: 0, moduleNames: ['Thrusters'], name: 'Dirty drive tuning', originalName: 'DirtyDrive', symbol: 'dirty-drive' },
+    { appliedModuleCount: 0, moduleNames: ['Power Plant'], name: 'Overcharged', originalName: 'OverchargedPowerPlant', symbol: 'overcharged' }
+  ] } }} onNavigate={onNavigate} route={{ kind: 'information', section: 'engineering', view: 'blueprints' }} />) })
+  try {
+    const input = () => renderer.root.findByType('input')
+    expect(input().props.className).toContain('form-mini')
+    const links = () => renderer.root.findAllByType('a').filter(link => link.props.href.includes('?symbol=')).map(link => link.props.href)
+    for (const value of [' dirty ', 'DIRTYDRIVE', 'thrusters']) {
+      await act(async () => input().props.onChange({ target: { value } }))
+      expect(links()).toEqual(['#/engineering/blueprints?symbol=dirty-drive'])
+    }
+    await act(async () => input().props.onChange({ target: { value: 'nothing' } }))
+    expect(links()).toEqual([])
+    await act(async () => input().props.onChange({ target: { value: '' } }))
+    expect(links()).toHaveLength(2)
+  } finally { await act(async () => renderer.unmount()) }
 })
 
 test('Engineering project index summarizes plans and links to dedicated project details', () => {

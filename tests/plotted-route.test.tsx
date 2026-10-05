@@ -123,7 +123,7 @@ test('plotted route states honestly when runtime progress is unknown', () => {
   expect(markup).toContain('Current system is not present in this route; progress is unknown.')
 })
 
-test('plotted route previews only current and forward systems through existing APIs', async () => {
+test('plotted route previews past, current and forward systems without changing game targeting', async () => {
   api.executeAction.mockClear()
   api.getSystemCartography.mockClear()
   const extendedRoute: NavigationRoute = {
@@ -139,7 +139,10 @@ test('plotted route previews only current and forward systems through existing A
   expect(JSON.stringify(renderer!.toJSON())).toContain('High Tech')
 
   const rows = renderer!.root.findAllByType('tr').slice(1)
-  expect(rows[0]!.props.onClick).toBeUndefined()
+  await act(async () => rows[0]!.props.onClick())
+  expect(api.getSystemCartography).toHaveBeenLastCalledWith('Sol', expect.any(AbortSignal))
+  expect(JSON.stringify(renderer!.toJSON())).toContain('1 jump behind')
+  expect(api.executeAction).not.toHaveBeenCalled()
   await act(async () => rows[3]!.props.onClick())
   expect(api.getSystemCartography).toHaveBeenLastCalledWith('Lave', expect.any(AbortSignal))
   expect(JSON.stringify(renderer!.toJSON())).toContain('2 jumps ahead')

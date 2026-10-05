@@ -3,12 +3,16 @@ import {
   Breadcrumbs,
   Button,
   DataTableGroup,
+  Field,
+  FormGrid,
   IconButton,
   PageFrame,
   PageHeader,
   PencilIcon,
+  Select,
   SortableDataTable,
   Status,
+  TextInput,
   TrashIcon,
   type SortableDataTableColumn
 } from '@phoenix/ui'
@@ -26,6 +30,13 @@ export function SavedGalaxyQueriesPage({ api, onNavigate }: {
   const [queries, setQueries] = useState<SavedGalaxyQuery[]>()
   const [error, setError] = useState<string>()
   const [deleting, setDeleting] = useState<string>()
+  const [search, setSearch] = useState('')
+  const [queryType, setQueryType] = useState('')
+  const text = search.trim().toLowerCase()
+  const shown = (queries ?? []).filter(query =>
+    (!queryType || query.queryId === queryType) &&
+    [query.name, queryDefinition(query).title, ...Object.values(query.parameters).flat()].join(' ').toLowerCase().includes(text)
+  )
 
   useEffect(() => {
     const controller = new AbortController()
@@ -91,17 +102,28 @@ export function SavedGalaxyQueriesPage({ api, onNavigate }: {
           context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Query console', href: '#/galaxy/database' }, { label: 'Saved queries' }]} />}
           title="Saved queries"
         />
-        <DataTableGroup fill meta={queries ? `${queries.length} saved` : undefined} title="Query library">
+        <FormGrid>
+          <Field label="Search saved queries" htmlFor="saved-query-search">
+            <TextInput className="form-mini" id="saved-query-search" value={search} onChange={event => setSearch(event.target.value)} />
+          </Field>
+          <Field label="Query type" htmlFor="saved-query-type">
+            <Select className="form-mini" id="saved-query-type" value={queryType} onChange={event => setQueryType(event.target.value)}>
+              <option value="">All query types</option>
+              {GALAXY_QUERY_CATALOGUE.map(query => <option key={query.id} value={query.id}>{query.title}</option>)}
+            </Select>
+          </Field>
+        </FormGrid>
+        <DataTableGroup fill meta={queries ? `${shown.length} of ${queries.length} saved` : undefined} title="Query library">
           {error && <Status tone="danger" wrap>{error}</Status>}
           {queries
             ? <SortableDataTable
                 columns={columns}
                 density="compact"
-                empty="No saved queries."
+                empty={queries.length === 0 ? 'No saved queries.' : 'No matching saved queries.'}
                 label="Saved galaxy queries"
                 minimum="wide"
                 rowKey={query => query.id}
-                rows={queries}
+                rows={shown}
                 scheme="surface"
                 stickyHeader
               />

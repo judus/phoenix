@@ -130,6 +130,26 @@ function model(): DashboardViewModel {
   }
 }
 
+test('commander log scrolls to the newest entry, but ordinary updates preserve manual scrolling', async () => {
+  const body = { scrollTop: 300 }
+  const page = (id: string) => <DashboardPage
+    controller={{ status: 'ready' }} eventConnection={{ state: 'open' }} hrefFor={() => '#/typed'}
+    model={{ ...model(), commanderLog: [{ id, category: 'Trade', dateTime: 'Now', timestamp: '2026-10-05T12:00:00Z', title: 'Sold cargo', detail: null, tone: 'neutral', value: null }] }}
+    onExecuteAction={vi.fn()} onNavigate={vi.fn()} runtime={{ status: 'idle' }}
+    voice={{ connected: false, connect: vi.fn(), disconnect: vi.fn(), transitioning: false }}
+  />
+  let renderer: ReturnType<typeof create>
+  await act(async () => { renderer = create(page('first'), { createNodeMock: () => body }) })
+  try {
+    expect(body.scrollTop).toBe(0)
+    body.scrollTop = 300
+    await act(async () => renderer.update(page('first')))
+    expect(body.scrollTop).toBe(300)
+    await act(async () => renderer.update(page('newest')))
+    expect(body.scrollTop).toBe(0)
+  } finally { await act(async () => renderer.unmount()) }
+})
+
 function localTraffic() {
   return { generatedAt: '2026-08-16T12:00:00.000Z', messages: [], schemaVersion: 1 as const, windowMinutes: 90 }
 }

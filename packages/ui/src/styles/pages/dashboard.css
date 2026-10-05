@@ -141,10 +141,6 @@
     }
 
     .dashboard-commander-log-widget {
-      .item-list {
-        padding-block-end: var(--dashboard-log-tail-space, 0px);
-      }
-
       .item-list-row { row-gap: 0; }
 
       .item-list-eyebrow {

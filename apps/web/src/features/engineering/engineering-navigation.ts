@@ -17,14 +17,14 @@ const routes = {
 } as const satisfies Record<string, EngineeringRoute>
 
 export const engineeringNavigationItems: EngineeringNavigationItem[] = [
-  item('projects', 'Projects', 'PRJ'),
   item('blueprints', 'Blueprints', 'BLP'),
   item('experimental-effects', 'Experimental effects', 'EXP'),
   item('engineers', 'Engineers', 'ENG'),
   item('materials-raw', 'Raw materials', 'RAW'),
   item('materials-manufactured', 'Manufactured materials', 'MAN'),
   item('materials-encoded', 'Encoded materials', 'ENC'),
-  item('materials-xeno', 'Xeno materials', 'XNO')
+  item('materials-xeno', 'Xeno materials', 'XNO'),
+  item('projects', 'Projects', 'PRJ')
 ]
 
 export function engineeringContextForRoute(route: InformationRoute): string {

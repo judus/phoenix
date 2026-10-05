@@ -47,11 +47,15 @@ test('atlas selection opens the correct system and supports keyboard zoom and re
   let renderer: ReturnType<typeof create>
   await act(async () => { renderer = create(<GalacticAtlas bookmarks={[]} onNavigate={onNavigate} onToggleBookmarks={vi.fn()} position={[0, 0, 0]} showBookmarks systemName="Sol" />) })
   const map = () => renderer.root.findAllByType('svg').find(node => node.props.role === 'group')!
-  expect(renderer.root.findByType('header').findAllByType('button')).toHaveLength(5)
+  expect(renderer.root.findByType('header').props.className).toContain('page-header-cockpit')
+  expect(renderer.root.findByType('header').findAllByType('button')).toHaveLength(3)
   const zoomControls = renderer.root.findByProps({ 'aria-label': 'Atlas zoom controls' })
   expect(zoomControls.findAllByType('button').map(button => button.props['aria-label'])).toEqual(['Zoom out', 'Zoom in'])
   expect(renderer.root.findByProps({ className: 'atlas-viewport' }).findAllByType('button')).toHaveLength(0)
+  const initial = renderer.root.findAllByType('g')[0].props.transform
+  await act(async () => map().props.onKeyDown({ target: 1, currentTarget: 1, key: 'Home', preventDefault() {} }))
   const original = renderer.root.findAllByType('g')[0].props.transform
+  expect(initial).not.toBe(original)
   await act(async () => renderer.root.findAllByProps({ role: 'button' }).find(node => node.props['aria-label'] === 'Colonia')!.props.onClick())
   await act(async () => renderer.root.findAllByType('button').find(node => node.children.includes('Open system schematic'))!.props.onClick())
   expect(onNavigate).toHaveBeenCalledWith({ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Colonia' })
@@ -66,10 +70,42 @@ test('atlas selection opens the correct system and supports keyboard zoom and re
 test('missing journal position never becomes a fabricated Sol position', async () => {
   let renderer: ReturnType<typeof create>
   await act(async () => { renderer = create(<GalacticAtlas bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={null} showBookmarks systemName={null} />) })
-  expect(renderer.root.findAllByType('button').find(node => node.children.includes('Locate me'))!.props.disabled).toBe(true)
+  expect(renderer.root.findAllByType('button').find(node => node.children.includes('Locate me'))).toBeUndefined()
   expect(JSON.stringify(renderer.toJSON())).toContain('waiting for journal coordinates')
   expect(renderer.root.findAllByProps({ className: 'atlas-marker commander' })).toHaveLength(0)
   await act(async () => renderer.unmount())
+})
+
+test('delayed coordinates centre the Atlas once without overriding subsequent navigation', async () => {
+  let renderer: ReturnType<typeof create>
+  const page = (position: [number, number, number] | null) => <GalacticAtlas bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={position} showBookmarks systemName="Sol" />
+  await act(async () => { renderer = create(page(null)) })
+  try {
+    const transform = () => renderer.root.findAllByType('g')[0].props.transform
+    const whole = transform()
+    await act(async () => renderer.update(page([0, 0, 0])))
+    expect(transform()).not.toBe(whole)
+    const initial = transform()
+    await act(async () => renderer.update(page([100, 0, 0])))
+    expect(transform()).toBe(initial)
+    const map = renderer.root.findAllByType('svg').find(node => node.props.role === 'group')!
+    await act(async () => map.props.onKeyDown({ target: 1, currentTarget: 1, key: 'Home', preventDefault() {} }))
+    await act(async () => renderer.update(page([200, 0, 0])))
+    expect(transform()).toBe(whole)
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('manual Atlas navigation before coordinates arrive suppresses automatic centring', async () => {
+  let renderer: ReturnType<typeof create>
+  const page = (position: [number, number, number] | null) => <GalacticAtlas bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={position} showBookmarks systemName="Sol" />
+  await act(async () => { renderer = create(page(null)) })
+  try {
+    const map = renderer.root.findAllByType('svg').find(node => node.props.role === 'group')!
+    await act(async () => map.props.onKeyDown({ target: 1, currentTarget: 1, key: '+', preventDefault() {} }))
+    const navigated = renderer.root.findAllByType('g')[0].props.transform
+    await act(async () => renderer.update(page([0, 0, 0])))
+    expect(renderer.root.findAllByType('g')[0].props.transform).toBe(navigated)
+  } finally { await act(async () => renderer.unmount()) }
 })
 
 test('marker taps keep their native target and do not move the camera before a drag', async () => {

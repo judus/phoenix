@@ -14,10 +14,10 @@ const routes = {
 
 export const equipmentNavigationItems: EquipmentNavigationItem[] = [
   item('gear', 'Gear', 'GEA'),
-  item('planner', 'Planner', 'PLN'),
   item('upgrades', 'Upgrades', 'UPG'),
   item('specialists', 'Specialists', 'SPC'),
-  item('materials', 'Materials', 'MAT')
+  item('materials', 'Materials', 'MAT'),
+  item('planner', 'Projects', 'PRJ')
 ]
 
 export function equipmentContextForRoute(route: InformationRoute): string {

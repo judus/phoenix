@@ -47,6 +47,14 @@ function deferred<T>() {
   return { promise, resolve, reject }
 }
 
+test('the active profile editor loads on entry without a profile-button click', async () => {
+  const renderer = await mount(apiWith())
+  try {
+    expect(name(renderer)).toBe('Alpha')
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.permissions.enabledCapabilityIds).toEqual(['Alpha'])
+  } finally { await act(async () => renderer.unmount()) }
+})
+
 test.each(['resolve', 'reject'] as const)('profile reads ignore obsolete %s after another selection', async outcome => {
   const old = deferred<ReturnType<typeof document>>()
   const api = apiWith({ getCopilotProfile: vi.fn().mockImplementation(id => id === 'Alpha' ? old.promise : Promise.resolve(document(id))) })

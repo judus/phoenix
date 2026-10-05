@@ -361,7 +361,7 @@ test('schematic zoom changes the orbital canvas scale and resets to 100 percent'
   await act(async () => renderer.unmount())
 })
 
-test('fleet carrier toggle removes attached and unresolved carriers, preserves stations, and restores them', async () => {
+test('fleet carrier visibility removes attached and unresolved carriers, preserves stations, and restores them', async () => {
   const system = fixtureSystem()
   const station = system.stations[0]!
   system.stations.push(
@@ -373,14 +373,13 @@ test('fleet carrier toggle removes attached and unresolved carriers, preserves s
   await act(async () => { renderer = create(<SystemSchematic onSelect={onSelect} selected={system.stations[1]} system={system} />) })
   const installations = () => renderer.root.findAllByProps({ className: 'system-orbital-layout__installation' })
   expect(installations()).toHaveLength(3)
-  await act(async () => renderer.root.findByProps({ title: 'Hide fleet carriers' }).props.onClick())
-  expect(onSelect).toHaveBeenCalledWith()
+  await act(async () => renderer.update(<SystemSchematic onSelect={onSelect} showFleetCarriers={false} system={system} />))
   expect(installations()).toHaveLength(1)
   expect(JSON.stringify(installations()[0]!.props.children.props.installation.station.name)).toContain('Galileo')
-  await act(async () => renderer.update(<SystemSchematic onSelect={onSelect} system={{ ...system, name: 'Next system', bodies: [] }} />))
+  await act(async () => renderer.update(<SystemSchematic onSelect={onSelect} showFleetCarriers={false} system={{ ...system, name: 'Next system', bodies: [] }} />))
   const unresolved = renderer.root.findByProps({ className: 'system-unassigned-installations' })
   expect(unresolved.props.children).toHaveLength(1)
-  await act(async () => renderer.root.findByProps({ title: 'Show fleet carriers' }).props.onClick())
+  await act(async () => renderer.update(<SystemSchematic onSelect={onSelect} showFleetCarriers system={{ ...system, name: 'Next system', bodies: [] }} />))
   expect(renderer.root.findByProps({ className: 'system-unassigned-installations' }).props.children).toHaveLength(3)
   expect(system.stations).toHaveLength(3)
   await act(async () => renderer.unmount())

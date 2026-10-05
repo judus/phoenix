@@ -100,6 +100,8 @@
       &.drop-target { outline: var(--control-border-width) solid var(--color-information); outline-offset: calc(-1 * var(--control-border-width)); }
 
       > .control-deck-move-handle {
+        display: grid;
+        place-items: center;
         position: absolute;
         z-index: 2;
         inset-inline-end: 0;
@@ -107,13 +109,20 @@
         inline-size: var(--control-block-size);
         block-size: var(--control-block-size);
         padding: 0;
-        border: var(--control-border-width) solid var(--color-information);
-        background: var(--color-canvas);
+        border: 0;
+        background: transparent;
         color: var(--color-information);
-        font-size: var(--font-size-lg);
+        font-size: var(--font-size-sm);
         cursor: grab;
         touch-action: none;
         user-select: none;
+
+        > span {
+          padding: var(--spacing-xxs);
+          border: var(--control-border-width) solid var(--color-information);
+          background: var(--color-canvas);
+          pointer-events: none;
+        }
 
         &:active { cursor: grabbing; }
       }

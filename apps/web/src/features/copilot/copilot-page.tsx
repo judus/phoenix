@@ -35,10 +35,12 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
   const lifetime = useRef<{ api: PhoenixApi, abort: AbortController } | undefined>(undefined)
   const profileRevision = useRef(0)
   const draftRef = useRef<ProfileDraft | undefined>(undefined)
-  const updateDraft = (next: ProfileDraft): void => { draftRef.current = next; setDraft(next) }
+  const manualProfileSelection = useRef(false)
+  const updateDraft = useCallback((next: ProfileDraft): void => { draftRef.current = next; setDraft(next) }, [])
   useEffect(() => {
     const abort = new AbortController()
     lifetime.current = { api, abort }
+    manualProfileSelection.current = false
     profileRevision.current += 1
     setSaving(false)
     setPermissionsPending(false)
@@ -98,9 +100,10 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
     } catch (cause) { if (!abort.signal.aborted) { setMessages(current => current.filter(item => item.id !== assistantId || item.text)); setError(message(cause, 'Copilot request failed.')) } }
     finally { if (streamRequest.current === abort) streamRequest.current = undefined; if (!abort.signal.aborted) { setPending(false); setToolStatus(undefined) } }
   }
-  const edit = async (id: string) => {
+  const edit = useCallback(async (id: string, manual = true) => {
     const owner = lifetime.current
     if (!owner || owner.api !== api || owner.abort.signal.aborted) return
+    if (manual) manualProfileSelection.current = true
     const signal = profileRequest.start()
     profileRevision.current += 1
     setSaving(false)
@@ -120,10 +123,14 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
     } catch (cause) {
       if (profileRequest.isCurrent(signal)) setError(message(cause, 'Unable to load Copilot profile.'))
     }
-  }
+  }, [api, profileRequest, updateDraft])
+  useEffect(() => {
+    if (view === 'profiles' && !manualProfileSelection.current) void edit(voice.activeProfile.id, false)
+  }, [edit, view, voice.activeProfile.id])
   const create = async () => {
     const owner = lifetime.current
     if (!owner || owner.api !== api || owner.abort.signal.aborted) return
+    manualProfileSelection.current = true
     const signal = profileRequest.start()
     profileRevision.current += 1
     setSaving(false)

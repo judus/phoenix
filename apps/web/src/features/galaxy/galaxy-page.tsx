@@ -1,4 +1,4 @@
-import { lazy, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { lazy, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { RoutePlotFeedback } from './route-plot-feedback.js'
 import { CatalogueSuggestionInput } from './catalogue-suggestion-input.js'
 import {
@@ -8,6 +8,7 @@ import {
   CheckIcon,
   ControlContext,
   Field,
+  FleetCarrierIcon,
   Form,
   FormActionGroup,
   FormActions,
@@ -33,7 +34,7 @@ import { GalaxyQueryResults, galaxyQueryResultCount, type GalaxyQueryResult } fr
 import type { GalaxyQuerySessionStore } from './galaxy-query-session-store.js'
 import { PlottedRoute } from './plotted-route.js'
 import { ExobiologyPage } from './exobiology-page.js'
-import { SystemSchematic, type CartographicSelection } from './system-schematic.js'
+import { isFleetCarrier, SystemSchematic, type CartographicSelection } from './system-schematic.js'
 import { BookmarksPage } from './bookmarks-page.js'
 import { SavedGalaxyQueriesPage } from './saved-galaxy-queries-page.js'
 import { useSystemBookmarkStatus } from './use-system-bookmark-status.js'
@@ -89,6 +90,7 @@ function SystemView({ api, commanderName, lookup, onNavigate, route }: {
   route: Extract<GalaxyRoute, { view: 'system' }>
 }) {
   const following = route.systemName === undefined
+  const [showFleetCarriers, setShowFleetCarriers] = useState(true)
   const [query, setQuery] = useState(route.systemName ?? lookup.system.name)
   const [plotting, setPlotting] = useState(false)
   const [plotResult, setPlotResult] = useState<PlotEliteDestinationResult>()
@@ -146,6 +148,19 @@ function SystemView({ api, commanderName, lookup, onNavigate, route }: {
   return (
     <PageFrame className="galaxy-system-page" layout="fit">
       <SystemHeader
+        carrierToggle={<IconButton
+          aria-pressed={showFleetCarriers}
+          className={`system-query__action system-query__toggle btn-toggle${showFleetCarriers ? ' active' : ''}`}
+          label={showFleetCarriers ? 'Hide fleet carriers' : 'Show fleet carriers'}
+          size="sm"
+          type="button"
+          onClick={() => {
+            if (showFleetCarriers && selected && 'services' in selected && isFleetCarrier(selected)) {
+              onNavigate({ kind: 'information', section: 'galaxy', view: 'system', ...(route.systemName ? { systemName: lookup.system.name } : {}) })
+            }
+            setShowFleetCarriers(value => !value)
+          }}
+        ><FleetCarrierIcon /></IconButton>}
         bookmarked={systemBookmarked}
         following={following}
         onBookmark={() => onNavigate({ kind: 'information', section: 'galaxy', view: 'bookmarks', systemName: lookup.system.name })}
@@ -175,6 +190,7 @@ function SystemView({ api, commanderName, lookup, onNavigate, route }: {
           ...(selectedName ? { selectedName } : {})
         })}
         selected={selected}
+        showFleetCarriers={showFleetCarriers}
         system={lookup.system}
       />
     </PageFrame>
@@ -222,8 +238,9 @@ function SystemState({ api, error, onNavigate, route, runtime }: {
   )
 }
 
-function SystemHeader({ bookmarked = false, following, onBookmark, onFollow, onLoad, onPlot, plotResult, plotting = false, query, setQuery, systemName }: {
+function SystemHeader({ bookmarked = false, carrierToggle, following, onBookmark, onFollow, onLoad, onPlot, plotResult, plotting = false, query, setQuery, systemName }: {
   bookmarked?: boolean
+  carrierToggle?: ReactNode
   following: boolean
   onBookmark?: () => void
   onFollow(): void
@@ -251,6 +268,7 @@ function SystemHeader({ bookmarked = false, following, onBookmark, onFollow, onL
         >
           {plotResult && <RoutePlotFeedback result={plotResult} />}
           <div className="system-query__controls">
+            {carrierToggle}
             <label className="sr-only" htmlFor="system-query-name">System name</label>
             <TextInput
               className="system-query__input"
