@@ -5,7 +5,7 @@ import { App } from '../apps/web/src/app.js'
 import type { PhoenixApplicationServices } from '../apps/web/src/bootstrap/create-application.js'
 import type { PhoenixApplicationShellProps } from '../apps/web/src/components/shell/phoenix-application-shell.js'
 import type { DesktopWorkspaceProps } from '../apps/web/src/components/shell/desktop-workspace.js'
-import { DEFAULT_ROUTE, type InformationRoute, type PhoenixRoute } from '../apps/web/src/application/navigation/phoenix-route.js'
+import { DEFAULT_ROUTE, defaultRouteForWorkspace, type InformationRoute, type PhoenixRoute } from '../apps/web/src/application/navigation/phoenix-route.js'
 import { phoenixRouteHash } from '../apps/web/src/application/navigation/phoenix-router.js'
 
 const state = vi.hoisted(() => ({
@@ -29,7 +29,7 @@ vi.mock('../apps/web/src/components/shell/desktop-workspace.js', () => ({
 }))
 
 const application = {
-  router: { href: phoenixRouteHash, getRememberedInformationRoute: () => DEFAULT_ROUTE }
+  router: { href: phoenixRouteHash, getRememberedInformationRoute: () => DEFAULT_ROUTE, routeForWorkspace: defaultRouteForWorkspace }
 } as unknown as PhoenixApplicationServices
 
 function composition(route: PhoenixRoute) {

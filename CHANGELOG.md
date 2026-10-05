@@ -4,6 +4,10 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Restore workspace swipes across page and table scroll surfaces; CTR and CPT now remember
+  their last pages, while a first visit to CTR uses the first configured deck.
+- Allow workspace swipes starting on ordinary control-deck tap buttons without firing commands;
+  retain protected hold/arming buttons and edit-mode dragging.
 - Retain journal system coordinates for Atlas bookmarks, including visited systems absent from
   EDSM; rebuild retained coordinates from journals and distinguish lookup errors from unknown positions.
 - Atlas selection details use a side panel (below the map on narrow screens); system names link

@@ -206,6 +206,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, v
                   const armed = armedElementId === elementId
                   return <ControlDeckCommandTile
                     appearance={element.appearance}
+                    data-deskplane-swipe-through={!editing && confirmation.kind === 'none' ? '' : undefined}
                     binding={target.destinationId.startsWith('saved-query:') ? 'Run query' : 'Open'}
                     label={element.appearance.label ?? command?.label ?? target.destinationId}
                     interaction={armed || confirmation.kind !== 'arm-then-tap' ? 'tap' : 'arm'}
@@ -241,6 +242,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, v
                   const interaction = resolveControlDeckInteraction(element.interaction, 'tap')
                   return <ControlDeckCommandTile
                     appearance={element.appearance}
+                    data-deskplane-swipe-through={!editing && confirmation.kind === 'none' ? '' : undefined}
                     binding="Macro"
                     label={element.appearance.label ?? macro?.name ?? target.macroId}
                     interaction={armed ? 'tap' : interaction.interactionHint}
@@ -277,6 +279,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, v
                 const interaction = resolveControlDeckInteraction(element.interaction, action.definition.inputMode)
                 return <ControlDeckCommandTile
                   appearance={element.appearance}
+                  data-deskplane-swipe-through={!editing && action.definition.inputMode !== 'hold' && confirmation.kind === 'none' ? '' : undefined}
                   binding={action.binding?.display ?? 'Unbound'}
                   label={element.appearance.label ?? action.definition.label}
                   interaction={armed ? 'tap' : interaction.interactionHint}

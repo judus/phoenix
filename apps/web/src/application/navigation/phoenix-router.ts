@@ -4,7 +4,8 @@ import {
   DEFAULT_ROUTE,
   type InformationRoute,
   type PhoenixRoute,
-  type PhoenixWorkspace
+  type PhoenixWorkspace,
+  type ControlCategory
 } from './phoenix-route.js'
 
 type RawRouteQuery = Readonly<Record<string, string>>
@@ -15,7 +16,7 @@ export interface PhoenixRouter {
   href(route: PhoenixRoute): string
   push(route: PhoenixRoute): void
   replace(route: PhoenixRoute): void
-  routeForWorkspace(workspace: PhoenixWorkspace): PhoenixRoute
+  routeForWorkspace(workspace: PhoenixWorkspace, firstControlCategory?: ControlCategory): PhoenixRoute
   subscribe(listener: () => void): () => void
 }
 
