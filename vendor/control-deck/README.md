@@ -1,7 +1,8 @@
 # Embedded Control Deck artifacts
 
-The JavaScript runtime is now `control-deck-phoenix-runtime-0.1.11.tgz`, built with
-`npm run package:phoenix` in the owning repository. It adds the core grid move/swap operation.
+The JavaScript runtime is now `control-deck-phoenix-runtime-0.1.12.tgz`, built with
+`npm run package:phoenix` in the owning repository. It adds the render-independent Numpy input
+controller, including bounded cold-start buffering and stale-completion protection.
 The native Linux helper remains at 0.1.10; its input behavior is unchanged. The npm lockfile pins
 the runtime archive integrity. No standalone Control Deck UI is bundled in this runtime.
 

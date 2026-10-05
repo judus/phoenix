@@ -1,21 +1,25 @@
-import { useEffect, useSyncExternalStore } from 'react'
+import { useEffect } from 'react'
 import type { DevicePreferences } from '../../application/settings/device-preferences.js'
-import type { NumpadRouteSession } from '../../application/navigation/numpad-route-session.js'
-import type { PhoenixRouter } from '../../application/navigation/phoenix-router.js'
+import type { NumpadRuntime } from './numpad-runtime.js'
 
-export function NumpadActivation({ devicePreferences, routeSession, router }: { devicePreferences: DevicePreferences, routeSession: NumpadRouteSession, router: PhoenixRouter }) {
-  const preferences = useSyncExternalStore(devicePreferences.subscribe, devicePreferences.getSnapshot, devicePreferences.getSnapshot)
+export function NumpadActivation({ devicePreferences, runtime }: { devicePreferences: DevicePreferences, runtime: NumpadRuntime }) {
   useEffect(() => {
     if (typeof window === 'undefined') return
     const activate = (event: KeyboardEvent) => {
-      if (!preferences.captureNumpad || event.code !== 'Numpad0' || editable(event.target) || router.getSnapshot().kind === 'numpad') return
-      event.preventDefault()
-      routeSession.arm()
-      router.push({ kind: 'numpad' })
+      if (editable(event.target)) return
+      if (runtime.keyDown(event, devicePreferences.getSnapshot().captureNumpad)) event.preventDefault()
     }
+    const release = (event: KeyboardEvent) => runtime.controller.keyUp(event.code)
+    const blur = () => runtime.controller.reset()
     window.addEventListener('keydown', activate)
-    return () => window.removeEventListener('keydown', activate)
-  }, [preferences.captureNumpad, routeSession, router])
+    window.addEventListener('keyup', release)
+    window.addEventListener('blur', blur)
+    return () => {
+      window.removeEventListener('keydown', activate)
+      window.removeEventListener('keyup', release)
+      window.removeEventListener('blur', blur)
+    }
+  }, [devicePreferences, runtime])
   return null
 }
 

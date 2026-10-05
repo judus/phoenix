@@ -18,7 +18,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "control-deck": "file:../../vendor/control-deck/control-deck-phoenix-runtime-0.1.11.tgz",
+    "control-deck": "file:../../vendor/control-deck/control-deck-phoenix-runtime-0.1.12.tgz",
     "zod": "^4.4.3"
   }
 }
