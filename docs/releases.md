@@ -63,9 +63,10 @@ release. Installers do not self-update: users download and run the newer install
 
 ## README download links
 
-Until the first publication, the README links to the Releases page and says downloads are pending.
-Drafts are visible only to people with repository write access. Preview releases are downloadable
-after publication but are excluded from GitHub's `latest` release redirect.
+The README links directly to the Windows installer and Linux AppImage in the published
+v0.1.4 prerelease. Preview links must include the tag (`releases/download/v0.1.4/...`), because
+prereleases are excluded from GitHub's `latest` release redirect. Update both links and the
+release-notes link when publishing the next preview. Draft assets are not public downloads.
 
 Once a normal release exists, these stable asset names allow permanent links without editing the
 README for each version:
