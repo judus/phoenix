@@ -16,6 +16,7 @@ mkdirSync(outputRoot, { recursive: true })
 
 copy('apps/web/dist')
 copy('resources/copilots')
+copy('resources/queries')
 copy('LICENSE')
 copy('NOTICE')
 copy('THIRD_PARTY_NOTICES.md')

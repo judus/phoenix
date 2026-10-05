@@ -21,6 +21,7 @@ for (const required of [
   'apps/server/dist/main.js',
   'apps/web/dist/index.html',
   'resources/copilots/marin/agent.md',
+  'resources/queries/predefined.json',
   'resources/copilots/ash/agent.md',
   'LICENSE',
   'NOTICE',

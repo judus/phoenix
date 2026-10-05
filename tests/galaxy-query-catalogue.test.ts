@@ -1,7 +1,29 @@
 import { describe, expect, it } from 'vitest'
 import { GALAXY_QUERY_CATALOGUE } from '../apps/web/src/features/galaxy/galaxy-query-catalogue.js'
+import { loadPredefinedGalaxyQueries } from '../apps/server/src/infrastructure/predefined-galaxy-queries.js'
 
 describe('Galaxy query catalogue', () => {
+  it('keeps reported-target defaults separate from the predefined saved query', () => {
+    const exploration = GALAXY_QUERY_CATALOGUE.find(query => query.id === 'exploration-targets')!
+    expect(exploration.defaults).toMatchObject({ landable: 'yes', minBiologicalSignals: '1', lastReportedBefore: '' })
+    const [preset] = loadPredefinedGalaxyQueries('resources/queries')
+    expect(preset!.parameters).toMatchObject({
+      landable: 'any', minBiologicalSignals: '0', minGeologicalSignals: '0', lastReportedBefore: '2021-05-18',
+      bodyType: ['High metal content world'], minTemperatureK: '165', maxTemperatureK: '',
+      minGravityG: '', maxGravityG: '', volcanism: [],
+      atmosphere: ['Thin Ammonia', 'Thin Carbon dioxide', 'Thin Carbon dioxide-rich', 'Thin Oxygen', 'Thin Sulphur dioxide', 'Thin Water', 'Thin Water-rich']
+    })
+    expect(preset!.parameters).toMatchObject({ origin: '', originMode: 'current', maxDistance: '500' })
+    for (const [id, value] of Object.entries(preset!.parameters)) {
+      if (id === 'originMode') continue
+      const field = exploration.fields.find(field => field.id === id)!
+      expect(field).toBeDefined()
+      if (field.options) for (const option of Array.isArray(value) ? value : [value]) expect(field.options.map(choice => choice.value)).toContain(option)
+    }
+    const hint = exploration.fields.find(field => field.id === 'lastReportedBefore')!.hint!
+    for (const wording of ['2021-05-18', 'Landable = Any', 'no signal-count constraint', 'not guaranteed']) expect(hint).toContain(wording)
+    expect(hint).not.toContain('2021-05-19')
+  })
   it('requires only a station name and leaves all narrowing filters optional', () => {
     const query = GALAXY_QUERY_CATALOGUE.find(query => query.id === 'station-lookup')!
     expect(query.fields.filter(field => field.required).map(field => field.id)).toEqual(['name'])

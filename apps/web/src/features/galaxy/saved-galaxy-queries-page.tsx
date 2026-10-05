@@ -30,6 +30,7 @@ export function SavedGalaxyQueriesPage({ api, onNavigate }: {
   const [queries, setQueries] = useState<SavedGalaxyQuery[]>()
   const [error, setError] = useState<string>()
   const [deleting, setDeleting] = useState<string>()
+  const [importing, setImporting] = useState(false)
   const [search, setSearch] = useState('')
   const [queryType, setQueryType] = useState('')
   const text = search.trim().toLowerCase()
@@ -42,7 +43,7 @@ export function SavedGalaxyQueriesPage({ api, onNavigate }: {
     const controller = new AbortController()
     setError(undefined)
     void api.getSavedGalaxyQueries(controller.signal)
-      .then(response => setQueries(response.queries))
+      .then(response => { if (!controller.signal.aborted) setQueries(response.queries) })
       .catch(cause => {
         if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Saved queries unavailable.')
       })
@@ -79,7 +80,7 @@ export function SavedGalaxyQueriesPage({ api, onNavigate }: {
       cell: query => <div className="saved-query-actions">
         <Button size="sm" variant="accent" onClick={() => onNavigate(savedQueryRoute(query, true))}>Run</Button>
         <IconButton label={`Edit ${query.name}`} size="sm" variant="outline" onClick={() => onNavigate(savedQueryRoute(query, false))}><PencilIcon /></IconButton>
-        <IconButton busy={deleting === query.id} label={`Delete ${query.name}`} size="sm" variant="danger" onClick={() => {
+        <IconButton busy={deleting === query.id} disabled={importing || !!deleting} label={`Delete ${query.name}`} size="sm" variant="danger" onClick={() => {
           setDeleting(query.id)
           setError(undefined)
           void api.deleteGalaxyQuery(query.id)
@@ -92,7 +93,7 @@ export function SavedGalaxyQueriesPage({ api, onNavigate }: {
       heading: 'Actions',
       id: 'actions'
     }
-  ], [api, deleting, onNavigate])
+  ], [api, deleting, importing, onNavigate])
 
   return (
     <PageFrame layout="fit">
@@ -101,6 +102,14 @@ export function SavedGalaxyQueriesPage({ api, onNavigate }: {
           variant="cockpit"
           context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Query console', href: '#/galaxy/database' }, { label: 'Saved queries' }]} />}
           title="Saved queries"
+          actions={<Button size="sm" variant="outline" busy={importing} disabled={!queries || !!deleting} onClick={() => {
+            setImporting(true)
+            setError(undefined)
+            void api.importPredefinedGalaxyQueries()
+              .then(response => setQueries(response.queries))
+              .catch(cause => setError(cause instanceof Error ? cause.message : 'Predefined queries could not be added.'))
+              .finally(() => setImporting(false))
+          }}>Add predefined queries</Button>}
         />
         <FormGrid>
           <Field label="Search saved queries" htmlFor="saved-query-search">

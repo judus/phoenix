@@ -442,6 +442,11 @@ export class PhoenixHttpServer {
       return
     }
 
+    if (request.method === 'POST' && url.pathname === '/api/galaxy/saved-queries/predefined') {
+      this.writeJson(response, 200, this.options.savedGalaxyQueries.importPredefined())
+      return
+    }
+
     const savedGalaxyQueryMatch = url.pathname.match(/^\/api\/galaxy\/saved-queries\/([^/]+)$/u)
     if (savedGalaxyQueryMatch && request.method === 'PUT') {
       const input = await readValidatedJsonBody(request, SavedGalaxyQueryWriteRequestSchema)

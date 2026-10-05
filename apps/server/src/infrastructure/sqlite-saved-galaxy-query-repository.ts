@@ -41,6 +41,24 @@ export class SqliteSavedGalaxyQueryRepository implements SavedGalaxyQueryReposit
     `).run(validated.id, validated.updatedAt, JSON.stringify(validated))
   }
 
+  public insertMissingSavedGalaxyQueries (queries: SavedGalaxyQuery[]): number {
+    const validated = queries.map(query => SavedGalaxyQuerySchema.parse(query))
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      const insert = this.connection.prepare(`
+        INSERT INTO saved_galaxy_queries (query_id, updated_at, document) VALUES (?, ?, ?)
+        ON CONFLICT(query_id) DO NOTHING
+      `)
+      let added = 0
+      for (const query of validated) added += Number(insert.run(query.id, query.updatedAt, JSON.stringify(query)).changes)
+      this.connection.exec('COMMIT')
+      return added
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
+    }
+  }
+
   private createTable (): void {
     if (this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = ?').get(TABLE_MIGRATION)) return
     this.connection.exec('BEGIN IMMEDIATE')

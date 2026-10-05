@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
+import { loadPredefinedGalaxyQueries } from './infrastructure/predefined-galaxy-queries.js'
 import { EddnContributionService } from './application/eddn-contribution-service.js'
 import { EddnHttpTransport } from './infrastructure/eddn-http-transport.js'
 import { EddnSchemaValidator } from './infrastructure/eddn-schema-validator.js'
@@ -185,7 +186,7 @@ export class PhoenixApplication {
   private readonly controlDeck: ControlDeckIntegration
   private readonly eliteControls: ControlDeckCommandService
   private readonly database: SqliteDatabase
-  private readonly initializeShortcuts: () => void
+  private readonly initializeShortcuts: (newProfile: boolean) => void
   private readonly eventIngestion: GameEventIngestionService
   private readonly journalSource: EliteJournalFileSource
   private readonly journalBackfill: EliteJournalHistoryBackfill
@@ -223,7 +224,7 @@ export class PhoenixApplication {
     const localTraffic = new LocalTrafficService(this.database)
     const shortcutsChanged = () => commandCatalogueChanges.publish({ source: 'shortcuts' })
     const bookmarks = new GalaxyBookmarkService(this.database, undefined, undefined, shortcutsChanged)
-    const savedGalaxyQueries = new SavedGalaxyQueryService(this.database.savedGalaxyQueries, undefined, undefined, shortcutsChanged)
+    const savedGalaxyQueries = new SavedGalaxyQueryService(this.database.savedGalaxyQueries, undefined, undefined, shortcutsChanged, loadPredefinedGalaxyQueries(paths.resources.queries))
     let shortcutsReady = false
     const navigationDestinations = () => shortcutsReady
       ? shortcutNavigationDestinations(bookmarks, savedGalaxyQueries)
@@ -423,7 +424,8 @@ export class PhoenixApplication {
       macroRepository
     )
     const commandCatalogue = new CommandCatalogueService(commandRegistry, commandCatalogueChanges)
-    this.initializeShortcuts = () => {
+    this.initializeShortcuts = newProfile => {
+      if (newProfile) savedGalaxyQueries.importPredefined()
       shortcutsReady = true
       shortcutsChanged()
     }
@@ -632,8 +634,7 @@ export class PhoenixApplication {
   }
 
   public async start (): Promise<{ host: string, port: number }> {
-    this.database.initialize()
-    this.initializeShortcuts()
+    this.initializeShortcuts(this.database.initialize())
     try {
       this.eddn.start()
       await this.controlDeck.start()

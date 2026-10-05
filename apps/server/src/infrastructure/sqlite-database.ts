@@ -67,7 +67,8 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     this.restrictFiles()
   }
 
-  public initialize (): void {
+  public initialize (): boolean {
+    const newProfile = !this.connection.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'").get()
     this.connection.exec(`
       PRAGMA foreign_keys = ON;
       PRAGMA journal_mode = WAL;
@@ -247,6 +248,7 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     this.commanderLog.initialize()
     this.engineeringProjects.initialize()
     this.savedGalaxyQueries.initialize()
+    return newProfile
   }
 
   public findRecord (systemName: string): CartographyRecord | null {

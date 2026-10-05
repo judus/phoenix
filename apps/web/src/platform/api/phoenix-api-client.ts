@@ -385,6 +385,10 @@ export class PhoenixApiClient implements PhoenixApi {
     return this.#get('/api/galaxy/saved-queries', SavedGalaxyQueriesResponseSchema, signal)
   }
 
+  async importPredefinedGalaxyQueries(signal?: AbortSignal): Promise<SavedGalaxyQueriesResponse> {
+    return this.#json('/api/galaxy/saved-queries/predefined', 'POST', {}, SavedGalaxyQueriesResponseSchema, signal)
+  }
+
   async saveGalaxyQuery(input: SavedGalaxyQueryWriteRequest, id?: string, signal?: AbortSignal): Promise<SavedGalaxyQuery> {
     return this.#json(
       id ? `/api/galaxy/saved-queries/${encodeURIComponent(id)}` : '/api/galaxy/saved-queries',

@@ -7,14 +7,15 @@ import {
   type SavedGalaxyQuery,
   type SavedGalaxyQueryWriteRequest
 } from '@phoenix/contracts'
-import type { SavedGalaxyQueries, SavedGalaxyQueryRepository } from '../domain/saved-galaxy-queries.js'
+import type { PredefinedGalaxyQuery, SavedGalaxyQueries, SavedGalaxyQueryRepository } from '../domain/saved-galaxy-queries.js'
 
 export class SavedGalaxyQueryService implements SavedGalaxyQueries {
   public constructor (
     private readonly repository: SavedGalaxyQueryRepository,
     private readonly now: () => Date = () => new Date(),
     private readonly createId: () => string = randomUUID,
-    private readonly onChange: () => void = () => {}
+    private readonly onChange: () => void = () => {},
+    private readonly predefined: readonly PredefinedGalaxyQuery[] = []
   ) {}
 
   public create (input: SavedGalaxyQueryWriteRequest): SavedGalaxyQuery {
@@ -37,6 +38,16 @@ export class SavedGalaxyQueryService implements SavedGalaxyQueries {
 
   public getAll (): SavedGalaxyQueriesResponse {
     return { queries: this.repository.listSavedGalaxyQueries() }
+  }
+
+  public importPredefined (): SavedGalaxyQueriesResponse {
+    const timestamp = this.now().toISOString()
+    const queries = this.predefined.map(({ id, ...input }) => SavedGalaxyQuerySchema.parse({
+      ...normalizeInput(input), id, schemaVersion: 2,
+      createdAt: timestamp, updatedAt: timestamp
+    }))
+    if (this.repository.insertMissingSavedGalaxyQueries(queries) > 0) this.onChange()
+    return this.getAll()
   }
 
   public getDashboardQuery(queryId: GalaxyQueryId): SavedGalaxyQuery | null {
