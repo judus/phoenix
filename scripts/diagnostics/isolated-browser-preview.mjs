@@ -1,5 +1,6 @@
 // npm run build, then: node --import tsx scripts/diagnostics/isolated-browser-preview.mjs
 // In-memory browser diagnostics only: no real journals, game input, or provider requests.
+// Add --prospecting for a synthetic pre-Odyssey candidate with unknown signal counts.
 import { createRequire } from 'node:module'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -16,6 +17,7 @@ const { RecordingKeyboardOutput } = require('control-deck/adapter-keyboard')
 const projectRoot = fileURLToPath(new URL('../../', import.meta.url))
 const denseCartography = process.argv.includes('--dense-cartography')
 const eddnSubmissions = process.argv.includes('--eddn-submissions')
+const prospecting = process.argv.includes('--prospecting')
 const fixtureDirectory = eddnSubmissions ? mkdtempSync(join(tmpdir(), 'phoenix-eddn-preview-')) : undefined
 const databasePath = fixtureDirectory ? join(fixtureDirectory, 'preview.sqlite') : ':memory:'
 // This preview must never upload, even when launched from a test-enabled development shell.
@@ -40,6 +42,12 @@ const application = new PhoenixApplication({
   copilot: null,
   copilotRealtime: null,
   openAiEnvironmentKey: null,
+  ...(prospecting ? { explorationTargetSource: { findTargets: async () => [{
+    atmosphere: 'Thin Ammonia', biologicalSignals: null, bodyId: 1, bodyName: 'Synthetic A 1', bodyType: 'Planet',
+    distanceLy: 10, distanceToArrivalLs: 200, geologicalSignals: null, gravityG: 0.2, landable: false,
+    providerUpdatedAt: '2021-05-18T12:00:00Z', signalsUpdatedAt: null, subtype: 'High metal content world',
+    surfaceTemperatureK: 180, systemAddress: 42, systemName: 'Synthetic', volcanism: null
+  }] } } : {}),
   cartographySource: { fetchSystem: async name => denseCartography ? mockDenseCartography(name) : ({
     schemaVersion: 5, name, address: null, position: [0, 0, 0],
     permitRequired: false, permitName: null,
