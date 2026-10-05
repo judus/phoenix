@@ -37,7 +37,6 @@ import { engineeringRuntimeFingerprint } from './features/engineering/engineerin
 import { controlsContext, controlsNavigationItems } from './features/controls/controls-navigation.js'
 import { useControlsController } from './features/controls/use-controls-controller.js'
 import { useMacroRuntime } from './features/macros/macro-runtime-provider.js'
-import { useNumpadController } from './features/numpad/use-numpad-controller.js'
 import { useJournalController } from './features/journal/use-journal-controller.js'
 import { developerNavigationItems, journalContext, journalNavigationItems } from './features/journal/journal-navigation.js'
 import { CommanderLogPage } from './features/journal/commander-log-page.js'
@@ -238,7 +237,7 @@ const MacrosFeature = memo(function MacrosFeature() {
 })
 
 const NumpadFeature = memo(function NumpadFeature({ application }: { application: PhoenixApplicationServices }) {
-  return <NumpadPage api={application.api} controller={useNumpadController(application.api, application.events)} devicePreferences={application.devicePreferences} routeSession={application.numpadRouteSession} />
+  return <NumpadPage runtime={application.numpad} devicePreferences={application.devicePreferences} />
 })
 
 const JournalFeature = memo(function JournalFeature({ application }: { application: PhoenixApplicationServices }) {

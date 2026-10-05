@@ -8,7 +8,7 @@ import type { CommandCatalogueChange } from '../apps/server/src/domain/commands.
 import { InMemoryControlDeckConfigurationRepository } from '../apps/server/src/infrastructure/in-memory-control-deck-configuration-repository.js'
 import { InProcessPublisher } from '../apps/server/src/infrastructure/in-process-publisher.js'
 import { NotifyingControlDeckConfigurationRepository } from '../apps/server/src/infrastructure/notifying-command-source-repositories.js'
-import { activateNumpadSession, displayedNumpadAddress, enterNumpadDigitOrCancel } from '../apps/web/src/features/numpad/numpad-session.js'
+import { activateControlDeckNumpadSession, displayedControlDeckNumpadAddress, enterControlDeckNumpadDigitOrCancel } from 'control-deck/core'
 
 test('Controls selects saved decks in order and never synthesizes macro menus', () => {
   const { projector } = fixture()
@@ -23,11 +23,11 @@ test('Controls selects saved decks in order and never synthesizes macro menus', 
     .toEqual([['1', 'Controls'], ['2', 'Info'], ['3', 'Copilot'], ['5', 'Log'], ['6', 'Settings']])
 
   for (const [digit, id] of [['1', 'quick'], ['2', 'ship'], ['3', 'combat']]) {
-    let state = activateNumpadSession().state
-    state = enterNumpadDigitOrCancel(snapshot, state, '1', false).state
-    state = enterNumpadDigitOrCancel(snapshot, state, digit!, false).state
+    let state = activateControlDeckNumpadSession()
+    state = enterControlDeckNumpadDigitOrCancel(snapshot, state, '1').state
+    state = enterControlDeckNumpadDigitOrCancel(snapshot, state, digit!).state
     expect(state).toMatchObject({ pathIds: ['phoenix:desktop.controls', `phoenix:controls.${id}`], status: 'browsing', pendingDigits: '' })
-    expect(displayedNumpadAddress(snapshot, state)).toBe(`01${digit}`)
+    expect(displayedControlDeckNumpadAddress(snapshot, state)).toBe(`01${digit}`)
   }
 })
 
