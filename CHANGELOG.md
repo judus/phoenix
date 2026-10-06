@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Complete application cleanup even when a subsystem fails to stop, and preserve startup failures
+  alongside rollback errors instead of leaving later resources running.
 - Split the Copilot profile editor into Profile and Permissions tabs, with a one-third-width
   roster, pinned Save/Create actions and profile AI load, and immediate permission-save feedback.
 - Move New profile into the Profiles page header, keeping it accessible while the roster scrolls.

@@ -642,8 +642,8 @@ export class PhoenixApplication {
   }
 
   public async start (): Promise<{ host: string, port: number }> {
-    this.initializeShortcuts(this.database.initialize())
     try {
+      this.initializeShortcuts(this.database.initialize())
       this.eddn.start()
       await this.controlDeck.start()
       await this.eliteControls.start()
@@ -655,30 +655,39 @@ export class PhoenixApplication {
       void this.journalBackfill.start()
       return address
     } catch (cause) {
-      await this.eddn.stop()
-      this.journalSource.stop()
-      this.statusSource.stop()
-      this.inventorySource.stop()
-      this.navigationRouteSource.stop()
-      await this.controlDeck.stop()
-      await this.eliteControls.stop()
-      this.database.close()
+      try {
+        await this.stop()
+      } catch (cleanupError) {
+        throw new AggregateError([cause, cleanupError], 'PHOENIX startup failed and cleanup encountered errors.', { cause })
+      }
       throw cause
     }
   }
 
   public async stop (): Promise<void> {
-    this.journalSource.stop()
-    await this.eddn.stop()
-    this.statusSource.stop()
-    this.inventorySource.stop()
-    this.navigationRouteSource.stop()
-    await this.journalBackfill.stop()
-    await this.server.stop()
-    await this.controlDeck.stop()
-    await this.gameActions.stop?.()
-    await this.eliteControls.stop()
-    this.database.close()
+    const errors: unknown[] = []
+    // Keep dependencies alive until their consumers finish: journal before EDDN,
+    // game actions before the Elite adapter, and all persistence users before SQLite.
+    for (const cleanup of [
+      () => this.journalSource.stop(),
+      () => this.eddn.stop(),
+      () => this.statusSource.stop(),
+      () => this.inventorySource.stop(),
+      () => this.navigationRouteSource.stop(),
+      () => this.journalBackfill.stop(),
+      () => this.server.stop(),
+      () => this.controlDeck.stop(),
+      () => this.gameActions.stop?.(),
+      () => this.eliteControls.stop(),
+      () => this.database.close()
+    ]) {
+      try {
+        await cleanup()
+      } catch (cause) {
+        errors.push(cause)
+      }
+    }
+    if (errors.length > 0) throw new AggregateError(errors, 'PHOENIX shutdown encountered errors.')
   }
 
   public ingestGameEvent (candidate: unknown): GameEventEnvelope {
