@@ -140,6 +140,10 @@ links and the native local-build fallback if Actions storage or runners are unav
 
 ## Current-build Windows acceptance
 
+The [acceptance matrix](../../docs/acceptance.md) consolidates current evidence, tested versions
+and pending checks across Windows, Linux, tablet and real gameplay. The detailed steps below
+remain the Windows procedure; update the matrix with the exact artifact/source when testing.
+
 The development host is Linux; native Windows build/installer verification runs in GitHub
 Actions. Check the [CI and release runs](https://github.com/judus/phoenix/actions) for the exact
 revision being evaluated. A green check proves the automated gates below, not live gameplay:
