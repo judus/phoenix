@@ -1,6 +1,61 @@
 import { expect, test } from 'vitest'
 import { numpadRuntimeFixture, numpadTree } from './support/numpad-runtime-fixture.js'
 
+test('Backspace traverses parents without leaving Numpy or waiting for paints', async () => {
+  const fixture = numpadRuntimeFixture()
+  fixture.runtime.start()
+  await fixture.settle()
+  for (const digit of '011') fixture.key(digit)
+  const back = () => fixture.runtime.keyDown({ code: 'Backspace', key: 'Backspace' }, true)
+  expect(back()).toBe(true)
+  expect(fixture.runtime.controller.getSnapshot().session.pathIds).toEqual(['controls'])
+  back()
+  back()
+  expect(fixture.runtime.controller.getSnapshot().session).toEqual({ active: true, pathIds: [], pendingDigits: '', status: 'browsing' })
+  expect(fixture.routeSession.leave).not.toHaveBeenCalled()
+  expect(fixture.api.executeNumpadAddress).not.toHaveBeenCalled()
+  expect(fixture.paints).toHaveLength(1)
+  for (const digit of '112') fixture.key(digit)
+  expect(fixture.api.executeNumpadAddress).toHaveBeenCalledExactlyOnceWith('112', 1)
+  await fixture.settle()
+  expect(fixture.routeSession.navigate).toHaveBeenCalledExactlyOnceWith('#/galaxy/system')
+  fixture.runtime.stop()
+})
+
+test('cold Backspace preserves ordered input and the resolved map revision', async () => {
+  const fixture = numpadRuntimeFixture()
+  let resolve!: (tree: typeof numpadTree) => void
+  fixture.api.getNumpadSnapshot.mockImplementationOnce(() => new Promise(done => { resolve = done }))
+  fixture.runtime.start()
+  for (const digit of '011') fixture.key(digit)
+  fixture.runtime.keyDown({ code: 'Backspace', key: 'Backspace' }, true)
+  for (const digit of '12') fixture.key(digit)
+  resolve(numpadTree)
+  await fixture.settle()
+  expect(fixture.api.executeNumpadAddress).toHaveBeenCalledExactlyOnceWith('112', 1)
+  expect(fixture.routeSession.navigate).toHaveBeenCalledExactlyOnceWith('#/galaxy/system')
+  fixture.runtime.stop()
+})
+
+test('Backspace unarms confirmation while an executing command retains completion ownership', async () => {
+  const fixture = numpadRuntimeFixture()
+  fixture.api.getModuleSettings.mockResolvedValue({ ...fixture.settings, numpadCommands: { ...fixture.settings.numpadCommands, alwaysConfirm: true } })
+  fixture.runtime.start()
+  await fixture.settle()
+  for (const digit of '0112') fixture.key(digit)
+  expect(fixture.runtime.controller.getSnapshot().session.status).toBe('ready')
+  fixture.runtime.keyDown({ code: 'Backspace', key: 'Backspace' }, true)
+  fixture.runtime.controller.confirm()
+  expect(fixture.api.executeNumpadAddress).not.toHaveBeenCalled()
+  fixture.key('2')
+  fixture.runtime.controller.confirm()
+  fixture.runtime.keyDown({ code: 'Backspace', key: 'Backspace' }, true)
+  expect(fixture.api.executeNumpadAddress).toHaveBeenCalledExactlyOnceWith('112', 1)
+  await fixture.settle()
+  expect(fixture.routeSession.navigate).toHaveBeenCalledExactlyOnceWith('#/galaxy/system')
+  fixture.runtime.stop()
+})
+
 test('cold rapid activation buffers the entire address without mounting a view', async () => {
   const fixture = numpadRuntimeFixture()
   let resolve!: (tree: typeof numpadTree) => void
