@@ -578,7 +578,7 @@ function SaveQueryPanel ({ dashboardEligible, error, name, onCancel, onChange, o
 }
 
 function QueryConsoleState ({ error }: { error?: string }) {
-  return <PageFrame><PageHeader variant="cockpit" context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Query console' }]} />} title="Query console" />{error ? <Status tone="danger">{error}</Status> : <Loading>Loading saved query…</Loading>}</PageFrame>
+  return <PageFrame layout="fit"><PageHeader variant="cockpit" context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Query console' }]} />} title="Query console" />{error ? <Status tone="danger">{error}</Status> : <Loading>Loading saved query…</Loading>}</PageFrame>
 }
 
 function queryValues (definition: GalaxyQueryDefinition, parameters: SavedGalaxyQuery['parameters'] | undefined): Record<string, GalaxyQueryValue> {
