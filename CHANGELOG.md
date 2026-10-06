@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Isolate Settings HTTP handling behind a plain function and shared JSON helpers, preserving
+  pairing, endpoint behavior and response contracts without introducing a routing framework.
 - Report malformed, empty and oversized EDDN settings requests as client errors, while keeping
   actual preference-service failures distinguishable as server errors.
 - Ignore unread journal buffer bytes after a short filesystem read, preserving incomplete records
