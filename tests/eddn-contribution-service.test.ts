@@ -137,7 +137,7 @@ describe('EDDN contribution lifecycle', () => {
     expect(f.outbox.status().queued).toBe(1000)
     expect(f.service.status()).toMatchObject({ losses: [{ reason: 'capacity', count: 1 }] })
     expect((f.connection.prepare('SELECT COUNT(*) AS count FROM eddn_receipts').get() as { count: number }).count).toBe(1000)
-    expect(f.service.status().error).toContain('queue is full')
+    expect(f.service.status().error).toContain('storage is at capacity')
     await f.service.flush()
     f.service.observe(f.event, { id: '1000', replayed: false })
     expect(f.service.status()).toMatchObject({ queued: 1000, error: null, losses: [{ reason: 'capacity', count: 1 }] })
@@ -201,5 +201,14 @@ describe('EDDN contribution lifecycle', () => {
       expect(f.send).toHaveBeenCalledOnce()
       expect(restarted.status()).toMatchObject({ queued: 0, error: null, losses: [{ reason: 'expired', count: 1 }] })
     } finally { await restarted.stop() }
+  })
+
+  test('a queued timestamp outside the future tolerance is invalid, not expired', async () => {
+    const f = fixture()
+    f.service.observe(f.event, { id: 'future-queue', replayed: false })
+    f.connection.prepare("UPDATE eddn_outbox SET document = json_set(document, '$.message.timestamp', ?)").run(new Date(startTime + 10 * 60_000).toISOString())
+    await f.service.flush()
+    expect(f.send).not.toHaveBeenCalled()
+    expect(f.service.status()).toMatchObject({ queued: 0, losses: [{ reason: 'invalid', count: 1 }] })
   })
 })

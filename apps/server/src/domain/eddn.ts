@@ -54,7 +54,7 @@ export interface EddnOutbox {
 }
 
 export class EddnQueueCapacityError extends Error {
-  public constructor () { super('Contribution queue is full. This observation was skipped; queued observations will still retry.') }
+  public constructor () { super('Contribution storage is at capacity. This observation was skipped; queued observations will still retry.') }
 }
 
 export interface EddnTransport {

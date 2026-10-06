@@ -49,6 +49,6 @@ test('community settings exposes historical loss totals after a successful send'
   let renderer!: ReturnType<typeof create>
   try {
     await act(async () => { renderer = create(<CommunityDataSettings api={api} />) })
-    expect(JSON.stringify(renderer.toJSON())).toContain('3 skipped (queue full)')
+    expect(JSON.stringify(renderer.toJSON())).toContain('3 skipped (capacity limit)')
   } finally { if (renderer) await act(async () => renderer.unmount()) }
 })

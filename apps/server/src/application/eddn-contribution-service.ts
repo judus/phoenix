@@ -180,7 +180,8 @@ export class EddnContributionService {
         return
       }
       if (!this.fresh(next.message.message.timestamp) || Date.parse(String(next.message.message.timestamp)) < this.enabledSince) {
-        this.options.outbox.drop(next.id, 'expired', this.now())
+        const timestamp = Date.parse(String(next.message.message.timestamp))
+        this.options.outbox.drop(next.id, Number.isFinite(timestamp) && timestamp <= this.now() ? 'expired' : 'invalid', this.now())
         this.error = 'An expired or invalid queued observation was discarded.'
         return
       }
