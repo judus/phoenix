@@ -4,6 +4,7 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Navigate back in Numpy with Backspace: erase a pending digit or return to the parent menu.
 - Restore Numpy's root shortcut 4 to the Macros library and align the Cancel header with its keys.
 - Shorten Numpy's ambiguous-address prompt to keep the status row compact.
 - Place Settings and Developer tools after Log in the top workspace row for horizontal swiping.
