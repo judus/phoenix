@@ -200,16 +200,15 @@
   .copilot-profiles {
     display: grid;
     min-block-size: 0;
-    grid-template-columns: var(--roster-columns);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
     gap: var(--spacing-md);
     overflow: hidden;
   }
 
   .copilot-profiles > aside {
-    display: flex;
+    display: grid;
     min-block-size: 0;
-    flex-direction: column;
-    gap: var(--spacing-sm);
+    grid-template-rows: minmax(0, 1fr);
   }
 
   .copilot-profiles > aside > .table-region {
@@ -217,14 +216,10 @@
     overflow-y: auto;
   }
 
-  .copilot-profiles > aside .btn {
-    inline-size: 100%;
-  }
-
   .copilot-profile-editor {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
-    gap: var(--spacing-sm);
+    gap: var(--spacing-md);
     min-inline-size: 0;
     min-block-size: 0;
     overflow: hidden;
