@@ -33,7 +33,7 @@ test('pending data, retry reservations, receipts and acknowledgement survive dat
     connection = new DatabaseSync(path)
     outbox = new SqliteEddnOutbox(connection)
     outbox.initialize()
-    expect(outbox.status()).toEqual({ queued: 0, lastSuccessAt: new Date(now + 75_000).toISOString() })
+    expect(outbox.status()).toEqual({ queued: 0, lastSuccessAt: new Date(now + 75_000).toISOString(), losses: [] })
     expect(outbox.enqueue('one', message, now + 80_000)).toBe(false)
     outbox.enqueue('two', message, now)
     outbox.prune(now + EDDN_MAX_AGE_MS)
@@ -57,7 +57,7 @@ test('attempt history is newest-first, bounded, independent of pending uploads a
       latest = outbox.beginAttempt('stock', now + 75_000, now)
       outbox.finishAttempt(latest, 'retry', 503, now, now + 60_000)
     }
-    outbox.clear()
+    outbox.clear(now)
     const entries = outbox.submissions(now)
     expect(entries).toHaveLength(100)
     expect(entries[0]).toMatchObject({ id: latest, attempt: 105, system: 'Sol', station: 'Galileo', event: null })
@@ -87,3 +87,68 @@ test('history byte budget retains the newest attempts and summaries support dedi
     expect(bytes.bytes).toBeLessThanOrEqual(16 * 1024 * 1024)
   } finally { connection.close() }
 })
+
+test('loss totals survive database reopen, success and history expiry without counting empty clears twice', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-eddn-losses-'))
+  const path = join(directory, 'outbox.sqlite')
+  const now = Date.parse('2026-10-04T18:00:00Z')
+  let connection = new DatabaseSync(path)
+  const message = lossFixture(now)
+  try {
+    let outbox = new SqliteEddnOutbox(connection)
+    outbox.initialize()
+    outbox.enqueue('expires', message, now)
+    outbox.enqueue('accepted', message, now)
+    const attempt = outbox.beginAttempt('accepted', now, now)
+    outbox.finishAttempt(attempt, 'accepted', 200, now)
+    outbox.acknowledge('accepted', now)
+    outbox.prune(now + EDDN_MAX_AGE_MS - 1)
+    expect(outbox.status().losses).toEqual([])
+    outbox.prune(now + EDDN_MAX_AGE_MS)
+    outbox.prune(now + EDDN_MAX_AGE_MS)
+    outbox.enqueue('cleared', message, now + EDDN_MAX_AGE_MS)
+    outbox.clear(now + EDDN_MAX_AGE_MS)
+    outbox.clear(now + EDDN_MAX_AGE_MS)
+    outbox.drop('missing', 'invalid', now)
+    connection.close()
+    connection = new DatabaseSync(path)
+    outbox = new SqliteEddnOutbox(connection)
+    outbox.initialize()
+    outbox.prune(now + 8 * EDDN_MAX_AGE_MS)
+    expect(outbox.submissions(now + 8 * EDDN_MAX_AGE_MS)).toEqual([])
+    expect(outbox.status()).toEqual({ queued: 0, lastSuccessAt: new Date(now).toISOString(), losses: [
+      { reason: 'cleared', count: 1, lastAt: new Date(now + EDDN_MAX_AGE_MS).toISOString() },
+      { reason: 'expired', count: 1, lastAt: new Date(now + EDDN_MAX_AGE_MS).toISOString() }
+    ] })
+  } finally { connection.close(); rmSync(directory, { recursive: true, force: true }) }
+})
+
+test.each(['drop', 'clear', 'prune'] as const)('%s rolls queue removal back if durable loss accounting fails', operation => {
+  const connection = new DatabaseSync(':memory:')
+  const outbox = new SqliteEddnOutbox(connection)
+  const now = Date.parse('2026-10-04T18:00:00Z')
+  try {
+    connection.exec('PRAGMA foreign_keys = ON')
+    outbox.initialize()
+    outbox.enqueue('one', lossFixture(now), now)
+    connection.exec(`CREATE TRIGGER fail_loss BEFORE INSERT ON eddn_losses BEGIN SELECT RAISE(ABORT, 'Synthetic loss write failure'); END`)
+    const remove = () => operation === 'drop' ? outbox.drop('one', 'invalid', now)
+      : operation === 'clear' ? outbox.clear(now) : outbox.prune(now + EDDN_MAX_AGE_MS)
+    expect(remove).toThrow('Synthetic loss write failure')
+    expect(outbox.status()).toMatchObject({ queued: 1, losses: [] })
+    expect(outbox.next(now)?.id).toBe('one')
+    expect(connection.prepare('SELECT id FROM eddn_receipts').get()).toEqual({ id: 'one' })
+    connection.exec('DROP TRIGGER fail_loss')
+    remove()
+    remove()
+    expect(outbox.status()).toMatchObject({ queued: 0, losses: [{
+      reason: operation === 'drop' ? 'invalid' : operation === 'clear' ? 'cleared' : 'expired', count: 1
+    }] })
+  } finally { connection.close() }
+})
+
+function lossFixture(now: number): EddnMessage {
+  return { $schemaRef: 'https://eddn.edcd.io/schemas/journal/1/test',
+    header: { softwareName: 'PHOENIX', softwareVersion: '0.1.5', uploaderID: 'Synthetic', gameversion: '4.0', gamebuild: '' },
+    message: { timestamp: new Date(now).toISOString(), event: 'Location', StarSystem: 'Sol' } }
+}

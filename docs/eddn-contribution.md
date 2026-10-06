@@ -69,6 +69,16 @@ summaries serially every five seconds and aborts reads on unmount; full payloads
 Retention bounds stored payload data to at most 16 MiB plus metadata. The log records
 upload attempts, not bootstrap replays or observations skipped before queueing.
 
+Settings and DEV also show persistent delivery totals: expired queue entries, invalid/corrupt
+queued documents, permanent HTTP rejections, admissions skipped because the queue/receipt limit
+was reached, and deliberate clears due to preference/build policy. Clears are labelled separately
+from delivery failures. Counts and the latest occurrence time per reason are stored locally without
+payloads, observation IDs or commander details. There are at most five aggregate rows; success,
+restart, opting out and attempt-history retention do not reset them. Accounting begins when this
+version first records a loss; earlier losses cannot be reconstructed. Pre-queue context/schema
+filtering and unflushed signal batches are not counted, so these are not total gameplay coverage.
+Queue removals and their counters are atomic: an accounting failure leaves the pending row intact.
+
 For an authorized local development run, add `PHOENIX_EDDN_TEST_MODE=1` to the ignored `.env`
 and restart the server. The normal default and packaged release gate remain unchanged.
 
@@ -134,6 +144,11 @@ repeat an interrupted attempt.
 - Storage errors remain visible and delivery can retry on later ticks; startup initialization
   errors require recovery/restart. A failed clear is also constrained by the persisted opt-in
   boundary before any later delivery.
+
+The 24-hour queue limit is intentional, not an EDMC parity claim. Going offline longer than that
+expires pending observations on the next active worker tick or startup; the loss remains visible
+even if the observation had no upload attempt. HTTP success still does not establish downstream
+ingestion, and restart recovery cannot promise exactly-once delivery.
 
 ## Sources and maintenance
 

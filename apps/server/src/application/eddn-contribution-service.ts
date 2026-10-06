@@ -2,7 +2,7 @@ import type { EddnStatus, EddnSubmissionDetail, EddnSubmissionLog, EliteGameStat
 import type { EliteJournalEvent, EliteJournalObservationSource } from '@phoenix/elite'
 import { EddnMessageBuilder, EDDN_JOURNAL_EVENTS, EDDN_SNAPSHOT_EVENTS } from '../domain/eddn-message-builder.js'
 import { EddnSignalBuffer } from '../domain/eddn-signal-buffer.js'
-import { EDDN_MAX_AGE_MS, EDDN_REQUEST_TIMEOUT_MS, type EddnMessage, type EddnMode, type EddnOutbox, type EddnTransport } from '../domain/eddn.js'
+import { EDDN_MAX_AGE_MS, EDDN_REQUEST_TIMEOUT_MS, EddnQueueCapacityError, type EddnMessage, type EddnMode, type EddnOutbox, type EddnTransport } from '../domain/eddn.js'
 import type { SystemSettingsRepository } from '../domain/system-configuration.js'
 
 interface Options {
@@ -44,7 +44,7 @@ export class EddnContributionService {
       this.enabledSince = preference.eddnChangedAt
       this.options.outbox.initialize()
       this.options.outbox.prune(this.now())
-      if (!this.enabled || this.options.mode === 'unavailable') this.options.outbox.clear()
+      if (!this.enabled || this.options.mode === 'unavailable') this.options.outbox.clear(this.now())
       this.ready = true
       if (this.options.mode === 'test') {
         this.timer = setInterval(() => { void this.flush() }, 1000)
@@ -75,12 +75,12 @@ export class EddnContributionService {
     this.signals.clear()
     this.snapshots.clear()
     this.inflight?.abort()
-    try { if (this.ready) this.options.outbox.clear() } catch { this.storageFailure() }
+    try { if (this.ready) this.options.outbox.clear(this.now()) } catch { this.storageFailure() }
     return this.status()
   }
 
   public status (): EddnStatus {
-    let storage = { queued: 0, lastSuccessAt: null as string | null }
+    let storage: Pick<EddnStatus, 'queued' | 'lastSuccessAt' | 'losses'> = { queued: 0, lastSuccessAt: null, losses: [] }
     try { if (this.ready) storage = this.options.outbox.status() } catch { this.storageFailure() }
     return {
       enabled: this.enabled, mode: this.options.mode, ...storage, error: this.error,
@@ -137,8 +137,8 @@ export class EddnContributionService {
         this.options.outbox.enqueue(source.id, message, this.now())
         this.snapshots.set(message.$schemaRef, { content, at: this.now() })
       } else this.options.outbox.enqueue(source.id, message, this.now())
-    } catch {
-      this.storageFailure()
+    } catch (cause) {
+      this.storageFailure(cause)
     }
   }
 
@@ -158,7 +158,7 @@ export class EddnContributionService {
         return
       }
       this.options.outbox.enqueue(batch.id, message, this.now())
-    } catch { this.storageFailure() }
+    } catch (cause) { this.storageFailure(cause) }
   }
 
   public flush (): Promise<void> {
@@ -174,8 +174,14 @@ export class EddnContributionService {
       this.options.outbox.prune(this.now())
       const next = this.options.outbox.next(this.now())
       if (!next) return
-      if (!this.options.valid(next.message) || !this.fresh(next.message.message.timestamp) || Date.parse(String(next.message.message.timestamp)) < this.enabledSince) {
-        this.options.outbox.discard(next.id)
+      if (!this.options.valid(next.message)) {
+        this.options.outbox.drop(next.id, 'invalid', this.now())
+        this.error = 'An invalid queued observation was discarded.'
+        return
+      }
+      if (!this.fresh(next.message.message.timestamp) || Date.parse(String(next.message.message.timestamp)) < this.enabledSince) {
+        const timestamp = Date.parse(String(next.message.message.timestamp))
+        this.options.outbox.drop(next.id, Number.isFinite(timestamp) && timestamp <= this.now() ? 'expired' : 'invalid', this.now())
         this.error = 'An expired or invalid queued observation was discarded.'
         return
       }
@@ -203,7 +209,7 @@ export class EddnContributionService {
       } else {
         this.snapshots.delete(next.message.$schemaRef)
         this.options.outbox.finishAttempt(attempt, 'rejected', status, this.now())
-        this.options.outbox.discard(next.id)
+        this.options.outbox.drop(next.id, 'rejected', this.now())
         this.error = `EDDN rejected an observation (HTTP ${status}). It will not be retried; check for a PHOENIX update.`
       }
     } catch {
@@ -218,7 +224,8 @@ export class EddnContributionService {
     const time = typeof timestamp === 'string' ? Date.parse(timestamp) : NaN
     return Number.isFinite(time) && time > this.now() - EDDN_MAX_AGE_MS && time <= this.now() + 5 * 60_000
   }
-  private storageFailure (): void {
-    this.error = 'Contribution could not process local data. Check local storage and restart PHOENIX if this persists.'
+  private storageFailure (cause?: unknown): void {
+    this.error = cause instanceof EddnQueueCapacityError ? cause.message
+      : 'Contribution could not process local data. Check local storage and restart PHOENIX if this persists.'
   }
 }

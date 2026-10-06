@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Keep durable EDDN delivery totals for expired, invalid, rejected and capacity-skipped observations,
+  with deliberate queue clears counted separately. Show them in Settings and DEV even after a
+  successful upload, restart or attempt-history expiry; keep existing retention and retry policies.
 - Show a subtle Phoenix highlight animation while page content loads, respecting reduced motion
   without delaying navigation or replacing error feedback.
 - Keep live journal ingestion responsive by yielding between bounded record batches, and drain

@@ -108,12 +108,16 @@ test('DEV API returns retained summaries and the exact filtered payload on deman
       message: { timestamp: new Date(now).toISOString(), event: 'Location', StarSystem: 'Sol' } }
     try {
       const outbox = new SqliteEddnOutbox(connection)
+      outbox.enqueue('lost-fixture', payload, now)
+      outbox.drop('lost-fixture', 'invalid', now)
       outbox.enqueue('api-fixture', payload, now)
       id = outbox.beginAttempt('api-fixture', now + 75_000, now)
       outbox.finishAttempt(id, 'accepted', 200, now)
       outbox.acknowledge('api-fixture', now)
     } finally { connection.close() }
     const log = await client.getEddnSubmissions()
+    expect(log.status.losses).toEqual([{ reason: 'invalid', count: 1, lastAt: new Date(now).toISOString() }])
+    expect((await client.getEddnStatus()).losses).toEqual(log.status.losses)
     expect(log.entries).toMatchObject([{ id, event: 'Location', system: 'Sol', outcome: 'accepted', httpStatus: 200 }])
     expect(log.entries[0]).not.toHaveProperty('payload')
     expect(await client.getEddnSubmission(id)).toEqual({ payload })
