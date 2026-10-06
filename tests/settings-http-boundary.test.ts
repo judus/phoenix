@@ -6,6 +6,8 @@ import { PhoenixApplication, type PhoenixApplicationOptions } from '../apps/serv
 import { PairingAccessController } from '../apps/server/src/infrastructure/pairing-access-controller.js'
 import { InMemorySystemSettingsRepository } from '../apps/server/src/infrastructure/json-system-configuration.js'
 import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
+import { InMemoryOpenAiSecretRepository } from '../apps/server/src/infrastructure/json-openai-secret-repository.js'
+import { DefaultCopilotCapabilityService } from '../apps/server/src/application/copilot-capability-service.js'
 
 async function withServer(run: (origin: string) => Promise<void>, options: PhoenixApplicationOptions = {}) {
   const application = new PhoenixApplication({ databasePath: ':memory:', eliteDirectory: null,
@@ -48,33 +50,133 @@ test('unknown Settings paths and unsupported methods fall through to the ordinar
   })
 })
 
-test('older Settings handlers retain their existing validation error codes', async () => {
+test('invalid Settings input is rejected before any persistence', async () => {
+  const repository = new InMemorySystemSettingsRepository()
+  const secrets = new InMemoryOpenAiSecretRepository()
   await withServer(async origin => {
-    for (const [path, code] of [['general', 'invalid_general_settings'], ['modules', 'invalid_module_settings'],
-      ['copilot', 'invalid_copilot_settings'], ['openai-key', 'invalid_openai_key']] as const) {
-      const response = await fetch(`${origin}/api/settings/${path}`, {
-        method: 'PUT', headers: { 'content-type': 'application/json' }, body: '{'
-      })
-      expect(response.status).toBe(400)
-      await expect(response.json()).resolves.toMatchObject({ error: { code } })
+    const save = vi.spyOn(repository, 'save')
+    const saveSecret = vi.spyOn(secrets, 'save')
+    try {
+      for (const path of ['general', 'modules', 'copilot', 'openai-key']) {
+        for (const body of ['', '{', ' ', 'null', '{}', ' '.repeat(65537)]) {
+          const response = await fetch(`${origin}/api/settings/${path}`, {
+            method: 'PUT', headers: { 'content-type': 'application/json' }, body
+          })
+          expect(response.status).toBe(400)
+          await expect(response.json()).resolves.toMatchObject({ error: { code: 'invalid_request', message: expect.any(String) } })
+        }
+      }
+      expect(save).not.toHaveBeenCalled()
+      expect(saveSecret).not.toHaveBeenCalled()
+    } finally { save.mockRestore(); saveSecret.mockRestore() }
+  }, { systemSettingsRepository: repository, openAiSecretRepository: secrets })
+})
+
+test.each(['general', 'modules', 'copilot'])('valid %s Settings storage failures are server errors and allow retry', async path => {
+  const repository = new InMemorySystemSettingsRepository()
+  await withServer(async origin => {
+    const client = new PhoenixApiClient(origin)
+    const input = path === 'general' ? { controlsEnabled: false }
+      : path === 'modules' ? await client.getModuleSettings()
+        : { provider: 'openai', permissions: { version: 2, enabledCapabilityIds: [] } }
+    for (const operation of ['loadOrCreate', 'save'] as const) {
+      const failure = vi.spyOn(repository, operation).mockImplementationOnce(() => { throw new Error('Synthetic storage failure') })
+      try {
+        const response = await fetch(`${origin}/api/settings/${path}`, {
+          method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input)
+        })
+        expect(response.status).toBe(500)
+        await expect(response.json()).resolves.toEqual({ error: { code: 'internal_error', message: 'Synthetic storage failure' } })
+      } finally { failure.mockRestore() }
+      const retry = await fetch(`${origin}/api/settings/${path}`, { method: 'PUT', body: JSON.stringify(input) })
+      expect(retry.status).toBe(200)
     }
+  }, { systemSettingsRepository: repository })
+})
+
+test('OpenAI secret persistence failures are server errors and allow retry', async () => {
+  const secrets = new InMemoryOpenAiSecretRepository()
+  await withServer(async origin => {
+    const save = vi.spyOn(secrets, 'save').mockImplementationOnce(() => { throw new Error('Synthetic storage failure') })
+    try {
+      const response = await fetch(`${origin}/api/settings/openai-key`, {
+        method: 'PUT', body: JSON.stringify({ apiKey: 'sk-test-settings-key' })
+      })
+      expect(response.status).toBe(500)
+      await expect(response.json()).resolves.toEqual({ error: {
+        code: 'internal_error', message: 'Synthetic storage failure'
+      } })
+      expect(secrets.get()).toBeUndefined()
+    } finally { save.mockRestore() }
+    expect((await fetch(`${origin}/api/settings/openai-key`, { method: 'PUT',
+      body: JSON.stringify({ apiKey: 'sk-test-settings-key' }) })).status).toBe(200)
+  }, { openAiSecretRepository: secrets })
+})
+
+test.each(['saveInstallationPolicy', 'catalogue'] as const)('Copilot %s failures after validation are server errors', async operation => {
+  await withServer(async origin => {
+    const failure = vi.spyOn(DefaultCopilotCapabilityService.prototype, operation)
+      .mockImplementationOnce(() => { throw new Error('Synthetic capability failure') })
+    try {
+      const response = await fetch(`${origin}/api/settings/copilot`, { method: 'PUT',
+        body: JSON.stringify({ provider: 'openai', permissions: { version: 2, enabledCapabilityIds: [] } }) })
+      expect(response.status).toBe(500)
+      await expect(response.json()).resolves.toEqual({ error: { code: 'internal_error', message: 'Synthetic capability failure' } })
+    } finally { failure.mockRestore() }
   })
 })
 
-test('the extraction preserves legacy general-settings service-error mapping', async () => {
+test('Copilot response schema failures are server errors, not invalid requests', async () => {
+  await withServer(async origin => {
+    const original = DefaultCopilotCapabilityService.prototype.catalogue
+    const catalogue = vi.spyOn(DefaultCopilotCapabilityService.prototype, 'catalogue')
+      .mockImplementation(function (this: DefaultCopilotCapabilityService, policy) {
+        const result = original.call(this, policy)
+        // Policy normalization passes a policy; the response catalogue does not.
+        return policy ? result : { ...result, load: { ...result.load, score: NaN } }
+      })
+    try {
+      const response = await fetch(`${origin}/api/settings/copilot`, { method: 'PUT',
+        body: JSON.stringify({ provider: 'openai', permissions: { version: 2, enabledCapabilityIds: [] } }) })
+      expect(response.status).toBe(500)
+      await expect(response.json()).resolves.toMatchObject({ error: { code: 'internal_error' } })
+    } finally { catalogue.mockRestore() }
+  })
+})
+
+test('Copilot provider persistence failures remain server errors after policy persistence', async () => {
   const repository = new InMemorySystemSettingsRepository()
   await withServer(async origin => {
-    const save = vi.spyOn(repository, 'save').mockImplementationOnce(() => { throw new Error('Synthetic storage failure') })
+    const original = repository.save.bind(repository)
+    const save = vi.spyOn(repository, 'save')
+      .mockImplementationOnce(original)
+      .mockImplementationOnce(() => { throw new Error('Synthetic provider storage failure') })
     try {
-      const response = await fetch(`${origin}/api/settings/general`, {
-        method: 'PUT', headers: { 'content-type': 'application/json' }, body: '{"controlsEnabled":false}'
-      })
-      expect(response.status).toBe(400)
+      const response = await fetch(`${origin}/api/settings/copilot`, { method: 'PUT',
+        body: JSON.stringify({ provider: 'openai', permissions: { version: 2, enabledCapabilityIds: [] } }) })
+      expect(response.status).toBe(500)
       await expect(response.json()).resolves.toEqual({ error: {
-        code: 'invalid_general_settings', message: 'Synthetic storage failure'
+        code: 'internal_error', message: 'Synthetic provider storage failure'
       } })
+      expect(save).toHaveBeenCalledTimes(2)
     } finally { save.mockRestore() }
   }, { systemSettingsRepository: repository })
+})
+
+test('OpenAI status read failures after persistence are server errors', async () => {
+  const secrets = new InMemoryOpenAiSecretRepository()
+  await withServer(async origin => {
+    const get = vi.spyOn(secrets, 'get').mockImplementationOnce(() => { throw new Error('Synthetic secret read failure') })
+    try {
+      const response = await fetch(`${origin}/api/settings/openai-key`, { method: 'PUT',
+        body: JSON.stringify({ apiKey: 'sk-test-settings-key' }) })
+      expect(response.status).toBe(500)
+      await expect(response.json()).resolves.toEqual({ error: {
+        code: 'internal_error', message: 'Synthetic secret read failure'
+      } })
+    } finally { get.mockRestore() }
+    expect(secrets.get()).toBe('sk-test-settings-key')
+  }, { openAiSecretRepository: secrets })
 })
 
 test('pairing rejects Settings requests before mutation, and authorizes them after a claim', async () => {
