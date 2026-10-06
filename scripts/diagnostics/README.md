@@ -15,7 +15,7 @@ Copilot is disabled, and keyboard output remains simulated. No player files are 
 Generated records mix Progress/runtime changes, ReceiveText/persisted communications, FuelScoop
 and an FSDJump every 250 records. Each sample measures latest-file startup, idle, appended tail,
 truncation/offset reset, historical backfill and checkpoint-only replay. Complete-record counts
-and final delivered SSE revisions must agree; the historical replay must process zero records.
+and final delivered SSE revisions must agree; the subsequent checkpoint replay must process zero records.
 
 HTTP and SSE probes run in the **parent process**, independently of the server's event loop.
 JSON output includes Node/platform/CPU, byte/line counts, ingestion wall time, before/after memory,
