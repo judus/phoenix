@@ -16,3 +16,5 @@ Sixteen schemas are now pinned. `upstream.json` records the EDMC behavioural ref
 revision and SHA-256 hashes of each unmodified schema for future drift checks. It is
 maintenance metadata only; runtime never fetches upstream or loads this as executable policy.
 See `docs/eddn-parity.md` for coverage and the unresolved CAPI/acceptance gates.
+Run `npm run eddn:check-upstream` for an opt-in read-only review; usage and exit codes are in
+`docs/eddn-upstream-checker.md`. The checker does not belong to the runtime submission path.

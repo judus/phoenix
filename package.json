@@ -20,6 +20,7 @@
     "predev": "npm run build --workspace @phoenix/contracts && npm run build --workspace @phoenix/elite && npm run build --workspace @phoenix/copilot",
     "dev:server": "npm run dev --workspace @phoenix/server",
     "dev:web": "npm run dev --workspace @phoenix/web",
+    "eddn:check-upstream": "node scripts/eddn/check-upstream.mjs",
     "installer:linux": "npm run payload:build && node scripts/package/build-linux-appimage.mjs",
     "installer:linux:verify": "node scripts/package/verify-linux-appimage.mjs",
     "installer:deb": "npm run payload:build && node scripts/package/build-linux-deb.mjs",

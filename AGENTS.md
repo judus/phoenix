@@ -10,6 +10,11 @@
   Reconcile issue checklists and closures at merge checkpoints, not after local implementation.
   An idea in the backlog is not authorization to implement it. Record player-visible changes in
   [CHANGELOG.md](CHANGELOG.md), under Unreleased until a release is actually published.
+- Work sequentially, one accepted ticket per cycle: ticket → implementation → changelog → commit
+  and PR → wait for all required CI to pass (fix failures) → merge into `dev` and verify issue
+  completion → next ticket. Do not start the next implementation while the current PR awaits CI
+  or merge; start its branch from the updated `dev` to avoid overlapping work and merge conflicts.
+  Release publication remains separately authorized.
 - Keep changes with their owner. Control Deck is a separate dependency, not source to copy into
   PHOENIX. Bundled in-game Copilot profiles live in `resources/copilots/`, not in this file.
 - Use [.agents/skills/codebase-audit/SKILL.md](.agents/skills/codebase-audit/SKILL.md) for systematic

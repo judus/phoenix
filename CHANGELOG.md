@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Add an opt-in, read-only EDDN upstream checker for reviewing schema and protocol changes;
+  submission behavior remains unchanged.
 - Correct pre-Odyssey exploration guidance and ship an editable Stratum candidate saved query for new profiles.
   Existing profiles can add predefined queries from the Saved Queries header without overwriting their edits.
 - Restore workspace swipes across page and table scroll surfaces; CTR and CPT now remember
