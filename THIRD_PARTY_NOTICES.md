@@ -85,6 +85,10 @@ and correct material recipes imported from Coriolis. The review and corrections 
 inspired the pre-Odyssey saved-query strategy. PHOENIX uses independently corrected filters, not copied guide text
 or a guarantee of undiscovered biology.
 
+[Elite Dangerous Wiki](https://elite-dangerous.fandom.com/wiki/Elite_Dangerous_Wiki) is a community-maintained
+research reference used to cross-check biological habitats and game mechanics. It is not a live data
+connection; PHOENIX does not bundle wiki article text.
+
 ## Deskplane
 
 [Deskplane](https://github.com/judus/deskplane) provides workspace navigation and touch gestures,

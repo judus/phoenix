@@ -4,6 +4,23 @@ import { readFileSync } from 'node:fs'
 import { PERSONAL_EQUIPMENT_SOURCE } from '../scripts/catalogue/build-personal-equipment-catalogue.mjs'
 import { CreditsPage } from '../apps/web/src/features/journal/credits-page.js'
 
+test('uses the shared page header and breadcrumb navigation', () => {
+  const markup = renderToStaticMarkup(<CreditsPage />)
+  expect(markup).toContain('class="page-header page-header-cockpit"')
+  expect(markup).toContain('aria-label="Breadcrumb"')
+  expect(markup).toContain('class="breadcrumb-separator"')
+  expect(markup).toContain('<span>Log</span>')
+  expect(markup).toContain('<span aria-current="page">Credits</span>')
+  expect(markup).not.toContain('Log · Credits')
+})
+
+test('links the community wiki as a research reference rather than a live provider', () => {
+  const markup = renderToStaticMarkup(<CreditsPage />)
+  expect(markup).toContain('href="https://elite-dangerous.fandom.com/wiki/Elite_Dangerous_Wiki"')
+  expect(markup).toContain('Elite Dangerous Wiki</a>')
+  expect(markup).toContain('Community-maintained reference for biological habitats and game mechanics; not a live data connection.')
+})
+
 test('credits the local, bundled, live and optional data sources', () => {
   const markup = renderToStaticMarkup(<CreditsPage />)
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { CommanderLogEntry } from '@phoenix/contracts'
-import { Button, Field, FormGrid, ItemList, ItemListItem, PageFrame, PageHeader, Section, Select, Stack, Status, TextInput } from '@phoenix/ui'
+import { Breadcrumbs, Button, Field, FormGrid, ItemList, ItemListItem, PageFrame, PageHeader, Section, Select, Stack, Status, TextInput } from '@phoenix/ui'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
 import { formatPhoenixDate, formatPhoenixTime } from '../../components/phoenix-date-time.js'
@@ -38,7 +38,7 @@ export function CommanderLogPage ({ api, events }: { api: PhoenixApi, events: Ph
     days.set(key, [...(days.get(key) ?? []), entry])
   }
   return <PageFrame><Stack gap="sm">
-    <PageHeader context="Log · Commander" title="Commander log" variant="cockpit" />
+    <PageHeader context={<Breadcrumbs items={[{ label: 'Log' }, { label: 'Commander' }]} />} title="Commander log" variant="cockpit" />
     <FormGrid>
       <Field label="Search history" htmlFor="commander-log-search"><TextInput id="commander-log-search" value={query} onChange={event => { setQuery(event.target.value); setVisible(50) }} /></Field>
       <Field label="Category" htmlFor="commander-log-category"><Select id="commander-log-category" value={category} onChange={event => { setCategory(event.target.value); setVisible(50) }}>
