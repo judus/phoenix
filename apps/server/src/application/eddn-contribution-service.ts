@@ -28,7 +28,9 @@ export class EddnContributionService {
   private inflight?: AbortController
   private pending?: Promise<void>
   private readonly signals = new EddnSignalBuffer()
+  private signalCheckpointed = false
   private closingSignals?: { message: EddnMessage | null }
+  private readonly signalDiscards = new Map<string, 'invalid' | 'cleared'>()
   private readonly snapshots = new Map<string, { content: string, at: number }>()
 
   public constructor (private readonly options: Options) {
@@ -57,6 +59,7 @@ export class EddnContributionService {
   }
 
   public async stop (): Promise<void> {
+    this.retrySignalDiscards()
     // Only flush against already established context, never infer a missing arrival on shutdown.
     if (this.active()) this.flushSignals()
     this.running = false
@@ -74,6 +77,7 @@ export class EddnContributionService {
     this.enabled = enabled
     this.enabledSince = changedAt
     this.signals.clear()
+    this.signalCheckpointed = false
     this.closingSignals = undefined
     this.snapshots.clear()
     this.inflight?.abort()
@@ -103,12 +107,15 @@ export class EddnContributionService {
   /** Called after normal projection. Contribution failures must never hold up cockpit ingestion. */
   public observe (event: EliteJournalEvent, source: EliteJournalObservationSource): void {
     try {
+      this.retrySignalDiscards()
       const reset = ['Fileheader', 'LoadGame', 'JoinACrew', 'QuitACrew'].includes(event.event) ||
         (event.event === 'Music' && event.MusicTrack === 'MainMenu')
       if (reset || source.replayed || !this.active()) {
         const batch = this.signals.peek()
-        try { if (batch && this.ready) this.options.outbox.drop(batch.id, 'cleared', this.now()) } catch (cause) { this.storageFailure(cause) }
+        if (batch && this.signalCheckpointed) this.signalDiscards.set(batch.id, 'cleared')
+        this.retrySignalDiscards()
         this.signals.clear()
+        this.signalCheckpointed = false
         this.closingSignals = undefined
         this.snapshots.clear()
       }
@@ -125,10 +132,10 @@ export class EddnContributionService {
         if (this.signals.peek()?.overflow) return
         if (!this.signals.add(event, source.id)) {
           const batch = this.signals.peek()!
-          this.options.outbox.checkpointSignals(batch.id, null, this.now())
-          this.options.outbox.drop(batch.id, 'invalid', this.now())
+          if (!this.signalCheckpointed) this.signalCheckpointed = this.options.outbox.checkpointSignals(batch.id, null, this.now())
+          if (this.signalCheckpointed) this.options.outbox.discardSignals(batch.id, 'invalid', this.now())
           this.error = 'A signal batch exceeded the safety limit and was skipped.'
-        } else this.checkpointSignals()
+        } else this.checkpointSignals(event)
         return
       }
       let message: EddnMessage | undefined
@@ -165,8 +172,9 @@ export class EddnContributionService {
     try {
       if (batch.overflow) {
         // Retry removal if the original oversize/capacity invalidation could not write.
-        this.options.outbox.drop(batch.id, 'invalid', this.now())
+        if (this.signalCheckpointed) this.options.outbox.discardSignals(batch.id, 'invalid', this.now())
         this.signals.clear()
+        this.signalCheckpointed = false
         this.closingSignals = undefined
         return
       }
@@ -176,15 +184,17 @@ export class EddnContributionService {
         this.closingSignals = { message: message && this.options.valid(message) ? message : null }
       }
       if (!this.closingSignals.message) {
-        this.options.outbox.drop(batch.id, 'invalid', this.now())
+        if (this.signalCheckpointed) this.options.outbox.discardSignals(batch.id, 'invalid', this.now())
         this.signals.clear()
+        this.signalCheckpointed = false
         this.closingSignals = undefined
         this.error = 'A signal batch was skipped: invalid or oversized observation.'
         return
       }
-      this.options.outbox.checkpointSignals(batch.id, this.closingSignals.message, this.now())
-      this.options.outbox.sealSignals(batch.id)
+      if (!this.signalCheckpointed) this.signalCheckpointed = this.options.outbox.checkpointSignals(batch.id, null, this.now())
+      if (this.signalCheckpointed) this.options.outbox.sealSignals(batch.id, this.closingSignals.message, this.now())
       this.signals.clear()
+      this.signalCheckpointed = false
       this.closingSignals = undefined
     } catch (cause) {
       if (cause instanceof EddnQueueCapacityError) {
@@ -195,15 +205,26 @@ export class EddnContributionService {
     }
   }
 
-  private checkpointSignals (): void {
+  private checkpointSignals (event: EliteJournalEvent): void {
     const batch = this.signals.peek()
     if (!batch) return // Mission targets are filtered before a batch is created.
-    const message = this.builder.signals(batch.events)
+    const message = this.builder.signals([event])
     try {
-      this.options.outbox.checkpointSignals(batch.id, message && this.options.valid(message) ? message : null, this.now())
+      const saved = this.options.outbox.checkpointSignals(batch.id, message && this.options.valid(message) ? message : null, this.now())
+      this.signalCheckpointed ||= saved
+      if (!saved) this.signals.reject() // The sealed/receipted original owns this ID, not this duplicate run.
     } catch (cause) {
       if (cause instanceof EddnQueueCapacityError) this.signals.reject()
       throw cause
+    }
+  }
+
+  private retrySignalDiscards (): void {
+    for (const [id, reason] of this.signalDiscards) {
+      try {
+        this.options.outbox.discardSignals(id, reason, this.now())
+        this.signalDiscards.delete(id)
+      } catch (cause) { this.storageFailure(cause); break }
     }
   }
 
@@ -215,6 +236,7 @@ export class EddnContributionService {
   }
 
   private async sendNext (): Promise<void> {
+    this.retrySignalDiscards()
     if (!this.active()) return
     try {
       if (this.closingSignals) this.flushSignals()

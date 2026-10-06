@@ -187,10 +187,34 @@ test('draft updates share queue budgets; capacity rejection removes the whole dr
     const huge = { ...message, message: { text: 's'.repeat(16 * 1024 * 1024) } }
     expect(() => outbox.checkpointSignals('signals:first', huge, 1000)).toThrow('Synthetic accounting failure')
     expect(connection.prepare('SELECT id FROM eddn_outbox WHERE ready = 0').get()).toEqual({ id: 'signals:first' })
+    expect(connection.prepare('SELECT COUNT(*) AS count FROM eddn_signal_checkpoints').get()).toEqual({ count: 2 })
     connection.exec('DROP TRIGGER fail_capacity')
     expect(() => outbox.checkpointSignals('signals:first', huge, 1000)).toThrow('at capacity')
     expect(connection.prepare('SELECT id FROM eddn_outbox WHERE ready = 0').get()).toBeUndefined()
+    expect(connection.prepare('SELECT COUNT(*) AS count FROM eddn_signal_checkpoints').get()).toEqual({ count: 0 })
     expect(outbox.status()).toMatchObject({ queued: 999, losses: [{ reason: 'capacity', count: 2 }] })
     expect(outbox.checkpointSignals('signals:first', message, 1000)).toBe(false)
+  } finally { connection.close() }
+})
+
+test('sealing rolls back both parent replacement and checkpoint deletion if cleanup fails', () => {
+  const connection = new DatabaseSync(':memory:')
+  try {
+    const outbox = new SqliteEddnOutbox(connection)
+    outbox.initialize()
+    const message = lossFixture(1000)
+    outbox.checkpointSignals('signals:first', message, 1000)
+    connection.exec(`CREATE TRIGGER fail_seal BEFORE DELETE ON eddn_signal_checkpoints BEGIN SELECT RAISE(ABORT, 'Synthetic seal failure'); END`)
+    expect(() => outbox.sealSignals('signals:first', message, 1000)).toThrow('Synthetic seal failure')
+    expect(outbox.next(1000)).toBeUndefined()
+    expect(connection.prepare('SELECT signal_bytes AS bytes FROM eddn_outbox').get()).toEqual({ bytes: Buffer.byteLength(JSON.stringify(message)) })
+    expect(connection.prepare('SELECT COUNT(*) AS count FROM eddn_signal_checkpoints').get()).toEqual({ count: 1 })
+    connection.exec('DROP TRIGGER fail_seal')
+    outbox.sealSignals('signals:first', message, 1000)
+    expect(outbox.next(1000)?.message).toEqual(message)
+    expect(connection.prepare('SELECT COUNT(*) AS count FROM eddn_signal_checkpoints').get()).toEqual({ count: 0 })
+    outbox.discardSignals('signals:first', 'invalid', 1000)
+    expect(outbox.next(1000)?.message).toEqual(message)
+    expect(outbox.status().losses).toEqual([])
   } finally { connection.close() }
 })

@@ -106,14 +106,19 @@ FSSSignalDiscovered is buffered for a contiguous journal run, with incoming arri
 for Odyssey's pre-arrival ordering. Mission targets, localised strings and TimeRemaining are not
 forwarded. Bootstrap, opt-out, commander and crew boundaries discard pending runs; a normal stop
 can enqueue a run only against established context. Each accepted public signal checkpoints the
-current envelope in the existing outbox as an unsealed row; ordinary delivery cannot send it until
+one public signal record under an unsealed row in the existing outbox; ordinary delivery cannot send it until
 the run closes. Checkpoints share the same queue/byte/receipt/age bounds, not an additional spool.
-On restart, the last durable envelope becomes eligible for ordinary schema, age and opt-in checks.
+Appending does not rebuild/validate/rewrite the whole run for each event. A per-batch byte counter
+keeps checkpoint storage inside the shared budget. Closure or startup assembles the envelope once
+and atomically replaces its checkpoint records with a sealed row. On restart, that last durable
+run becomes eligible for ordinary schema, age and opt-in checks.
 An unresolved pre-arrival run stores only a null marker, not raw events or guessed system context;
 it is counted as invalid if recovery or shutdown cannot resolve it. Bootstrap cannot supply missing
 arrival evidence or extend a recovered run. Oversized runs and draft growth rejected by capacity
 are skipped as a whole with persistent invalid/capacity accounting. Session/crew/replay resets
 discard the current unsealed row with a cleared count; recovered sealed rows remain independent.
+Failed session discards retain only their IDs/reasons for retry, not the old event/context buffer.
+Duplicate source runs are suppressed and draft cleanup cannot delete a sealed original or its lease.
 No observations are submitted while joined to another captain's crew.
 
 Failed checkpoint writes remain visible and memory is retained for a later closing retry; a closed

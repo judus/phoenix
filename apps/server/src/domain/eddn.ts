@@ -41,7 +41,8 @@ export interface EddnPendingMessage {
 export interface EddnOutbox {
   enqueue(id: string, message: EddnMessage, now: number): boolean
   checkpointSignals(id: string, message: EddnMessage | null, now: number): boolean
-  sealSignals(id: string): void
+  sealSignals(id: string, message: EddnMessage | null, now: number): void
+  discardSignals(id: string, reason: 'invalid' | 'cleared', now: number): void
   next(now: number): EddnPendingMessage | undefined
   acknowledge(id: string, now: number): void
   drop(id: string, reason: EddnLoss['reason'], now: number): void

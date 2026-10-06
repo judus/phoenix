@@ -6,6 +6,7 @@ import { afterEach, expect, test, vi } from 'vitest'
 import { EliteJournalFileSource, type EliteJournalEvent } from '@phoenix/elite'
 import { EddnContributionService } from '../apps/server/src/application/eddn-contribution-service.js'
 import { EDDN_MAX_AGE_MS, EDDN_MAX_MESSAGE_BYTES } from '../apps/server/src/domain/eddn.js'
+import { EddnMessageBuilder } from '../apps/server/src/domain/eddn-message-builder.js'
 import { SqliteEddnOutbox } from '../apps/server/src/infrastructure/sqlite-eddn-outbox.js'
 import { EddnSchemaValidator } from '../apps/server/src/infrastructure/eddn-schema-validator.js'
 import { InMemorySystemSettingsRepository } from '../apps/server/src/infrastructure/json-system-configuration.js'
@@ -87,6 +88,22 @@ test('pre-arrival crash cannot borrow replayed or fresh location context', async
   expect(recovered.outbox.status().losses).toMatchObject([{ reason: 'invalid', count: 1 }])
 })
 
+test('a corrupt appended checkpoint is discarded, without blocking later uploads', async () => {
+  const { path } = disk()
+  const first = fixture(path)
+  first.observe(signal, 'first')
+  first.connection.prepare('UPDATE eddn_signal_checkpoints SET document = ?').run('{broken')
+  await first.crash()
+  const recovered = fixture(path, first.settings)
+  await recovered.service.flush()
+  expect(recovered.send).not.toHaveBeenCalled()
+  expect(recovered.outbox.status()).toMatchObject({ queued: 0, losses: [{ reason: 'invalid', count: 1 }] })
+  recovered.observe(signal, 'fresh')
+  recovered.observe({ timestamp, event: 'Music' }, 'close')
+  await recovered.service.flush()
+  expect(recovered.send).toHaveBeenCalledOnce()
+})
+
 test.each(['disabled', 'unavailable', 'expired'] as const)('recovery respects %s policy', async policy => {
   const { path } = disk()
   const first = fixture(path)
@@ -113,7 +130,7 @@ test.each(['disabled', 'unavailable', 'expired'] as const)('recovery respects %s
 test('a failed closing checkpoint retries the captured context, not a later system', async () => {
   const f = fixture()
   f.observe(signal, 'first')
-  vi.spyOn(f.outbox, 'checkpointSignals').mockImplementationOnce(() => { throw new Error('synthetic write failure') })
+  vi.spyOn(f.outbox, 'sealSignals').mockImplementationOnce(() => { throw new Error('synthetic write failure') })
   f.observe({ ...location, event: 'StartJump', JumpType: 'Hyperspace' }, 'leave')
   expect(f.outbox.next(now)).toBeUndefined()
   f.observe({ ...location, event: 'FSDJump', StarSystem: 'Other', SystemAddress: 456 }, 'arrive')
@@ -148,12 +165,62 @@ test('worker retries a failed seal without sending the still-open checkpoint', a
 test('closing retries invalidation after an oversized run could not update its draft', async () => {
   const f = fixture()
   f.observe(signal, 'first')
-  vi.spyOn(f.outbox, 'checkpointSignals').mockImplementationOnce(() => { throw new Error('synthetic failed invalidation') })
+  vi.spyOn(f.outbox, 'discardSignals').mockImplementationOnce(() => { throw new Error('synthetic failed invalidation') })
   f.observe({ ...signal, SignalName: 's'.repeat(EDDN_MAX_MESSAGE_BYTES) }, 'oversized')
   f.observe({ timestamp, event: 'Music' }, 'close')
   expect(f.outbox.status()).toMatchObject({ queued: 0, losses: [{ reason: 'invalid', count: 1 }] })
   await f.service.flush()
   expect(f.send).not.toHaveBeenCalled()
+})
+
+test('failed session discard retains its ID until storage recovers, without retaining old context', async () => {
+  const { path } = disk()
+  const f = fixture(path)
+  f.observe(signal, 'old')
+  f.connection.exec(`CREATE TRIGGER fail_discard BEFORE INSERT ON eddn_losses BEGIN SELECT RAISE(ABORT, 'Synthetic discard failure'); END`)
+  f.observe({ ...load, Commander: 'Other' }, 'new-session')
+  expect(f.outbox.status().queued).toBe(1)
+  f.connection.exec('DROP TRIGGER fail_discard')
+  await f.service.flush()
+  expect(f.outbox.status()).toMatchObject({ queued: 0, losses: [{ reason: 'cleared', count: 1 }] })
+  await f.crash()
+  const recovered = fixture(path, f.settings)
+  await recovered.service.flush()
+  expect(recovered.send).not.toHaveBeenCalled()
+})
+
+test.each(['reset', 'oversize'] as const)('duplicate %s cannot delete a sealed original or its retry lease', async boundary => {
+  const f = fixture()
+  f.observe(signal, 'first')
+  f.observe({ timestamp, event: 'Music' }, 'close')
+  f.send.mockResolvedValueOnce({ status: 503 })
+  await f.service.flush()
+  const before = f.outbox.next(now + 60_000)
+  f.observe(signal, 'first')
+  if (boundary === 'reset') f.observe({ timestamp, event: 'Music', MusicTrack: 'MainMenu' }, 'reset')
+  else {
+    f.observe({ ...signal, SignalName: 's'.repeat(EDDN_MAX_MESSAGE_BYTES) }, 'oversized')
+    f.observe({ timestamp, event: 'Music' }, 'close-again')
+  }
+  expect(f.outbox.next(now + 60_000)).toEqual(before)
+  expect(f.outbox.status()).toMatchObject({ queued: 1, losses: [] })
+})
+
+test('a busy run processes linear signal input and collapses checkpoints on closure', async () => {
+  const f = fixture()
+  const build = vi.spyOn(EddnMessageBuilder.prototype, 'signals')
+  try {
+    const count = 1000
+    for (let index = 0; index < count; index++) f.observe({ ...signal, SignalName: `Public ${index}` }, String(index))
+    expect(build.mock.calls.reduce((total, [events]) => total + events.length, 0)).toBe(count)
+    expect(f.outbox.next(now)).toBeUndefined()
+    f.observe({ timestamp, event: 'Music' }, 'close')
+    expect(build.mock.calls.reduce((total, [events]) => total + events.length, 0)).toBe(count * 2)
+    expect(f.connection.prepare('SELECT COUNT(*) AS count FROM eddn_signal_checkpoints').get()).toEqual({ count: 0 })
+    await f.service.flush()
+    expect(f.send).toHaveBeenCalledOnce()
+    expect(f.send.mock.calls[0][0].message.signals).toHaveLength(count)
+  } finally { build.mockRestore() }
 })
 
 test('real journal rotation resets an open run and fresh-session signals still contribute', async () => {
