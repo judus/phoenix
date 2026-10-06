@@ -4,13 +4,32 @@ import { act } from 'react-test-renderer'
 import { renderWithAct } from './support/render-with-act.js'
 import type { DevicePreferences } from '../apps/web/src/application/settings/device-preferences.js'
 import { NumpadPage } from '../apps/web/src/features/numpad/numpad-page.js'
-import { numpadRuntimeFixture } from './support/numpad-runtime-fixture.js'
+import { numpadRuntimeFixture, numpadTree } from './support/numpad-runtime-fixture.js'
 
 const devicePreferences = (variableCommandLabelSizes = true) => ({
   getSnapshot: () => ({ version: 2 as const, audioInputId: '', audioOutputId: '', captureNumpad: true, currentShipLoadoutView: 'tiles' as const, followCopilotNavigation: true, presentation: 'phoenix' as const, shipCatalogueView: 'dossier' as const, uiScalePercent: 100, variableCommandLabelSizes }),
   subscribe: () => () => {},
   update: () => {}
 }) satisfies DevicePreferences
+
+test('ambiguous addresses use a compact prompt retaining both choices', async () => {
+  const fixture = numpadRuntimeFixture()
+  const action = numpadTree.nodes[2]!
+  fixture.api.getNumpadSnapshot.mockResolvedValue({ ...numpadTree, nodes: [
+    ...numpadTree.nodes.slice(0, 2),
+    { ...action, selector: '1', address: '111' },
+    { ...action, id: 'longer', selector: '12', address: '1112' }
+  ] })
+  fixture.runtime.start()
+  await fixture.settle()
+  for (const digit of ['0', '1', '1', '1']) fixture.key(digit)
+  for (const paint of fixture.paints.splice(0)) paint()
+  expect(fixture.runtime.controller.getSnapshot().session.status).toBe('ambiguous')
+  const markup = renderToStaticMarkup(<NumpadPage runtime={fixture.runtime} devicePreferences={devicePreferences()} />)
+  expect(markup).toContain('<small>Status</small><strong>Digit or Enter</strong>')
+  expect(markup).not.toContain('Enter another digit or press Enter')
+  fixture.runtime.stop()
+})
 
 test('the Cancel header remains an actionable label and key stack', async () => {
   const fixture = numpadRuntimeFixture()
