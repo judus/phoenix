@@ -1,4 +1,5 @@
 import { useMemo, useSyncExternalStore } from 'react'
+import { Loading } from '@phoenix/ui'
 import type { ShipDefinition } from '@phoenix/contracts'
 import {
   AutoGrid,
@@ -96,7 +97,7 @@ function FleetState({ error, status, title }: { error?: string, status: 'idle' |
   return (
     <PageFrame className="fleet-state" layout="fit" aria-busy={status !== 'error'}>
       <PageHeader variant="cockpit" title={title} />
-      <Status tone={status === 'error' ? 'danger' : 'muted'}>{error ?? `Loading ${title.toLowerCase()}…`}</Status>
+      {status === 'error' ? <Status tone="danger">{error}</Status> : <Loading>{`Loading ${title.toLowerCase()}…`}</Loading>}
     </PageFrame>
   )
 }

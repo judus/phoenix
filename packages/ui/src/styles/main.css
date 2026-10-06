@@ -15,6 +15,7 @@
 @import './patterns/settings-list.css';
 @import './patterns/copilot-permission-editor.css';
 @import './components/data-display.css';
+@import './components/loading.css';
 @import './components/page-header.css';
 @import './components/navigation.css';
 @import './components/system-location.css';

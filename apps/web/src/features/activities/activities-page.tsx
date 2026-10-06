@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { Loading } from '@phoenix/ui'
 import {
   Breadcrumbs,
   DataTable,
@@ -62,10 +63,10 @@ export function ActivitiesPage({ controller, view }: {
 
 function ActivitiesState({ error, title }: { error?: string, title: string }) {
   return (
-    <PageFrame aria-busy={!error}>
-      <Stack gap="xl">
+    <PageFrame layout="fit" aria-busy={!error}>
+      <Stack fill gap="xl">
         <ActivitiesHeader title={title} />
-        <Status tone={error ? 'danger' : 'muted'}>{error ?? 'Reconstructing journal-backed mission records…'}</Status>
+        {error ? <Status tone="danger">{error}</Status> : <Loading>Reconstructing journal-backed mission records…</Loading>}
       </Stack>
     </PageFrame>
   )

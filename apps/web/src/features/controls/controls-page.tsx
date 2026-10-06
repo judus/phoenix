@@ -13,7 +13,7 @@ import {
   type ControlDeckDeckGroup
 } from 'control-deck/core'
 import { PHOENIX_CONTROL_LAYOUT_PRESETS, PhoenixControlDeckThemeSchema, controlDeckTargetToPhoenixTarget, phoenixControlLayoutPreset, type CommandTarget, type GameActionAvailability, type GameActionOperation, type PhoenixControlDeckConfiguration, type PhoenixControlDeckTheme, type RuntimeState } from '@phoenix/contracts'
-import { Breadcrumbs, Button, CheckIcon, compactBindingLabel, ControlContext, DataTable, IconButton, NumberInput, PageFrame, PageHeader, Select, Status, TileButton, Widget } from '@phoenix/ui'
+import { Breadcrumbs, Button, CheckIcon, compactBindingLabel, ControlContext, DataTable, IconButton, Loading, NumberInput, PageFrame, PageHeader, Select, Status, TileButton, Widget } from '@phoenix/ui'
 import { createClientId } from '../../application/identity/client-identity.js'
 import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
 import type { ControlCategory } from '../../application/navigation/phoenix-route.js'
@@ -127,7 +127,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, v
       {controller.status === 'error' || error || macros.error
         ? <Status tone="danger">{error ?? macros.error ?? controller.error}</Status>
         : controller.status === 'loading'
-          ? <Status tone="muted">Loading command grid…</Status>
+          ? <Loading>Loading command grid…</Loading>
           : !deck || !activeConfiguration
             ? <Status tone="danger">The PHOENIX Control Deck configuration is incomplete.</Status>
           : editing && editingPosition !== undefined && editorColumn !== undefined && editorRow !== undefined

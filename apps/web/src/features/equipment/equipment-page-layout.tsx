@@ -1,4 +1,4 @@
-import { Breadcrumbs, PageFrame, PageHeader, Status } from '@phoenix/ui'
+import { Breadcrumbs, Loading, PageFrame, PageHeader, Status } from '@phoenix/ui'
 import type { ReactNode } from 'react'
 import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
 
@@ -20,9 +20,8 @@ export function EquipmentPageLayout({ busy = false, children, error, loadingMess
           title={title}
           status={updatedAt ? <UpdatedDateTime value={updatedAt} /> : undefined}
         />
-        {error || loadingMessage
-          ? <Status tone={error ? 'danger' : 'muted'}>{error ?? loadingMessage}</Status>
-          : children}
+        {error ? <Status tone="danger">{error}</Status>
+          : loadingMessage ? <Loading>{loadingMessage}</Loading> : children}
       </div>
     </PageFrame>
   )
