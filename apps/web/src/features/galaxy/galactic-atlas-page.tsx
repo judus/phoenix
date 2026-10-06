@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type SetStateAction } from 'react'
-import { Breadcrumbs, Button, ControlContext, Field, FormGrid, IconButton, Inline, PageFrame, PageHeader, Select, Status, TextInput, ToggleButton } from '@phoenix/ui'
+import { Breadcrumbs, Button, ControlContext, Field, IconButton, Inline, PageFrame, PageHeader, Select, Status, TextInput, ToggleButton } from '@phoenix/ui'
 import type { AtlasCatalogueResponse } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
@@ -56,9 +56,11 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
   }
   const [size, setSize] = useState({ width: 900, height: 600 })
   const [showRegions, setShowRegions] = useState(true)
-  const [showLandmarks, setShowLandmarks] = useState(true)
+  const [showLandmarks, setShowLandmarks] = useState(false)
+  const [showSearch, setShowSearch] = useState(false)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
+  const filtersActive = search.trim() !== '' || category !== ''
   const [selection, setSelection] = useState<string[]>([])
   const [selectedId, setSelectedId] = useState<string>()
   const viewport = useRef<HTMLDivElement>(null)
@@ -70,8 +72,9 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
   const markers = useMemo(() => [
     ...(position && systemName ? [{ id: 'commander', kind: 'commander' as const, label: systemName, systemName, position }] : []),
     ...bookmarks,
-    ...(showLandmarks ? landmarks : [])
-  ], [bookmarks, landmarks, position, showLandmarks, systemName])
+    ...ATLAS_LANDMARKS,
+    ...(showLandmarks ? landmarks.filter(marker => marker.poi) : landmarks.filter(marker => marker.poi && marker.id === selectedId))
+  ], [bookmarks, landmarks, position, showLandmarks, systemName, selectedId])
   const selected = markers.find(marker => marker.id === selectedId)
   const options = selection.map(id => markers.find(marker => marker.id === id)).filter((marker): marker is AtlasMarker => !!marker)
   const clusters = clusterAtlasMarkers(markers, camera, size.width, size.height)
@@ -137,35 +140,17 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
   return <PageFrame layout="fit" className="galactic-atlas-page">
     <PageHeader title="Galactic atlas" variant="cockpit" context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/atlas' }, { label: 'Galactic atlas' }]} />} actions={<ControlContext context="toolbar" density="compact"><Inline gap="xs">
         <ToggleButton className="display" pressed={showRegions} onClick={() => setShowRegions(value => !value)}>Regions</ToggleButton>
-        <ToggleButton className="display" pressed={showLandmarks} onClick={() => setShowLandmarks(value => !value)}>Landmarks</ToggleButton>
         <ToggleButton className="display" pressed={showBookmarks} onClick={onToggleBookmarks}>Bookmarks</ToggleButton>
+        <ToggleButton className="display" title="Show catalogue landmarks on the map; Finder filters apply" pressed={showLandmarks} onClick={() => setShowLandmarks(value => !value)}>{filtersActive ? 'Landmarks · filtered' : 'Landmarks'}</ToggleButton>
+        <ToggleButton className="display" title="Search locations without showing the whole catalogue" pressed={showSearch} onClick={() => setShowSearch(value => !value)}>Finder</ToggleButton>
     </Inline></ControlContext>} />
-    {showLandmarks && catalogue && <FormGrid>
-      <Field label="Search POIs" htmlFor="atlas-poi-search">
-        <TextInput className="form-mini" id="atlas-poi-search" value={search} onChange={event => setSearch(event.target.value)} />
-      </Field>
-      <Field label="POI category" htmlFor="atlas-poi-category">
-        <Select className="form-mini" id="atlas-poi-category" value={category} onChange={event => setCategory(event.target.value)}>
-          <option value="">All categories</option>
-          {categories.map(value => <option key={value} value={value}>{value}</option>)}
-        </Select>
-      </Field>
-      <Field label="Matching locations" htmlFor="atlas-poi-location">
-        <Select className="form-mini" id="atlas-poi-location" value={selectedId && landmarks.some(marker => marker.id === selectedId) ? selectedId : ''} onChange={event => {
-          const marker = landmarks.find(marker => marker.id === event.target.value)
-          if (marker) { setSelection([marker.id]); setSelectedId(marker.id); locate(marker.position) }
-        }}>
-          <option value="">Choose a POI ({landmarks.length})</option>
-          {landmarks.map(marker => <option key={marker.id} value={marker.id}>{marker.label}</option>)}
-        </Select>
-      </Field>
-    </FormGrid>}
-    <section className={`galactic-atlas${selected ? ' has-selection' : ''}`} aria-label="Galactic atlas" data-deskplane-no-swipe>
+    <section className={`galactic-atlas${selected || showSearch ? ' has-selection' : ''}`} aria-label="Galactic atlas" data-deskplane-no-swipe>
       <div className="atlas-map">
       <div className="atlas-viewport" ref={viewport} {...pointerGestures} onClick={event => {
         if ((event.target as Element).closest('[role="button"]')) return
         setSelection([])
         setSelectedId(undefined)
+        setShowSearch(false)
       }}>
         <svg width="100%" height="100%" viewBox={`0 0 ${size.width} ${size.height}`} tabIndex={0} role="group"
           aria-label="Top-down galaxy map. Drag to pan, pinch or use plus and minus to zoom. Arrow keys pan; Home shows the whole galaxy."
@@ -216,7 +201,35 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
           <IconButton variant="outline" size="sm" label="Zoom in" disabled={camera.zoom >= 64} onClick={() => changeZoom(1.5)}>+</IconButton>
         </div>
       </div>
-      {selected && <aside className="atlas-inspector" aria-label="Selected atlas location">
+      {(selected || showSearch) && <aside className="atlas-inspector" aria-label={selected ? 'Selected atlas location' : 'Find atlas POI'}>
+        {showSearch && <>
+          <header>Finder</header>
+          <Field label="Search POIs" htmlFor="atlas-poi-search">
+            <TextInput className="form-mini" id="atlas-poi-search" value={search} onChange={event => setSearch(event.target.value)} />
+          </Field>
+          <Field label="POI category" htmlFor="atlas-poi-category">
+            <Select className="form-mini" id="atlas-poi-category" value={category} onChange={event => setCategory(event.target.value)}>
+              <option value="">All categories</option>
+              {categories.map(value => <option key={value} value={value}>{value}</option>)}
+            </Select>
+          </Field>
+          <Field label="Matching locations" htmlFor="atlas-poi-location">
+            <Select className="form-mini" id="atlas-poi-location" value={selectedId && landmarks.some(marker => marker.id === selectedId) ? selectedId : ''} onChange={event => {
+              const marker = landmarks.find(marker => marker.id === event.target.value)
+              if (marker) { setSelection([marker.id]); setSelectedId(marker.id); locate(marker.position) }
+            }}>
+              <option value="">Choose a POI ({landmarks.length})</option>
+              {landmarks.map(marker => <option key={marker.id} value={marker.id}>{marker.label}</option>)}
+            </Select>
+          </Field>
+          <ControlContext context="toolbar" density="compact">
+            <Inline gap="sm" justify="space-between">
+              <small role="status">{catalogueStatus ?? `${landmarks.length} POIs`}</small>
+              <Button className="display" variant="outline" disabled={!filtersActive} onClick={() => { setSearch(''); setCategory('') }}>Clear</Button>
+            </Inline>
+          </ControlContext>
+        </>}
+        {selected && <>
         <header>
           <span>Selected location</span>
         </header>
@@ -237,6 +250,7 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
         <ControlContext context="toolbar" density="compact">
           <Button className="display" variant="outline" onClick={() => locate(selected.position, Math.min(64, Math.max(4, camera.zoom * 2)))}>Zoom here</Button>
         </ControlContext>
+        </>}
       </aside>}
       <footer className="atlas-telemetry">
         {position ? <>
@@ -246,9 +260,6 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
           <span>{formatLy(Math.abs(position[1]))} LY {position[1] < 0 ? 'below' : 'above'} plane</span>
         </> : <Status tone="muted">Current position unavailable — waiting for journal coordinates.</Status>}
         {showBookmarks && bookmarkStatus && <small role="status">{bookmarkStatus}</small>}
-        {showLandmarks && <small role="status">{catalogueStatus ?? `${landmarks.length} of ${ATLAS_LANDMARKS.length + pois.length} POIs`}</small>}
-        {showLandmarks && catalogue?.sources.filter(source => source.cache === 'stale' || source.cache === 'unavailable' || source.rejected).map(source =>
-          <small role="status" key={source.name}>{source.name}: {source.error ?? `${source.rejected} invalid or duplicate records skipped`}{source.cache === 'stale' ? ' · using retained data' : ''}</small>)}
       </footer>
     </section>
   </PageFrame>

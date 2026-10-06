@@ -20,12 +20,24 @@ test('catalogue filtering preserves site identities and body targeting; dense cl
   expect(clusterAtlasMarkers(pois, WHOLE_GALAXY, 900, 600).flatMap(cluster => cluster.markers)).toHaveLength(1500)
 })
 
-test('search can locate an off-screen POI, inspect provenance and clear the panel when filtered out', async () => {
+test('search can locate an off-screen POI without enabling the catalogue, inspect provenance and retain filters', async () => {
   const catalogue = { pois: [{ id: 'synthetic:1', label: 'Remote site', systemName: 'Remote', position: [20000, 0, 40000] as [number, number, number], categories: ['Guardian Structures'], source: 'Synthetic feed', sourceUrl: 'https://example.com/site', bodyName: 'A 1', siteType: 'Turtle' }], sources: [] }
   const onNavigate = vi.fn()
   let renderer: ReturnType<typeof create>
   await act(async () => { renderer = create(<GalacticAtlas catalogue={catalogue} bookmarks={[]} onNavigate={onNavigate} onToggleBookmarks={vi.fn()} position={[0, 0, 0]} showBookmarks systemName="Sol" />) })
   try {
+    expect(renderer.root.findAllByType('aside')).toHaveLength(0)
+    expect(renderer.root.findAllByProps({ id: 'atlas-poi-search' })).toHaveLength(0)
+    const headerButtons = () => renderer.root.findAllByType('header')[0].findAllByType('button')
+    expect(headerButtons().map(button => button.props.children)).toEqual(['Regions', 'Bookmarks', 'Landmarks', 'Finder'])
+    const finder = () => headerButtons().find(button => button.props.children === 'Finder')!
+    await act(async () => finder().props.onClick())
+    const reset = () => renderer.root.findAllByType('button').find(button => button.props.children === 'Clear')!
+    const clearRow = renderer.root.findAllByType('div').find(node => node.props.className?.startsWith('inline ') && node.findAllByType('button').some(button => button.props.children === 'Clear'))!
+    expect(clearRow.findByProps({ role: 'status' }).props.children).toBe('9 POIs')
+    expect(clearRow.props.className).toContain('justify-space-between')
+    expect(clearRow.findAll(node => node.type === 'small' || node.type === 'button').map(node => node.type)).toEqual(['small', 'button'])
+    expect(reset().props.disabled).toBe(true)
     const initial = renderer.root.findAllByType('g')[0].props.transform
     const category = renderer.root.findByProps({ id: 'atlas-poi-category' })
     await act(async () => category.props.onChange({ target: { value: 'Guardian Structures' } }))
@@ -39,7 +51,36 @@ test('search can locate an off-screen POI, inspect provenance and clear the pane
     await act(async () => inspector.findAllByType('a')[0]!.props.onClick({ button: 0, preventDefault() {} }))
     expect(onNavigate).toHaveBeenCalledWith(expect.objectContaining({ systemName: 'Remote', selectedName: 'Remote A 1' }))
     await act(async () => renderer.root.findByProps({ id: 'atlas-poi-search' }).props.onChange({ target: { value: 'not present' } }))
+    expect(renderer.root.findAllByProps({ 'aria-label': 'Selected atlas location' })).toHaveLength(0)
+    expect(renderer.root.findAllByProps({ 'aria-label': 'Find atlas POI' })).toHaveLength(1)
+    expect(headerButtons().map(button => button.props.children)).toContain('Landmarks · filtered')
+    await act(async () => finder().props.onClick())
     expect(renderer.root.findAllByType('aside')).toHaveLength(0)
+    await act(async () => finder().props.onClick())
+    expect(renderer.root.findByProps({ id: 'atlas-poi-search' }).props.value).toBe('not present')
+    expect(renderer.root.findByProps({ id: 'atlas-poi-category' }).props.value).toBe('Guardian Structures')
+    await act(async () => reset().props.onClick())
+    expect(renderer.root.findByProps({ id: 'atlas-poi-search' }).props.value).toBe('')
+    expect(renderer.root.findByProps({ id: 'atlas-poi-category' }).props.value).toBe('')
+    expect(reset().props.disabled).toBe(true)
+    expect(headerButtons().map(button => button.props.children)).toContain('Landmarks')
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('catalogue markers are opt-in while reference landmarks stay available', async () => {
+  const catalogue = { pois: [{ id: 'synthetic:visible', label: 'Visible catalogue site', systemName: 'Example', position: [20000, 0, 20000] as [number, number, number], categories: ['Guardian Ruins'], source: 'Synthetic', sourceUrl: 'https://example.com/site' }], sources: [] }
+  let renderer: ReturnType<typeof create>
+  await act(async () => { renderer = create(<GalacticAtlas catalogue={catalogue} bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={null} showBookmarks systemName={null} />) })
+  try {
+    const site = () => renderer.root.findAllByProps({ 'aria-label': 'Visible catalogue site' })
+    const toggle = renderer.root.findAllByType('button').find(button => button.props.children === 'Landmarks')!
+    expect(toggle.props['aria-pressed']).toBe(false)
+    expect(site()).toHaveLength(0)
+    await act(async () => toggle.props.onClick())
+    expect(site()).toHaveLength(1)
+    await act(async () => toggle.props.onClick())
+    expect(site()).toHaveLength(0)
+    expect(renderer.root.findAllByProps({ 'aria-label': 'Colonia' })).toHaveLength(1)
   } finally { await act(async () => renderer.unmount()) }
 })
 
@@ -83,7 +124,7 @@ test('atlas selection opens the correct system and supports keyboard zoom and re
   const map = () => renderer.root.findAllByType('svg').find(node => node.props.role === 'group')!
   const pageHeader = renderer.root.findAllByType('header')[0]
   expect(pageHeader.props.className).toContain('page-header-cockpit')
-  expect(pageHeader.findAllByType('button')).toHaveLength(3)
+  expect(pageHeader.findAllByType('button')).toHaveLength(4)
   const currentSystem = renderer.root.findByType('footer').findByType('a')
   expect(parsePhoenixRoute(currentSystem.props.href)).toEqual({ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Sol' })
   await act(async () => currentSystem.props.onClick({ button: 0, preventDefault() {} }))
