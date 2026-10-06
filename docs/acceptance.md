@@ -35,6 +35,8 @@ not successful input or observation inside Elite.
 **Automated** means fixtures/browser checks/native CI. **Reported** means maintainer feedback
 without a complete device/version record. **Pending** is unverified, not a confirmed bug.
 Historical unisolated tablet lag/crash and macro reports remain reproduction checks.
+[#13](https://github.com/judus/phoenix/issues/13) records the completed workspace-gesture scope;
+the matrix below retains its next-installed-build acceptance checks, not a second implementation task.
 
 | Area | Existing evidence | Next check / owner |
 | --- | --- | --- |
