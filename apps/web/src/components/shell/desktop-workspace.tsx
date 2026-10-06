@@ -120,6 +120,26 @@ export function DesktopWorkspace({
                   {journal}
                 </WorkspacePage>
               )
+            },
+            {
+              id: 'settings',
+              ariaLabel: 'Settings workspace',
+              children: (
+                <WorkspacePage
+                  contextItems={settingsContextItems}
+                  contextLabel="Settings views"
+                  currentContext={settingsCurrentContext}
+                  onNavigate={onNavigateRoute}
+                  swipeZone
+                >
+                  {settings}
+                </WorkspacePage>
+              )
+            },
+            {
+              id: 'developer',
+              ariaLabel: 'Developer workspace',
+              children: <WorkspacePage contextItems={developerContextItems} contextLabel="Developer views" currentContext={developerCurrentContext} onNavigate={onNavigateRoute} swipeZone>{developer}</WorkspacePage>
             }
           ]
         },
@@ -172,32 +192,6 @@ export function DesktopWorkspace({
                   swipeZone
                 >
                   {copilot}
-                </WorkspacePage>
-              )
-            }
-          ]
-        },
-        {
-          id: 'system',
-          initialDesktopId: 'settings',
-          desktops: [
-            {
-              id: 'developer',
-              ariaLabel: 'Developer workspace',
-              children: <WorkspacePage contextItems={developerContextItems} contextLabel="Developer views" currentContext={developerCurrentContext} onNavigate={onNavigateRoute} swipeZone>{developer}</WorkspacePage>
-            },
-            {
-              id: 'settings',
-              ariaLabel: 'Settings workspace',
-              children: (
-                <WorkspacePage
-                  contextItems={settingsContextItems}
-                  contextLabel="Settings views"
-                  currentContext={settingsCurrentContext}
-                  onNavigate={onNavigateRoute}
-                  swipeZone
-                >
-                  {settings}
                 </WorkspacePage>
               )
             }

@@ -4,6 +4,7 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Place Settings and Developer tools after Log in the top workspace row for horizontal swiping.
 - Require a distinct installer-verification CI gate before merging releases into main.
 - Keep EDDN validation dependencies bundled in installers while preserving development startup.
 - Fix development server startup when loading EDDN schema validation through tsx.
