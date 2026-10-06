@@ -80,6 +80,74 @@ test('profile roster follows the editor without switching the chat profile', asy
   } finally { await act(async () => renderer.unmount()) }
 })
 
+test('editor tabs preserve unsaved character fields without saving or switching the chat profile', async () => {
+  const api = apiWith({ updateCopilotProfile: vi.fn(), selectCopilotProfile: vi.fn() })
+  const renderer = await mount(api)
+  try {
+    act(() => renderer.root.findAllByType('input')[0]!.props.onChange({ target: { value: 'Unsaved name' } }))
+    await act(async () => click(renderer, 'Permissions'))
+    expect(renderer.root.findByProps({ id: 'profile-panel', role: 'tabpanel' }).props.hidden).toBe(true)
+    expect(renderer.root.findByProps({ id: 'permissions-panel', role: 'tabpanel' }).props.hidden).toBe(false)
+    await act(async () => click(renderer, 'Profile'))
+    expect(name(renderer)).toBe('Unsaved name')
+    expect(selectedProfiles(renderer)).toEqual(['Alpha'])
+    expect(api.updateCopilotProfile).not.toHaveBeenCalled()
+    expect(api.selectCopilotProfile).not.toHaveBeenCalled()
+    await act(async () => click(renderer, 'Permissions'))
+    await act(async () => click(renderer, 'Beta'))
+    expect(name(renderer)).toBe('Beta')
+    expect(renderer.root.findByProps({ id: 'profile-panel', role: 'tabpanel' }).props.hidden).toBe(false)
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('permission changes save immediately with pending/error feedback, independently of the draft', async () => {
+  const saved = deferred<ReturnType<typeof capabilities>>()
+  const api = apiWith({ updateCopilotProfileCapabilities: vi.fn().mockReturnValue(saved.promise), updateCopilotProfile: vi.fn() })
+  const renderer = await mount(api)
+  try {
+    act(() => renderer.root.findAllByType('input')[0]!.props.onChange({ target: { value: 'Unsaved name' } }))
+    await act(async () => click(renderer, 'Permissions'))
+    act(() => renderer.root.findByType(CopilotPermissionEditor).props.onChange({ version: 2, enabledCapabilityIds: [] }))
+    expect(api.updateCopilotProfileCapabilities).toHaveBeenCalledWith('Alpha', { version: 2, enabledCapabilityIds: [] })
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.disabled).toBe(true)
+    expect(JSON.stringify(renderer.toJSON())).toContain('Saving permissions…')
+    await act(async () => saved.reject(new Error('Permission save failed')))
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.disabled).toBe(false)
+    expect(renderer.root.findByProps({ id: 'permissions-panel', role: 'tabpanel' }).findAllByType('span').some(node => node.children.includes('Permission save failed'))).toBe(true)
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.permissions.enabledCapabilityIds).toEqual(['Alpha'])
+    const retry = deferred<ReturnType<typeof capabilities>>()
+    vi.mocked(api.updateCopilotProfileCapabilities).mockReturnValueOnce(retry.promise)
+    act(() => renderer.root.findByType(CopilotPermissionEditor).props.onChange({ version: 2, enabledCapabilityIds: [] }))
+    expect(JSON.stringify(renderer.toJSON())).toContain('Saving permissions…')
+    expect(JSON.stringify(renderer.toJSON())).not.toContain('Permission save failed')
+    await act(async () => retry.resolve({ ...capabilities('Alpha'), permissions: { version: 2, enabledCapabilityIds: [] } }))
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.permissions.enabledCapabilityIds).toEqual([])
+    await act(async () => click(renderer, 'Profile'))
+    expect(name(renderer)).toBe('Unsaved name')
+    expect(api.updateCopilotProfile).not.toHaveBeenCalled()
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('new profiles show inherited permissions read-only until creation succeeds', async () => {
+  const api = apiWith({ createCopilotProfile: vi.fn().mockResolvedValue(document('created')), updateCopilotProfileCapabilities: vi.fn() })
+  const renderer = await mount(api)
+  try {
+    await act(async () => click(renderer, 'New profile'))
+    await act(async () => click(renderer, 'Permissions'))
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.disabled).toBe(true)
+    expect(JSON.stringify(renderer.toJSON())).toContain('Create the profile before changing them.')
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.permissions.enabledCapabilityIds).toEqual(['Alpha'])
+    await act(async () => click(renderer, 'Profile'))
+    act(() => renderer.root.findAllByType('input')[0]!.props.onChange({ target: { value: 'Created' } }))
+    await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+    await act(async () => click(renderer, 'Permissions'))
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.disabled).toBe(false)
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.permissions.enabledCapabilityIds).toEqual(['created'])
+    expect(api.createCopilotProfile).toHaveBeenCalledWith(expect.objectContaining({ templateProfileId: 'Alpha' }))
+    expect(api.updateCopilotProfileCapabilities).not.toHaveBeenCalled()
+  } finally { await act(async () => renderer.unmount()) }
+})
+
 test.each(['Enter', ' '])('profile roster supports keyboard selection with %s', async key => {
   const renderer = await mount(apiWith())
   try {
