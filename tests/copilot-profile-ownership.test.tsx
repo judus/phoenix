@@ -148,6 +148,37 @@ test('new profiles show inherited permissions read-only until creation succeeds'
   } finally { await act(async () => renderer.unmount()) }
 })
 
+test('profile and permission failures stay with their respective actions and do not clear each other', async () => {
+  const history = deferred<{ messages: [] }>()
+  const api = apiWith({
+    getCopilotHistory: vi.fn().mockReturnValue(history.promise),
+    updateCopilotProfile: vi.fn().mockRejectedValue(new Error('Character save failed')),
+    updateCopilotProfileCapabilities: vi.fn().mockRejectedValue(new Error('Permission save failed'))
+  })
+  const renderer = await mount(api)
+  const panelText = (id: string) => renderer.root.findByProps({ id, role: 'tabpanel' }).findAllByType('span').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ')
+  try {
+    await act(async () => history.reject(new Error('Unrelated history failure')))
+    expect(renderer.root.findByProps({ className: 'page-status' }).children.join('')).toContain('Unrelated history failure')
+    await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+    const formText = () => renderer.root.findByType('form').findAllByType('p').flatMap(node => node.children).join(' ')
+    expect(formText()).toContain('Character save failed')
+    expect(renderer.root.findByProps({ className: 'page-status' }).children.join('')).toContain('Unrelated history failure')
+    await act(async () => click(renderer, 'Permissions'))
+    expect(panelText('permissions-panel')).not.toContain('Character save failed')
+    expect(panelText('permissions-panel')).not.toContain('Unrelated history failure')
+    await act(async () => renderer.root.findByType(CopilotPermissionEditor).props.onChange({ version: 2, enabledCapabilityIds: [] }))
+    expect(panelText('permissions-panel')).toContain('Permission save failed')
+    expect(formText()).not.toContain('Permission save failed')
+    vi.mocked(api.updateCopilotProfileCapabilities).mockResolvedValueOnce(capabilities('Alpha'))
+    await act(async () => renderer.root.findByType(CopilotPermissionEditor).props.onChange({ version: 2, enabledCapabilityIds: [] }))
+    expect(panelText('permissions-panel')).not.toContain('Permission save failed')
+    expect(formText()).toContain('Character save failed')
+    await act(async () => click(renderer, 'Beta'))
+    expect(formText()).not.toContain('Character save failed')
+  } finally { await act(async () => renderer.unmount()) }
+})
+
 test.each(['Enter', ' '])('profile roster supports keyboard selection with %s', async key => {
   const renderer = await mount(apiWith())
   try {

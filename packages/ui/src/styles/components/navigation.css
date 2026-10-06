@@ -325,4 +325,5 @@
     }
   }
 
+  span[aria-disabled='true'], button:disabled { opacity: 0.48; }
 }

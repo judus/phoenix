@@ -26,6 +26,8 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
   const [draft, setDraft] = useState<ProfileDraft>()
   const [profileCapabilities, setProfileCapabilities] = useState<CopilotProfileCapabilitySettings>()
   const [permissionsPending, setPermissionsPending] = useState(false)
+  const [permissionsError, setPermissionsError] = useState<string>()
+  const [profileError, setProfileError] = useState<string>()
   const [saving, setSaving] = useState(false)
   const [composer, setComposer] = useState('')
   const clientId = useRef(clientIdentity.forScope('copilot'))
@@ -44,6 +46,8 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
     profileRevision.current += 1
     setSaving(false)
     setPermissionsPending(false)
+    setPermissionsError(undefined)
+    setProfileError(undefined)
     setPending(false)
     setToolStatus(undefined)
     return () => { abort.abort(); profileRequest.cancel() }
@@ -119,6 +123,8 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
       setPermissionsPending(false)
       updateDraft(toDraft(document))
       setProfileCapabilities(capabilities)
+      setPermissionsError(undefined)
+      setProfileError(undefined)
       setError(undefined)
     } catch (cause) {
       if (profileRequest.isCurrent(signal)) setError(message(cause, 'Unable to load Copilot profile.'))
@@ -146,6 +152,8 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
       setPermissionsPending(false)
       updateDraft({ ...toDraft(source), id: '', mark: '?', name: '', description: '', templateProfileId: source.profile.id })
       setProfileCapabilities(capabilities)
+      setPermissionsError(undefined)
+      setProfileError(undefined)
       setError(undefined)
     } catch (cause) {
       if (profileRequest.isCurrent(signal)) setError(message(cause, 'Unable to prepare a new profile.'))
@@ -157,6 +165,7 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
     const revision = profileRevision.current
     const ownsSelection = (): boolean => !owner.abort.signal.aborted && revision === profileRevision.current
     setSaving(true)
+    setProfileError(undefined)
     try {
       const creating = next.templateProfileId !== undefined
       const input = { characterSpeech: next.characterSpeech, characterText: next.characterText, profile: { description: next.description, id: creating ? profileId(next.name) : next.id, mark: creating ? next.name.trim().charAt(0).toUpperCase() || '?' : next.mark, name: next.name, voice: next.voice }, ...(next.templateProfileId ? { templateProfileId: next.templateProfileId } : {}) }
@@ -174,9 +183,9 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
         if (!ownsSelection()) return
         setProfileCapabilities(capabilities)
       }
-      setError(undefined)
+      setProfileError(undefined)
     } catch (cause) {
-      if (ownsSelection()) setError(message(cause, 'Unable to save Copilot profile.'))
+      if (ownsSelection()) setProfileError(message(cause, 'Unable to save Copilot profile.'))
     } finally {
       if (ownsSelection()) setSaving(false)
     }
@@ -187,14 +196,14 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
     const revision = profileRevision.current
     const ownsSelection = (): boolean => !owner.abort.signal.aborted && revision === profileRevision.current
     setPermissionsPending(true)
-    setError(undefined)
+    setPermissionsError(undefined)
     try {
       const capabilities = await api.updateCopilotProfileCapabilities(draft.id, permissions)
       if (!ownsSelection()) return
       setProfileCapabilities(capabilities)
-      setError(undefined)
+      setPermissionsError(undefined)
     } catch (cause) {
-      if (ownsSelection()) setError(message(cause, 'Unable to save profile permissions.'))
+      if (ownsSelection()) setPermissionsError(message(cause, 'Unable to save profile permissions.'))
     } finally {
       if (ownsSelection()) setPermissionsPending(false)
     }
@@ -265,7 +274,7 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
             </DataTable>
             <CommandTile aria-label="New profile" compact details={false} label="New profile" onClick={() => void create()} />
           </aside>
-          {draft ? <ProfileEditor key={draft.id} capabilities={profileCapabilities} draft={draft} error={error} permissionsPending={permissionsPending} saving={saving} onChange={updateDraft} onSave={save} onSavePermissions={saveProfilePermissions} /> : <Status tone="muted">Select a profile to inspect its character prompts.</Status>}
+          {draft ? <ProfileEditor key={draft.id} capabilities={profileCapabilities} draft={draft} profileError={profileError} permissionsError={permissionsError} permissionsPending={permissionsPending} saving={saving} onChange={updateDraft} onSave={save} onSavePermissions={saveProfilePermissions} /> : <Status tone="muted">Select a profile to inspect its character prompts.</Status>}
         </div>}
   </PageFrame>
 }
@@ -280,10 +289,11 @@ const CopilotMessages = memo(function CopilotMessages({ activeTurn, messages, pe
 })
 function Message({ live = false, role, text }: { live?: boolean, role: CopilotHistoryMessage['role'], text: string }) { return <article className={`copilot-message copilot-message-${role}${live ? ' live' : ''}`}><small>{role === 'user' ? 'Commander' : role === 'assistant' ? 'Copilot' : 'System'}{live ? ' · live' : ''}</small><div>{role === 'assistant' ? <CopilotMarkdown>{text}</CopilotMarkdown> : text}</div></article> }
 function CopilotComposer({ onSubmit, onTextChange, pending, profileName, text }: { onSubmit(text: string): Promise<void>, onTextChange(text: string): void, pending: boolean, profileName: string, text: string }) { const submit = (event: FormEvent) => { event.preventDefault(); const value = text.trim(); if (!value) return; onTextChange(''); void onSubmit(value) }; return <Form id="copilot-composer-form" className="copilot-composer" onSubmit={submit}><Field htmlFor="copilot-message" label="Message Copilot"><Textarea value={text} rows={2} disabled={pending} placeholder={`Ask ${profileName}…`} onChange={event => onTextChange(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} /></Field></Form> }
-function ProfileEditor({ capabilities, draft, error, onChange, onSave, onSavePermissions, permissionsPending, saving }: {
+function ProfileEditor({ capabilities, draft, profileError, permissionsError, onChange, onSave, onSavePermissions, permissionsPending, saving }: {
   capabilities?: CopilotProfileCapabilitySettings
   draft: ProfileDraft
-  error?: string
+  profileError?: string
+  permissionsError?: string
   onChange(value: ProfileDraft): void
   onSave(value: ProfileDraft): Promise<void>
   onSavePermissions(value: CopilotPermissionPolicy): Promise<void>
@@ -311,7 +321,7 @@ function ProfileEditor({ capabilities, draft, error, onChange, onSave, onSavePer
         <Field htmlFor="profile-text" label="Text character prompt" required><Textarea value={draft.characterText} required rows={7} onChange={update('characterText')} /></Field>
         <Field htmlFor="profile-speech" label="Speech character prompt" required><Textarea value={draft.characterSpeech} required rows={7} onChange={update('characterSpeech')} /></Field>
       </div>
-      <FormActions message={error}><Button variant="primary" busy={saving}>{draft.templateProfileId ? 'Create profile' : 'Save profile'}</Button></FormActions>
+      <FormActions message={profileError}><Button variant="primary" busy={saving}>{draft.templateProfileId ? 'Create profile' : 'Save profile'}</Button></FormActions>
     </Form>
     <section className="copilot-profile-panel" id="permissions-panel" role="tabpanel" aria-labelledby="permissions-tab" hidden={tab !== 'permissions-tab'}>
       {capabilities && <CopilotPermissionEditor
@@ -323,8 +333,8 @@ function ProfileEditor({ capabilities, draft, error, onChange, onSave, onSavePer
         visibleCapabilityIds={capabilities.installationPermissions.enabledCapabilityIds}
         onChange={permissions => void onSavePermissions(permissions)}
       />}
-      <Status role="status" tone={error ? 'danger' : 'muted'} wrap>
-        {error ?? (permissionsPending ? 'Saving permissions…' : draft.templateProfileId
+      <Status role="status" tone={permissionsError ? 'danger' : 'muted'} wrap>
+        {permissionsError ?? (permissionsPending ? 'Saving permissions…' : draft.templateProfileId
           ? 'Template permissions are inherited. Create the profile before changing them.'
           : 'Permission changes save immediately.')}
       </Status>
