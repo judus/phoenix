@@ -26,6 +26,7 @@ vi.mock('deskplane/react', () => ({
 }))
 
 import { DesktopWorkspace } from '../apps/web/src/components/shell/desktop-workspace.js'
+import { utilityItems } from '../apps/web/src/components/shell/navigation-model.js'
 
 beforeAll(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
@@ -41,6 +42,11 @@ describe('DesktopWorkspace routing integration', () => {
     })
     deskplaneHarness.controller = createDeskplaneController(goTo)
     const renderer = await renderWithAct(<RoutedDesktopWorkspace router={router} />)
+    expect(deskplaneHarness.props?.rows.map(row => row.id)).toEqual(['utilities', 'workspaces'])
+    expect(deskplaneHarness.props?.rows[0].desktops.map(desktop => desktop.id))
+      .toEqual(['telemetry', 'macros', 'journal', 'settings', 'developer'])
+    expect(utilityItems({ active: false, supported: true }).slice(0, 5).map(item => item.id))
+      .toEqual(['telemetry', 'macros', 'journal', 'settings', 'developer'])
     expect(renderer.root.findAll(element => element.props['data-deskplane-swipe-zone'] === 'horizontal')).toHaveLength(8)
     goTo.mockClear()
 
@@ -76,6 +82,14 @@ describe('DesktopWorkspace routing integration', () => {
       ['push', '#/settings/general'],
       ['push', '#/commander/dashboard']
     ])
+
+    for (const workspace of ['journal', 'settings', 'developer', 'settings', 'journal']) {
+      await act(async () => {
+        deskplaneHarness.props?.onSnapshotChange?.(snapshot(workspace))
+      })
+      expect(workspaceForRoute(router.getSnapshot())).toBe(workspace)
+    }
+    expect(router.getSnapshot()).toEqual({ kind: 'journal', view: 'commander' })
 
     await act(async () => renderer?.unmount())
   })
@@ -118,13 +132,13 @@ function createDeskplaneController(goTo: Deskplane['goTo']): Deskplane {
 }
 
 function snapshot(activeDesktopId: string): DeskplaneSnapshot {
+  const utilities = ['telemetry', 'macros', 'journal', 'settings', 'developer'].includes(activeDesktopId)
   return {
     activeDesktopId,
-    activeRowId: activeDesktopId === 'settings' ? 'system' : 'workspaces',
+    activeRowId: utilities ? 'utilities' : 'workspaces',
     activeDesktopByRow: {
-      utilities: 'telemetry',
-      workspaces: activeDesktopId === 'info' ? 'info' : 'controls',
-      system: activeDesktopId === 'settings' ? 'settings' : 'developer'
+      utilities: utilities ? activeDesktopId : 'telemetry',
+      workspaces: utilities ? 'info' : activeDesktopId
     },
     isAnimating: false
   }
