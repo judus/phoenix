@@ -5,7 +5,7 @@ description: Prepare or verify PHOENIX CI, dev-to-main promotion, installers and
 
 # PHOENIX releases
 
-Read [docs/releases.md](../../../../docs/releases.md), relevant installation instructions and workflow
+Read [docs/releases.md](../../../docs/releases.md), relevant installation instructions and workflow
 definitions. Inspect both Git state and the exact source SHA. Control Deck is an independently
 owned dependency: runtime/helper versions and artifact integrity must match the intended release.
 
