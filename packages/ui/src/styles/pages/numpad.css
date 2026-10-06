@@ -28,7 +28,16 @@
         padding-block-end: var(--spacing-sm);
         border-block-end: 1px solid var(--color-border);
 
-        > div { display: grid; gap: var(--spacing-xxs); }
+        > div, > button { display: grid; gap: var(--spacing-xxs); }
+        > button {
+          padding: 0;
+          border: 0;
+          background: transparent;
+          color: var(--color-text-muted);
+          font: inherit;
+          text-align: start;
+          cursor: pointer;
+        }
         small {
           color: var(--color-action);
           font-family: var(--font-family-display);
