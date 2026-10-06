@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Loading } from '@phoenix/ui'
 import type {
   EngineeringBlueprintDetail,
   EngineeringBlueprintSummary,
@@ -67,10 +68,10 @@ export function EngineeringPage({ controller, onNavigate, route }: {
 
 function EngineeringState({ error, title }: { error?: string, title: string }) {
   return (
-    <PageFrame aria-busy={!error}>
-      <Stack gap="sm">
+    <PageFrame layout="fit">
+      <Stack fill gap="sm">
         <EngineeringHeader title={title} trail={[{ label: title }]} />
-        <Status tone={error ? 'danger' : 'muted'}>{error ?? 'Loading engineering records…'}</Status>
+        {error ? <Status tone="danger">{error}</Status> : <Loading>Loading engineering records…</Loading>}
       </Stack>
     </PageFrame>
   )

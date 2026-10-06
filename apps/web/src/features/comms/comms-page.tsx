@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { Loading } from '@phoenix/ui'
 import type {
   CommunicationContact,
   CommunicationMessage,
@@ -43,10 +44,10 @@ export function CommsPage({ controller, onExecuteAction, view }: {
 
 function CommsState({ error, title }: { error?: string, title: string }) {
   return (
-    <PageFrame aria-busy={!error}>
-      <Stack gap="xl">
+    <PageFrame layout="fit">
+      <Stack fill gap="xl">
         <CommsHeader title={title} />
-        <Status tone={error ? 'danger' : 'muted'}>{error ?? 'Reading retained communications…'}</Status>
+        {error ? <Status tone="danger">{error}</Status> : <Loading>Reading retained communications…</Loading>}
       </Stack>
     </PageFrame>
   )

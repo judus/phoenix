@@ -125,7 +125,6 @@
   }
 
   .system-schematic__state {
-    position: relative;
     min-block-size: 0;
     display: grid;
     place-items: center;

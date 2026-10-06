@@ -1,4 +1,5 @@
 import { lazy, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { Loading } from '@phoenix/ui'
 import { RoutePlotFeedback } from './route-plot-feedback.js'
 import { CatalogueSuggestionInput } from './catalogue-suggestion-input.js'
 import {
@@ -234,7 +235,7 @@ function SystemState({ api, error, onNavigate, route, runtime }: {
         systemName={systemName ?? 'System schematic'}
       />
       <div className="system-schematic__state">
-        <Status tone="muted">{error ?? 'Loading system schematic…'}</Status>
+        {error ? <Status tone="muted">{error}</Status> : <Loading>Loading system schematic…</Loading>}
       </div>
     </PageFrame>
   )
@@ -577,7 +578,7 @@ function SaveQueryPanel ({ dashboardEligible, error, name, onCancel, onChange, o
 }
 
 function QueryConsoleState ({ error }: { error?: string }) {
-  return <PageFrame><PageHeader variant="cockpit" context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Query console' }]} />} title="Query console" /><Status tone={error ? 'danger' : 'muted'}>{error ?? 'Loading saved query…'}</Status></PageFrame>
+  return <PageFrame layout="fit"><PageHeader variant="cockpit" context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Query console' }]} />} title="Query console" />{error ? <Status tone="danger">{error}</Status> : <Loading>Loading saved query…</Loading>}</PageFrame>
 }
 
 function queryValues (definition: GalaxyQueryDefinition, parameters: SavedGalaxyQuery['parameters'] | undefined): Record<string, GalaxyQueryValue> {
@@ -662,7 +663,7 @@ function GalaxyState({ error, title }: { error?: string, title: string }) {
         context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: title }]} />}
         title={title}
       />
-      <Status tone={error ? 'danger' : 'muted'}>{error ?? `Loading ${title.toLocaleLowerCase()}…`}</Status>
+      {error ? <Status tone="danger">{error}</Status> : <Loading>{`Loading ${title.toLocaleLowerCase()}…`}</Loading>}
     </PageFrame>
   )
 }

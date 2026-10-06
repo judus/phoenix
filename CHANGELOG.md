@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Show a subtle Phoenix highlight animation while page content loads, respecting reduced motion
+  without delaying navigation or replacing error feedback.
 - Keep live journal ingestion responsive by yielding between bounded record batches, and drain
   in-flight journal projections before shutdown closes their dependencies. Add an isolated,
   repeatable startup/tail/backfill HTTP/SSE performance diagnostic.

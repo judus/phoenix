@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { Loading } from '@phoenix/ui'
 import {
   Breadcrumbs,
   DataTable,
@@ -75,10 +76,10 @@ export function ExobiologyPage({ controller }: { controller: GalaxyControllerSna
 
 function ExobiologyState({ error }: { error?: string }) {
   return (
-    <PageFrame aria-busy={!error}>
-      <Stack gap="xl">
+    <PageFrame layout="fit">
+      <Stack fill gap="xl">
         <ExobiologyHeader />
-        <Status tone={error ? 'danger' : 'muted'}>{error ?? 'Reconstructing journal-backed exobiology records…'}</Status>
+        {error ? <Status tone="danger">{error}</Status> : <Loading>Reconstructing journal-backed exobiology records…</Loading>}
       </Stack>
     </PageFrame>
   )

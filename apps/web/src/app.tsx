@@ -1,5 +1,6 @@
 import { lazy, memo, Suspense, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
 import type { ApplicationNavigationItem } from '@phoenix/ui'
+import { Loading, PageFrame } from '@phoenix/ui'
 import { PhoenixApplicationShell } from './components/shell/phoenix-application-shell.js'
 import { isInformationRoute, workspaceForRoute, type InformationRoute, type PhoenixRoute } from './application/navigation/phoenix-route.js'
 import { parsePhoenixRoute, type PhoenixRouter } from './application/navigation/phoenix-router.js'
@@ -227,7 +228,7 @@ function renderInformationFeature(application: PhoenixApplicationServices, route
 }
 
 function FeatureBoundary({ children }: { children: ReactNode }) {
-  return <Suspense fallback={null}>{children}</Suspense>
+  return <Suspense fallback={<PageFrame layout="fit"><Loading /></PageFrame>}>{children}</Suspense>
 }
 
 const StableCopilotFeature = memo(CopilotFeature)
