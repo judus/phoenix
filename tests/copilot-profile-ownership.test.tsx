@@ -52,6 +52,26 @@ test('the active profile editor loads on entry without a profile-button click', 
   try {
     expect(name(renderer)).toBe('Alpha')
     expect(renderer.root.findByType(CopilotPermissionEditor).props.permissions.enabledCapabilityIds).toEqual(['Alpha'])
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.profileLoad).toEqual(capabilities('Alpha').capabilities.load)
+    expect(renderer.root.findAllByProps({ className: 'copilot-load' })).toHaveLength(1)
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('the load display follows the selected profile rather than the installation ceiling', async () => {
+  const api = apiWith({ getCopilotProfileCapabilities: vi.fn().mockImplementation(async id => {
+    const settings = capabilities(id)
+    return { ...settings, capabilities: { ...settings.capabilities, load: {
+      ...settings.capabilities.load, score: id === 'Alpha' ? 17 : 83, percentage: id === 'Alpha' ? 17 : 83,
+      level: id === 'Alpha' ? 'focused' : 'broad'
+    } } }
+  }) })
+  const renderer = await mount(api)
+  try {
+    expect(JSON.stringify(renderer.toJSON())).toContain('17%')
+    await act(async () => click(renderer, 'Beta'))
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.profileLoad.percentage).toBe(83)
+    expect(JSON.stringify(renderer.toJSON())).toContain('83%')
+    expect(JSON.stringify(renderer.toJSON())).not.toContain('17%')
   } finally { await act(async () => renderer.unmount()) }
 })
 

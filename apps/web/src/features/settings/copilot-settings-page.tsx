@@ -166,7 +166,7 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
           </SettingsList>
         </Section>
 
-        <Section description="Disabled capabilities are hidden from Copilot and rejected at execution time." title="Capabilities">
+        <Section description="Installation-wide permission ceiling. Each Copilot profile chooses its own capabilities within this limit; its AI load is shown in Profiles. Disabled capabilities are hidden from Copilot and rejected at execution time." title="Capabilities">
           {!settings
             ? <Status tone="muted">Loading permissions…</Status>
             : <CopilotPermissionEditor

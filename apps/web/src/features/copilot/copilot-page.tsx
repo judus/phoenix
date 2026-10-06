@@ -280,6 +280,7 @@ function ProfileEditor({ capabilities, draft, onChange, onSave, onSavePermission
         capabilities={capabilities.capabilities}
         disabled={permissionsPending || draft.templateProfileId !== undefined}
         permissions={capabilities.permissions}
+        profileLoad={capabilities.capabilities.load}
         visibleCapabilityIds={capabilities.installationPermissions.enabledCapabilityIds}
         onChange={permissions => void onSavePermissions(permissions)}
       />
