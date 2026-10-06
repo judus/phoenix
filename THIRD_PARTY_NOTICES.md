@@ -58,11 +58,12 @@ PHOENIX bundles the Euro Caps font by Tom Oetken, published as Ash Pikachu Font.
 PHOENIX can fetch and locally normalize ship, module, and engineering catalogue data from community-maintained Elite Dangerous data projects:
 
 - [EDCD Coriolis Data](https://github.com/EDCD/coriolis-data), for ship and engineering-blueprint data;
-- [EDCD FDevIDs](https://github.com/EDCD/FDevIDs), for ship, outfitting, material, and engineer identifiers;
+- [EDCD FDevIDs](https://github.com/EDCD/FDevIDs), for ship, outfitting, commodity, material, and engineer identifiers;
 - [EDSM](https://www.edsm.net/), for resolving engineer-system names and coordinates;
-- [Elite Dangerous Almanac](https://github.com/DarkSession/Elite-Dangerous-Almanac), for a pinned personal-equipment, upgrade-recipe, modification, and micro-resource source revision. The Almanac repository is licensed under AGPL-3.0-or-later and identifies Odyssey Materials Helper as the upstream recipe lineage.
+- [Elite Dangerous Almanac](https://github.com/DarkSession/Elite-Dangerous-Almanac/tree/362210e98b334cd7575d0734301c66c8bd2d17bd), for a pinned personal-equipment, upgrade-recipe, modification, specialist and micro-resource source revision. Its code and documentation are MIT-licensed; game data remains under source-specific terms, not relicensed under MIT. See the pinned [licence](https://github.com/DarkSession/Elite-Dangerous-Almanac/blob/362210e98b334cd7575d0734301c66c8bd2d17bd/LICENSE) and [attributions](https://github.com/DarkSession/Elite-Dangerous-Almanac/blob/362210e98b334cd7575d0734301c66c8bd2d17bd/ATTRIBUTIONS.md).
+- [Odyssey Materials Helper](https://github.com/jixxed/ed-odyssey-materials-helper), by Jixxed, for the upstream personal-equipment identities and upgrade/modification recipes used through the Almanac. Its MIT notice is included in `licenses/OdysseyMaterialsHelper-MIT.txt`.
 
-PHOENIX does not distribute those upstream catalogue snapshots. The fetcher stores them in the user's writable runtime-data directory. Exact upstream revisions and refresh timestamps are recorded in that local snapshot's `manifest.json`.
+PHOENIX bundles normalized starter catalogue snapshots in `resources/catalogue`, including in installed payloads. The refresh utility stores refreshed snapshots in the user's writable runtime-data directory. Source revisions and refresh timestamps are recorded in the catalogue manifest and domain-specific provenance. These are game-data snapshots, not copies of upstream application code, and remain subject to the relevant source terms. The Almanac's full licence, including its game-data caveat, is included in `licenses/EliteDangerousAlmanac.txt`.
 
 The Coriolis Data license states that its Elite Dangerous data and associated JSON files are intellectual property and copyright of Frontier Developments plc and are subject to Frontier's terms and conditions. The MIT grant in that repository applies to Coriolis-specific code, not the game data.
 
@@ -70,12 +71,36 @@ Elite Dangerous, its names, identifiers, and game data are trademarks or intelle
 
 PHOENIX records the source and revision of each locally fetched catalogue where that information is available. Locally inferred display labels are marked as inferred rather than attributed to either catalogue.
 
+## Live services and research references
+
+PHOENIX uses [EDSM](https://www.edsm.net/) for cartography, coordinates and station shipyard/outfitting stock,
+[Spansh](https://spansh.co.uk/) for structured galaxy searches, and [Ardent Insight](https://ardent-insight.com/)
+for nearest facilities, commodity markets and trade signals. These services and their community contributors
+retain their own data/API terms; their reports can be incomplete or stale.
+
+[Inara's experimental-effects registry](https://inara.cz/elite/experimentaleffects/) was used to cross-check
+and correct material recipes imported from Coriolis. The review and corrections are recorded in
+`scripts/catalogue/experimental-effects.md`; PHOENIX does not connect to an Inara API.
+[PMC's Stratum search guide](https://www.elitedangerous.net/exobiology-stratum-tectonicas-search.php)
+inspired the pre-Odyssey saved-query strategy. PHOENIX uses independently corrected filters, not copied guide text
+or a guarantee of undiscovered biology.
+
+## Deskplane
+
+[Deskplane](https://github.com/judus/deskplane) provides workspace navigation and touch gestures,
+under the MIT licence. Its complete notice is included in `licenses/Deskplane-MIT.txt`.
+
 ## JSONC Parser
 
 PHOENIX's catalogue refresh utility includes `jsonc-parser` by Microsoft to read the pinned Almanac source documents. It is licensed under the MIT License. The complete license is included in `licenses/jsonc-parser-MIT.txt`.
 ## EDDN contribution dependencies
 
-PHOENIX includes the EDDN journal/1, commodity/3, outfitting/2 and shipyard/2 JSON schemas
+PHOENIX includes sixteen EDDN validation schemas, including journal/1, commodity/3, outfitting/2 and shipyard/2,
 from EDCD/EDDN revision `4ad669bb7bbe1eae080e4c354e786dca4db91f35`, copyright (c) 2018 EDDN,
 under BSD-3-Clause. See `licenses/EDDN-BSD-3-Clause.txt` and `resources/eddn/README.md`.
 Schema validation uses Ajv and ajv-draft-04 (MIT); notices are included in `licenses/`.
+
+[EDMarketConnector](https://github.com/EDCD/EDMarketConnector), revision
+`89f410c9c75c16ff564068ab5201ed3d65ba68ce`, is a behavioural reference for EDDN event mapping
+and privacy rules. No EDMC source or implementation is copied or bundled. Contribution availability
+and settings are separate from these protocol credits; this notice does not claim live submission readiness.
