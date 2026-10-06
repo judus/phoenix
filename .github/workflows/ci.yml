@@ -21,7 +21,8 @@ jobs:
       # Prove installers before promotion; don't repeat packaging on the resulting main push.
       installers: ${{ (github.event_name == 'pull_request' && github.base_ref == 'main') || github.event_name == 'workflow_dispatch' }}
   gate:
-    name: CI passed
+    # Ordinary checks must never satisfy main's installer-required protection.
+    name: ${{ ((github.event_name == 'pull_request' && github.base_ref == 'main') || github.event_name == 'workflow_dispatch') && 'Installers passed' || 'CI passed' }}
     if: always()
     needs: verify
     runs-on: ubuntu-24.04

@@ -4,6 +4,7 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Require a distinct installer-verification CI gate before merging releases into main.
 - Fix development server startup when loading EDDN schema validation through tsx.
 - Strengthen regression tests for loadouts, journal ownership, contribution file limits and command
   safety; consolidate duplicated test helpers and make event-stream tests independent of network chunking.

@@ -7,7 +7,9 @@
 - Promote `dev` to `main` with a PR after native CI passes. Use a **merge commit** for this
   long-lived branch promotion, not squash/rebase, so their shared history remains intact.
 - Synchronize `main` back into `dev` through a PR after promotion; hotfixes must also return to `dev`.
-- Both branches require the `CI passed` check and a PR. Required human approval count is zero
+- `dev` requires `CI passed`; `main` requires `Installers passed`, both from GitHub Actions,
+  with up-to-date branches and a PR. Ordinary source checks cannot satisfy the promotion gate.
+  Required human approval count is zero
   for this solo-maintainer repository; this does not waive CI. Force pushes/deletion are blocked,
   including for administrators. Feature branches can use squash merges.
 
@@ -23,6 +25,9 @@ helpers and file hashes, then smoke-tests AppRun and the image's extract-and-run
 Windows installs, smoke-tests its native launcher, then uninstalls. Ordinary
 CI retains no installer artifacts or dependency caches. Superseded CI runs are cancelled.
 Pushes to either branch skip packaging, avoiding a duplicate installer build after promotion.
+The final gate is named `Installers passed` only for PRs into `main` and manual CI runs;
+all ordinary runs report `CI passed`. It accepts only a successful aggregate native result:
+failed, skipped or cancelled verification cannot pass. A cancelled gate also cannot authorize merge.
 Version tags still build and verify release installers from the exact tagged commit, rather than
 reusing development packages.
 

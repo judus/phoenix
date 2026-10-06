@@ -24,6 +24,9 @@ owned dependency: runtime/helper versions and artifact integrity must match the 
   gate can block the protected PR. Inspect all required checks rather than bypassing protection.
 - Require native Linux/Windows CI as documented. Do not claim Windows/Elite acceptance from Linux
   tests, simulated input, or a successful build alone.
+- Check gate identity: dev requires `CI passed`; main requires `Installers passed` from GitHub
+  Actions. Only main-target PRs/manual CI emit the installer gate; ordinary pushes cannot replace
+  installer verification. Keep strict up-to-date protection and administrator enforcement enabled.
 - Download release assets and verify checksums plus manifests/version/source SHA before publishing.
   A draft is not a public prerelease; check draft/prerelease/latest flags and public download links.
 - Preserve old releases unless removal is explicitly requested. Use stable installer asset names
