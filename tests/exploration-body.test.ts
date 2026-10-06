@@ -44,7 +44,7 @@ test('current-body query combines live location, scans, signals, and organic sam
 
   try {
     const result = await query.getCurrentBody({})
-    expect(result.content[0]).toMatchObject({ text: expect.stringContaining('Bacterium Aurasus - Lime: complete') })
+    expect(result.content?.[0]).toMatchObject({ text: expect.stringContaining('Bacterium Aurasus - Lime: complete') })
     expect(result.structuredContent).toMatchObject({
       currentBody: {
         name: 'Test System 1', status: 'on foot', discovered: 'Yes', mapped: 'No', footfalled: 'No',

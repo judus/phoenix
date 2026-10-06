@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeAll, expect, test, vi } from 'vitest'
 import { act, create } from 'react-test-renderer'
@@ -16,11 +17,10 @@ beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) 
 test('experimental applications allow empty drafts and submit exact effect and module identities', async () => {
   const project = engineeringProject('00000000-0000-4000-8000-000000000001')
   const addStep = vi.fn().mockResolvedValue(project)
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<EngineeringEffectsPage
+  const renderer = await renderWithAct(<EngineeringEffectsPage
     effects={[{ symbol: 'effect', name: 'Shared name', description: '', modules: [{ id: 'mc', name: 'Multi-cannon' }], components: [] }]}
     selectedSymbol="effect" projects={[project]} actions={{ addStep } as unknown as EngineeringControllerActions} onNavigate={onNavigate}
-  />) })
+  />)
   const change = async (value: string) => act(async () => renderer.root.findByType('input').props.onChange({ target: { value } }))
   const submit = async () => act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
   for (const invalid of ['', '0', '-1', '1.5', '101']) {
@@ -38,11 +38,10 @@ test('experimental applications allow empty drafts and submit exact effect and m
 test('planned rolls can be cleared and replaced, and invalid drafts cannot be submitted', async () => {
   const project = engineeringProject('00000000-0000-4000-8000-000000000001')
   const addStep = vi.fn().mockResolvedValue(project)
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<EngineeringAddBlueprintPage
+  const renderer = await renderWithAct(<EngineeringAddBlueprintPage
     actions={{ addStep } as unknown as EngineeringControllerActions}
     blueprint={blueprint()} projects={[project]} onNavigate={onNavigate}
-  />) })
+  />)
   const field = () => renderer.root.findByType('input')
   const change = async (value: string) => act(async () => field().props.onChange({ target: { value } }))
   const submit = async () => act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
@@ -82,11 +81,10 @@ test('Blueprint catalogue is independent from current-ship application and keeps
 })
 
 test('blueprint search matches names, catalogue aliases and modules without changing detail links', async () => {
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<EngineeringPage controller={{ status: 'ready', blueprints: { blueprints: [
+  const renderer = await renderWithAct(<EngineeringPage controller={{ status: 'ready', blueprints: { blueprints: [
     { appliedModuleCount: 0, moduleNames: ['Thrusters'], name: 'Dirty drive tuning', originalName: 'DirtyDrive', symbol: 'dirty-drive' },
     { appliedModuleCount: 0, moduleNames: ['Power Plant'], name: 'Overcharged', originalName: 'OverchargedPowerPlant', symbol: 'overcharged' }
-  ] } }} onNavigate={onNavigate} route={{ kind: 'information', section: 'engineering', view: 'blueprints' }} />) })
+  ] } }} onNavigate={onNavigate} route={{ kind: 'information', section: 'engineering', view: 'blueprints' }} />)
   try {
     const input = () => renderer.root.findByType('input')
     expect(input().props.className).toContain('form-mini')
@@ -135,8 +133,7 @@ test('Engineering project detail owns settings, blueprint steps, and its materia
 
 test('New project belongs to the page header and navigates from an empty ledger', async () => {
   const navigate = vi.fn()
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<EngineeringProjectsPage onNavigate={navigate} projects={[]} />) })
+  const renderer = await renderWithAct(<EngineeringProjectsPage onNavigate={navigate} projects={[]} />)
   try {
     const header = renderer.root.findByProps({ className: 'page-header page-header-cockpit' })
     const button = header.findByType('button')
@@ -155,8 +152,7 @@ test('project header editing cancels drafts, retains errors and closes only afte
     deleteProject: vi.fn().mockResolvedValue(undefined), deleteStep: vi.fn().mockResolvedValue(project), updateProject
   }
   const navigate = vi.fn()
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<EngineeringProjectDetailPage actions={actions} onNavigate={navigate} project={project} />) })
+  const renderer = await renderWithAct(<EngineeringProjectDetailPage actions={actions} onNavigate={navigate} project={project} />)
   const edit = () => renderer.root.findByProps({ className: 'page-header page-header-cockpit' }).findByType('button')
   const name = () => renderer.root.findByProps({ id: 'engineering-project-name' })
   const cancel = () => renderer.root.findAllByType('button').find(button => button.children.includes('Cancel'))!

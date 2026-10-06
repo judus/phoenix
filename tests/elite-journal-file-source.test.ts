@@ -26,7 +26,7 @@ test('the journal source replays, tails partial writes and follows journal rotat
   const firstJournal = join(directory, basename(fixturePath))
   const events: EliteJournalEvent[] = []
   copyFileSync(fixturePath, firstJournal)
-  const source = new EliteJournalFileSource(directory, event => events.push(event), {
+  const source = new EliteJournalFileSource(directory, event => { events.push(event) }, {
     pollInterval: 60_000
   })
 
@@ -84,7 +84,7 @@ test('the live journal source reads only the latest file during startup', async 
     join(directory, 'Journal.2026-08-10T120000.01.log'),
     '{"timestamp":"2026-08-10T12:00:00Z","event":"Location","StarSystem":"Current system"}\n'
   )
-  const source = new EliteJournalFileSource(directory, event => events.push(event), {
+  const source = new EliteJournalFileSource(directory, event => { events.push(event) }, {
     pollInterval: 60_000
   })
 
@@ -149,7 +149,7 @@ test('historical journal backfill resumes from durable file checkpoints', async 
   )
 
   try {
-    const first = new EliteJournalHistoryBackfill(directory, event => events.push(event), checkpoints)
+    const first = new EliteJournalHistoryBackfill(directory, event => { events.push(event) }, checkpoints)
     await first.start()
     expect(events.map(event => event.event)).toEqual(['Scan', 'FSSAllBodiesFound'])
     expect(first.getDiagnostics()).toMatchObject({
@@ -163,7 +163,7 @@ test('historical journal backfill resumes from durable file checkpoints', async 
     const secondEvents: EliteJournalEvent[] = []
     const second = new EliteJournalHistoryBackfill(
       directory,
-      event => secondEvents.push(event),
+      event => { secondEvents.push(event) },
       checkpoints
     )
     await second.start()

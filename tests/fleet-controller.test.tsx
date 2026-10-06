@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { ActivityLogEntry } from '@phoenix/contracts'
@@ -22,7 +23,7 @@ test('Fleet queries only the active family data and refreshes retained records o
   let view: 'overview' | 'current-overview' = 'overview'
 
   function Probe() { useFleetController(api, events, view); return null }
-  const renderer = await act(async () => create(<Probe />))
+  const renderer = await renderWithAct(<Probe />)
   expect(api.getFleet).toHaveBeenCalledTimes(1)
   expect(api.getShipCatalogue).not.toHaveBeenCalled()
 

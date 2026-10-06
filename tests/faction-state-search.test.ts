@@ -1,4 +1,5 @@
 import { expect, test, vi } from 'vitest'
+import type { SpanshSearchGateway } from '../apps/server/src/infrastructure/spansh-search-client.js'
 import { SpanshFactionPresenceSource } from '../apps/server/src/infrastructure/spansh-faction-presence-source.js'
 import type { FactionPresenceRequest } from '../apps/server/src/domain/station-market.js'
 import { FactionsSearchTool } from '../apps/server/src/application/mcp-tools/factions-search-tool.js'
@@ -22,12 +23,12 @@ const system = {
 }
 
 test('searches any faction with OR states and returns all matching non-controlling factions', async () => {
-  const search = vi.fn(async () => [system])
+  const search = vi.fn<SpanshSearchGateway['search']>(async () => [system])
   const source = new SpanshFactionPresenceSource({ search, findFieldValues: async () => [] })
   const results = await source.findFactionPresences(request)
   expect(results.map(row => row.factionName)).toEqual(['War faction', 'Civil war faction'])
   expect(results.every(row => !row.controlling && row.updatedAt === '2026-09-27T12:00:00.000Z')).toBe(true)
-  expect(search.mock.calls[0]?.[1].filters).toEqual({
+  expect(search.mock.calls[0]?.[1]?.filters).toEqual({
     distance: { min: '0', max: '100' },
     minor_faction_presences: [{ influence: { comparison: '<=>', value: [0, 1] }, state: { value: ['War', 'Civil War'] } }]
   })

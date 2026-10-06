@@ -1,10 +1,10 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test } from 'vitest'
-import type { CommunicationsResponse, GalnetNewsResponse } from '@phoenix/contracts'
+import type { CommunicationsResponse, GalnetNewsResponse, GameActionResult } from '@phoenix/contracts'
 import { CommsPage } from '../apps/web/src/features/comms/comms-page.js'
 import { commsNavigationItems } from '../apps/web/src/features/comms/comms-navigation.js'
 
-const execute = async () => ({ actionId: 'test', message: 'accepted', operation: 'tap' as const, status: 'accepted' as const })
+const execute = async (): Promise<GameActionResult> => ({ actionId: 'test', message: 'accepted', operation: 'tap', status: 'accepted', requestId: 'test', correlationId: 'test', origin: 'ui', timestamp: '2026-10-06T00:00:00Z' })
 
 test('Comms exposes its typed section navigation', () => {
   expect(commsNavigationItems.map(item => [item.label, item.href])).toEqual([
@@ -43,7 +43,7 @@ test('GalNet composes the cached article index and reader', () => {
 })
 
 test('GalNet Radio preserves the accepted previous, stop, play, next control order', () => {
-  const markup = renderToStaticMarkup(<CommsPage controller={{ actions: { actions: [] }, status: 'ready' }} onExecuteAction={execute} view="radio" />)
+  const markup = renderToStaticMarkup(<CommsPage controller={{ actions: { actions: [], backend: { id: 'test', available: true, simulated: true, detail: 'Fixture' }, bindingSource: { directory: null, filePath: null, presetNames: [], available: false, bindingCount: 0, keyboardBindingCount: 0, loadedAt: null, error: null } }, status: 'ready' }} onExecuteAction={execute} view="radio" />)
   expect(markup).toContain('GalNet Radio')
   const labels = ['Previous', 'Stop', 'Play', 'Next'].map(label => markup.indexOf(`aria-label="${label}"`))
   expect(labels.every(index => index >= 0)).toBe(true)

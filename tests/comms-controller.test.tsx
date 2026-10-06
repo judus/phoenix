@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { CommunicationMessage, CommunicationsResponse } from '@phoenix/contracts'
@@ -19,7 +20,7 @@ test('Comms selects a focused transport and refreshes journal-backed views for t
   let view: CommsView = 'traffic'
 
   function Probe() { snapshot = useCommsController(api, events, view); return null }
-  const renderer = await act(async () => create(<Probe />))
+  const renderer = await renderWithAct(<Probe />)
 
   expect(api.getCommunications).toHaveBeenCalledWith('traffic', 500, expect.any(AbortSignal))
   const initialSignal = vi.mocked(api.getCommunications).mock.calls[0]?.[2]

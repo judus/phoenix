@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { act, create } from 'react-test-renderer'
@@ -290,11 +291,11 @@ test('PHOENIX uses the shared hold-to-arm interaction before executing a safety 
   expect(button.props['data-deskplane-swipe-through']).toBeUndefined()
 
   act(() => button.props.onPointerDown({ pointerId: 1, currentTarget: { setPointerCapture: vi.fn() } }))
-  act(() => vi.advanceTimersByTime(650))
+  act(() => { vi.advanceTimersByTime(650) })
   expect(button.findAllByType('small').some(meta => meta.children.includes('tap'))).toBe(true)
   expect(button.props['data-deskplane-swipe-through']).toBeUndefined()
   act(() => button.props.onPointerUp({ pointerId: 1 }))
-  act(() => vi.advanceTimersByTime(0))
+  act(() => { vi.advanceTimersByTime(0) })
   act(() => button.props.onClick({ detail: 1 }))
 
   expect(execute).toHaveBeenCalledOnce()
@@ -319,8 +320,7 @@ test('Quick access navigation executes locally and missing targets remain editab
     onEditingChange: vi.fn(), onExecuteAction, onExecuteNavigation,
     onSaveConfiguration: async (configuration: typeof DEFAULT_CONTROL_DECK_CONFIGURATION) => configuration
   }
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<ControlsPage {...props} />) })
+  const renderer = await renderWithAct(<ControlsPage {...props} />)
   const button = () => renderer.root.findAllByType('button').find(node => node.props['aria-label'] === 'System schematic, Open')!
   expect(button().props['data-deskplane-swipe-through']).toBe('')
   await act(async () => button().props.onClick())
@@ -378,8 +378,7 @@ test('button relocation stays in the editing draft until saved, and cancelling d
     controller: { status: 'ready' as const, configuration: DEFAULT_CONTROL_DECK_CONFIGURATION },
     onEditingChange: vi.fn(), onExecuteAction: vi.fn(), onExecuteNavigation: vi.fn(), onSaveConfiguration: save
   }
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<ControlsPage {...props} />) })
+  const renderer = await renderWithAct(<ControlsPage {...props} />)
   const surface = () => renderer.root.findByType(ControlSurface)
   const original = surface().props.deck
   const source = original.elements.find((element: { kind: string }) => element.kind === 'command')
@@ -409,7 +408,6 @@ function emptyMacroRuntime (): MacroRuntime {
     play: async () => undefined,
     recordAction: async () => undefined,
     save: async () => undefined,
-    setDraft: () => undefined,
     startRecording: async () => undefined,
     stopRecording: async () => undefined
   }

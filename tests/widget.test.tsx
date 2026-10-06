@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { act, create } from 'react-test-renderer'
 import { expect, test } from 'vitest'
@@ -41,17 +42,14 @@ test('widget does not reserve scrollbar space before overflow is measured', () =
 })
 
 test('widget marks a measured overflowing body', async () => {
-  let renderer: ReturnType<typeof create>
-  await act(async () => {
-    renderer = create(
+  const renderer = await renderWithAct(
       <Widget autoHideScrollbar scrollable>Content</Widget>,
       {
-        createNodeMock: element => element.props.className === 'widget-body'
+        createNodeMock: element => typeof element.props === 'object' && element.props !== null && 'className' in element.props && element.props.className === 'widget-body'
           ? { children: [], clientHeight: 100, scrollHeight: 140 }
           : null
       }
     )
-  })
 
   expect(renderer.root.findByType('article').props.className).toContain('has-overflow')
   await act(async () => renderer.unmount())

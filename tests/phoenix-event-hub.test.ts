@@ -1,3 +1,4 @@
+import { phoenixApiStub } from './support/phoenix-api-stub.js'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
 import { describe, expect, test, vi } from 'vitest'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
@@ -166,11 +167,11 @@ class FakeEventSource implements PhoenixBrowserEventSource {
 }
 
 function apiStub(): PhoenixApi {
-  return {
+  return phoenixApiStub({
     async claimPairing() { throw new Error('Not used.') },
     eventStreamUrl() { return '/api/events?conversationId=phoenix-copilot' },
     async getHealth() { throw new Error('Not used.') },
     async getPairingStatus() { throw new Error('Not used.') },
     async getRuntimeState() { throw new Error('Not used.') }
-  }
+  })
 }

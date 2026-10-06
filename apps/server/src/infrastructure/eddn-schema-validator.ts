@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import Ajv from 'ajv-draft-04'
+import Ajv = require('ajv-draft-04')
 import type { ValidateFunction } from 'ajv'
 import { z } from 'zod'
 import { EDDN_MAX_MESSAGE_BYTES, EDDN_SCHEMA_VERSIONS, type EddnMessage } from '../domain/eddn.js'

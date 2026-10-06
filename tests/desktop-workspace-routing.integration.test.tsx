@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { useEffect } from 'react'
 import { act, create } from 'react-test-renderer'
 import type { ReactTestRenderer } from 'react-test-renderer'
@@ -39,11 +40,7 @@ describe('DesktopWorkspace routing integration', () => {
       return true
     })
     deskplaneHarness.controller = createDeskplaneController(goTo)
-    let renderer: ReactTestRenderer | undefined
-
-    await act(async () => {
-      renderer = create(<RoutedDesktopWorkspace router={router} />)
-    })
+    const renderer = await renderWithAct(<RoutedDesktopWorkspace router={router} />)
     expect(renderer.root.findAll(element => element.props['data-deskplane-swipe-zone'] === 'horizontal')).toHaveLength(8)
     goTo.mockClear()
 

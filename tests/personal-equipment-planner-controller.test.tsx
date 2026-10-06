@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { PersonalEquipmentPlanPreviewRequest, PersonalEquipmentPlanPreviewResponse } from '@phoenix/contracts'
@@ -104,8 +105,7 @@ async function mountPlanner(api: ReturnType<typeof plannerApi>) {
     snapshot = usePersonalEquipmentPlannerController(api as unknown as PhoenixApi, active)
     return null
   }
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<Probe api={api} active />) })
+  const renderer = await renderWithAct(<Probe api={api} active />)
   return {
     snapshot: () => snapshot,
     update: async (api: ReturnType<typeof plannerApi>, active: boolean) => {

@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { SavedGalaxyQuery } from '@phoenix/contracts'
@@ -30,8 +31,7 @@ test('saved-query text and type filters combine without modifying saved paramete
   const original = structuredClone(queries)
   const onNavigate = vi.fn()
   const api = { getSavedGalaxyQueries: vi.fn().mockResolvedValue({ queries }) } as unknown as PhoenixApi
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<SavedGalaxyQueriesPage api={api} onNavigate={onNavigate} />) })
+  const renderer = await renderWithAct(<SavedGalaxyQueriesPage api={api} onNavigate={onNavigate} />)
   try {
     const search = () => renderer.root.findByType('input')
     const type = () => renderer.root.findByType('select')

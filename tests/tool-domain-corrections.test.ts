@@ -49,7 +49,7 @@ test('unknown display page returns canonical suggestions without reflecting arbi
   expect(publish).toHaveBeenCalledWith(expect.objectContaining({ type: 'open_page', pageId: 'galaxy.system' }))
 })
 
-test.each([
+test.each<{ invalid: JsonObject, corrected: JsonObject, hint: string }>([
   { invalid: { minGravityG: 1, maxGravityG: 0.27 }, corrected: { minGravityG: 0, maxGravityG: 0.27 }, hint: 'Lower minGravityG' },
   { invalid: { minTemperatureK: 300, maxTemperatureK: 200 }, corrected: { minTemperatureK: 150, maxTemperatureK: 200 }, hint: 'Lower minTemperatureK' },
   { invalid: { lastReportedBefore: '2026-02-30' }, corrected: { lastReportedBefore: '2026-02-28' }, hint: 'real calendar date' }

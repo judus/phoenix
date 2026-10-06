@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { ActivityLogEntry, MissionsResponse } from '@phoenix/contracts'
@@ -15,7 +16,7 @@ test('Activities loads missions only where used and refreshes only for mission j
   let view: ActivitiesView = 'missions'
 
   function Probe() { snapshot = useActivitiesController(api, events, view); return null }
-  const renderer = await act(async () => create(<Probe />))
+  const renderer = await renderWithAct(<Probe />)
 
   expect(api.getMissions).toHaveBeenCalledTimes(1)
   expect(snapshot).toEqual({ missions: response, status: 'ready' })
@@ -44,7 +45,7 @@ function missionsResponse(): MissionsResponse {
 }
 
 function activity(event: string): ActivityLogEntry {
-  return { actionable: false, data: {}, event, id: event, importance: 'routine', ingestedAt: '2026-08-16T12:00:00.000Z', source: 'journal', timestamp: '2026-08-16T12:00:00.000Z' }
+  return { actionable: false, data: {}, event, id: event, importance: 'info', ingestedAt: '2026-08-16T12:00:00.000Z', source: 'journal', timestamp: '2026-08-16T12:00:00.000Z' }
 }
 
 class FakeEventHub implements PhoenixEventHub {

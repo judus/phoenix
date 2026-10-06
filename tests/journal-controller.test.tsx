@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { ActivityLogEntry } from '@phoenix/contracts'
@@ -16,7 +17,7 @@ test('Journal merges live events received while its retained snapshot is loading
   let snapshot: JournalControllerSnapshot | undefined
 
   function Probe() { snapshot = useJournalController(api, events); return null }
-  const renderer = await act(async () => create(<Probe />))
+  const renderer = await renderWithAct(<Probe />)
   const live = activity('live')
 
   await act(async () => {
@@ -39,7 +40,7 @@ test('Journal retains live events when its initial snapshot fails', async () => 
   let snapshot: JournalControllerSnapshot | undefined
 
   function Probe() { snapshot = useJournalController(api, events); return null }
-  const renderer = await act(async () => create(<Probe />))
+  const renderer = await renderWithAct(<Probe />)
 
   await act(async () => {
     events.emit('activity-entry', activity('live'))
@@ -58,7 +59,7 @@ test.each([0, 2, 498, 500, 700])('Journal snapshot merge preserves duplicate/ord
   const events = new FakeEventHub()
   let snapshot!: JournalControllerSnapshot
   function Probe() { snapshot = useJournalController(api, events); return null }
-  const renderer = await act(async () => create(<Probe />))
+  const renderer = await renderWithAct(<Probe />)
   try {
     const first = activity('live-a')
     const second = activity('live-b')
@@ -88,7 +89,7 @@ test('Journal preserves duplicate snapshot rows even without live events', async
   let snapshot!: JournalControllerSnapshot
   const events = new FakeEventHub()
   function StableProbe() { snapshot = useJournalController(api, events); return null }
-  const renderer = await act(async () => create(<StableProbe />))
+  const renderer = await renderWithAct(<StableProbe />)
   expect(snapshot.entries).toEqual([first, second])
   expect(snapshot.entries[0]).toBe(first)
   expect(snapshot.entries[1]).toBe(second)

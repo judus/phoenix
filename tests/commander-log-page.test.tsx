@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { ItemListItem } from '@phoenix/ui'
@@ -21,8 +22,7 @@ test('player history supports loading more and filtering without showing raw pay
   const api = { getCommanderLog: vi.fn().mockResolvedValue({ entries }) } as unknown as PhoenixApi
   const unsubscribe = vi.fn()
   const events = { subscribe: vi.fn(() => unsubscribe) } as unknown as PhoenixEventHub
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<CommanderLogPage api={api} events={events} />) })
+  const renderer = await renderWithAct(<CommanderLogPage api={api} events={events} />)
   const rows = () => renderer.root.findAllByType(ItemListItem)
   expect(rows()).toHaveLength(50)
   await act(async () => renderer.root.findByType('button').props.onClick())

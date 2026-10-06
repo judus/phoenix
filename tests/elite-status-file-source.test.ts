@@ -22,7 +22,7 @@ test('the status source reads, deduplicates and refreshes replaced Status.json f
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-status-source-'))
   const statuses: EliteGameStatus[] = []
   cpSync(fixturePath, join(directory, 'Status.json'))
-  const source = new EliteStatusFileSource(directory, status => statuses.push(status), {
+  const source = new EliteStatusFileSource(directory, status => { statuses.push(status) }, {
     pollInterval: 60_000,
     retryDelay: 1
   })

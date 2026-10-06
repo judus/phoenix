@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
 import type { ShipDefinition } from '@phoenix/contracts'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -121,13 +122,13 @@ test('catalogue selection comes from the typed route', () => {
 test('Fleet persists loadout and catalogue view choices in device preferences', async () => {
   const devicePreferences = preferences()
   const state = createEmptyRuntimeState()
-  const renderer = await act(async () => create(<FleetPage
+  const renderer = await renderWithAct(<FleetPage
     controller={{ status: 'idle' }}
     devicePreferences={devicePreferences}
     onNavigate={vi.fn()}
     route={{ kind: 'information', section: 'fleet', view: 'current-loadout' }}
     runtime={{ status: 'ready', state }}
-  />))
+  />)
 
   expect(renderer.root.findByProps({ 'aria-label': 'Tiles view' }).props.title).toBe('Switch to table view')
   await act(async () => renderer.root.findByProps({ 'aria-label': 'Tiles view' }).props.onClick())

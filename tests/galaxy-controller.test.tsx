@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { ActivityLogEntry, CartographicSystem, ExplorationLedgerResponse } from '@phoenix/contracts'
@@ -19,7 +20,7 @@ test('Galaxy loads only the active view and accepts live plotted-route updates',
   let snapshot: GalaxyControllerSnapshot | undefined
 
   function Probe() { snapshot = useGalaxyController(api, events, 'route'); return null }
-  const renderer = await act(async () => create(<Probe />))
+  const renderer = await renderWithAct(<Probe />)
 
   expect(api.getNavigationRoute).toHaveBeenCalledTimes(1)
   expect(api.getActions).toHaveBeenCalledTimes(1)
@@ -47,7 +48,7 @@ test('a live plotted route cancels and supersedes an older route request', async
   let snapshot: GalaxyControllerSnapshot | undefined
 
   function Probe() { snapshot = useGalaxyController(api, events, 'route'); return null }
-  const renderer = await act(async () => create(<Probe />))
+  const renderer = await renderWithAct(<Probe />)
 
   await act(async () => events.emit('navigation-route', updatedRoute))
   expect(requestSignal?.aborted).toBe(true)
@@ -68,7 +69,7 @@ test('Galaxy replaces the current schematic with matching live cartography updat
   let snapshot: GalaxyControllerSnapshot | undefined
 
   function Probe() { snapshot = useGalaxyController(api, events, 'system', 'Sol'); return null }
-  const renderer = await act(async () => create(<Probe />))
+  const renderer = await renderWithAct(<Probe />)
 
   expect(snapshot?.lookup?.system.scanProgress.knownBodies).toBe(0)
   await act(async () => events.emit('cartography-updated', {
@@ -99,7 +100,7 @@ test('Galaxy loads Exobiology and refreshes it for cartography journal events', 
   let snapshot: GalaxyControllerSnapshot | undefined
 
   function Probe() { snapshot = useGalaxyController(api, events, 'exobiology'); return null }
-  const renderer = await act(async () => create(<Probe />))
+  const renderer = await renderWithAct(<Probe />)
 
   expect(api.getExplorationLedger).toHaveBeenCalledTimes(1)
   expect(snapshot).toEqual({ exploration: response, status: 'ready' })
@@ -126,7 +127,7 @@ function explorationResponse(): ExplorationLedgerResponse {
 }
 
 function activity(event: string): ActivityLogEntry {
-  return { actionable: false, data: {}, event, id: event, importance: 'routine', ingestedAt: '2026-08-16T12:00:00.000Z', source: 'journal', timestamp: '2026-08-16T12:00:00.000Z' }
+  return { actionable: false, data: {}, event, id: event, importance: 'info', ingestedAt: '2026-08-16T12:00:00.000Z', source: 'journal', timestamp: '2026-08-16T12:00:00.000Z' }
 }
 
 function cartographicSystem(name: string, knownBodies: number): CartographicSystem {

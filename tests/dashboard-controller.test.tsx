@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { CommanderLogEntry, NavigationRoute } from '@phoenix/contracts'
@@ -37,7 +38,7 @@ test('live dashboard evidence is not overwritten by stale initial queries', asyn
     return null
   }
 
-  const renderer = await act(async () => create(<Probe />))
+  const renderer = await renderWithAct(<Probe />)
   const liveEntry = commanderLogEntry('live')
   const liveRoute = route('Live destination')
   await act(async () => {
@@ -81,10 +82,10 @@ test('an obsolete catalogue failure cannot taint a newer successful refresh', as
   let snapshot: DashboardControllerSnapshot | undefined
 
   function Probe() { snapshot = useDashboardController(api, events); return null }
-  const renderer = await act(async () => create(<Probe />))
+  const renderer = await renderWithAct(<Probe />)
 
   await act(async () => {
-    events.emit('command-catalogue', { revision: 2 })
+    events.emit('command-catalogue', { revision: 2, generatedAt: '2026-10-06T00:00:00Z' })
     await Promise.resolve()
     rejectInitial?.(new Error('Stale failure.'))
     await Promise.resolve()
@@ -111,7 +112,7 @@ test.each([
   const events = new FakeEventHub()
   let snapshot!: DashboardControllerSnapshot
   function Probe({ api }: { api: PhoenixApi }) { snapshot = useDashboardController(api, events); return null }
-  const renderer = await act(async () => create(<Probe api={previous as unknown as PhoenixApi} />))
+  const renderer = await renderWithAct(<Probe api={previous as unknown as PhoenixApi} />)
   try {
     await act(async () => { renderer.update(<Probe api={current as unknown as PhoenixApi} />) })
     expect(snapshot[field]).toEqual(field === 'commanderLog' ? currentValue.entries : currentValue)

@@ -15,7 +15,7 @@
     "build": "npm run build --workspace @phoenix/contracts && npm run build --workspace @phoenix/elite && npm run build --workspace @phoenix/copilot && npm run build --workspace @phoenix/ui && npm run build --workspace @phoenix/server && npm run build --workspace @phoenix/web",
     "catalogue:check": "node scripts/catalogue/refresh.mjs --output data/runtime/catalogue --max-age-hours 24",
     "catalogue:refresh": "node scripts/catalogue/refresh.mjs --output data/runtime/catalogue --force",
-    "check": "npm run typecheck && npm test && npm run build",
+    "check": "npm run typecheck && npm run typecheck:tests && npm test && npm run build",
     "dev": "node scripts/dev.mjs",
     "predev": "npm run build --workspace @phoenix/contracts && npm run build --workspace @phoenix/elite && npm run build --workspace @phoenix/copilot",
     "dev:server": "npm run dev --workspace @phoenix/server",
@@ -33,7 +33,8 @@
     "payload:verify": "node scripts/package/verify-payload.mjs",
     "start": "npm run start --workspace @phoenix/server",
     "test": "vitest run",
-    "typecheck": "npm run build --workspace @phoenix/contracts && npm run build --workspace @phoenix/elite && npm run build --workspace @phoenix/copilot && npm run typecheck --workspace @phoenix/ui && npm run typecheck --workspace @phoenix/server && npm run typecheck --workspace @phoenix/web"
+    "typecheck": "npm run build --workspace @phoenix/contracts && npm run build --workspace @phoenix/elite && npm run build --workspace @phoenix/copilot && npm run typecheck --workspace @phoenix/ui && npm run typecheck --workspace @phoenix/server && npm run typecheck --workspace @phoenix/web",
+    "typecheck:tests": "tsc -p tsconfig.tests.json"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
