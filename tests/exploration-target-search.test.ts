@@ -207,6 +207,6 @@ function searchInput (): ExplorationTargetSearchInput {
     maxGravityG: null, maxTemperatureK: null, minBiologicalSignals: 0, minGeologicalSignals: 0,
     minGravityG: null, minTemperatureK: null, systemName: 'Sol', volcanismTypes: [] }
 }
-function cartography (): SystemCartography { return { getSystem: vi.fn(async () => ({ cache: 'fresh', system: { name: 'Sol', position: [0, 0, 0] } as CartographicSystem })) } }
+function cartography (): SystemCartography { return { getSystem: vi.fn<SystemCartography['getSystem']>(async () => ({ cache: 'fresh', system: { name: 'Sol', position: [0, 0, 0] } as CartographicSystem })) } }
 function cache (): ProviderResponseCache { const entries = new Map<string, ProviderCacheEntry>(); return { getProviderResponse: (namespace, key) => entries.get(`${namespace}:${key}`) ?? null, putProviderResponse: (namespace, key, fetchedAt, value) => { entries.set(`${namespace}:${key}`, { fetchedAt, value }) } } }
 function response (body: unknown): Response { return new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' }, status: 200 }) }

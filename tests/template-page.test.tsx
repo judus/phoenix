@@ -14,7 +14,7 @@ test('the information workspace composes primary navigation, rail, and page cont
       onNavigate={() => undefined}
       primaryItems={primaryItems}
     >
-      <PlaceholderPage context="Commander" description="Current page" title="Overview" />
+      <PlaceholderPage context="Commander" title="Overview" />
     </InformationWorkspace>
   )
 

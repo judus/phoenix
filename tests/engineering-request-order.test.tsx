@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
@@ -21,7 +22,7 @@ test.each(routes)('Engineering starts projects before the secondary request for 
     getEngineeringBlueprint: (symbol: string) => { calls.push(`blueprint:${symbol}`); return Promise.resolve({ symbol }) }
   } as unknown as PhoenixApi
   function Probe() { useEngineeringController(api, route); return null }
-  const renderer = await act(async () => create(<Probe />))
+  const renderer = await renderWithAct(<Probe />)
   expect(calls).toEqual(['projects', route.view === 'experimental-effects' ? 'effects' : route.view === 'project-add-blueprint' ? 'blueprint:dirty-drive' : 'watchlist'])
   await act(async () => renderer.unmount())
 })
@@ -49,7 +50,7 @@ test('a rejected API promise still enters controller error state', async () => {
     getEngineeringMaterialWatchlist: vi.fn().mockResolvedValue({ materials: [] })
   } as unknown as PhoenixApi
   function Probe() { snapshot = useEngineeringController(api, routes[0]!); return null }
-  const renderer = await act(async () => create(<Probe />))
+  const renderer = await renderWithAct(<Probe />)
   expect(snapshot).toMatchObject({ error: 'Rejected failure', status: 'error' })
   await act(async () => renderer.unmount())
 })

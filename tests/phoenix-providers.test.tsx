@@ -1,3 +1,5 @@
+import { phoenixApiStub } from './support/phoenix-api-stub.js'
+import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
@@ -45,9 +47,9 @@ test('providers start global services and route allowed display commands through
     runtime
   }
 
-  const renderer = await act(async () => create(
+  const renderer = await renderWithAct(
     <PhoenixProviders application={application}><span>Application</span></PhoenixProviders>
-  ))
+  )
   expect(events.start).toHaveBeenCalledTimes(1)
   expect(runtime.start).toHaveBeenCalledTimes(1)
 
@@ -133,7 +135,7 @@ class MemoryStorage {
 }
 
 function apiStub(): PhoenixApi {
-  return {
+  return phoenixApiStub({
     async getCopilotProfiles() {
       return {
         activeProfileId: 'marin',
@@ -158,5 +160,5 @@ function apiStub(): PhoenixApi {
     async getHealth() { throw new Error('Not used.') },
     async getPairingStatus() { throw new Error('Not used.') },
     async getRuntimeState() { throw new Error('Not used.') }
-  } as PhoenixApi
+  })
 }

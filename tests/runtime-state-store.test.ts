@@ -1,3 +1,4 @@
+import { phoenixApiStub } from './support/phoenix-api-stub.js'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
 import { expect, test, vi } from 'vitest'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
@@ -68,11 +69,11 @@ class FakeEventHub implements PhoenixEventHub {
 }
 
 function apiStub(runtime: Promise<ReturnType<typeof createEmptyRuntimeState>>): PhoenixApi {
-  return {
+  return phoenixApiStub({
     async claimPairing() { throw new Error('Not used.') },
     eventStreamUrl() { return '/api/events' },
     async getHealth() { throw new Error('Not used.') },
     async getPairingStatus() { throw new Error('Not used.') },
     async getRuntimeState() { return runtime }
-  }
+  })
 }

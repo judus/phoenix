@@ -4,6 +4,7 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Add strict compilation of TypeScript tests and helpers to the development and native CI checks.
 - Keep the Atlas quiet by default, with opt-in catalogue landmarks, sidebar Finder, explicit
   filtered state and reset controls; order header actions Regions, Bookmarks, Landmarks, Finder.
 - Expand the Galactic Atlas with cached GEC and Canonn Guardian POIs, compact text/category

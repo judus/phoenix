@@ -48,6 +48,12 @@ verify that merge and explicitly close the completed issues.
 - Add focused tests for behavior and contracts. Do not freeze incidental pixel values in tests.
 - Run `npm run check` before submitting a pull request and report any environment-dependent checks
   that could not be completed.
+- `check` includes `npm run typecheck:tests`: strict, no-emit compilation of every TypeScript
+  test and helper, using the same bundler resolution as Vitest and the browser. JavaScript build
+  and diagnostic scripts imported by tests are available for inference, not silently asserted as
+  TypeScript; JavaScript tests remain runtime-validated by Vitest. Native CI runs the gate on both
+  Linux and Windows. Run the production typecheck first to build workspace declarations on a
+  fresh checkout; no test-specific production schema relaxations or diagnostic suppressions.
 
 ## Privacy and third-party material
 

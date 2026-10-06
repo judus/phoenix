@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
@@ -23,8 +24,7 @@ test('catalogue filtering preserves site identities and body targeting; dense cl
 test('search can locate an off-screen POI without enabling the catalogue, inspect provenance and retain filters', async () => {
   const catalogue = { pois: [{ id: 'synthetic:1', label: 'Remote site', systemName: 'Remote', position: [20000, 0, 40000] as [number, number, number], categories: ['Guardian Structures'], source: 'Synthetic feed', sourceUrl: 'https://example.com/site', bodyName: 'A 1', siteType: 'Turtle' }], sources: [] }
   const onNavigate = vi.fn()
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<GalacticAtlas catalogue={catalogue} bookmarks={[]} onNavigate={onNavigate} onToggleBookmarks={vi.fn()} position={[0, 0, 0]} showBookmarks systemName="Sol" />) })
+  const renderer = await renderWithAct(<GalacticAtlas catalogue={catalogue} bookmarks={[]} onNavigate={onNavigate} onToggleBookmarks={vi.fn()} position={[0, 0, 0]} showBookmarks systemName="Sol" />)
   try {
     expect(renderer.root.findAllByType('aside')).toHaveLength(0)
     expect(renderer.root.findAllByProps({ id: 'atlas-poi-search' })).toHaveLength(0)
@@ -69,8 +69,7 @@ test('search can locate an off-screen POI without enabling the catalogue, inspec
 
 test('catalogue markers are opt-in while reference landmarks stay available', async () => {
   const catalogue = { pois: [{ id: 'synthetic:visible', label: 'Visible catalogue site', systemName: 'Example', position: [20000, 0, 20000] as [number, number, number], categories: ['Guardian Ruins'], source: 'Synthetic', sourceUrl: 'https://example.com/site' }], sources: [] }
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<GalacticAtlas catalogue={catalogue} bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={null} showBookmarks systemName={null} />) })
+  const renderer = await renderWithAct(<GalacticAtlas catalogue={catalogue} bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={null} showBookmarks systemName={null} />)
   try {
     const site = () => renderer.root.findAllByProps({ 'aria-label': 'Visible catalogue site' })
     const toggle = renderer.root.findAllByType('button').find(button => button.props.children === 'Landmarks')!
@@ -119,8 +118,7 @@ test('nearby landmarks cluster without losing selectable locations', () => {
 
 test('atlas selection opens the correct system and supports keyboard zoom and reset', async () => {
   const onNavigate = vi.fn()
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<GalacticAtlas bookmarks={[]} onNavigate={onNavigate} onToggleBookmarks={vi.fn()} position={[0, 0, 0]} showBookmarks systemName="Sol" />) })
+  const renderer = await renderWithAct(<GalacticAtlas bookmarks={[]} onNavigate={onNavigate} onToggleBookmarks={vi.fn()} position={[0, 0, 0]} showBookmarks systemName="Sol" />)
   const map = () => renderer.root.findAllByType('svg').find(node => node.props.role === 'group')!
   const pageHeader = renderer.root.findAllByType('header')[0]
   expect(pageHeader.props.className).toContain('page-header-cockpit')
@@ -157,8 +155,7 @@ test('atlas selection opens the correct system and supports keyboard zoom and re
 })
 
 test('missing journal position never becomes a fabricated Sol position', async () => {
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<GalacticAtlas bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={null} showBookmarks systemName={null} />) })
+  const renderer = await renderWithAct(<GalacticAtlas bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={null} showBookmarks systemName={null} />)
   expect(renderer.root.findAllByType('button').find(node => node.children.includes('Locate me'))).toBeUndefined()
   expect(JSON.stringify(renderer.toJSON())).toContain('waiting for journal coordinates')
   expect(renderer.root.findAllByProps({ className: 'atlas-marker commander' })).toHaveLength(0)
@@ -166,9 +163,8 @@ test('missing journal position never becomes a fabricated Sol position', async (
 })
 
 test('delayed coordinates centre the Atlas once without overriding subsequent navigation', async () => {
-  let renderer: ReturnType<typeof create>
   const page = (position: [number, number, number] | null) => <GalacticAtlas bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={position} showBookmarks systemName="Sol" />
-  await act(async () => { renderer = create(page(null)) })
+  const renderer = await renderWithAct(page(null))
   try {
     const transform = () => renderer.root.findAllByType('g')[0].props.transform
     const whole = transform()
@@ -185,9 +181,8 @@ test('delayed coordinates centre the Atlas once without overriding subsequent na
 })
 
 test('manual Atlas navigation before coordinates arrive suppresses automatic centring', async () => {
-  let renderer: ReturnType<typeof create>
   const page = (position: [number, number, number] | null) => <GalacticAtlas bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={position} showBookmarks systemName="Sol" />
-  await act(async () => { renderer = create(page(null)) })
+  const renderer = await renderWithAct(page(null))
   try {
     const map = renderer.root.findAllByType('svg').find(node => node.props.role === 'group')!
     await act(async () => map.props.onKeyDown({ target: 1, currentTarget: 1, key: '+', preventDefault() {} }))
@@ -198,10 +193,7 @@ test('manual Atlas navigation before coordinates arrive suppresses automatic cen
 })
 
 test('marker taps keep their native target and do not move the camera before a drag', async () => {
-  let renderer: ReturnType<typeof create>
-  await act(async () => {
-    renderer = create(<GalacticAtlas bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={null} showBookmarks systemName={null} />)
-  })
+  const renderer = await renderWithAct(<GalacticAtlas bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={null} showBookmarks systemName={null} />)
   const viewport = () => renderer.root.findByProps({ className: 'atlas-viewport' })
   const transform = () => renderer.root.findAllByType('g')[0].props.transform
   const marker = renderer.root.findAllByProps({ role: 'button' }).find(node => node.props['aria-label'] === 'Colonia')!
@@ -224,10 +216,7 @@ test('marker taps keep their native target and do not move the camera before a d
 })
 
 test('drag capture stays on the viewport when markers disappear and clears after capture loss', async () => {
-  let renderer: ReturnType<typeof create>
-  await act(async () => {
-    renderer = create(<GalacticAtlas bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={null} showBookmarks systemName={null} />)
-  })
+  const renderer = await renderWithAct(<GalacticAtlas bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={null} showBookmarks systemName={null} />)
   const viewport = () => renderer.root.findByProps({ className: 'atlas-viewport' })
   const transform = () => renderer.root.findAllByType('g')[0].props.transform
   const target = { setPointerCapture: vi.fn() }
@@ -257,10 +246,7 @@ test('drag capture stays on the viewport when markers disappear and clears after
 })
 
 test('pinch captures both pointers on the viewport and remaining fingers continue to pan', async () => {
-  let renderer: ReturnType<typeof create>
-  await act(async () => {
-    renderer = create(<GalacticAtlas bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={null} showBookmarks systemName={null} />)
-  })
+  const renderer = await renderWithAct(<GalacticAtlas bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={null} showBookmarks systemName={null} />)
   const viewport = () => renderer.root.findByProps({ className: 'atlas-viewport' })
   const transform = () => renderer.root.findAllByType('g')[0].props.transform as string
   const element = { getBoundingClientRect: () => ({ left: 0, top: 0 }), setPointerCapture: vi.fn() }
@@ -305,8 +291,7 @@ test('bookmarks deduplicate system lookups, preserve station/body targets and re
     })
   } as unknown as PhoenixApi
   const onNavigate = vi.fn()
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<GalacticAtlasPage api={api} onNavigate={onNavigate} runtime={{ status: 'ready', state: createEmptyRuntimeState() }} />) })
+  const renderer = await renderWithAct(<GalacticAtlasPage api={api} onNavigate={onNavigate} runtime={{ status: 'ready', state: createEmptyRuntimeState() }} />)
   expect(api.getSystemCartography).toHaveBeenCalledTimes(3)
   expect(JSON.stringify(renderer.toJSON())).toContain('Bookmark lookup failed')
   expect(JSON.stringify(renderer.toJSON())).toContain('Unresolved: Offline')

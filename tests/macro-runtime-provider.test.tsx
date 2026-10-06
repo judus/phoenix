@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { MacroDefinition, MacroRecording, PhoenixModules } from '@phoenix/contracts'
@@ -52,7 +53,7 @@ test('macro recording uses the shared API, browser identity, and typed router', 
     return null
   }
 
-  const renderer = await act(async () => create(
+  const renderer = await renderWithAct(
     <MacroRuntimeProvider
       api={api}
       clientIdentity={{ forScope: () => 'macro-browser' }}
@@ -60,7 +61,7 @@ test('macro recording uses the shared API, browser identity, and typed router', 
     >
       <Probe />
     </MacroRuntimeProvider>
-  ))
+  )
 
   await act(async () => runtime?.startRecording())
   expect(api.startMacroRecording).toHaveBeenCalledWith('macro-browser')

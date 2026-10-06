@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { act, create } from 'react-test-renderer'
 import { expect, test, vi } from 'vitest'
@@ -97,9 +98,7 @@ test('dashboard identifies its loading state without replacing the shell', () =>
 
 test('dashboard market signal rows remain informational', async () => {
   const signals = marketSignals()
-  let renderer: ReturnType<typeof create>
-  await act(async () => {
-    renderer = create(<DashboardPage
+  const renderer = await renderWithAct(<DashboardPage
       controller={{ commanderLog: [], marketSignals: signals, status: 'ready' }}
       eventConnection={{ state: 'open' }}
       hrefFor={() => '#/galaxy/database?query=commodity-markets'}
@@ -109,7 +108,6 @@ test('dashboard market signal rows remain informational', async () => {
       runtime={{ status: 'ready', state: undefined as never }}
       voice={{ connected: false, connect: vi.fn(), disconnect: vi.fn(), transitioning: false }}
     />)
-  })
   const signalRow = renderer.root.findByProps({ 'aria-label': 'Market signals' }).findByType('li')
   const detail = renderer.root.findByProps({ className: 'dashboard-market-signal-detail' })
   expect(detail.findAllByType('span').at(-1)?.children.join('')).toBe("Buy 2'500 CR · Galileo")
@@ -133,13 +131,12 @@ function model(): DashboardViewModel {
 test('commander log scrolls to the newest entry, but ordinary updates preserve manual scrolling', async () => {
   const body = { scrollTop: 300 }
   const page = (id: string) => <DashboardPage
-    controller={{ status: 'ready' }} eventConnection={{ state: 'open' }} hrefFor={() => '#/typed'}
+    controller={{ status: 'ready', commanderLog: [] }} eventConnection={{ state: 'open' }} hrefFor={() => '#/typed'}
     model={{ ...model(), commanderLog: [{ id, category: 'Trade', dateTime: 'Now', timestamp: '2026-10-05T12:00:00Z', title: 'Sold cargo', detail: null, tone: 'neutral', value: null }] }}
     onExecuteAction={vi.fn()} onNavigate={vi.fn()} runtime={{ status: 'idle' }}
     voice={{ connected: false, connect: vi.fn(), disconnect: vi.fn(), transitioning: false }}
   />
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(page('first'), { createNodeMock: () => body }) })
+  const renderer = await renderWithAct(page('first'), { createNodeMock: () => body })
   try {
     expect(body.scrollTop).toBe(0)
     body.scrollTop = 300
@@ -158,7 +155,7 @@ function materialWatchlist() {
   return {
     activeProjectCount: 1,
     materials: [{
-      category: 'raw',
+      category: 'raw' as const,
       grade: 2,
       highestPriority: 'normal' as const,
       materialId: 'Arsenic',

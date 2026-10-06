@@ -80,6 +80,7 @@ function observation (systemName: string, updatedAt: string): LocalSystemCartogr
       bodySignals: null,
       previouslyDiscovered: false,
       previouslyFootfalled: false,
+      footfallCompleted: false,
       previouslyMapped: true,
       observedAt: updatedAt,
       organicSamples: [{

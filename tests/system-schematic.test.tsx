@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
@@ -223,7 +224,7 @@ test('schematic cartography prefers reported installation parents and otherwise 
   const root = expectBody(hierarchy.roots[0])
 
   expect(root.installations.map(item => [item.station.name, item.source])).toEqual([['Solar Carrier', 'distance']])
-  expect(root.children[0]?.installations.map(item => [item.station.name, item.source])).toEqual([['Galileo', 'explicit']])
+  expect(expectBody(root.children[0]).installations.map(item => [item.station.name, item.source])).toEqual([['Galileo', 'explicit']])
   expect(hierarchy.unassignedInstallations).toEqual([])
 })
 
@@ -334,10 +335,7 @@ test('schematic cartography uses the full map workspace until an object is selec
 })
 
 test('schematic zoom changes the orbital canvas scale and resets to 100 percent', async () => {
-  let renderer: ReturnType<typeof create>
-  await act(async () => {
-    renderer = create(<SystemSchematic onSelect={vi.fn()} system={fixtureSystem()} />)
-  })
+  const renderer = await renderWithAct(<SystemSchematic onSelect={vi.fn()} system={fixtureSystem()} />)
 
   const orbitalViewport = () => renderer.root.findByProps({ className: 'system-orbital-layout' })
   const orbitalCanvas = () => renderer.root.findByProps({ className: 'system-orbital-layout__canvas' })
@@ -369,8 +367,7 @@ test('fleet carrier visibility removes attached and unresolved carriers, preserv
     { ...station, id: 3, marketId: 3, name: 'Carrier Beta', type: 'FleetCarrier', raw: {}, distanceToArrival: null }
   )
   const onSelect = vi.fn()
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<SystemSchematic onSelect={onSelect} selected={system.stations[1]} system={system} />) })
+  const renderer = await renderWithAct(<SystemSchematic onSelect={onSelect} selected={system.stations[1]} system={system} />)
   const installations = () => renderer.root.findAllByProps({ className: 'system-orbital-layout__installation' })
   expect(installations()).toHaveLength(3)
   await act(async () => renderer.update(<SystemSchematic onSelect={onSelect} showFleetCarriers={false} system={system} />))
