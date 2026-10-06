@@ -88,7 +88,7 @@ if (eddnSubmissions) {
       outbox.finishAttempt(attempt, outcome, outcome === 'accepted' ? 200 : outcome === 'retry' ? 503 : outcome === 'rejected' ? 400 : null, time + 1000, outcome === 'retry' ? time + 60_000 : undefined)
       if (outcome === 'accepted') outbox.acknowledge(id, time + 1000)
       else if (outcome === 'rejected') outbox.drop(id, 'rejected', time + 1000)
-      else outbox.clear(time + 1000)
+      else if (outcome === 'retry') outbox.retry(id, time + 60_000)
     }
   } finally { connection.close() }
 }

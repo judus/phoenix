@@ -8,7 +8,7 @@ const labels: Record<EddnLoss['reason'], string> = {
 
 export function EddnLossSummary({ losses }: { losses: EddnLoss[] }) {
   if (losses.length === 0) return null
-  return <Status tone={losses.some(loss => loss.reason !== 'cleared') ? 'warning' : 'muted'}>
+  return <Status wrap tone={losses.some(loss => loss.reason !== 'cleared') ? 'warning' : 'muted'}>
     Delivery totals since tracking began: {losses.map(loss => `${loss.count} ${labels[loss.reason]}`).join(' · ')}.
     {' '}These totals survive successful uploads and restarts. Pre-queue filtering and unflushed signal batches are not counted.
   </Status>

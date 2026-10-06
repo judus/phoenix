@@ -50,5 +50,6 @@ test('community settings exposes historical loss totals after a successful send'
   try {
     await act(async () => { renderer = create(<CommunityDataSettings api={api} />) })
     expect(JSON.stringify(renderer.toJSON())).toContain('3 skipped (capacity limit)')
+    expect(renderer.root.findAllByType('span').some(node => node.props.className === 'status status-warning status-wrap')).toBe(true)
   } finally { if (renderer) await act(async () => renderer.unmount()) }
 })
