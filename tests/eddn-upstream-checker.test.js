@@ -123,6 +123,15 @@ describe('read-only EDDN upstream review', () => {
   test('the actual bundled pin manifest validates', () => {
     expect(() => validatePins(JSON.parse(readFileSync('resources/eddn/upstream.json', 'utf8')))).not.toThrow()
   })
+  test('vendored schema checkout preserves upstream bytes even with core.autocrlf enabled', () => {
+    const actual = JSON.parse(readFileSync('resources/eddn/upstream.json', 'utf8'))
+    const paths = Object.keys(actual.schemas).map(name => `resources/eddn/${name}`)
+    const attributes = execFileSync('git', ['-c', 'core.autocrlf=true', 'check-attr', 'text', '--', ...paths], { encoding: 'utf8' })
+    expect(attributes.trim().split(/\r?\n/)).toEqual(paths.map(path => `${path}: text: unset`))
+    for (const name of Object.keys(actual.schemas)) {
+      expect(createHash('sha256').update(readFileSync(`resources/eddn/${name}`)).digest('hex')).toBe(actual.schemas[name])
+    }
+  })
 })
 
 test('HTTP client is GET-only, bounded, refuses redirects, does not retry or expose response/token on rate limits', async () => {
@@ -159,8 +168,10 @@ test.each(['unchanged', 'review-required', 'incomplete'])('CLI JSON reports %s w
   const log = vi.spyOn(console, 'log').mockImplementation(() => {})
   vi.stubGlobal('fetch', fetcher)
   try {
-    expect(await main(['--json'])).toBe({ unchanged: 0, 'review-required': 1, incomplete: 2 }[status])
-    expect(JSON.parse(log.mock.calls.at(-1)[0]).status).toBe(status)
+    const exitCode = await main(['--json'])
+    const report = JSON.parse(log.mock.calls.at(-1)[0])
+    expect(report).toMatchObject({ status })
+    expect(exitCode).toBe({ unchanged: 0, 'review-required': 1, incomplete: 2 }[status])
     expect(fetcher).toHaveBeenCalled()
   } finally { vi.unstubAllGlobals(); log.mockRestore() }
 })
