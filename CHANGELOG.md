@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Split the Copilot profile editor into Profile and Permissions tabs, with a ship-catalogue-width
+  roster, pinned Save/Create actions and profile AI load, and immediate permission-save feedback.
 - Update the UI to React 19.3 with matching DOM renderer, test renderer and type definitions.
 - Update source-map tooling to fix malformed indexed source-map denial of service.
 - Use the published LLM client package for Copilot tool-correction hints and MCP error feedback,

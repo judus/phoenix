@@ -200,7 +200,7 @@
   .copilot-profiles {
     display: grid;
     min-block-size: 0;
-    grid-template-columns: minmax(12rem, 0.65fr) minmax(20rem, 2.8fr);
+    grid-template-columns: var(--roster-columns);
     gap: var(--spacing-md);
     overflow: hidden;
   }
@@ -222,9 +222,39 @@
   }
 
   .copilot-profile-editor {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--spacing-sm);
+    min-inline-size: 0;
+    min-block-size: 0;
+    overflow: hidden;
+  }
+
+  .copilot-profile-panel {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: var(--spacing-sm);
+    min-inline-size: 0;
+    min-block-size: 0;
+    overflow: hidden;
+
+    &[hidden] { display: none; }
+  }
+
+  .copilot-profile-fields {
+    display: grid;
+    align-content: start;
+    gap: var(--spacing-md);
     min-block-size: 0;
     padding-inline-end: var(--spacing-xs);
     overflow-y: auto;
+  }
+
+  @container page-frame (aspect-ratio < 1) or (width < 48rem) {
+    .copilot-profiles {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr) minmax(0, 3fr);
+    }
   }
 
   @media (max-width: 52rem) {
@@ -234,10 +264,6 @@
 
     .copilot-portrait {
       display: none;
-    }
-
-    .copilot-profiles {
-      grid-template-columns: minmax(9rem, 0.7fr) minmax(18rem, 2fr);
     }
 
     .copilot-composer {

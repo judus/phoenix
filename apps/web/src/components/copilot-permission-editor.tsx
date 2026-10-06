@@ -19,6 +19,7 @@ import type {
 export function CopilotPermissionEditor ({
   capabilities,
   disabled = false,
+  layout = 'flow',
   onChange,
   permissions,
   profileLoad,
@@ -26,6 +27,7 @@ export function CopilotPermissionEditor ({
 }: {
   capabilities: CopilotCapabilityCatalogue
   disabled?: boolean
+  layout?: 'flow' | 'fit'
   onChange(permissions: CopilotPermissionPolicy): void
   permissions: CopilotPermissionPolicy
   profileLoad?: CopilotCapabilityCatalogue['load']
@@ -49,7 +51,7 @@ export function CopilotPermissionEditor ({
     onChange({ version: 2, enabledCapabilityIds: [...ids].sort() })
   }
 
-  return <>
+  return <div className={`copilot-permissions ${layout}`}>
     {profileLoad && <div className="copilot-load">
       <Meter
         label="AI load"
@@ -74,7 +76,7 @@ export function CopilotPermissionEditor ({
         onToggleCapability={toggleCapability}
       />)}
     </div>
-  </>
+  </div>
 }
 
 function CapabilityGroup ({ group, onSetCapabilities, onToggleCapability, pending }: {
