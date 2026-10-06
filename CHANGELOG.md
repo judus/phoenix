@@ -4,6 +4,7 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Show AI load only for individual Copilot profiles, not the installation-wide permission ceiling.
 - Credit the community-maintained Elite Dangerous Wiki and use standard breadcrumbs on Credits,
   Commander log and Macros.
 - Expand Credits with missing catalogue, Atlas, recipe-reference, contribution and font attributions;

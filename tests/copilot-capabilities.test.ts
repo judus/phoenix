@@ -85,11 +85,14 @@ test('active profile permissions are constrained by and pruned with the installa
 
   expect(capabilities.isToolEnabled('commander.get_current_situation')).toBe(true)
   expect(capabilities.isToolEnabled('web.search_web')).toBe(false)
+  expect(capabilities.catalogue().load.enabled.total).toBe(2)
+  expect(capabilities.profileSettings('marin').capabilities.load.enabled.total).toBe(1)
 
   capabilities.saveInstallationPolicy({ version: 2, enabledCapabilityIds: ['tool:web.search_web'] })
 
   expect(capabilities.profilePolicy('marin').enabledCapabilityIds).toEqual([])
   expect(capabilities.isToolEnabled('commander.get_current_situation')).toBe(false)
+  expect(capabilities.profileSettings('marin').capabilities.load.enabled.total).toBe(0)
 })
 
 test('game controls are grouped by game context rather than source category', () => {
