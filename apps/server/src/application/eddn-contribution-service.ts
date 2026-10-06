@@ -164,6 +164,8 @@ export class EddnContributionService {
     if (!batch || !this.active()) return
     try {
       if (batch.overflow) {
+        // Retry removal if the original oversize/capacity invalidation could not write.
+        this.options.outbox.drop(batch.id, 'invalid', this.now())
         this.signals.clear()
         this.closingSignals = undefined
         return

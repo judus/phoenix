@@ -5,7 +5,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { afterEach, expect, test, vi } from 'vitest'
 import { EliteJournalFileSource, type EliteJournalEvent } from '@phoenix/elite'
 import { EddnContributionService } from '../apps/server/src/application/eddn-contribution-service.js'
-import { EDDN_MAX_AGE_MS } from '../apps/server/src/domain/eddn.js'
+import { EDDN_MAX_AGE_MS, EDDN_MAX_MESSAGE_BYTES } from '../apps/server/src/domain/eddn.js'
 import { SqliteEddnOutbox } from '../apps/server/src/infrastructure/sqlite-eddn-outbox.js'
 import { EddnSchemaValidator } from '../apps/server/src/infrastructure/eddn-schema-validator.js'
 import { InMemorySystemSettingsRepository } from '../apps/server/src/infrastructure/json-system-configuration.js'
@@ -143,6 +143,17 @@ test('worker retries a failed seal without sending the still-open checkpoint', a
   await f.service.flush()
   expect(f.send).toHaveBeenCalledOnce()
   expect(f.outbox.status().queued).toBe(0)
+})
+
+test('closing retries invalidation after an oversized run could not update its draft', async () => {
+  const f = fixture()
+  f.observe(signal, 'first')
+  vi.spyOn(f.outbox, 'checkpointSignals').mockImplementationOnce(() => { throw new Error('synthetic failed invalidation') })
+  f.observe({ ...signal, SignalName: 's'.repeat(EDDN_MAX_MESSAGE_BYTES) }, 'oversized')
+  f.observe({ timestamp, event: 'Music' }, 'close')
+  expect(f.outbox.status()).toMatchObject({ queued: 0, losses: [{ reason: 'invalid', count: 1 }] })
+  await f.service.flush()
+  expect(f.send).not.toHaveBeenCalled()
 })
 
 test('real journal rotation resets an open run and fresh-session signals still contribute', async () => {
