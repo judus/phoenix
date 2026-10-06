@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite'
-import type { EddnSubmission, EddnSubmissionDetail } from '@phoenix/contracts'
-import { EDDN_MAX_AGE_MS, type EddnMessage, type EddnOutbox, type EddnPendingMessage } from '../domain/eddn.js'
+import type { EddnLoss, EddnStatus, EddnSubmission, EddnSubmissionDetail } from '@phoenix/contracts'
+import { EDDN_MAX_AGE_MS, EddnQueueCapacityError, type EddnMessage, type EddnOutbox, type EddnPendingMessage } from '../domain/eddn.js'
 
 export class SqliteEddnOutbox implements EddnOutbox {
   public constructor (private readonly connection: DatabaseSync) {}
@@ -17,6 +17,10 @@ export class SqliteEddnOutbox implements EddnOutbox {
       CREATE INDEX IF NOT EXISTS eddn_outbox_due ON eddn_outbox(next_attempt);
       CREATE TABLE IF NOT EXISTS eddn_status (id INTEGER PRIMARY KEY CHECK(id = 1), last_success_at TEXT) STRICT;
       INSERT OR IGNORE INTO eddn_status(id) VALUES (1);
+      CREATE TABLE IF NOT EXISTS eddn_losses (
+        reason TEXT PRIMARY KEY CHECK(reason IN ('expired', 'invalid', 'rejected', 'capacity', 'cleared')),
+        count INTEGER NOT NULL CHECK(count > 0), last_at TEXT NOT NULL
+      ) STRICT;
       CREATE TABLE IF NOT EXISTS eddn_submissions (
         id INTEGER PRIMARY KEY AUTOINCREMENT, observation_id TEXT NOT NULL,
         document TEXT NOT NULL, started_at INTEGER NOT NULL, completed_at TEXT,
@@ -37,7 +41,7 @@ export class SqliteEddnOutbox implements EddnOutbox {
       const usage = this.connection.prepare('SELECT COUNT(*) AS count, COALESCE(SUM(length(CAST(document AS BLOB))), 0) AS bytes FROM eddn_outbox').get() as { count: number, bytes: number }
       const receipts = this.connection.prepare('SELECT COUNT(*) AS count FROM eddn_receipts').get() as { count: number }
       if (usage.count >= 1000 || usage.bytes + Buffer.byteLength(document) > 16 * 1024 * 1024 || receipts.count >= 100_000) {
-        throw new Error('Contribution storage limit reached. Delivery will resume when space is available.')
+        throw new EddnQueueCapacityError()
       }
       this.connection.prepare('INSERT INTO eddn_receipts(id, created_at) VALUES (?, ?)').run(id, now)
       this.connection.prepare('INSERT INTO eddn_outbox(id, document, created_at, next_attempt) VALUES (?, ?, ?, ?)').run(id, document, now, now)
@@ -45,6 +49,7 @@ export class SqliteEddnOutbox implements EddnOutbox {
       return true
     } catch (cause) {
       this.connection.exec('ROLLBACK')
+      if (cause instanceof EddnQueueCapacityError) this.recordLoss('capacity', 1, now)
       throw cause
     }
   }
@@ -56,7 +61,7 @@ export class SqliteEddnOutbox implements EddnOutbox {
     try {
       return { id: row.id, attempts: row.attempts, message: JSON.parse(row.document) as unknown }
     } catch {
-      this.discard(row.id)
+      this.drop(row.id, 'invalid', now)
       throw new Error('An unreadable queued observation was discarded.')
     }
   }
@@ -64,7 +69,7 @@ export class SqliteEddnOutbox implements EddnOutbox {
   public acknowledge (id: string, now: number): void {
     this.connection.exec('BEGIN IMMEDIATE')
     try {
-      this.discard(id)
+      this.connection.prepare('DELETE FROM eddn_outbox WHERE id = ?').run(id)
       this.connection.prepare('UPDATE eddn_status SET last_success_at = ? WHERE id = 1').run(new Date(now).toISOString())
       this.connection.exec('COMMIT')
     } catch (cause) {
@@ -73,7 +78,24 @@ export class SqliteEddnOutbox implements EddnOutbox {
     }
   }
 
-  public discard (id: string): void { this.connection.prepare('DELETE FROM eddn_outbox WHERE id = ?').run(id) }
+  public drop (id: string, reason: 'expired' | 'invalid' | 'rejected', now: number): void {
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      const deleted = this.connection.prepare('DELETE FROM eddn_outbox WHERE id = ?').run(id)
+      this.recordLoss(reason, Number(deleted.changes), now)
+      this.connection.exec('COMMIT')
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
+    }
+  }
+
+  private recordLoss (reason: EddnLoss['reason'], count: number, now: number): void {
+    if (count === 0) return
+    this.connection.prepare(`INSERT INTO eddn_losses(reason, count, last_at) VALUES (?, ?, ?)
+      ON CONFLICT(reason) DO UPDATE SET count = count + excluded.count, last_at = excluded.last_at`)
+      .run(reason, count, new Date(now).toISOString())
+  }
   public beginAttempt (id: string, nextAttempt: number, now: number): number {
     this.connection.exec('BEGIN IMMEDIATE')
     try {
@@ -125,16 +147,35 @@ export class SqliteEddnOutbox implements EddnOutbox {
   public retry (id: string, nextAttempt: number): void {
     this.connection.prepare('UPDATE eddn_outbox SET next_attempt = ? WHERE id = ?').run(nextAttempt, id)
   }
-  public clear (): void { this.connection.exec('DELETE FROM eddn_outbox') }
+  public clear (now: number): void {
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      const deleted = this.connection.prepare('DELETE FROM eddn_outbox').run()
+      this.recordLoss('cleared', Number(deleted.changes), now)
+      this.connection.exec('COMMIT')
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
+    }
+  }
   public prune (now: number): void {
     this.pruneSubmissions(now)
-    // Delete explicitly as well: callers/tests need not enable SQLite foreign keys.
-    this.connection.prepare('DELETE FROM eddn_outbox WHERE created_at <= ?').run(now - EDDN_MAX_AGE_MS)
-    this.connection.prepare('DELETE FROM eddn_receipts WHERE created_at <= ?').run(now - EDDN_MAX_AGE_MS)
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      // Count pending losses before receipt cascades, even with SQLite foreign keys enabled.
+      const expired = this.connection.prepare('DELETE FROM eddn_outbox WHERE created_at <= ?').run(now - EDDN_MAX_AGE_MS)
+      this.recordLoss('expired', Number(expired.changes), now)
+      this.connection.prepare('DELETE FROM eddn_receipts WHERE created_at <= ?').run(now - EDDN_MAX_AGE_MS)
+      this.connection.exec('COMMIT')
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
+    }
   }
-  public status (): { queued: number, lastSuccessAt: string | null } {
+  public status (): Pick<EddnStatus, 'queued' | 'lastSuccessAt' | 'losses'> {
     const row = this.connection.prepare('SELECT (SELECT COUNT(*) FROM eddn_outbox) AS queued, last_success_at AS lastSuccessAt FROM eddn_status WHERE id = 1')
       .get() as { queued: number, lastSuccessAt: string | null }
-    return row
+    const losses = this.connection.prepare('SELECT reason, count, last_at AS lastAt FROM eddn_losses ORDER BY reason').all() as EddnLoss[]
+    return { ...row, losses }
   }
 }

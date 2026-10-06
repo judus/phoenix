@@ -8,7 +8,7 @@ import { developerNavigationItems, journalContext } from '../apps/web/src/featur
 
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
 const log: EddnSubmissionLog = {
-  status: { enabled: true, mode: 'test', queued: 0, lastSuccessAt: null, detail: 'Test stream only.', error: null },
+  status: { enabled: true, mode: 'test', queued: 0, lastSuccessAt: null, losses: [], detail: 'Test stream only.', error: null },
   entries: [{ id: 1, observationId: 'one', attempt: 1, startedAt: '2026-10-04T18:00:00Z', completedAt: '2026-10-04T18:00:01Z',
     outcome: 'accepted', httpStatus: 200, retryAt: null, schemaRef: 'https://eddn.edcd.io/schemas/journal/1/test', event: 'FSDJump', system: 'Sol', station: null }]
 }
@@ -68,4 +68,19 @@ test('empty and failed log reads are visible and recover on the next poll', asyn
     if (renderer) await act(async () => renderer.unmount())
     vi.useRealTimers()
   }
+})
+
+test('delivery losses stay visible alongside accepted attempts with no current error', async () => {
+  const api = { getEddnSubmissions: vi.fn().mockResolvedValue({ ...log, status: { ...log.status,
+    losses: [{ reason: 'expired', count: 7, lastAt: log.entries[0].startedAt },
+      { reason: 'cleared', count: 2, lastAt: log.entries[0].startedAt }] } }),
+    getEddnSubmission: vi.fn().mockResolvedValue({ payload: {} }) } as unknown as PhoenixApi
+  let renderer!: ReturnType<typeof create>
+  try {
+    await act(async () => { renderer = create(<EddnPage api={api} />) })
+    const markup = JSON.stringify(renderer.toJSON())
+    expect(markup).toContain('7 expired')
+    expect(markup).toContain('2 cleared by preference/build policy')
+    expect(markup).toContain('Accepted · HTTP 200')
+  } finally { if (renderer) await act(async () => renderer.unmount()) }
 })
