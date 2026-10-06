@@ -8,7 +8,7 @@ const navigationSelector = /(?:\.nav-item\b|nav\.application-navigation\b|nav\.a
 
 describe('navigation stylesheet boundary', () => {
   test('only navigation.css declares navigation item styles and states', () => {
-    const offenders = cssFiles(repositoryRoot)
+    const offenders = ['apps', 'packages'].flatMap(directory => cssFiles(join(repositoryRoot, directory)))
       .filter(file => file !== navigationStylesheet)
       .filter(file => navigationSelector.test(readFileSync(file, 'utf8')))
       .map(file => relative(repositoryRoot, file))

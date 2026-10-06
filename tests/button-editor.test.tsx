@@ -5,9 +5,10 @@ import { ButtonEditor } from '../apps/web/src/features/controls/button-editor.js
 
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
 
-test('the PHOENIX-owned button editor preserves the shared command element contract', () => {
+test('the PHOENIX-owned button editor preserves the shared command element contract', ({ onTestFinished }) => {
   const save = vi.fn<(element: ControlDeckCommandElement) => void>()
   let renderer!: ReturnType<typeof create>
+  onTestFinished(() => { if (renderer) act(() => renderer.unmount()) })
   act(() => {
     renderer = create(<ButtonEditor
       catalogue={catalogue('safe')}
@@ -34,9 +35,10 @@ test('the PHOENIX-owned button editor preserves the shared command element contr
   })
 })
 
-test('dangerous PHOENIX commands default to confirmation and retain the configured timeout', () => {
+test('dangerous PHOENIX commands default to confirmation and retain the configured timeout', ({ onTestFinished }) => {
   const save = vi.fn<(element: ControlDeckCommandElement) => void>()
   let renderer!: ReturnType<typeof create>
+  onTestFinished(() => { if (renderer) act(() => renderer.unmount()) })
   act(() => {
     renderer = create(<ButtonEditor
       catalogue={catalogue('dangerous')}
@@ -58,9 +60,10 @@ test('dangerous PHOENIX commands default to confirmation and retain the configur
   })
 })
 
-test('the PHOENIX-owned button editor persists an explicit button color', () => {
+test('the PHOENIX-owned button editor persists an explicit button color', ({ onTestFinished }) => {
   const save = vi.fn<(element: ControlDeckCommandElement) => void>()
   let renderer!: ReturnType<typeof create>
+  onTestFinished(() => { if (renderer) act(() => renderer.unmount()) })
   act(() => {
     renderer = create(<ButtonEditor
       catalogue={catalogue('safe')}

@@ -94,14 +94,17 @@ test('rejects hold transitions that do not identify their lease', async () => {
 })
 
 test('automatically releases an expired hold lease', async () => {
+  vi.useFakeTimers()
   const gateway = new StubGateway()
   const service = new GameActionService(gateway, 5)
 
-  await service.execute({ actionId: 'elite.PrimaryFire', operation: 'press', leaseId: 'gesture-2' }, 'ui')
-  await new Promise(resolve => setTimeout(resolve, 15))
-
-  expect(gateway.calls.map(call => call.operation)).toEqual(['press', 'release'])
-  await service.stop()
+  try {
+    await service.execute({ actionId: 'elite.PrimaryFire', operation: 'press', leaseId: 'gesture-2' }, 'ui')
+    await vi.advanceTimersByTimeAsync(4)
+    expect(gateway.calls.map(call => call.operation)).toEqual(['press'])
+    await vi.advanceTimersByTimeAsync(1)
+    expect(gateway.calls.map(call => call.operation)).toEqual(['press', 'release'])
+  } finally { await service.stop() }
 })
 
 test('renews an active hold without sending another keydown', async () => {

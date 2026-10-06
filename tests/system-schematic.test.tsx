@@ -186,7 +186,9 @@ test('schematic cartography connects nested invisible barycentre axes without ga
   const outerConnection = layout.edges.find(edge => edge.key === 'barycentre:0:barycentre:1')
   const innerConnection = layout.edges.find(edge => edge.key === 'barycentre:1:body:2')
 
-  expect(outerConnection?.points.at(-1)).toEqual(innerConnection?.points[0])
+  expect(outerConnection?.points.length).toBeGreaterThan(1)
+  expect(innerConnection?.points.length).toBeGreaterThan(1)
+  expect(outerConnection!.points.at(-1)).toEqual(innerConnection!.points[0])
 })
 
 test('schematic cartography preserves unresolved ancestors while live scans are incomplete', () => {

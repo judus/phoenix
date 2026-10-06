@@ -3,11 +3,7 @@ import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { CommanderLogEntry, NavigationRoute } from '@phoenix/contracts'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
-import type {
-  PhoenixEventHub,
-  PhoenixEventMap,
-  PhoenixEventName
-} from '../apps/web/src/application/events/phoenix-event-hub.js'
+import { FakeEventHub } from './support/fake-event-hub.js'
 import {
   useDashboardController,
   type DashboardControllerSnapshot
@@ -169,22 +165,4 @@ function marketSignals() {
 
 function communicationMessage() {
   return { channel: 'starsystem', direction: 'inbound' as const, id: 'message-1', message: 'o7', rawMessage: null, rawSender: 'CMDR Ada', recipient: null, sender: 'CMDR Ada', senderKind: 'commander' as const, sourceEvent: 'ReceiveText' as const, timestamp: '2026-08-16T12:00:00.000Z', view: 'traffic' as const }
-}
-
-class FakeEventHub implements PhoenixEventHub {
-  readonly #listeners = new Map<PhoenixEventName, Set<(payload: unknown) => void>>()
-  getConnectionSnapshot = () => ({ state: 'open' as const })
-  start(): void {}
-  stop(): void {}
-  subscribeConnection(): () => void { return () => undefined }
-  subscribe<K extends PhoenixEventName>(eventName: K, listener: (payload: PhoenixEventMap[K]) => void): () => void {
-    const wrapped = (payload: unknown): void => listener(payload as PhoenixEventMap[K])
-    const listeners = this.#listeners.get(eventName) ?? new Set()
-    listeners.add(wrapped)
-    this.#listeners.set(eventName, listeners)
-    return () => listeners.delete(wrapped)
-  }
-  emit<K extends PhoenixEventName>(eventName: K, payload: PhoenixEventMap[K]): void {
-    for (const listener of this.#listeners.get(eventName) ?? []) listener(payload)
-  }
 }

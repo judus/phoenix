@@ -2,6 +2,7 @@ import { renderWithAct } from './support/render-with-act.js'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { act, create } from 'react-test-renderer'
 import { expect, test, vi } from 'vitest'
+import { createEmptyRuntimeState } from '@phoenix/contracts'
 import { DashboardPage } from '../apps/web/src/features/dashboard/dashboard-page.js'
 import type { DashboardViewModel } from '../apps/web/src/features/dashboard/dashboard-view-model.js'
 
@@ -105,7 +106,7 @@ test('dashboard market signal rows remain informational', async () => {
       model={model()}
       onExecuteAction={vi.fn()}
       onNavigate={vi.fn()}
-      runtime={{ status: 'ready', state: undefined as never }}
+      runtime={{ status: 'ready', state: createEmptyRuntimeState() }}
       voice={{ connected: false, connect: vi.fn(), disconnect: vi.fn(), transitioning: false }}
     />)
   const signalRow = renderer.root.findByProps({ 'aria-label': 'Market signals' }).findByType('li')
