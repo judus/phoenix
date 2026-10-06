@@ -200,7 +200,7 @@
   .copilot-profiles {
     display: grid;
     min-block-size: 0;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: var(--roster-columns);
     gap: var(--spacing-md);
     overflow: hidden;
   }

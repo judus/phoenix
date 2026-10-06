@@ -23,7 +23,7 @@
 
     .catalogue-deck {
       display: grid;
-      grid-template-columns: minmax(13rem, 0.45fr) minmax(0, 1.55fr);
+      grid-template-columns: var(--roster-columns);
       gap: var(--spacing-xl);
       min-inline-size: 0;
       min-block-size: 0;

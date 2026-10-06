@@ -321,7 +321,7 @@ function ProfileEditor({ capabilities, draft, profileError, permissionsError, on
         <Field htmlFor="profile-text" label="Text character prompt" required><Textarea value={draft.characterText} required rows={7} onChange={update('characterText')} /></Field>
         <Field htmlFor="profile-speech" label="Speech character prompt" required><Textarea value={draft.characterSpeech} required rows={7} onChange={update('characterSpeech')} /></Field>
       </div>
-      <FormActions message={profileError}><Button variant="primary" busy={saving}>{draft.templateProfileId ? 'Create profile' : 'Save profile'}</Button></FormActions>
+      <FormActions message={profileError && <Status role="alert" tone="danger" wrap>{profileError}</Status>}><Button variant="primary" busy={saving}>{draft.templateProfileId ? 'Create profile' : 'Save profile'}</Button></FormActions>
     </Form>
     <section className="copilot-profile-panel" id="permissions-panel" role="tabpanel" aria-labelledby="permissions-tab" hidden={tab !== 'permissions-tab'}>
       {capabilities && <CopilotPermissionEditor
