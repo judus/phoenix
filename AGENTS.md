@@ -23,6 +23,7 @@
 - For UI work read [.agents/skills/phoenix-ui/SKILL.md](.agents/skills/phoenix-ui/SKILL.md); for
   release/CI work read [.agents/skills/phoenix-release/SKILL.md](.agents/skills/phoenix-release/SKILL.md).
   Read actual installed versions and the relevant owner before using version-sensitive APIs.
+  For React APIs and upgrades, use the source and compatibility checks in [docs/react.md](docs/react.md).
 - Run focused regression tests and `npm run check` for code changes. Report unverified behavior;
   production typechecks do not typecheck every test, and CI is not proof of real Elite input.
 - If available, `.context/index.md` and `.context/codex-handoff.md` provide local working context.

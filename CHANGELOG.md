@@ -4,6 +4,7 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Update the UI to React 19.3 with matching DOM renderer, test renderer and type definitions.
 - Update source-map tooling to fix malformed indexed source-map denial of service.
 - Use the published LLM client package for Copilot tool-correction hints and MCP error feedback,
   replacing the patched local archive.

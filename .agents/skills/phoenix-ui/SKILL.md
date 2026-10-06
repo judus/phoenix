@@ -16,6 +16,13 @@ uses React/TypeScript and plain CSS with native nesting; check installed version
 - Deskplane: generic desktop gestures/navigation. PHOENIX owns workspace route history and defaults.
 - Server read models/contracts: authoritative game state. Unknown telemetry is not zero or false.
 
+## React APIs and upgrades
+
+For version-sensitive APIs or dependency upgrades, read [docs/react.md](../../../docs/react.md).
+Check installed React/DOM/test-renderer versions and dependency peers together. React's upstream
+AI instructions target its own core or documentation repository, not PHOENIX. Do not import their
+build commands, styling rules or exhaustive research workflow into an ordinary application change.
+
 ## Presentation contract
 
 - One short component root plus finite modifiers (`btn btn-sm`, `form-control form-mini`, `active`).
