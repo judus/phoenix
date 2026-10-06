@@ -8,18 +8,14 @@ import {
   ActivityLogEntrySchema,
   CartographicSystemSchema,
   CommunicationMessageSchema,
-  FleetShipSchema,
   GalaxyBookmarkSchema,
   MissionSchema,
-  StoredModuleSchema,
   type ActivityLogEntry,
   type CartographicSystem,
   type CommunicationMessage,
   type DatabaseHealth,
-  type FleetShip,
   type GalaxyBookmark,
-  type Mission,
-  type StoredModule
+  type Mission
 } from '@phoenix/contracts'
 import type {
   CartographyRecord,
@@ -35,7 +31,6 @@ import type {
 import type { ProviderCacheEntry, ProviderResponseCache } from '../domain/station-market.js'
 import type { MissionRepository } from '../domain/missions.js'
 import type { CommunicationQueryView, CommunicationRepository } from '../domain/communications.js'
-import type { FleetRepository } from '../domain/fleet.js'
 import { galaxyBookmarkTargetKey, type GalaxyBookmarkRepository } from '../domain/galaxy-bookmarks.js'
 import { edsmBodyDetails } from './edsm-cartography-source.js'
 import { ensurePrivateDirectorySync, restrictPrivateFileSync } from './private-user-state.js'
@@ -45,8 +40,10 @@ import { SqliteCommanderEquipmentRepository } from './sqlite-commander-equipment
 import { SqliteEngineeringProjectRepository } from './sqlite-engineering-project-repository.js'
 import { SqliteSavedGalaxyQueryRepository } from './sqlite-saved-galaxy-query-repository.js'
 import { SqliteEddnOutbox } from './sqlite-eddn-outbox.js'
+import { SqliteFleetRepository } from './sqlite-fleet-repository.js'
 
-export class SqliteDatabase implements Database, CartographyRepository, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository, CommunicationRepository, FleetRepository, GalaxyBookmarkRepository {
+export class SqliteDatabase implements Database, CartographyRepository, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository, CommunicationRepository, GalaxyBookmarkRepository {
+  public readonly fleet: SqliteFleetRepository
   public readonly eddnOutbox: SqliteEddnOutbox
   public readonly commanderEquipment: SqliteCommanderEquipmentRepository
   public readonly commanderLog: SqliteCommanderLogRepository
@@ -59,6 +56,7 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     this.path = path
     if (path !== ':memory:') ensurePrivateDirectorySync(dirname(path))
     this.connection = new DatabaseSync(path)
+    this.fleet = new SqliteFleetRepository(this.connection)
     this.eddnOutbox = new SqliteEddnOutbox(this.connection)
     this.commanderEquipment = new SqliteCommanderEquipmentRepository(this.connection)
     this.commanderLog = new SqliteCommanderLogRepository(this.connection)
@@ -514,67 +512,6 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
       outbound: row.outbound ?? 0,
       total: row.total ?? 0,
       traffic: row.traffic ?? 0
-    }
-  }
-
-  public getFleetProjectionTimestamp (key: string): string | null {
-    const row = this.connection.prepare(`
-      SELECT timestamp FROM fleet_projection_state WHERE state_key = ?
-    `).get(key) as { timestamp: string } | undefined
-    return row?.timestamp ?? null
-  }
-
-  public putFleetProjectionTimestamp (key: string, timestamp: string): void {
-    this.connection.prepare(`
-      INSERT INTO fleet_projection_state (state_key, timestamp)
-      VALUES (?, ?)
-      ON CONFLICT(state_key) DO UPDATE SET timestamp = excluded.timestamp
-    `).run(key, timestamp)
-  }
-
-  public getFleetShip (id: number): FleetShip | null {
-    const row = this.connection.prepare(`SELECT document FROM fleet_ships WHERE ship_id = ?`).get(id) as { document: string } | undefined
-    return row ? FleetShipSchema.parse(JSON.parse(row.document)) : null
-  }
-
-  public listFleetShips (): FleetShip[] {
-    const rows = this.connection.prepare(`SELECT document FROM fleet_ships ORDER BY updated_at DESC, ship_id ASC`).all() as Array<{ document: string }>
-    return rows.map(row => FleetShipSchema.parse(JSON.parse(row.document)))
-  }
-
-  public putFleetShip (ship: FleetShip): void {
-    const validated = FleetShipSchema.parse(ship)
-    this.connection.prepare(`
-      INSERT INTO fleet_ships (ship_id, state, updated_at, document)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(ship_id) DO UPDATE SET
-        state = excluded.state,
-        updated_at = excluded.updated_at,
-        document = excluded.document
-    `).run(validated.id, validated.state, validated.updatedAt, JSON.stringify(validated))
-  }
-
-  public listStoredModules (): StoredModule[] {
-    const rows = this.connection.prepare(`SELECT document FROM fleet_stored_modules ORDER BY storage_slot ASC`).all() as Array<{ document: string }>
-    return rows.map(row => StoredModuleSchema.parse(JSON.parse(row.document)))
-  }
-
-  public replaceStoredModules (modules: StoredModule[]): void {
-    this.connection.exec('BEGIN IMMEDIATE')
-    try {
-      this.connection.exec('DELETE FROM fleet_stored_modules')
-      const statement = this.connection.prepare(`
-        INSERT INTO fleet_stored_modules (storage_slot, updated_at, document)
-        VALUES (?, ?, ?)
-      `)
-      for (const module of modules) {
-        const validated = StoredModuleSchema.parse(module)
-        statement.run(validated.storageSlot, validated.updatedAt, JSON.stringify(validated))
-      }
-      this.connection.exec('COMMIT')
-    } catch (cause) {
-      this.connection.exec('ROLLBACK')
-      throw cause
     }
   }
 

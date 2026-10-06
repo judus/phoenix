@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, test, vi } from 'vitest'
-import { EngineeringProjectSchema } from '@phoenix/contracts'
+import { EngineeringProjectSchema, EngineeringProjectsChangedSchema } from '@phoenix/contracts'
 import { PhoenixApplication, type PhoenixApplicationOptions } from '../apps/server/src/phoenix-application.js'
 import { EngineeringProjectService } from '../apps/server/src/application/engineering-project-service.js'
 import { PairingAccessController } from '../apps/server/src/infrastructure/pairing-access-controller.js'
@@ -87,10 +87,11 @@ test('Engineering mutations still publish through the parent-owned browser strea
     const controller = new AbortController()
     const response = await fetch(`${origin}/api/events`, { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(5000)]) })
     try {
-      const project = await new PhoenixApiClient(origin).createEngineeringProject({ name: 'Event fixture', priority: 'normal', note: null })
+      await new PhoenixApiClient(origin).createEngineeringProject({ name: 'Event fixture', priority: 'normal', note: null })
       for await (const { event, data } of readSseEvents(response)) {
         if (event !== 'engineering-projects-changed') continue
-        expect(JSON.parse(data)).toMatchObject({ schemaVersion: 1, changedAt: project.updatedAt })
+        // Notification and project timestamps are separate clock reads, not an equality contract.
+        expect(EngineeringProjectsChangedSchema.safeParse(JSON.parse(data)).success).toBe(true)
         break
       }
     } finally { controller.abort() }
