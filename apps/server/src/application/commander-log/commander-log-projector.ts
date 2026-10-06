@@ -1,5 +1,5 @@
 import type { CommanderLogEntry } from '@phoenix/contracts'
-import type { EliteJournalEvent } from '@phoenix/elite'
+import { EliteJournalSession, type EliteJournalEvent } from '@phoenix/elite'
 import type { MissionLookup } from '../../domain/missions.js'
 import {
   projectCareerCommanderLogEntry,
@@ -19,6 +19,7 @@ export interface CommanderLogProjector {
 }
 
 export class DefaultCommanderLogProjector implements CommanderLogProjector {
+  private readonly journalSession = new EliteJournalSession()
   private shipId: number | null = null
   private session = ''
   private system: string | null = null
@@ -70,7 +71,8 @@ export class DefaultCommanderLogProjector implements CommanderLogProjector {
   }
 
   private observe (event: EliteJournalEvent): void {
-    if (event.event === 'Fileheader' || event.event === 'LoadGame') {
+    const continuation = this.journalSession.observe(event)
+    if ((event.event === 'Fileheader' && !continuation) || event.event === 'LoadGame') {
       this.session = event.timestamp
       this.shipId = null
       this.system = null

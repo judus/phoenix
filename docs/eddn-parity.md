@@ -117,6 +117,8 @@ expiry no longer erase this evidence. Existing 24-hour retention and retry reser
 open signal batches now checkpoint their last public envelope inside the bounded outbox. Resolved
 checkpoints recover through ordinary validation; unresolved pre-arrival markers are counted invalid,
 not reconstructed from bootstrap. Oversize/capacity skips and session clears are accounted for.
-Failed writes cannot preserve new data; full multipart rotation/session continuity and gameplay
-acceptance are still open. Capacity rejection before draft admission also lacks a loss retry when
+Live rotation now drains unread tails/intermediate files and preserves explicitly linked session
+parts; startup remains newest-file-only without reconstructing missing earlier context.
+Failed writes cannot preserve new data; gameplay acceptance remains open.
+Capacity rejection before draft admission also lacks a loss retry when
 the counter write fails (#108). This is not a full EDMC delivery-policy equivalence claim.

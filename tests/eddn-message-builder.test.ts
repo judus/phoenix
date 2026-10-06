@@ -15,6 +15,37 @@ function builder () {
 }
 
 describe('EDDN message boundary', () => {
+  test('explicit multipart continuation preserves dock and body context without leaving crew mode', () => {
+    const value = builder()
+    const dock = { ...location, event: 'Docked', MarketID: 42, StationName: 'Galileo' }
+    value.observe(dock)
+    value.observe({ timestamp, event: 'ApproachBody', SystemAddress: location.SystemAddress, BodyName: 'Sol A', BodyID: 1 })
+    value.observe({ timestamp, event: 'Continued', Part: 2 })
+    const next = { timestamp, event: 'Fileheader', part: 2, gameversion: '4.0.0.1', build: 'r1 ' }
+    expect(value.isSessionContinuation(next)).toBe(true)
+    value.observe(next)
+    expect(value.stock({ timestamp, event: 'Shipyard', MarketID: 42 }, {
+      timestamp, event: 'Shipyard', MarketID: 42, StarSystem: 'Sol', StationName: 'Galileo', PriceList: []
+    })).toBeDefined()
+    expect(value.journal({ timestamp, event: 'Docked', SystemAddress: location.SystemAddress, MarketID: 42, StationName: 'Galileo' })?.message)
+      .toMatchObject({ Body: 'Sol A', BodyType: 'Planet', horizons: true, odyssey: false })
+    value.observe({ timestamp, event: 'JoinACrew' })
+    value.observe({ timestamp, event: 'Continued', Part: 3 })
+    value.observe({ ...next, part: 3 })
+    expect(value.canContribute()).toBe(false)
+  })
+
+  test.each(['missing marker', 'new session', 'wrong part', 'changed build', 'intervening event'] as const)('%s cannot inherit a session through a header', variant => {
+    const value = builder()
+    if (variant !== 'missing marker') value.observe({ timestamp, event: 'Continued', Part: 2 })
+    if (variant === 'intervening event') value.observe({ timestamp, event: 'Shutdown' })
+    value.observe({ timestamp, event: 'Fileheader', part: variant === 'new session' ? 1 : variant === 'wrong part' ? 3 : 2,
+      gameversion: '4.0.0.1', build: variant === 'changed build' ? 'r2' : 'r1 ' })
+    expect(value.canContribute()).toBe(false)
+    value.observe(location)
+    expect(value.journal(location)).toBeUndefined()
+  })
+
   test('allowlists journal fields, including nested values, without mutating source', () => {
     const event = { ...location, Wanted: true, Latitude: 10, Commander: 'Secret', Unknown: 'private',
       Factions: [{ Name: 'Faction', MyReputation: 99, Name_Localised: 'localized', HomeSystem: true }],

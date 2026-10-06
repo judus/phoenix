@@ -341,3 +341,30 @@ test('real journal rotation resets an open run and fresh-session signals still c
   expect(batch.message.signals).toEqual([{ timestamp, SignalName: 'New session' }])
   expect(f.outbox.status().losses).toMatchObject([{ reason: 'cleared', count: 1 }])
 })
+
+test.each(['established', 'pre-arrival'] as const)('live multipart rotation retains %s EDDN context and drains every part', async context => {
+  const { directory } = disk()
+  const f = fixture()
+  const paths = ['01', '02', '03'].map(part => join(directory, `Journal.2026-10-04T180000.${part}.log`))
+  const lines = (events: EliteJournalEvent[]) => events.map(event => JSON.stringify(event) + '\n').join('')
+  writeFileSync(paths[0], lines([{ ...header, part: 1 }, load, location]))
+  const source = new EliteJournalFileSource(directory, () => {}, { onObservation: (event, origin) => f.service.observe(event, origin) })
+  cleanup.push(async () => { await source.stop() })
+  await source.refresh()
+  appendFileSync(paths[0], lines([
+    ...(context === 'pre-arrival' ? [{ timestamp, event: 'StartJump', JumpType: 'Hyperspace' }] : []),
+    signal, { timestamp, event: 'Continued', Part: 2 }
+  ]))
+  writeFileSync(paths[1], lines([{ ...header, part: 2 }, { ...signal, SignalName: 'Second part' }, { timestamp, event: 'Continued', Part: 3 }]))
+  writeFileSync(paths[2], lines([
+    { ...header, part: 3 }, { ...signal, SignalName: 'Third part' },
+    ...(context === 'pre-arrival' ? [{ ...location, event: 'FSDJump' }] : []), { timestamp, event: 'Music' }
+  ]))
+  await source.refresh()
+  for (let index = 0; index < 4; index++) await f.service.flush()
+  const uploads = f.send.mock.calls.map(([message]) => message)
+  // Equal-timestamp outbox rows use stable ID tie-breaking, not projection order.
+  expect(uploads.flatMap(message => message.message.signals ?? []).map(entry => entry.SignalName).sort()).toEqual(['Public', 'Second part', 'Third part'])
+  expect(uploads.every(message => validator.valid(message))).toBe(true)
+  expect(f.outbox.status()).toMatchObject({ queued: 0, losses: [] })
+})

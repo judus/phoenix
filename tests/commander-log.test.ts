@@ -18,6 +18,26 @@ const projector = new DefaultCommanderLogProjector(
   identifier => identifier === 'Engine_Dirty' ? 'Dirty Engine' : null
 )
 
+test('a continued journal preserves commander-log location and engineering grouping; a new session resets them', () => {
+  const p = new DefaultCommanderLogProjector(noMissions, () => null, () => 'Overcharged')
+  const timestamp = '2026-10-07T00:00:00Z'
+  const header = { timestamp, event: 'Fileheader', part: 1, gameversion: '4.0', build: 'r1' }
+  p.project(header)
+  p.project({ timestamp, event: 'LoadGame', ShipID: 21 })
+  p.project({ timestamp, event: 'Docked', StarSystem: 'Sol', StationName: 'Galileo', MarketID: 42 })
+  const roll = { timestamp, event: 'EngineerCraft', Slot: 'MediumHardpoint1', Module: 'multicannon', BlueprintName: 'Weapon_Overcharged', Engineer: 'Tod', Level: 1 }
+  const first = p.project(roll)!
+  p.project({ timestamp, event: 'Continued', Part: 2 })
+  p.project({ ...header, timestamp: '2026-10-07T00:01:00Z', part: 2 })
+  expect(p.project(roll)?.engineeringRoll?.key).toBe(first.engineeringRoll?.key)
+  const trade = { timestamp, event: 'MaterialTrade', MarketID: 42,
+    Paid: { Material_Localised: 'Shielding Sensors', Quantity: 3 }, Received: { Material_Localised: 'Conductive Polymers', Quantity: 1 } }
+  expect(p.project(trade)?.detail).toContain('Galileo · Sol')
+  p.project({ ...header, timestamp: '2026-10-07T00:02:00Z' })
+  expect(p.project(roll)?.engineeringRoll).toBeUndefined()
+  expect(p.project(trade)?.detail).not.toContain('Galileo')
+})
+
 test('new milestones use explicit journal evidence, not scan steps or estimated earnings', () => {
   const p = new DefaultCommanderLogProjector(noMissions, () => null, () => null)
   const timestamp = '2026-09-27T22:00:00Z'

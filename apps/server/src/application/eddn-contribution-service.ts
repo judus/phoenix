@@ -110,7 +110,9 @@ export class EddnContributionService {
   public observe (event: EliteJournalEvent, source: EliteJournalObservationSource): void {
     try {
       this.retrySignalDiscards()
-      const reset = ['Fileheader', 'LoadGame', 'JoinACrew', 'QuitACrew'].includes(event.event) ||
+      const continuation = this.builder.isSessionContinuation(event)
+      const reset = (event.event === 'Fileheader' && !continuation) ||
+        ['LoadGame', 'JoinACrew', 'QuitACrew'].includes(event.event) ||
         (event.event === 'Music' && event.MusicTrack === 'MainMenu')
       if (reset || source.replayed || !this.active()) {
         const batch = this.signals.peek()
@@ -124,7 +126,7 @@ export class EddnContributionService {
       const arrival = ['FSDJump', 'CarrierJump', 'Location'].includes(event.event)
       if (this.closingSignals) this.flushSignals()
       // Flush with the incoming location for Odyssey, or the previous location for other events.
-      if (!arrival && event.event !== 'FSSSignalDiscovered') this.flushSignals()
+      if (!arrival && event.event !== 'FSSSignalDiscovered' && event.event !== 'Continued' && !continuation) this.flushSignals()
       this.builder.observe(event)
       if (arrival) this.flushSignals()
       if (!this.active() || source.replayed || Date.parse(event.timestamp) < this.enabledSince || !this.fresh(event.timestamp)) return

@@ -21,6 +21,52 @@ const fixturePath = fileURLToPath(
   new URL('./fixtures/elite/Journal.2026-08-10T120000.01.log', import.meta.url)
 )
 
+test('live rotation drains the old tail and every intervening file in order', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-journal-rotation-'))
+  const paths = ['01', '02', '03'].map(part => join(directory, `Journal.2026-10-07T000000.${part}.log`))
+  const line = (id: number) => JSON.stringify({ timestamp: '2026-10-07T00:00:00Z', event: 'Progress', id }) + '\n'
+  const seen: number[] = [], replayed: boolean[] = []
+  writeFileSync(paths[0], line(0))
+  const source = new EliteJournalFileSource(directory, event => { seen.push(Number(event.id)) }, {
+    onObservation: (_, origin) => replayed.push(origin.replayed)
+  })
+  try {
+    await source.refresh()
+    appendFileSync(paths[0], line(1))
+    writeFileSync(paths[1], line(2))
+    writeFileSync(paths[2], line(3))
+    await source.refresh()
+    expect(seen).toEqual([0, 1, 2, 3])
+    expect(replayed).toEqual([true, false, false, false])
+    expect(await source.refresh()).toBe(false)
+    expect(source.getDiagnostics()).toMatchObject({ filePath: paths[2], linesRead: 4, error: null })
+  } finally { await source.stop(); rmSync(directory, { recursive: true, force: true }) }
+})
+
+test('rotation waits for a failed projection instead of skipping into the next file', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-journal-rotation-retry-'))
+  const first = join(directory, 'Journal.2026-10-07T000000.01.log')
+  const second = join(directory, 'Journal.2026-10-07T000000.02.log')
+  const line = (id: number) => JSON.stringify({ timestamp: '2026-10-07T00:00:00Z', event: 'Progress', id }) + '\n'
+  const seen: number[] = []
+  let fail = true
+  writeFileSync(first, line(0))
+  const source = new EliteJournalFileSource(directory, event => {
+    if (event.id === 1 && fail) { fail = false; throw new Error('Synthetic projection failure') }
+    seen.push(Number(event.id))
+  })
+  try {
+    await source.refresh()
+    appendFileSync(first, line(1))
+    writeFileSync(second, line(2))
+    await source.refresh()
+    expect(seen).toEqual([0])
+    expect(source.getDiagnostics().error).toBe('Synthetic projection failure')
+    await source.refresh()
+    expect(seen).toEqual([0, 1, 2])
+  } finally { await source.stop(); rmSync(directory, { recursive: true, force: true }) }
+})
+
 test('the journal source replays, tails partial writes and follows journal rotation', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-journal-source-'))
   const firstJournal = join(directory, basename(fixturePath))
