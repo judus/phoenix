@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Keep live journal ingestion responsive by yielding between bounded record batches, and drain
+  in-flight journal projections before shutdown closes their dependencies. Add an isolated,
+  repeatable startup/tail/backfill HTTP/SSE performance diagnostic.
 - Group galaxy provider/query wiring in one explicit composition boundary, preserving shared
   providers, source overrides, query caching and application-owned startup/shutdown.
 - Separate Fleet SQLite operations from the database lifecycle owner, retaining shared storage,

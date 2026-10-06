@@ -22,6 +22,8 @@ export const EliteJournalEventSchema = z.object({
 export type EliteJournalEvent = z.infer<typeof EliteJournalEventSchema>
 export type EliteJournalListener = (event: EliteJournalEvent) => void | Promise<void>
 
+const LINES_PER_TURN = 256
+
 export interface EliteJournalFileSourceOptions {
   pollInterval?: number
   onObservation?: (event: EliteJournalEvent, source: EliteJournalObservationSource) => void
@@ -69,10 +71,12 @@ export class EliteJournalFileSource {
     return this.getDiagnostics()
   }
 
-  public stop (): void {
+  public async stop (): Promise<void> {
     if (this.timer) clearInterval(this.timer)
     this.timer = null
     this.diagnostics = { ...this.diagnostics, watching: false }
+    // A yielded or asynchronous projection still owns its downstream dependencies.
+    await this.refreshQueue
   }
 
   public refresh (): Promise<boolean> {
@@ -133,7 +137,13 @@ export class EliteJournalFileSource {
       let lineError: string | null = null
       let lineStart = 0
       let newline = contents.indexOf(0x0a, lineStart)
+      let linesThisTurn = 0
       while (newline >= 0) {
+        if (linesThisTurn === LINES_PER_TURN) {
+          await new Promise<void>(resolvePromise => setImmediate(resolvePromise))
+          linesThisTurn = 0
+        }
+        linesThisTurn++
         const nextOffset = initialOffset + newline + 1
         const line = contents.subarray(lineStart, newline).toString('utf8')
         lineStart = newline + 1
