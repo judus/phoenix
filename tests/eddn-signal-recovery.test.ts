@@ -5,7 +5,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { afterEach, expect, test, vi } from 'vitest'
 import { EliteJournalFileSource, type EliteJournalEvent } from '@phoenix/elite'
 import { EddnContributionService } from '../apps/server/src/application/eddn-contribution-service.js'
-import { EDDN_MAX_AGE_MS, EDDN_MAX_MESSAGE_BYTES } from '../apps/server/src/domain/eddn.js'
+import { EDDN_MAX_AGE_MS, EDDN_MAX_MESSAGE_BYTES, EddnQueueCapacityError } from '../apps/server/src/domain/eddn.js'
 import { EddnMessageBuilder } from '../apps/server/src/domain/eddn-message-builder.js'
 import { SqliteEddnOutbox } from '../apps/server/src/infrastructure/sqlite-eddn-outbox.js'
 import { EddnSchemaValidator } from '../apps/server/src/infrastructure/eddn-schema-validator.js'
@@ -250,6 +250,36 @@ test('worker retries capacity rejection after accounting failure without another
   await recovered.service.flush()
   expect(recovered.send).not.toHaveBeenCalled()
   expect(recovered.outbox.status().losses).toMatchObject([{ reason: 'capacity', count: 1 }])
+})
+
+test.each(['session', 'replay', 'preference'] as const)('pending rejection keeps its reason through a %s reset', async reset => {
+  const f = fixture()
+  f.observe(signal, 'first')
+  const discard = vi.spyOn(f.outbox, 'discardSignals').mockImplementation(() => { throw new Error('Synthetic rejection failure') })
+  f.observe({ ...signal, SignalName: 's'.repeat(EDDN_MAX_MESSAGE_BYTES) }, 'oversized')
+  if (reset === 'preference') {
+    const clear = vi.spyOn(f.outbox, 'clear').mockImplementation(() => { throw new Error('Synthetic failed clear') })
+    f.service.setEnabled(false)
+    clear.mockRestore()
+  } else f.observe({ timestamp, event: 'Music', MusicTrack: reset === 'session' ? 'MainMenu' : 'Exploration' }, 'reset', reset === 'replay')
+  discard.mockRestore()
+  await f.service.flush()
+  expect(f.outbox.status()).toMatchObject({ queued: 0, losses: [{ reason: 'invalid', count: 1 }] })
+})
+
+test('a capacity-rejected closing seal does not suppress the next signal run', async () => {
+  const f = fixture()
+  f.observe({ timestamp, event: 'StartJump', JumpType: 'Hyperspace' }, 'leave')
+  f.observe(signal, 'pre-arrival')
+  vi.spyOn(f.outbox, 'sealSignals').mockImplementationOnce(() => { throw new EddnQueueCapacityError() })
+  f.observe({ ...location, event: 'FSDJump' }, 'arrival')
+  await f.service.flush()
+  f.observe(signal, 'new-run')
+  f.observe({ timestamp, event: 'Music' }, 'close')
+  await f.service.flush()
+  const uploads = f.send.mock.calls.map(([message]) => message).filter(message => message.message.signals)
+  expect(uploads).toHaveLength(1)
+  expect(uploads[0].message.signals).toHaveLength(1)
 })
 
 test.each(['reset', 'oversize'] as const)('duplicate %s cannot delete a sealed original or its retry lease', async boundary => {

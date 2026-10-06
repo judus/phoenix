@@ -71,12 +71,14 @@ upload attempts, not bootstrap replays or observations skipped before queueing.
 
 Settings and DEV also show persistent delivery totals: expired queue entries, invalid/corrupt
 queued documents, permanent HTTP rejections, admissions skipped because the queue/receipt limit
-was reached, and deliberate clears due to preference/build policy. Clears are labelled separately
+was reached, and deliberate clears due to preference/build policy or session resets. Clears are labelled separately
 from delivery failures. Counts and the latest occurrence time per reason are stored locally without
 payloads, observation IDs or commander details. There are at most five aggregate rows; success,
 restart, opting out and attempt-history retention do not reset them. Accounting begins when this
 version first records a loss; earlier losses cannot be reconstructed. Pre-queue context/schema
 filtering and failed checkpoint writes are not counted, so these are not total gameplay coverage.
+If capacity rejects a signal before any draft is admitted and the loss-counter write also fails,
+that rejection is not retried in the totals yet; bounded, once-only accounting is tracked in #108.
 Queue removals and their counters are atomic: an accounting failure leaves the pending row intact.
 
 For an authorized local development run, add `PHOENIX_EDDN_TEST_MODE=1` to the ignored `.env`
@@ -121,7 +123,7 @@ Failed session discards retain only their IDs/reasons for retry, not the old eve
 Duplicate source runs are suppressed and draft cleanup cannot delete a sealed original or its lease.
 No observations are submitted while joined to another captain's crew.
 
-Failed checkpoint writes remain visible and memory is retained for a later closing retry; a closed
+Failed non-capacity checkpoint writes remain visible and memory is retained for a later closing retry; a closed
 run captures its original context so a retry cannot attach it to a later system. Only the last
 successfully written checkpoint is crash-safe: storage failure before a write cannot preserve that
 new signal. This is not a guarantee that all game signals or a whole interrupted run were collected.

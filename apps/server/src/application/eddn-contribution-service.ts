@@ -77,7 +77,7 @@ export class EddnContributionService {
     this.enabled = enabled
     this.enabledSince = changedAt
     const batch = this.signals.peek()
-    if (batch && this.signalCheckpointed) this.signalDiscards.set(batch.id, 'cleared')
+    if (batch && this.signalCheckpointed) this.signalDiscards.set(batch.id, this.signalDiscards.get(batch.id) ?? 'cleared')
     this.signals.clear()
     this.signalCheckpointed = false
     this.closingSignals = undefined
@@ -114,7 +114,7 @@ export class EddnContributionService {
         (event.event === 'Music' && event.MusicTrack === 'MainMenu')
       if (reset || source.replayed || !this.active()) {
         const batch = this.signals.peek()
-        if (batch && this.signalCheckpointed) this.signalDiscards.set(batch.id, 'cleared')
+        if (batch && this.signalCheckpointed) this.signalDiscards.set(batch.id, this.signalDiscards.get(batch.id) ?? 'cleared')
         this.retrySignalDiscards()
         this.signals.clear()
         this.signalCheckpointed = false
@@ -201,9 +201,11 @@ export class EddnContributionService {
       this.closingSignals = undefined
     } catch (cause) {
       if (cause instanceof EddnQueueCapacityError) {
-        this.signals.reject()
-        this.closingSignals = undefined
         if (this.signalCheckpointed) this.signalDiscards.set(batch.id, 'capacity')
+        // This run's boundary was already processed; cleanup must not suppress the next run.
+        this.signals.clear()
+        this.signalCheckpointed = false
+        this.closingSignals = undefined
       }
       this.storageFailure(cause)
     }

@@ -118,4 +118,5 @@ open signal batches now checkpoint their last public envelope inside the bounded
 checkpoints recover through ordinary validation; unresolved pre-arrival markers are counted invalid,
 not reconstructed from bootstrap. Oversize/capacity skips and session clears are accounted for.
 Failed writes cannot preserve new data; full multipart rotation/session continuity and gameplay
-acceptance are still open. This is not a full EDMC delivery-policy equivalence claim.
+acceptance are still open. Capacity rejection before draft admission also lacks a loss retry when
+the counter write fails (#108). This is not a full EDMC delivery-policy equivalence claim.
