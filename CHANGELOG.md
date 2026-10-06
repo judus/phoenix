@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Consolidate installer and real-play acceptance evidence, with explicit outstanding platform,
+  tablet and gameplay checks for each build.
 - Add an opt-in, read-only EDDN upstream checker for reviewing schema and protocol changes;
   submission behavior remains unchanged.
 - Correct pre-Odyssey exploration guidance and ship an editable Stratum candidate saved query for new profiles.

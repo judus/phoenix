@@ -56,6 +56,8 @@ Use the actual next version; never reuse or move a release tag. Wait for `Draft 
 complete, then review assets/notes in GitHub Releases. Native installer tests are not proof of real
 Elite input, tablet pairing, antivirus acceptance or actual user-data upgrade behavior. Use the
 acceptance checklist in `scripts/package/README.md`. Windows binaries are currently unsigned.
+The [acceptance matrix](acceptance.md) records build-specific evidence and outstanding gameplay,
+tablet and platform checks. Refresh it for the exact release revision; CI is not gameplay acceptance.
 
 Publishing is an explicit maintainer action. The first release remains a preview. Keep it marked
 prerelease; do not mark it latest. Later, a fully accepted build may be published as a normal
