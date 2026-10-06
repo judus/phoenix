@@ -10,6 +10,12 @@ definitions. Inspect both Git state and the exact source SHA. Control Deck is an
 owned dependency: runtime/helper versions and artifact integrity must match the intended release.
 
 - Feature work branches from dev. Follow the documented PR promotion and main-to-dev sync workflow.
+- Keep routine dev PRs and dev/main pushes limited to native source checks, without installer
+  packaging. Verify installers on PRs into main or explicit manual CI runs; do not repeat packaging
+  on the resulting main push. Check workflow event conditions when changing this policy.
+- Tagged releases rebuild and verify installers from the exact tagged commit; do not reuse
+  development packages. Keep ordinary CI artifact-free and release intermediates at one-day
+  retention. See the release guide for quota diagnosis and native local-build alternatives.
 - Commit, push, PR merge, tag and publication are separate consequential actions: confirm authority
   for the requested sequence. An issue or passing local test does not authorize publication.
 - Keep dependent mutations sequential and check each result. Never push a tag after a failed merge;

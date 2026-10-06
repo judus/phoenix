@@ -18,8 +18,8 @@ jobs:
   verify:
     uses: ./.github/workflows/verify.yml
     with:
-      # Prove installers before promotion to main; ordinary dev checks retain no artifacts.
-      installers: ${{ github.ref == 'refs/heads/main' || github.base_ref == 'main' || github.event_name == 'workflow_dispatch' }}
+      # Prove installers before promotion; don't repeat packaging on the resulting main push.
+      installers: ${{ (github.event_name == 'pull_request' && github.base_ref == 'main') || github.event_name == 'workflow_dispatch' }}
   gate:
     name: CI passed
     if: always()
