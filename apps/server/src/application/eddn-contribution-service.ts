@@ -76,6 +76,8 @@ export class EddnContributionService {
     this.options.settings.save({ ...settings, community: { eddnEnabled: enabled, eddnChangedAt: changedAt } })
     this.enabled = enabled
     this.enabledSince = changedAt
+    const batch = this.signals.peek()
+    if (batch && this.signalCheckpointed) this.signalDiscards.set(batch.id, 'cleared')
     this.signals.clear()
     this.signalCheckpointed = false
     this.closingSignals = undefined
@@ -133,7 +135,8 @@ export class EddnContributionService {
         if (!this.signals.add(event, source.id)) {
           const batch = this.signals.peek()!
           if (!this.signalCheckpointed) this.signalCheckpointed = this.options.outbox.checkpointSignals(batch.id, null, this.now())
-          if (this.signalCheckpointed) this.options.outbox.discardSignals(batch.id, 'invalid', this.now())
+          if (this.signalCheckpointed) this.signalDiscards.set(batch.id, 'invalid')
+          this.retrySignalDiscards()
           this.error = 'A signal batch exceeded the safety limit and was skipped.'
         } else this.checkpointSignals(event)
         return
