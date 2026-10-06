@@ -1,8 +1,8 @@
-import { AutoGrid, DescriptionItem, DescriptionList, PageFrame, PageHeader, Panel } from '@phoenix/ui'
+import { AutoGrid, Breadcrumbs, DescriptionItem, DescriptionList, PageFrame, PageHeader, Panel } from '@phoenix/ui'
 
 export function CreditsPage() {
   return <PageFrame className="credits-page" layout="fit">
-    <PageHeader context="Log · Credits" title="Credits" variant="cockpit" />
+    <PageHeader context={<Breadcrumbs items={[{ label: 'Log' }, { label: 'Credits' }]} />} title="Credits" variant="cockpit" />
     <AutoGrid
       className="credits-sources"
       gap="xs"
@@ -74,6 +74,10 @@ export function CreditsPage() {
             <DescriptionItem
               label={<SourceLink href="https://inara.cz/elite/experimentaleffects/">Inara</SourceLink>}
               value="Cross-checks and corrections for experimental-effect material recipes; not a live data connection."
+            />
+            <DescriptionItem
+              label={<SourceLink href="https://elite-dangerous.fandom.com/wiki/Elite_Dangerous_Wiki">Elite Dangerous Wiki</SourceLink>}
+              value="Community-maintained reference for biological habitats and game mechanics; not a live data connection."
             />
             <DescriptionItem
               label={<SourceLink href="https://www.elitedangerous.net/exobiology-stratum-tectonicas-search.php">PMC Elite Dangerous</SourceLink>}

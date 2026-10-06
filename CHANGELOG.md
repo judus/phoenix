@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Credit the community-maintained Elite Dangerous Wiki and use standard breadcrumbs on Credits,
+  Commander log and Macros.
 - Expand Credits with missing catalogue, Atlas, recipe-reference, contribution and font attributions;
   correct provider descriptions and starter-catalogue notices.
 - Consolidate installer and real-play acceptance evidence, with explicit outstanding platform,

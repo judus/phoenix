@@ -15,6 +15,12 @@ test('Macros renders retained commands and library actions', () => {
   } as unknown as MacroRuntime} />)
 
   expect(markup).toContain('Add macro')
+  expect(markup).toContain('class="page-header page-header-cockpit"')
+  expect(markup).toContain('aria-label="Breadcrumb"')
+  expect(markup).toContain('class="breadcrumb-separator"')
+  expect(markup).toContain('<span>Utilities</span>')
+  expect(markup).toContain('<span aria-current="page">Automation</span>')
+  expect(markup).not.toContain('Utilities · Automation')
   expect(markup).toContain('>Macros<')
   expect(markup).toContain('Macro steps')
   expect(markup).toContain('col-fill')
