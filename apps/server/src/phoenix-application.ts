@@ -257,7 +257,7 @@ export class PhoenixApplication {
       this.stateStore
     )
     const fleet = new FleetDataService(
-      this.database,
+      this.database.fleet,
       {
         resolveBlueprintDisplayName: symbol => engineeringCatalogue.getBlueprint(symbol)?.displayName ?? null,
         resolveModule: identifier => gameCatalogue.resolveModule(identifier),

@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Separate Fleet SQLite operations from the database lifecycle owner, retaining shared storage,
+  existing ordering and validation, and atomic stored-module snapshot replacement.
 - Isolate Engineering catalogue and project HTTP handling behind a plain feature handler,
   preserving validation, pairing, project notifications and existing response contracts.
 - Distinguish invalid Settings requests (400) from storage and service failures (500),
