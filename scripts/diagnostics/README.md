@@ -20,8 +20,9 @@ and final delivered SSE revisions must agree; the subsequent checkpoint replay m
 HTTP and SSE probes run in the **parent process**, independently of the server's event loop.
 JSON output includes Node/platform/CPU, byte/line counts, ingestion wall time, before/after memory,
 sampled RSS peak, cumulative process RSS high-water mark, event-loop histogram and timer lag,
-HTTP p95/max latency, and maximum SSE delivery gap. Probe responses and stream delivery get a
-50 ms drain interval after ingestion; wall time excludes that drain. Bootstrap begins at `start()`
+HTTP p95/max latency, and maximum SSE delivery gap. Event-loop sampling gets a 50 ms drain after
+ingestion; the parent separately waits for the actual target SSE revision with a 15-second safety
+timeout, not a timing pass threshold. Wall time excludes these waits. Bootstrap begins at `start()`
 after application construction/module loading; no HTTP/SSE server is available during bootstrap.
 Explicit refreshes bypass the normal 500 ms live polling wait, so tail time is processing time,
 not end-to-end gameplay latency. The worker uses private source handles only for this controlled

@@ -61,6 +61,7 @@ async function profile(count) {
   let streamController, streamTask, streamError
   let runError
   let streamRevision = -1, streamCount = 0, streamPhase
+  let revisionReceived
   try {
     await Promise.race([readiness, exit.then(() => { throw new Error('Worker exited before readiness.') })])
     const bootstrap = await request('bootstrap')
@@ -82,6 +83,7 @@ async function profile(count) {
           if (!frame.includes('event: runtime-state')) continue
           const data = frame.split('\n').filter(line => line.startsWith('data:')).map(line => line.slice(5).trim()).join('\n')
           streamRevision = JSON.parse(data).revision
+          revisionReceived?.(streamRevision)
           streamCount++
           const now = performance.now()
           if (streamPhase) {
@@ -93,6 +95,22 @@ async function profile(count) {
       }
     })().catch(error => { if (!streamController.signal.aborted) streamError = error })
     await Promise.race([first, streamTask.then(() => { throw streamError ?? new Error('Runtime stream closed before its initial event.') })])
+
+    function waitForRevision(expected) {
+      if (streamRevision === expected) return Promise.resolve()
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          revisionReceived = undefined
+          reject(new Error(`SSE did not reach revision ${expected}; last delivered ${streamRevision}.`))
+        }, 15_000)
+        revisionReceived = revision => {
+          if (revision !== expected) return
+          clearTimeout(timer)
+          revisionReceived = undefined
+          resolve()
+        }
+      })
+    }
 
     async function phase(operation, mutate) {
       const latencies = []
@@ -118,7 +136,7 @@ async function profile(count) {
         await probes
         if (probeError) throw probeError
         if (streamError) throw streamError
-        if (streamRevision !== result.revision) throw new Error(`SSE revision ${streamRevision} differs from server ${result.revision}.`)
+        await waitForRevision(result.revision)
         const sorted = latencies.sort((a, b) => a - b)
         return { ...result, http: { samples: sorted.length, p95Ms: sorted[Math.max(0, Math.ceil(sorted.length * 0.95) - 1)], maxMs: sorted.at(-1) },
           sse: { events: streamCount - beforeEvents, revision: streamRevision, maxDeliveryGapMs: streamPhase.maxGapMs } }

@@ -50,3 +50,12 @@ test('worker cleanup errors disconnect IPC and fail the diagnostic rather than w
   await expect(run(process.execPath, ['--import', 'tsx', '--import', preload, script, '--small=8', '--large=32', '--repeats=1'], { timeout: 25_000 }))
     .rejects.toMatchObject({ code: 1, killed: false, stderr: expect.stringContaining('Fixture cleanup failure') })
 }, 30_000)
+
+test('diagnostic waits for delayed parent-side SSE delivery, independently of ingestion wall time', async () => {
+  const preload = new URL('./fixtures/journal-profile-delayed-stream.mjs', import.meta.url).href
+  const { stdout } = await run(process.execPath, ['--import', 'tsx', '--import', preload, script, '--small=8', '--large=32', '--repeats=1'], { timeout: 25_000 })
+  for (const sample of JSON.parse(stdout).results) {
+    expect(sample.phases.tail.sse.events).toBeGreaterThan(0)
+    expect(sample.phases.tail.sse.revision).toBe(sample.phases.tail.revision)
+  }
+}, 30_000)
