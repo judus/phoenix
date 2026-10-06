@@ -225,6 +225,33 @@ test('worker retries failed oversize invalidation while idle and suppresses its 
   expect(f.outbox.status().losses).toMatchObject([{ reason: 'invalid', count: 1 }])
 })
 
+test('worker retries capacity rejection after accounting failure without another journal event', async () => {
+  const { path } = disk()
+  const f = fixture(path)
+  f.observe(signal, 'first')
+  const builder = new EddnMessageBuilder('0.1.5')
+  for (const event of [header, load, location]) builder.observe(event)
+  const envelope = builder.signals([signal])!
+  f.outbox.enqueue('budget-filler', { ...envelope, message: { text: 's'.repeat(16 * 1024 * 1024 - 2048) } }, now)
+  f.connection.exec(`CREATE TRIGGER fail_capacity BEFORE INSERT ON eddn_losses BEGIN SELECT RAISE(ABORT, 'Synthetic accounting failure'); END`)
+  f.observe({ ...signal, SignalName: 's'.repeat(4096) }, 'rejected')
+  expect(f.connection.prepare('SELECT id FROM eddn_outbox WHERE ready = 0').get()).toEqual({ id: 'signals:first' })
+  f.connection.exec('DROP TRIGGER fail_capacity')
+  // Isolate cleanup from delivery of the synthetic budget-filling row.
+  const next = vi.spyOn(f.outbox, 'next').mockReturnValue(undefined)
+  await f.service.flush()
+  expect(f.outbox.status()).toMatchObject({ queued: 1, losses: [{ reason: 'capacity', count: 1 }] })
+  f.observe(signal, 'rejected-tail')
+  expect(f.connection.prepare('SELECT id FROM eddn_outbox WHERE ready = 0').get()).toBeUndefined()
+  next.mockRestore()
+  f.outbox.acknowledge('budget-filler', now)
+  await f.crash()
+  const recovered = fixture(path, f.settings)
+  await recovered.service.flush()
+  expect(recovered.send).not.toHaveBeenCalled()
+  expect(recovered.outbox.status().losses).toMatchObject([{ reason: 'capacity', count: 1 }])
+})
+
 test.each(['reset', 'oversize'] as const)('duplicate %s cannot delete a sealed original or its retry lease', async boundary => {
   const f = fixture()
   f.observe(signal, 'first')

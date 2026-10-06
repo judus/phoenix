@@ -30,7 +30,7 @@ export class EddnContributionService {
   private readonly signals = new EddnSignalBuffer()
   private signalCheckpointed = false
   private closingSignals?: { message: EddnMessage | null }
-  private readonly signalDiscards = new Map<string, 'invalid' | 'cleared'>()
+  private readonly signalDiscards = new Map<string, 'invalid' | 'cleared' | 'capacity'>()
   private readonly snapshots = new Map<string, { content: string, at: number }>()
 
   public constructor (private readonly options: Options) {
@@ -175,7 +175,7 @@ export class EddnContributionService {
     try {
       if (batch.overflow) {
         // Retry removal if the original oversize/capacity invalidation could not write.
-        if (this.signalCheckpointed) this.options.outbox.discardSignals(batch.id, 'invalid', this.now())
+        if (this.signalCheckpointed) this.options.outbox.discardSignals(batch.id, this.signalDiscards.get(batch.id) ?? 'invalid', this.now())
         this.signals.clear()
         this.signalCheckpointed = false
         this.closingSignals = undefined
@@ -203,6 +203,7 @@ export class EddnContributionService {
       if (cause instanceof EddnQueueCapacityError) {
         this.signals.reject()
         this.closingSignals = undefined
+        if (this.signalCheckpointed) this.signalDiscards.set(batch.id, 'capacity')
       }
       this.storageFailure(cause)
     }
@@ -217,7 +218,10 @@ export class EddnContributionService {
       this.signalCheckpointed ||= saved
       if (!saved) this.signals.reject() // The sealed/receipted original owns this ID, not this duplicate run.
     } catch (cause) {
-      if (cause instanceof EddnQueueCapacityError) this.signals.reject()
+      if (cause instanceof EddnQueueCapacityError) {
+        this.signals.reject()
+        if (this.signalCheckpointed) this.signalDiscards.set(batch.id, 'capacity')
+      }
       throw cause
     }
   }

@@ -75,7 +75,9 @@ export class SqliteEddnOutbox implements EddnOutbox {
       this.connection.exec('COMMIT')
     } catch (cause) {
       this.connection.exec('ROLLBACK')
-      if (cause instanceof EddnQueueCapacityError) this.capacityFailure(id, now)
+      if (cause instanceof EddnQueueCapacityError) {
+        try { this.capacityFailure(id, now) } catch (cleanupCause) { throw new EddnQueueCapacityError({ cause: cleanupCause }) }
+      }
       throw cause
     }
   }
@@ -112,7 +114,7 @@ export class SqliteEddnOutbox implements EddnOutbox {
     } catch (cause) {
       this.connection.exec('ROLLBACK')
       if (cause instanceof EddnQueueCapacityError) {
-        this.capacityFailure(ready ? undefined : id, now)
+        try { this.capacityFailure(ready ? undefined : id, now) } catch (cleanupCause) { throw new EddnQueueCapacityError({ cause: cleanupCause }) }
       }
       throw cause
     }
@@ -158,7 +160,7 @@ export class SqliteEddnOutbox implements EddnOutbox {
     this.remove(id, reason, now, false)
   }
 
-  public discardSignals (id: string, reason: 'invalid' | 'cleared', now: number): void {
+  public discardSignals (id: string, reason: 'invalid' | 'cleared' | 'capacity', now: number): void {
     this.remove(id, reason, now, true)
   }
 

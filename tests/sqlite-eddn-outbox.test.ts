@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { expect, test } from 'vitest'
 import { SqliteEddnOutbox } from '../apps/server/src/infrastructure/sqlite-eddn-outbox.js'
-import { EDDN_MAX_AGE_MS, type EddnMessage } from '../apps/server/src/domain/eddn.js'
+import { EDDN_MAX_AGE_MS, EddnQueueCapacityError, type EddnMessage } from '../apps/server/src/domain/eddn.js'
 
 test('pending data, retry reservations, receipts and acknowledgement survive database reopen', () => {
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-eddn-db-'))
@@ -185,7 +185,7 @@ test('draft updates share queue budgets; capacity rejection removes the whole dr
     expect(outbox.status()).toMatchObject({ queued: 1000, losses: [{ reason: 'capacity', count: 1 }] })
     connection.exec(`CREATE TRIGGER fail_capacity BEFORE INSERT ON eddn_losses BEGIN SELECT RAISE(ABORT, 'Synthetic accounting failure'); END`)
     const huge = { ...message, message: { text: 's'.repeat(16 * 1024 * 1024) } }
-    expect(() => outbox.checkpointSignals('signals:first', huge, 1000)).toThrow('Synthetic accounting failure')
+    expect(() => outbox.checkpointSignals('signals:first', huge, 1000)).toThrow(EddnQueueCapacityError)
     expect(connection.prepare('SELECT id FROM eddn_outbox WHERE ready = 0').get()).toEqual({ id: 'signals:first' })
     expect(connection.prepare('SELECT COUNT(*) AS count FROM eddn_signal_checkpoints').get()).toEqual({ count: 2 })
     connection.exec('DROP TRIGGER fail_capacity')

@@ -3,7 +3,7 @@ import { Status } from '@phoenix/ui'
 
 const labels: Record<EddnLoss['reason'], string> = {
   expired: 'expired', invalid: 'invalid', rejected: 'rejected', capacity: 'skipped (capacity limit)',
-  cleared: 'cleared by preference/build policy'
+  cleared: 'cleared by preference/build policy or session reset'
 }
 
 export function EddnLossSummary({ losses }: { losses: EddnLoss[] }) {

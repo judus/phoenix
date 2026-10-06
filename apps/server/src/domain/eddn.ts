@@ -42,7 +42,7 @@ export interface EddnOutbox {
   enqueue(id: string, message: EddnMessage, now: number): boolean
   checkpointSignals(id: string, message: EddnMessage | null, now: number): boolean
   sealSignals(id: string, message: EddnMessage | null, now: number): void
-  discardSignals(id: string, reason: 'invalid' | 'cleared', now: number): void
+  discardSignals(id: string, reason: 'invalid' | 'cleared' | 'capacity', now: number): void
   next(now: number): EddnPendingMessage | undefined
   acknowledge(id: string, now: number): void
   drop(id: string, reason: EddnLoss['reason'], now: number): void
@@ -57,7 +57,7 @@ export interface EddnOutbox {
 }
 
 export class EddnQueueCapacityError extends Error {
-  public constructor () { super('Contribution storage is at capacity. This observation was skipped; queued observations will still retry.') }
+  public constructor (options?: ErrorOptions) { super('Contribution storage is at capacity. This observation was skipped; queued observations will still retry.', options) }
 }
 
 export interface EddnTransport {
