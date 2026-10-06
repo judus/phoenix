@@ -1,6 +1,5 @@
 import { createReadStream, existsSync, statSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
-import { EddnSettingsUpdateSchema } from '@phoenix/contracts'
 import type { EddnContributionService } from '../application/eddn-contribution-service.js'
 import { CatalogueSuggestionKindSchema } from '@phoenix/contracts'
 import type { CatalogueSuggestionService } from '../application/catalogue-suggestion-service.js'
@@ -31,15 +30,9 @@ import {
   EngineeringProjectStepCreateRequestSchema,
   EngineeringProjectUpdateRequestSchema,
   GalaxyBookmarkWriteRequestSchema,
-  CopilotSettingsSchema,
-  CopilotSettingsUpdateSchema,
-  GeneralSettingsSchema,
-  GeneralSettingsUpdateSchema,
   MacroDefinitionSchema,
-  OpenAiApiKeyRequestSchema,
   PlotEliteDestinationRequestSchema,
   PersonalEquipmentPlanPreviewRequestSchema,
-  PhoenixModulesSchema,
   RecordMacroActionRequestSchema,
   SavedGalaxyQueryWriteRequestSchema,
   StartMacroRecordingRequestSchema,
@@ -58,7 +51,6 @@ import type { CopilotText, CopilotTextRequest } from '../application/copilot-tex
 import type { CopilotConversationEvents } from '../application/copilot-conversation-event-service.js'
 import type { CopilotVoiceHostControl } from '../application/copilot-voice-host-coordinator.js'
 import type { CopilotProfiles } from '../application/copilot-profile-service.js'
-import type { OpenAiConfiguration } from '../application/openai-configuration-service.js'
 import {
   realtimeToolDefinition,
   serializeToolOutput,
@@ -68,7 +60,6 @@ import type { CatalogueDiagnosticsReader } from '../application/catalogue-diagno
 import type { GameActions } from '../application/game-action-service.js'
 import type { EliteDestinations } from '../domain/elite-destination.js'
 import type { Commands } from '../domain/commands.js'
-import type { CopilotCapabilities } from '../domain/copilot-capabilities.js'
 import type { HealthCheck } from '../application/health-service.js'
 import type { EngineeringDataReader } from '../application/engineering-data-service.js'
 import type { EngineeringProjects } from '../domain/engineering-projects.js'
@@ -88,7 +79,6 @@ import type { PersonalEquipmentPlanner } from '../domain/personal-equipment-plan
 import type { EliteStatusDiagnosticsReader } from '../domain/elite-status.js'
 import type { Subscribable } from '../domain/publisher.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
-import type { SystemSettingsRepository } from '../domain/system-configuration.js'
 import type { CommandCatalogueSnapshots } from '../domain/commands.js'
 import type { NumpadCommands } from '../domain/numpad.js'
 import type { Macros } from '../domain/macros.js'
@@ -102,6 +92,8 @@ import type { MarketSignalReader } from '../application/market-signal-service.js
 import { mcpToolDefinition, type PhoenixMcpServer } from './phoenix-mcp-server.js'
 import type { PairingAccessController } from './pairing-access-controller.js'
 import { activeRouteIPv4Address, serverAccessUrls } from './server-access-urls.js'
+import { HttpRequestValidationError, readJsonBody, readValidatedJsonBody, writeJson } from './http-json.js'
+import { handleSettingsRequest, type SettingsHttpServices } from './settings-http.js'
 
 const CONTENT_TYPES: Record<string, string> = {
   '.css': 'text/css; charset=utf-8',
@@ -118,7 +110,7 @@ type CopilotConversationEventPayload = CopilotConversationEvent extends infer Ev
     : never
   : never
 
-export interface PhoenixHttpServerOptions {
+export interface PhoenixHttpServerOptions extends SettingsHttpServices {
   accessControl?: PairingAccessController
   catalogueDiagnostics: CatalogueDiagnosticsReader
   cartographyUpdates: Subscribable<CartographyUpdate>
@@ -136,7 +128,6 @@ export interface PhoenixHttpServerOptions {
   copilotConversationEvents: CopilotConversationEvents
   copilotVoiceHost: CopilotVoiceHostControl
   copilotRealtime?: CopilotRealtime
-  copilotCapabilities: CopilotCapabilities
   copilotTools: ToolRegistry
   commands: Commands
   gameActions: GameActions
@@ -170,11 +161,9 @@ export interface PhoenixHttpServerOptions {
   navigationData: NavigationDataReader
   navigationRouteUpdates: Subscribable<NavigationRoute>
   numpad: NumpadCommands
-  openAiConfiguration: OpenAiConfiguration
   port: number
   runtimeState: RuntimeStateReader
   runtimeStateUpdates: Subscribable<RuntimeState>
-  systemSettings: SystemSettingsRepository
   eddn: Pick<EddnContributionService, 'status' | 'setEnabled' | 'submissionLog' | 'submission'>
   webPort?: number
   webRoot: string
@@ -193,13 +182,13 @@ export class PhoenixHttpServer {
     this.server = createServer((request, response) => {
       void this.handle(request, response).catch(cause => {
         if (cause instanceof HttpRequestValidationError) {
-          this.writeJson(response, 400, {
+          writeJson(response, 400, {
             error: { code: 'invalid_request', message: cause.message }
           })
           return
         }
         const message = cause instanceof Error ? cause.message : 'Unknown server error.'
-        this.writeJson(response, 500, {
+        writeJson(response, 500, {
           error: { code: 'internal_error', message }
         })
       })
@@ -245,7 +234,7 @@ export class PhoenixHttpServer {
     if (this.options.accessControl && await this.options.accessControl.handle(request, response)) return
 
     if (!this.options.accessControl && request.method === 'GET' && url.pathname === '/api/pairing/status') {
-      this.writeJson(response, 200, {
+      writeJson(response, 200, {
         authenticated: true,
         installationId: 'development',
         pairingRequired: false,
@@ -255,58 +244,58 @@ export class PhoenixHttpServer {
     }
 
     if (!this.options.accessControl && request.method === 'POST' && url.pathname === '/api/pairing/claim') {
-      this.writeJson(response, 200, { authenticated: true, installationId: 'development', pairingRequired: false, serverDevice: false })
+      writeJson(response, 200, { authenticated: true, installationId: 'development', pairingRequired: false, serverDevice: false })
       return
     }
 
     if (!this.options.accessControl && request.method === 'POST' && url.pathname === '/api/pairing/release') {
-      this.writeJson(response, 200, { authenticated: false })
+      writeJson(response, 200, { authenticated: false })
       return
     }
 
     if (this.options.accessControl && request.method === 'GET' && url.pathname === '/api/pairing/info') {
       if (!this.options.accessControl.isServerRequest(request)) {
-        this.writeJson(response, 403, {
+        writeJson(response, 403, {
           error: { code: 'server_device_required', message: 'Pairing information is only available on the PHOENIX computer.' }
         })
         return
       }
-      this.writeJson(response, 200, await this.pairingInfo())
+      writeJson(response, 200, await this.pairingInfo())
       return
     }
 
     if ((url.pathname === '/mcp' || url.pathname.startsWith('/api/')) &&
         this.options.accessControl && !this.options.accessControl.isAuthorized(request)) {
       response.setHeader('www-authenticate', 'Bearer realm="PHOENIX"')
-      this.writeJson(response, 401, { error: { code: 'pairing_required', message: 'Pair this device with PHOENIX.' } })
+      writeJson(response, 401, { error: { code: 'pairing_required', message: 'Pair this device with PHOENIX.' } })
       return
     }
 
     if (this.options.accessControl && url.pathname.startsWith('/api/pairing/')) {
       if (!this.options.accessControl.isServerRequest(request)) {
-        this.writeJson(response, 403, {
+        writeJson(response, 403, {
           error: { code: 'server_device_required', message: 'Paired device administration is only available on the PHOENIX computer.' }
         })
         return
       }
       if (request.method === 'GET' && url.pathname === '/api/pairing/devices') {
-        this.writeJson(response, 200, this.options.accessControl.devices(request))
+        writeJson(response, 200, this.options.accessControl.devices(request))
         return
       }
       if (request.method === 'POST' && url.pathname === '/api/pairing/code') {
         this.options.accessControl.rotatePairingCode()
-        this.writeJson(response, 200, await this.pairingInfo())
+        writeJson(response, 200, await this.pairingInfo())
         return
       }
       if (request.method === 'DELETE' && url.pathname === '/api/pairing/devices') {
         this.options.accessControl.revokeAllSessions()
-        this.writeJson(response, 200, this.options.accessControl.devices(request))
+        writeJson(response, 200, this.options.accessControl.devices(request))
         return
       }
       const deviceMatch = url.pathname.match(/^\/api\/pairing\/devices\/([^/]+)$/u)
       if (request.method === 'DELETE' && deviceMatch) {
         this.options.accessControl.revokeSession(decodeURIComponent(deviceMatch[1]!))
-        this.writeJson(response, 200, this.options.accessControl.devices(request))
+        writeJson(response, 200, this.options.accessControl.devices(request))
         return
       }
     }
@@ -320,7 +309,7 @@ export class PhoenixHttpServer {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/health') {
-      this.writeJson(response, 200, this.options.healthCheck.getHealth())
+      writeJson(response, 200, this.options.healthCheck.getHealth())
       return
     }
 
@@ -334,7 +323,7 @@ export class PhoenixHttpServer {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/runtime-state') {
-      this.writeJson(response, 200, this.options.runtimeState.getCurrent())
+      writeJson(response, 200, this.options.runtimeState.getCurrent())
       return
     }
 
@@ -345,7 +334,7 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/log') {
       const requestedLimit = Number.parseInt(url.searchParams.get('limit') ?? '250', 10)
-      this.writeJson(response, 200, this.options.activityLog.getRecent(
+      writeJson(response, 200, this.options.activityLog.getRecent(
         Number.isSafeInteger(requestedLimit) ? requestedLimit : 250
       ))
       return
@@ -353,81 +342,81 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/commander/log') {
       const requestedLimit = Number.parseInt(url.searchParams.get('limit') ?? '24', 10)
-      this.writeJson(response, 200, this.options.commanderLog.getRecent(
+      writeJson(response, 200, this.options.commanderLog.getRecent(
         Number.isSafeInteger(requestedLimit) ? requestedLimit : 24
       ))
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/commander/equipment') {
-      this.writeJson(response, 200, this.options.commanderEquipment.getEquipment())
+      writeJson(response, 200, this.options.commanderEquipment.getEquipment())
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/equipment/materials') {
-      this.writeJson(response, 200, this.options.personalMaterials.getInventory())
+      writeJson(response, 200, this.options.personalMaterials.getInventory())
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/equipment/upgrades') {
-      this.writeJson(response, 200, this.options.personalEquipmentUpgrades.getUpgrades())
+      writeJson(response, 200, this.options.personalEquipmentUpgrades.getUpgrades())
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/equipment/specialists') {
-      this.writeJson(response, 200, this.options.personalEquipmentSpecialists.getSpecialists())
+      writeJson(response, 200, this.options.personalEquipmentSpecialists.getSpecialists())
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/equipment/planner') {
-      this.writeJson(response, 200, this.options.personalEquipmentPlanner.getOptions())
+      writeJson(response, 200, this.options.personalEquipmentPlanner.getOptions())
       return
     }
 
     if (request.method === 'POST' && url.pathname === '/api/equipment/planner/preview') {
       const input = await readValidatedJsonBody(request, PersonalEquipmentPlanPreviewRequestSchema)
-      this.writeJson(response, 200, this.options.personalEquipmentPlanner.preview(input))
+      writeJson(response, 200, this.options.personalEquipmentPlanner.preview(input))
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/galnet') {
       const requestedLimit = Number.parseInt(url.searchParams.get('limit') ?? '40', 10)
-      this.writeJson(response, 200, await this.options.galnet.getLatest(
+      writeJson(response, 200, await this.options.galnet.getLatest(
         Number.isSafeInteger(requestedLimit) ? requestedLimit : 40
       ))
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/operations/missions') {
-      this.writeJson(response, 200, this.options.missions.getMissions())
+      writeJson(response, 200, this.options.missions.getMissions())
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/fleet') {
-      this.writeJson(response, 200, this.options.fleet.getFleet())
+      writeJson(response, 200, this.options.fleet.getFleet())
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/galaxy/atlas/pois') {
-      this.writeJson(response, 200, await this.options.atlas.getCatalogue())
+      writeJson(response, 200, await this.options.atlas.getCatalogue())
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/galaxy/bookmarks') {
-      this.writeJson(response, 200, this.options.bookmarks.getAll())
+      writeJson(response, 200, this.options.bookmarks.getAll())
       return
     }
 
     if (request.method === 'POST' && url.pathname === '/api/galaxy/bookmarks') {
       const input = await readValidatedJsonBody(request, GalaxyBookmarkWriteRequestSchema)
-      this.writeJson(response, 201, this.options.bookmarks.create(input))
+      writeJson(response, 201, this.options.bookmarks.create(input))
       return
     }
 
     const galaxyBookmarkMatch = url.pathname.match(/^\/api\/galaxy\/bookmarks\/([^/]+)$/u)
     if (galaxyBookmarkMatch && request.method === 'PUT') {
       const input = await readValidatedJsonBody(request, GalaxyBookmarkWriteRequestSchema)
-      this.writeJson(response, 200, this.options.bookmarks.update(decodeURIComponent(galaxyBookmarkMatch[1]!), input))
+      writeJson(response, 200, this.options.bookmarks.update(decodeURIComponent(galaxyBookmarkMatch[1]!), input))
       return
     }
 
@@ -439,25 +428,25 @@ export class PhoenixHttpServer {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/galaxy/saved-queries') {
-      this.writeJson(response, 200, this.options.savedGalaxyQueries.getAll())
+      writeJson(response, 200, this.options.savedGalaxyQueries.getAll())
       return
     }
 
     if (request.method === 'POST' && url.pathname === '/api/galaxy/saved-queries') {
       const input = await readValidatedJsonBody(request, SavedGalaxyQueryWriteRequestSchema)
-      this.writeJson(response, 201, this.options.savedGalaxyQueries.create(input))
+      writeJson(response, 201, this.options.savedGalaxyQueries.create(input))
       return
     }
 
     if (request.method === 'POST' && url.pathname === '/api/galaxy/saved-queries/predefined') {
-      this.writeJson(response, 200, this.options.savedGalaxyQueries.importPredefined())
+      writeJson(response, 200, this.options.savedGalaxyQueries.importPredefined())
       return
     }
 
     const savedGalaxyQueryMatch = url.pathname.match(/^\/api\/galaxy\/saved-queries\/([^/]+)$/u)
     if (savedGalaxyQueryMatch && request.method === 'PUT') {
       const input = await readValidatedJsonBody(request, SavedGalaxyQueryWriteRequestSchema)
-      this.writeJson(response, 200, this.options.savedGalaxyQueries.update(decodeURIComponent(savedGalaxyQueryMatch[1]!), input))
+      writeJson(response, 200, this.options.savedGalaxyQueries.update(decodeURIComponent(savedGalaxyQueryMatch[1]!), input))
       return
     }
 
@@ -472,7 +461,7 @@ export class PhoenixHttpServer {
       const requestedLimit = Number.parseInt(url.searchParams.get('limit') ?? '250', 10)
       const requestedView = url.searchParams.get('view')
       const view: CommunicationQueryView = requestedView === 'inbox' || requestedView === 'traffic' ? requestedView : 'all'
-      this.writeJson(response, 200, this.options.communications.getCommunications(
+      writeJson(response, 200, this.options.communications.getCommunications(
         view,
         Number.isSafeInteger(requestedLimit) ? requestedLimit : 250
       ))
@@ -481,14 +470,14 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/comms/local-traffic') {
       const requestedLimit = Number.parseInt(url.searchParams.get('limit') ?? '5', 10)
-      this.writeJson(response, 200, this.options.localTraffic.getLocalTraffic(
+      writeJson(response, 200, this.options.localTraffic.getLocalTraffic(
         Number.isSafeInteger(requestedLimit) ? requestedLimit : 5
       ))
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/dashboard/market-signals') {
-      this.writeJson(response, 200, await this.options.dashboardMarketSignals.getDashboardMarketSignals())
+      writeJson(response, 200, await this.options.dashboardMarketSignals.getDashboardMarketSignals())
       return
     }
 
@@ -498,7 +487,7 @@ export class PhoenixHttpServer {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/navigation/route') {
-      this.writeJson(response, 200, this.options.navigationData.getRoute())
+      writeJson(response, 200, this.options.navigationData.getRoute())
       return
     }
 
@@ -511,12 +500,12 @@ export class PhoenixHttpServer {
         }
         response.once('close', abort)
         try {
-          this.writeJson(response, 200, await this.options.eliteDestinations.plot(input.systemName, controller.signal))
+          writeJson(response, 200, await this.options.eliteDestinations.plot(input.systemName, controller.signal))
         } finally {
           response.off('close', abort)
         }
       } catch (cause) {
-        this.writeJson(response, 400, {
+        writeJson(response, 400, {
           error: {
             code: 'invalid_destination_request',
             message: cause instanceof Error ? cause.message : 'Invalid Elite destination request.'
@@ -528,13 +517,13 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/navigation/system') {
       try {
-        this.writeJson(
+        writeJson(
           response,
           200,
           await this.options.navigationData.getSystem(url.searchParams.get('name') ?? undefined)
         )
       } catch (cause) {
-        this.writeJson(response, 502, {
+        writeJson(response, 502, {
           error: {
             code: 'cartography_lookup_failed',
             message: cause instanceof Error ? cause.message : 'System cartography lookup failed.'
@@ -549,7 +538,7 @@ export class PhoenixHttpServer {
       const service = requiredQuery(url, 'service')
       const minimumPadSize = optionalPadSize(url.searchParams.get('pad'))
       const padSizes = { small: 1, medium: 2, large: 3 } as const
-      this.writeJson(response, 200, await this.options.galaxyData.searchNearestStations({
+      writeJson(response, 200, await this.options.galaxyData.searchNearestStations({
         minimumPadSize: minimumPadSize ? padSizes[minimumPadSize] : null,
         service,
         systemName
@@ -559,7 +548,7 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/galaxy/systems/search') {
       const population = optionalQueryChoice(url, 'population', ['any', 'inhabited', 'uninhabited'] as const) ?? 'any'
-      this.writeJson(response, 200, await this.options.galaxyData.findSystems({
+      writeJson(response, 200, await this.options.galaxyData.findSystems({
         allegiance: optionalQuery(url, 'allegiance'),
         economy: optionalQuery(url, 'economy'),
         government: optionalQuery(url, 'government'),
@@ -575,7 +564,7 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/galaxy/factions/search') {
       const controlling = optionalQueryChoice(url, 'controlling', ['any', 'yes', 'no'] as const) ?? 'any'
-      this.writeJson(response, 200, await this.options.galaxyData.findFactionPresences({
+      writeJson(response, 200, await this.options.galaxyData.findFactionPresences({
         allegiance: optionalQuery(url, 'allegiance'),
         controlling,
         factionName: optionalQuery(url, 'faction'),
@@ -590,7 +579,7 @@ export class PhoenixHttpServer {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/galaxy/shipyards') {
-      this.writeJson(response, 200, await this.options.galaxyData.searchShipyards(
+      writeJson(response, 200, await this.options.galaxyData.searchShipyards(
         requiredQuery(url, 'hull'),
         requiredQuery(url, 'system'),
         boundedQueryInteger(url, 'limit', DEFAULT_GALAXY_RESULT_LIMIT, 1, DEFAULT_GALAXY_RESULT_LIMIT)
@@ -603,14 +592,14 @@ export class PhoenixHttpServer {
       if (!kind.success) throw new HttpRequestValidationError('Suggestion kind must be ship, module, or commodity.')
       const query = optionalQuery(url, 'q') ?? ''
       if (query.length > 200) throw new HttpRequestValidationError('Suggestion query must be at most 200 characters.')
-      this.writeJson(response, 200, await this.options.catalogueSuggestions.suggest(kind.data, query))
+      writeJson(response, 200, await this.options.catalogueSuggestions.suggest(kind.data, query))
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/galaxy/outfitting') {
       const minimumPadSize = optionalPadSize(url.searchParams.get('pad'))
       const padSizes = { small: 1, medium: 2, large: 3 } as const
-      this.writeJson(response, 200, await this.options.galaxyData.searchOutfittingMarkets({
+      writeJson(response, 200, await this.options.galaxyData.searchOutfittingMarkets({
         maxDaysAgo: boundedQueryInteger(url, 'maxDaysAgo', 30, 1, 365),
         maxDistanceLy: boundedQueryInteger(url, 'maxDistance', 100, 1, 500),
         minimumPadSize: minimumPadSize ? padSizes[minimumPadSize] : null,
@@ -627,7 +616,7 @@ export class PhoenixHttpServer {
       if (stationType !== 'any' && stationType !== 'orbital' && stationType !== 'surface' && stationType !== 'carrier') {
         throw new HttpRequestValidationError('type must be any, orbital, surface, or carrier.')
       }
-      this.writeJson(response, 200, await this.options.galaxyData.searchStations({
+      writeJson(response, 200, await this.options.galaxyData.searchStations({
         maxDistanceLy: url.searchParams.get('maxDistance')?.trim() ? boundedQueryInteger(url, 'maxDistance', 100, 1, 500) : null,
         minimumPadSize: minimumPadSize ? padSizes[minimumPadSize] : null,
         name: requiredQuery(url, 'name'),
@@ -640,7 +629,7 @@ export class PhoenixHttpServer {
     if (request.method === 'GET' && url.pathname === '/api/galaxy/markets') {
       const intent = url.searchParams.get('intent')
       if (intent !== 'buy' && intent !== 'sell') throw new HttpRequestValidationError('intent must be buy or sell.')
-      this.writeJson(response, 200, await this.options.galaxyData.searchCommodityMarkets({
+      writeJson(response, 200, await this.options.galaxyData.searchCommodityMarkets({
         commodity: requiredQuery(url, 'commodity'),
         includeFleetCarriers: url.searchParams.get('fleetCarriers') === 'true',
         intent,
@@ -660,7 +649,7 @@ export class PhoenixHttpServer {
       })
       const minimumPadSize = optionalPadSize(url.searchParams.get('pad'))
       const padSizes = { small: 1, medium: 2, large: 3 } as const
-      this.writeJson(response, 200, await this.options.marketSignals.searchMarketSignals({
+      writeJson(response, 200, await this.options.marketSignals.searchMarketSignals({
         includeFleetCarriers: url.searchParams.get('fleetCarriers') === 'true',
         maxDaysAgo: boundedQueryInteger(url, 'maxDaysAgo', 3, 1, 365),
         minDeviationPercent: boundedQueryInteger(url, 'minDeviationPercent', 20, 1, 1_000),
@@ -673,7 +662,7 @@ export class PhoenixHttpServer {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/galaxy/trade-opportunities') {
-      this.writeJson(response, 200, await this.options.galaxyData.searchTradeOpportunities({
+      writeJson(response, 200, await this.options.galaxyData.searchTradeOpportunities({
         availableCredits: boundedQueryInteger(url, 'availableCredits', 10_000_000, 1, Number.MAX_SAFE_INTEGER),
         cargoCapacity: boundedQueryInteger(url, 'cargoCapacity', 100, 1, 10_000),
         includeFleetCarriers: url.searchParams.get('fleetCarriers') === 'true',
@@ -687,7 +676,7 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/galaxy/exploration-targets') {
       const landable = optionalQueryChoice(url, 'landable', ['any', 'yes', 'no'] as const) ?? 'any'
-      this.writeJson(response, 200, await this.options.explorationTargets.searchExplorationTargets({
+      writeJson(response, 200, await this.options.explorationTargets.searchExplorationTargets({
         atmospheres: repeatedQuery(url, 'atmosphere'),
         bodySubtypes: repeatedQuery(url, 'bodySubtype'),
         landable,
@@ -706,7 +695,7 @@ export class PhoenixHttpServer {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/exploration/ledger') {
-      this.writeJson(response, 200, this.options.explorationData.getLedger())
+      writeJson(response, 200, this.options.explorationData.getLedger())
       return
     }
 
@@ -717,12 +706,12 @@ export class PhoenixHttpServer {
         input.signalKey,
         input.completed
       )) {
-        this.writeJson(response, 404, {
+        writeJson(response, 404, {
           error: { code: 'exploration_signal_not_found', message: 'Exploration signal not found.' }
         })
         return
       }
-      this.writeJson(response, 200, { ok: true })
+      writeJson(response, 200, { ok: true })
       return
     }
 
@@ -732,47 +721,47 @@ export class PhoenixHttpServer {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/engineering/engineers') {
-      this.writeJson(response, 200, this.options.engineering.getEngineers())
+      writeJson(response, 200, this.options.engineering.getEngineers())
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/engineering/materials') {
       const category = url.searchParams.get('category')
       if (category !== null && !isEngineeringMaterialCategory(category)) {
-        this.writeJson(response, 400, {
+        writeJson(response, 400, {
           error: { code: 'invalid_material_category', message: `Unknown material category: ${category}.` }
         })
         return
       }
-      this.writeJson(response, 200, this.options.engineering.getMaterials(category ?? undefined))
+      writeJson(response, 200, this.options.engineering.getMaterials(category ?? undefined))
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/engineering/blueprints') {
-      this.writeJson(response, 200, this.options.engineering.getBlueprints())
+      writeJson(response, 200, this.options.engineering.getBlueprints())
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/engineering/projects') {
-      this.writeJson(response, 200, this.options.engineeringProjects.getAll())
+      writeJson(response, 200, this.options.engineeringProjects.getAll())
       return
     }
 
     if (request.method === 'POST' && url.pathname === '/api/engineering/projects') {
       const input = await readValidatedJsonBody(request, EngineeringProjectCreateRequestSchema)
-      this.writeJson(response, 201, this.options.engineeringProjects.create(input))
+      writeJson(response, 201, this.options.engineeringProjects.create(input))
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/engineering/material-watchlist') {
-      this.writeJson(response, 200, this.options.engineeringProjects.getMaterialWatchlist())
+      writeJson(response, 200, this.options.engineeringProjects.getMaterialWatchlist())
       return
     }
 
     const engineeringProjectMatch = url.pathname.match(/^\/api\/engineering\/projects\/([^/]+)$/u)
     if (engineeringProjectMatch && request.method === 'PUT') {
       const input = await readValidatedJsonBody(request, EngineeringProjectUpdateRequestSchema)
-      this.writeJson(response, 200, this.options.engineeringProjects.update(decodeURIComponent(engineeringProjectMatch[1]!), input))
+      writeJson(response, 200, this.options.engineeringProjects.update(decodeURIComponent(engineeringProjectMatch[1]!), input))
       return
     }
 
@@ -786,13 +775,13 @@ export class PhoenixHttpServer {
     const engineeringProjectStepsMatch = url.pathname.match(/^\/api\/engineering\/projects\/([^/]+)\/steps$/u)
     if (engineeringProjectStepsMatch && request.method === 'POST') {
       const input = await readValidatedJsonBody(request, EngineeringProjectStepCreateRequestSchema)
-      this.writeJson(response, 201, this.options.engineeringProjects.addStep(decodeURIComponent(engineeringProjectStepsMatch[1]!), input))
+      writeJson(response, 201, this.options.engineeringProjects.addStep(decodeURIComponent(engineeringProjectStepsMatch[1]!), input))
       return
     }
 
     const engineeringProjectStepMatch = url.pathname.match(/^\/api\/engineering\/projects\/([^/]+)\/steps\/([^/]+)$/u)
     if (engineeringProjectStepMatch && request.method === 'DELETE') {
-      this.writeJson(response, 200, this.options.engineeringProjects.deleteStep(
+      writeJson(response, 200, this.options.engineeringProjects.deleteStep(
         decodeURIComponent(engineeringProjectStepMatch[1]!),
         decodeURIComponent(engineeringProjectStepMatch[2]!)
       ))
@@ -800,7 +789,7 @@ export class PhoenixHttpServer {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/engineering/experimental-effects') {
-      this.writeJson(response, 200, this.options.engineering.getExperimentalEffects())
+      writeJson(response, 200, this.options.engineering.getExperimentalEffects())
       return
     }
 
@@ -808,12 +797,12 @@ export class PhoenixHttpServer {
     if (request.method === 'GET' && engineeringBlueprintMatch) {
       const blueprint = this.options.engineering.getBlueprint(decodeURIComponent(engineeringBlueprintMatch[1]!))
       if (!blueprint) {
-        this.writeJson(response, 404, {
+        writeJson(response, 404, {
           error: { code: 'blueprint_not_found', message: 'Engineering blueprint not found.' }
         })
         return
       }
-      this.writeJson(response, 200, blueprint)
+      writeJson(response, 200, blueprint)
       return
     }
 
@@ -824,37 +813,37 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/copilot/profiles') {
       if (!this.options.copilotProfiles) {
-        this.writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot is not configured.' } })
+        writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot is not configured.' } })
         return
       }
-      this.writeJson(response, 200, this.options.copilotProfiles.get())
+      writeJson(response, 200, this.options.copilotProfiles.get())
       return
     }
 
     if (request.method === 'PUT' && url.pathname === '/api/copilot/profiles/active') {
       if (!this.options.copilotProfiles) {
-        this.writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot is not configured.' } })
+        writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot is not configured.' } })
         return
       }
       try {
         const input = CopilotProfileSelectionRequestSchema.parse(await readJsonBody(request))
-        this.writeJson(response, 200, this.options.copilotProfiles.select(input.profileId))
+        writeJson(response, 200, this.options.copilotProfiles.select(input.profileId))
       } catch (cause) {
-        this.writeJson(response, 400, { error: { code: 'invalid_copilot_profile', message: errorMessage(cause) } })
+        writeJson(response, 400, { error: { code: 'invalid_copilot_profile', message: errorMessage(cause) } })
       }
       return
     }
 
     if (request.method === 'POST' && url.pathname === '/api/copilot/profiles') {
       if (!this.options.copilotProfiles) {
-        this.writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot is not configured.' } })
+        writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot is not configured.' } })
         return
       }
       try {
         const input = CopilotProfileWriteRequestSchema.parse(await readJsonBody(request))
-        this.writeJson(response, 201, this.options.copilotProfiles.create(input))
+        writeJson(response, 201, this.options.copilotProfiles.create(input))
       } catch (cause) {
-        this.writeJson(response, 400, { error: { code: 'invalid_copilot_profile', message: errorMessage(cause) } })
+        writeJson(response, 400, { error: { code: 'invalid_copilot_profile', message: errorMessage(cause) } })
       }
       return
     }
@@ -862,27 +851,27 @@ export class PhoenixHttpServer {
     const copilotProfileMatch = url.pathname.match(/^\/api\/copilot\/profiles\/([a-z][a-z0-9_-]*)$/u)
     if (request.method === 'GET' && copilotProfileMatch) {
       if (!this.options.copilotProfiles) {
-        this.writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot is not configured.' } })
+        writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot is not configured.' } })
         return
       }
       try {
-        this.writeJson(response, 200, this.options.copilotProfiles.getDocument(copilotProfileMatch[1]!))
+        writeJson(response, 200, this.options.copilotProfiles.getDocument(copilotProfileMatch[1]!))
       } catch (cause) {
-        this.writeJson(response, 404, { error: { code: 'copilot_profile_not_found', message: errorMessage(cause) } })
+        writeJson(response, 404, { error: { code: 'copilot_profile_not_found', message: errorMessage(cause) } })
       }
       return
     }
 
     if (request.method === 'PUT' && copilotProfileMatch) {
       if (!this.options.copilotProfiles) {
-        this.writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot is not configured.' } })
+        writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot is not configured.' } })
         return
       }
       try {
         const input = CopilotProfileWriteRequestSchema.parse(await readJsonBody(request))
-        this.writeJson(response, 200, this.options.copilotProfiles.update(copilotProfileMatch[1]!, input))
+        writeJson(response, 200, this.options.copilotProfiles.update(copilotProfileMatch[1]!, input))
       } catch (cause) {
-        this.writeJson(response, 400, { error: { code: 'invalid_copilot_profile', message: errorMessage(cause) } })
+        writeJson(response, 400, { error: { code: 'invalid_copilot_profile', message: errorMessage(cause) } })
       }
       return
     }
@@ -890,7 +879,7 @@ export class PhoenixHttpServer {
     const copilotProfileCapabilitiesMatch = url.pathname.match(/^\/api\/copilot\/profiles\/([a-z][a-z0-9_-]*)\/capabilities$/u)
     if ((request.method === 'GET' || request.method === 'PUT') && copilotProfileCapabilitiesMatch) {
       if (!this.options.copilotProfiles) {
-        this.writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot profiles are not configured.' } })
+        writeJson(response, 503, { error: { code: 'copilot_unavailable', message: 'Copilot profiles are not configured.' } })
         return
       }
       try {
@@ -902,16 +891,16 @@ export class PhoenixHttpServer {
               CopilotPermissionPolicySchema.parse(await readJsonBody(request))
             )
           : this.options.copilotCapabilities.profileSettings(profileId)
-        this.writeJson(response, 200, CopilotProfileCapabilitySettingsSchema.parse(result))
+        writeJson(response, 200, CopilotProfileCapabilitySettingsSchema.parse(result))
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : 'Invalid Copilot profile permissions.'
-        this.writeJson(response, 400, { error: { code: 'invalid_copilot_profile_permissions', message } })
+        writeJson(response, 400, { error: { code: 'invalid_copilot_profile_permissions', message } })
       }
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/copilot/voice-host') {
-      this.writeJson(response, 200, this.options.copilotVoiceHost.snapshot())
+      writeJson(response, 200, this.options.copilotVoiceHost.snapshot())
       return
     }
 
@@ -923,7 +912,7 @@ export class PhoenixHttpServer {
     if (request.method === 'GET' && url.pathname === '/api/copilot/voice-host/commands/stream') {
       const hostId = url.searchParams.get('hostId')?.trim()
       if (!hostId) {
-        this.writeJson(response, 400, {
+        writeJson(response, 400, {
           error: { code: 'voice_host_id_required', message: 'A voice host ID is required.' }
         })
         return
@@ -935,9 +924,9 @@ export class PhoenixHttpServer {
     if (request.method === 'PUT' && url.pathname === '/api/copilot/voice-host') {
       try {
         const heartbeat = CopilotVoiceHostHeartbeatSchema.parse(await readJsonBody(request))
-        this.writeJson(response, 200, this.options.copilotVoiceHost.heartbeat(heartbeat))
+        writeJson(response, 200, this.options.copilotVoiceHost.heartbeat(heartbeat))
       } catch (cause) {
-        this.writeJson(response, 400, {
+        writeJson(response, 400, {
           error: { code: 'invalid_voice_host_status', message: errorMessage(cause) }
         })
       }
@@ -946,7 +935,7 @@ export class PhoenixHttpServer {
 
     if (request.method === 'DELETE' && url.pathname === '/api/copilot/voice-host') {
       const hostId = url.searchParams.get('hostId')?.trim()
-      this.writeJson(response, 200, hostId
+      writeJson(response, 200, hostId
         ? this.options.copilotVoiceHost.release(hostId)
         : this.options.copilotVoiceHost.snapshot())
       return
@@ -955,12 +944,12 @@ export class PhoenixHttpServer {
     if (request.method === 'POST' && url.pathname === '/api/copilot/voice-host/desired-state') {
       try {
         const input = CopilotVoiceHostDesiredStateRequestSchema.parse(await readJsonBody(request))
-        this.writeJson(response, 202, {
+        writeJson(response, 202, {
           accepted: true,
           command: this.options.copilotVoiceHost.request(input.connected)
         })
       } catch (cause) {
-        this.writeJson(response, 409, {
+        writeJson(response, 409, {
           error: { code: 'voice_host_unavailable', message: errorMessage(cause) }
         })
       }
@@ -970,7 +959,7 @@ export class PhoenixHttpServer {
     if (request.method === 'GET' && url.pathname === '/api/copilot/realtime/audio-processing') {
       if (!this.requireRealtime(response)) return
       const profileId = url.searchParams.get('profileId')?.trim() || undefined
-      this.writeJson(response, 200, {
+      writeJson(response, 200, {
         audioProcessing: this.options.copilotRealtime!.audioProcessing(profileId)
       })
       return
@@ -978,7 +967,7 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/copilot/realtime/context') {
       if (!this.requireRealtime(response)) return
-      this.writeJson(response, 200, this.options.copilotRealtime!.context())
+      writeJson(response, 200, this.options.copilotRealtime!.context())
       return
     }
 
@@ -986,9 +975,9 @@ export class PhoenixHttpServer {
       if (!this.requireRealtime(response)) return
       try {
         const input = CopilotRealtimeTokenRequestSchema.parse(await readJsonBody(request))
-        this.writeJson(response, 200, await this.options.copilotRealtime!.createToken(input))
+        writeJson(response, 200, await this.options.copilotRealtime!.createToken(input))
       } catch (cause) {
-        this.writeJson(response, 502, realtimeError(cause, 'realtime_token_failed'))
+        writeJson(response, 502, realtimeError(cause, 'realtime_token_failed'))
       }
       return
     }
@@ -1003,7 +992,7 @@ export class PhoenixHttpServer {
         }
         response.once('close', abort)
         try {
-          this.writeJson(
+          writeJson(
             response,
             200,
             { result: serializeToolOutput(await this.options.copilotRealtime!.executeTool(input, controller.signal)) }
@@ -1012,7 +1001,7 @@ export class PhoenixHttpServer {
           response.off('close', abort)
         }
       } catch (cause) {
-        this.writeJson(response, 400, realtimeError(cause, 'realtime_tool_failed'))
+        writeJson(response, 400, realtimeError(cause, 'realtime_tool_failed'))
       }
       return
     }
@@ -1023,9 +1012,9 @@ export class PhoenixHttpServer {
         const input = CopilotRealtimeTurnRequestSchema.parse(await readJsonBody(request))
         await this.options.copilotRealtime!.persistTurn(input)
         this.options.copilotConversationEvents.publish(completedConversationEvent(input))
-        this.writeJson(response, 200, { conversationId: input.conversationId })
+        writeJson(response, 200, { conversationId: input.conversationId })
       } catch (cause) {
-        this.writeJson(response, 400, realtimeError(cause, 'realtime_turn_failed'))
+        writeJson(response, 400, realtimeError(cause, 'realtime_turn_failed'))
       }
       return
     }
@@ -1049,9 +1038,9 @@ export class PhoenixHttpServer {
           throw new Error('Conversation event route and payload do not match.')
         }
         this.options.copilotConversationEvents.publish(event)
-        this.writeJson(response, 202, { accepted: true })
+        writeJson(response, 202, { accepted: true })
       } catch (cause) {
-        this.writeJson(response, 400, {
+        writeJson(response, 400, {
           error: {
             code: 'invalid_copilot_conversation_event',
             message: cause instanceof Error ? cause.message : 'Invalid Copilot conversation event.'
@@ -1068,129 +1057,30 @@ export class PhoenixHttpServer {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/developer/eddn') {
-      this.writeJson(response, 200, this.options.eddn.submissionLog())
+      writeJson(response, 200, this.options.eddn.submissionLog())
       return
     }
 
     const eddnSubmission = /^\/api\/developer\/eddn\/(\d+)$/.exec(url.pathname)
     if (request.method === 'GET' && eddnSubmission) {
       const entry = this.options.eddn.submission(Number(eddnSubmission[1]))
-      this.writeJson(response, entry ? 200 : 404, entry ?? { error: { code: 'eddn_submission_not_found', message: 'This submission is no longer retained.' } })
+      writeJson(response, entry ? 200 : 404, entry ?? { error: { code: 'eddn_submission_not_found', message: 'This submission is no longer retained.' } })
       return
     }
 
-    if (request.method === 'GET' && url.pathname === '/api/settings/eddn') {
-      this.writeJson(response, 200, this.options.eddn.status())
-      return
-    }
-
-    if (request.method === 'PUT' && url.pathname === '/api/settings/eddn') {
-      const input = await readValidatedJsonBody(request, EddnSettingsUpdateSchema)
-      this.writeJson(response, 200, this.options.eddn.setEnabled(input.enabled))
-      return
-    }
-
-    if (request.method === 'GET' && url.pathname === '/api/settings/modules') {
-      this.writeJson(response, 200, this.options.systemSettings.loadOrCreate().modules)
-      return
-    }
-
-    if (request.method === 'GET' && url.pathname === '/api/settings/general') {
-      const settings = this.options.systemSettings.loadOrCreate()
-      this.writeJson(response, 200, GeneralSettingsSchema.parse({ controlsEnabled: settings.controls.enabled }))
-      return
-    }
-
-    if (request.method === 'PUT' && url.pathname === '/api/settings/general') {
-      try {
-        const input = GeneralSettingsUpdateSchema.parse(await readJsonBody(request))
-        const settings = this.options.systemSettings.loadOrCreate()
-        this.options.systemSettings.save({
-          ...settings,
-          controls: { ...settings.controls, enabled: input.controlsEnabled }
-        })
-        this.writeJson(response, 200, GeneralSettingsSchema.parse(input))
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : 'Invalid general settings.'
-        this.writeJson(response, 400, { error: { code: 'invalid_general_settings', message } })
-      }
-      return
-    }
-
-    if (request.method === 'GET' && url.pathname === '/api/settings/copilot') {
-      const settings = this.options.systemSettings.loadOrCreate()
-      const permissions = this.options.copilotCapabilities.normalizePolicy(settings.copilot.permissions)
-      this.writeJson(response, 200, CopilotSettingsSchema.parse({
-        provider: settings.copilot.provider,
-        permissions,
-        capabilities: this.options.copilotCapabilities.catalogue(),
-        openAi: this.options.openAiConfiguration.status()
-      }))
-      return
-    }
-
-    if (request.method === 'PUT' && url.pathname === '/api/settings/copilot') {
-      try {
-        const input = CopilotSettingsUpdateSchema.parse(await readJsonBody(request))
-        const permissions = this.options.copilotCapabilities.saveInstallationPolicy(input.permissions)
-        const settings = this.options.systemSettings.loadOrCreate()
-        this.options.systemSettings.save({
-          ...settings,
-          copilot: { ...settings.copilot, provider: input.provider }
-        })
-        this.writeJson(response, 200, CopilotSettingsSchema.parse({
-          provider: input.provider,
-          permissions,
-          capabilities: this.options.copilotCapabilities.catalogue(),
-          openAi: this.options.openAiConfiguration.status()
-        }))
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : 'Invalid Copilot settings.'
-        this.writeJson(response, 400, { error: { code: 'invalid_copilot_settings', message } })
-      }
-      return
-    }
-
-    if (request.method === 'PUT' && url.pathname === '/api/settings/openai-key') {
-      try {
-        const { apiKey } = OpenAiApiKeyRequestSchema.parse(await readJsonBody(request))
-        this.writeJson(response, 200, this.options.openAiConfiguration.save(apiKey))
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : 'Invalid OpenAI API key.'
-        this.writeJson(response, 400, { error: { code: 'invalid_openai_key', message } })
-      }
-      return
-    }
-
-    if (request.method === 'DELETE' && url.pathname === '/api/settings/openai-key') {
-      this.writeJson(response, 200, this.options.openAiConfiguration.remove())
-      return
-    }
-
-    if (request.method === 'PUT' && url.pathname === '/api/settings/modules') {
-      try {
-        const modules = PhoenixModulesSchema.parse(await readJsonBody(request))
-        const settings = this.options.systemSettings.loadOrCreate()
-        this.options.systemSettings.save({ ...settings, modules })
-        this.writeJson(response, 200, modules)
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : 'Invalid module settings.'
-        this.writeJson(response, 400, { error: { code: 'invalid_module_settings', message } })
-      }
-      return
-    }
+    if (await handleSettingsRequest(request, response, url, this.options)) return
 
     if (request.method === 'GET' && url.pathname === '/api/macros') {
-      this.writeJson(response, 200, this.options.macros.getLibrary())
+      writeJson(response, 200, this.options.macros.getLibrary())
       return
     }
 
     if (request.method === 'POST' && url.pathname === '/api/macros') {
       try {
-        this.writeJson(response, 200, this.options.macros.save(MacroDefinitionSchema.parse(await readJsonBody(request))))
+        writeJson(response, 200, this.options.macros.save(MacroDefinitionSchema.parse(await readJsonBody(request))))
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : 'Invalid macro.'
-        this.writeJson(response, 400, { error: { code: 'invalid_macro', message } })
+        writeJson(response, 400, { error: { code: 'invalid_macro', message } })
       }
       return
     }
@@ -1198,14 +1088,14 @@ export class PhoenixHttpServer {
     const macroMatch = url.pathname.match(/^\/api\/macros\/([a-z][a-z0-9-]*)$/u)
     if (request.method === 'DELETE' && macroMatch && macroMatch[1] !== 'playback') {
       this.options.macros.delete(macroMatch[1]!)
-      this.writeJson(response, 200, { deleted: true })
+      writeJson(response, 200, { deleted: true })
       return
     }
 
     if (request.method === 'POST' && url.pathname === '/api/macros/recordings') {
       try {
         const input = StartMacroRecordingRequestSchema.parse(await readJsonBody(request))
-        this.writeJson(response, 200, this.options.macros.startRecording(input.clientId))
+        writeJson(response, 200, this.options.macros.startRecording(input.clientId))
       } catch (cause) {
         this.writeMacroError(response, cause)
       }
@@ -1219,17 +1109,17 @@ export class PhoenixHttpServer {
         const operation = recordingMatch[2]
         const body = await readJsonBody(request)
         if (operation === 'action') {
-          this.writeJson(response, 200, await this.options.macros.recordAction(
+          writeJson(response, 200, await this.options.macros.recordAction(
             recordingId,
             RecordMacroActionRequestSchema.parse(body)
           ))
         } else {
           const input = StartMacroRecordingRequestSchema.parse(body)
           if (operation === 'stop') {
-            this.writeJson(response, 200, await this.options.macros.stopRecording(recordingId, input.clientId))
+            writeJson(response, 200, await this.options.macros.stopRecording(recordingId, input.clientId))
           } else {
             await this.options.macros.cancelRecording(recordingId, input.clientId)
-            this.writeJson(response, 200, { cancelled: true })
+            writeJson(response, 200, { cancelled: true })
           }
         }
       } catch (cause) {
@@ -1241,7 +1131,7 @@ export class PhoenixHttpServer {
     const playbackMatch = url.pathname.match(/^\/api\/macros\/([^/]+)\/playback$/u)
     if (request.method === 'POST' && playbackMatch) {
       try {
-        this.writeJson(response, 200, await this.options.macros.execute(decodeURIComponent(playbackMatch[1]!), 'ui'))
+        writeJson(response, 200, await this.options.macros.execute(decodeURIComponent(playbackMatch[1]!), 'ui'))
       } catch (cause) {
         this.writeMacroError(response, cause)
       }
@@ -1249,41 +1139,41 @@ export class PhoenixHttpServer {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/macros/playback') {
-      this.writeJson(response, 200, { playback: this.options.macros.getPlayback() })
+      writeJson(response, 200, { playback: this.options.macros.getPlayback() })
       return
     }
 
     if (request.method === 'DELETE' && url.pathname === '/api/macros/playback') {
-      this.writeJson(response, 200, { playback: this.options.macros.abortPlayback() })
+      writeJson(response, 200, { playback: this.options.macros.abortPlayback() })
       return
     }
 
     if (request.method === 'GET' && ['/api/actions', '/api/developer/actions'].includes(url.pathname)) {
-      this.writeJson(response, 200, this.options.gameActions.getCatalog())
+      writeJson(response, 200, this.options.gameActions.getCatalog())
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/commands') {
-      this.writeJson(response, 200, this.options.commands.getCatalog())
+      writeJson(response, 200, this.options.commands.getCatalog())
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/commands/snapshot') {
-      this.writeJson(response, 200, this.options.commandCatalogue.getSnapshot())
+      writeJson(response, 200, this.options.commandCatalogue.getSnapshot())
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/numpad') {
-      this.writeJson(response, 200, this.options.numpad.getSnapshot())
+      writeJson(response, 200, this.options.numpad.getSnapshot())
       return
     }
 
     if (request.method === 'POST' && url.pathname === '/api/numpad/execute') {
       try {
-        this.writeJson(response, 200, await this.options.numpad.execute(await readJsonBody(request)))
+        writeJson(response, 200, await this.options.numpad.execute(await readJsonBody(request)))
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : 'Invalid numpad request.'
-        this.writeJson(response, 400, { error: { code: 'invalid_numpad_request', message } })
+        writeJson(response, 400, { error: { code: 'invalid_numpad_request', message } })
       }
       return
     }
@@ -1294,21 +1184,21 @@ export class PhoenixHttpServer {
           ExecuteCommandRequestSchema.parse(await readJsonBody(request)),
           'ui'
         )
-        this.writeJson(response, 200, result)
+        writeJson(response, 200, result)
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : 'Invalid command request.'
-        this.writeJson(response, 400, { error: { code: 'invalid_command_request', message } })
+        writeJson(response, 400, { error: { code: 'invalid_command_request', message } })
       }
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/developer/catalogue') {
-      this.writeJson(response, 200, this.options.catalogueDiagnostics.getDiagnostics())
+      writeJson(response, 200, this.options.catalogueDiagnostics.getDiagnostics())
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/developer/copilot-tools') {
-      this.writeJson(response, 200, CopilotToolDiagnosticsResponseSchema.parse({
+      writeJson(response, 200, CopilotToolDiagnosticsResponseSchema.parse({
         version: 1,
         tools: this.options.copilotTools.definitions.map(definition => ({
           id: definition.name,
@@ -1320,27 +1210,27 @@ export class PhoenixHttpServer {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/catalogue/ships') {
-      this.writeJson(response, 200, this.options.catalogueDiagnostics.getShips())
+      writeJson(response, 200, this.options.catalogueDiagnostics.getShips())
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/developer/elite-status') {
-      this.writeJson(response, 200, this.options.eliteStatusDiagnostics.getDiagnostics())
+      writeJson(response, 200, this.options.eliteStatusDiagnostics.getDiagnostics())
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/developer/elite-journal') {
-      this.writeJson(response, 200, this.options.eliteJournalDiagnostics.getDiagnostics())
+      writeJson(response, 200, this.options.eliteJournalDiagnostics.getDiagnostics())
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/developer/elite-inventory') {
-      this.writeJson(response, 200, this.options.eliteInventoryDiagnostics.getDiagnostics())
+      writeJson(response, 200, this.options.eliteInventoryDiagnostics.getDiagnostics())
       return
     }
 
     if (request.method === 'GET' && url.pathname === '/api/developer/elite-navigation-route') {
-      this.writeJson(response, 200, this.options.eliteNavigationRouteDiagnostics.getDiagnostics())
+      writeJson(response, 200, this.options.eliteNavigationRouteDiagnostics.getDiagnostics())
       return
     }
 
@@ -1351,10 +1241,10 @@ export class PhoenixHttpServer {
       try {
         const origin = url.pathname.startsWith('/api/developer/') ? 'developer' : 'ui'
         const result = await this.options.gameActions.execute(await readJsonBody(request), origin)
-        this.writeJson(response, 200, result)
+        writeJson(response, 200, result)
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : 'Invalid action request.'
-        this.writeJson(response, 400, {
+        writeJson(response, 400, {
           error: { code: 'invalid_action_request', message }
         })
       }
@@ -1362,7 +1252,7 @@ export class PhoenixHttpServer {
     }
 
     if (url.pathname.startsWith('/api/')) {
-      this.writeJson(response, 404, {
+      writeJson(response, 404, {
         error: { code: 'not_found', message: `No PHOENIX endpoint exists at ${url.pathname}.` }
       })
       return
@@ -1405,7 +1295,7 @@ export class PhoenixHttpServer {
 
   private writeMacroError (response: ServerResponse, cause: unknown): void {
     const message = cause instanceof Error ? cause.message : 'Macro operation failed.'
-    this.writeJson(response, 400, { error: { code: 'macro_operation_failed', message } })
+    writeJson(response, 400, { error: { code: 'macro_operation_failed', message } })
   }
 
   private openRuntimeStateStream (request: IncomingMessage, response: ServerResponse): void {
@@ -1619,7 +1509,7 @@ export class PhoenixHttpServer {
     response: ServerResponse
   ): Promise<void> {
     if (!this.options.copilot) {
-      this.writeJson(response, 503, {
+      writeJson(response, 503, {
         error: {
           code: 'copilot_unavailable',
           message: 'Set PHOENIX_OPENAI_API_KEY or OPENAI_API_KEY to enable the Copilot.'
@@ -1632,7 +1522,7 @@ export class PhoenixHttpServer {
     try {
       input = CopilotChatRequestSchema.parse(await readJsonBody(request))
     } catch (cause) {
-      this.writeJson(response, 400, {
+      writeJson(response, 400, {
         error: {
           code: 'invalid_copilot_request',
           message: cause instanceof Error ? cause.message : 'Invalid Copilot request.'
@@ -1648,14 +1538,14 @@ export class PhoenixHttpServer {
 
     try {
       const result = await this.options.copilot.run(input)
-      this.writeJson(response, 200, {
+      writeJson(response, 200, {
         conversationId: result.chatId,
         finishReason: result.finishReason,
         text: result.text,
         usage: result.usage
       })
     } catch (cause) {
-      this.writeJson(response, copilotErrorStatus(cause), {
+      writeJson(response, copilotErrorStatus(cause), {
         error: serializeCopilotError(cause)
       })
     }
@@ -1663,7 +1553,7 @@ export class PhoenixHttpServer {
 
   private requireRealtime (response: ServerResponse): boolean {
     if (this.options.copilotRealtime) return true
-    this.writeJson(response, 503, {
+    writeJson(response, 503, {
       error: {
         code: 'copilot_realtime_unavailable',
         message: 'Set PHOENIX_OPENAI_API_KEY or OPENAI_API_KEY to enable Realtime voice.'
@@ -1677,18 +1567,18 @@ export class PhoenixHttpServer {
     conversationId: string
   ): Promise<void> {
     if (!this.options.copilot) {
-      this.writeJson(response, 503, {
+      writeJson(response, 503, {
         error: { code: 'copilot_unavailable', message: 'The Copilot is not configured.' }
       })
       return
     }
     try {
-      this.writeJson(response, 200, {
+      writeJson(response, 200, {
         conversationId,
         messages: await this.options.copilot.getHistory(conversationId)
       })
     } catch (cause) {
-      this.writeJson(response, copilotErrorStatus(cause), {
+      writeJson(response, copilotErrorStatus(cause), {
         error: serializeCopilotError(cause)
       })
     }
@@ -1779,7 +1669,7 @@ export class PhoenixHttpServer {
       : join(root, 'index.html')
 
     if (!existsSync(file)) {
-      this.writeJson(response, 404, {
+      writeJson(response, 404, {
         error: {
           code: 'web_not_built',
           message: 'PHOENIX web assets are not built. Run npm run dev or npm run build.'
@@ -1795,15 +1685,6 @@ export class PhoenixHttpServer {
     createReadStream(file).pipe(response)
   }
 
-  private writeJson (response: ServerResponse, status: number, payload: unknown): void {
-    const body = JSON.stringify(payload)
-    response.writeHead(status, {
-      'cache-control': 'no-store',
-      'content-length': Buffer.byteLength(body),
-      'content-type': 'application/json; charset=utf-8'
-    })
-    response.end(body)
-  }
 }
 
 function realtimeError (cause: unknown, code: string): unknown {
@@ -1838,31 +1719,6 @@ function completedConversationEvent (input: {
   }
 }
 
-async function readJsonBody (request: IncomingMessage): Promise<unknown> {
-  const chunks: Buffer[] = []
-  let length = 0
-
-  for await (const chunk of request) {
-    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
-    length += buffer.length
-    if (length > 64 * 1024) throw new Error('Request body exceeds 64 KiB.')
-    chunks.push(buffer)
-  }
-
-  if (chunks.length === 0) throw new Error('Request body is empty.')
-  return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown
-}
-
-async function readValidatedJsonBody<T> (
-  request: IncomingMessage,
-  schema: { parse(value: unknown): T }
-): Promise<T> {
-  try {
-    return schema.parse(await readJsonBody(request))
-  } catch (cause) {
-    throw new HttpRequestValidationError(cause instanceof Error ? cause.message : 'Invalid request body.')
-  }
-}
 
 function writeCopilotStreamEvent (response: ServerResponse, event: AiStreamEvent): void {
   switch (event.type) {
@@ -1992,5 +1848,3 @@ function optionalPadSize (value: string | null): 'small' | 'medium' | 'large' | 
   if (value === 'small' || value === 'medium' || value === 'large') return value
   throw new HttpRequestValidationError('pad must be small, medium, or large.')
 }
-
-class HttpRequestValidationError extends Error {}
