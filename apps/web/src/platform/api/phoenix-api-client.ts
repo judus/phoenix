@@ -1,4 +1,5 @@
 import {
+  AtlasCatalogueResponseSchema,
   EddnStatusSchema,
   EddnSubmissionLogSchema,
   EddnSubmissionDetailSchema,
@@ -102,6 +103,7 @@ import {
 } from '@phoenix/contracts'
 import { ControlDeckCommandCatalogueSchema, type ControlDeckCommandCatalogue } from 'control-deck/core'
 import type {
+  AtlasCatalogueResponse,
   ActivityLogResponse,
   CartographyLookupResponse,
   CommunicationsResponse,
@@ -365,6 +367,10 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getGalaxyBookmarks(signal?: AbortSignal): Promise<GalaxyBookmarksResponse> {
     return this.#get('/api/galaxy/bookmarks', GalaxyBookmarksResponseSchema, signal)
+  }
+
+  async getAtlasCatalogue(signal?: AbortSignal): Promise<AtlasCatalogueResponse> {
+    return this.#get('/api/galaxy/atlas/pois', AtlasCatalogueResponseSchema, signal)
   }
 
   async saveGalaxyBookmark(input: GalaxyBookmarkWriteRequest, id?: string, signal?: AbortSignal): Promise<GalaxyBookmark> {

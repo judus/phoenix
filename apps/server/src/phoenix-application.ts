@@ -1,4 +1,8 @@
 import { randomUUID } from 'node:crypto'
+import { AtlasPoiSchema } from '@phoenix/contracts'
+import { AtlasCatalogueService } from './application/atlas-catalogue-service.js'
+import { atlasPoiSources } from './infrastructure/atlas-poi-sources.js'
+import type { AtlasPoiSource } from './domain/atlas.js'
 import { readFileSync } from 'node:fs'
 import { loadPredefinedGalaxyQueries } from './infrastructure/predefined-galaxy-queries.js'
 import { EddnContributionService } from './application/eddn-contribution-service.js'
@@ -156,6 +160,7 @@ export interface PhoenixApplicationOptions {
   eliteBindingsDirectory?: string | null
   host?: string
   galnetSource?: GalnetSource
+  atlasSources?: AtlasPoiSource[]
   keyboardOutput?: KeyboardOutput
   keyboardOutputId?: string
   moduleCataloguePath?: string
@@ -490,6 +495,8 @@ export class PhoenixApplication {
     const marketSignals = new MarketSignalService(stationSearchSource, this.database)
     const dashboardMarketSignals = new DashboardMarketSignalService(savedGalaxyQueries, marketSignals, this.stateStore)
     const galnet = new GalnetNewsService(options.galnetSource ?? new FrontierGalnetSource(), this.database)
+    const atlas = new AtlasCatalogueService(options.atlasSources ?? atlasPoiSources(), this.database, undefined,
+      AtlasPoiSchema.array().parse(JSON.parse(readFileSync(resolve(paths.resources.atlas, 'known-sites.json'), 'utf8'))))
     const navigationData = new NavigationDataService(cartography, navigationRoutes, this.stateStore)
     const eliteDestinations = new EliteDestinationService(
       new ControlDeckEliteDestinationInput(eliteBindings, keyboardOutput),
@@ -623,6 +630,7 @@ export class PhoenixApplication {
       personalEquipmentSpecialists,
       personalEquipmentPlanner,
       galnet,
+      atlas,
       navigationData,
       navigationRouteUpdates,
       numpad,

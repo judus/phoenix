@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Expand the Galactic Atlas with cached GEC and Canonn Guardian POIs, compact text/category
+  filters, source-backed site details and Live coordinates for Jameson's crash site.
 - Avoid duplicate installer builds after merging into main; keep native packaging checks on
   promotion PRs, manual CI runs and tagged releases.
 - Copilot Profiles highlights the profile being edited, uses the ship-catalogue-style roster, and keeps

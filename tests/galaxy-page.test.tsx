@@ -573,7 +573,7 @@ test('selecting a body does not pin a schematic that is following the current sy
     controller={{ lookup: { cache: 'local', system }, status: 'ready' }}
     onNavigate={onNavigate}
     querySessions={new GalaxyQuerySessionStore()}
-    route={{ kind: 'information', section: 'galaxy', view: 'system', selectedName: 'Sol' }}
+    route={{ kind: 'information', section: 'galaxy', view: 'system', selectedName: 'SOL' }}
     runtime={{ state: runtimeState, status: 'ready' }}
   />))
   const bookmarkBody = renderer.root.findAllByType('button').find(button => button.props.children === 'Bookmark body')

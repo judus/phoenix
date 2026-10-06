@@ -27,6 +27,7 @@ export interface ApplicationPathsOptions {
 export class ApplicationPaths {
   public readonly installRoot: string
   public readonly resources: Readonly<{
+    atlas: string
     copilots: string
     queries: string
     web: string
@@ -49,6 +50,7 @@ export class ApplicationPaths {
       : platformRoots(platform, homeDirectory, environment)
 
     this.resources = Object.freeze({
+      atlas: resolve(this.installRoot, 'resources/atlas'),
       copilots: resolvePath(this.installRoot, environment.PHOENIX_AGENTS_PATH ?? 'resources/copilots'),
       queries: resolve(this.installRoot, 'resources/queries'),
       web: resolvePath(this.installRoot, environment.PHOENIX_WEB_ROOT ?? 'apps/web/dist')

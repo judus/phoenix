@@ -64,6 +64,7 @@ import type {
   GalaxyStationLookupResponse,
   GalaxyTradeOpportunitiesResponse,
   GalaxyBookmark,
+  AtlasCatalogueResponse,
   GalaxyBookmarksResponse,
   GalaxyBookmarkWriteRequest,
   HealthResponse,
@@ -175,6 +176,7 @@ export interface PhoenixApi {
   getDashboardMarketSignals(signal?: AbortSignal): Promise<DashboardMarketSignalsResponse>
   getFleet(signal?: AbortSignal): Promise<FleetResponse>
   getGalaxyBookmarks(signal?: AbortSignal): Promise<GalaxyBookmarksResponse>
+  getAtlasCatalogue(signal?: AbortSignal): Promise<AtlasCatalogueResponse>
   getGalnetNews(limit?: number, signal?: AbortSignal): Promise<GalnetNewsResponse>
   findGalaxySystems(input: GalaxySystemSearch, signal?: AbortSignal): Promise<GalaxySystemSearchResponse>
   findGalaxyCommodityMarkets(input: GalaxyCommodityMarketSearch, signal?: AbortSignal): Promise<GalaxyCommodityMarketsResponse>

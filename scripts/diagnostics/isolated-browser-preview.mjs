@@ -18,6 +18,7 @@ const projectRoot = fileURLToPath(new URL('../../', import.meta.url))
 const denseCartography = process.argv.includes('--dense-cartography')
 const eddnSubmissions = process.argv.includes('--eddn-submissions')
 const prospecting = process.argv.includes('--prospecting')
+const atlasPois = process.argv.includes('--atlas-pois')
 const fixtureDirectory = eddnSubmissions ? mkdtempSync(join(tmpdir(), 'phoenix-eddn-preview-')) : undefined
 const databasePath = fixtureDirectory ? join(fixtureDirectory, 'preview.sqlite') : ':memory:'
 // This preview must never upload, even when launched from a test-enabled development shell.
@@ -42,6 +43,15 @@ const application = new PhoenixApplication({
   copilot: null,
   copilotRealtime: null,
   openAiEnvironmentKey: null,
+  atlasSources: atlasPois ? [{
+    id: 'synthetic', name: 'Synthetic Atlas fixture', url: 'https://example.com/atlas', licence: null,
+    getPois: async () => ({ rejected: 0, pois: Array.from({ length: 1500 }, (_, index) => ({
+      id: `synthetic:${index}`, label: `Synthetic POI ${index}`, systemName: `Synthetic system ${index}`,
+      position: [Math.sin(index) * 12000, index % 100, Math.cos(index) * 12000],
+      categories: [index % 2 ? 'Guardian Ruins' : 'Guardian Structures'],
+      source: 'Synthetic Atlas fixture', sourceUrl: 'https://example.com/atlas', bodyName: 'A 1', siteType: 'Turtle'
+    })) })
+  }] : [],
   ...(prospecting ? { explorationTargetSource: { findTargets: async () => [{
     atmosphere: 'Thin Ammonia', biologicalSignals: null, bodyId: 1, bodyName: 'Synthetic A 1', bodyType: 'Planet',
     distanceLy: 10, distanceToArrivalLs: 200, geologicalSignals: null, gravityG: 0.2, landable: false,

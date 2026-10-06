@@ -4,10 +4,44 @@ import { createEmptyRuntimeState } from '@phoenix/contracts'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
 import { parsePhoenixRoute, phoenixRouteHash } from '../apps/web/src/application/navigation/phoenix-router.js'
 import { GalacticAtlas, GalacticAtlasPage } from '../apps/web/src/features/galaxy/galactic-atlas-page.js'
-import { ATLAS_LANDMARKS, WHOLE_GALAXY, atlasScale, clusterAtlasMarkers, distanceLy, galacticRegion, projectGalacticPosition, screenPoint, zoomAtlas } from '../apps/web/src/features/galaxy/galactic-atlas-model.js'
+import { ATLAS_LANDMARKS, WHOLE_GALAXY, atlasPoiMarkers, filterAtlasPois, atlasScale, clusterAtlasMarkers, distanceLy, galacticRegion, projectGalacticPosition, screenPoint, zoomAtlas } from '../apps/web/src/features/galaxy/galactic-atlas-model.js'
 import { atlasRegions } from '../apps/web/src/features/galaxy/atlas-region-data.js'
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
+
+test('catalogue filtering preserves site identities and body targeting; dense clusters retain every location', () => {
+  const pois = atlasPoiMarkers(Array.from({ length: 1500 }, (_, index) => ({
+    id: `synthetic:${index}`, label: `Site ${index}`, systemName: 'Example', position: [10, 20, 30] as [number, number, number],
+    categories: [index % 2 ? 'Guardian Ruins' : 'Guardian Structures'], source: 'Synthetic', sourceUrl: 'https://example.com/site', bodyName: 'A 1', siteType: 'Turtle'
+  })))
+  expect(filterAtlasPois(pois, ' turtle ', 'Guardian Structures')).toHaveLength(750)
+  expect(filterAtlasPois(pois, 'not present', '')).toHaveLength(0)
+  expect(pois[0]?.selectedName).toBe('Example A 1')
+  expect(clusterAtlasMarkers(pois, WHOLE_GALAXY, 900, 600).flatMap(cluster => cluster.markers)).toHaveLength(1500)
+})
+
+test('search can locate an off-screen POI, inspect provenance and clear the panel when filtered out', async () => {
+  const catalogue = { pois: [{ id: 'synthetic:1', label: 'Remote site', systemName: 'Remote', position: [20000, 0, 40000] as [number, number, number], categories: ['Guardian Structures'], source: 'Synthetic feed', sourceUrl: 'https://example.com/site', bodyName: 'A 1', siteType: 'Turtle' }], sources: [] }
+  const onNavigate = vi.fn()
+  let renderer: ReturnType<typeof create>
+  await act(async () => { renderer = create(<GalacticAtlas catalogue={catalogue} bookmarks={[]} onNavigate={onNavigate} onToggleBookmarks={vi.fn()} position={[0, 0, 0]} showBookmarks systemName="Sol" />) })
+  try {
+    const initial = renderer.root.findAllByType('g')[0].props.transform
+    const category = renderer.root.findByProps({ id: 'atlas-poi-category' })
+    await act(async () => category.props.onChange({ target: { value: 'Guardian Structures' } }))
+    const locations = renderer.root.findByProps({ id: 'atlas-poi-location' })
+    expect(locations.findAllByType('option')).toHaveLength(2)
+    await act(async () => locations.props.onChange({ target: { value: 'synthetic:1' } }))
+    expect(renderer.root.findAllByType('g')[0].props.transform).not.toBe(initial)
+    const inspector = renderer.root.findByProps({ 'aria-label': 'Selected atlas location' })
+    expect(JSON.stringify(renderer.toJSON())).toContain('Not reported by this source')
+    expect(inspector.findAllByType('a').find(node => node.props.href === 'https://example.com/site')).toBeDefined()
+    await act(async () => inspector.findAllByType('a')[0]!.props.onClick({ button: 0, preventDefault() {} }))
+    expect(onNavigate).toHaveBeenCalledWith(expect.objectContaining({ systemName: 'Remote', selectedName: 'Remote A 1' }))
+    await act(async () => renderer.root.findByProps({ id: 'atlas-poi-search' }).props.onChange({ target: { value: 'not present' } }))
+    expect(renderer.root.findAllByType('aside')).toHaveLength(0)
+  } finally { await act(async () => renderer.unmount()) }
+})
 
 test('atlas routing round-trips and physical coordinates identify known regions', () => {
   const route = { kind: 'information', section: 'galaxy', view: 'atlas' } as const
@@ -216,6 +250,7 @@ test('pinch captures both pointers on the viewport and remaining fingers continu
 test('bookmarks deduplicate system lookups, preserve station/body targets and report missing coordinates', async () => {
   const bookmark = (id: string, target: object) => ({ id, target, tags: [], note: null, createdAt: '', updatedAt: '' })
   const api = {
+    getAtlasCatalogue: vi.fn().mockResolvedValue({ pois: [], sources: [] }),
     getGalaxyBookmarks: vi.fn().mockResolvedValue({ bookmarks: [
       bookmark('station', { kind: 'station', systemName: 'Example', stationName: 'Test Port' }),
       bookmark('body', { kind: 'body', systemName: 'Example', bodyName: 'Example 2' }),
@@ -236,8 +271,9 @@ test('bookmarks deduplicate system lookups, preserve station/body targets and re
   expect(JSON.stringify(renderer.toJSON())).toContain('Unresolved: Offline')
   expect(JSON.stringify(renderer.toJSON())).toContain('1 bookmark without coordinates: Unknown coordinates')
   await act(async () => renderer.root.findAllByProps({ role: 'button' }).find(node => node.props['aria-label'] === '2 locations near Test Port')!.props.onClick())
-  await act(async () => renderer.root.findByType('select').props.onChange({ target: { value: 'body' } }))
-  expect(renderer.root.findByType('select').props.className).toContain('form-mini')
+  const groupSelect = renderer.root.findByProps({ 'aria-label': 'Locations in this group' })
+  await act(async () => groupSelect.props.onChange({ target: { value: 'body' } }))
+  expect(groupSelect.props.className).toContain('form-mini')
   await act(async () => renderer.root.findByProps({ 'aria-label': 'Selected atlas location' }).findByType('a').props.onClick({ button: 0, preventDefault() {} }))
   expect(onNavigate).toHaveBeenCalledWith(expect.objectContaining({ systemName: 'Example', selectedName: 'Example 2' }))
   await act(async () => renderer.unmount())

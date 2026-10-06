@@ -16,6 +16,15 @@ The small landmark coordinate list was verified against EDSM's `api-v1/systems` 
 is anchored at Sol; no territorial or population boundary is asserted. Elite Dangerous names and
 game data remain subject to Frontier's rights, as described below.
 
+## Atlas POI services
+
+Atlas POIs are retrieved from the Galactic Exploration Catalog (GEC), by CMDR Orvidius and its
+community contributors, and Canonn Research Group's public Guardian feeds. GEC content retains
+its [CC BY-NC-SA 3.0 licence](https://edastro.com/gec/APIinfo), separate from PHOENIX's source licence.
+External datasets are cached in user data, not bundled. Canonn map-code licensing is not asserted
+as the licence of its external feeds. No source imagery, article text or remote executable code is
+included. Source attribution and links accompany the records. See `resources/atlas/README.md`.
+
 ## Control Deck PHOENIX runtime
 
 Official PHOENIX builds include a purpose-built compiled subset of Control Deck. It is not licensed
