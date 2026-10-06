@@ -91,6 +91,7 @@ export class NumpadTreeProjector {
     const controls = branch(nodes, null, 'desktop.controls', '1', 'Controls')
     const information = branch(nodes, null, 'desktop.info', '2', 'Info')
     appendDestination(nodes, descriptors, null, '3', 'copilot.channel', diagnostics)
+    appendDestination(nodes, descriptors, null, '4', 'macros.library', diagnostics)
     appendDestination(nodes, descriptors, null, '5', 'log.journal', diagnostics)
     appendDestination(nodes, descriptors, null, '6', 'settings.dashboard', diagnostics)
 

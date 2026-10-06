@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { controlDeckNumpadChildren, displayedControlDeckNumpadAddress } from 'control-deck/core'
-import { Button, PageFrame, Status } from '@phoenix/ui'
+import { PageFrame, Status } from '@phoenix/ui'
 import type { DevicePreferences } from '../../application/settings/device-preferences.js'
 import { NumpadTileGrid } from './numpad-tile-grid.js'
 import type { NumpadRuntime } from './numpad-runtime.js'
@@ -17,7 +17,7 @@ export function NumpadPage({ runtime, devicePreferences }: { runtime: NumpadRunt
       <div><small>Address</small><strong>{displayedControlDeckNumpadAddress(tree, session)}</strong></div>
       <div><small>Context</small><strong>{parent?.label ?? 'Command root'}</strong></div>
       <div><small>Status</small><strong>{session.message ?? (session.active ? session.status : 'Press Numpad 0')}</strong></div>
-      <div><small>Cancel</small><Button aria-label="Cancel Numpy (Escape or decimal point)" variant="quiet" onClick={runtime.controller.cancel}><strong>Esc / .</strong></Button></div>
+      <button type="button" aria-label="Cancel Numpy (Escape or decimal point)" onClick={runtime.controller.cancel}><small>Cancel</small><strong>Esc / .</strong></button>
     </header><NumpadTileGrid columns={parent?.columns ?? (parent ? undefined : 3)} rows={parent?.rows} nodes={controlDeckNumpadChildren(tree, parent?.id ?? null)} pendingDigits={session.pendingDigits} variableFontSizes={deviceSettings.variableCommandLabelSizes} onSelect={runtime.controller.select} /></div>}
   </PageFrame>
 }

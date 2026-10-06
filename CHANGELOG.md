@@ -4,6 +4,7 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Restore Numpy's root shortcut 4 to the Macros library and align the Cancel header with its keys.
 - Place Settings and Developer tools after Log in the top workspace row for horizontal swiping.
 - Require a distinct installer-verification CI gate before merging releases into main.
 - Keep EDDN validation dependencies bundled in installers while preserving development startup.

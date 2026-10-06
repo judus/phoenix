@@ -1,5 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test } from 'vitest'
+import { act } from 'react-test-renderer'
+import { renderWithAct } from './support/render-with-act.js'
 import type { DevicePreferences } from '../apps/web/src/application/settings/device-preferences.js'
 import { NumpadPage } from '../apps/web/src/features/numpad/numpad-page.js'
 import { numpadRuntimeFixture } from './support/numpad-runtime-fixture.js'
@@ -9,6 +11,25 @@ const devicePreferences = (variableCommandLabelSizes = true) => ({
   subscribe: () => () => {},
   update: () => {}
 }) satisfies DevicePreferences
+
+test('the Cancel header remains an actionable label and key stack', async () => {
+  const fixture = numpadRuntimeFixture()
+  fixture.runtime.start()
+  await fixture.settle()
+  fixture.key('0')
+  const preferences = devicePreferences()
+  const snapshot = preferences.getSnapshot()
+  preferences.getSnapshot = () => snapshot
+  const renderer = await renderWithAct(<NumpadPage runtime={fixture.runtime} devicePreferences={preferences} />)
+  const cancel = renderer.root.findByProps({ 'aria-label': 'Cancel Numpy (Escape or decimal point)' })
+  expect(cancel.type).toBe('button')
+  expect(cancel.findByType('small').children).toEqual(['Cancel'])
+  expect(cancel.findByType('strong').children).toEqual(['Esc / .'])
+  await act(async () => cancel.props.onClick())
+  expect(fixture.routeSession.leave).toHaveBeenCalledOnce()
+  await act(async () => renderer.unmount())
+  fixture.runtime.stop()
+})
 
 test('the numpad renders the live command navigator without owning its input', async () => {
   const fixture = numpadRuntimeFixture()
