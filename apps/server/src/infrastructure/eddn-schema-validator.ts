@@ -1,9 +1,14 @@
 import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { join } from 'node:path'
-import Ajv = require('ajv-draft-04')
+import type AjvModule = require('ajv-draft-04')
 import type { ValidateFunction } from 'ajv'
 import { z } from 'zod'
 import { EDDN_MAX_MESSAGE_BYTES, EDDN_SCHEMA_VERSIONS, type EddnMessage } from '../domain/eddn.js'
+
+// This CommonJS package exposes its constructor as .default. Explicit ESM loading
+// works in both Node's compiled server and tsx, which leaves import-equals as require().
+const Ajv: typeof AjvModule = createRequire(import.meta.url)('ajv-draft-04')
 
 export class EddnSchemaValidator {
   private readonly validators = new Map<string, ValidateFunction>()
