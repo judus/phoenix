@@ -29,7 +29,7 @@ const location: Fields = {
 }
 const scan: Fields = {
   ScanType: true, BodyName: true, BodyID: true, DistanceFromArrivalLS: true,
-  WasDiscovered: true, WasMapped: true,
+  WasDiscovered: true, WasMapped: true, WasFootfalled: true,
   Parents: [{ Null: true, Star: true, Planet: true, Ring: true }],
   StarType: true, Subclass: true, StellarMass: true, Radius: true, AbsoluteMagnitude: true,
   Age_MY: true, SurfaceTemperature: true, Luminosity: true,

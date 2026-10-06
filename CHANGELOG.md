@@ -4,6 +4,10 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Preserve the observed first-footfall flag in EDDN scan contributions. Verify public Powerplay
+  and colonisation station metadata without uploading personal progress or unsupported events;
+  community publishing remains test-only.
+
 - Drain unread live-journal tails and intervening files in order during rotation. Preserve EDDN
   context, pending signals and commander-log grouping across explicitly linked session parts,
   while retaining new-session resets and latest-file-only startup replay.

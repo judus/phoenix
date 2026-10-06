@@ -43,8 +43,8 @@ do not invent an upload schema for it.
 
 1. Complete and test journal/file mappings, privacy and chronological context. Exercise the
    full service path, not just schema-valid happy paths. Synthetic tests never upload externally.
-2. Complete field-level comparison for the permissive journal schema, including current
-   Powerplay/colonisation additions; an event-name checklist alone is insufficient.
+2. Keep field-level comparison current for the permissive journal schema; the bounded
+   Powerplay/colonisation review below is not a guarantee of future-field or EDMC parity.
 3. Implement authenticated CAPI coverage with PHOENIX's own registered client. No existing
    CAPI/OAuth service was found in this checkout. Never use EDMC's ID or borrow its tokens.
 4. Reconcile documented delivery differences, prove packaging and real-game acceptance,
@@ -100,9 +100,39 @@ additional CAPI coverage from this parity target.
 Frontier's [v38 manual](https://hosting.zaonce.net/community/journal/v38/Journal_Manual_v38.pdf)
 was checked for travel/scan/Codex fields. The reviewed basic public fields are allowlisted; personal
 travel flags (Taxi, Multicrew, InSRV, OnFoot), rank/reputation and unknown future fields are not.
-The PDF itself does not fully describe current Powerplay/colonisation extensions. Finish their
-field-level evidence review with current journal fixtures/provider contracts before signing off.
+The PDF itself does not fully describe current Powerplay/colonisation extensions. The bounded
+review below supplements it with independent observed-journal contracts, not provider data.
 Do not replace the allowlist with EDMC's generic pass-through-minus-exclusions just to claim parity.
+
+#### Public-field review (2026-10-07, #112)
+
+Compared the six generic journal mappings with the observed Odyssey journal contracts in
+[ed-journal-schemas at e4976b5](https://github.com/jixxed/ed-journal-schemas/tree/e4976b5f9b46f784029364453622c2668087cfd6/schemas).
+These are community-maintained source contracts, not Frontier or EDDN schemas. The pinned
+[EDDN journal rules](https://github.com/EDCD/EDDN/blob/4ad669bb7bbe1eae080e4c354e786dca4db91f35/schemas/journal-README.md)
+still govern event routing and privacy. The read-only upstream check found no pin drift.
+
+- **Fixed:** `Scan.WasFootfalled` was dropped. The observed contract defines a boolean;
+  [EDDI's independent journal parser](https://github.com/EDCD/EDDI/blob/d3b964ea7c8bb959ad6537f55b308f293a326905/JournalMonitor/JournalMonitor.cs)
+  interprets it as existing first-footfall status, analogous to `WasDiscovered`/`WasMapped`.
+  Preserve native true/false when present; do not infer a value or send a discoverer's identity.
+- **Already covered:** Powerplay 2's `ControllingPower`, `Powers`, `PowerplayState`,
+  `PowerplayStateControlProgress`, reinforcement/undermining counters and array-shaped
+  `PowerplayConflictProgress` (`Power`, `ConflictProgress`) on `FSDJump`, `Location` and
+  `CarrierJump`. Preserve source values without clamping or inventing alternate shapes.
+- **Already covered:** colonisation station names/types, economies/services and conflict-stake
+  symbols through existing public station/conflict mappings. New string values need no enum
+  changes. Nested localisation and commander reputation remain excluded.
+- **Not supported by EDDN:** standalone colonisation construction, contributions and claims,
+  or personal Powerplay progress events. Public construction progress is not necessarily
+  private, but currently has no supported schema/event route. Do not invent one or tunnel it
+  through a different journal event. Station market snapshots keep their ordinary mapping.
+
+Synthetic tests exercise these decisions through the contribution service, official schema
+validator, SQLite outbox and injected transport, including false/absent first-footfall status,
+zero and above-one Powerplay values, private nested siblings and unsupported event rejection.
+No real player journals or external submissions were used. Dedicated schemas, CAPI, future
+unknown fields and real-game acceptance are not signed off by this bounded comparison.
 
 Our source-only deduplication, finite queue/24-hour expiry and no bootstrap/history upload are
 intentional safety policies, not demonstrated EDMC equivalents. Durable queue-loss accounting is
