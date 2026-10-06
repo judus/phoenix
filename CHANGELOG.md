@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Avoid duplicate installer builds after merging into main; keep native packaging checks on
+  promotion PRs, manual CI runs and tagged releases.
 - Copilot Profiles highlights the profile being edited, uses the ship-catalogue-style roster, and keeps
   supporting header text in the compact top-right status slot.
 - Show AI load only for individual Copilot profiles, not the installation-wide permission ceiling.

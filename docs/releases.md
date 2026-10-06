@@ -17,11 +17,14 @@ Only PHOENIX is covered here; Control Deck has its own independent repository/re
 
 `ci.yml` runs on pushes and pull requests to `dev`/`main`, and manual dispatch. It calls the same
 native verification workflow on Ubuntu 24.04 x64 and Windows Server 2022 x64 with Node 24.14.0.
-Every run executes `npm ci` and `npm run check`. Promotions to `main`, pushes to `main`, and manual
+Every run executes `npm ci` and `npm run check`. Pull requests into `main` and manual
 CI runs additionally verify the native packages: Linux verifies the pinned AppImage runtime,
 helpers and file hashes, then smoke-tests AppRun and the image's extract-and-run lifecycle;
 Windows installs, smoke-tests its native launcher, then uninstalls. Ordinary
 CI retains no installer artifacts or dependency caches. Superseded CI runs are cancelled.
+Pushes to either branch skip packaging, avoiding a duplicate installer build after promotion.
+Version tags still build and verify release installers from the exact tagged commit, rather than
+reusing development packages.
 
 `release.yml` runs for `v*` version tags or a manual retry specifying an existing tag. It:
 
