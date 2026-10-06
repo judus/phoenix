@@ -82,7 +82,6 @@ import { EngineeringDataService } from './application/engineering-data-service.j
 import { EngineeringProjectService } from './application/engineering-project-service.js'
 import { ExplorationDataService } from './application/exploration-data-service.js'
 import { DefaultCommanderEngineersQuery } from './application/default-commander-engineers-query.js'
-import { DefaultStationMarketQuery } from './application/default-station-market-query.js'
 import { GalnetNewsService } from './application/galnet-news-service.js'
 import { MissionDataService } from './application/mission-data-service.js'
 import { CommunicationDataService } from './application/communication-data-service.js'
@@ -92,14 +91,10 @@ import { CachedCartographyStationResolver } from './application/cached-cartograp
 import { GalaxyBookmarkService } from './application/galaxy-bookmark-service.js'
 import { SavedGalaxyQueryService } from './application/saved-galaxy-query-service.js'
 import { DashboardMarketSignalService } from './application/dashboard-market-signal-service.js'
-import { MarketSignalService } from './application/market-signal-service.js'
 import { DefaultExplorationBodyQuery } from './application/default-exploration-body-query.js'
-import { DefaultExplorationTargetQuery } from './application/default-exploration-target-query.js'
 import type { CopilotText } from './application/copilot-text-service.js'
 import type { CopilotRealtime } from './application/copilot-realtime-service.js'
 import type { ExternalCartographySource } from './domain/cartography.js'
-import type { ExplorationTargetSearchSource } from './domain/exploration-target.js'
-import type { FactionPresenceSearchSource, OutfittingSearchSource, ShipyardSearchSource, StationLookupSource, StationSearchSource, StationStockSource, SystemSearchSource } from './domain/station-market.js'
 import type { GalnetSource } from './domain/galnet.js'
 import type { OpenAiSecretRepository, SystemSettingsRepository } from './domain/system-configuration.js'
 import type { MacroRepository } from './domain/macros.js'
@@ -122,20 +117,8 @@ import { SqliteDatabase } from './infrastructure/sqlite-database.js'
 import { EdsmCartographySource } from './infrastructure/edsm-cartography-source.js'
 import { createConfiguredCopilot } from './infrastructure/configured-copilot.js'
 import { PhoenixMcpServer } from './infrastructure/phoenix-mcp-server.js'
-import { ArdentStationSearchSource } from './infrastructure/ardent-station-search-source.js'
-import { EdsmStationStockSource } from './infrastructure/edsm-station-stock-source.js'
-import { SpanshShipyardSearchSource } from './infrastructure/spansh-shipyard-search-source.js'
-import { SpanshOutfittingSearchSource } from './infrastructure/spansh-outfitting-search-source.js'
-import { SpanshStationLookupSource } from './infrastructure/spansh-station-lookup-source.js'
-import { SpanshMaterialTraderSource } from './infrastructure/spansh-material-trader-source.js'
-import type { MaterialTraderSearchSource, StationServiceSearchSource } from './domain/station-market.js'
-import { SpanshStationServiceSource } from './infrastructure/spansh-station-service-source.js'
-import { SpanshSearchClient } from './infrastructure/spansh-search-client.js'
-import { SpanshSystemSearchSource } from './infrastructure/spansh-system-search-source.js'
-import { SpanshFactionPresenceSource } from './infrastructure/spansh-faction-presence-source.js'
-import { SpanshExplorationTargetSource } from './infrastructure/spansh-exploration-target-source.js'
+import { createGalaxyQueries, type GalaxyQuerySources } from './infrastructure/create-galaxy-queries.js'
 import { CatalogueSnapshotLoader } from './infrastructure/catalogue-snapshot-loader.js'
-import { CatalogueSuggestionService } from './application/catalogue-suggestion-service.js'
 import { ApplicationPaths } from './infrastructure/application-paths.js'
 import { FrontierGalnetSource } from './infrastructure/frontier-galnet-source.js'
 import type { PairingAccessController } from './infrastructure/pairing-access-controller.js'
@@ -144,7 +127,7 @@ import { OpenAiWebSearchSource } from './infrastructure/openai-web-search-source
 import { ControlDeckEliteDestinationInput } from './infrastructure/control-deck-elite-destination-input.js'
 import type { WebSearchSource } from './domain/web-search.js'
 
-export interface PhoenixApplicationOptions {
+export interface PhoenixApplicationOptions extends GalaxyQuerySources {
   applicationPaths?: ApplicationPaths
   eliteBindings?: EliteDangerousBindingSource
   accessControl?: PairingAccessController
@@ -170,16 +153,6 @@ export interface PhoenixApplicationOptions {
   port?: number
   personalEquipmentCataloguePath?: string
   shipCataloguePath?: string
-  stationSearchSource?: StationSearchSource
-  shipyardSearchSource?: ShipyardSearchSource
-  outfittingSearchSource?: OutfittingSearchSource
-  stationLookupSource?: StationLookupSource
-  materialTraderSource?: MaterialTraderSearchSource
-  stationServiceSource?: StationServiceSearchSource
-  systemSearchSource?: SystemSearchSource
-  factionPresenceSource?: FactionPresenceSearchSource
-  explorationTargetSource?: ExplorationTargetSearchSource
-  stationStockSource?: StationStockSource
   systemSettingsRepository?: SystemSettingsRepository
   webPort?: number
   webRoot?: string
@@ -470,29 +443,9 @@ export class PhoenixApplication {
     )
     const navigation = new DefaultNavigationQuery(navigationRoutes, cartography, this.stateStore)
     const systems = new DefaultSystemDetailsQuery(cartography, this.stateStore)
-    const spansh = new SpanshSearchClient()
-    const stationSearchSource = options.stationSearchSource ?? new ArdentStationSearchSource({
-      resolveCommodity: identifier => gameCatalogue.resolveCommodity(identifier)
-    })
-    const shipyards = options.shipyardSearchSource ?? new SpanshShipyardSearchSource(spansh)
-    const outfitting = options.outfittingSearchSource ?? new SpanshOutfittingSearchSource(spansh)
-    const catalogueSuggestions = new CatalogueSuggestionService(gameCatalogue, shipyards, outfitting)
-    const stationMarkets = new DefaultStationMarketQuery(
-      stationSearchSource,
-      options.stationStockSource ?? new EdsmStationStockSource(),
-      shipyards,
-      outfitting,
-      options.stationLookupSource ?? new SpanshStationLookupSource(spansh),
-      options.systemSearchSource ?? new SpanshSystemSearchSource(spansh),
-      options.factionPresenceSource ?? new SpanshFactionPresenceSource(spansh),
-      cartography,
-      this.stateStore,
-      this.database,
-      undefined,
-      options.materialTraderSource ?? new SpanshMaterialTraderSource(spansh),
-      options.stationServiceSource ?? new SpanshStationServiceSource(spansh)
+    const { stationMarkets, catalogueSuggestions, marketSignals, explorationTargets } = createGalaxyQueries(
+      gameCatalogue, cartography, this.stateStore, this.database, options
     )
-    const marketSignals = new MarketSignalService(stationSearchSource, this.database)
     const dashboardMarketSignals = new DashboardMarketSignalService(savedGalaxyQueries, marketSignals, this.stateStore)
     const galnet = new GalnetNewsService(options.galnetSource ?? new FrontierGalnetSource(), this.database)
     const atlas = new AtlasCatalogueService(options.atlasSources ?? atlasPoiSources(), this.database, undefined,
@@ -516,12 +469,6 @@ export class PhoenixApplication {
     )
     const exploration = new DefaultExplorationBodyQuery(this.database, cartography, this.stateStore)
     const explorationData = new ExplorationDataService(this.database, this.database)
-    const explorationTargets = new DefaultExplorationTargetQuery(
-      options.explorationTargetSource ?? new SpanshExplorationTargetSource(spansh),
-      cartography,
-      this.stateStore,
-      this.database
-    )
     let copilotTools: ReturnType<typeof createPhoenixMcpTools> = []
     const copilotCapabilities = new DefaultCopilotCapabilityService(
       () => copilotTools.map(tool => tool.definition),
