@@ -248,10 +248,15 @@ export class EddnContributionService {
         this.error = 'An invalid queued observation was discarded.'
         return
       }
-      if (!this.fresh(next.message.message.timestamp) || Date.parse(String(next.message.message.timestamp)) < this.enabledSince) {
+      if (!this.fresh(next.message.message.timestamp)) {
         const timestamp = Date.parse(String(next.message.message.timestamp))
         this.options.outbox.drop(next.id, Number.isFinite(timestamp) && timestamp <= this.now() ? 'expired' : 'invalid', this.now())
         this.error = 'An expired or invalid queued observation was discarded.'
+        return
+      }
+      if (Date.parse(String(next.message.message.timestamp)) < this.enabledSince) {
+        this.options.outbox.drop(next.id, 'cleared', this.now())
+        this.error = 'An observation from before the current opt-in was cleared.'
         return
       }
       const abort = new AbortController()

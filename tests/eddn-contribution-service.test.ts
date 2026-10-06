@@ -128,6 +128,19 @@ describe('EDDN contribution lifecycle', () => {
     expect(f.outbox.status().queued).toBe(1)
   })
 
+  test('failed preference clears cannot send old rows or classify them as age expiry', async () => {
+    const f = fixture()
+    f.service.observe(f.event, { id: 'before-opt-in', replayed: false })
+    const clear = vi.spyOn(f.outbox, 'clear').mockImplementation(() => { throw new Error('Synthetic failed clear') })
+    f.advance(1000)
+    f.service.setEnabled(false)
+    f.service.setEnabled(true)
+    clear.mockRestore()
+    await f.service.flush()
+    expect(f.send).not.toHaveBeenCalled()
+    expect(f.service.status()).toMatchObject({ queued: 0, losses: [{ reason: 'cleared', count: 1 }] })
+  })
+
   test('storage failures do not propagate into journal projection; queue capacity is bounded', async () => {
     const f = fixture()
     vi.spyOn(f.outbox, 'enqueue').mockImplementationOnce(() => { throw new Error('private path') })
