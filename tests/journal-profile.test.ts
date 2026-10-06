@@ -44,3 +44,9 @@ test('isolated diagnostic exercises bootstrap, tail, reset, history and checkpoi
 test('invalid diagnostic bounds fail before creating an application or workload', async () => {
   await expect(run(process.execPath, ['--import', 'tsx', script, '--large=not-a-number'])).rejects.toMatchObject({ code: 1 })
 })
+
+test('worker cleanup errors disconnect IPC and fail the diagnostic rather than wait for its kill timer', async () => {
+  const preload = fileURLToPath(new URL('./fixtures/journal-profile-stop-failure.mjs', import.meta.url))
+  await expect(run(process.execPath, ['--import', 'tsx', '--import', preload, script, '--small=8', '--large=32', '--repeats=1'], { timeout: 25_000 }))
+    .rejects.toMatchObject({ code: 1, killed: false, stderr: expect.stringContaining('Fixture cleanup failure') })
+}, 30_000)

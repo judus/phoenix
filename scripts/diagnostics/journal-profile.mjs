@@ -59,6 +59,7 @@ async function profile(count) {
   })
   const timeout = setTimeout(() => child.kill(), 120_000)
   let streamController, streamTask, streamError
+  let runError
   let streamRevision = -1, streamCount = 0, streamPhase
   try {
     await Promise.race([readiness, exit.then(() => { throw new Error('Worker exited before readiness.') })])
@@ -134,13 +135,19 @@ async function profile(count) {
     if (history.history.linesProcessed !== count || checkpoint.history.linesProcessed !== 0) throw new Error('Historical records/checkpoint replay did not match the fixture.')
     return { lines: count, bytes: { bootstrap: Buffer.byteLength(initial), tail: Buffer.byteLength(tail), reset: Buffer.byteLength(reset), history: Buffer.byteLength(historical) },
       phases: { bootstrap, idle, tail: appended, reset: truncated, history, checkpoint } }
-  } finally {
+  } catch (error) { runError = error; throw error }
+  finally {
     streamController?.abort()
     await streamTask
-    if (child.connected) await request('stop').catch(() => {})
-    await exit
-    clearTimeout(timeout)
-    rmSync(directory, { recursive: true, force: true })
+    try {
+      if (child.connected) await request('stop')
+    } catch (error) {
+      throw runError ? new AggregateError([runError, error], 'Journal diagnostic and cleanup failed.') : error
+    } finally {
+      await exit
+      clearTimeout(timeout)
+      rmSync(directory, { recursive: true, force: true })
+    }
   }
 }
 

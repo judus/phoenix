@@ -59,10 +59,14 @@ process.on('message', async ({ id, operation }) => {
   try {
     if (operation === 'stop') {
       await application.stop()
-      process.removeListener('disconnect', disconnected)
       process.send({ type: 'result', id })
-      process.disconnect()
     } else process.send({ ...await measure(operation), id })
   } catch (error) { process.send({ type: 'result', id, error: error.message }) }
+  finally {
+    if (operation === 'stop') {
+      process.removeListener('disconnect', disconnected)
+      process.disconnect()
+    }
+  }
 })
 process.send({ type: 'ready' })
