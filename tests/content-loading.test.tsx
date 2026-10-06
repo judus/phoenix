@@ -18,6 +18,7 @@ test('loading is announced while its decorative Phoenix remains hidden from assi
 test('content replaces loading immediately and errors never show the animation', async () => {
   const renderer = await renderWithAct(<EquipmentPageLayout busy loadingMessage="Loading equipment…" title="Gear" />)
   expect(renderer.root.findAllByType(Loading)).toHaveLength(1)
+  expect(renderer.root.findByType('main').props['aria-busy']).toBeUndefined()
   expect(renderer.root.findByType('h1').children).toEqual(['Gear'])
   await act(async () => renderer.update(<EquipmentPageLayout title="Gear"><p>Equipment ready</p></EquipmentPageLayout>))
   expect(renderer.root.findAllByType(Loading)).toHaveLength(0)
@@ -26,4 +27,10 @@ test('content replaces loading immediately and errors never show the animation',
   expect(renderer.root.findAllByType(Loading)).toHaveLength(0)
   expect(JSON.stringify(renderer.toJSON())).toContain('Equipment unavailable')
   await act(async () => renderer.unmount())
+})
+
+test('loaded equipment retains its busy state without suppressing a loading announcement', () => {
+  const markup = renderToStaticMarkup(<EquipmentPageLayout busy title="Gear"><p>Updating equipment</p></EquipmentPageLayout>)
+  expect(markup).toContain('aria-busy="true"')
+  expect(markup).not.toContain('class="loading"')
 })

@@ -76,7 +76,7 @@ export function ExobiologyPage({ controller }: { controller: GalaxyControllerSna
 
 function ExobiologyState({ error }: { error?: string }) {
   return (
-    <PageFrame layout="fit" aria-busy={!error}>
+    <PageFrame layout="fit">
       <Stack fill gap="xl">
         <ExobiologyHeader />
         {error ? <Status tone="danger">{error}</Status> : <Loading>Reconstructing journal-backed exobiology records…</Loading>}

@@ -22,7 +22,7 @@ export function CommanderPage({ model, runtime, view }: {
 }) {
   if (runtime.status !== 'ready' || !model) {
     return (
-      <PageFrame className="record-page" layout="fit" aria-busy={runtime.status !== 'error'}>
+      <PageFrame className="record-page" layout="fit">
         <div className="record-page-layout">
           <CommanderHeader view={view} />
           {runtime.status === 'error' ? <Status tone="danger">{runtime.error}</Status>

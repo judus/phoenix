@@ -68,7 +68,7 @@ export function EngineeringPage({ controller, onNavigate, route }: {
 
 function EngineeringState({ error, title }: { error?: string, title: string }) {
   return (
-    <PageFrame layout="fit" aria-busy={!error}>
+    <PageFrame layout="fit">
       <Stack fill gap="sm">
         <EngineeringHeader title={title} trail={[{ label: title }]} />
         {error ? <Status tone="danger">{error}</Status> : <Loading>Loading engineering records…</Loading>}

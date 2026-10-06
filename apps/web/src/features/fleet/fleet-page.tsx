@@ -95,7 +95,7 @@ export function FleetPage({ controller, devicePreferences, onExecuteAction, onNa
 
 function FleetState({ error, status, title }: { error?: string, status: 'idle' | 'loading' | 'error', title: string }) {
   return (
-    <PageFrame className="fleet-state" layout="fit" aria-busy={status !== 'error'}>
+    <PageFrame className="fleet-state" layout="fit">
       <PageHeader variant="cockpit" title={title} />
       {status === 'error' ? <Status tone="danger">{error}</Status> : <Loading>{`Loading ${title.toLowerCase()}…`}</Loading>}
     </PageFrame>

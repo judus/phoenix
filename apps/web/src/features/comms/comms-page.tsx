@@ -44,7 +44,7 @@ export function CommsPage({ controller, onExecuteAction, view }: {
 
 function CommsState({ error, title }: { error?: string, title: string }) {
   return (
-    <PageFrame layout="fit" aria-busy={!error}>
+    <PageFrame layout="fit">
       <Stack fill gap="xl">
         <CommsHeader title={title} />
         {error ? <Status tone="danger">{error}</Status> : <Loading>Reading retained communications…</Loading>}

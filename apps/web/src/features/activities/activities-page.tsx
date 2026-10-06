@@ -63,7 +63,7 @@ export function ActivitiesPage({ controller, view }: {
 
 function ActivitiesState({ error, title }: { error?: string, title: string }) {
   return (
-    <PageFrame layout="fit" aria-busy={!error}>
+    <PageFrame layout="fit">
       <Stack fill gap="xl">
         <ActivitiesHeader title={title} />
         {error ? <Status tone="danger">{error}</Status> : <Loading>Reconstructing journal-backed mission records…</Loading>}

@@ -12,7 +12,7 @@ export function EquipmentPageLayout({ busy = false, children, error, loadingMess
   updatedAt?: string | null
 }) {
   return (
-    <PageFrame className="record-page" layout="fit" aria-busy={busy || undefined}>
+    <PageFrame className="record-page" layout="fit" aria-busy={(busy && !loadingMessage) || undefined}>
       <div className="record-page-layout">
         <PageHeader
           variant="cockpit"
