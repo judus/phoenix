@@ -73,7 +73,8 @@ initial gap findings; this section records their current disposition.
 - Delivery now uses gzip and a 2 MiB uncompressed safety cap. History is bounded by 100 entries,
   seven days and 16 MiB. A 2,500-system route passes without truncation.
 - Package version advances to 0.1.3 to identify the changed submission content. The pin/hash
-  manifest is `resources/eddn/upstream.json`; the scheduled/later checker is not implemented yet.
+  manifest is `resources/eddn/upstream.json`. The opt-in [read-only upstream checker](eddn-upstream-checker.md)
+  detects revision/schema/documentation drift; it never updates mappings or waives readiness gates.
 
 ## Remaining gaps, not waived
 

@@ -1,0 +1,2 @@
+# Vendored EDDN schemas must retain upstream bytes for SHA-256 and Git-blob verification.
+resources/eddn/*-v*.json -text
