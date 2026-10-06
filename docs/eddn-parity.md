@@ -107,11 +107,16 @@ Do not replace the allowlist with EDMC's generic pass-through-minus-exclusions j
 Our source-only deduplication, finite queue/24-hour expiry and no bootstrap/history upload are
 intentional safety policies, not demonstrated EDMC equivalents. Durable queue-loss accounting is
 implemented below; still review offline retention policy, long-running journal file rotation/session
-continuity, and busy-system memory-only signal loss on crashes.
+continuity, including multipart files and skipped intermediate files.
 Pinning schemas alone cannot establish these invariants. New families also need authorized
 gameplay acceptance and native Windows packaging validation. Until then, keep the test-only gate.
 
 Delivery-accounting follow-up: persistent reason totals now cover queue expiry, invalid queued
 documents, HTTP rejection, capacity-skipped admission and deliberate clearing. Success and history
 expiry no longer erase this evidence. Existing 24-hour retention and retry reservations remain;
-memory-only signal crash loss, rotation/session continuity and gameplay acceptance are still open.
+open signal batches now checkpoint their last public envelope inside the bounded outbox. Resolved
+checkpoints recover through ordinary validation; unresolved pre-arrival markers are counted invalid,
+not reconstructed from bootstrap. Oversize/capacity skips and session clears are accounted for.
+Failed writes cannot preserve new data; full multipart rotation/session continuity and gameplay
+acceptance are still open. Capacity rejection before draft admission also lacks a loss retry when
+the counter write fails (#108). This is not a full EDMC delivery-policy equivalence claim.

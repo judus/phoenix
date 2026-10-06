@@ -80,7 +80,7 @@ test('delivery losses stay visible alongside accepted attempts with no current e
     await act(async () => { renderer = create(<EddnPage api={api} />) })
     const markup = JSON.stringify(renderer.toJSON())
     expect(markup).toContain('7 expired')
-    expect(markup).toContain('2 cleared by preference/build policy')
+    expect(markup).toContain('2 cleared by preference/build policy or session reset')
     expect(markup).toContain('Accepted · HTTP 200')
   } finally { if (renderer) await act(async () => renderer.unmount()) }
 })

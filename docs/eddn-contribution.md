@@ -71,12 +71,14 @@ upload attempts, not bootstrap replays or observations skipped before queueing.
 
 Settings and DEV also show persistent delivery totals: expired queue entries, invalid/corrupt
 queued documents, permanent HTTP rejections, admissions skipped because the queue/receipt limit
-was reached, and deliberate clears due to preference/build policy. Clears are labelled separately
+was reached, and deliberate clears due to preference/build policy or session resets. Clears are labelled separately
 from delivery failures. Counts and the latest occurrence time per reason are stored locally without
 payloads, observation IDs or commander details. There are at most five aggregate rows; success,
 restart, opting out and attempt-history retention do not reset them. Accounting begins when this
 version first records a loss; earlier losses cannot be reconstructed. Pre-queue context/schema
-filtering and unflushed signal batches are not counted, so these are not total gameplay coverage.
+filtering and failed checkpoint writes are not counted, so these are not total gameplay coverage.
+If capacity rejects a signal before any draft is admitted and the loss-counter write also fails,
+that rejection is not retried in the totals yet; bounded, once-only accounting is tracked in #108.
 Queue removals and their counters are atomic: an accounting failure leaves the pending row intact.
 
 For an authorized local development run, add `PHOENIX_EDDN_TEST_MODE=1` to the ignored `.env`
@@ -105,9 +107,28 @@ can be observed again. Source receipts remain the durable deduplication mechanis
 FSSSignalDiscovered is buffered for a contiguous journal run, with incoming arrival context used
 for Odyssey's pre-arrival ordering. Mission targets, localised strings and TimeRemaining are not
 forwarded. Bootstrap, opt-out, commander and crew boundaries discard pending runs; a normal stop
-can enqueue a run only against established context. Pending runs are memory-only until closed;
-a crash can lose one. Oversized runs are dropped with a diagnostic, never truncated into a false
-complete observation. No observations are submitted while joined to another captain's crew.
+can enqueue a run only against established context. Each accepted public signal checkpoints the
+one public signal record under an unsealed row in the existing outbox; ordinary delivery cannot send it until
+the run closes. Checkpoints share the same queue/byte/receipt/age bounds, not an additional spool.
+Appending does not rebuild/validate/rewrite the whole run for each event. A per-batch byte counter
+keeps checkpoint storage inside the shared budget. Closure or startup assembles the envelope once
+and atomically replaces its checkpoint records with a sealed row. On restart, that last durable
+run becomes eligible for ordinary schema, age and opt-in checks.
+An unresolved pre-arrival run stores only a null marker, not raw events or guessed system context;
+it is counted as invalid if recovery or shutdown cannot resolve it. Bootstrap cannot supply missing
+arrival evidence or extend a recovered run. Oversized runs and draft growth rejected by capacity
+are skipped as a whole with persistent invalid/capacity accounting. Session/crew/replay resets
+discard the current unsealed row with a cleared count; recovered sealed rows remain independent.
+Failed session discards retain only their IDs/reasons for retry, not the old event/context buffer.
+Duplicate source runs are suppressed and draft cleanup cannot delete a sealed original or its lease.
+No observations are submitted while joined to another captain's crew.
+
+Failed non-capacity checkpoint writes remain visible and memory is retained for a later closing retry; a closed
+run captures its original context so a retry cannot attach it to a later system. Only the last
+successfully written checkpoint is crash-safe: storage failure before a write cannot preserve that
+new signal. This is not a guarantee that all game signals or a whole interrupted run were collected.
+Journal file changes retain the current conservative Fileheader reset; same-session multipart
+continuity and discovery of skipped intermediate files remain a separate readiness review.
 
 Codex uses explicit journal BodyID when present. A missing ID is inferred only when journal and
 Status body names agree. Stale Status from before a location boundary cannot augment a new system.
@@ -116,7 +137,8 @@ coordinates remain excluded. The settings disclosure includes routes, signals an
 
 Startup rereads rebuild context but **do not submit** those historical lines. Historical backfill
 is never connected to contribution. This intentionally does not backfill observations from while
-PHOENIX was stopped. Only already-enqueued messages survive downtime for later delivery.
+PHOENIX was stopped. Only already-enqueued messages and durable signal checkpoints survive downtime
+for later validation/delivery; startup replay never contributes new historical observations.
 Source identity hashes file path, record end offset and original line; it is kept locally, not sent.
 Receipts deduplicate repeated observations even after acknowledgement.
 
