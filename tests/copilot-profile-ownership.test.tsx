@@ -192,14 +192,20 @@ test.each(['Enter', ' '])('profile roster supports keyboard selection with %s', 
   } finally { await act(async () => renderer.unmount()) }
 })
 
-test('profiles header has breadcrumb and title only, with supporting text in the status slot', async () => {
+test('profiles header provides the standard creation action without redundant supporting text', async () => {
   const renderer = await mount(apiWith())
   try {
     const header = renderer.root.findByProps({ className: 'page-header page-header-cockpit' })
     expect(header.props.className).toContain('page-header-cockpit')
     expect(header.findAllByType('p')).toHaveLength(0)
     expect(header.findAllByProps({ 'aria-label': 'Breadcrumb' })).toHaveLength(1)
-    expect(header.findByProps({ className: 'page-status' }).children.join('')).toContain('Select, create, and tune Copilot characters.')
+    expect(header.findAllByProps({ className: 'page-status' })).toHaveLength(0)
+    const button = header.findByType('button')
+    expect(button.children.join('')).toBe('New profile')
+    expect(button.props.className).toContain('btn-outline')
+    expect(renderer.root.findByType('aside').findAllByType('button')).toHaveLength(0)
+    await act(async () => button.props.onClick())
+    expect(name(renderer)).toBe('')
   } finally { await act(async () => renderer.unmount()) }
 })
 

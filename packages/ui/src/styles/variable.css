@@ -121,7 +121,6 @@
     /* Page composition roles. */
     --page-padding-inline: var(--spacing-sm);
     --page-padding-block: var(--spacing-sm);
-    --roster-columns: minmax(13rem, 0.45fr) minmax(0, 1.55fr);
     --page-title-size: var(--font-size-xxl);
     --page-header-title: var(--color-text);
     --page-header-border-width: 1px;

@@ -211,7 +211,7 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
 
   return <PageFrame className={`copilot-page copilot-page-${view}`} layout="fit">
     {view === 'profiles'
-      ? <PageHeader context={<Breadcrumbs items={[{ label: 'Copilot' }, { label: 'Profiles' }]} />} title="Profiles" variant="cockpit" status={error ?? voice.error ?? 'Select, create, and tune Copilot characters.'} />
+      ? <PageHeader context={<Breadcrumbs items={[{ label: 'Copilot' }, { label: 'Profiles' }]} />} title="Profiles" variant="cockpit" status={error ?? voice.error} actions={<Button size="sm" variant="outline" onClick={() => void create()}>New profile</Button>} />
       : null}
     {view === 'chat'
       ? <div className="copilot-workspace">
@@ -272,7 +272,6 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
                 <th scope="row"><strong>{profile.name}</strong>{profile.description && <small>{profile.description}</small>}</th>
               </tr>)}</tbody>
             </DataTable>
-            <CommandTile aria-label="New profile" compact details={false} label="New profile" onClick={() => void create()} />
           </aside>
           {draft ? <ProfileEditor key={draft.id} capabilities={profileCapabilities} draft={draft} profileError={profileError} permissionsError={permissionsError} permissionsPending={permissionsPending} saving={saving} onChange={updateDraft} onSave={save} onSavePermissions={saveProfilePermissions} /> : <Status tone="muted">Select a profile to inspect its character prompts.</Status>}
         </div>}
