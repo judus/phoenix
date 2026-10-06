@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Expand Credits with missing catalogue, Atlas, recipe-reference, contribution and font attributions;
+  correct provider descriptions and starter-catalogue notices.
 - Consolidate installer and real-play acceptance evidence, with explicit outstanding platform,
   tablet and gameplay checks for each build.
 - Add an opt-in, read-only EDDN upstream checker for reviewing schema and protocol changes;

@@ -4,7 +4,7 @@ export const PERSONAL_EQUIPMENT_SOURCE = Object.freeze({
   name: 'Elite Dangerous Almanac',
   repository: 'https://github.com/DarkSession/Elite-Dangerous-Almanac',
   revision: '362210e98b334cd7575d0734301c66c8bd2d17bd',
-  license: 'AGPL-3.0-or-later',
+  license: 'MIT (code); source-specific game-data terms',
   paths: Object.freeze([
     'data/equipment/suits.jsonc',
     'data/equipment/weapons.jsonc',
