@@ -67,5 +67,7 @@ corrected execution and the Realtime bridge. `tests/phoenix-mcp.test.ts` verifie
 MCP feedback, a corrected follow-up, and safe disk-backed text conversation persistence.
 Provider and application-specific tests verify the corresponding domain corrections.
 
-PHOENIX consumes the pinned library archive under `vendor/llm-client`. This audit does not
-publish or change that dependency, and does not authorize retries or game input.
+PHOENIX server and Copilot pin the published npm package `@jdu/llm-client` to version `0.1.3`,
+which includes structured tool-usage corrections and preserved MCP error feedback. The lockfile
+records the registry artifact and its integrity; no patched local LLM archive is required.
+Tool-error corrections do not authorize retries or game input.
