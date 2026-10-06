@@ -38,7 +38,8 @@ async function mount(api: PhoenixApi, view: 'profiles' | 'chat' = 'profiles'): P
   await act(async () => { renderer = create(page(api, view)) })
   return renderer
 }
-function click(renderer: ReactTestRenderer, label: string) { renderer.root.findAllByType('button').find(button => button.children.join('') === label)!.props.onClick() }
+function click(renderer: ReactTestRenderer, label: string) { renderer.root.findAll(node => node.type === 'button' || node.type === 'tr').find(node => node.props['aria-label'] === label || node.children.join('') === label)!.props.onClick() }
+function selectedProfiles(renderer: ReactTestRenderer) { return renderer.root.findByType('table').findAllByType('tr').filter(row => row.props['aria-selected']).map(row => row.props['aria-label']) }
 function name(renderer: ReactTestRenderer) { return renderer.root.findAllByType('input')[0]!.props.value }
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -51,9 +52,54 @@ test('the active profile editor loads on entry without a profile-button click', 
   const renderer = await mount(apiWith())
   try {
     expect(name(renderer)).toBe('Alpha')
+    expect(selectedProfiles(renderer)).toEqual(['Alpha'])
     expect(renderer.root.findByType(CopilotPermissionEditor).props.permissions.enabledCapabilityIds).toEqual(['Alpha'])
     expect(renderer.root.findByType(CopilotPermissionEditor).props.profileLoad).toEqual(capabilities('Alpha').capabilities.load)
     expect(renderer.root.findAllByProps({ className: 'copilot-load' })).toHaveLength(1)
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('profile roster follows the editor without switching the chat profile', async () => {
+  const api = apiWith({ selectCopilotProfile: vi.fn() })
+  const renderer = await mount(api)
+  try {
+    await act(async () => click(renderer, 'Beta'))
+    expect(name(renderer)).toBe('Beta')
+    expect(selectedProfiles(renderer)).toEqual(['Beta'])
+    const table = renderer.root.findByType('table')
+    expect(table.props.className).toContain('data-table compact surface')
+    expect(table.findByType('caption').children.join('')).toBe('Profiles to edit')
+    for (const row of table.findAllByType('tr')) {
+      expect(row.props.tabIndex).toBe(0)
+      expect(row.findByType('th').props.scope).toBe('row')
+    }
+    expect(table.findAllByType('button')).toHaveLength(0)
+    expect(api.selectCopilotProfile).not.toHaveBeenCalled()
+    await act(async () => click(renderer, 'New profile'))
+    expect(selectedProfiles(renderer)).toEqual([])
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test.each(['Enter', ' '])('profile roster supports keyboard selection with %s', async key => {
+  const renderer = await mount(apiWith())
+  try {
+    const row = renderer.root.findAllByType('tr').find(row => row.props['aria-label'] === 'Beta')!
+    const preventDefault = vi.fn()
+    await act(async () => row.props.onKeyDown({ key, preventDefault }))
+    expect(preventDefault).toHaveBeenCalledOnce()
+    expect(name(renderer)).toBe('Beta')
+    expect(selectedProfiles(renderer)).toEqual(['Beta'])
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('profiles header has breadcrumb and title only, with supporting text in the status slot', async () => {
+  const renderer = await mount(apiWith())
+  try {
+    const header = renderer.root.findByProps({ className: 'page-header page-header-cockpit' })
+    expect(header.props.className).toContain('page-header-cockpit')
+    expect(header.findAllByType('p')).toHaveLength(0)
+    expect(header.findAllByProps({ 'aria-label': 'Breadcrumb' })).toHaveLength(1)
+    expect(header.findByProps({ className: 'page-status' }).children.join('')).toContain('Select, create, and tune Copilot characters.')
   } finally { await act(async () => renderer.unmount()) }
 })
 
@@ -84,8 +130,22 @@ test.each(['resolve', 'reject'] as const)('profile reads ignore obsolete %s afte
     await act(async () => click(renderer, 'Beta'))
     await act(async () => outcome === 'resolve' ? old.resolve(document('Alpha')) : old.reject(new Error('obsolete profile read')))
     expect(name(renderer)).toBe('Beta')
+    expect(selectedProfiles(renderer)).toEqual(['Beta'])
     expect(JSON.stringify(renderer.toJSON())).not.toContain('obsolete profile read')
     expect(api.getCopilotProfile).toHaveBeenCalledWith('Alpha', expect.any(AbortSignal))
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('profile highlight stays with the loaded draft while another profile loads or fails', async () => {
+  const loading = deferred<ReturnType<typeof document>>()
+  const api = apiWith({ getCopilotProfile: vi.fn().mockImplementation(id => id === 'Beta' ? loading.promise : Promise.resolve(document(id))) })
+  const renderer = await mount(api)
+  try {
+    act(() => click(renderer, 'Beta'))
+    expect(selectedProfiles(renderer)).toEqual(['Alpha'])
+    await act(async () => loading.reject(new Error('Profile unavailable')))
+    expect(name(renderer)).toBe('Alpha')
+    expect(selectedProfiles(renderer)).toEqual(['Alpha'])
   } finally { await act(async () => renderer.unmount()) }
 })
 

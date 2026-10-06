@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Copilot Profiles highlights the profile being edited, uses the ship-catalogue-style roster, and keeps
+  supporting header text in the compact top-right status slot.
 - Show AI load only for individual Copilot profiles, not the installation-wide permission ceiling.
 - Credit the community-maintained Elite Dangerous Wiki and use standard breadcrumbs on Credits,
   Commander log and Macros.

@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import type { CopilotHistoryMessage, CopilotProfileCapabilitySettings, CopilotProfileDocument, CopilotPermissionPolicy } from '@phoenix/contracts'
-import { Button, CommandTile, DescriptionItem, DescriptionList, Field, Form, FormActions, FormGrid, Identity, PageFrame, PageHeader, Section, Select, Status, Textarea, TextInput, Widget } from '@phoenix/ui'
+import { Breadcrumbs, Button, CommandTile, DataTable, DescriptionItem, DescriptionList, Field, Form, FormActions, FormGrid, Identity, PageFrame, PageHeader, Section, Select, Status, Textarea, TextInput, Widget } from '@phoenix/ui'
 import type { PhoenixApi, CopilotStreamEvent } from '../../application/api/phoenix-api.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
 import type { ClientIdentity } from '../../application/identity/client-identity.js'
@@ -201,7 +201,7 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
 
   return <PageFrame className={`copilot-page copilot-page-${view}`} layout="fit">
     {view === 'profiles'
-      ? <PageHeader context="Copilot" title="Profiles" description="Select, create, and tune Copilot characters." status={error ?? voice.error} />
+      ? <PageHeader context={<Breadcrumbs items={[{ label: 'Copilot' }, { label: 'Profiles' }]} />} title="Profiles" variant="cockpit" status={error ?? voice.error ?? 'Select, create, and tune Copilot characters.'} />
       : null}
     {view === 'chat'
       ? <div className="copilot-workspace">
@@ -242,7 +242,30 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
             </div>
           </div>
         </div>
-      : <div className="copilot-profiles"><aside><ul>{voice.profiles.map(profile => <li key={profile.id}><Button alignment="start" variant={profile.id === voice.activeProfile.id ? 'accent' : 'quiet'} onClick={() => void edit(profile.id)}>{profile.name}</Button></li>)}</ul><Button variant="outline" onClick={() => void create()}>New profile</Button></aside>{draft ? <ProfileEditor capabilities={profileCapabilities} draft={draft} permissionsPending={permissionsPending} saving={saving} onChange={updateDraft} onSave={save} onSavePermissions={saveProfilePermissions} /> : <Status tone="muted">Select a profile to inspect its character prompts.</Status>}</div>}
+      : <div className="copilot-profiles">
+          <aside>
+            <DataTable density="compact" label="Profiles to edit" narrow="priority" scheme="surface">
+              <tbody>{voice.profiles.map(profile => <tr
+                aria-label={profile.name}
+                aria-selected={profile.id === draft?.id}
+                className={profile.id === draft?.id ? 'active' : undefined}
+                key={profile.id}
+                tabIndex={0}
+                onClick={() => void edit(profile.id)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    void edit(profile.id)
+                  }
+                }}
+              >
+                <th scope="row"><strong>{profile.name}</strong>{profile.description && <small>{profile.description}</small>}</th>
+              </tr>)}</tbody>
+            </DataTable>
+            <CommandTile aria-label="New profile" compact details={false} label="New profile" onClick={() => void create()} />
+          </aside>
+          {draft ? <ProfileEditor capabilities={profileCapabilities} draft={draft} permissionsPending={permissionsPending} saving={saving} onChange={updateDraft} onSave={save} onSavePermissions={saveProfilePermissions} /> : <Status tone="muted">Select a profile to inspect its character prompts.</Status>}
+        </div>}
   </PageFrame>
 }
 
