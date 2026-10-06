@@ -171,7 +171,7 @@ function serviceFixture () {
   const observe = (event: EliteJournalEvent, replayed = false) => service.observe(event, { id: String(++id), replayed })
   for (const event of [header, load, location]) observe(event, true)
   cleanup.push(async () => { await service.stop(); connection.close() })
-  const messages = () => (connection.prepare('SELECT document FROM eddn_outbox ORDER BY rowid').all() as Array<{ document: string }>).map(row => JSON.parse(row.document))
+  const messages = () => (connection.prepare('SELECT document FROM eddn_outbox WHERE ready = 1 ORDER BY rowid').all() as Array<{ document: string }>).map(row => JSON.parse(row.document))
   return { service, outbox, send, readSnapshot, observe, messages }
 }
 const signal = { timestamp, event: 'FSSSignalDiscovered', SystemAddress: 123, SignalName: 'Public Signal', TimeRemaining: 77, SignalName_Localised: 'private' }
@@ -290,5 +290,34 @@ describe('expanded EDDN ingestion sequences', () => {
     await f.service.stop()
     expect(f.messages()).toHaveLength(1)
     expect(f.send).not.toHaveBeenCalled()
+  })
+
+  test('an open signal batch is durable but not sendable before its run closes', async () => {
+    const f = serviceFixture()
+    f.observe(signal)
+    f.observe({ ...signal, SignalName: 'Second' })
+    expect(f.outbox.status().queued).toBe(1)
+    expect(f.outbox.next(now)).toBeUndefined()
+    await f.service.flush()
+    expect(f.send).not.toHaveBeenCalled()
+    f.observe({ timestamp, event: 'Music' })
+    await f.service.flush()
+    expect(f.send).toHaveBeenCalledOnce()
+    expect(f.send.mock.calls[0][0].message.signals).toEqual([
+      { timestamp, SignalName: 'Public Signal' }, { timestamp, SignalName: 'Second' }
+    ])
+  })
+
+  test('oversize rejection is durably counted once even if later uploads succeed', async () => {
+    const f = serviceFixture()
+    f.observe(signal)
+    f.observe({ ...signal, SignalName: 's'.repeat(EDDN_MAX_MESSAGE_BYTES) })
+    f.observe(signal)
+    f.observe({ timestamp, event: 'Music' })
+    f.observe(signal)
+    f.observe({ timestamp, event: 'Music' })
+    await f.service.flush()
+    expect(f.send).toHaveBeenCalledOnce()
+    expect(f.outbox.status()).toMatchObject({ queued: 0, losses: [{ reason: 'invalid', count: 1 }] })
   })
 })

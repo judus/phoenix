@@ -28,6 +28,7 @@ export class EddnContributionService {
   private inflight?: AbortController
   private pending?: Promise<void>
   private readonly signals = new EddnSignalBuffer()
+  private closingSignals?: { message: EddnMessage | null }
   private readonly snapshots = new Map<string, { content: string, at: number }>()
 
   public constructor (private readonly options: Options) {
@@ -73,6 +74,7 @@ export class EddnContributionService {
     this.enabled = enabled
     this.enabledSince = changedAt
     this.signals.clear()
+    this.closingSignals = undefined
     this.snapshots.clear()
     this.inflight?.abort()
     try { if (this.ready) this.options.outbox.clear(this.now()) } catch { this.storageFailure() }
@@ -104,10 +106,14 @@ export class EddnContributionService {
       const reset = ['Fileheader', 'LoadGame', 'JoinACrew', 'QuitACrew'].includes(event.event) ||
         (event.event === 'Music' && event.MusicTrack === 'MainMenu')
       if (reset || source.replayed || !this.active()) {
+        const batch = this.signals.peek()
+        try { if (batch && this.ready) this.options.outbox.drop(batch.id, 'cleared', this.now()) } catch (cause) { this.storageFailure(cause) }
         this.signals.clear()
+        this.closingSignals = undefined
         this.snapshots.clear()
       }
       const arrival = ['FSDJump', 'CarrierJump', 'Location'].includes(event.event)
+      if (this.closingSignals) this.flushSignals()
       // Flush with the incoming location for Odyssey, or the previous location for other events.
       if (!arrival && event.event !== 'FSSSignalDiscovered') this.flushSignals()
       this.builder.observe(event)
@@ -115,7 +121,14 @@ export class EddnContributionService {
       if (!this.active() || source.replayed || Date.parse(event.timestamp) < this.enabledSince || !this.fresh(event.timestamp)) return
       if (!this.builder.canContribute()) return
       if (event.event === 'FSSSignalDiscovered') {
-        if (!this.signals.add(event, source.id)) this.error = 'A signal batch exceeded the safety limit and was skipped.'
+        if (this.closingSignals) return // Failed storage cannot mix runs or their system contexts.
+        if (this.signals.peek()?.overflow) return
+        if (!this.signals.add(event, source.id)) {
+          const batch = this.signals.peek()!
+          this.options.outbox.checkpointSignals(batch.id, null, this.now())
+          this.options.outbox.drop(batch.id, 'invalid', this.now())
+          this.error = 'A signal batch exceeded the safety limit and was skipped.'
+        } else this.checkpointSignals()
         return
       }
       let message: EddnMessage | undefined
@@ -147,18 +160,49 @@ export class EddnContributionService {
   }
 
   private flushSignals (): void {
-    const batch = this.signals.take()
+    const batch = this.signals.peek()
     if (!batch || !this.active()) return
     try {
-      const eligible = batch.events.filter(event => this.fresh(event.timestamp) && Date.parse(event.timestamp) >= this.enabledSince)
-      const message = this.builder.signals(eligible)
-      if (!message) return // Mission-only or wrong-system run: no public observation to submit.
-      if (!this.options.valid(message)) {
+      if (batch.overflow) {
+        this.signals.clear()
+        this.closingSignals = undefined
+        return
+      }
+      if (!this.closingSignals) {
+        const eligible = batch.events.filter(event => this.fresh(event.timestamp) && Date.parse(event.timestamp) >= this.enabledSince)
+        const message = this.builder.signals(eligible)
+        this.closingSignals = { message: message && this.options.valid(message) ? message : null }
+      }
+      if (!this.closingSignals.message) {
+        this.options.outbox.drop(batch.id, 'invalid', this.now())
+        this.signals.clear()
+        this.closingSignals = undefined
         this.error = 'A signal batch was skipped: invalid or oversized observation.'
         return
       }
-      this.options.outbox.enqueue(batch.id, message, this.now())
-    } catch (cause) { this.storageFailure(cause) }
+      this.options.outbox.checkpointSignals(batch.id, this.closingSignals.message, this.now())
+      this.options.outbox.sealSignals(batch.id)
+      this.signals.clear()
+      this.closingSignals = undefined
+    } catch (cause) {
+      if (cause instanceof EddnQueueCapacityError) {
+        this.signals.reject()
+        this.closingSignals = undefined
+      }
+      this.storageFailure(cause)
+    }
+  }
+
+  private checkpointSignals (): void {
+    const batch = this.signals.peek()
+    if (!batch) return // Mission targets are filtered before a batch is created.
+    const message = this.builder.signals(batch.events)
+    try {
+      this.options.outbox.checkpointSignals(batch.id, message && this.options.valid(message) ? message : null, this.now())
+    } catch (cause) {
+      if (cause instanceof EddnQueueCapacityError) this.signals.reject()
+      throw cause
+    }
   }
 
   public flush (): Promise<void> {
@@ -171,6 +215,7 @@ export class EddnContributionService {
   private async sendNext (): Promise<void> {
     if (!this.active()) return
     try {
+      if (this.closingSignals) this.flushSignals()
       this.options.outbox.prune(this.now())
       const next = this.options.outbox.next(this.now())
       if (!next) return

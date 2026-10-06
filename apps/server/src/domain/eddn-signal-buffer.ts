@@ -13,21 +13,24 @@ export class EddnSignalBuffer {
     const signal = eddnSignal(event)
     if (!signal) return true
     if (this.overflow) return false
+    this.firstId ??= id
     this.bytes += Buffer.byteLength(JSON.stringify(signal))
     if (this.bytes > EDDN_MAX_MESSAGE_BYTES - 2048) {
       this.events = []
       this.overflow = true
       return false
     }
-    this.firstId ??= id
     this.events.push(signal)
     return true
   }
 
-  public take (): { id: string, events: EliteJournalEvent[] } | undefined {
-    const result = !this.overflow && this.firstId ? { id: `signals:${this.firstId}`, events: this.events } : undefined
-    this.clear()
-    return result
+  public peek (): { id: string, events: EliteJournalEvent[], overflow: boolean } | undefined {
+    return this.firstId ? { id: `signals:${this.firstId}`, events: this.events, overflow: this.overflow } : undefined
+  }
+
+  public reject (): void {
+    this.events = []
+    this.overflow = true
   }
 
   public clear (): void {

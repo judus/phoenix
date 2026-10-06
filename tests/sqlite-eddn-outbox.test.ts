@@ -152,3 +152,45 @@ function lossFixture(now: number): EddnMessage {
     header: { softwareName: 'PHOENIX', softwareVersion: '0.1.5', uploaderID: 'Synthetic', gameversion: '4.0', gamebuild: '' },
     message: { timestamp: new Date(now).toISOString(), event: 'Location', StarSystem: 'Sol' } }
 }
+
+test('retained pre-checkpoint queues migrate without changing payloads or retry leases', () => {
+  const connection = new DatabaseSync(':memory:')
+  try {
+    connection.exec(`CREATE TABLE eddn_receipts(id TEXT PRIMARY KEY, created_at INTEGER NOT NULL) STRICT;
+      CREATE TABLE eddn_outbox(id TEXT PRIMARY KEY REFERENCES eddn_receipts(id) ON DELETE CASCADE,
+        document TEXT NOT NULL, created_at INTEGER NOT NULL, next_attempt INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0) STRICT;`)
+    const message = lossFixture(1000)
+    connection.prepare('INSERT INTO eddn_receipts VALUES (?, ?)').run('retained', 1000)
+    connection.prepare('INSERT INTO eddn_outbox VALUES (?, ?, ?, ?, ?)').run('retained', JSON.stringify(message), 1000, 76_000, 2)
+    const outbox = new SqliteEddnOutbox(connection)
+    outbox.initialize()
+    outbox.initialize()
+    expect(outbox.next(1000)).toBeUndefined()
+    expect(outbox.next(76_000)).toEqual({ id: 'retained', attempts: 2, message })
+    expect(outbox.checkpointSignals('retained', null, 1000)).toBe(false)
+    expect(outbox.next(76_000)?.message).toEqual(message)
+  } finally { connection.close() }
+})
+
+test('draft updates share queue budgets; capacity rejection removes the whole draft atomically', () => {
+  const connection = new DatabaseSync(':memory:')
+  try {
+    const outbox = new SqliteEddnOutbox(connection)
+    outbox.initialize()
+    const message = lossFixture(1000)
+    outbox.checkpointSignals('signals:first', message, 1000)
+    for (let index = 1; index < 1000; index++) outbox.enqueue(String(index), message, 1000)
+    expect(outbox.checkpointSignals('signals:first', { ...message, message: { ...message.message, extra: 'updated' } }, 1000)).toBe(true)
+    expect(() => outbox.checkpointSignals('signals:rejected', message, 1000)).toThrow('at capacity')
+    expect(outbox.status()).toMatchObject({ queued: 1000, losses: [{ reason: 'capacity', count: 1 }] })
+    connection.exec(`CREATE TRIGGER fail_capacity BEFORE INSERT ON eddn_losses BEGIN SELECT RAISE(ABORT, 'Synthetic accounting failure'); END`)
+    const huge = { ...message, message: { text: 's'.repeat(16 * 1024 * 1024) } }
+    expect(() => outbox.checkpointSignals('signals:first', huge, 1000)).toThrow('Synthetic accounting failure')
+    expect(connection.prepare('SELECT id FROM eddn_outbox WHERE ready = 0').get()).toEqual({ id: 'signals:first' })
+    connection.exec('DROP TRIGGER fail_capacity')
+    expect(() => outbox.checkpointSignals('signals:first', huge, 1000)).toThrow('at capacity')
+    expect(connection.prepare('SELECT id FROM eddn_outbox WHERE ready = 0').get()).toBeUndefined()
+    expect(outbox.status()).toMatchObject({ queued: 999, losses: [{ reason: 'capacity', count: 2 }] })
+    expect(outbox.checkpointSignals('signals:first', message, 1000)).toBe(false)
+  } finally { connection.close() }
+})

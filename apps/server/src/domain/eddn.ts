@@ -1,4 +1,4 @@
-import type { EddnStatus, EddnSubmission, EddnSubmissionDetail } from '@phoenix/contracts'
+import type { EddnLoss, EddnStatus, EddnSubmission, EddnSubmissionDetail } from '@phoenix/contracts'
 
 export type EddnSchema = keyof typeof EDDN_SCHEMA_VERSIONS
 export type EddnMode = 'unavailable' | 'test'
@@ -40,9 +40,11 @@ export interface EddnPendingMessage {
 
 export interface EddnOutbox {
   enqueue(id: string, message: EddnMessage, now: number): boolean
+  checkpointSignals(id: string, message: EddnMessage | null, now: number): boolean
+  sealSignals(id: string): void
   next(now: number): EddnPendingMessage | undefined
   acknowledge(id: string, now: number): void
-  drop(id: string, reason: 'expired' | 'invalid' | 'rejected', now: number): void
+  drop(id: string, reason: EddnLoss['reason'], now: number): void
   beginAttempt(id: string, retryAt: number, now: number): number
   finishAttempt(id: number, outcome: Exclude<EddnSubmission['outcome'], 'sending'>, httpStatus: number | null, now: number, retryAt?: number): void
   submissions(now: number): EddnSubmission[]
