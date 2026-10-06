@@ -26,9 +26,6 @@ import {
   CopilotRealtimeTurnRequestSchema,
   CopilotToolDiagnosticsResponseSchema,
   ExplorationManualCompletionRequestSchema,
-  EngineeringProjectCreateRequestSchema,
-  EngineeringProjectStepCreateRequestSchema,
-  EngineeringProjectUpdateRequestSchema,
   GalaxyBookmarkWriteRequestSchema,
   MacroDefinitionSchema,
   PlotEliteDestinationRequestSchema,
@@ -61,8 +58,6 @@ import type { GameActions } from '../application/game-action-service.js'
 import type { EliteDestinations } from '../domain/elite-destination.js'
 import type { Commands } from '../domain/commands.js'
 import type { HealthCheck } from '../application/health-service.js'
-import type { EngineeringDataReader } from '../application/engineering-data-service.js'
-import type { EngineeringProjects } from '../domain/engineering-projects.js'
 import type { ExplorationDataReader } from '../application/exploration-data-service.js'
 import type { ExplorationTargetReader } from '../application/default-exploration-target-query.js'
 import { DEFAULT_GALAXY_RESULT_LIMIT, type GalaxyDataReader } from '../application/galaxy-data-service.js'
@@ -94,6 +89,7 @@ import type { PairingAccessController } from './pairing-access-controller.js'
 import { activeRouteIPv4Address, serverAccessUrls } from './server-access-urls.js'
 import { HttpRequestValidationError, readJsonBody, readValidatedJsonBody, writeJson } from './http-json.js'
 import { handleSettingsRequest, type SettingsHttpServices } from './settings-http.js'
+import { handleEngineeringRequest, type EngineeringHttpServices } from './engineering-http.js'
 
 const CONTENT_TYPES: Record<string, string> = {
   '.css': 'text/css; charset=utf-8',
@@ -110,7 +106,7 @@ type CopilotConversationEventPayload = CopilotConversationEvent extends infer Ev
     : never
   : never
 
-export interface PhoenixHttpServerOptions extends SettingsHttpServices {
+export interface PhoenixHttpServerOptions extends SettingsHttpServices, EngineeringHttpServices {
   accessControl?: PairingAccessController
   catalogueDiagnostics: CatalogueDiagnosticsReader
   cartographyUpdates: Subscribable<CartographyUpdate>
@@ -136,8 +132,6 @@ export interface PhoenixHttpServerOptions extends SettingsHttpServices {
   eliteJournalDiagnostics: EliteJournalDiagnosticsReader
   eliteNavigationRouteDiagnostics: { getDiagnostics(): EliteNavigationRouteSourceDiagnostics }
   eliteStatusDiagnostics: EliteStatusDiagnosticsReader
-  engineering: EngineeringDataReader
-  engineeringProjects: EngineeringProjects
   explorationData: ExplorationDataReader
   explorationTargets: ExplorationTargetReader
   fleet: FleetDataReader
@@ -720,91 +714,7 @@ export class PhoenixHttpServer {
       return
     }
 
-    if (request.method === 'GET' && url.pathname === '/api/engineering/engineers') {
-      writeJson(response, 200, this.options.engineering.getEngineers())
-      return
-    }
-
-    if (request.method === 'GET' && url.pathname === '/api/engineering/materials') {
-      const category = url.searchParams.get('category')
-      if (category !== null && !isEngineeringMaterialCategory(category)) {
-        writeJson(response, 400, {
-          error: { code: 'invalid_material_category', message: `Unknown material category: ${category}.` }
-        })
-        return
-      }
-      writeJson(response, 200, this.options.engineering.getMaterials(category ?? undefined))
-      return
-    }
-
-    if (request.method === 'GET' && url.pathname === '/api/engineering/blueprints') {
-      writeJson(response, 200, this.options.engineering.getBlueprints())
-      return
-    }
-
-    if (request.method === 'GET' && url.pathname === '/api/engineering/projects') {
-      writeJson(response, 200, this.options.engineeringProjects.getAll())
-      return
-    }
-
-    if (request.method === 'POST' && url.pathname === '/api/engineering/projects') {
-      const input = await readValidatedJsonBody(request, EngineeringProjectCreateRequestSchema)
-      writeJson(response, 201, this.options.engineeringProjects.create(input))
-      return
-    }
-
-    if (request.method === 'GET' && url.pathname === '/api/engineering/material-watchlist') {
-      writeJson(response, 200, this.options.engineeringProjects.getMaterialWatchlist())
-      return
-    }
-
-    const engineeringProjectMatch = url.pathname.match(/^\/api\/engineering\/projects\/([^/]+)$/u)
-    if (engineeringProjectMatch && request.method === 'PUT') {
-      const input = await readValidatedJsonBody(request, EngineeringProjectUpdateRequestSchema)
-      writeJson(response, 200, this.options.engineeringProjects.update(decodeURIComponent(engineeringProjectMatch[1]!), input))
-      return
-    }
-
-    if (engineeringProjectMatch && request.method === 'DELETE') {
-      this.options.engineeringProjects.delete(decodeURIComponent(engineeringProjectMatch[1]!))
-      response.writeHead(204)
-      response.end()
-      return
-    }
-
-    const engineeringProjectStepsMatch = url.pathname.match(/^\/api\/engineering\/projects\/([^/]+)\/steps$/u)
-    if (engineeringProjectStepsMatch && request.method === 'POST') {
-      const input = await readValidatedJsonBody(request, EngineeringProjectStepCreateRequestSchema)
-      writeJson(response, 201, this.options.engineeringProjects.addStep(decodeURIComponent(engineeringProjectStepsMatch[1]!), input))
-      return
-    }
-
-    const engineeringProjectStepMatch = url.pathname.match(/^\/api\/engineering\/projects\/([^/]+)\/steps\/([^/]+)$/u)
-    if (engineeringProjectStepMatch && request.method === 'DELETE') {
-      writeJson(response, 200, this.options.engineeringProjects.deleteStep(
-        decodeURIComponent(engineeringProjectStepMatch[1]!),
-        decodeURIComponent(engineeringProjectStepMatch[2]!)
-      ))
-      return
-    }
-
-    if (request.method === 'GET' && url.pathname === '/api/engineering/experimental-effects') {
-      writeJson(response, 200, this.options.engineering.getExperimentalEffects())
-      return
-    }
-
-    const engineeringBlueprintMatch = url.pathname.match(/^\/api\/engineering\/blueprints\/([^/]+)$/u)
-    if (request.method === 'GET' && engineeringBlueprintMatch) {
-      const blueprint = this.options.engineering.getBlueprint(decodeURIComponent(engineeringBlueprintMatch[1]!))
-      if (!blueprint) {
-        writeJson(response, 404, {
-          error: { code: 'blueprint_not_found', message: 'Engineering blueprint not found.' }
-        })
-        return
-      }
-      writeJson(response, 200, blueprint)
-      return
-    }
+    if (await handleEngineeringRequest(request, response, url, this.options)) return
 
     if (request.method === 'POST' && url.pathname === '/api/copilot/chat') {
       await this.handleCopilotChat(request, response)
@@ -1779,12 +1689,6 @@ function copilotErrorStatus (cause: unknown): number {
     case 'timeout': return 504
     default: return 502
   }
-}
-
-function isEngineeringMaterialCategory (
-  candidate: string
-): candidate is 'raw' | 'manufactured' | 'encoded' | 'xeno' {
-  return ['raw', 'manufactured', 'encoded', 'xeno'].includes(candidate)
 }
 
 function requiredQuery (url: URL, name: string): string {
