@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Group galaxy provider/query wiring in one explicit composition boundary, preserving shared
+  providers, source overrides, query caching and application-owned startup/shutdown.
 - Separate Fleet SQLite operations from the database lifecycle owner, retaining shared storage,
   existing ordering and validation, and atomic stored-module snapshot replacement.
 - Isolate Engineering catalogue and project HTTP handling behind a plain feature handler,
