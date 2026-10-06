@@ -122,7 +122,8 @@ export class EliteJournalFileSource {
           return false
         }
         contents = Buffer.allocUnsafe(unreadBytes)
-        readSync(file, contents, 0, unreadBytes, this.currentOffset)
+        const bytesRead = readSync(file, contents, 0, unreadBytes, this.currentOffset)
+        contents = contents.subarray(0, bytesRead)
       } finally {
         closeSync(file)
       }
