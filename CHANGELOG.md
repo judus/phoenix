@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Distinguish invalid Settings requests (400) from storage and service failures (500),
+  preserving validation feedback without blaming valid input for server-side failures.
 - Isolate Settings HTTP handling behind a plain function and shared JSON helpers, preserving
   pairing, endpoint behavior and response contracts without introducing a routing framework.
 - Report malformed, empty and oversized EDDN settings requests as client errors, while keeping
