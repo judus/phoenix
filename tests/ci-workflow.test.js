@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { expect, test } from 'vitest'
 
-const workflow = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')
+const workflow = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8').replaceAll('\r\n', '\n')
 const expression = workflow.match(/^\s+installers: \$\{\{ (.+) \}\}$/m)?.[1]
 if (!expression) throw new Error('CI must pass an explicit installer policy to native verification')
 // This policy uses only boolean operators and event fields, shared by JS and Actions expressions.
