@@ -1085,12 +1085,8 @@ export class PhoenixHttpServer {
     }
 
     if (request.method === 'PUT' && url.pathname === '/api/settings/eddn') {
-      const input = EddnSettingsUpdateSchema.safeParse(await readJsonBody(request))
-      if (!input.success) {
-        this.writeJson(response, 400, { error: { code: 'invalid_eddn_settings', message: 'Provide enabled as a boolean.' } })
-      } else {
-        this.writeJson(response, 200, this.options.eddn.setEnabled(input.data.enabled))
-      }
+      const input = await readValidatedJsonBody(request, EddnSettingsUpdateSchema)
+      this.writeJson(response, 200, this.options.eddn.setEnabled(input.enabled))
       return
     }
 

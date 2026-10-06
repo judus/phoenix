@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Report malformed, empty and oversized EDDN settings requests as client errors, while keeping
+  actual preference-service failures distinguishable as server errors.
 - Ignore unread journal buffer bytes after a short filesystem read, preserving incomplete records
   for the next poll rather than skipping them or reporting spurious parse errors.
 - Complete application cleanup even when a subsystem fails to stop, and preserve startup failures
