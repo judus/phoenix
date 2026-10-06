@@ -1,6 +1,6 @@
 import { appendFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { afterEach, expect, test, vi } from 'vitest'
 import { EliteJournalFileSource, type EliteJournalEvent, type EliteJournalObservationSource } from '@phoenix/elite'
 
@@ -86,5 +86,19 @@ test('truncation between stat and read never consumes the unread tail or skips l
     expect(await source.refresh()).toBe(true)
     expect(fault.positions).toEqual([0, firstLength])
     expect(events.map(event => event.event)).toEqual(['Location', 'Scan'])
+  } finally { dispose() }
+})
+
+test('a short read during rotation retries the old tail before advancing to the new file', async () => {
+  const { source, events, path, dispose } = fixture()
+  try {
+    await source.refresh()
+    appendFileSync(path, second + third)
+    writeFileSync(join(dirname(path), 'Journal.2026-08-10T130000.01.log'), line('Fileheader'))
+    fault.limit = Buffer.byteLength(second)
+    await source.refresh()
+    expect(events.map(event => event.event)).toEqual(['Location', 'Scan', 'Scan'])
+    await source.refresh()
+    expect(events.map(event => event.event)).toEqual(['Location', 'Scan', 'Scan', 'Docked', 'Fileheader'])
   } finally { dispose() }
 })

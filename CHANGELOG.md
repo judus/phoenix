@@ -4,6 +4,10 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Drain unread live-journal tails and intervening files in order during rotation. Preserve EDDN
+  context, pending signals and commander-log grouping across explicitly linked session parts,
+  while retaining new-session resets and latest-file-only startup replay.
+
 - Checkpoint open EDDN discovery-signal batches in the bounded local outbox, recovering validated
   batches after a crash without replaying journal history. Count unresolved recovery and oversized
   batches as skipped; retain privacy/session boundaries and test-only delivery.

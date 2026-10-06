@@ -127,8 +127,12 @@ Failed non-capacity checkpoint writes remain visible and memory is retained for 
 run captures its original context so a retry cannot attach it to a later system. Only the last
 successfully written checkpoint is crash-safe: storage failure before a write cannot preserve that
 new signal. This is not a guarantee that all game signals or a whole interrupted run were collected.
-Journal file changes retain the current conservative Fileheader reset; same-session multipart
-continuity and discovery of skipped intermediate files remain a separate readiness review.
+During live play, journal rotation drains the previous tail and intervening files in order.
+An observed `Continued.Part` followed immediately by the matching `Fileheader.part`, game version
+and build preserves session context and pending signals; an unlinked or new-session header resets
+them. These file markers do not close a pre-arrival signal batch. Startup still replays only the
+newest journal file: starting in a later part without earlier context does not reconstruct that
+context or upload history. See Frontier's [journal manual, File Format and Continued](https://hosting.zaonce.net/community/journal/v31/Journal_Manual_v31.pdf).
 
 Codex uses explicit journal BodyID when present. A missing ID is inferred only when journal and
 Status body names agree. Stale Status from before a location boundary cannot augment a new system.
