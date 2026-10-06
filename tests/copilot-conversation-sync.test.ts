@@ -1,3 +1,4 @@
+import { readSseEvents } from './support/sse-events.js'
 import { expect, test } from 'vitest'
 import type { AiResult, AiRunOptions, AiStreamEvent } from '@jdu/llm-client'
 import {
@@ -26,7 +27,12 @@ test('active Copilot turns are broadcast to every conversation subscriber', asyn
   try {
     const subscription = await fetch(conversationStreamUrl(baseUrl, 'shared-chat'))
     expect(subscription.status).toBe(200)
-    const received = readConversationEvents(subscription, 4)
+    const secondSubscription = await fetch(conversationStreamUrl(baseUrl, 'shared-chat'))
+    expect(secondSubscription.status).toBe(200)
+    const received = Promise.all([
+      readConversationEvents(subscription, 4),
+      readConversationEvents(secondSubscription, 4)
+    ])
 
     await client.streamCopilotMessage({
       clientId: 'desktop-client',
@@ -35,7 +41,8 @@ test('active Copilot turns are broadcast to every conversation subscriber', asyn
       turnId: 'text-turn-1'
     }, () => {})
 
-    await expect(received).resolves.toEqual([
+    const [first, second] = await received
+    expect(first).toEqual([
       expect.objectContaining({
         clientId: 'desktop-client',
         source: 'text',
@@ -55,6 +62,7 @@ test('active Copilot turns are broadcast to every conversation subscriber', asyn
       }),
       expect.objectContaining({ type: 'turn.completed' })
     ])
+    expect(second).toEqual(first)
   } finally {
     await application.stop()
   }
@@ -135,30 +143,10 @@ async function readConversationEvents (
   response: Response,
   count: number
 ): Promise<CopilotConversationEvent[]> {
-  if (!response.body) throw new Error('Conversation stream has no response body.')
-  const reader = response.body.getReader()
-  const decoder = new TextDecoder()
   const events: CopilotConversationEvent[] = []
-  let buffered = ''
-  try {
-    while (events.length < count) {
-      const chunk = await reader.read()
-      if (chunk.done) break
-      buffered += decoder.decode(chunk.value, { stream: true })
-      let boundary = buffered.indexOf('\n\n')
-      while (boundary >= 0) {
-        const frame = buffered.slice(0, boundary)
-        buffered = buffered.slice(boundary + 2)
-        const type = frame.split('\n').find(line => line.startsWith('event: '))?.slice(7)
-        const data = frame.split('\n').find(line => line.startsWith('data: '))?.slice(6)
-        if (type === 'conversation-event' && data) {
-          events.push(CopilotConversationEventSchema.parse(JSON.parse(data)))
-        }
-        boundary = buffered.indexOf('\n\n')
-      }
-    }
-  } finally {
-    await reader.cancel()
+  for await (const { event, data } of readSseEvents(response)) {
+    if (event === 'conversation-event') events.push(CopilotConversationEventSchema.parse(JSON.parse(data)))
+    if (events.length === count) break
   }
   return events
 }

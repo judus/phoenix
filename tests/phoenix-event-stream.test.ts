@@ -1,3 +1,4 @@
+import { readSseEvents } from './support/sse-events.js'
 import { expect, test } from 'vitest'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
@@ -28,27 +29,10 @@ test('the shared browser stream multiplexes runtime, route, command catalogue, a
 })
 
 async function readEventNames (response: Response, count: number): Promise<string[]> {
-  if (!response.body) throw new Error('PHOENIX event stream has no response body.')
-  const reader = response.body.getReader()
-  const decoder = new TextDecoder()
   const names: string[] = []
-  let buffered = ''
-  try {
-    while (names.length < count) {
-      const chunk = await reader.read()
-      if (chunk.done) break
-      buffered += decoder.decode(chunk.value, { stream: true })
-      let boundary = buffered.indexOf('\n\n')
-      while (boundary >= 0) {
-        const frame = buffered.slice(0, boundary)
-        buffered = buffered.slice(boundary + 2)
-        const name = frame.split('\n').find(line => line.startsWith('event: '))?.slice(7)
-        if (name) names.push(name)
-        boundary = buffered.indexOf('\n\n')
-      }
-    }
-  } finally {
-    await reader.cancel()
+  for await (const { event } of readSseEvents(response)) {
+    names.push(event)
+    if (names.length === count) break
   }
   return names
 }

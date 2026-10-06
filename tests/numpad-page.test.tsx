@@ -36,7 +36,7 @@ test('the numpad workspace remains available independently of physical key captu
   const preferences = devicePreferences(false)
   const markup = renderToStaticMarkup(<NumpadPage runtime={fixture.runtime} devicePreferences={{ ...preferences, getSnapshot: () => ({ ...preferences.getSnapshot(), captureNumpad: false }) }} />)
   expect(markup).toContain('Press Numpad 0')
-  expect(markup).not.toContain('responsive-button-font-sizes')
+  expect(markup).not.toContain('variable-font-sizes')
   expect(markup).not.toContain('Enable numpad')
   fixture.runtime.stop()
 })

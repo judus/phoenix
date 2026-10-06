@@ -36,7 +36,7 @@ test('downloads only checksum-matching resources and revalidates the cache', asy
   await expect(pinnedResource(resource, cache)).rejects.toThrow('checksum mismatch')
 })
 
-test('tracks file contents and rejects untracked symlink targets', () => {
+test('tracks file contents and rejects a mismatched digest', () => {
   const root = temporary()
   writeFileSync(resolve(root, 'file'), 'one')
   expect(treeChecksums(root)).toEqual({ file: digest('one') })

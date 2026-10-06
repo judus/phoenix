@@ -40,9 +40,12 @@ test('Copilot game execution follows explicit installation permissions', async (
   const copilot = new CopilotCommands(dispatcher, stubCapabilities(registry, () => allowed))
 
   expect((await copilot.execute({ target: { type: 'game-action', actionId: 'elite.BoundAction' } }, 'copilot')).status).toBe('rejected')
+  expect(actions.calls).toEqual([])
   allowed = true
   expect((await copilot.execute({ target: { type: 'game-action', actionId: 'elite.BoundAction' } }, 'copilot')).status).toBe('accepted')
+  expect(actions.calls).toEqual(['elite.BoundAction'])
   expect((await dispatcher.execute({ target: { type: 'game-action', actionId: 'elite.BoundAction' } }, 'ui')).status).toBe('accepted')
+  expect(actions.calls).toEqual(['elite.BoundAction', 'elite.BoundAction'])
 })
 
 test('Copilot authorizes an exact macro while retaining its effective risk as metadata', async () => {

@@ -78,6 +78,8 @@ test('cancel, escape, a second touch, configuration change and edit exit cancel 
   for (const cancel of cancels) {
     await act(async () => move.begin(pointer(), 'a', '1:1'))
     await act(async () => move.events.onPointerMove(pointer(30)))
+    expect(move.sourceSlot).toBe('1:1')
+    expect(move.destination).toBe('2:1')
     await act(async () => cancel())
     await act(async () => move.events.onPointerUp(pointer(30)))
     expect(move.sourceSlot).toBeUndefined()

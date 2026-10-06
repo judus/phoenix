@@ -56,6 +56,9 @@ test('the controls page renders bound and unbound discovered commands', () => {
   expect(markup).toContain('Ship Lights')
   expect(markup).toContain('Unbound')
   expect(markup).toContain('class="page-frame page-fit controls-page theme-phoenix"')
+  expect(markup).toContain('class="tile btn variable-font-sizes"')
+  expect(markup).toContain('aria-label="Ship command grid"')
+  expect(markup).toContain('grid-template-columns:repeat(8, minmax(0, 1fr))')
   expect(markup).toContain('class="control-deck-empty"')
   expect(markup).toContain('disabled=""')
   expect(markup).not.toContain('class="page-header')
@@ -209,12 +212,26 @@ test('unavailable commands remain clickable while editing the control deck', () 
 })
 
 test('resizing a PHOENIX deck removes only cells that no longer fit', () => {
-  const deck = DEFAULT_CONTROL_DECK_CONFIGURATION.decks.find(candidate => candidate.context === 'phoenix:ship')!
+  const source = DEFAULT_CONTROL_DECK_CONFIGURATION.decks.find(candidate => candidate.context === 'phoenix:ship')!
+  const element = source.elements[0]!
+  const placements = [
+    { id: 'inside', column: 1, row: 1, columnSpan: 1, rowSpan: 1 },
+    { id: 'at-edge', column: 3, row: 3, columnSpan: 2, rowSpan: 2 },
+    { id: 'outside-column', column: 5, row: 1, columnSpan: 1, rowSpan: 1 },
+    { id: 'outside-row', column: 1, row: 5, columnSpan: 1, rowSpan: 1 },
+    { id: 'crosses-column', column: 4, row: 1, columnSpan: 2, rowSpan: 1 },
+    { id: 'crosses-row', column: 1, row: 4, columnSpan: 1, rowSpan: 2 }
+  ]
+  const deck = { ...source, elements: placements.map(({ id, ...placement }) => ({
+    ...element, id, placement: { kind: 'grid' as const, ...placement }
+  })) }
+  const original = structuredClone(deck)
   const resized = resizeDeck(deck, 4, 4)
 
   expect(resized.layout).toEqual({ kind: 'grid', columns: 4, rows: 4 })
-  expect(resized.elements.every(element => element.placement.row + element.placement.rowSpan - 1 <= 4)).toBe(true)
-  expect(resized.elements.every(element => element.placement.column + element.placement.columnSpan - 1 <= 4)).toBe(true)
+  expect(resized.elements).toEqual(original.elements.slice(0, 2))
+  expect(deck).toEqual(original)
+  expect(resizeDeck(deck, 6, 6).elements).toEqual(original.elements)
 })
 
 test('selecting the Phoenix theme clears legacy group and deck colors', () => {

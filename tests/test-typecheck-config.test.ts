@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process'
-import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, test } from 'vitest'
@@ -15,7 +15,7 @@ test('strict test configuration covers every TypeScript test and helper without 
   for (const file of readdirSync(join(root, 'tests'), { recursive: true }).map(String).filter(file => /\.tsx?$/u.test(file))) {
     expect(files.has(join(root, 'tests', file)), `Missing compiler coverage: ${file}`).toBe(true)
   }
-  const scripts = JSON.parse(execFileSync(process.execPath, ['-p', 'JSON.stringify(require("./package.json").scripts)'], { cwd: root, encoding: 'utf8' }))
+  const { scripts } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
   expect(scripts.check.split(' && ')).toContain('npm run typecheck:tests')
 })
 

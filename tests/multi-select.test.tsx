@@ -4,9 +4,10 @@ import { MultiSelect } from '../packages/ui/src/components/multi-select.js'
 
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
 
-test('multi-select adds and clears selected values', () => {
+test('multi-select adds and clears selected values', ({ onTestFinished }) => {
   const change = vi.fn<(value: string[]) => void>()
   let renderer!: ReturnType<typeof create>
+  onTestFinished(() => { if (renderer) act(() => renderer.unmount()) })
   act(() => {
     renderer = create(<MultiSelect
       onChange={change}

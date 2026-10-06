@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Strengthen regression tests for loadouts, journal ownership, contribution file limits and command
+  safety; consolidate duplicated test helpers and make event-stream tests independent of network chunking.
 - Add strict compilation of TypeScript tests and helpers to the development and native CI checks.
 - Keep the Atlas quiet by default, with opt-in catalogue landmarks, sidebar Finder, explicit
   filtered state and reset controls; order header actions Regions, Bookmarks, Landmarks, Finder.

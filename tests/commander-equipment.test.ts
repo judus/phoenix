@@ -101,19 +101,32 @@ test('commander equipment projection applies loadout mutations and deletion chro
       LoadoutID: 3, LoadoutName: 'NEW LOADOUT', SuitID: 4,
       SuitName: 'tacticalsuit_class1', Modules: []
     })
+    expect(equipment.getEquipment()).toMatchObject({
+      loadouts: [{ id: 3, name: 'NEW LOADOUT', suitId: 4, slots: [] }],
+      summary: { loadouts: 1, suits: 1, weapons: 0 }
+    })
     equipment.ingest({
       timestamp: '2026-08-15T08:01:00Z', event: 'RenameSuitLoadout',
       LoadoutID: 3, LoadoutName: 'COMBAT'
     })
+    expect(equipment.getEquipment().loadouts).toMatchObject([{ id: 3, name: 'COMBAT', slots: [] }])
     equipment.ingest({
       timestamp: '2026-08-15T08:02:00Z', event: 'LoadoutEquipModule',
       LoadoutID: 3, LoadoutName: 'COMBAT', SuitID: 4,
       SuitModuleID: 5, SlotName: 'PrimaryWeapon1', ModuleName: 'wpn_m_assaultrifle_kinetic_fauto'
     })
+    expect(equipment.getEquipment()).toMatchObject({
+      loadouts: [{ id: 3, name: 'COMBAT', slots: [{ slot: 'PrimaryWeapon1', weaponId: 5 }] }],
+      weapons: [{ id: 5, loadoutIds: [3] }]
+    })
     equipment.ingest({
       timestamp: '2026-08-15T08:03:00Z', event: 'LoadoutRemoveModule',
       LoadoutID: 3, SlotName: 'PrimaryWeapon1', SuitModuleID: 5,
       ModuleName: 'wpn_m_assaultrifle_kinetic_fauto'
+    })
+    expect(equipment.getEquipment()).toMatchObject({
+      loadouts: [{ id: 3, name: 'COMBAT', slots: [] }],
+      weapons: [{ id: 5, loadoutIds: [] }]
     })
     equipment.ingest({
       timestamp: '2026-08-15T08:04:00Z', event: 'DeleteSuitLoadout',

@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import type { EliteInventoryFileSnapshot } from '@phoenix/contracts'
 import { EliteInventoryFileSource } from '@phoenix/elite'
 
@@ -77,12 +77,13 @@ test('inventory diagnostics retain listener failures and retry unchanged files',
       lastReadAt: null
     })
 
-    await new Promise(resolve => setTimeout(resolve, 300))
-    expect(attempts).toBeGreaterThanOrEqual(2)
-    expect(source.getDiagnostics().files.find(file => file.filePath.endsWith('Cargo.json'))).toMatchObject({
-      error: null,
-      fileAvailable: true,
-      lastReadAt: expect.any(String)
+    await vi.waitFor(() => {
+      expect(attempts).toBeGreaterThanOrEqual(2)
+      expect(source.getDiagnostics().files.find(file => file.filePath.endsWith('Cargo.json'))).toMatchObject({
+        error: null,
+        fileAvailable: true,
+        lastReadAt: expect.any(String)
+      })
     })
   } finally {
     source.stop()

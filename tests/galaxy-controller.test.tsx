@@ -3,7 +3,7 @@ import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { ActivityLogEntry, CartographicSystem, ExplorationLedgerResponse } from '@phoenix/contracts'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
-import type { PhoenixEventHub, PhoenixEventMap, PhoenixEventName } from '../apps/web/src/application/events/phoenix-event-hub.js'
+import { FakeEventHub } from './support/fake-event-hub.js'
 import { useGalaxyController, type GalaxyControllerSnapshot } from '../apps/web/src/features/galaxy/use-galaxy-controller.js'
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
@@ -155,23 +155,5 @@ function cartographicSystem(name: string, knownBodies: number): CartographicSyst
     localSystem: null,
     provenance: { edsm: null, journal: { updatedAt: '2026-08-16T12:00:00.000Z' } },
     raw: { system: {}, bodies: {}, stations: {} }
-  }
-}
-
-class FakeEventHub implements PhoenixEventHub {
-  readonly #listeners = new Map<PhoenixEventName, Set<(payload: unknown) => void>>()
-  getConnectionSnapshot = () => ({ state: 'open' as const })
-  start(): void {}
-  stop(): void {}
-  subscribeConnection(): () => void { return () => undefined }
-  subscribe<K extends PhoenixEventName>(eventName: K, listener: (payload: PhoenixEventMap[K]) => void): () => void {
-    const wrapped = (payload: unknown): void => listener(payload as PhoenixEventMap[K])
-    const listeners = this.#listeners.get(eventName) ?? new Set()
-    listeners.add(wrapped)
-    this.#listeners.set(eventName, listeners)
-    return () => listeners.delete(wrapped)
-  }
-  emit<K extends PhoenixEventName>(eventName: K, payload: PhoenixEventMap[K]): void {
-    for (const listener of this.#listeners.get(eventName) ?? []) listener(payload)
   }
 }
