@@ -107,7 +107,9 @@ function SystemView({ api, commanderName, lookup, onNavigate, route }: {
   }, [lookup.system.name])
   const selected = useMemo<CartographicSelection | null>(() => {
     if (!route.selectedName) return null
-    return lookup.system.bodies.find(item => item.name === route.selectedName)
+    // Site catalogues can capitalize body suffixes differently from cartography providers.
+    const bodyName = route.selectedName.toLowerCase()
+    return lookup.system.bodies.find(item => item.name.toLowerCase() === bodyName)
       ?? lookup.system.stations.find(item => item.name === route.selectedName)
       ?? null
   }, [lookup.system, route.selectedName])

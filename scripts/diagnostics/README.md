@@ -27,6 +27,17 @@ errors must be investigated. Stop both fixture and diagnostic Chrome after the r
 This accelerated desktop-browser test does not prove physical-tablet stability. Re-test on the
 affected tablet during a sustained gameplay session before closing the reported lag/crash issue.
 
+## Atlas POIs
+
+Use `--atlas-pois` and open `#/galaxy/atlas` to test 1,500 synthetic POIs without external requests.
+Check search/category filtering, off-screen location selection, dense clusters, source details and
+map/sidebar interactions in both themes and orientations. The default preview disables external
+Atlas feeds; the small bundled historical site remains available.
+
+```sh
+node --import tsx scripts/diagnostics/isolated-browser-preview.mjs --atlas-pois
+```
+
 ## EDDN submission log
 
 For EDDN log layout and selection checks, use `--eddn-submissions` and open `#/developer/eddn`.

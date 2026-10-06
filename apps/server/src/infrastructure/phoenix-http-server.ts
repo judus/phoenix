@@ -76,6 +76,7 @@ import type { ExplorationDataReader } from '../application/exploration-data-serv
 import type { ExplorationTargetReader } from '../application/default-exploration-target-query.js'
 import { DEFAULT_GALAXY_RESULT_LIMIT, type GalaxyDataReader } from '../application/galaxy-data-service.js'
 import type { GalnetNewsReader } from '../domain/galnet.js'
+import type { AtlasCatalogueReader } from '../domain/atlas.js'
 import type { NavigationDataReader } from '../application/navigation-data-service.js'
 import type { ActivityLogReader, EliteJournalDiagnosticsReader } from '../domain/elite-journal.js'
 import type { CommanderLogReader } from '../domain/commander-log.js'
@@ -155,6 +156,7 @@ export interface PhoenixHttpServerOptions {
   catalogueSuggestions: Pick<CatalogueSuggestionService, 'suggest'>
   marketSignals: MarketSignalReader
   galnet: GalnetNewsReader
+  atlas: AtlasCatalogueReader
   healthCheck: HealthCheck
   host: string
   activityLog: ActivityLogReader
@@ -403,6 +405,11 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/fleet') {
       this.writeJson(response, 200, this.options.fleet.getFleet())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/galaxy/atlas/pois') {
+      this.writeJson(response, 200, await this.options.atlas.getCatalogue())
       return
     }
 

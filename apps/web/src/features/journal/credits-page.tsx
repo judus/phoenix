@@ -48,6 +48,14 @@ export function CreditsPage() {
         <Panel title="Live community data services">
           <DescriptionList columns="one" density="compact">
             <DescriptionItem
+              label={<SourceLink href="https://edastro.com/gec/">EDAstro · Galactic Exploration Catalog</SourceLink>}
+              value="Atlas exploration POIs and source categories; content retains its CC BY-NC-SA 3.0 licence."
+            />
+            <DescriptionItem
+              label={<SourceLink href="https://canonn.science/">Canonn Research Group</SourceLink>}
+              value="Guardian sites and source-backed historical destinations, including Jameson's crash site."
+            />
+            <DescriptionItem
               label={<SourceLink href="https://www.edsm.net/">EDSM</SourceLink>}
               value="System cartography, station shipyard/outfitting stock and coordinate lookups."
             />

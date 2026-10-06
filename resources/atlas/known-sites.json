@@ -1,0 +1,13 @@
+[
+  {
+    "id": "canonn:jameson-crash-site",
+    "label": "Jameson's crash site",
+    "systemName": "HIP 12099",
+    "position": [-101.90625, -95.46875, -165.59375],
+    "categories": ["Historical"],
+    "source": "Canonn Research Group · Live/4.0",
+    "sourceUrl": "https://canonn.science/codex/cmdr-john-jameson-crashed-cobra-mkiii/",
+    "bodyName": "1 b",
+    "surface": { "latitude": -54.3735, "longitude": -50.3516 }
+  }
+]

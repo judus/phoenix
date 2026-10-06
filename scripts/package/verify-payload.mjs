@@ -22,6 +22,7 @@ for (const required of [
   'apps/web/dist/index.html',
   'resources/copilots/marin/agent.md',
   'resources/queries/predefined.json',
+  'resources/atlas/known-sites.json',
   'resources/copilots/ash/agent.md',
   'LICENSE',
   'NOTICE',
