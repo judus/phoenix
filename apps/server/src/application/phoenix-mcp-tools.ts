@@ -35,6 +35,7 @@ import { StationsLookupTool } from './mcp-tools/stations-lookup-tool.js'
 import { ExplorationGetCurrentBodyTool } from './mcp-tools/exploration-get-current-body-tool.js'
 import { ExplorationSearchTargetsTool } from './mcp-tools/exploration-search-targets-tool.js'
 import { MissionsListMissionsTool } from './mcp-tools/missions-list-missions-tool.js'
+import { ActivitiesListCommunityGoalsTool } from './mcp-tools/activities-list-community-goals-tool.js'
 import { StationsFindStationsSellingModuleTool } from './mcp-tools/stations-find-stations-selling-module-tool.js'
 import { CommsListMessagesTool } from './mcp-tools/comms-list-messages-tool.js'
 import { FleetListShipsTool } from './mcp-tools/fleet-list-ships-tool.js'
@@ -43,6 +44,7 @@ import { WebSearchTool } from './mcp-tools/web-search-tool.js'
 import type { CommanderEngineersQuery, DisplayCommands, ExplorationBodyQuery, ExplorationTargetQuery, FactionPresenceQuery, NavigationQuery, StationQuery, SystemDetailsQuery, SystemSearchQuery, TradeMarketQuery } from './mcp-tools/tool-gateways.js'
 import type { StatefulGameActionService } from './stateful-game-action-service.js'
 import type { MissionDataReader } from '../domain/missions.js'
+import type { CommunityGoalsReader } from '../domain/community-goals.js'
 import type { CommunicationDataReader } from '../domain/communications.js'
 import type { FleetDataReader } from '../domain/fleet.js'
 import type { WebSearchSource } from '../domain/web-search.js'
@@ -52,6 +54,7 @@ import { withToolErrorBoundary } from './mcp-tools/tool-error-boundary.js'
 export interface PhoenixMcpToolDependencies {
   commands: Commands
   communications: CommunicationDataReader
+  communityGoals: CommunityGoalsReader
   gameCatalogue: GameCatalogue
   engineers: CommanderEngineersQuery
   engineeringProjects: Pick<EngineeringProjects, 'getReport'>
@@ -99,6 +102,7 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new NavigationCanJumpToTool(dependencies.navigation),
     new NavigationGetRouteTool(dependencies.navigation),
     new MissionsListMissionsTool(dependencies.missions),
+    new ActivitiesListCommunityGoalsTool(dependencies.communityGoals),
     new StationsFindStationsSellingModuleTool(dependencies.stations),
     new MarketsFindBestTradeTool(dependencies.markets),
     new MarketsFindTradeOpportunitiesTool(dependencies.markets),

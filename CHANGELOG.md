@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Let Copilot read official Community Goals on request, including briefings, destinations and
+  source freshness, with a separate Activities permission for the installation and each profile.
+
 - Show current Frontier Community Goals under Activities, with official briefings, global progress,
   expiry and destination links. No AI or Frontier account required; failed refreshes are marked stale.
 

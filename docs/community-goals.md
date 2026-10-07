@@ -36,6 +36,15 @@ Briefings are rendered as text paragraphs, never executable HTML.
 
 ## Ownership and follow-ups
 
+- Copilot: `activities.list_community_goals` reads the same service/cache on demand, returning
+  official briefings and campaign fields, `sourceUrl`, `fetchedAt` and cache freshness. It does
+  not inject news into every prompt or run background AI. The existing tool boundary handles
+  validation/errors for local, MCP and realtime callers. A cold failure remains a failure;
+  stale empty snapshots do not claim there are currently no goals.
+- Permissions: **List Community Goals** is a read-only capability under **Activities** in the
+  installation and profile settings. New default policies include it; existing explicit
+  allowlists are preserved, so enable it at both levels if it is disabled. It cannot sign up,
+  contribute or report personal participation, rewards or completion.
 - Contracts: `packages/contracts/src/community-goals.ts`.
 - Server: source port/Frontier adapter and `CommunityGoalsService`; the existing provider cache owns storage.
 - HTTP: paired `GET /api/operations/community-goals`.
@@ -43,5 +52,5 @@ Briefings are rendered as text paragraphs, never executable HTML.
 - #121: this non-AI listing slice; #60: optional GalNet intelligence/investigation leads.
 - #36: personal participation/progress from journal events; separate scope and gameplay validation.
 
-Later Atlas activity markers and Copilot tools should consume the same authoritative read model,
+Later Atlas activity markers should consume the same authoritative read model,
 not scrape briefing text again or add transient campaigns to the permanent landmarks catalogue.

@@ -18,6 +18,38 @@ import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { JsonConversationStore } from '../apps/server/src/infrastructure/json-conversation-store.js'
 import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
 
+test('Community Goals over MCP reuse the Activities snapshot and expose their read-only permission', async () => {
+  const getCurrent = vi.fn(async () => [{
+    id: 'synthetic-cg', title: 'Research supplies', systemName: 'Sol', stationName: 'Galileo',
+    activityType: 'trade', objective: 'Deliver supplies', targetCommodities: 'Basic Medicines',
+    contributed: 125, target: 1000, expiry: '2026-10-08 10:00:00', briefing: 'Sign up at Galileo.\nDeliver supplies.'
+  }])
+  const application = new PhoenixApplication({ databasePath: ':memory:', eliteDirectory: null,
+    host: '127.0.0.1', port: 0, communityGoalsSource: { getCurrent } })
+  const address = await application.start()
+  const origin = `http://${address.host}:${address.port}`
+  const api = new PhoenixApiClient(origin)
+  const provider = configuredProvider([
+    response('community-goals', [{ arguments: {}, callId: 'goals', name: 'phoenix__activities_list_community_goals', type: 'tool_call' }], 'tool_calls'),
+    response('done', [{ source: 'generated', text: 'Goals received.', type: 'text' }], 'stop')
+  ])
+  const client = createAiClient({ mcp: [{ name: 'phoenix', url: `${origin}/mcp` }], provider })
+  try {
+    expect(getCurrent).not.toHaveBeenCalled()
+    const permissions = await api.getCopilotSettings()
+    expect(permissions.capabilities.groups.find(group => group.id === 'tools.activities')?.capabilities)
+      .toContainEqual(expect.objectContaining({ id: 'tool:activities.list_community_goals', label: 'List Community Goals', access: 'read', available: true }))
+    const before = await api.getCommunityGoals()
+    await client.user('Which Community Goals can I participate in?').run()
+    expect(provider.requests[1]?.messages.at(-1)?.content).toMatchObject([{
+      type: 'tool_result', status: 'success', structuredContent: {
+        ...before, cache: 'fresh', sourceUrl: 'https://www.elitedangerous.com/community/goals/'
+      }
+    }])
+    expect(getCurrent).toHaveBeenCalledTimes(1)
+  } finally { await application.stop() }
+})
+
 test('project report reads persisted plans over MCP and appears in installation permission settings', async () => {
   const settings = new InMemorySystemSettingsRepository()
   const application = new PhoenixApplication({ databasePath: ':memory:', eliteDirectory: null,
@@ -178,6 +210,7 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
       'phoenix__navigation_check_jump_reachability',
       'phoenix__navigation_get_plotted_route',
       'phoenix__missions_list_missions',
+      'phoenix__activities_list_community_goals',
       'phoenix__stations_find_stations_selling_module',
       'phoenix__markets_find_commodity_markets',
       'phoenix__markets_find_trade_opportunities',
