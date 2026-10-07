@@ -4,6 +4,11 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Analyse individual GalNet articles on request using your configured AI, with evidence quotes,
+  separate investigation leads and references to existing Community Goals rather than duplicate
+  goals. Save reports with source revisions, CG snapshot freshness and token usage; nothing runs
+  automatically and unchanged evidence reuses the saved analysis.
+
 - Retain observed GalNet articles and distinct revisions locally, including source references and
   dates, as a foundation for future analysis. The latest-news feed is unchanged; no AI runs.
 

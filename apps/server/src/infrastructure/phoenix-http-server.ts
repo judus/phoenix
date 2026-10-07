@@ -62,6 +62,8 @@ import type { ExplorationDataReader } from '../application/exploration-data-serv
 import type { ExplorationTargetReader } from '../application/default-exploration-target-query.js'
 import { DEFAULT_GALAXY_RESULT_LIMIT, type GalaxyDataReader } from '../application/galaxy-data-service.js'
 import type { GalnetNewsReader } from '../domain/galnet.js'
+import type { GalnetAnalysisReader } from '../domain/galnet-analysis.js'
+import { GalnetAnalyseRequestSchema } from '@phoenix/contracts'
 import type { CommunityGoalsReader } from '../domain/community-goals.js'
 import type { AtlasCatalogueReader } from '../domain/atlas.js'
 import type { NavigationDataReader } from '../application/navigation-data-service.js'
@@ -142,6 +144,7 @@ export interface PhoenixHttpServerOptions extends SettingsHttpServices, Engineer
   catalogueSuggestions: Pick<CatalogueSuggestionService, 'suggest'>
   marketSignals: MarketSignalReader
   galnet: GalnetNewsReader
+  galnetAnalysis: GalnetAnalysisReader
   communityGoals: CommunityGoalsReader
   atlas: AtlasCatalogueReader
   healthCheck: HealthCheck
@@ -380,6 +383,26 @@ export class PhoenixHttpServer {
       writeJson(response, 200, await this.options.galnet.getLatest(
         Number.isSafeInteger(requestedLimit) ? requestedLimit : 40
       ))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/galnet/analysis') {
+      const input = GalnetAnalyseRequestSchema.safeParse({ articleId: url.searchParams.get('articleId') })
+      if (!input.success) throw new HttpRequestValidationError('articleId must be a nonempty string of at most 200 characters.')
+      writeJson(response, 200, this.options.galnetAnalysis.get(input.data.articleId))
+      return
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/galnet/analysis') {
+      const input = await readValidatedJsonBody(request, GalnetAnalyseRequestSchema)
+      try {
+        writeJson(response, 200, await this.options.galnetAnalysis.analyse(input.articleId))
+      } catch (cause) {
+        writeJson(response, cause instanceof AiError ? copilotErrorStatus(cause) : 500, { error: {
+          code: cause instanceof AiError ? cause.code : 'galnet_analysis_failed',
+          message: cause instanceof AiError ? cause.message : 'GalNet analysis could not complete. No automatic retry was made.'
+        } })
+      }
       return
     }
 

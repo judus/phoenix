@@ -3,6 +3,9 @@ import { expect, test } from 'vitest'
 import type { CommunicationsResponse, GalnetNewsResponse, GameActionResult } from '@phoenix/contracts'
 import { CommsPage } from '../apps/web/src/features/comms/comms-page.js'
 import { commsNavigationItems } from '../apps/web/src/features/comms/comms-navigation.js'
+import { phoenixApiStub } from './support/phoenix-api-stub.js'
+
+const analysisApi = phoenixApiStub({})
 
 const execute = async (): Promise<GameActionResult> => ({ actionId: 'test', message: 'accepted', operation: 'tap', status: 'accepted', requestId: 'test', correlationId: 'test', origin: 'ui', timestamp: '2026-10-06T00:00:00Z' })
 
@@ -14,7 +17,7 @@ test('Comms exposes its typed section navigation', () => {
 })
 
 test('Traffic renders retained provenance and selected message detail', () => {
-  const markup = renderToStaticMarkup(<CommsPage controller={{ communications: communications(), status: 'ready' }} onExecuteAction={execute} view="traffic" />)
+  const markup = renderToStaticMarkup(<CommsPage analysisApi={analysisApi} controller={{ communications: communications(), status: 'ready' }} onExecuteAction={execute} view="traffic" />)
   expect(markup).toContain('Public and local traffic')
   expect(markup).toContain('Locke Terminal')
   expect(markup).toContain('Docking request granted')
@@ -23,7 +26,7 @@ test('Traffic renders retained provenance and selected message detail', () => {
 })
 
 test('Correspondents explicitly describe observation rather than presence', () => {
-  const markup = renderToStaticMarkup(<CommsPage controller={{ communications: communications(), status: 'ready' }} onExecuteAction={execute} view="contacts" />)
+  const markup = renderToStaticMarkup(<CommsPage analysisApi={analysisApi} controller={{ communications: communications(), status: 'ready' }} onExecuteAction={execute} view="contacts" />)
   expect(markup).toContain('Correspondents')
   expect(markup).toContain('Message history, not online presence')
   expect(markup).toContain('Observed correspondent')
@@ -35,7 +38,7 @@ test('GalNet composes the cached article index and reader', () => {
     articles: [{ body: 'First paragraph.\nSecond paragraph.', id: 'article-1', image: null, publishedAt: '2026-08-16T12:00:00.000Z', title: 'Pilots gather at Colonia' }],
     cache: 'stale', fetchedAt: '2026-08-16T13:00:00.000Z'
   }
-  const markup = renderToStaticMarkup(<CommsPage controller={{ galnet: news, status: 'ready' }} onExecuteAction={execute} view="galnet" />)
+  const markup = renderToStaticMarkup(<CommsPage analysisApi={analysisApi} controller={{ galnet: news, status: 'ready' }} onExecuteAction={execute} view="galnet" />)
   expect(markup).toContain('stale feed')
   expect(markup).toContain('Pilots gather at Colonia')
   expect(markup).toContain('First paragraph')
@@ -43,7 +46,7 @@ test('GalNet composes the cached article index and reader', () => {
 })
 
 test('GalNet Radio preserves the accepted previous, stop, play, next control order', () => {
-  const markup = renderToStaticMarkup(<CommsPage controller={{ actions: { actions: [], backend: { id: 'test', available: true, simulated: true, detail: 'Fixture' }, bindingSource: { directory: null, filePath: null, presetNames: [], available: false, bindingCount: 0, keyboardBindingCount: 0, loadedAt: null, error: null } }, status: 'ready' }} onExecuteAction={execute} view="radio" />)
+  const markup = renderToStaticMarkup(<CommsPage analysisApi={analysisApi} controller={{ actions: { actions: [], backend: { id: 'test', available: true, simulated: true, detail: 'Fixture' }, bindingSource: { directory: null, filePath: null, presetNames: [], available: false, bindingCount: 0, keyboardBindingCount: 0, loadedAt: null, error: null } }, status: 'ready' }} onExecuteAction={execute} view="radio" />)
   expect(markup).toContain('GalNet Radio')
   const labels = ['Previous', 'Stop', 'Play', 'Next'].map(label => markup.indexOf(`aria-label="${label}"`))
   expect(labels.every(index => index >= 0)).toBe(true)

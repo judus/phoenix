@@ -27,15 +27,17 @@ import {
 import { GalnetRadioControls } from '../../components/galnet-radio-controls.js'
 import { PhoenixDateTime, UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import type { CommsControllerSnapshot, CommsView } from './use-comms-controller.js'
+import { GalnetAnalysisPanel, type GalnetAnalysisApi } from './galnet-analysis-panel.js'
 
-export function CommsPage({ controller, onExecuteAction, view }: {
+export function CommsPage({ controller, onExecuteAction, view, analysisApi }: {
+  analysisApi: GalnetAnalysisApi
   controller: CommsControllerSnapshot
   onExecuteAction(actionId: string): Promise<GameActionResult>
   view: CommsView
 }) {
   if (controller.status === 'idle' || controller.status === 'loading') return <CommsState title={titleFor(view)} />
   if (controller.status === 'error') return <CommsState error={controller.error ?? 'Communications unavailable.'} title={titleFor(view)} />
-  if (view === 'galnet') return controller.galnet ? <Galnet news={controller.galnet} /> : <CommsState error="GalNet unavailable." title="GalNet" />
+  if (view === 'galnet') return controller.galnet ? <Galnet news={controller.galnet} api={analysisApi} /> : <CommsState error="GalNet unavailable." title="GalNet" />
   if (view === 'radio') return <Radio actions={controller.actions} onExecuteAction={onExecuteAction} />
   if (!controller.communications) return <CommsState error="Retained communications unavailable." title={titleFor(view)} />
   if (view === 'contacts') return <Correspondents response={controller.communications} />
@@ -193,7 +195,7 @@ function CorrespondentDetail({ contact }: { contact: CommunicationContact }) {
   )
 }
 
-function Galnet({ news }: { news: NonNullable<CommsControllerSnapshot['galnet']> }) {
+function Galnet({ news, api }: { news: NonNullable<CommsControllerSnapshot['galnet']>, api: GalnetAnalysisApi }) {
   const [selectedId, setSelectedId] = useState<string>()
   const selected = news.articles.find(article => article.id === selectedId) ?? news.articles[0]
   return (
@@ -219,7 +221,7 @@ function Galnet({ news }: { news: NonNullable<CommsControllerSnapshot['galnet']>
             </div>
           </DataTableGroup>
           <DataTableGroup className="galnet-reader-group" meta={selected ? <PhoenixDateTime precision="date" value={selected.publishedAt} /> : undefined} title="GalNet article">
-            {selected ? <GalnetArticleDetail article={selected} /> : <Status tone="muted">Frontier returned no GalNet articles.</Status>}
+            {selected ? <GalnetArticleDetail key={selected.id} article={selected} api={api} /> : <Status tone="muted">Frontier returned no GalNet articles.</Status>}
           </DataTableGroup>
         </div>
       </div>
@@ -227,11 +229,14 @@ function Galnet({ news }: { news: NonNullable<CommsControllerSnapshot['galnet']>
   )
 }
 
-function GalnetArticleDetail({ article }: { article: GalnetArticle }) {
+function GalnetArticleDetail({ article, api }: { article: GalnetArticle, api: GalnetAnalysisApi }) {
   return (
     <article className="galnet-reader">
       <header><small>GalNet</small><h2>{article.title}</h2></header>
-      <div className="article-body" tabIndex={0}>{article.body.split(/\r?\n/u).filter(Boolean).map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
+      <div className="article-body" tabIndex={0}><Stack gap="lg">
+        <div className="article-text">{article.body.split(/\r?\n/u).filter(Boolean).map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
+        <GalnetAnalysisPanel api={api} articleId={article.id} />
+      </Stack></div>
     </article>
   )
 }

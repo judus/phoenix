@@ -312,6 +312,7 @@ const CommsFeature = memo(function CommsFeature({ application, route }: {
 }) {
   const controller = useCommsController(application.api, application.events, route.view)
   return <CommsPage
+    analysisApi={application.api}
     controller={controller}
     onExecuteAction={actionId => application.api.executeAction(actionId, 'tap')}
     view={route.view}

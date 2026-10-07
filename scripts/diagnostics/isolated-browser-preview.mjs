@@ -20,6 +20,7 @@ const eddnSubmissions = process.argv.includes('--eddn-submissions')
 const prospecting = process.argv.includes('--prospecting')
 const atlasPois = process.argv.includes('--atlas-pois')
 const communityGoals = process.argv.includes('--community-goals')
+const galnetAnalysis = process.argv.includes('--galnet-analysis')
 const fixtureDirectory = eddnSubmissions ? mkdtempSync(join(tmpdir(), 'phoenix-eddn-preview-')) : undefined
 const databasePath = fixtureDirectory ? join(fixtureDirectory, 'preview.sqlite') : ':memory:'
 // This preview must never upload, even when launched from a test-enabled development shell.
@@ -44,7 +45,29 @@ const application = new PhoenixApplication({
   copilot: null,
   copilotRealtime: null,
   openAiEnvironmentKey: null,
-  communityGoalsSource: { getCurrent: async () => communityGoals ? Array.from({ length: 20 }, (_, index) => ({
+  ...(galnetAnalysis ? {
+    galnetSource: { getLatest: async () => [{
+      id: 'synthetic-analysis', title: 'Synthetic research campaign',
+      body: 'Pilots should deliver supplies to Galileo in Sol. A separate beacon near Colonia needs investigation.',
+      image: null, publishedAt: '2026-10-01T12:00:00Z', changedAt: '2026-10-01T12:00:00Z',
+      slug: 'synthetic-research', sourceUrl: 'https://example.com/galnet/synthetic-analysis'
+    }, { id: 'synthetic-narrative', title: 'Synthetic narrative only', body: 'A ceremonial speech was broadcast.',
+      image: null, publishedAt: '2026-09-30T12:00:00Z', changedAt: '2026-09-30T12:00:00Z',
+      slug: 'synthetic-narrative', sourceUrl: 'https://example.com/galnet/synthetic-narrative' }] },
+    galnetAnalyser: { model: 'synthetic-no-network', configured: () => true, analyse: async article => {
+      await new Promise(resolve => setTimeout(resolve, 200))
+      return { usage: { inputTokens: 1200, outputTokens: 400 }, content: {
+        summary: 'Synthetic public-news analysis; no AI request was made.',
+        facts: [{ text: 'The source describes a fictional event.', evidence: article.article.body }],
+        interpretations: [], entities: [], activities: article.article.id === 'synthetic-analysis' ? [{
+          title: 'Supply campaign', action: 'See the linked Community Goal before contributing.',
+          evidence: 'deliver supplies to Galileo in Sol', communityGoalId: 'synthetic-0', relationship: 'explicit', status: 'unknown'
+        }, { title: 'Investigate the beacon', action: 'Investigate if interested; outcome unknown.',
+          evidence: 'A separate beacon near Colonia needs investigation.', communityGoalId: null, relationship: 'none', status: 'unknown' }] : []
+      } }
+    } }
+  } : {}),
+  communityGoalsSource: { getCurrent: async () => communityGoals || galnetAnalysis ? Array.from({ length: 20 }, (_, index) => ({
     id: `synthetic-${index}`, title: `Synthetic campaign ${index + 1}`, systemName: index < 2 ? 'Sol' : `Synthetic CG ${Math.floor(index / 2)}`, stationName: 'Galileo',
     activityType: 'trade', objective: 'Deliver research supplies', targetCommodities: 'Basic Medicines',
     contributed: 125 + index, target: 1000, expiry: '2026-10-08 10:00:00',

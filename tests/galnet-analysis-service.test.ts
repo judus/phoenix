@@ -1,0 +1,107 @@
+import { expect, test, vi } from 'vitest'
+import { GalnetAnalysisService } from '../apps/server/src/application/galnet-analysis-service.js'
+import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
+import type { GalnetArticleAnalyser } from '../apps/server/src/domain/galnet-analysis.js'
+import { analysisArticle, analysisContent, analysisGoals, analysisUsage } from './support/galnet-analysis-fixtures.js'
+
+function setup() {
+  const db = new SqliteDatabase(':memory:')
+  db.initialize()
+  db.galnetArchive.observe([analysisArticle], '2026-10-07T12:00:00Z')
+  const analyser = { model: 'synthetic-model', configured: () => true,
+    analyse: vi.fn<GalnetArticleAnalyser['analyse']>(async () => ({ content: structuredClone(analysisContent), usage: analysisUsage })) }
+  const goals = { getCurrent: vi.fn(async () => structuredClone(analysisGoals)) }
+  const service = new GalnetAnalysisService(db.galnetArchive, goals, db.galnetAnalyses, analyser)
+  return { db, analyser, goals, service, close: async () => { await service.stop(); db.close() } }
+}
+
+test('GET is free; manual analysis shares CG evidence, keeps references and persists a reusable report', async () => {
+  const fixture = setup()
+  try {
+    const { service, analyser, goals } = fixture
+    expect(service.get(analysisArticle.id)).toMatchObject({ analysis: null, articleAvailable: true })
+    expect(analyser.analyse).not.toHaveBeenCalled()
+    expect(goals.getCurrent).not.toHaveBeenCalled()
+    const [first, second] = await Promise.all([service.analyse(analysisArticle.id), service.analyse(analysisArticle.id)])
+    expect(first).toEqual(second)
+    expect(analyser.analyse).toHaveBeenCalledTimes(1)
+    expect(goals.getCurrent).toHaveBeenCalledTimes(1)
+    expect(first.analysis).toMatchObject({ content: analysisContent, communityGoals: analysisGoals,
+      usage: analysisUsage, sourceUrl: analysisArticle.sourceUrl, model: 'synthetic-model' })
+    goals.getCurrent.mockResolvedValue({ ...analysisGoals, cache: 'fresh', fetchedAt: '2026-10-07T13:00:00Z' })
+    expect((await service.analyse(analysisArticle.id)).analysis).toEqual(first.analysis)
+    expect(analyser.analyse).toHaveBeenCalledTimes(1)
+  } finally { await fixture.close() }
+})
+
+test('CG changes and article corrections invalidate analysis cache; changed article warning survives failure', async () => {
+  const fixture = setup()
+  try {
+    const { service, analyser, goals, db } = fixture
+    await service.analyse(analysisArticle.id)
+    goals.getCurrent.mockResolvedValue({ ...analysisGoals, goals: [{ ...analysisGoals.goals[0]!, contributed: 500 }] })
+    await service.analyse(analysisArticle.id)
+    expect(analyser.analyse).toHaveBeenCalledTimes(2)
+    db.galnetArchive.observe([{ ...analysisArticle, title: 'Corrected title' }], '2026-10-07T13:00:00Z')
+    expect(service.get(analysisArticle.id).articleChanged).toBe(true)
+    analyser.analyse.mockRejectedValueOnce(new Error('synthetic failure'))
+    await expect(service.analyse(analysisArticle.id)).rejects.toThrow('synthetic failure')
+    expect(service.get(analysisArticle.id).analysis).not.toBeNull()
+    expect(service.get(analysisArticle.id).articleChanged).toBe(true)
+    await service.analyse(analysisArticle.id)
+    expect(service.get(analysisArticle.id).articleChanged).toBe(false)
+  } finally { await fixture.close() }
+})
+
+test.each(['quote', 'unknown-goal', 'duplicate-goal', 'missing-relationship'] as const)('invalid %s cannot enter the stored report', async fault => {
+  const fixture = setup()
+  try {
+    const content = structuredClone(analysisContent)
+    if (fault === 'quote') content.facts[0]!.evidence = 'Invented statement'
+    if (fault === 'unknown-goal') content.activities[0]!.communityGoalId = 'invented-id'
+    if (fault === 'duplicate-goal') content.activities.push({ ...content.activities[0]! })
+    if (fault === 'missing-relationship') content.activities[0]!.relationship = 'none'
+    fixture.analyser.analyse.mockResolvedValue({ content, usage: analysisUsage })
+    await expect(fixture.service.analyse(analysisArticle.id)).rejects.toMatchObject({ category: 'structured_output_validation' })
+    expect(fixture.service.get(analysisArticle.id).analysis).toBeNull()
+  } finally { await fixture.close() }
+})
+
+test('missing configuration/article and excessive input fail before AI; a CG outage is not an empty snapshot', async () => {
+  const fixture = setup()
+  try {
+    fixture.analyser.configured = () => false
+    await expect(fixture.service.analyse(analysisArticle.id)).rejects.toMatchObject({ code: 'galnet_analysis_not_configured' })
+    fixture.analyser.configured = () => true
+    await expect(fixture.service.analyse('missing')).rejects.toMatchObject({ code: 'galnet_article_unavailable' })
+    fixture.goals.getCurrent.mockRejectedValueOnce(new Error('upstream unavailable'))
+    await expect(fixture.service.analyse(analysisArticle.id)).rejects.toThrow('upstream unavailable')
+    fixture.db.galnetArchive.observe([{ ...analysisArticle, body: 'x'.repeat(60_001) }], '2026-10-07T13:00:00Z')
+    await expect(fixture.service.analyse(analysisArticle.id)).rejects.toMatchObject({ code: 'galnet_analysis_input_limit' })
+    expect(fixture.analyser.analyse).not.toHaveBeenCalled()
+  } finally { await fixture.close() }
+})
+
+test('one manual job at a time, shutdown aborts it and late output is never persisted', async () => {
+  const fixture = setup()
+  let release!: () => void
+  let signal!: AbortSignal
+  fixture.analyser.analyse.mockImplementation(async (_article, _goals, currentSignal) => {
+    signal = currentSignal
+    await new Promise<void>(resolve => { release = resolve })
+    return { content: analysisContent, usage: analysisUsage }
+  })
+  try {
+    const running = fixture.service.analyse(analysisArticle.id)
+    const rejected = expect(running).rejects.toThrow()
+    await Promise.resolve()
+    await expect(fixture.service.analyse('another')).rejects.toMatchObject({ code: 'galnet_analysis_busy' })
+    const stopped = fixture.service.stop()
+    expect(signal.aborted).toBe(true)
+    release()
+    await rejected
+    await stopped
+    expect(fixture.service.get(analysisArticle.id).analysis).toBeNull()
+    await expect(fixture.service.analyse(analysisArticle.id)).rejects.toMatchObject({ code: 'galnet_analysis_stopped' })
+  } finally { release?.(); await fixture.close() }
+})
