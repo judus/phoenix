@@ -13,6 +13,7 @@ Identify entities with their reported roles; a person/faction is not automatical
 Cross-reference the supplied authoritative Community Goals by ID, names, destinations and objectives. Use explicit only when the article clearly identifies that campaign, otherwise possible.
 Activities tied or possibly tied to a CG must reference its exact ID. Output at most one activity per CG. Never repeat that campaign as an unlinked activity.
 Only genuinely separate actionable/investigation leads have communityGoalId null and relationship none. It is valid to output no activities for narrative-only news.
+Each activity has destination null unless the article explicitly identifies its actionable destination system. When present use the exact reported system name, include that system among entities and quote the article text associating it with this activity. No coordinates, fuzzy region/nearby-system substitutes, historical locations or inferred current positions of movable ships. A station/body without an explicitly named system is not a system destination. Mere mention elsewhere in the article is insufficient. Keep destination null when unsure.
 Do not infer ongoing or ended status from age or absence of a CG; use unknown without explicit evidence. Investigation can be useful even when outcome/reward is unknown.
 Keep the summary concise. Return only the requested structured report.`
 

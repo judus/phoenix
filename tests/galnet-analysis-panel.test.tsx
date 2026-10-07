@@ -8,7 +8,7 @@ import { renderWithAct } from './support/render-with-act.js'
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
 const empty: GalnetAnalysisResponse = { configured: true, articleAvailable: true, articleChanged: false, analysis: null }
-const report = { schemaVersion: 1 as const, extractorVersion: 'galnet-analysis-v1' as const,
+const report = { schemaVersion: 2 as const, extractorVersion: 'galnet-analysis-v2' as const,
   cacheKey: 'synthetic-cache', articleId: analysisArticle.id, articleRevisionId: 'synthetic-revision',
   sourceUrl: analysisArticle.sourceUrl, publishedAt: analysisArticle.publishedAt,
   analysedAt: '2026-10-07T12:00:00Z', model: 'synthetic-model', communityGoals: analysisGoals,

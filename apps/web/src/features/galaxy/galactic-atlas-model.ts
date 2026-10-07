@@ -1,5 +1,5 @@
 import { atlasRegionRows, atlasRegions } from './atlas-region-data.js'
-import type { AtlasPoi, CommunityGoal } from '@phoenix/contracts'
+import type { AtlasPoi, CommunityGoal, GalnetInvestigationLead } from '@phoenix/contracts'
 
 export type GalacticPosition = readonly [number, number, number]
 export interface AtlasPoint { x: number, y: number }
@@ -8,10 +8,11 @@ export interface AtlasMarker {
   label: string
   systemName: string
   position: GalacticPosition
-  kind: 'landmark' | 'nebula' | 'bookmark' | 'commander' | 'community-goal'
+  kind: 'landmark' | 'nebula' | 'bookmark' | 'commander' | 'community-goal' | 'investigation'
   selectedName?: string
   poi?: AtlasPoi
   communityGoal?: CommunityGoal
+  investigation?: GalnetInvestigationLead
 }
 export interface AtlasCamera { x: number, y: number, zoom: number }
 export const WHOLE_GALAXY: AtlasCamera = { x: 1024, y: 1024, zoom: 1 }

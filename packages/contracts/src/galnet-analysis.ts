@@ -5,7 +5,7 @@ const text = z.string().min(1).max(1200)
 const evidence = z.string().min(1).max(800)
 const claim = z.object({ text, evidence }).strict()
 
-export const GalnetAnalysisContentSchema = z.object({
+const GalnetAnalysisContentV1Schema = z.object({
   summary: text,
   facts: z.array(claim).max(8),
   interpretations: z.array(claim).max(6),
@@ -25,9 +25,13 @@ export const GalnetAnalysisContentSchema = z.object({
   }).strict()).max(8)
 }).strict()
 
-export const GalnetAnalysisSchema = z.object({
-  schemaVersion: z.literal(1),
-  extractorVersion: z.literal('galnet-analysis-v1'),
+export const GalnetAnalysisContentSchema = GalnetAnalysisContentV1Schema.extend({
+  activities: z.array(GalnetAnalysisContentV1Schema.shape.activities.element.extend({
+    destination: z.object({ systemName: z.string().trim().min(1).max(200), evidence }).strict().nullable()
+  })).max(8)
+})
+
+const report = z.object({
   cacheKey: z.string().min(1),
   articleId: z.string().min(1),
   articleRevisionId: z.string().min(1),
@@ -40,8 +44,13 @@ export const GalnetAnalysisSchema = z.object({
     inputTokens: z.number().int().nonnegative().nullable(),
     outputTokens: z.number().int().nonnegative().nullable()
   }).strict(),
-  content: GalnetAnalysisContentSchema
 }).strict()
+
+// Retain real saved v1 evidence without inventing the activity/destination relationship it lacks.
+export const GalnetAnalysisSchema = z.discriminatedUnion('schemaVersion', [
+  report.extend({ schemaVersion: z.literal(1), extractorVersion: z.literal('galnet-analysis-v1'), content: GalnetAnalysisContentV1Schema }),
+  report.extend({ schemaVersion: z.literal(2), extractorVersion: z.literal('galnet-analysis-v2'), content: GalnetAnalysisContentSchema })
+])
 
 export const GalnetAnalysisResponseSchema = z.object({
   configured: z.boolean(),

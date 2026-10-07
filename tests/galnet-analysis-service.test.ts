@@ -1,8 +1,9 @@
 import { expect, test, vi } from 'vitest'
+import { GalnetAnalysisSchema } from '@phoenix/contracts'
 import { GalnetAnalysisService } from '../apps/server/src/application/galnet-analysis-service.js'
 import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
 import type { GalnetArticleAnalyser } from '../apps/server/src/domain/galnet-analysis.js'
-import { analysisArticle, analysisContent, analysisGoals, analysisUsage } from './support/galnet-analysis-fixtures.js'
+import { analysisArticle, analysisContent, analysisGoals, analysisUsage, savedGalnetAnalysis } from './support/galnet-analysis-fixtures.js'
 
 function setup() {
   const db = new SqliteDatabase(':memory:')
@@ -107,4 +108,32 @@ test('one manual job at a time, shutdown aborts it and late output is never pers
     expect(fixture.service.get(analysisArticle.id).analysis).toBeNull()
     await expect(fixture.service.analyse(analysisArticle.id)).rejects.toMatchObject({ code: 'galnet_analysis_stopped' })
   } finally { release?.(); await fixture.close() }
+})
+
+test('existing v1 evidence stays readable without calls; explicit update creates a v2 report without overwriting it', async () => {
+  const fixture = setup()
+  try {
+    const legacy = GalnetAnalysisSchema.parse({ ...savedGalnetAnalysis(), schemaVersion: 1,
+      extractorVersion: 'galnet-analysis-v1', articleRevisionId: fixture.db.galnetArchive.getArticle(analysisArticle.id)!.revisionId,
+      content: { ...analysisContent, activities: analysisContent.activities.map(({ destination: _destination, ...activity }) => activity) } })
+    fixture.db.galnetAnalyses.put(legacy)
+    expect(fixture.service.get(analysisArticle.id).analysis).toEqual(legacy)
+    expect(fixture.analyser.analyse).not.toHaveBeenCalled()
+    expect((await fixture.service.analyse(analysisArticle.id)).analysis).toMatchObject({ schemaVersion: 2, extractorVersion: 'galnet-analysis-v2' })
+    expect(fixture.db.galnetAnalyses.get(legacy.cacheKey)).toEqual(legacy)
+    expect(fixture.analyser.analyse).toHaveBeenCalledTimes(1)
+  } finally { await fixture.close() }
+})
+
+test.each(['quote', 'name', 'entity'] as const)('rejects destination %s mismatch before saving', async fault => {
+  const fixture = setup()
+  try {
+    const content = structuredClone(analysisContent)
+    if (fault === 'quote') content.activities[1]!.destination!.evidence = 'Colonia is a destination invented here'
+    if (fault === 'name') content.activities[1]!.destination!.systemName = 'Sol'
+    if (fault === 'entity') content.entities = content.entities.filter(entity => entity.name !== 'Colonia')
+    fixture.analyser.analyse.mockResolvedValue({ content, usage: analysisUsage })
+    await expect(fixture.service.analyse(analysisArticle.id)).rejects.toMatchObject({ code: 'galnet_analysis_invalid_destination' })
+    expect(fixture.service.get(analysisArticle.id).analysis).toBeNull()
+  } finally { await fixture.close() }
 })

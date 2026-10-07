@@ -4,6 +4,10 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Show explicitly located GalNet investigation leads as a separate Atlas layer, with source quotes,
+  dates and uncertainty. Community Goal references stay in the CG layer; unresolved destinations
+  remain unplotted. Older reports need an explicit analysis update; opening the Atlas never runs AI.
+
 - Let Copilot read saved GalNet analysis summaries and individual reports through separate Comms
   permissions, retaining sources, uncertainty and dated Community Goal references. Reading does not
   trigger analysis or refresh sources.

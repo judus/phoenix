@@ -46,6 +46,7 @@ export function GalnetAnalysisPanel({ api, articleId }: { api: GalnetAnalysisApi
       {snapshot && !snapshot.configured && <Status wrap tone="warning">Configure an OpenAI API key in Settings to analyse articles. Saved reports remain readable.</Status>}
       {snapshot && !snapshot.articleAvailable && <Status wrap tone="warning">This article has not been archived yet. Refresh the news after its cache expires.</Status>}
       {snapshot?.articleChanged && <Status wrap tone="warning">The article has changed since this report. Update analysis to use the latest archived revision.</Status>}
+      {snapshot?.analysis?.schemaVersion === 1 && <Status wrap tone="muted">This saved report predates investigation destinations. Update analysis explicitly to extract them for the Atlas; this may use API credit.</Status>}
       {error && <Status wrap tone="danger" role="alert">{error}</Status>}
       {snapshot?.analysis && <GalnetAnalysisReport analysis={snapshot.analysis} />}
     </Stack>
@@ -54,8 +55,10 @@ export function GalnetAnalysisPanel({ api, articleId }: { api: GalnetAnalysisApi
 
 export function GalnetAnalysisReport({ analysis }: { analysis: GalnetAnalysis }) {
   const { content } = analysis
-  const linked = content.activities.filter(activity => activity.communityGoalId !== null)
-  const leads = content.activities.filter(activity => activity.communityGoalId === null)
+  const activities = analysis.schemaVersion === 2 ? analysis.content.activities
+    : analysis.content.activities.map(activity => ({ ...activity, destination: null }))
+  const linked = activities.filter(activity => activity.communityGoalId !== null)
+  const leads = activities.filter(activity => activity.communityGoalId === null)
   return <Stack gap="lg">
     <Status wrap>{content.summary}</Status>
     <DescriptionList density="compact">
@@ -77,7 +80,8 @@ export function GalnetAnalysisReport({ analysis }: { analysis: GalnetAnalysis })
     </DataTableGroup>}
     {leads.length > 0 && <DataTableGroup title="Separate investigation leads">
       <ItemList density="compact">{leads.map((activity, index) => <ItemListItem key={index} title={activity.title}
-        eyebrow={`Reported status: ${activity.status}`} description={activity.action} meta={`“${activity.evidence}”`} />)}</ItemList>
+        eyebrow={`Reported status: ${activity.status}`} description={activity.action}
+        meta={`“${activity.evidence}”${activity.destination ? ` · Destination: ${activity.destination.systemName}` : ''}`} />)}</ItemList>
     </DataTableGroup>}
     {content.entities.length > 0 && <DataTableGroup title="Mentioned entities">
       <ItemList density="compact">{content.entities.map((entity, index) => <ItemListItem key={index} title={entity.name}

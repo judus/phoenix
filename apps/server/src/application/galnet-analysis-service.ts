@@ -5,7 +5,7 @@ import type { GalnetArticleArchive } from '../domain/galnet.js'
 import type { CommunityGoalsReader } from '../domain/community-goals.js'
 import type { GalnetAnalysisReader, GalnetAnalysisRepository, GalnetArticleAnalyser } from '../domain/galnet-analysis.js'
 
-const EXTRACTOR_VERSION = 'galnet-analysis-v1'
+const EXTRACTOR_VERSION = 'galnet-analysis-v2'
 
 export class GalnetAnalysisService implements GalnetAnalysisReader {
   private running?: { articleId: string, result: Promise<GalnetAnalysisResponse> }
@@ -67,6 +67,14 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
     if (quotes.some(entry => !quoteExists(entry.evidence))) {
       throw new AiError('structured_output_validation', 'Analysis contained a quote not found in the article. Nothing was saved.', { code: 'galnet_analysis_invalid_evidence' })
     }
+    for (const activity of content.activities) {
+      const destination = activity.destination
+      if (destination && (!quoteExists(destination.evidence) ||
+        !destination.evidence.toLowerCase().includes(destination.systemName.toLowerCase()) ||
+        !content.entities.some(entity => entity.kind === 'system' && entity.name.toLowerCase() === destination.systemName.toLowerCase()))) {
+        throw new AiError('structured_output_validation', 'Analysis contained a destination without matching quoted system evidence. Nothing was saved.', { code: 'galnet_analysis_invalid_destination' })
+      }
+    }
     const linked = new Set<string>()
     for (const activity of content.activities) {
       const id = activity.communityGoalId
@@ -76,7 +84,7 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
       }
       if (id !== null) linked.add(id)
     }
-    const analysis = GalnetAnalysisSchema.parse({ schemaVersion: 1, extractorVersion: EXTRACTOR_VERSION,
+    const analysis = GalnetAnalysisSchema.parse({ schemaVersion: 2, extractorVersion: EXTRACTOR_VERSION,
       cacheKey, articleId, articleRevisionId: article.revisionId, sourceUrl: article.article.sourceUrl,
       publishedAt: article.article.publishedAt, analysedAt: this.now().toISOString(), model: this.analyser.model,
       communityGoals: goals, usage: result.usage, content })
