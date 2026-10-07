@@ -20,6 +20,15 @@ on your tablet. A copied PHOENIX `/#pair=…` link also works in the address fie
 hardware or denied permission switches to manual entry automatically. A cancelled scan returns
 to the connection card without connecting.
 
+Plain HTTP requires a numeric local IP: private IPv4 (`10.*`, `172.16.*`–`172.31.*`,
+`192.168.*`), IPv4/IPv6 link-local, IPv6 unique-local (`fc00::/7`), or loopback for local testing.
+Public HTTP addresses and all HTTP hostnames (including `.local` and `localhost`) are rejected
+before pairing, both for manual entry and QR codes. Use the numeric tablet access address shown
+by PHOENIX. Avoiding DNS here ensures WebView cannot resolve a checked hostname to a different,
+public address. HTTPS hostnames/public addresses remain supported with normal Android certificate
+validation; a valid PHOENIX pairing response is still required before opening the interface.
+Local address ranges are a destination restriction, not proof of server identity or network proximity.
+
 The server address, WebView preferences and pairing cookie survive app restarts. The pairing
 code itself is not saved by the shell. Uninstalling/clearing app data or revoking the paired device
 requires pairing again. The debug app has a separate application ID from future release builds;

@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Restrict Android shell HTTP pairing to numeric private, link-local or loopback addresses;
+  reject public HTTP destinations and HTTP hostnames. HTTPS keeps normal certificate validation.
+
 - Shorten Numpy's invalid-address status to “No match”.
 
 - Add an experimental Android tablet shell that loads PHOENIX from your computer, remembers

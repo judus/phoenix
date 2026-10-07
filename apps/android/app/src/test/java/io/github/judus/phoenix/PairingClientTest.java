@@ -1,6 +1,7 @@
 package io.github.judus.phoenix;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.concurrent.TimeUnit;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -19,8 +20,8 @@ public class PairingClientTest {
 
     @Before public void start() throws IOException {
         server = new MockWebServer();
-        server.start();
-        address = ServerAddress.parse(server.url("/").toString());
+        server.start(InetAddress.getByName("127.0.0.1"), 0);
+        address = ServerAddress.parse("http://127.0.0.1:" + server.getPort());
     }
     @After public void stop() throws IOException { server.shutdown(); }
 

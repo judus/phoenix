@@ -19,8 +19,8 @@
     <string name="server_hint">http://192.168.1.10:3400</string>
     <string name="connect">CONNECT</string>
     <string name="resume">RETURN TO PHOENIX</string>
-    <string name="connection_back_hint">Keep PHOENIX running on your computer. Connect only to a trusted computer and network.</string>
-    <string name="invalid_address">Enter an HTTP or HTTPS server address, including its port if needed. You can also paste a PHOENIX pairing link.</string>
+    <string name="connection_back_hint">Keep PHOENIX running on your computer. Local HTTP is unencrypted. Connect only to a trusted computer and network.</string>
+    <string name="invalid_address">Use the local IP address shown by PHOENIX for HTTP (for example http://192.168.1.10:3400), or an HTTPS address. HTTP hostnames and public IP addresses are not allowed. Pairing links also work.</string>
     <string name="load_failed">Cannot load PHOENIX. Check the address, your Wi-Fi connection and that PHOENIX is running on your computer.</string>
     <string name="external_unavailable">No browser is available to open this link.</string>
     <string name="unsupported_link">This link cannot be opened by the Android shell.</string>

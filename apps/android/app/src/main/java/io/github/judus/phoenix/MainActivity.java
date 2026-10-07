@@ -130,7 +130,13 @@ public final class MainActivity extends ComponentActivity {
         String savedOrigin = preferences.getString("server", "");
         address.setText(savedOrigin);
         if (!savedOrigin.isEmpty()) {
-            server = ServerAddress.parse(savedOrigin);
+            try {
+                server = ServerAddress.parse(savedOrigin);
+            } catch (IllegalArgumentException invalid) {
+                showConnection(R.string.invalid_address);
+                setMode(true);
+                return;
+            }
             // Restore only a same-origin route, never the pairing fragment or WebView history blob.
             String route = state == null ? null : state.getString("route");
             authorize(server, "", route != null && server.contains(route) ? route : server.origin());
