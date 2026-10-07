@@ -120,7 +120,10 @@ export class SqliteEddnOutbox implements EddnOutbox {
       this.connection.exec('ROLLBACK')
       if (cause instanceof EddnQueueCapacityError) {
         try { this.capacityFailure(ready ? undefined : id, now) } catch (cleanupCause) {
-          if (refusedFirstCheckpoint) this.pendingCapacityLosses = { count: (this.pendingCapacityLosses?.count ?? 0) + 1, lastAt: now }
+          if (refusedFirstCheckpoint) this.pendingCapacityLosses = {
+            count: (this.pendingCapacityLosses?.count ?? 0) + 1,
+            lastAt: Math.max(this.pendingCapacityLosses?.lastAt ?? now, now)
+          }
           throw new EddnQueueCapacityError({ cause: cleanupCause })
         }
       }
