@@ -26,6 +26,7 @@ export function GalacticAtlasPage({ api, onNavigate, runtime }: {
   const bookmarks = useAtlasBookmarks(api, showBookmarks)
   const communityGoals = useAtlasCommunityGoals(api, showCommunityGoals)
   const investigations = useAtlasGalnetLeads(api, showInvestigations)
+  const omitted = investigations.snapshot?.omitted
   const catalogue = useAtlasCatalogue(api)
   const system = runtime.status === 'ready' ? runtime.state.system : undefined
   return <GalacticAtlas
@@ -37,9 +38,10 @@ export function GalacticAtlasPage({ api, onNavigate, runtime }: {
     investigationsStatus={[
       investigations.loading ? 'Loading saved GalNet leads…' : '',
       investigations.error,
-      investigations.snapshot?.omitted.legacyReports ? `${investigations.snapshot.omitted.legacyReports} reports need updated analysis for destinations` : '',
-      investigations.snapshot?.omitted.changedReports ? `${investigations.snapshot.omitted.changedReports} changed-article reports hidden` : '',
-      investigations.snapshot?.omitted.withoutDestination ? `${investigations.snapshot.omitted.withoutDestination} leads without explicit destinations` : '',
+      omitted?.legacyReports ? `${omitted.legacyReports} report${omitted.legacyReports === 1 ? ' needs' : 's need'} updated analysis for destinations` : '',
+      omitted?.changedReports ? `${omitted.changedReports} changed-article report${omitted.changedReports === 1 ? '' : 's'} hidden` : '',
+      omitted?.endedLeads ? `${omitted.endedLeads} ended lead${omitted.endedLeads === 1 ? '' : 's'} hidden` : '',
+      omitted?.withoutDestination ? `${omitted.withoutDestination} lead${omitted.withoutDestination === 1 ? '' : 's'} without explicit destinations` : '',
       investigations.unlocatedSystems.length ? `Lead destinations not located: ${investigations.unlocatedSystems.join(', ')}` : ''
     ].filter(Boolean).join(' · ') || undefined}
     communityGoalsStatus={[

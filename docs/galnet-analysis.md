@@ -90,7 +90,8 @@ CG-linked activities stay in the existing CG layer. Ended activities and reports
 article revision changed are excluded. Unknown status stays unknown, not confirmed live availability.
 
 Version-2 extraction adds a nullable destination with an exact source quote. Validation requires
-the quote to contain the named system and the report to identify it as a system entity. The prompt
+the quote to contain the named system with name boundaries (not a substring of another name),
+and the report to identify it as a system entity. The prompt
 requires the article to associate that system with the activity, not merely mention it; validation
 cannot prove that semantic interpretation. Regions, nearby systems, unnamed station/body systems
 and historical positions of movable ships are not substitutes for an explicit destination.

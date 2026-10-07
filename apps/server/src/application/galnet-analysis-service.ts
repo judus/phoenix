@@ -70,7 +70,7 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
     for (const activity of content.activities) {
       const destination = activity.destination
       if (destination && (!quoteExists(destination.evidence) ||
-        !destination.evidence.toLowerCase().includes(destination.systemName.toLowerCase()) ||
+        !mentionsSystem(destination.evidence, destination.systemName) ||
         !content.entities.some(entity => entity.kind === 'system' && entity.name.toLowerCase() === destination.systemName.toLowerCase()))) {
         throw new AiError('structured_output_validation', 'Analysis contained a destination without matching quoted system evidence. Nothing was saved.', { code: 'galnet_analysis_invalid_destination' })
       }
@@ -91,4 +91,9 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
     this.repository.put(analysis)
     return this.get(articleId)
   }
+}
+
+function mentionsSystem(quote: string, name: string): boolean {
+  const literal = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`(?<![\\p{L}\\p{N}\\p{M}_-])${literal}(?![\\p{L}\\p{N}\\p{M}_-])`, 'iu').test(quote)
 }

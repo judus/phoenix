@@ -125,15 +125,36 @@ test('existing v1 evidence stays readable without calls; explicit update creates
   } finally { await fixture.close() }
 })
 
-test.each(['quote', 'name', 'entity'] as const)('rejects destination %s mismatch before saving', async fault => {
+test.each(['quote', 'name', 'entity', 'partial-prefix', 'partial-suffix'] as const)('rejects destination %s mismatch before saving', async fault => {
   const fixture = setup()
   try {
     const content = structuredClone(analysisContent)
     if (fault === 'quote') content.activities[1]!.destination!.evidence = 'Colonia is a destination invented here'
     if (fault === 'name') content.activities[1]!.destination!.systemName = 'Sol'
     if (fault === 'entity') content.entities = content.entities.filter(entity => entity.name !== 'Colonia')
+    if (fault === 'partial-prefix' || fault === 'partial-suffix') {
+      const name = fault === 'partial-prefix' ? 'Colon' : 'lonia'
+      content.activities[1]!.destination!.systemName = name
+      content.entities.push({ ...content.entities.find(entity => entity.name === 'Colonia')!, name })
+    }
     fixture.analyser.analyse.mockResolvedValue({ content, usage: analysisUsage })
     await expect(fixture.service.analyse(analysisArticle.id)).rejects.toMatchObject({ code: 'galnet_analysis_invalid_destination' })
     expect(fixture.service.get(analysisArticle.id).analysis).toBeNull()
+  } finally { await fixture.close() }
+})
+
+test.each(['SMOJE TO-Z d13-40', 'BD+05 1295'])('accepts a fully quoted system name with literal punctuation: %s', async name => {
+  const fixture = setup()
+  try {
+    const content = structuredClone(analysisContent)
+    const activity = content.activities[1]!
+    activity.evidence = activity.evidence.replace('Colonia', name)
+    activity.destination = { systemName: name, evidence: activity.evidence }
+    const entity = content.entities.find(entry => entry.name === 'Colonia')!
+    entity.name = name
+    entity.evidence = entity.evidence.replace('Colonia', name)
+    fixture.db.galnetArchive.observe([{ ...analysisArticle, body: analysisArticle.body.replace('Colonia', name) }], '2026-10-08T12:00:00Z')
+    fixture.analyser.analyse.mockResolvedValue({ content, usage: analysisUsage })
+    expect((await fixture.service.analyse(analysisArticle.id)).analysis?.content.activities[1]).toMatchObject({ destination: { systemName: name } })
   } finally { await fixture.close() }
 })

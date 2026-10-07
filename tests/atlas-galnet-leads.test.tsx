@@ -1,18 +1,36 @@
 import { act } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
-import { GalnetAnalysisSchema, type GalnetInvestigationLeadsResponse } from '@phoenix/contracts'
+import { createEmptyRuntimeState, GalnetAnalysisSchema, type GalnetInvestigationLeadsResponse } from '@phoenix/contracts'
 import { GalnetInvestigationLeadsService } from '../apps/server/src/application/galnet-investigation-leads-service.js'
 import { useAtlasGalnetLeads } from '../apps/web/src/features/galaxy/use-atlas-galnet-leads.js'
-import { GalacticAtlas } from '../apps/web/src/features/galaxy/galactic-atlas-page.js'
+import { GalacticAtlas, GalacticAtlasPage } from '../apps/web/src/features/galaxy/galactic-atlas-page.js'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
 import { savedGalnetAnalysis } from './support/galnet-analysis-fixtures.js'
 import { renderWithAct } from './support/render-with-act.js'
+import { phoenixApiStub } from './support/phoenix-api-stub.js'
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
 function snapshot(): GalnetInvestigationLeadsResponse {
   const analysis = savedGalnetAnalysis()
   return new GalnetInvestigationLeadsService({ recent: () => [{ analysis, articleChanged: false, currentArticleTitle: 'Synthetic story' }] }).get()
 }
+
+test.each([1, 2])('page reports every omission reason with grammatical counts: %i', async count => {
+  const data = snapshot()
+  data.leads = []
+  data.omitted = { legacyReports: count, changedReports: count, endedLeads: count, withoutDestination: count }
+  const api = phoenixApiStub({ getGalnetInvestigationLeads: async () => data,
+    getCommunityGoals: async () => ({ goals: [], fetchedAt: '2026-10-08T12:00:00Z', cache: 'fresh' }),
+    getGalaxyBookmarks: async () => ({ bookmarks: [] }), getAtlasCatalogue: async () => ({ pois: [], sources: [] }) })
+  const renderer = await renderWithAct(<GalacticAtlasPage api={api} onNavigate={vi.fn()} runtime={{ status: 'ready', state: createEmptyRuntimeState() }} />)
+  try {
+    const text = JSON.stringify(renderer.toJSON())
+    expect(text).toContain(count === 1 ? '1 report needs updated analysis' : '2 reports need updated analysis')
+    expect(text).toContain(`${count} changed-article report${count === 1 ? '' : 's'} hidden`)
+    expect(text).toContain(`${count} ended lead${count === 1 ? '' : 's'} hidden`)
+    expect(text).toContain(`${count} lead${count === 1 ? '' : 's'} without explicit destinations`)
+  } finally { await act(async () => renderer.unmount()) }
+})
 
 test('Atlas projection includes only independent, unended, destination-backed v2 evidence from unchanged articles', () => {
   const analysis = savedGalnetAnalysis()
