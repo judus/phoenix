@@ -1,5 +1,6 @@
 import {
   GalnetAnalysisResponseSchema,
+  GalnetInvestigationLeadsResponseSchema,
   type GalnetAnalysisResponse,
   AtlasCatalogueResponseSchema,
   EddnStatusSchema,
@@ -497,6 +498,10 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getGalnetAnalysis(articleId: string, signal?: AbortSignal): Promise<GalnetAnalysisResponse> {
     return this.#get(`/api/galnet/analysis?${new URLSearchParams({ articleId })}`, GalnetAnalysisResponseSchema, signal)
+  }
+
+  async getGalnetInvestigationLeads(signal?: AbortSignal) {
+    return this.#get('/api/galnet/investigation-leads', GalnetInvestigationLeadsResponseSchema, signal)
   }
 
   async analyseGalnetArticle(articleId: string, signal?: AbortSignal): Promise<GalnetAnalysisResponse> {

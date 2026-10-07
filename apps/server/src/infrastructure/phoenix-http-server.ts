@@ -63,6 +63,7 @@ import type { ExplorationTargetReader } from '../application/default-exploration
 import { DEFAULT_GALAXY_RESULT_LIMIT, type GalaxyDataReader } from '../application/galaxy-data-service.js'
 import type { GalnetNewsReader } from '../domain/galnet.js'
 import type { GalnetAnalysisReader } from '../domain/galnet-analysis.js'
+import type { GalnetInvestigationLeadsService } from '../application/galnet-investigation-leads-service.js'
 import { GalnetAnalyseRequestSchema } from '@phoenix/contracts'
 import type { CommunityGoalsReader } from '../domain/community-goals.js'
 import type { AtlasCatalogueReader } from '../domain/atlas.js'
@@ -145,6 +146,7 @@ export interface PhoenixHttpServerOptions extends SettingsHttpServices, Engineer
   marketSignals: MarketSignalReader
   galnet: GalnetNewsReader
   galnetAnalysis: GalnetAnalysisReader
+  galnetInvestigationLeads: Pick<GalnetInvestigationLeadsService, 'get'>
   communityGoals: CommunityGoalsReader
   atlas: AtlasCatalogueReader
   healthCheck: HealthCheck
@@ -383,6 +385,11 @@ export class PhoenixHttpServer {
       writeJson(response, 200, await this.options.galnet.getLatest(
         Number.isSafeInteger(requestedLimit) ? requestedLimit : 40
       ))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/galnet/investigation-leads') {
+      writeJson(response, 200, this.options.galnetInvestigationLeads.get())
       return
     }
 

@@ -85,6 +85,7 @@ import { DefaultCommanderEngineersQuery } from './application/default-commander-
 import { GalnetNewsService } from './application/galnet-news-service.js'
 import { GalnetAnalysisService } from './application/galnet-analysis-service.js'
 import { SavedGalnetAnalysisService } from './application/saved-galnet-analysis-service.js'
+import { GalnetInvestigationLeadsService } from './application/galnet-investigation-leads-service.js'
 import type { GalnetArticleAnalyser } from './domain/galnet-analysis.js'
 import { OpenAiGalnetArticleAnalyser } from './infrastructure/openai-galnet-article-analyser.js'
 import { CommunityGoalsService } from './application/community-goals-service.js'
@@ -484,6 +485,7 @@ export class PhoenixApplication {
     const exploration = new DefaultExplorationBodyQuery(this.database, cartography, this.stateStore)
     const explorationData = new ExplorationDataService(this.database, this.database)
     let copilotTools: ReturnType<typeof createPhoenixMcpTools> = []
+    const savedGalnetAnalyses = new SavedGalnetAnalysisService(this.database.galnetAnalyses, this.database.galnetArchive)
     const copilotCapabilities = new DefaultCopilotCapabilityService(
       () => copilotTools.map(tool => tool.definition),
       commandCatalogue,
@@ -506,7 +508,7 @@ export class PhoenixApplication {
       missions,
       communications,
       communityGoals,
-      galnetAnalyses: new SavedGalnetAnalysisService(this.database.galnetAnalyses, this.database.galnetArchive),
+      galnetAnalyses: savedGalnetAnalyses,
       runtimeState: this.stateStore,
       statefulActions,
       stations: stationMarkets,
@@ -595,6 +597,7 @@ export class PhoenixApplication {
       personalEquipmentPlanner,
       galnet,
       galnetAnalysis: this.galnetAnalysis,
+      galnetInvestigationLeads: new GalnetInvestigationLeadsService(savedGalnetAnalyses),
       communityGoals,
       atlas,
       navigationData,

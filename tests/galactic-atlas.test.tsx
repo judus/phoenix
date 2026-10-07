@@ -278,6 +278,8 @@ test('bookmarks deduplicate system lookups, preserve station/body targets and re
   const bookmark = (id: string, target: object) => ({ id, target, tags: [], note: null, createdAt: '', updatedAt: '' })
   const api = {
     getCommunityGoals: vi.fn().mockResolvedValue({ goals: [], fetchedAt: '2026-10-07T12:00:00Z', cache: 'fresh' }),
+    getGalnetInvestigationLeads: vi.fn().mockResolvedValue({ leads: [], reportLimit: 20,
+      omitted: { legacyReports: 0, changedReports: 0, endedLeads: 0, withoutDestination: 0 } }),
     getAtlasCatalogue: vi.fn().mockResolvedValue({ pois: [], sources: [] }),
     getGalaxyBookmarks: vi.fn().mockResolvedValue({ bookmarks: [
       bookmark('station', { kind: 'station', systemName: 'Example', stationName: 'Test Port' }),

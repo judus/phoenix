@@ -19,7 +19,7 @@ activities reference authoritative CG IDs and appear under **Related Community G
 per goal; progress and destination are read from the saved structured snapshot. Explicit versus
 possible linkage remains an AI assessment, not a verified gameplay relationship. Unlinked
 activities appear as separate investigation leads. The prompt forbids repeating a linked or
-possibly linked CG as an independent lead; no report creates any goals or Atlas pins.
+possibly linked CG as an independent lead; no report creates any goals or permanent Atlas POIs.
 
 Schema validation and ID/quote checks reject malformed evidence, unknown or duplicate CG
 references and inconsistent relationships before persistence. These checks are not proof that
@@ -45,7 +45,7 @@ simultaneous requests for that article share the job. No fixed monetary estimate
 version and CG contents match. Snapshot timestamps/cache-state alone do not cause another paid
 request. Changed evidence can incur a new request, but only after another explicit press.
 
-Migration 27 adds `galnet_analyses` to the existing SQLite database. Successful version-1 reports
+Migration 27 adds `galnet_analyses` to the existing SQLite database. Successful reports
 are keyed by an SHA-256 evidence/configuration digest; prior reports remain readable across
 restart or key removal. Read endpoints do not perform inference. Failed, refused, truncated or
 invalid output is not saved as a successful report; an older valid report remains visible.
@@ -81,9 +81,36 @@ the normal read-tool defaults; existing saved allowlists are not expanded automa
 both tools at installation level and for the active profile if they are not already allowed.
 The same registry enforces discovery/execution permissions for local, MCP and realtime callers.
 
+## Atlas investigation destinations
+
+The Atlas **Leads** toggle shows a separate, temporary layer from the newest saved report per
+article, limited to the 20 most recently analysed articles. It does not analyse articles or refresh
+news/CG sources. Only independent activities with an explicit system destination are eligible;
+CG-linked activities stay in the existing CG layer. Ended activities and reports whose archived
+article revision changed are excluded. Unknown status stays unknown, not confirmed live availability.
+
+Version-2 extraction adds a nullable destination with an exact source quote. Validation requires
+the quote to contain the named system with name boundaries (not a substring of another name),
+and the report to identify it as a system entity. The prompt
+requires the article to associate that system with the activity, not merely mention it; validation
+cannot prove that semantic interpretation. Regions, nearby systems, unnamed station/body systems
+and historical positions of movable ships are not substitutes for an explicit destination.
+
+Existing version-1 reports remain readable without inventing destinations. **Update analysis** is
+required to produce version 2 and may consume API credits. No automatic migration invokes AI.
+
+Coordinates come from existing system cartography, with at most two concurrent lookups and one
+lookup per distinct system name. A missing position, failed lookup or different canonical system
+name leaves the lead unplotted; the Atlas reports unresolved systems instead of guessing. The
+location panel retains the article link, source quotes, publication/analysis dates, model and status.
+Markers are dated AI interpretations, not verified current opportunities. Independent articles are
+not automatically merged into stories or reconciled for expiry; older ongoing/unknown reports may
+therefore require player judgement. Turning off Leads hides this layer without changing CGs,
+bookmarks, the permanent POI catalogue or saved reports.
+
 ## Remaining scope
 
-No background analysis, web enrichment, location resolution, Atlas publishing,
+No background analysis, web enrichment,
 personal CG tracking or story lifecycle reconciliation is included. Those require separate work,
 including settings and budgets before any automatic inference is introduced. The non-AI CG page
 and Atlas remain independent. See #60 and [the article archive](galnet-archive.md).

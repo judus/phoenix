@@ -27,6 +27,7 @@ test('paired manual HTTP analysis preserves goal references and survives restart
       expect(response.status).toBe(401)
     }
     expect(analyse).not.toHaveBeenCalled()
+    expect((await fetch(`${origin}/api/galnet/investigation-leads`)).status).toBe(401)
     const claim = await fetch(`${origin}/api/pairing/claim`, { method: 'POST', body: JSON.stringify({ code: access.pairingCode }) })
     const cookie = claim.headers.get('set-cookie')!.split(';')[0]!
     const request: typeof fetch = (input, init) => fetch(input, { ...init, headers: { ...init?.headers, cookie } })
@@ -41,6 +42,8 @@ test('paired manual HTTP analysis preserves goal references and survives restart
     const result = await client.analyseGalnetArticle(analysisArticle.id)
     expect(result.analysis?.content).toEqual(analysisContent)
     expect(result.analysis?.communityGoals.goals).toEqual(analysisGoals.goals)
+    expect(await client.getGalnetInvestigationLeads()).toMatchObject({ reportLimit: 20,
+      leads: [{ title: 'Investigate the beacon', systemName: 'Colonia', status: 'unknown', sourceUrl: analysisArticle.sourceUrl }] })
     await client.analyseGalnetArticle(analysisArticle.id)
     expect(analyse).toHaveBeenCalledTimes(1)
     await app.stop()

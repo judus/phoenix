@@ -29,6 +29,8 @@ test('existing low-level client requests bounded strict structured output withou
   const messages = JSON.stringify(request.messages)
   expect(messages).toContain('untrusted data')
   expect(messages).toContain('Never repeat that campaign')
+  expect(messages).toContain('destination null unless the article explicitly identifies its actionable destination system')
+  expect(messages).toContain('must not invent coordinates')
   expect(messages).toContain('cg-research')
 })
 

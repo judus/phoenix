@@ -48,7 +48,7 @@ const application = new PhoenixApplication({
   ...(galnetAnalysis ? {
     galnetSource: { getLatest: async () => [{
       id: 'synthetic-analysis', title: 'Synthetic research campaign',
-      body: 'Pilots should deliver supplies to Galileo in Sol. A separate beacon near Colonia needs investigation.',
+      body: 'Pilots should deliver supplies to Galileo in Sol. A separate beacon in Colonia needs investigation.',
       image: null, publishedAt: '2026-10-01T12:00:00Z', changedAt: '2026-10-01T12:00:00Z',
       slug: 'synthetic-research', sourceUrl: 'https://example.com/galnet/synthetic-analysis'
     }, { id: 'synthetic-narrative', title: 'Synthetic narrative only', body: 'A ceremonial speech was broadcast.',
@@ -59,11 +59,13 @@ const application = new PhoenixApplication({
       return { usage: { inputTokens: 1200, outputTokens: 400 }, content: {
         summary: 'Synthetic public-news analysis; no AI request was made.',
         facts: [{ text: 'The source describes a fictional event.', evidence: article.article.body }],
-        interpretations: [], entities: [], activities: article.article.id === 'synthetic-analysis' ? [{
+        interpretations: [], entities: article.article.id === 'synthetic-analysis' ? [{ name: 'Colonia', kind: 'system',
+          role: 'Investigation destination', evidence: 'beacon in Colonia needs investigation' }] : [], activities: article.article.id === 'synthetic-analysis' ? [{
           title: 'Supply campaign', action: 'See the linked Community Goal before contributing.',
-          evidence: 'deliver supplies to Galileo in Sol', communityGoalId: 'synthetic-0', relationship: 'explicit', status: 'unknown'
+          evidence: 'deliver supplies to Galileo in Sol', communityGoalId: 'synthetic-0', relationship: 'explicit', status: 'unknown', destination: null
         }, { title: 'Investigate the beacon', action: 'Investigate if interested; outcome unknown.',
-          evidence: 'A separate beacon near Colonia needs investigation.', communityGoalId: null, relationship: 'none', status: 'unknown' }] : []
+          evidence: 'A separate beacon in Colonia needs investigation.', communityGoalId: null, relationship: 'none', status: 'unknown',
+          destination: { systemName: 'Colonia', evidence: 'beacon in Colonia needs investigation' } }] : []
       } }
     } }
   } : {}),
@@ -90,7 +92,7 @@ const application = new PhoenixApplication({
   }] } } : {}),
   cartographySource: { fetchSystem: async name => denseCartography ? mockDenseCartography(name) : ({
     schemaVersion: 5, name, address: null, position: communityGoals && name.startsWith('Synthetic CG ')
-      ? [Number(name.slice('Synthetic CG '.length)) * 4000, 0, 4000] : [0, 0, 0],
+      ? [Number(name.slice('Synthetic CG '.length)) * 4000, 0, 4000] : name === 'Colonia' ? [-9530.5, -910.28125, 19808.125] : [0, 0, 0],
     permitRequired: false, permitName: null,
     information: { allegiance: null, government: null, security: null, state: null,
       primaryEconomy: null, secondaryEconomy: null, population: null, controllingFaction: null },
