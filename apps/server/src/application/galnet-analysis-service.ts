@@ -55,7 +55,7 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
     const cached = this.repository.get(cacheKey)
     if (cached) return { ...this.get(articleId), analysis: cached,
       articleChanged: this.articles.getArticle(articleId)?.revisionId !== cached.articleRevisionId }
-    if (JSON.stringify({ article: article.article, goals }).length > 60_000) {
+    if (JSON.stringify({ article: article.article, communityGoals: goals }).length > 60_000) {
       throw new AiError('invalid_request', 'The article and Community Goals exceed the analysis input limit. No AI request was made.', { code: 'galnet_analysis_input_limit' })
     }
     const signal = AbortSignal.any([this.shutdown.signal, AbortSignal.timeout(90_000)])

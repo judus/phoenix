@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { GalnetAnalysis, GalnetAnalysisResponse } from '@phoenix/contracts'
 import { Button, DataTableGroup, DescriptionItem, DescriptionList, Inline, ItemList, ItemListItem, Stack, Status } from '@phoenix/ui'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
-import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
+import { PhoenixDateTime } from '../../components/phoenix-date-time.js'
 
 export type GalnetAnalysisApi = Pick<PhoenixApi, 'getGalnetAnalysis' | 'analyseGalnetArticle'>
 
@@ -59,8 +59,8 @@ export function GalnetAnalysisReport({ analysis }: { analysis: GalnetAnalysis })
   return <Stack gap="lg">
     <Status wrap>{content.summary}</Status>
     <DescriptionList density="compact">
-      <DescriptionItem label="Analysed" value={<><UpdatedDateTime value={analysis.analysedAt} /> · {analysis.model}</>} />
-      <DescriptionItem label="Community Goals snapshot" value={<><UpdatedDateTime value={analysis.communityGoals.fetchedAt} /> · {analysis.communityGoals.cache}</>} />
+      <DescriptionItem label="Analysed" value={<><PhoenixDateTime value={analysis.analysedAt} /> · {analysis.model}</>} />
+      <DescriptionItem label="Community Goals snapshot" value={<><PhoenixDateTime value={analysis.communityGoals.fetchedAt} /> · {analysis.communityGoals.cache}</>} />
       <DescriptionItem label="Token usage" value={<>{analysis.usage.inputTokens ?? 'Unknown'} input · {analysis.usage.outputTokens ?? 'Unknown'} output</>} />
     </DescriptionList>
     {analysis.communityGoals.cache === 'stale' && <Status wrap tone="warning">Community Goals were stale when analysed; campaign availability may have changed.</Status>}

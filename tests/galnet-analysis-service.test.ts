@@ -76,7 +76,10 @@ test('missing configuration/article and excessive input fail before AI; a CG out
     await expect(fixture.service.analyse('missing')).rejects.toMatchObject({ code: 'galnet_article_unavailable' })
     fixture.goals.getCurrent.mockRejectedValueOnce(new Error('upstream unavailable'))
     await expect(fixture.service.analyse(analysisArticle.id)).rejects.toThrow('upstream unavailable')
-    fixture.db.galnetArchive.observe([{ ...analysisArticle, body: 'x'.repeat(60_001) }], '2026-10-07T13:00:00Z')
+    const emptyPayload = { article: { ...analysisArticle, body: '' }, communityGoals: analysisGoals }
+    const oversizedArticle = { ...analysisArticle, body: 'x'.repeat(60_001 - JSON.stringify(emptyPayload).length) }
+    expect(JSON.stringify({ article: oversizedArticle, communityGoals: analysisGoals }).length).toBe(60_001)
+    fixture.db.galnetArchive.observe([oversizedArticle], '2026-10-07T13:00:00Z')
     await expect(fixture.service.analyse(analysisArticle.id)).rejects.toMatchObject({ code: 'galnet_analysis_input_limit' })
     expect(fixture.analyser.analyse).not.toHaveBeenCalled()
   } finally { await fixture.close() }
