@@ -1,5 +1,5 @@
 import { GalnetArticleSchema, GalnetNewsResponseSchema, type GalnetArticle, type GalnetNewsResponse } from '@phoenix/contracts'
-import type { GalnetNewsReader, GalnetSource } from '../domain/galnet.js'
+import type { GalnetArticleArchive, GalnetNewsReader, GalnetSource } from '../domain/galnet.js'
 import type { ProviderResponseCache } from '../domain/station-market.js'
 
 const CACHE_NAMESPACE = 'frontier-galnet'
@@ -7,11 +7,12 @@ const CACHE_KEY = 'latest'
 const CACHE_AGE_MS = 15 * 60 * 1000
 
 export class GalnetNewsService implements GalnetNewsReader {
-  private refresh?: Promise<GalnetArticle[]>
+  private refresh?: Promise<{ articles: GalnetArticle[], fetchedAt: string }>
 
   public constructor (
     private readonly source: GalnetSource,
     private readonly cache: ProviderResponseCache,
+    private readonly archive: GalnetArticleArchive,
     private readonly now: () => Date = () => new Date()
   ) {}
 
@@ -23,14 +24,23 @@ export class GalnetNewsService implements GalnetNewsReader {
       return response(cachedArticles.slice(0, limit), 'fresh', cached.fetchedAt)
     }
     try {
-      const articles = await (this.refresh ??= this.source.getLatest(100).finally(() => { this.refresh = undefined }))
-      const fetchedAt = this.now().toISOString()
-      this.cache.putProviderResponse(CACHE_NAMESPACE, CACHE_KEY, fetchedAt, articles)
+      const { articles, fetchedAt } = await (this.refresh ??= this.fetchAndStore().finally(() => { this.refresh = undefined }))
       return response(articles.slice(0, limit), 'refreshed', fetchedAt)
     } catch (cause) {
       if (cached && cachedArticles) return response(cachedArticles.slice(0, limit), 'stale', cached.fetchedAt)
       throw cause
     }
+  }
+
+  private async fetchAndStore (): Promise<{ articles: GalnetArticle[], fetchedAt: string }> {
+    const sourceArticles = await this.source.getLatest(100)
+    const fetchedAt = this.now().toISOString()
+    this.archive.observe(sourceArticles, fetchedAt)
+    // Keep source/revision metadata internal; the latest-feed contract is unchanged.
+    const articles = sourceArticles.map(({ body, id, image, publishedAt, title }) =>
+      ({ body, id, image, publishedAt, title }))
+    this.cache.putProviderResponse(CACHE_NAMESPACE, CACHE_KEY, fetchedAt, articles)
+    return { articles, fetchedAt }
   }
 }
 

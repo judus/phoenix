@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Retain observed GalNet articles and distinct revisions locally, including source references and
+  dates, as a foundation for future analysis. The latest-news feed is unchanged; no AI runs.
+
 - Show Community Goal destinations as a separate CG layer on the Galactic Atlas, with official
   objectives, progress and freshness in the location panel. Green diamond markers distinguish them
   from bookmarks; unresolved coordinates stay unplotted.
