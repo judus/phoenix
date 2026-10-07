@@ -451,7 +451,7 @@ export class PhoenixApplication {
       gameCatalogue, cartography, this.stateStore, this.database, options
     )
     const dashboardMarketSignals = new DashboardMarketSignalService(savedGalaxyQueries, marketSignals, this.stateStore)
-    const galnet = new GalnetNewsService(options.galnetSource ?? new FrontierGalnetSource(), this.database)
+    const galnet = new GalnetNewsService(options.galnetSource ?? new FrontierGalnetSource(), this.database, this.database.galnetArchive)
     const communityGoals = new CommunityGoalsService(options.communityGoalsSource ?? new FrontierCommunityGoalsSource(), this.database)
     const atlas = new AtlasCatalogueService(options.atlasSources ?? atlasPoiSources(), this.database, undefined,
       AtlasPoiSchema.array().parse(JSON.parse(readFileSync(resolve(paths.resources.atlas, 'known-sites.json'), 'utf8'))))
