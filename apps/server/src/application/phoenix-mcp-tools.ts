@@ -38,6 +38,8 @@ import { MissionsListMissionsTool } from './mcp-tools/missions-list-missions-too
 import { ActivitiesListCommunityGoalsTool } from './mcp-tools/activities-list-community-goals-tool.js'
 import { StationsFindStationsSellingModuleTool } from './mcp-tools/stations-find-stations-selling-module-tool.js'
 import { CommsListMessagesTool } from './mcp-tools/comms-list-messages-tool.js'
+import { CommsListGalnetAnalysesTool, CommsGetGalnetAnalysisTool } from './mcp-tools/comms-galnet-analysis-tools.js'
+import type { SavedGalnetAnalysisReader } from '../domain/galnet-analysis.js'
 import { FleetListShipsTool } from './mcp-tools/fleet-list-ships-tool.js'
 import { FleetListStoredModulesTool } from './mcp-tools/fleet-list-stored-modules-tool.js'
 import { WebSearchTool } from './mcp-tools/web-search-tool.js'
@@ -55,6 +57,7 @@ export interface PhoenixMcpToolDependencies {
   commands: Commands
   communications: CommunicationDataReader
   communityGoals: CommunityGoalsReader
+  galnetAnalyses: SavedGalnetAnalysisReader
   gameCatalogue: GameCatalogue
   engineers: CommanderEngineersQuery
   engineeringProjects: Pick<EngineeringProjects, 'getReport'>
@@ -88,6 +91,8 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new EngineeringGetProjectReportTool(dependencies.engineeringProjects),
     new EngineeringListMaterialInventoryTool(dependencies.runtimeState),
     new CommsListMessagesTool(dependencies.communications),
+    new CommsListGalnetAnalysesTool(dependencies.galnetAnalyses),
+    new CommsGetGalnetAnalysisTool(dependencies.galnetAnalyses),
     new ControlsFindActionsTool(dependencies.commands),
     new ControlsExecuteTool(dependencies.commands),
     new ControlsSetSwitchTool(dependencies.statefulActions, dependencies.commands),

@@ -4,6 +4,10 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Let Copilot read saved GalNet analysis summaries and individual reports through separate Comms
+  permissions, retaining sources, uncertainty and dated Community Goal references. Reading does not
+  trigger analysis or refresh sources.
+
 - Analyse individual GalNet articles on request using your configured AI, with evidence quotes,
   separate investigation leads and references to existing Community Goals rather than duplicate
   goals. Save reports with source revisions, CG snapshot freshness and token usage; nothing runs

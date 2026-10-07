@@ -19,6 +19,8 @@ export const DEFAULT_COPILOT_FIXED_TOOL_NAMES = [
   'engineering.get_project_report',
   'engineering.list_material_inventory',
   'comms.list_messages',
+  'comms.list_galnet_analyses',
+  'comms.get_galnet_analysis',
   'display.open_page',
   'display.show_body_details',
   'display.show_system_schematic',

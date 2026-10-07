@@ -84,6 +84,7 @@ import { ExplorationDataService } from './application/exploration-data-service.j
 import { DefaultCommanderEngineersQuery } from './application/default-commander-engineers-query.js'
 import { GalnetNewsService } from './application/galnet-news-service.js'
 import { GalnetAnalysisService } from './application/galnet-analysis-service.js'
+import { SavedGalnetAnalysisService } from './application/saved-galnet-analysis-service.js'
 import type { GalnetArticleAnalyser } from './domain/galnet-analysis.js'
 import { OpenAiGalnetArticleAnalyser } from './infrastructure/openai-galnet-article-analyser.js'
 import { CommunityGoalsService } from './application/community-goals-service.js'
@@ -505,6 +506,7 @@ export class PhoenixApplication {
       missions,
       communications,
       communityGoals,
+      galnetAnalyses: new SavedGalnetAnalysisService(this.database.galnetAnalyses, this.database.galnetArchive),
       runtimeState: this.stateStore,
       statefulActions,
       stations: stationMarkets,

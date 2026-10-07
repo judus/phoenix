@@ -17,6 +17,55 @@ import { RecordingKeyboardOutput } from 'control-deck/adapter-keyboard'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { JsonConversationStore } from '../apps/server/src/infrastructure/json-conversation-store.js'
 import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
+import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
+import { analysisArticle, savedGalnetAnalysis } from './support/galnet-analysis-fixtures.js'
+
+test('GalNet tools read persisted analysis over MCP without inference or source refresh and expose both Comms permissions', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-galnet-tools-'))
+  const databasePath = join(directory, 'state.sqlite')
+  const db = new SqliteDatabase(databasePath)
+  let report
+  try {
+    db.initialize()
+    db.galnetArchive.observe([analysisArticle], '2026-10-07T12:00:00Z')
+    report = savedGalnetAnalysis({ articleRevisionId: db.galnetArchive.getArticle(analysisArticle.id)!.revisionId })
+    db.galnetAnalyses.put(report)
+  } finally { db.close() }
+  const analyse = vi.fn(async () => { throw new Error('Unexpected inference') })
+  const getLatest = vi.fn(async () => { throw new Error('Unexpected news refresh') })
+  const getCurrent = vi.fn(async () => { throw new Error('Unexpected CG refresh') })
+  const application = new PhoenixApplication({ databasePath, eliteDirectory: null, host: '127.0.0.1', port: 0,
+    copilot: null, copilotRealtime: null, openAiEnvironmentKey: null,
+    galnetAnalyser: { configured: () => false, model: 'no-model', analyse },
+    galnetSource: { getLatest }, communityGoalsSource: { getCurrent } })
+  try {
+    const address = await application.start()
+    const origin = `http://${address.host}:${address.port}`
+    const provider = configuredProvider([
+      response('galnet-list', [{ arguments: { limit: 2 }, callId: 'list', name: 'phoenix__comms_list_galnet_analyses', type: 'tool_call' }], 'tool_calls'),
+      response('galnet-detail', [{ arguments: { articleId: analysisArticle.id }, callId: 'detail', name: 'phoenix__comms_get_galnet_analysis', type: 'tool_call' }], 'tool_calls'),
+      response('done', [{ source: 'generated', text: 'Saved report received.', type: 'text' }], 'stop')
+    ])
+    const client = createAiClient({ mcp: [{ name: 'phoenix', url: `${origin}/mcp` }], provider })
+    const api = new PhoenixApiClient(origin)
+    const permissions = await api.getCopilotSettings()
+    const comms = permissions.capabilities.groups.find(group => group.id === 'tools.comms')!
+    for (const id of ['tool:comms.list_galnet_analyses', 'tool:comms.get_galnet_analysis']) {
+      expect(comms.capabilities).toContainEqual(expect.objectContaining({ id, access: 'read', available: true, enabled: true }))
+    }
+    await client.user('What is the story behind this campaign?').run()
+    expect(provider.requests[1]?.messages.at(-1)?.content).toMatchObject([{ type: 'tool_result', status: 'success', structuredContent: {
+      limit: 2, reports: [{ articleId: analysisArticle.id, articleChanged: false, summary: report.content.summary }]
+    } }])
+    expect(provider.requests[2]?.messages.at(-1)?.content).toMatchObject([{ type: 'tool_result', status: 'success', structuredContent: {
+      articleChanged: false, report
+    } }])
+    expect((await api.getGalnetAnalysis(analysisArticle.id)).analysis).toEqual(report)
+    expect(analyse).not.toHaveBeenCalled()
+    expect(getLatest).not.toHaveBeenCalled()
+    expect(getCurrent).not.toHaveBeenCalled()
+  } finally { await application.stop(); rmSync(directory, { recursive: true, force: true }) }
+})
 
 test('Community Goals over MCP reuse the Activities snapshot and expose their read-only permission', async () => {
   const getCurrent = vi.fn(async () => [{
@@ -196,6 +245,8 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
       'phoenix__engineering_get_project_report',
       'phoenix__engineering_list_material_inventory',
       'phoenix__comms_list_messages',
+      'phoenix__comms_list_galnet_analyses',
+      'phoenix__comms_get_galnet_analysis',
       'phoenix__controls_find_actions',
       'phoenix__controls_execute_command',
       'phoenix__controls_set_control_state',
