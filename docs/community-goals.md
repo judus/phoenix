@@ -36,6 +36,21 @@ Briefings are rendered as text paragraphs, never executable HTML.
 
 ## Ownership and follow-ups
 
+- Atlas: the **CG** toggle controls a default-visible, temporary destination layer, independent
+  of permanent landmarks, Finder categories and bookmarks. Hollow diamonds identify resolved
+  campaigns; nearby locations use the existing cluster selector. The inspector includes the
+  official objective/global quantities, Frontier-time expiry, source snapshot and source link,
+  plus navigation to the destination schematic and Activities CMG. Campaigns at the commander's
+  position remain selectable through that location's cluster.
+- Coordinates come only from the existing cartography API/cache, deduplicated by system with
+  at most two concurrent lookups. Failed/missing positions are reported in the Atlas footer and
+  never become guessed pins; the full listing remains available under Activities. No permanent
+  catalogue records are written. A stale cartography position is still a system coordinate, not
+  a claim that the campaign's station/megaship is present in the schematic.
+- While the CG layer is enabled, it refreshes 15 minutes and one second after the previous goal
+  fetch and coordinate resolution settle. Disabling/leaving cancels reads and polling. Successful
+  empty snapshots remove old markers; failed goal refreshes retain the displayed snapshot with
+  an explicit warning and its original timestamp. Source stale status remains visible too.
 - Copilot: `activities.list_community_goals` reads the same service/cache on demand, returning
   official briefings and campaign fields, `sourceUrl`, `fetchedAt` and cache freshness. It does
   not inject news into every prompt or run background AI. The existing tool boundary handles
@@ -52,5 +67,5 @@ Briefings are rendered as text paragraphs, never executable HTML.
 - #121: this non-AI listing slice; #60: optional GalNet intelligence/investigation leads.
 - #36: personal participation/progress from journal events; separate scope and gameplay validation.
 
-Later Atlas activity markers should consume the same authoritative read model,
-not scrape briefing text again or add transient campaigns to the permanent landmarks catalogue.
+Optional GalNet-derived investigation leads remain a separate feature. They must distinguish
+reported facts from inference rather than treating every mentioned location as an active campaign.
