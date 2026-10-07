@@ -18,7 +18,9 @@ supporting quote must match a contiguous passage in the article title or body. M
 only whitespace runs/line endings and straight-versus-curly single/double quotation marks; saved
 evidence is restored to the exact original source passage. Changed wording, case, numbers, omitted
 words and other punctuation are not normalized. Unverifiable quotes reject the report atomically;
-the error identifies the evidence field and rejected quote. Related campaign
+the error identifies the evidence field and rejected quote. The existing 800-character evidence
+limit also applies to restored source passages; exceeding it produces a specific validation error,
+not truncation or automatic retry. Related campaign
 activities reference authoritative CG IDs and appear under **Related Community Goals**, once
 per goal; progress and destination are read from the saved structured snapshot. Explicit versus
 possible linkage remains an AI assessment, not a verified gameplay relationship. Unlinked

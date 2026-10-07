@@ -7,6 +7,7 @@ import type { GalnetAnalysisReader, GalnetAnalysisRepository, GalnetArticleAnaly
 import { createGalnetQuoteResolver } from './galnet-quote-resolver.js'
 
 const EXTRACTOR_VERSION = 'galnet-analysis-v2'
+const EvidenceSchema = GalnetAnalysisContentSchema.shape.facts.element.shape.evidence
 
 export class GalnetAnalysisService implements GalnetAnalysisReader {
   private running?: { articleId: string, result: Promise<GalnetAnalysisResponse> }
@@ -68,6 +69,8 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
       const source = resolveQuote(quote)
       if (source === undefined) throw new AiError('structured_output_validation',
         `Could not verify quote in ${path}: ${JSON.stringify(quote)}. Nothing was saved; no automatic retry was made.`, { code })
+      if (!EvidenceSchema.safeParse(source).success) throw new AiError('structured_output_validation',
+        `Source quote in ${path} exceeds the evidence length limit after restoring formatting: ${JSON.stringify(quote)}. Nothing was saved; no automatic retry was made.`, { code })
       return source
     }
     for (const group of ['facts', 'interpretations', 'entities', 'activities'] as const) {

@@ -84,6 +84,28 @@ test.each(['facts', 'interpretations', 'entities', 'activities', 'destination'] 
   } finally { await fixture.close() }
 })
 
+test.each(['facts', 'interpretations', 'entities', 'activities', 'destination'] as const)
+('source-restored %s evidence that exceeds the existing length limit fails explicitly before persistence', async group => {
+  const fixture = setup()
+  try {
+    const quote = 'Colonia ' + 'x'.repeat(792)
+    expect(quote).toHaveLength(800)
+    const source = quote.replace(' ', '\r\n')
+    fixture.db.galnetArchive.observe([{ ...analysisArticle, body: `${analysisArticle.body}\r\n${source}` }], '2026-10-08T12:00:00Z')
+    const content = structuredClone(analysisContent)
+    if (group === 'destination') content.activities[1]!.destination!.evidence = quote
+    else content[group][0]!.evidence = quote
+    fixture.analyser.analyse.mockResolvedValue({ content, usage: analysisUsage })
+    const path = group === 'destination' ? 'activities[1].destination.evidence' : `${group}[0].evidence`
+    await expect(fixture.service.analyse(analysisArticle.id)).rejects.toMatchObject({
+      code: group === 'destination' ? 'galnet_analysis_invalid_destination' : 'galnet_analysis_invalid_evidence',
+      message: expect.stringContaining(`Source quote in ${path} exceeds the evidence length limit`)
+    })
+    expect(fixture.service.get(analysisArticle.id).analysis).toBeNull()
+    expect(fixture.analyser.analyse).toHaveBeenCalledTimes(1)
+  } finally { await fixture.close() }
+})
+
 test('CG changes and article corrections invalidate analysis cache; changed article warning survives failure', async () => {
   const fixture = setup()
   try {
