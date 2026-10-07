@@ -40,6 +40,7 @@ import type {
   GameActionOperation,
   GameActionResult,
   GalnetNewsResponse,
+  GalnetAnalysisResponse,
   CommunityGoalsResponse,
   FleetResponse,
   EngineeringBlueprintDetail,
@@ -179,6 +180,8 @@ export interface PhoenixApi {
   getGalaxyBookmarks(signal?: AbortSignal): Promise<GalaxyBookmarksResponse>
   getAtlasCatalogue(signal?: AbortSignal): Promise<AtlasCatalogueResponse>
   getGalnetNews(limit?: number, signal?: AbortSignal): Promise<GalnetNewsResponse>
+  getGalnetAnalysis(articleId: string, signal?: AbortSignal): Promise<GalnetAnalysisResponse>
+  analyseGalnetArticle(articleId: string, signal?: AbortSignal): Promise<GalnetAnalysisResponse>
   getCommunityGoals(signal?: AbortSignal): Promise<CommunityGoalsResponse>
   findGalaxySystems(input: GalaxySystemSearch, signal?: AbortSignal): Promise<GalaxySystemSearchResponse>
   findGalaxyCommodityMarkets(input: GalaxyCommodityMarketSearch, signal?: AbortSignal): Promise<GalaxyCommodityMarketsResponse>

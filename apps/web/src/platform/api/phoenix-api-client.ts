@@ -1,4 +1,6 @@
 import {
+  GalnetAnalysisResponseSchema,
+  type GalnetAnalysisResponse,
   AtlasCatalogueResponseSchema,
   EddnStatusSchema,
   EddnSubmissionLogSchema,
@@ -491,6 +493,14 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getGalnetNews(limit = 40, signal?: AbortSignal): Promise<GalnetNewsResponse> {
     return this.#get(`/api/galnet?limit=${encodeURIComponent(String(limit))}`, GalnetNewsResponseSchema, signal)
+  }
+
+  async getGalnetAnalysis(articleId: string, signal?: AbortSignal): Promise<GalnetAnalysisResponse> {
+    return this.#get(`/api/galnet/analysis?${new URLSearchParams({ articleId })}`, GalnetAnalysisResponseSchema, signal)
+  }
+
+  async analyseGalnetArticle(articleId: string, signal?: AbortSignal): Promise<GalnetAnalysisResponse> {
+    return this.#json('/api/galnet/analysis', 'POST', { articleId }, GalnetAnalysisResponseSchema, signal)
   }
 
   async getCommunityGoals(signal?: AbortSignal): Promise<CommunityGoalsResponse> {

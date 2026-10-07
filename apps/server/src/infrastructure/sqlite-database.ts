@@ -42,6 +42,7 @@ import { SqliteSavedGalaxyQueryRepository } from './sqlite-saved-galaxy-query-re
 import { SqliteEddnOutbox } from './sqlite-eddn-outbox.js'
 import { SqliteFleetRepository } from './sqlite-fleet-repository.js'
 import { SqliteGalnetArticleArchive } from './sqlite-galnet-article-archive.js'
+import { SqliteGalnetAnalysisRepository } from './sqlite-galnet-analysis-repository.js'
 
 export class SqliteDatabase implements Database, CartographyRepository, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository, CommunicationRepository, GalaxyBookmarkRepository {
   public readonly fleet: SqliteFleetRepository
@@ -51,6 +52,7 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
   public readonly engineeringProjects: SqliteEngineeringProjectRepository
   public readonly savedGalaxyQueries: SqliteSavedGalaxyQueryRepository
   public readonly galnetArchive: SqliteGalnetArticleArchive
+  public readonly galnetAnalyses: SqliteGalnetAnalysisRepository
   private readonly connection: DatabaseSync
   private readonly path: string
 
@@ -65,6 +67,7 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     this.engineeringProjects = new SqliteEngineeringProjectRepository(this.connection)
     this.savedGalaxyQueries = new SqliteSavedGalaxyQueryRepository(this.connection)
     this.galnetArchive = new SqliteGalnetArticleArchive(this.connection)
+    this.galnetAnalyses = new SqliteGalnetAnalysisRepository(this.connection)
     this.restrictFiles()
   }
 
@@ -250,6 +253,7 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     this.engineeringProjects.initialize()
     this.savedGalaxyQueries.initialize()
     this.galnetArchive.initialize()
+    this.galnetAnalyses.initialize()
     return newProfile
   }
 

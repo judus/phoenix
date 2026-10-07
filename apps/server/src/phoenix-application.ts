@@ -83,6 +83,9 @@ import { EngineeringProjectService } from './application/engineering-project-ser
 import { ExplorationDataService } from './application/exploration-data-service.js'
 import { DefaultCommanderEngineersQuery } from './application/default-commander-engineers-query.js'
 import { GalnetNewsService } from './application/galnet-news-service.js'
+import { GalnetAnalysisService } from './application/galnet-analysis-service.js'
+import type { GalnetArticleAnalyser } from './domain/galnet-analysis.js'
+import { OpenAiGalnetArticleAnalyser } from './infrastructure/openai-galnet-article-analyser.js'
 import { CommunityGoalsService } from './application/community-goals-service.js'
 import type { CommunityGoalsSource } from './domain/community-goals.js'
 import { FrontierCommunityGoalsSource } from './infrastructure/frontier-community-goals-source.js'
@@ -146,6 +149,7 @@ export interface PhoenixApplicationOptions extends GalaxyQuerySources {
   eliteBindingsDirectory?: string | null
   host?: string
   galnetSource?: GalnetSource
+  galnetAnalyser?: GalnetArticleAnalyser
   communityGoalsSource?: CommunityGoalsSource
   atlasSources?: AtlasPoiSource[]
   keyboardOutput?: KeyboardOutput
@@ -168,6 +172,7 @@ export class PhoenixApplication {
   private readonly controlDeck: ControlDeckIntegration
   private readonly eliteControls: ControlDeckCommandService
   private readonly database: SqliteDatabase
+  private readonly galnetAnalysis: GalnetAnalysisService
   private readonly initializeShortcuts: (newProfile: boolean) => void
   private readonly eventIngestion: GameEventIngestionService
   private readonly journalSource: EliteJournalFileSource
@@ -453,6 +458,9 @@ export class PhoenixApplication {
     const dashboardMarketSignals = new DashboardMarketSignalService(savedGalaxyQueries, marketSignals, this.stateStore)
     const galnet = new GalnetNewsService(options.galnetSource ?? new FrontierGalnetSource(), this.database, this.database.galnetArchive)
     const communityGoals = new CommunityGoalsService(options.communityGoalsSource ?? new FrontierCommunityGoalsSource(), this.database)
+    this.galnetAnalysis = new GalnetAnalysisService(this.database.galnetArchive, communityGoals,
+      this.database.galnetAnalyses, options.galnetAnalyser ?? new OpenAiGalnetArticleAnalyser(
+        () => openAiConfiguration.activeApiKey(), process.env.PHOENIX_OPENAI_MODEL ?? 'gpt-5.6-terra'))
     const atlas = new AtlasCatalogueService(options.atlasSources ?? atlasPoiSources(), this.database, undefined,
       AtlasPoiSchema.array().parse(JSON.parse(readFileSync(resolve(paths.resources.atlas, 'known-sites.json'), 'utf8'))))
     const navigationData = new NavigationDataService(cartography, navigationRoutes, this.stateStore)
@@ -584,6 +592,7 @@ export class PhoenixApplication {
       personalEquipmentSpecialists,
       personalEquipmentPlanner,
       galnet,
+      galnetAnalysis: this.galnetAnalysis,
       communityGoals,
       atlas,
       navigationData,
@@ -630,6 +639,7 @@ export class PhoenixApplication {
       () => this.inventorySource.stop(),
       () => this.navigationRouteSource.stop(),
       () => this.journalBackfill.stop(),
+      () => this.galnetAnalysis.stop(),
       () => this.server.stop(),
       () => this.controlDeck.stop(),
       () => this.gameActions.stop?.(),
