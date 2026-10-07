@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
-import { Button, Field, Form, FormActions, PageFrame, PageHeader, TextInput } from '@phoenix/ui'
+import { Button, Field, Form, FormActions, PageFrame, TextInput } from '@phoenix/ui'
 import type { PairingInfo } from '@phoenix/contracts'
 import type { PhoenixApi } from '../application/api/phoenix-api.js'
 import { PairingAccess } from '../components/pairing-access.js'
@@ -123,13 +123,14 @@ function PairingPage({
   return (
     <PageFrame className="pairing-gate" layout="fit">
       <section>
-        <img className="pairing-logo" src="/phoenix.svg" alt="Phoenix" />
-        <PageHeader
-          context="Device authorization"
-          description="Authorize this browser against the local PHOENIX installation."
-          title="PHOENIX"
-          variant="cockpit"
-        />
+        <header>
+          <img className="pairing-logo" src="/phoenix.svg" alt="Phoenix" />
+          <div>
+            <small>Device authorization</small>
+            <h1>PHOENIX</h1>
+          </div>
+          <p>Authorize this browser against the local PHOENIX installation.</p>
+        </header>
         {checking
           ? <p className="pairing-status">Establishing secure link…</p>
           : (
