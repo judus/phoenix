@@ -45,6 +45,7 @@
     --palette-amber: #ff8700;
     --palette-cyan: #00b3f7;
     --palette-green: #52d273;
+    --palette-magenta: #f06bd8;
     --palette-ice: #d8ecff;
     --palette-slate: #788399;
     --palette-coral: #ff6176;
@@ -65,6 +66,7 @@
     --color-broken-text: rgb(255 97 118 / 62%);
     --color-positive: var(--palette-cyan);
     --color-success: var(--palette-green);
+    --color-investigation: var(--palette-magenta);
     --color-warning: var(--palette-amber);
     --color-border: color-mix(in srgb, var(--palette-amber) 65%, transparent);
     --color-border-subtle: color-mix(in srgb, var(--palette-amber) 18%, transparent);

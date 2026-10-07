@@ -93,7 +93,7 @@
     &.commander { fill: var(--color-information); stroke: var(--color-information); }
     &.bookmark { fill: var(--color-information); stroke: var(--color-information); }
     &.community-goal { fill: none; stroke: var(--color-success); }
-    &.investigation { fill: none; stroke: var(--color-warning); }
+    &.investigation { fill: none; stroke: var(--color-investigation); }
     &.nebula { fill: none; }
     &.active .hit-area, &:focus-visible .hit-area { stroke: var(--color-information); stroke-dasharray: 3 3; }
     &:focus { outline: none; }
