@@ -93,7 +93,7 @@ export class EddnContributionService {
     return {
       enabled: this.enabled, mode: this.options.mode, ...storage, error: this.error,
       detail: !this.enabled ? 'Disabled. Pending uploads are cleared; already transmitted data cannot be recalled.'
-        : this.options.mode === 'unavailable' ? 'Enabled by preference. Uploads are held until EDDN release review is complete.'
+        : this.options.mode === 'unavailable' ? 'Enabled by preference. Uploads are disabled in this build; pending uploads are cleared.'
           : 'Test stream only; EDMC parity is incomplete. Keep your existing uploader. Live community publishing is not enabled.'
     }
   }
