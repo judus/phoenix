@@ -75,6 +75,10 @@ public final class MainActivity extends ComponentActivity {
                     setMode(false);
                     error.setVisibility(View.GONE);
                 } catch (IllegalArgumentException invalid) {
+                    address.setText("");
+                    pairingCode.setText("");
+                    connection.findViewById(R.id.scanned_server).setVisibility(View.GONE);
+                    setMode(false);
                     showError(getString(R.string.invalid_qr));
                 }
             });
