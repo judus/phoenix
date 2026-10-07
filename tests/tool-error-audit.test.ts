@@ -12,6 +12,7 @@ import { ProviderQueryError, type ProviderQueryErrorKind } from '../apps/server/
 
 const context = () => ({ callId: 'audit', deadline: '2026-10-04T12:00:00Z', runId: 'audit', signal: new AbortController().signal })
 const requiredArguments: Record<string, JsonObject> = {
+  'comms.get_galnet_analysis': { articleId: 'synthetic-article' },
   'controls.find_actions': { query: 'lights' },
   'controls.execute_command': { target: { type: 'game-action', actionId: 'elite.ShipSpotLightToggle' } },
   'controls.set_control_state': { actionId: 'elite.ShipSpotLightToggle', enabled: true },

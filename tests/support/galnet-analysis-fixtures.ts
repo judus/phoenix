@@ -1,4 +1,4 @@
-import type { CommunityGoalsResponse, GalnetAnalysisContent } from '@phoenix/contracts'
+import type { CommunityGoalsResponse, GalnetAnalysis, GalnetAnalysisContent } from '@phoenix/contracts'
 
 export const analysisArticle = { id: 'synthetic-analysis', title: 'Synthetic research campaign',
   body: 'Pilots should deliver supplies to Galileo in Sol. A separate beacon near Colonia needs investigation.',
@@ -23,3 +23,11 @@ export const analysisContent: GalnetAnalysisContent = {
 }
 
 export const analysisUsage = { inputTokens: 1200, outputTokens: 400 }
+
+export function savedGalnetAnalysis(overrides: Partial<GalnetAnalysis> = {}): GalnetAnalysis {
+  return { schemaVersion: 1, extractorVersion: 'galnet-analysis-v1', cacheKey: 'synthetic-cache',
+    articleId: analysisArticle.id, articleRevisionId: 'synthetic-revision', sourceUrl: analysisArticle.sourceUrl,
+    publishedAt: analysisArticle.publishedAt, analysedAt: '2026-10-07T12:00:00Z', model: 'synthetic-model',
+    communityGoals: structuredClone(analysisGoals), content: structuredClone(analysisContent),
+    usage: analysisUsage, ...overrides }
+}

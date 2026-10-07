@@ -32,6 +32,18 @@ export class SqliteGalnetAnalysisRepository implements GalnetAnalysisRepository 
       VALUES (?, ?, ?, ?) ON CONFLICT(cache_key) DO NOTHING`)
       .run(validated.cacheKey, validated.articleId, validated.analysedAt, JSON.stringify(validated))
   }
+
+  public recent (limit: number): GalnetAnalysis[] {
+    // Rank before limiting: each article contributes only its latest saved report, with the
+    // same timestamp/rowid tie-break as latest(). Older evidence/configuration variants remain saved.
+    return this.connection.prepare(`
+      SELECT document FROM (
+        SELECT document, analysed_at, rowid,
+          ROW_NUMBER() OVER (PARTITION BY article_id ORDER BY analysed_at DESC, rowid DESC) AS rank
+        FROM galnet_analyses
+      ) WHERE rank = 1 ORDER BY analysed_at DESC, rowid DESC LIMIT ?
+    `).all(limit).map(row => parse(row)!)
+  }
 }
 
 function parse (row: Record<string, unknown> | undefined): GalnetAnalysis | null {

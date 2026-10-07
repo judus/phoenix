@@ -56,9 +56,34 @@ can finish and be saved for a later visit. Application shutdown aborts inference
 closing SQLite; late/cancelled output is not persisted. Failures are visible in the article panel,
 not silently retried. This is a manual opt-in action, not a new automatically enabled AI service.
 
+## Copilot access to saved reports
+
+Copilot has two read-only Comms capabilities: `comms.list_galnet_analyses` (up to 20 recent
+summaries, default 10) and `comms.get_galnet_analysis` (one article ID returned by the list).
+The list is ordered by analysis time, not publication date, and includes only the newest saved
+report per article. It is not the latest-news feed or an exhaustive record of events. No saved
+report means the player needs to use **Analyse article**, not that nothing is happening.
+
+Detail retains the original report's source/revision, dates, model, quotes, facts, interpretations,
+leads and token usage. To avoid sending unrelated campaign briefings, its CG snapshot contains
+only the campaigns referenced by that report, with the original snapshot timestamp/freshness.
+These are dated references, not duplicate goals or current campaign availability; the existing
+Community Goals tool supplies current public data. Report prose remains untrusted AI output.
+
+The current archived article title is labelled `currentArticleTitle`, separately from the saved
+report. `articleChanged` warns when its revision no longer matches (including an unavailable
+current archived revision). Neither operation updates reports, refreshes news/CGs or invokes the
+analyser; saved reports remain usable without a configured AI key. Normal chat generation still
+has its usual AI cost—reading a report adds no separate analysis request.
+
+Both tools appear under Comms in installation and profile permissions. New installations use
+the normal read-tool defaults; existing saved allowlists are not expanded automatically. Enable
+both tools at installation level and for the active profile if they are not already allowed.
+The same registry enforces discovery/execution permissions for local, MCP and realtime callers.
+
 ## Remaining scope
 
-No background analysis, web enrichment, location resolution, Atlas publishing, new Copilot tool,
+No background analysis, web enrichment, location resolution, Atlas publishing,
 personal CG tracking or story lifecycle reconciliation is included. Those require separate work,
 including settings and budgets before any automatic inference is introduced. The non-AI CG page
 and Atlas remain independent. See #60 and [the article archive](galnet-archive.md).
