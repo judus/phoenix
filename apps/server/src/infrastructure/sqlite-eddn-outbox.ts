@@ -3,6 +3,9 @@ import type { EddnLoss, EddnStatus, EddnSubmission, EddnSubmissionDetail } from 
 import { EDDN_MAX_AGE_MS, EddnQueueCapacityError, type EddnMessage, type EddnOutbox, type EddnPendingMessage } from '../domain/eddn.js'
 
 export class SqliteEddnOutbox implements EddnOutbox {
+  // Refused first checkpoints have no durable draft to discard. Retain totals, never payloads/IDs.
+  private pendingCapacityLosses?: { count: number, lastAt: number }
+
   public constructor (private readonly connection: DatabaseSync) {}
 
   public initialize (): void {
@@ -88,6 +91,7 @@ export class SqliteEddnOutbox implements EddnOutbox {
 
   private store (id: string, message: EddnMessage | null, now: number, ready: boolean): boolean {
     const document = JSON.stringify(message)
+    let refusedFirstCheckpoint = false
     this.connection.exec('BEGIN IMMEDIATE')
     try {
       const previous = this.connection.prepare('SELECT ready FROM eddn_outbox WHERE id = ?').get(id) as { ready: number } | undefined
@@ -99,6 +103,7 @@ export class SqliteEddnOutbox implements EddnOutbox {
       const receipts = this.connection.prepare('SELECT COUNT(*) AS count FROM eddn_receipts').get() as { count: number }
       const bytes = !ready && message === null ? 0 : Buffer.byteLength(document)
       if ((!previous && (usage.count >= 1000 || receipts.count >= 100_000)) || usage.bytes + bytes + (!previous && !ready ? 4 : 0) > 16 * 1024 * 1024) {
+        refusedFirstCheckpoint = !ready && !previous
         throw new EddnQueueCapacityError()
       }
       if (!previous) {
@@ -114,7 +119,10 @@ export class SqliteEddnOutbox implements EddnOutbox {
     } catch (cause) {
       this.connection.exec('ROLLBACK')
       if (cause instanceof EddnQueueCapacityError) {
-        try { this.capacityFailure(ready ? undefined : id, now) } catch (cleanupCause) { throw new EddnQueueCapacityError({ cause: cleanupCause }) }
+        try { this.capacityFailure(ready ? undefined : id, now) } catch (cleanupCause) {
+          if (refusedFirstCheckpoint) this.pendingCapacityLosses = { count: (this.pendingCapacityLosses?.count ?? 0) + 1, lastAt: now }
+          throw new EddnQueueCapacityError({ cause: cleanupCause })
+        }
       }
       throw cause
     }
@@ -130,6 +138,12 @@ export class SqliteEddnOutbox implements EddnOutbox {
       this.recordLoss('capacity', 1, now)
       this.connection.exec('COMMIT')
     } catch (cause) { this.connection.exec('ROLLBACK'); throw cause }
+  }
+
+  public retryCapacityLosses (): void {
+    if (!this.pendingCapacityLosses) return
+    this.recordLoss('capacity', this.pendingCapacityLosses.count, this.pendingCapacityLosses.lastAt)
+    this.pendingCapacityLosses = undefined
   }
 
   public next (now: number): EddnPendingMessage | undefined {
@@ -181,7 +195,7 @@ export class SqliteEddnOutbox implements EddnOutbox {
   private recordLoss (reason: EddnLoss['reason'], count: number, now: number): void {
     if (count === 0) return
     this.connection.prepare(`INSERT INTO eddn_losses(reason, count, last_at) VALUES (?, ?, ?)
-      ON CONFLICT(reason) DO UPDATE SET count = count + excluded.count, last_at = excluded.last_at`)
+      ON CONFLICT(reason) DO UPDATE SET count = count + excluded.count, last_at = MAX(last_at, excluded.last_at)`)
       .run(reason, count, new Date(now).toISOString())
   }
   public beginAttempt (id: string, nextAttempt: number, now: number): number {

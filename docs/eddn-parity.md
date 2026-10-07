@@ -154,5 +154,7 @@ not reconstructed from bootstrap. Oversize/capacity skips and session clears are
 Live rotation now drains unread tails/intermediate files and preserves explicitly linked session
 parts; startup remains newest-file-only without reconstructing missing earlier context.
 Failed writes cannot preserve new data; gameplay acceptance remains open.
-Capacity rejection before draft admission also lacks a loss retry when
-the counter write fails (#108). This is not a full EDMC delivery-policy equivalence claim.
+Capacity rejection before draft admission retains a bounded in-memory count/time accumulator
+when the counter write fails. Worker/shutdown retries persist it after storage recovers, even
+while disabled; unwritten counts cannot survive process loss. This is not a full EDMC
+delivery-policy equivalence claim.

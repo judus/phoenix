@@ -153,6 +153,30 @@ function lossFixture(now: number): EddnMessage {
     message: { timestamp: new Date(now).toISOString(), event: 'Location', StarSystem: 'Sol' } }
 }
 
+test('failed first-checkpoint counts aggregate without receipts and retry once without moving latest loss time backwards', () => {
+  const connection = new DatabaseSync(':memory:')
+  try {
+    const outbox = new SqliteEddnOutbox(connection)
+    outbox.initialize()
+    connection.prepare(`WITH RECURSIVE ids(id) AS (SELECT 1 UNION ALL SELECT id + 1 FROM ids WHERE id < 100000)
+      INSERT INTO eddn_receipts(id, created_at) SELECT CAST(id AS TEXT), 1000 FROM ids`).run()
+    connection.exec(`CREATE TRIGGER fail_loss BEFORE INSERT ON eddn_losses BEGIN SELECT RAISE(ABORT, 'Synthetic loss write failure'); END`)
+    for (let i = 0; i < 20; i++) expect(() => outbox.checkpointSignals(`signals:${i}`, null, 2000 + i)).toThrow(EddnQueueCapacityError)
+    expect(() => outbox.retryCapacityLosses()).toThrow('Synthetic loss write failure')
+    expect(outbox.status().losses).toEqual([])
+    connection.exec('DROP TRIGGER fail_loss')
+    expect(() => outbox.checkpointSignals('signals:later', null, 3000)).toThrow(EddnQueueCapacityError)
+    outbox.retryCapacityLosses()
+    outbox.retryCapacityLosses()
+    expect(outbox.status()).toMatchObject({ queued: 0, losses: [{ reason: 'capacity', count: 21, lastAt: new Date(3000).toISOString() }] })
+    expect(connection.prepare('SELECT COUNT(*) AS count FROM eddn_receipts').get()).toEqual({ count: 100000 })
+    // Receipt-only duplicates are suppressed before admission; they are not capacity refusals.
+    expect(outbox.checkpointSignals('1', null, 4000)).toBe(false)
+    outbox.retryCapacityLosses()
+    expect(outbox.status().losses[0].count).toBe(21)
+  } finally { connection.close() }
+})
+
 test('retained pre-checkpoint queues migrate without changing payloads or retry leases', () => {
   const connection = new DatabaseSync(':memory:')
   try {

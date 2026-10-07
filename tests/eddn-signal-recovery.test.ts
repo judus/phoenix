@@ -252,6 +252,78 @@ test('worker retries capacity rejection after accounting failure without another
   expect(recovered.outbox.status().losses).toMatchObject([{ reason: 'capacity', count: 1 }])
 })
 
+function fillQueue(f: ReturnType<typeof fixture>) {
+  f.connection.prepare(`WITH RECURSIVE ids(id) AS (SELECT 1 UNION ALL SELECT id + 1 FROM ids WHERE id < 1000)
+    INSERT INTO eddn_receipts(id, created_at) SELECT 'budget-' || id, ? FROM ids`).run(now)
+  f.connection.prepare(`INSERT INTO eddn_outbox(id, document, created_at, next_attempt)
+    SELECT id, 'null', ?, ? FROM eddn_receipts`).run(now, now)
+  // Budget-only rows are not real envelopes; isolate accounting from their delivery.
+  vi.spyOn(f.outbox, 'next').mockReturnValue(undefined)
+}
+
+test.each(['signal', 'overflow-marker', 'closing-marker'] as const)('worker retries a refused first %s loss without new journal input', async admission => {
+  const f = fixture()
+  fillQueue(f)
+  f.connection.exec(`CREATE TRIGGER fail_capacity BEFORE INSERT ON eddn_losses BEGIN SELECT RAISE(ABORT, 'Synthetic accounting failure'); END`)
+  if (admission !== 'signal') {
+    vi.spyOn(f.outbox, 'checkpointSignals').mockImplementationOnce(() => { throw new Error('Synthetic checkpoint failure') })
+  }
+  f.observe(signal, 'first')
+  if (admission === 'overflow-marker') f.observe({ ...signal, SignalName: 's'.repeat(EDDN_MAX_MESSAGE_BYTES) }, 'overflow')
+  if (admission === 'closing-marker') f.observe({ timestamp, event: 'Music' }, 'close')
+  await f.service.flush() // Repeated failure must preserve, not multiply, the pending count.
+  expect(f.outbox.status().losses).toEqual([])
+  expect(f.service.status().error).not.toBeNull()
+  f.connection.exec('DROP TRIGGER fail_capacity')
+  await f.service.flush()
+  await f.service.flush()
+  expect(f.outbox.status()).toMatchObject({ queued: 1000, losses: [{ reason: 'capacity', count: 1 }] })
+  expect(f.connection.prepare('SELECT COUNT(*) AS count FROM eddn_receipts').get()).toEqual({ count: 1000 })
+  expect(f.connection.prepare('SELECT COUNT(*) AS count FROM eddn_signal_checkpoints').get()).toEqual({ count: 0 })
+  expect(f.send).not.toHaveBeenCalled()
+})
+
+test.each(['session', 'replay', 'preference'] as const)('unadmitted capacity loss survives %s reset without counting the rejected tail twice', async reset => {
+  const f = fixture()
+  fillQueue(f)
+  f.connection.exec(`CREATE TRIGGER fail_capacity BEFORE INSERT ON eddn_losses WHEN NEW.reason = 'capacity' BEGIN SELECT RAISE(ABORT, 'Synthetic accounting failure'); END`)
+  f.observe(signal, 'first')
+  f.observe(signal, 'same-run-tail')
+  f.observe(signal, 'first') // Duplicate input while the run remains rejected.
+  if (reset === 'preference') f.service.setEnabled(false)
+  else f.observe({ timestamp, event: 'Music', MusicTrack: reset === 'session' ? 'MainMenu' : 'Exploration' }, 'reset', reset === 'replay')
+  f.connection.exec('DROP TRIGGER fail_capacity')
+  await f.service.flush()
+  await f.service.flush()
+  expect(f.outbox.status().losses.find(loss => loss.reason === 'capacity')).toMatchObject({ count: 1 })
+  expect(f.send).not.toHaveBeenCalled()
+  if (reset === 'preference') {
+    expect(f.outbox.status().losses).toMatchObject([{ reason: 'capacity', count: 1 }, { reason: 'cleared', count: 1000 }])
+  }
+})
+
+test('shutdown persists recovered unadmitted counts, but a crash cannot recover unwritten counts', async () => {
+  const { path } = disk()
+  const f = fixture(path)
+  fillQueue(f)
+  f.connection.exec(`CREATE TRIGGER fail_capacity BEFORE INSERT ON eddn_losses BEGIN SELECT RAISE(ABORT, 'Synthetic accounting failure'); END`)
+  f.observe(signal, 'first')
+  f.connection.exec('DROP TRIGGER fail_capacity')
+  await f.service.stop()
+  await f.crash()
+  const recovered = fixture(path, f.settings)
+  expect(recovered.outbox.status().losses).toMatchObject([{ reason: 'capacity', count: 1 }])
+  vi.spyOn(recovered.outbox, 'next').mockReturnValue(undefined)
+  recovered.connection.exec(`CREATE TRIGGER fail_capacity BEFORE INSERT ON eddn_losses BEGIN SELECT RAISE(ABORT, 'Synthetic accounting failure'); END`)
+  recovered.observe(signal, 'lost-on-crash')
+  await recovered.crash()
+  const afterCrash = fixture(path, recovered.settings)
+  afterCrash.connection.exec('DROP TRIGGER fail_capacity')
+  vi.spyOn(afterCrash.outbox, 'next').mockReturnValue(undefined)
+  await afterCrash.service.flush()
+  expect(afterCrash.outbox.status().losses).toMatchObject([{ reason: 'capacity', count: 1 }])
+})
+
 test.each(['session', 'replay', 'preference'] as const)('pending rejection keeps its reason through a %s reset', async reset => {
   const f = fixture()
   f.observe(signal, 'first')

@@ -43,6 +43,7 @@ export interface EddnOutbox {
   checkpointSignals(id: string, message: EddnMessage | null, now: number): boolean
   sealSignals(id: string, message: EddnMessage | null, now: number): void
   discardSignals(id: string, reason: 'invalid' | 'cleared' | 'capacity', now: number): void
+  retryCapacityLosses(): void
   next(now: number): EddnPendingMessage | undefined
   acknowledge(id: string, now: number): void
   drop(id: string, reason: EddnLoss['reason'], now: number): void

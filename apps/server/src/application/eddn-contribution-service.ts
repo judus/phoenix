@@ -62,6 +62,7 @@ export class EddnContributionService {
     this.retrySignalDiscards()
     // Only flush against already established context, never infer a missing arrival on shutdown.
     if (this.active()) this.flushSignals()
+    this.retrySignalDiscards()
     this.running = false
     if (this.timer) clearInterval(this.timer)
     this.timer = undefined
@@ -231,6 +232,7 @@ export class EddnContributionService {
   }
 
   private retrySignalDiscards (): void {
+    try { this.options.outbox.retryCapacityLosses() } catch (cause) { this.storageFailure(cause) }
     for (const [id, reason] of this.signalDiscards) {
       try {
         this.options.outbox.discardSignals(id, reason, this.now())

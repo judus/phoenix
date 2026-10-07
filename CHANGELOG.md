@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Retry EDDN capacity-loss counts when a signal batch could not enter the queue and the initial
+  counter write failed, including after opt-out; no extra payload queue or receipt growth.
+
 - Align the browser authorization card with the Android pairing layout: grouped logo/title,
   help text below, and one divider spanning the content width. Pairing behavior is unchanged.
 
