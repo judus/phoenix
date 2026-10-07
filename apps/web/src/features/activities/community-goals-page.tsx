@@ -7,6 +7,7 @@ import {
 import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import { SystemLocationLink } from '../../components/system-location-link.js'
 import type { ActivitiesControllerSnapshot } from './use-activities-controller.js'
+import { formatCommunityGoalExpiry } from '../../application/community-goals/community-goal-expiry.js'
 
 export function CommunityGoalsPage({ controller }: { controller: ActivitiesControllerSnapshot }) {
   const [selectedId, setSelectedId] = useState<string>()
@@ -59,7 +60,7 @@ function GoalDetails({ goal }: { goal: CommunityGoal }) {
         <DescriptionItem label="Objective" value={goal.objective} />
         {goal.targetCommodities && goal.targetCommodities !== goal.objective
           ? <DescriptionItem label="Requested" value={goal.targetCommodities} /> : null}
-        <DescriptionItem label="Expiry (Frontier time)" value={<time dateTime={goal.expiry.replace(' ', 'T')} title="Frontier does not supply a timezone for this time.">{formatExpiry(goal.expiry)}</time>} />
+        <DescriptionItem label="Expiry (Frontier time)" value={<time dateTime={goal.expiry.replace(' ', 'T')} title="Frontier does not supply a timezone for this time.">{formatCommunityGoalExpiry(goal.expiry)}</time>} />
       </DescriptionList>
       <Meter
         label="Global progress"
@@ -73,9 +74,4 @@ function GoalDetails({ goal }: { goal: CommunityGoal }) {
       <a href="https://www.elitedangerous.com/community/goals/" target="_blank" rel="noreferrer">Frontier Community Goals</a>
     </Stack>
   </DataTableGroup>
-}
-
-function formatExpiry(value: string): string {
-  // Keep the supplied wall-clock fields intact, applying only Elite's calendar-year offset.
-  return `${Number(value.slice(0, 4)) + 1286}${value.slice(4, 16)}`
 }

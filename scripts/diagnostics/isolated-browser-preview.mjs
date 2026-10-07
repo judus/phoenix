@@ -45,7 +45,7 @@ const application = new PhoenixApplication({
   copilotRealtime: null,
   openAiEnvironmentKey: null,
   communityGoalsSource: { getCurrent: async () => communityGoals ? Array.from({ length: 20 }, (_, index) => ({
-    id: `synthetic-${index}`, title: `Synthetic campaign ${index + 1}`, systemName: 'Sol', stationName: 'Galileo',
+    id: `synthetic-${index}`, title: `Synthetic campaign ${index + 1}`, systemName: index < 2 ? 'Sol' : `Synthetic CG ${Math.floor(index / 2)}`, stationName: 'Galileo',
     activityType: 'trade', objective: 'Deliver research supplies', targetCommodities: 'Basic Medicines',
     contributed: 125 + index, target: 1000, expiry: '2026-10-08 10:00:00',
     briefing: Array.from({ length: 15 }, (_, paragraph) => `Synthetic briefing ${index + 1}, paragraph ${paragraph + 1}. Sign up at the listed destination and contribute to this fictional research campaign.`).join('\n\n')
@@ -66,7 +66,8 @@ const application = new PhoenixApplication({
     surfaceTemperatureK: 180, systemAddress: 42, systemName: 'Synthetic', volcanism: null
   }] } } : {}),
   cartographySource: { fetchSystem: async name => denseCartography ? mockDenseCartography(name) : ({
-    schemaVersion: 5, name, address: null, position: [0, 0, 0],
+    schemaVersion: 5, name, address: null, position: communityGoals && name.startsWith('Synthetic CG ')
+      ? [Number(name.slice('Synthetic CG '.length)) * 4000, 0, 4000] : [0, 0, 0],
     permitRequired: false, permitName: null,
     information: { allegiance: null, government: null, security: null, state: null,
       primaryEconomy: null, secondaryEconomy: null, population: null, controllingFaction: null },
