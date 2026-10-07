@@ -48,6 +48,7 @@ import {
   GameActionCatalogResponseSchema,
   GameActionResultSchema,
   GalnetNewsResponseSchema,
+  CommunityGoalsResponseSchema,
   FleetResponseSchema,
   EngineeringBlueprintDetailSchema,
   EngineeringBlueprintsResponseSchema,
@@ -138,6 +139,7 @@ import type {
   GameActionOperation,
   GameActionResult,
   GalnetNewsResponse,
+  CommunityGoalsResponse,
   FleetResponse,
   EngineeringBlueprintDetail,
   EngineeringBlueprintsResponse,
@@ -489,6 +491,10 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getGalnetNews(limit = 40, signal?: AbortSignal): Promise<GalnetNewsResponse> {
     return this.#get(`/api/galnet?limit=${encodeURIComponent(String(limit))}`, GalnetNewsResponseSchema, signal)
+  }
+
+  async getCommunityGoals(signal?: AbortSignal): Promise<CommunityGoalsResponse> {
+    return this.#get('/api/operations/community-goals', CommunityGoalsResponseSchema, signal)
   }
 
   async getShipCatalogue(signal?: AbortSignal): Promise<ShipCatalogueResponse> {

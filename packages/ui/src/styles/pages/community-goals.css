@@ -1,0 +1,20 @@
+.community-goals {
+  > .data-table-group,
+  > .span-two {
+    min-block-size: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  article p {
+    max-inline-size: 76ch;
+    margin: 0;
+    line-height: var(--line-height-normal);
+
+    + p { margin-block-start: var(--spacing-md); }
+  }
+}
+
+@container thirds-layout (inline-size < 48rem) {
+  .community-goals { grid-template-rows: minmax(0, 0.6fr) minmax(0, 1fr); }
+}

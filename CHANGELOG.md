@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Show current Frontier Community Goals under Activities, with official briefings, global progress,
+  expiry and destination links. No AI or Frontier account required; failed refreshes are marked stale.
+
 - Give an incomplete old journal tail one extra refresh to finish during rotation, preserving
   event order while allowing permanently truncated files to give way to newer gameplay journals.
 

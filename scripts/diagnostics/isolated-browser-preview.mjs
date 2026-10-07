@@ -19,6 +19,7 @@ const denseCartography = process.argv.includes('--dense-cartography')
 const eddnSubmissions = process.argv.includes('--eddn-submissions')
 const prospecting = process.argv.includes('--prospecting')
 const atlasPois = process.argv.includes('--atlas-pois')
+const communityGoals = process.argv.includes('--community-goals')
 const fixtureDirectory = eddnSubmissions ? mkdtempSync(join(tmpdir(), 'phoenix-eddn-preview-')) : undefined
 const databasePath = fixtureDirectory ? join(fixtureDirectory, 'preview.sqlite') : ':memory:'
 // This preview must never upload, even when launched from a test-enabled development shell.
@@ -43,6 +44,12 @@ const application = new PhoenixApplication({
   copilot: null,
   copilotRealtime: null,
   openAiEnvironmentKey: null,
+  communityGoalsSource: { getCurrent: async () => communityGoals ? Array.from({ length: 20 }, (_, index) => ({
+    id: `synthetic-${index}`, title: `Synthetic campaign ${index + 1}`, systemName: 'Sol', stationName: 'Galileo',
+    activityType: 'trade', objective: 'Deliver research supplies', targetCommodities: 'Basic Medicines',
+    contributed: 125 + index, target: 1000, expiry: '2026-10-08 10:00:00',
+    briefing: Array.from({ length: 15 }, (_, paragraph) => `Synthetic briefing ${index + 1}, paragraph ${paragraph + 1}. Sign up at the listed destination and contribute to this fictional research campaign.`).join('\n\n')
+  })) : [] },
   atlasSources: atlasPois ? [{
     id: 'synthetic', name: 'Synthetic Atlas fixture', url: 'https://example.com/atlas', licence: null,
     getPois: async () => ({ rejected: 0, pois: Array.from({ length: 1500 }, (_, index) => ({

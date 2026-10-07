@@ -25,6 +25,7 @@ type ItemListItemProps = LiHTMLAttributes<HTMLLIElement> & {
   href?: string
   leading?: ReactNode
   meta?: ReactNode
+  onActivate?(): void
   selected?: boolean
   title: ReactNode
   trailing?: ReactNode
@@ -39,6 +40,7 @@ export function ItemListItem({
   href,
   leading,
   meta,
+  onActivate,
   selected = false,
   title,
   trailing,
@@ -70,6 +72,10 @@ export function ItemListItem({
         <a className={rowClassName} href={href} aria-current={selected ? 'page' : undefined}>
           {content}
         </a>
+      ) : onActivate ? (
+        <button className={rowClassName} type="button" disabled={disabled} aria-pressed={selected} onClick={onActivate}>
+          {content}
+        </button>
       ) : (
         <div className={rowClassName} aria-disabled={disabled || undefined}>{content}</div>
       )}

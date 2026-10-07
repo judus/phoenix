@@ -83,6 +83,9 @@ import { EngineeringProjectService } from './application/engineering-project-ser
 import { ExplorationDataService } from './application/exploration-data-service.js'
 import { DefaultCommanderEngineersQuery } from './application/default-commander-engineers-query.js'
 import { GalnetNewsService } from './application/galnet-news-service.js'
+import { CommunityGoalsService } from './application/community-goals-service.js'
+import type { CommunityGoalsSource } from './domain/community-goals.js'
+import { FrontierCommunityGoalsSource } from './infrastructure/frontier-community-goals-source.js'
 import { MissionDataService } from './application/mission-data-service.js'
 import { CommunicationDataService } from './application/communication-data-service.js'
 import { LocalTrafficService } from './application/local-traffic-service.js'
@@ -143,6 +146,7 @@ export interface PhoenixApplicationOptions extends GalaxyQuerySources {
   eliteBindingsDirectory?: string | null
   host?: string
   galnetSource?: GalnetSource
+  communityGoalsSource?: CommunityGoalsSource
   atlasSources?: AtlasPoiSource[]
   keyboardOutput?: KeyboardOutput
   keyboardOutputId?: string
@@ -448,6 +452,7 @@ export class PhoenixApplication {
     )
     const dashboardMarketSignals = new DashboardMarketSignalService(savedGalaxyQueries, marketSignals, this.stateStore)
     const galnet = new GalnetNewsService(options.galnetSource ?? new FrontierGalnetSource(), this.database)
+    const communityGoals = new CommunityGoalsService(options.communityGoalsSource ?? new FrontierCommunityGoalsSource(), this.database)
     const atlas = new AtlasCatalogueService(options.atlasSources ?? atlasPoiSources(), this.database, undefined,
       AtlasPoiSchema.array().parse(JSON.parse(readFileSync(resolve(paths.resources.atlas, 'known-sites.json'), 'utf8'))))
     const navigationData = new NavigationDataService(cartography, navigationRoutes, this.stateStore)
@@ -578,6 +583,7 @@ export class PhoenixApplication {
       personalEquipmentSpecialists,
       personalEquipmentPlanner,
       galnet,
+      communityGoals,
       atlas,
       navigationData,
       navigationRouteUpdates,

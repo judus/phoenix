@@ -19,6 +19,10 @@ export function CreditsPage() {
               label={<SourceLink href="https://cms.zaonce.net/en-GB/jsonapi/node/galnet_article">GalNet</SourceLink>}
               value="Official live GalNet articles."
             />
+            <DescriptionItem
+              label={<SourceLink href="https://www.elitedangerous.com/community/goals/">Community Goals</SourceLink>}
+              value="Official current campaigns, briefings, destinations and global progress."
+            />
           </DescriptionList>
         </Panel>
         <Panel title="Bundled catalogue snapshots">
