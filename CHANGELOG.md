@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Color-code Atlas sources: magenta investigation leads, green Community Goals, cyan bookmarks
+  and amber landmarks.
+
 - Accept harmless whitespace and straight/curly quote differences in GalNet analysis evidence,
   saving the original source passage. Keep wording checks strict and identify rejected quotes in
   errors. Simplify Atlas destination notices; keep older-report update notices beside the article.
