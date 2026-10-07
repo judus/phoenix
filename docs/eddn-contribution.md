@@ -80,7 +80,10 @@ restart, opting out and attempt-history retention do not reset them. Accounting 
 version first records a loss; earlier losses cannot be reconstructed. Pre-queue context/schema
 filtering and failed checkpoint writes are not counted, so these are not total gameplay coverage.
 If capacity rejects a signal before any draft is admitted and the loss-counter write also fails,
-that rejection is not retried in the totals yet; bounded, once-only accounting is tracked in #108.
+one in-memory count/time accumulator retains those refusals for worker and shutdown retries,
+including while disabled. It contains no payloads or IDs and consumes no receipt capacity.
+It is not durable until storage recovers: a process exit/crash during that failure can lose those
+unwritten totals. Session resets and clearing uploads do not reset the accumulator.
 Queue removals and their counters are atomic: an accounting failure leaves the pending row intact.
 
 For an authorized local development run, add `PHOENIX_EDDN_TEST_MODE=1` to the ignored `.env`
