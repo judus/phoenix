@@ -39,13 +39,22 @@ test('paired manual HTTP analysis preserves goal references and survives restart
       body: JSON.stringify({ articleId: analysisArticle.id, model: 'unapproved' }) })
     expect(invalid.status).toBe(400)
     expect(analyse).not.toHaveBeenCalled()
+    const invalidContent = structuredClone(analysisContent)
+    invalidContent.facts[0]!.evidence = 'Invented "beacon" quote'
+    analyse.mockResolvedValueOnce({ content: invalidContent, usage: analysisUsage })
+    const rejected = await request(`${origin}/api/galnet/analysis`, { method: 'POST', body: JSON.stringify({ articleId: analysisArticle.id }) })
+    expect(rejected.status).toBe(502)
+    expect(await rejected.json()).toMatchObject({ error: { code: 'galnet_analysis_invalid_evidence',
+      message: expect.stringContaining('facts[0].evidence: "Invented \\"beacon\\" quote"') } })
+    expect(analyse).toHaveBeenCalledTimes(1)
+    expect((await client.getGalnetAnalysis(analysisArticle.id)).analysis).toBeNull()
     const result = await client.analyseGalnetArticle(analysisArticle.id)
     expect(result.analysis?.content).toEqual(analysisContent)
     expect(result.analysis?.communityGoals.goals).toEqual(analysisGoals.goals)
     expect(await client.getGalnetInvestigationLeads()).toMatchObject({ reportLimit: 20,
       leads: [{ title: 'Investigate the beacon', systemName: 'Colonia', status: 'unknown', sourceUrl: analysisArticle.sourceUrl }] })
     await client.analyseGalnetArticle(analysisArticle.id)
-    expect(analyse).toHaveBeenCalledTimes(1)
+    expect(analyse).toHaveBeenCalledTimes(2)
     await app.stop()
     const retained = new SqliteDatabase(path)
     try {

@@ -4,6 +4,10 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Accept harmless whitespace and straight/curly quote differences in GalNet analysis evidence,
+  saving the original source passage. Keep wording checks strict and identify rejected quotes in
+  errors. Simplify Atlas destination notices; keep older-report update notices beside the article.
+
 - Show explicitly located GalNet investigation leads as a separate Atlas layer, with source quotes,
   dates and uncertainty. Community Goal references stay in the CG layer; unresolved destinations
   remain unplotted. Older reports need an explicit analysis update; opening the Atlas never runs AI.

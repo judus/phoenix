@@ -4,8 +4,10 @@ import { GalnetAnalysisContentSchema, GalnetAnalysisSchema, type GalnetAnalysisR
 import type { GalnetArticleArchive } from '../domain/galnet.js'
 import type { CommunityGoalsReader } from '../domain/community-goals.js'
 import type { GalnetAnalysisReader, GalnetAnalysisRepository, GalnetArticleAnalyser } from '../domain/galnet-analysis.js'
+import { createGalnetQuoteResolver } from './galnet-quote-resolver.js'
 
 const EXTRACTOR_VERSION = 'galnet-analysis-v2'
+const EvidenceSchema = GalnetAnalysisContentSchema.shape.facts.element.shape.evidence
 
 export class GalnetAnalysisService implements GalnetAnalysisReader {
   private running?: { articleId: string, result: Promise<GalnetAnalysisResponse> }
@@ -62,17 +64,25 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
     const result = await this.analyser.analyse(article, goals, signal)
     signal.throwIfAborted()
     const content = GalnetAnalysisContentSchema.parse(result.content)
-    const quoteExists = (quote: string) => article.article.body.includes(quote) || article.article.title.includes(quote)
-    const quotes = [...content.facts, ...content.interpretations, ...content.entities, ...content.activities]
-    if (quotes.some(entry => !quoteExists(entry.evidence))) {
-      throw new AiError('structured_output_validation', 'Analysis contained a quote not found in the article. Nothing was saved.', { code: 'galnet_analysis_invalid_evidence' })
+    const resolveQuote = createGalnetQuoteResolver(article.article.title, article.article.body)
+    const evidence = (quote: string, path: string, code = 'galnet_analysis_invalid_evidence'): string => {
+      const source = resolveQuote(quote)
+      if (source === undefined) throw new AiError('structured_output_validation',
+        `Could not verify quote in ${path}: ${JSON.stringify(quote)}. Nothing was saved; no automatic retry was made.`, { code })
+      if (!EvidenceSchema.safeParse(source).success) throw new AiError('structured_output_validation',
+        `Source quote in ${path} exceeds the evidence length limit after restoring formatting: ${JSON.stringify(quote)}. Nothing was saved; no automatic retry was made.`, { code })
+      return source
     }
-    for (const activity of content.activities) {
+    for (const group of ['facts', 'interpretations', 'entities', 'activities'] as const) {
+      content[group].forEach((entry, index) => { entry.evidence = evidence(entry.evidence, `${group}[${index}].evidence`) })
+    }
+    for (const [index, activity] of content.activities.entries()) {
       const destination = activity.destination
-      if (destination && (!quoteExists(destination.evidence) ||
-        !mentionsSystem(destination.evidence, destination.systemName) ||
-        !content.entities.some(entity => entity.kind === 'system' && entity.name.toLowerCase() === destination.systemName.toLowerCase()))) {
-        throw new AiError('structured_output_validation', 'Analysis contained a destination without matching quoted system evidence. Nothing was saved.', { code: 'galnet_analysis_invalid_destination' })
+      if (!destination) continue
+      destination.evidence = evidence(destination.evidence, `activities[${index}].destination.evidence`, 'galnet_analysis_invalid_destination')
+      if (!mentionsSystem(destination.evidence, destination.systemName) ||
+        !content.entities.some(entity => entity.kind === 'system' && entity.name.toLowerCase() === destination.systemName.toLowerCase())) {
+        throw new AiError('structured_output_validation', `Destination in activities[${index}] has no matching quoted system evidence: ${JSON.stringify(destination.systemName)}. Nothing was saved.`, { code: 'galnet_analysis_invalid_destination' })
       }
     }
     const linked = new Set<string>()

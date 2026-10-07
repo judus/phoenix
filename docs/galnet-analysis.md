@@ -14,7 +14,13 @@ it is not converted to an empty campaign list. Stale CG snapshots remain labelle
 original fetch time. AI reports retain that entire snapshot, not a manufactured live status.
 
 The report separates facts, interpretation, mentioned entities and possible activities. Every
-supporting quote must be an exact substring of the article title or body. Related campaign
+supporting quote must match a contiguous passage in the article title or body. Matching tolerates
+only whitespace runs/line endings and straight-versus-curly single/double quotation marks; saved
+evidence is restored to the exact original source passage. Changed wording, case, numbers, omitted
+words and other punctuation are not normalized. Unverifiable quotes reject the report atomically;
+the error identifies the evidence field and rejected quote. The existing 800-character evidence
+limit also applies to restored source passages; exceeding it produces a specific validation error,
+not truncation or automatic retry. Related campaign
 activities reference authoritative CG IDs and appear under **Related Community Goals**, once
 per goal; progress and destination are read from the saved structured snapshot. Explicit versus
 possible linkage remains an AI assessment, not a verified gameplay relationship. Unlinked
@@ -50,6 +56,8 @@ are keyed by an SHA-256 evidence/configuration digest; prior reports remain read
 restart or key removal. Read endpoints do not perform inference. Failed, refused, truncated or
 invalid output is not saved as a successful report; an older valid report remains visible.
 Credits may still have been consumed if a provider request fails validation or persistence.
+An explicit retry after a failure makes a new AI request and can consume credit again; there is no
+automatic retry. Quote matching does not invoke another model or alter the archived source.
 
 Navigating away cancels the browser request, not the shared installation job; a valid result
 can finish and be saved for a later visit. Application shutdown aborts inference and waits before
@@ -98,6 +106,9 @@ and historical positions of movable ships are not substitutes for an explicit de
 
 Existing version-1 reports remain readable without inventing destinations. **Update analysis** is
 required to produce version 2 and may consume API credits. No automatic migration invokes AI.
+That notice appears beside each legacy article report, not as a technical count in the Atlas footer.
+Leads with no explicit destination are described as having no known destination; reanalysis does
+not guarantee that the source provides one.
 
 Coordinates come from existing system cartography, with at most two concurrent lookups and one
 lookup per distinct system name. A missing position, failed lookup or different canonical system

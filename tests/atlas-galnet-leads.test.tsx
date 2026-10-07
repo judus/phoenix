@@ -15,7 +15,7 @@ function snapshot(): GalnetInvestigationLeadsResponse {
   return new GalnetInvestigationLeadsService({ recent: () => [{ analysis, articleChanged: false, currentArticleTitle: 'Synthetic story' }] }).get()
 }
 
-test.each([1, 2])('page reports every omission reason with grammatical counts: %i', async count => {
+test.each([1, 2])('page describes unknown destinations without technical legacy-report notices: %i', async count => {
   const data = snapshot()
   data.leads = []
   data.omitted = { legacyReports: count, changedReports: count, endedLeads: count, withoutDestination: count }
@@ -25,10 +25,10 @@ test.each([1, 2])('page reports every omission reason with grammatical counts: %
   const renderer = await renderWithAct(<GalacticAtlasPage api={api} onNavigate={vi.fn()} runtime={{ status: 'ready', state: createEmptyRuntimeState() }} />)
   try {
     const text = JSON.stringify(renderer.toJSON())
-    expect(text).toContain(count === 1 ? '1 report needs updated analysis' : '2 reports need updated analysis')
+    expect(text).not.toContain('updated analysis')
     expect(text).toContain(`${count} changed-article report${count === 1 ? '' : 's'} hidden`)
     expect(text).toContain(`${count} ended lead${count === 1 ? '' : 's'} hidden`)
-    expect(text).toContain(`${count} lead${count === 1 ? '' : 's'} without explicit destinations`)
+    expect(text).toContain(`${count} lead${count === 1 ? ' has' : 's have'} no known destination`)
   } finally { await act(async () => renderer.unmount()) }
 })
 
