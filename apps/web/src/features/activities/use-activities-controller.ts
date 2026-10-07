@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { MissionsResponse } from '@phoenix/contracts'
+import type { CommunityGoalsResponse, MissionsResponse } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { readControllerSnapshot, storeControllerSnapshot } from '../../application/cache/controller-snapshot-cache.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
@@ -10,6 +10,7 @@ export type ActivitiesView = 'missions' | 'objectives' | 'community-goals' | 'po
 export interface ActivitiesControllerSnapshot {
   error?: string
   missions?: MissionsResponse
+  communityGoals?: CommunityGoalsResponse
   status: 'idle' | 'loading' | 'ready' | 'error'
 }
 
@@ -34,7 +35,7 @@ export function useActivitiesController(
   )
 
   useEffect(() => {
-    if (view !== 'missions') {
+    if (view !== 'missions' && view !== 'community-goals') {
       setSnapshot({ status: 'ready' })
       return
     }
@@ -45,22 +46,27 @@ export function useActivitiesController(
     const load = (showLoading = false) => {
       const signal = request.start()
       if (showLoading) setSnapshot(retained ?? { status: 'loading' })
-      void api.getMissions(signal).then(missions => {
-        if (request.isCurrent(signal)) publish({ missions, status: 'ready' })
+      const result = view === 'community-goals'
+        ? api.getCommunityGoals(signal).then(communityGoals => ({ communityGoals }))
+        : api.getMissions(signal).then(missions => ({ missions }))
+      void result.then(data => {
+        if (request.isCurrent(signal)) publish({ ...data, status: 'ready' })
       }).catch(cause => {
         if (!request.isCurrent(signal)) return
-        const error = cause instanceof Error ? cause.message : 'Mission records unavailable.'
+        const error = cause instanceof Error ? cause.message : view === 'community-goals' ? 'Community Goals unavailable.' : 'Mission records unavailable.'
         setSnapshot(current => current.status === 'ready' ? { ...current, error } : { error, status: 'error' })
       })
     }
 
     load(true)
-    const unsubscribe = events.subscribe('activity-entry', entry => {
+    const unsubscribe = view === 'missions' ? events.subscribe('activity-entry', entry => {
       if (entry.source === 'journal' && missionEvents.has(entry.event)) load()
-    })
+    }) : () => undefined
+    const refreshTimer = view === 'community-goals' ? setInterval(() => load(), 15 * 60 * 1000) : undefined
     return () => {
       request.cancel()
       unsubscribe()
+      if (refreshTimer !== undefined) clearInterval(refreshTimer)
     }
   }, [api, cacheKey, events, view])
 

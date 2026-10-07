@@ -52,6 +52,10 @@ bounded-read/streams rewrite was justified by these measurements. Repeat after m
 
 ## Browser stability check
 
+For Community Goals layout/selection checks, add `--community-goals` to the isolated preview
+command below. It supplies twenty fictional goals with long briefings for independent list/detail
+scrolling, without contacting Frontier or an AI provider.
+
 Use only the supplied in-memory preview, never a player's server. It uses mock cartography,
 simulated keyboard output, and no Elite journal ingestion or Copilot provider. Build the web
 application, then start the fixture:

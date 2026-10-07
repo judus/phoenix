@@ -62,6 +62,7 @@ import type { ExplorationDataReader } from '../application/exploration-data-serv
 import type { ExplorationTargetReader } from '../application/default-exploration-target-query.js'
 import { DEFAULT_GALAXY_RESULT_LIMIT, type GalaxyDataReader } from '../application/galaxy-data-service.js'
 import type { GalnetNewsReader } from '../domain/galnet.js'
+import type { CommunityGoalsReader } from '../domain/community-goals.js'
 import type { AtlasCatalogueReader } from '../domain/atlas.js'
 import type { NavigationDataReader } from '../application/navigation-data-service.js'
 import type { ActivityLogReader, EliteJournalDiagnosticsReader } from '../domain/elite-journal.js'
@@ -141,6 +142,7 @@ export interface PhoenixHttpServerOptions extends SettingsHttpServices, Engineer
   catalogueSuggestions: Pick<CatalogueSuggestionService, 'suggest'>
   marketSignals: MarketSignalReader
   galnet: GalnetNewsReader
+  communityGoals: CommunityGoalsReader
   atlas: AtlasCatalogueReader
   healthCheck: HealthCheck
   host: string
@@ -383,6 +385,11 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/operations/missions') {
       writeJson(response, 200, this.options.missions.getMissions())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/operations/community-goals') {
+      writeJson(response, 200, await this.options.communityGoals.getCurrent())
       return
     }
 
