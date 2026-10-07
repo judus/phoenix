@@ -8,9 +8,11 @@ Settings → General → Community data exposes the toggle, pending count, last 
 
 **Production uploads are gated off in this build.** There is no live-mode environment switch.
 **EDMC parity is not complete. Keep an existing uploader enabled.** The native implementation
-now handles all 21 journal/file event families in the pinned EDMC dispatch, but CAPI and the
-remaining field/delivery/acceptance review are open. See [parity register](eddn-parity.md).
-The UI distinguishes the enabled preference from unavailable delivery. Developers can explicitly
+now handles all 21 journal/file event families in the pinned EDMC dispatch. CAPI is deferred;
+real-game and native runtime acceptance remain open. See [parity register](eddn-parity.md) and
+the [readiness checklist](eddn-readiness.md).
+The UI distinguishes the enabled preference from unavailable delivery. An unavailable build
+clears pending uploads on startup; it does not hold them for a future release. Developers can explicitly
 set `PHOENIX_EDDN_TEST_MODE=1` for the official EDDN **test** schemas; this still transmits observations
 externally, so use it only during an authorized test. The normal build sends nothing. Automated
 tests use an injected transport or loopback HTTP gateway, never EDDN.
@@ -171,10 +173,52 @@ repeat an interrupted attempt.
   errors require recovery/restart. A failed clear is also constrained by the persisted opt-in
   boundary before any later delivery.
 
-The 24-hour queue limit is intentional, not an EDMC parity claim. Going offline longer than that
-expires pending observations on the next active worker tick or startup; the loss remains visible
-even if the observation had no upload attempt. HTTP success still does not establish downstream
-ingestion, and restart recovery cannot promise exactly-once delivery.
+### Offline policy (reviewed 2026-10-07, #114)
+
+"Offline" has two distinct meanings:
+
+| Situation | What is retained or submitted |
+| --- | --- |
+| PHOENIX running, network unavailable | Eligible observations enter the bounded outbox. Failed attempts retry after their durable deadline; other due work can proceed. |
+| PHOENIX closed, game continues | Gameplay written during downtime is **not uploaded on restart**. The newest journal's existing records rebuild context only; older files may feed local history, never EDDN. No station snapshots are read for replayed triggers. |
+| Restart with already admitted work | Pending envelopes and resolved signal checkpoints recover from SQLite and are revalidated before sending, without requiring a fresh gameplay event. Bootstrap does not duplicate or extend them. |
+| Restart without resolved signal context | An unresolved pre-arrival checkpoint is rejected, not repaired from replay or a later location. |
+| Disabled preference or unavailable build | Pending work is deliberately cleared, not held. Re-enabling does not backfill the disabled period. Attempt history remains subject to its separate retention. |
+
+There are **two independent 24-hour limits**. Queue rows and receipts expire from their first
+local admission time, including unsealed signal batches. Separately, an original observation
+timestamp at least 24 hours old is ineligible at admission and again before sending. Queue
+pruning runs at startup and active worker ticks; timestamp rejection happens when a row is due.
+Retries, checkpoint appends, sealing and restart do not refresh either timestamp. At the exact
+24-hour boundary the corresponding limit expires. An admitted observation up to five minutes
+ahead of the local clock is still subject to the admission-age limit.
+
+The 1,000 pending entries and 16 MiB payload/checkpoint budget are shared by sealed messages
+and open signal batches. Capacity rejects new work, not previously admitted messages. Growth
+that exceeds a signal batch's budget rejects that batch as a whole. Acknowledged receipts still
+occupy their independent 100,000-entry budget until their original 24-hour age limit. Successful
+sends free pending capacity, not receipt capacity. Pruning frees aged receipts. These are logical
+retained-data limits, not a cap on the physical SQLite/WAL file, total application memory or disk.
+
+Attempt history has independent limits: newest 100 entries, seven days and 16 MiB. History
+pruning neither removes pending work nor resets durable loss totals. Totals count discarded
+queue entries/batches and capacity refusals, not every individual signal or all missed gameplay.
+Pre-queue exclusions and writes that fail before persistence cannot be reconstructed from them.
+
+These are deliberate PHOENIX safety policies, **not EDMC delivery equivalence**. The
+[pinned EDDN retry guidance](https://github.com/EDCD/EDDN/blob/4ad669bb7bbe1eae080e4c354e786dca4db91f35/docs/Developers.md#sending-data)
+requires a minimum retry delay and prohibits automatic retries of HTTP 400/426. PHOENIX also
+treats 413 as terminal rather than taking the optional retry. This review does not extend retention,
+add a history spool or promise complete coverage while the app is stopped. Expiry remains visible
+even without an upload attempt. HTTP success is not downstream ingestion proof; a lost response
+or crash between remote acceptance and local acknowledgement can still cause a later duplicate.
+
+File-backed regression tests cover source bootstrap versus new append, restored pending work,
+network retry deadlines and both age boundaries. Storage tests cover byte/receipt capacity in
+addition to the existing row-count, signal-recovery and loss-counter tests. The only demonstrated
+defect in this review was the unavailable-build feedback promising to hold uploads; it now
+describes the existing clear policy. Low-severity #108/#111 remain separately tracked. See the
+[readiness checklist](eddn-readiness.md) for work that cannot be signed off by synthetic tests.
 
 ## Sources and maintenance
 
@@ -192,9 +236,10 @@ EliteDangerousCore implementation was copied.
 Recheck upstream schema and privacy rules before updating a pin or extending the event allowlist.
 Machine-readable provenance and hashes: `resources/eddn/upstream.json`. A later read-only drift
 checker will flag revisions for review, not auto-update production schemas or message mappings.
-EDSM account sync and bulk historical uploads remain out of scope. CAPI is now an explicit
-parity requirement, not silently excluded: it needs PHOENIX's own Frontier app registration and
-an authenticated, separately validated source path. The user confirmed no registration exists.
+EDSM account sync and bulk historical uploads remain out of scope. CAPI/OAuth is explicitly
+deferred from native journal/file readiness, not silently counted as implemented. Full EDMC source
+parity would require that separately approved work, PHOENIX's own Frontier app registration and
+an authenticated, separately validated source path. No registration exists.
 
 ## Native parity expansion (2026-10-04)
 

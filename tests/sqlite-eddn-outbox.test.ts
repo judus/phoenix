@@ -218,3 +218,42 @@ test('sealing rolls back both parent replacement and checkpoint deletion if clea
     expect(outbox.status().losses).toEqual([])
   } finally { connection.close() }
 })
+
+test('the shared byte budget rejects new messages without evicting admitted work', () => {
+  const connection = new DatabaseSync(':memory:')
+  const now = Date.parse('2026-10-07T00:00:00Z')
+  try {
+    const outbox = new SqliteEddnOutbox(connection)
+    outbox.initialize()
+    const message = lossFixture(now)
+    message.message.padding = ''
+    message.message.padding = 'x'.repeat(2 * 1024 * 1024 - Buffer.byteLength(JSON.stringify(message)))
+    for (let index = 0; index < 8; index++) expect(outbox.enqueue(String(index), message, now)).toBe(true)
+    expect(() => outbox.enqueue('rejected', lossFixture(now), now)).toThrow(EddnQueueCapacityError)
+    expect(outbox.status()).toMatchObject({ queued: 8, losses: [{ reason: 'capacity', count: 1 }] })
+    expect(connection.prepare('SELECT id FROM eddn_receipts WHERE id = ?').get('rejected')).toBeUndefined()
+    expect(outbox.next(now)).toMatchObject({ id: '0', message })
+    outbox.acknowledge('0', now)
+    expect(outbox.enqueue('rejected', lossFixture(now), now)).toBe(true)
+  } finally { connection.close() }
+})
+
+test('acknowledged receipts can fill their own budget; age pruning permits fresh admissions', () => {
+  const connection = new DatabaseSync(':memory:')
+  const now = Date.parse('2026-10-07T00:00:00Z')
+  try {
+    const outbox = new SqliteEddnOutbox(connection)
+    outbox.initialize()
+    // Seed receipt-only history, not 100,000 uploads or outbox entries.
+    connection.prepare(`WITH RECURSIVE ids(id) AS (SELECT 1 UNION ALL SELECT id + 1 FROM ids WHERE id < 100000)
+      INSERT INTO eddn_receipts(id, created_at) SELECT CAST(id AS TEXT), ? FROM ids`).run(now)
+    expect(() => outbox.enqueue('fresh', lossFixture(now), now)).toThrow(EddnQueueCapacityError)
+    expect(outbox.status()).toMatchObject({ queued: 0, losses: [{ reason: 'capacity', count: 1 }] })
+    outbox.prune(now + EDDN_MAX_AGE_MS - 1)
+    expect(connection.prepare('SELECT COUNT(*) AS count FROM eddn_receipts').get()).toEqual({ count: 100000 })
+    outbox.prune(now + EDDN_MAX_AGE_MS)
+    expect(connection.prepare('SELECT COUNT(*) AS count FROM eddn_receipts').get()).toEqual({ count: 0 })
+    expect(outbox.enqueue('fresh', lossFixture(now + EDDN_MAX_AGE_MS), now + EDDN_MAX_AGE_MS)).toBe(true)
+    expect(outbox.status()).toMatchObject({ queued: 1, losses: [{ reason: 'capacity', count: 1 }] })
+  } finally { connection.close() }
+})

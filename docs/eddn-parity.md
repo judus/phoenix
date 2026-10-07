@@ -45,8 +45,9 @@ do not invent an upload schema for it.
    full service path, not just schema-valid happy paths. Synthetic tests never upload externally.
 2. Keep field-level comparison current for the permissive journal schema; the bounded
    Powerplay/colonisation review below is not a guarantee of future-field or EDMC parity.
-3. Implement authenticated CAPI coverage with PHOENIX's own registered client. No existing
-   CAPI/OAuth service was found in this checkout. Never use EDMC's ID or borrow its tokens.
+3. Keep CAPI/OAuth explicitly deferred from native journal/file readiness. Full EDMC source
+   parity still requires separately approved authenticated CAPI coverage with PHOENIX's own
+   registered client. Never use EDMC's ID or borrow its tokens.
 4. Reconcile documented delivery differences, prove packaging and real-game acceptance,
    coordinate with maintainers, then deliberately review live release. Until then tell users
    to keep their existing uploader; test acceptance is not downstream ingestion proof.
@@ -135,11 +136,14 @@ No real player journals or external submissions were used. Dedicated schemas, CA
 unknown fields and real-game acceptance are not signed off by this bounded comparison.
 
 Our source-only deduplication, finite queue/24-hour expiry and no bootstrap/history upload are
-intentional safety policies, not demonstrated EDMC equivalents. Durable queue-loss accounting is
-implemented below; still review offline retention policy, long-running journal file rotation/session
-continuity, including multipart files and skipped intermediate files.
-Pinning schemas alone cannot establish these invariants. New families also need authorized
-gameplay acceptance and native Windows packaging validation. Until then, keep the test-only gate.
+intentional safety policies, not demonstrated EDMC equivalents. The bounded offline-policy review
+(#114) verified file-backed recovery versus downtime omission, independent observation/admission
+age limits, durable retry deadlines and queue/byte/receipt limits. These policies are retained,
+not extended; see [offline policy](eddn-contribution.md#offline-policy-reviewed-2026-10-07-114).
+Live journal rotation/session continuity was addressed in #109; low-severity #111 remains deferred.
+Pinning schemas alone cannot establish these invariants. Authorized gameplay acceptance and
+native runtime/packaging validation remain open in the [readiness checklist](eddn-readiness.md).
+Until those gates are deliberately satisfied, keep the test-only gate.
 
 Delivery-accounting follow-up: persistent reason totals now cover queue expiry, invalid queued
 documents, HTTP rejection, capacity-skipped admission and deliberate clearing. Success and history

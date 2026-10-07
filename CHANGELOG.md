@@ -4,6 +4,10 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Correct EDDN's gated-build status: pending uploads are cleared, not held for a future release.
+  Document offline recovery, downtime omissions and unchanged retention limits, with an explicit
+  real-game/native acceptance checklist.
+
 - Preserve the observed first-footfall flag in EDDN scan contributions. Verify public Powerplay
   and colonisation station metadata without uploading personal progress or unsupported events;
   community publishing remains test-only.
