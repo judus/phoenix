@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Give an incomplete old journal tail one extra refresh to finish during rotation, preserving
+  event order while allowing permanently truncated files to give way to newer gameplay journals.
+
 - Retry EDDN capacity-loss counts when a signal batch could not enter the queue and the initial
   counter write failed, including after opt-out; no extra payload queue or receipt growth.
 

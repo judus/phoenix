@@ -133,11 +133,16 @@ run captures its original context so a retry cannot attach it to a later system.
 successfully written checkpoint is crash-safe: storage failure before a write cannot preserve that
 new signal. This is not a guarantee that all game signals or a whole interrupted run were collected.
 During live play, journal rotation drains the previous tail and intervening files in order.
+If a successor exists while the old file ends in an incomplete record, the reader gives that
+tail one additional refresh to finish (normally one 500 ms polling interval). It then advances
+even if the tail remains truncated, with a journal diagnostic warning. Completion after advancing
+is not replayed out of order. Ordinary partial writes without a successor keep waiting as before;
+actual short reads and failed projections still retry before advancing.
 An observed `Continued.Part` followed immediately by the matching `Fileheader.part`, game version
 and build preserves session context and pending signals; an unlinked or new-session header resets
 them. These file markers do not close a pre-arrival signal batch. Startup still replays only the
 newest journal file: starting in a later part without earlier context does not reconstruct that
-context or upload history. See Frontier's [journal manual, File Format and Continued](https://hosting.zaonce.net/community/journal/v31/Journal_Manual_v31.pdf).
+context or upload history. See Frontier's [journal manual, File Format and Continued](https://hosting.zaonce.net/community/journal/v38/Journal_Manual_v38.pdf).
 
 Codex uses explicit journal BodyID when present. A missing ID is inferred only when journal and
 Status body names agree. Stale Status from before a location boundary cannot augment a new system.
