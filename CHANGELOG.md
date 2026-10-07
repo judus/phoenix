@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Align the browser authorization card with the Android pairing layout: grouped logo/title,
+  help text below, and one divider spanning the content width. Pairing behavior is unchanged.
+
 - Focus the chat composer on entry and keep it editable while Copilot replies, preserving the next
   draft and returning focus after Send without stealing it when a response arrives. Keep its orange
   border without the extra blue focus outline.

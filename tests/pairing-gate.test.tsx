@@ -81,6 +81,10 @@ test('PairingGate checks authorization and admits the application only after a s
   expect(renderer?.root.findByProps({ className: 'pairing-logo' }).props).toMatchObject({
     src: '/phoenix.svg', alt: 'Phoenix'
   })
+  const header = renderer.root.findByType('header')
+  expect(header.findByType('h1').children).toEqual(['PHOENIX'])
+  expect(header.findByType('img').props.alt).toBe('Phoenix')
+  expect(header.findByType('p').parent).toBe(header)
   await act(async () => input?.props.onChange({ target: { value: 'abcde-12345' } }))
   const form = renderer?.root.findByType('form')
   await act(async () => form?.props.onSubmit({ preventDefault() {} }))
