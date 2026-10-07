@@ -35,6 +35,55 @@ test('GET is free; manual analysis shares CG evidence, keeps references and pers
   } finally { await fixture.close() }
 })
 
+test('all evidence fields retain original source quotes after presentation-only normalization', async () => {
+  const fixture = setup()
+  try {
+    const passage = '“Pilots’ reports”\r\nconfirm\u00a0Colonia.'
+    fixture.db.galnetArchive.observe([{ ...analysisArticle, body: passage }], '2026-10-08T12:00:00Z')
+    const content = structuredClone(analysisContent)
+    for (const group of ['facts', 'interpretations', 'entities', 'activities'] as const) {
+      for (const entry of content[group]) entry.evidence = '"Pilots\' reports" confirm Colonia.'
+    }
+    content.activities[1]!.destination!.evidence = '"Pilots\' reports" confirm Colonia.'
+    fixture.analyser.analyse.mockResolvedValue({ content, usage: analysisUsage })
+    const result = await fixture.service.analyse(analysisArticle.id)
+    const saved = fixture.db.galnetAnalyses.latest(analysisArticle.id)!
+    expect(saved).toEqual(result.analysis)
+    for (const group of ['facts', 'interpretations', 'entities', 'activities'] as const) {
+      expect(saved.content[group].every(entry => entry.evidence === passage)).toBe(true)
+    }
+    expect(saved.schemaVersion === 2 && saved.content.activities[1]!.destination?.evidence).toBe(passage)
+    expect(fixture.db.galnetArchive.getArticle(analysisArticle.id)!.article.body).toBe(passage)
+    await fixture.service.analyse(analysisArticle.id)
+    expect(fixture.analyser.analyse).toHaveBeenCalledTimes(1)
+  } finally { await fixture.close() }
+})
+
+test.each(['facts', 'interpretations', 'entities', 'activities', 'destination'] as const)
+('invalid %s evidence identifies the field and quote, preserves prior report and never retries', async group => {
+  const fixture = setup()
+  try {
+    const original = (await fixture.service.analyse(analysisArticle.id)).analysis
+    fixture.db.galnetArchive.observe([{ ...analysisArticle, title: 'Corrected title' }], '2026-10-08T12:00:00Z')
+    const content = structuredClone(analysisContent)
+    const quote = 'Unverified "beacon" <script> text'
+    if (group === 'destination') content.activities[1]!.destination!.evidence = quote
+    else content[group][0]!.evidence = quote
+    fixture.analyser.analyse.mockResolvedValue({ content, usage: analysisUsage })
+    const path = group === 'destination' ? 'activities[1].destination.evidence' : `${group}[0].evidence`
+    await expect(fixture.service.analyse(analysisArticle.id)).rejects.toMatchObject({
+      message: expect.stringContaining(`quote in ${path}: ${JSON.stringify(quote)}`),
+      code: group === 'destination' ? 'galnet_analysis_invalid_destination' : 'galnet_analysis_invalid_evidence'
+    })
+    expect(fixture.service.get(analysisArticle.id).analysis).toEqual(original)
+    expect(fixture.analyser.analyse).toHaveBeenCalledTimes(2)
+    // A new request happens only after the player explicitly retries.
+    fixture.analyser.analyse.mockResolvedValue({ content: analysisContent, usage: analysisUsage })
+    await fixture.service.analyse(analysisArticle.id)
+    expect(fixture.analyser.analyse).toHaveBeenCalledTimes(3)
+  } finally { await fixture.close() }
+})
+
 test('CG changes and article corrections invalidate analysis cache; changed article warning survives failure', async () => {
   const fixture = setup()
   try {

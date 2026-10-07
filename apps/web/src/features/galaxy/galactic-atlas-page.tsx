@@ -38,10 +38,9 @@ export function GalacticAtlasPage({ api, onNavigate, runtime }: {
     investigationsStatus={[
       investigations.loading ? 'Loading saved GalNet leads…' : '',
       investigations.error,
-      omitted?.legacyReports ? `${omitted.legacyReports} report${omitted.legacyReports === 1 ? ' needs' : 's need'} updated analysis for destinations` : '',
       omitted?.changedReports ? `${omitted.changedReports} changed-article report${omitted.changedReports === 1 ? '' : 's'} hidden` : '',
       omitted?.endedLeads ? `${omitted.endedLeads} ended lead${omitted.endedLeads === 1 ? '' : 's'} hidden` : '',
-      omitted?.withoutDestination ? `${omitted.withoutDestination} lead${omitted.withoutDestination === 1 ? '' : 's'} without explicit destinations` : '',
+      omitted?.withoutDestination ? `${omitted.withoutDestination} lead${omitted.withoutDestination === 1 ? ' has' : 's have'} no known destination` : '',
       investigations.unlocatedSystems.length ? `Lead destinations not located: ${investigations.unlocatedSystems.join(', ')}` : ''
     ].filter(Boolean).join(' · ') || undefined}
     communityGoalsStatus={[

@@ -1,7 +1,7 @@
 import { act } from 'react-test-renderer'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeAll, expect, test, vi } from 'vitest'
-import type { GalnetAnalysisResponse } from '@phoenix/contracts'
+import { GalnetAnalysisSchema, type GalnetAnalysisResponse } from '@phoenix/contracts'
 import { GalnetAnalysisPanel, GalnetAnalysisReport } from '../apps/web/src/features/comms/galnet-analysis-panel.js'
 import { analysisArticle, analysisContent, analysisGoals, analysisUsage } from './support/galnet-analysis-fixtures.js'
 import { renderWithAct } from './support/render-with-act.js'
@@ -38,6 +38,18 @@ test('disabled configuration still permits reading old reports and warns about c
     expect(renderer.root.findByType('button').props.disabled).toBe(true)
     expect(JSON.stringify(renderer.toJSON())).toContain('article has changed')
     expect(JSON.stringify(renderer.toJSON())).toContain('Related Community Goals')
+    expect(api.analyseGalnetArticle).not.toHaveBeenCalled()
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('legacy upgrade notice stays beside the article and never triggers automatic analysis', async () => {
+  const legacy = GalnetAnalysisSchema.parse({ ...report, schemaVersion: 1, extractorVersion: 'galnet-analysis-v1',
+    content: { ...analysisContent, activities: analysisContent.activities.map(({ destination: _destination, ...activity }) => activity) } })
+  const api = { getGalnetAnalysis: vi.fn(async () => ({ ...empty, analysis: legacy })),
+    analyseGalnetArticle: vi.fn(async () => empty) }
+  const renderer = await renderWithAct(<GalnetAnalysisPanel api={api} articleId={analysisArticle.id} />)
+  try {
+    expect(JSON.stringify(renderer.toJSON())).toContain('Update analysis explicitly to extract them for the Atlas; this may use API credit.')
     expect(api.analyseGalnetArticle).not.toHaveBeenCalled()
   } finally { await act(async () => renderer.unmount()) }
 })
