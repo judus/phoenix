@@ -4,6 +4,14 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Focus the chat composer on entry and keep it editable while Copilot replies, preserving the next
+  draft and returning focus after Send without stealing it when a response arrives. Keep its orange
+  border without the extra blue focus outline.
+
+- Add a read-only Copilot engineering-project report with planned upgrades, shared material
+  requirements and inventory shortfalls. Give it its own installation and per-profile permission;
+  unavailable inventory stays unknown and personal-equipment previews are not treated as saved projects.
+
 - Restrict Android shell HTTP pairing to numeric private, link-local or loopback addresses;
   reject public HTTP destinations and HTTP hostnames. HTTPS keeps normal certificate validation.
 

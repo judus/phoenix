@@ -40,7 +40,7 @@ shared boundary; an arbitrary `Error` must not be reclassified as a usage error.
 | Tools | Handler and error responsibility |
 | --- | --- |
 | `commander.get_current_situation`, `ship.get_current_ship_status`, `ship.get_cargo_manifest`, `ship.list_installed_modules`, `engineering.list_material_inventory` | Local observed state; unknown observations and empty filtered results are data. Common argument parser errors receive correction hints. |
-| `equipment.get_equipment_report`, `comms.list_messages`, `missions.list_missions`, `fleet.list_owned_ships`, `fleet.list_stored_modules`, `engineering.list_engineers` | Local read models; typed argument errors are corrected, unexpected repository errors stay internal. |
+| `equipment.get_equipment_report`, `engineering.get_project_report`, `comms.list_messages`, `missions.list_missions`, `fleet.list_owned_ships`, `fleet.list_stored_modules`, `engineering.list_engineers` | Local read models; typed argument errors are corrected, unexpected repository errors stay internal. |
 | `controls.find_actions` | Read-only discovery; empty matches do not authorize execution. |
 | `controls.execute_command` | Macro operation and press/release lease combinations validate before dispatch. Gateway rejection/failure/cancellation/timeout retain distinct safe outcomes. |
 | `controls.set_control_state` | Capability checks precede state changes. Permission failures require the user to change Settings; execution failures never imply that retrying is safe. |

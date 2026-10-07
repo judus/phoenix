@@ -481,6 +481,7 @@ export class PhoenixApplication {
       display,
       equipment: personalEquipmentReport,
       engineers: new DefaultCommanderEngineersQuery(engineering),
+      engineeringProjects,
       exploration,
       explorationTargets,
       factions: stationMarkets,

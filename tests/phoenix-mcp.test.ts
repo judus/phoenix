@@ -16,6 +16,39 @@ import { InMemoryMacroRepository } from '../apps/server/src/infrastructure/macro
 import { RecordingKeyboardOutput } from 'control-deck/adapter-keyboard'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { JsonConversationStore } from '../apps/server/src/infrastructure/json-conversation-store.js'
+import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
+
+test('project report reads persisted plans over MCP and appears in installation permission settings', async () => {
+  const settings = new InMemorySystemSettingsRepository()
+  const application = new PhoenixApplication({ databasePath: ':memory:', eliteDirectory: null,
+    host: '127.0.0.1', port: 0, systemSettingsRepository: settings })
+  const address = await application.start()
+  const origin = `http://${address.host}:${address.port}`
+  const api = new PhoenixApiClient(origin)
+  const provider = configuredProvider([
+    response('project-report', [{ arguments: {}, callId: 'report', name: 'phoenix__engineering_get_project_report', type: 'tool_call' }], 'tool_calls'),
+    response('done', [{ source: 'generated', text: 'Report received.', type: 'text' }], 'stop')
+  ])
+  const client = createAiClient({ mcp: [{ name: 'phoenix', url: `${origin}/mcp` }], provider })
+  try {
+    const project = await api.createEngineeringProject({ name: 'Fixture refit', note: null, priority: 'high' })
+    await api.addEngineeringProjectStep(project.id, {
+      blueprintSymbol: 'TestModule_Reinforced', targetGrade: 1, plannedRolls: 3, note: null
+    })
+    const before = await api.getEngineeringProjects()
+    const permissions = await api.getCopilotSettings()
+    expect(permissions.capabilities.groups.find(group => group.id === 'tools.engineering')?.capabilities)
+      .toContainEqual(expect.objectContaining({ id: 'tool:engineering.get_project_report', access: 'read', available: true }))
+    await client.user('What do I need for my projects?').run()
+    expect(provider.requests[1]?.messages.at(-1)?.content).toMatchObject([{
+      type: 'tool_result', status: 'success', structuredContent: {
+        projects: [{ id: project.id, name: 'Fixture refit', steps: [{ plannedRolls: 3 }] }],
+        materials: [{ materialId: 'TestWidgets', required: 3, owned: null, missing: null }]
+      }
+    }])
+    expect(await api.getEngineeringProjects()).toEqual(before)
+  } finally { await application.stop() }
+})
 
 test('handler corrections support a corrected MCP call and survive persisted text history safely', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-tool-history-'))
@@ -94,6 +127,12 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
         type: 'tool_call'
       },
       {
+        arguments: {},
+        callId: 'projects-1',
+        name: 'phoenix__engineering_get_project_report',
+        type: 'tool_call'
+      },
+      {
         arguments: { query: 'turn the ship lights on' },
         callId: 'find-lights-1',
         name: 'phoenix__controls_find_actions',
@@ -122,6 +161,7 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
       'phoenix__commander_get_current_situation',
       'phoenix__equipment_get_equipment_report',
       'phoenix__engineering_list_engineers',
+      'phoenix__engineering_get_project_report',
       'phoenix__engineering_list_material_inventory',
       'phoenix__comms_list_messages',
       'phoenix__controls_find_actions',
@@ -175,6 +215,19 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
           structuredContent: {
             location: { state: 'unknown' },
             revision: 0
+          },
+          type: 'tool_result'
+        },
+        {
+          callId: 'projects-1',
+          status: 'success',
+          structuredContent: {
+            inventoryAvailable: false,
+            observedAt: null,
+            projects: [],
+            materials: [],
+            personalEquipment: 'unsaved_preview_only',
+            schemaVersion: 1
           },
           type: 'tool_result'
         },

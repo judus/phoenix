@@ -287,7 +287,36 @@ const CopilotMessages = memo(function CopilotMessages({ activeTurn, messages, pe
   return <div className="copilot-messages" aria-live="polite">{messages.length === 0 && !activeTurn && turns.length === 0 ? <Status tone="muted">No conversation yet. {profileName} is standing by.</Status> : null}{messages.map(item => <Message key={item.id} role={item.role} text={item.text || (pending ? '…' : '')} />)}{activeTurn?.userText ? <Message role="user" text={activeTurn.userText} live /> : null}{activeTurn ? <Message role="assistant" text={activeTurn.assistantText || '…'} live /> : null}{turns.flatMap(turn => [turn.userText ? <Message key={`${turn.id}-user`} role="user" text={turn.userText} live /> : null, <Message key={`${turn.id}-assistant`} role="assistant" text={turn.assistantText || '…'} live />])}<div ref={end} /></div>
 })
 function Message({ live = false, role, text }: { live?: boolean, role: CopilotHistoryMessage['role'], text: string }) { return <article className={`copilot-message copilot-message-${role}${live ? ' live' : ''}`}><small>{role === 'user' ? 'Commander' : role === 'assistant' ? 'Copilot' : 'System'}{live ? ' · live' : ''}</small><div>{role === 'assistant' ? <CopilotMarkdown>{text}</CopilotMarkdown> : text}</div></article> }
-function CopilotComposer({ onSubmit, onTextChange, pending, profileName, text }: { onSubmit(text: string): Promise<void>, onTextChange(text: string): void, pending: boolean, profileName: string, text: string }) { const submit = (event: FormEvent) => { event.preventDefault(); const value = text.trim(); if (!value) return; onTextChange(''); void onSubmit(value) }; return <Form id="copilot-composer-form" className="copilot-composer" onSubmit={submit}><Field htmlFor="copilot-message" label="Message Copilot"><Textarea value={text} rows={2} disabled={pending} placeholder={`Ask ${profileName}…`} onChange={event => onTextChange(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} /></Field></Form> }
+function CopilotComposer({ onSubmit, onTextChange, pending, profileName, text }: { onSubmit(text: string): Promise<void>, onTextChange(text: string): void, pending: boolean, profileName: string, text: string }) {
+  const input = useRef<HTMLTextAreaElement>(null)
+  useEffect(() => {
+    const element = input.current
+    if (!element) return
+    // Workspace activation happens after mounting; focus once it is interactive.
+    const frame = requestAnimationFrame(() => element.focus({ preventScroll: true }))
+    return () => cancelAnimationFrame(frame)
+  }, [])
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const value = text.trim()
+    if (!value || pending) return
+    event.currentTarget.querySelector('textarea')?.focus()
+    onTextChange('')
+    void onSubmit(value)
+  }
+  return <Form id="copilot-composer-form" className="copilot-composer" onSubmit={submit}>
+    <Field htmlFor="copilot-message" label="Message Copilot">
+      <Textarea ref={input} value={text} rows={2} placeholder={`Ask ${profileName}…`}
+        onChange={event => onTextChange(event.target.value)}
+        onKeyDown={event => {
+          if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault()
+            event.currentTarget.form?.requestSubmit()
+          }
+        }} />
+    </Field>
+  </Form>
+}
 function ProfileEditor({ capabilities, draft, profileError, permissionsError, onChange, onSave, onSavePermissions, permissionsPending, saving }: {
   capabilities?: CopilotProfileCapabilitySettings
   draft: ProfileDraft

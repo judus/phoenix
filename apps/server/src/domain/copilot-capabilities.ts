@@ -16,6 +16,7 @@ export const DEFAULT_COPILOT_FIXED_TOOL_NAMES = [
   'commander.get_current_situation',
   'equipment.get_equipment_report',
   'engineering.list_engineers',
+  'engineering.get_project_report',
   'engineering.list_material_inventory',
   'comms.list_messages',
   'display.open_page',
