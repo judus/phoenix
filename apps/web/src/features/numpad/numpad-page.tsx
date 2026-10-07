@@ -13,6 +13,7 @@ export function NumpadPage({ runtime, devicePreferences }: { runtime: NumpadRunt
   const parent = tree?.nodes.find(node => node.id === session.pathIds.at(-1))
   const statusLabel = session.status === 'ambiguous'
     ? 'Digit or Enter'
+    : session.status === 'invalid' ? 'No match'
     : session.message ?? (session.active ? session.status : 'Press Numpad 0')
 
   return <PageFrame className="numpad-page" layout="fit">

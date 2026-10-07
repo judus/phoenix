@@ -19,3 +19,10 @@ coverage/
 .idea/
 .vscode/
 .DS_Store
+
+# Android builds and machine-local SDK/signing configuration
+apps/android/.gradle/
+apps/android/**/build/
+apps/android/local.properties
+*.jks
+*.keystore

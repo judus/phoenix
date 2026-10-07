@@ -1,0 +1,8 @@
+<resources>
+    <color name="canvas">#09090d</color>
+    <color name="action">#ff9d00</color>
+    <color name="information">#00b9ee</color>
+    <color name="border">#805000</color>
+    <color name="text">#d7e5f4</color>
+    <color name="muted">#8590a3</color>
+</resources>

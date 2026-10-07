@@ -114,6 +114,7 @@ before spending a weekend implementing them.
 
 - [Source installation and Copilot setup](docs/installation.md)
 - [Building and testing installers](scripts/package/README.md)
+- [Experimental Android shell — local APK build](apps/android/README.md)
 - [Branches, CI, and releases](docs/releases.md)
 - [Environment options](.env.example)
 

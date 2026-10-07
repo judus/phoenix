@@ -1,0 +1,44 @@
+<resources>
+    <style name="Theme.Phoenix" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#ff9d00</item>
+        <item name="android:windowBackground">#09090d</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:statusBarColor">#09090d</item>
+        <item name="android:navigationBarColor">#09090d</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+    <style name="ConnectionLabel">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">@color/action</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:letterSpacing">0.06</item>
+    </style>
+    <style name="ConnectionInput">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">8dp</item>
+        <item name="android:layout_marginBottom">20dp</item>
+        <item name="android:background">@drawable/input_border</item>
+        <item name="android:backgroundTint">@null</item>
+        <item name="android:textColor">@color/text</item>
+        <item name="android:textColorHint">@color/muted</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:importantForAutofill">no</item>
+        <item name="android:saveEnabled">false</item>
+    </style>
+    <style name="ConnectionButton">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:background">@drawable/command_button</item>
+        <item name="android:backgroundTint">@null</item>
+        <item name="android:textColor">@color/button_text</item>
+        <item name="android:letterSpacing">0.04</item>
+        <item name="android:paddingHorizontal">16dp</item>
+    </style>
+</resources>

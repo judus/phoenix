@@ -1,5 +1,14 @@
 # Third-party notices
 
+## Android shell
+
+The optional Android wrapper uses [AndroidX](https://developer.android.com/jetpack/androidx),
+[ZXing Android Embedded](https://github.com/journeyapps/zxing-android-embedded/tree/v4.3.0)
+and [ZXing Core](https://github.com/zxing/zxing/tree/zxing-3.4.1), under Apache-2.0.
+AndroidX also includes the Kotlin standard library and kotlinx.coroutines under Apache-2.0.
+These are Android-only dependencies, not part of desktop installers. Attribution notices and
+the complete Apache-2.0 licence are bundled in the APK's `assets/licenses/` directory.
+
 ## Galactic atlas region map
 
 The bundled region geometry and coordinate lookup are derived from

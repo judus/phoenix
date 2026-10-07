@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">PHOENIX</string>
+    <string name="connection_title">DEVICE AUTHORIZATION</string>
+    <string name="connection_help">Connect this tablet to PHOENIX on your computer.</string>
+    <string name="scan_mode">QR CODE</string>
+    <string name="manual_mode">MANUAL</string>
+    <string name="scan">SCAN QR CODE</string>
+    <string name="scan_help">Open Settings → Pairing on your computer, then scan its PHOENIX QR code.</string>
+    <string name="scan_prompt">Scan the PHOENIX pairing QR code</string>
+    <string name="pairing_label">PAIRING CODE</string>
+    <string name="pairing_hint">XXXXX-XXXXX</string>
+    <string name="camera_unavailable">Camera unavailable or access denied. Enter the server address and pairing code instead.</string>
+    <string name="invalid_qr">That is not a PHOENIX pairing QR code. Scan the code shown by PHOENIX on your computer.</string>
+    <string name="scanned_server">Detected server: %1$s\nVerify this address, then press Connect.</string>
+    <string name="connecting">CONNECTING…</string>
+    <string name="cookie_rejected">Android could not save the pairing session. Please try again.</string>
+    <string name="pairing_revoked">This device is no longer authorized. Scan the PHOENIX QR code or enter the current pairing code to reconnect.</string>
+    <string name="server_label">SERVER ADDRESS</string>
+    <string name="server_hint">http://192.168.1.10:3400</string>
+    <string name="connect">CONNECT</string>
+    <string name="resume">RETURN TO PHOENIX</string>
+    <string name="connection_back_hint">Keep PHOENIX running on your computer. Local HTTP is unencrypted. Connect only to a trusted computer and network.</string>
+    <string name="invalid_address">Use the local IP address shown by PHOENIX for HTTP (for example http://192.168.1.10:3400), or an HTTPS address. HTTP hostnames and public IP addresses are not allowed. Pairing links also work.</string>
+    <string name="load_failed">Cannot load PHOENIX. Check the address, your Wi-Fi connection and that PHOENIX is running on your computer.</string>
+    <string name="external_unavailable">No browser is available to open this link.</string>
+    <string name="unsupported_link">This link cannot be opened by the Android shell.</string>
+</resources>

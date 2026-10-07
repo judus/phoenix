@@ -1,6 +1,33 @@
 import { renderToStaticMarkup } from 'react-dom/server'
-import { expect, test } from 'vitest'
+import { afterEach, expect, test, vi } from 'vitest'
 import { Navigation } from '@phoenix/ui'
+import { PhoenixApplicationShell } from '../apps/web/src/components/shell/phoenix-application-shell.js'
+
+afterEach(() => vi.unstubAllGlobals())
+
+test.each([
+  ['Mozilla/5.0 Chrome/130.0 Safari/537.36', true],
+  ['Mozilla/5.0 (Linux; Android 15; Tablet) Chrome/130.0 Safari/537.36', true],
+  ['Mozilla/5.0 (Linux; Android 15; wv) Chrome/130.0 Safari/537.36 PhoenixAndroid/0.1.5-dev', false]
+])('the application rail shows F11 only outside the Android shell: %s', (userAgent, visible) => {
+  vi.stubGlobal('navigator', { userAgent })
+  const markup = renderToStaticMarkup(<PhoenixApplicationShell
+    activeDesktop="info"
+    controls={null}
+    copilot={null}
+    information={null}
+    journal={null}
+    macros={null}
+    settings={null}
+    telemetry={null}
+    informationRoute={{ kind: 'information', section: 'commander', view: 'dashboard' }}
+    onNavigateRoute={() => undefined}
+    onNavigateWorkspace={() => undefined}
+  />)
+  expect(markup.includes('F11')).toBe(visible)
+  expect(markup).toContain('F13')
+  expect(markup).toContain('STG')
+})
 
 test('fullscreen is exposed as a synchronized navigation action, not a route', () => {
   const markup = renderToStaticMarkup(

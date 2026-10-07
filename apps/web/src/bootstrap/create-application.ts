@@ -18,6 +18,7 @@ import { NumpadRuntime } from '../features/numpad/numpad-runtime.js'
 
 export interface PhoenixApplicationServices {
   initialPairingCode?: string
+  requirePairing?: () => void
   api: PhoenixApi
   clientIdentity: ClientIdentity
   devicePreferences: DevicePreferences
@@ -41,7 +42,15 @@ export function createPhoenixApplication(
 ): PhoenixApplicationServices {
   // Capture the QR fragment before the router canonicalizes the initial URL.
   const initialPairingCode = new URLSearchParams(browserWindow.location.hash.slice(1)).get('pair') ?? ''
-  const api = new PhoenixApiClient(options.baseUrl, options.request)
+  let redirectingToPairing = false
+  const requirePairing = (): void => {
+    if (redirectingToPairing) return
+    redirectingToPairing = true
+    // Full navigation discards stale application state/streams. The APK intercepts this
+    // same-origin path and opens its native card; browsers reload into PairingGate.
+    browserWindow.location.replace('/pairing')
+  }
+  const api = new PhoenixApiClient(options.baseUrl, options.request, requirePairing)
   const createEventSource = options.createEventSource ?? (url => new EventSource(url))
   const events = new BrowserPhoenixEventHub(api, createEventSource)
   let localStorage: Storage
@@ -60,6 +69,7 @@ export function createPhoenixApplication(
   const numpadRouteSession = new RouterNumpadRouteSession(router, sessionStorage)
   return {
     initialPairingCode,
+    requirePairing,
     api,
     clientIdentity: new BrowserClientIdentity(sessionStorage),
     devicePreferences: new BrowserDevicePreferences(localStorage),

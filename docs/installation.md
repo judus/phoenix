@@ -132,6 +132,10 @@ Installer builds are native: build Linux AppImages on Linux x64 and Windows inst
 x64. The [packaging guide](../scripts/package/README.md) lists the tools, commands, and verification
 steps. See [the release guide](releases.md) for CI and GitHub Releases.
 
+An experimental [Android shell](../apps/android/README.md) can be built locally for tablet testing.
+It connects to the desktop server; it does not replace the desktop installation. Android APKs are
+not yet included in GitHub releases.
+
 ### Embedded Control Deck runtime
 
 PHOENIX uses a compiled Control Deck runtime for its core, host, keyboard adapter, and Elite

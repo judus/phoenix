@@ -31,6 +31,20 @@ test('ambiguous addresses use a compact prompt retaining both choices', async ()
   fixture.runtime.stop()
 })
 
+test('unmatched addresses show No match without changing input or execution behavior', async () => {
+  const fixture = numpadRuntimeFixture()
+  fixture.runtime.start()
+  await fixture.settle()
+  for (const digit of ['0', '9']) fixture.key(digit)
+  for (const paint of fixture.paints.splice(0)) paint()
+  expect(fixture.runtime.controller.getSnapshot().session).toMatchObject({ status: 'invalid', pendingDigits: '9' })
+  const markup = renderToStaticMarkup(<NumpadPage runtime={fixture.runtime} devicePreferences={devicePreferences()} />)
+  expect(markup).toContain('<small>Status</small><strong>No match</strong>')
+  expect(markup).not.toContain('No button matches this entry.')
+  expect(fixture.api.executeNumpadAddress).not.toHaveBeenCalled()
+  fixture.runtime.stop()
+})
+
 test('the Cancel header remains an actionable label and key stack', async () => {
   const fixture = numpadRuntimeFixture()
   fixture.runtime.start()
