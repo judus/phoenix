@@ -41,6 +41,7 @@ export function useActivitiesController(
     }
 
     const request = new LatestRequest()
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined
     const retained = readControllerSnapshot<ActivitiesControllerSnapshot>(api, cacheKey)
     const publish = (next: ActivitiesControllerSnapshot) => setSnapshot(storeControllerSnapshot(api, cacheKey, next))
     const load = (showLoading = false) => {
@@ -55,6 +56,11 @@ export function useActivitiesController(
         if (!request.isCurrent(signal)) return
         const error = cause instanceof Error ? cause.message : view === 'community-goals' ? 'Community Goals unavailable.' : 'Mission records unavailable.'
         setSnapshot(current => current.status === 'ready' ? { ...current, error } : { error, status: 'error' })
+      }).finally(() => {
+        if (view === 'community-goals' && request.isCurrent(signal)) {
+          // Start after completion, beyond the server cache's inclusive 15-minute TTL.
+          refreshTimer = setTimeout(() => load(), 15 * 60 * 1000 + 1000)
+        }
       })
     }
 
@@ -62,11 +68,10 @@ export function useActivitiesController(
     const unsubscribe = view === 'missions' ? events.subscribe('activity-entry', entry => {
       if (entry.source === 'journal' && missionEvents.has(entry.event)) load()
     }) : () => undefined
-    const refreshTimer = view === 'community-goals' ? setInterval(() => load(), 15 * 60 * 1000) : undefined
     return () => {
       request.cancel()
       unsubscribe()
-      if (refreshTimer !== undefined) clearInterval(refreshTimer)
+      if (refreshTimer !== undefined) clearTimeout(refreshTimer)
     }
   }, [api, cacheKey, events, view])
 

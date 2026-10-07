@@ -32,13 +32,14 @@ test('goals show authoritative progress, escaped briefing and destination links 
   expect(markup).not.toContain('Reward tier')
 })
 
-test('keyboard selection changes briefing and removed selection falls back to the remaining goal', async () => {
+test('native selection buttons expose pressed state and removed selection falls back to the remaining goal', async () => {
   const render = (data: CommunityGoalsResponse) => <ActivitiesPage view="community-goals" controller={{ status: 'ready', communityGoals: data }} />
   const renderer = await renderWithAct(render(response))
-  const second = renderer.root.findByProps({ 'aria-label': 'Community Goals' }).findAllByType('li')[1]!
-  const prevented: string[] = []
-  await act(async () => second.props.onKeyDown({ key: 'Enter', preventDefault: () => prevented.push('yes') }))
-  expect(prevented).toEqual(['yes'])
+  const buttons = () => renderer.root.findByProps({ 'aria-label': 'Community Goals' }).findAllByType('button')
+  expect(buttons().map(button => button.props['aria-pressed'])).toEqual([true, false])
+  expect(buttons()[1]!.props.type).toBe('button')
+  await act(async () => buttons()[1]!.props.onClick())
+  expect(buttons().map(button => button.props['aria-pressed'])).toEqual([false, true])
   expect(renderer.root.findByProps({ 'aria-label': 'Official briefing' }).findByType('p').children).toEqual(['Fight for the initiative.'])
   expect(renderer.root.findByType('progress').props.value).toBe(100)
   expect(renderer.root.findByType('output').children).toContain('150.0% · 1,500 / 1,000')
@@ -56,6 +57,7 @@ test('loading, cold failure, authoritative empty and stale empty are different s
   expect(markup({ status: 'ready', communityGoals: { ...response, goals: [] } })).toContain('Frontier currently lists no Community Goals')
   const stale = markup({ status: 'ready', communityGoals: { ...response, cache: 'stale', goals: [] } })
   expect(stale).toContain('Frontier refresh failed')
+  expect(stale).toContain('status-wrap')
   expect(stale).toContain('No goals were listed in the last saved Frontier response')
   expect(stale).not.toContain('Frontier currently lists no Community Goals')
 })

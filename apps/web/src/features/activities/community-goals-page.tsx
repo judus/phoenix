@@ -20,14 +20,14 @@ export function CommunityGoalsPage({ controller }: { controller: ActivitiesContr
         title="Community goals"
         variant="cockpit"
       />
-      {controller.error ? <Status tone="danger">{controller.error}</Status> : null}
+      {controller.error ? <Status tone="danger" wrap>{controller.error}</Status> : null}
       {response?.cache === 'stale'
-        ? <Status tone="warning">Frontier refresh failed. Showing the last saved goals; availability and progress may have changed.</Status>
+        ? <Status tone="warning" wrap>Frontier refresh failed. Showing the last saved goals; availability and progress may have changed.</Status>
         : null}
       {!response
         ? controller.status !== 'error' ? <Loading>Loading Community Goals…</Loading> : null
         : response.goals.length === 0
-          ? <Status tone="muted">{response.cache === 'stale'
+          ? <Status tone="muted" wrap>{response.cache === 'stale'
             ? 'No goals were listed in the last saved Frontier response.'
             : 'Frontier currently lists no Community Goals.'}</Status>
           : <ThirdsGrid className="community-goals" fill gap="lg">
@@ -35,12 +35,10 @@ export function CommunityGoalsPage({ controller }: { controller: ActivitiesContr
                 <ItemList className="surface" density="compact" aria-label="Community Goals">
                   {response.goals.map(goal => <ItemListItem
                     key={goal.id}
-                    onClick={() => setSelectedId(goal.id)}
-                    onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedId(goal.id) } }}
+                    onActivate={() => setSelectedId(goal.id)}
                     selected={goal.id === selected?.id}
-                    tabIndex={0}
                     title={goal.title}
-                    description={`${goal.systemName} · ${goal.stationName}`}
+                    meta={`${goal.systemName} · ${goal.stationName}`}
                   />)}
                 </ItemList>
               </DataTableGroup>

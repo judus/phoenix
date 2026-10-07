@@ -17,7 +17,8 @@ producing a misleading progress percentage. Additive provider fields do not brea
 
 The application uses the existing SQLite provider cache with a 15-minute TTL and coalesced
 concurrent refreshes. Requests are bounded by a 20-second network timeout. While the page is open,
-it requests an update every 15 minutes; navigation back also requests the current snapshot.
+it requests another update 15 minutes and one second after the previous request settles, avoiding
+an inclusive-TTL cache hit immediately before expiry; navigation back also requests the snapshot.
 No new always-running worker, per-commander credentials, subscriptions or AI requests are involved.
 
 The API response includes the source fetch timestamp and `fresh`, `refreshed` or `stale` cache
