@@ -496,6 +496,7 @@ export class PhoenixApplication {
       markets: stationMarkets,
       missions,
       communications,
+      communityGoals,
       runtimeState: this.stateStore,
       statefulActions,
       stations: stationMarkets,

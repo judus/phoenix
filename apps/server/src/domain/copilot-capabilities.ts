@@ -30,6 +30,7 @@ export const DEFAULT_COPILOT_FIXED_TOOL_NAMES = [
   'navigation.check_jump_reachability',
   'navigation.get_plotted_route',
   'missions.list_missions',
+  'activities.list_community_goals',
   'stations.find_stations_selling_module',
   'markets.find_commodity_markets',
   'markets.find_trade_opportunities',
