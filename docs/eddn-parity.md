@@ -140,7 +140,9 @@ intentional safety policies, not demonstrated EDMC equivalents. The bounded offl
 (#114) verified file-backed recovery versus downtime omission, independent observation/admission
 age limits, durable retry deadlines and queue/byte/receipt limits. These policies are retained,
 not extended; see [offline policy](eddn-contribution.md#offline-policy-reviewed-2026-10-07-114).
-Live journal rotation/session continuity was addressed in #109; low-severity #111 remains deferred.
+Live journal rotation/session continuity was addressed in #109. Incomplete old tails now receive
+one additional refresh before advancing; permanently truncated tails cannot block new files.
+This bounded grace does not recover arbitrary writes made after the reader has advanced (#111).
 Pinning schemas alone cannot establish these invariants. Authorized gameplay acceptance and
 native runtime/packaging validation remain open in the [readiness checklist](eddn-readiness.md).
 Until those gates are deliberately satisfied, keep the test-only gate.

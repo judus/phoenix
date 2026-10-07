@@ -440,3 +440,55 @@ test.each(['established', 'pre-arrival'] as const)('live multipart rotation reta
   expect(uploads.every(message => validator.valid(message))).toBe(true)
   expect(f.outbox.status()).toMatchObject({ queued: 0, losses: [] })
 })
+
+test.each(['established', 'pre-arrival'] as const)('a Continued tail completed during rotation grace preserves %s signal context', async context => {
+  const { directory } = disk()
+  const f = fixture()
+  const paths = ['01', '02'].map(part => join(directory, `Journal.2026-10-04T180000.${part}.log`))
+  const lines = (events: EliteJournalEvent[]) => events.map(event => JSON.stringify(event) + '\n').join('')
+  writeFileSync(paths[0], lines([{ ...header, part: 1 }, load, location]))
+  const source = new EliteJournalFileSource(directory, () => {}, { onObservation: (event, origin) => f.service.observe(event, origin) })
+  cleanup.push(async () => { await source.stop() })
+  await source.refresh()
+  appendFileSync(paths[0], lines([
+    ...(context === 'pre-arrival' ? [{ timestamp, event: 'StartJump', JumpType: 'Hyperspace' }] : []), signal
+  ]) + JSON.stringify({ timestamp, event: 'Continued', Part: 2 }))
+  writeFileSync(paths[1], lines([
+    { ...header, part: 2 }, { ...signal, SignalName: 'Second part' },
+    ...(context === 'pre-arrival' ? [{ ...location, event: 'FSDJump' }] : []), { timestamp, event: 'Music' }
+  ]))
+  await source.refresh()
+  await f.service.flush()
+  expect(f.send).not.toHaveBeenCalled()
+  expect(source.getDiagnostics().filePath).toBe(paths[0])
+  appendFileSync(paths[0], '\n')
+  await source.refresh()
+  for (let i = 0; i < 3; i++) await f.service.flush()
+  const uploads = f.send.mock.calls.map(([message]) => message)
+  expect(uploads.flatMap(message => message.message.signals ?? []).map(entry => entry.SignalName)).toEqual(['Public', 'Second part'])
+  expect(uploads.every(message => validator.valid(message))).toBe(true)
+  expect(f.outbox.status()).toMatchObject({ queued: 0, losses: [] })
+})
+
+test('an abandoned Continued tail never invents EDDN session continuity', async () => {
+  const { directory } = disk()
+  const f = fixture()
+  const paths = ['01', '02'].map(part => join(directory, `Journal.2026-10-04T180000.${part}.log`))
+  const lines = (events: EliteJournalEvent[]) => events.map(event => JSON.stringify(event) + '\n').join('')
+  writeFileSync(paths[0], lines([{ ...header, part: 1 }, load, location]))
+  const source = new EliteJournalFileSource(directory, () => {}, { onObservation: (event, origin) => f.service.observe(event, origin) })
+  cleanup.push(async () => { await source.stop() })
+  await source.refresh()
+  appendFileSync(paths[0], lines([signal]) + JSON.stringify({ timestamp, event: 'Continued', Part: 2 }))
+  writeFileSync(paths[1], lines([{ ...header, part: 2 }, signal, { timestamp, event: 'Music' }]))
+  await source.refresh()
+  await source.refresh() // Grace exhausted: header has no observed Continued link.
+  await f.service.flush()
+  expect(f.send).not.toHaveBeenCalled()
+  expect(f.outbox.status()).toMatchObject({ queued: 0, losses: [{ reason: 'cleared', count: 1 }] })
+  expect(source.getDiagnostics().error).toContain('incomplete record')
+  appendFileSync(paths[0], '\n')
+  await source.refresh()
+  await f.service.flush()
+  expect(f.send).not.toHaveBeenCalled()
+})

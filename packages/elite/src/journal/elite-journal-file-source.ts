@@ -39,6 +39,7 @@ export class EliteJournalFileSource {
   private timer: NodeJS.Timeout | null = null
   private currentFilePath: string | null = null
   private currentOffset = 0
+  private rotationTail: string | null = null
   private refreshQueue: Promise<boolean> = Promise.resolve(false)
   private diagnostics: EliteJournalSourceDiagnostics
   private bootstrap: { path: string, end: number } | undefined
@@ -108,11 +109,22 @@ export class EliteJournalFileSource {
         ? journals.filter(path => path.localeCompare(current) >= 0)
         : journals.slice(-1)
       let changed = false
+      let skippedTail = false
       for (const path of files) {
         const result = await this.readJournal(path)
         changed ||= result.changed
         if (result.retry) break
+        if (result.incomplete && path !== files.at(-1)) {
+          // Allow one more poll for a late newline, but never let a truncated old file block play.
+          if (this.rotationTail !== path) {
+            this.rotationTail = path
+            break
+          }
+          skippedTail = true
+        }
+        this.rotationTail = null
       }
+      if (skippedTail && !this.diagnostics.error) this.diagnostics.error = 'An incomplete record in a rotated journal was skipped after one additional refresh.'
       return changed
     } catch (cause) {
       this.diagnostics = { ...this.diagnostics, error: cause instanceof Error ? cause.message : 'Unable to read the Elite journal.' }
@@ -120,7 +132,7 @@ export class EliteJournalFileSource {
     }
   }
 
-  private async readJournal (filePath: string): Promise<{ changed: boolean, retry: boolean }> {
+  private async readJournal (filePath: string): Promise<{ changed: boolean, retry: boolean, incomplete: boolean }> {
     try {
       if (filePath !== this.currentFilePath) {
         this.currentFilePath = filePath
@@ -144,7 +156,7 @@ export class EliteJournalFileSource {
             fileAvailable: true,
             error: this.diagnostics.filePath === filePath ? this.diagnostics.error : null
           }
-          return { changed: false, retry: false }
+          return { changed: false, retry: false, incomplete: false }
         }
         contents = Buffer.allocUnsafe(unreadBytes)
         const bytesRead = readSync(file, contents, 0, unreadBytes, this.currentOffset)
@@ -212,7 +224,7 @@ export class EliteJournalFileSource {
         lastReadAt: new Date().toISOString(),
         error: lineError
       }
-      return { changed: processedLines > 0, retry }
+      return { changed: processedLines > 0, retry, incomplete: lineStart < contents.length }
     } catch (cause) {
       this.diagnostics = {
         ...this.diagnostics,
@@ -220,7 +232,7 @@ export class EliteJournalFileSource {
         fileAvailable: this.currentFilePath !== null && existsSync(this.currentFilePath),
         error: cause instanceof Error ? cause.message : 'Unable to read the Elite journal.'
       }
-      return { changed: false, retry: true }
+      return { changed: false, retry: true, incomplete: false }
     }
   }
 
