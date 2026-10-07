@@ -1,11 +1,11 @@
 import { cloneElement } from 'react'
 import { ChevronDownIcon } from './icons.js'
 import type {
+  ComponentPropsWithRef,
   InputHTMLAttributes,
   ReactElement,
   ReactNode,
-  SelectHTMLAttributes,
-  TextareaHTMLAttributes
+  SelectHTMLAttributes
 } from 'react'
 
 type FieldProps = {
@@ -68,6 +68,6 @@ export function Select({ className, children, ...props }: SelectHTMLAttributes<H
     : <span className="select-control">{select}<ChevronDownIcon /></span>
 }
 
-export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function Textarea({ className, ...props }: ComponentPropsWithRef<'textarea'>) {
   return <textarea className={['form-control', 'form-textarea', className].filter(Boolean).join(' ')} {...props} />
 }

@@ -3,6 +3,7 @@ import {
   EngineeringMaterialWatchlistResponseSchema,
   EngineeringProjectCreateRequestSchema,
   EngineeringProjectSchema,
+  EngineeringProjectReportSchema,
   EngineeringProjectsChangedSchema,
   EngineeringProjectsResponseSchema,
   EngineeringProjectStepCreateRequestSchema,
@@ -11,6 +12,7 @@ import {
   type EngineeringMaterialWatchItem,
   type EngineeringMaterialWatchlistResponse,
   type EngineeringProject,
+  type EngineeringProjectReport,
   type EngineeringProjectCreateRequest,
   type EngineeringProjectsChanged,
   type EngineeringProjectsResponse,
@@ -143,6 +145,37 @@ export class EngineeringProjectService implements EngineeringProjects {
 
   public getMaterialWatchlist (): EngineeringMaterialWatchlistResponse {
     const projects = this.repository.listProjects().filter(project => project.status === 'active')
+    const plan = this.materialPlan(projects)
+    return EngineeringMaterialWatchlistResponseSchema.parse({
+      schemaVersion: 1,
+      observedAt: plan.observedAt,
+      activeProjectCount: projects.length,
+      materials: plan.materials.filter(material => material.missing > 0)
+    })
+  }
+
+  public getReport (): EngineeringProjectReport {
+    const projects = this.repository.listProjects().filter(project => project.status === 'active')
+    const plan = this.materialPlan(projects)
+    const inventoryAvailable = plan.observedAt !== null
+    return EngineeringProjectReportSchema.parse({
+      schemaVersion: 1,
+      observedAt: plan.observedAt,
+      inventoryAvailable,
+      projects: projects.map(project => ({
+        id: project.id, name: project.name, priority: project.priority, note: project.note,
+        steps: project.steps.map(({ requirements, createdAt, ...target }) => target)
+      })),
+      materials: plan.materials.map(material => ({
+        ...material,
+        owned: inventoryAvailable ? material.owned : null,
+        missing: inventoryAvailable ? material.missing : null
+      })),
+      personalEquipment: 'unsaved_preview_only'
+    })
+  }
+
+  private materialPlan (projects: EngineeringProject[]) {
     const observed = this.engineeringData.getMaterials()
     const owned = new Map(observed.materials.map(material => [normalize(material.id), material.count]))
     const aggregate = new Map<string, Omit<EngineeringMaterialWatchItem, 'missing'>>()
@@ -172,15 +205,9 @@ export class EngineeringProjectService implements EngineeringProjects {
     }
     const materials = [...aggregate.values()]
       .map(material => ({ ...material, missing: Math.max(0, material.required - material.owned) }))
-      .filter((material): material is EngineeringMaterialWatchItem => material.missing > 0)
       .sort((left, right) => priorityRank[left.highestPriority] - priorityRank[right.highestPriority] ||
         right.projectCount - left.projectCount || right.missing - left.missing || left.materialName.localeCompare(right.materialName))
-    return EngineeringMaterialWatchlistResponseSchema.parse({
-      schemaVersion: 1,
-      observedAt: observed.updatedAt,
-      activeProjectCount: projects.length,
-      materials
-    })
+    return { observedAt: observed.updatedAt, materials }
   }
 
   public subscribe (listener: (message: EngineeringProjectsChanged) => void): () => void {

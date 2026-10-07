@@ -1,3 +1,5 @@
+.copilot-composer textarea:focus-visible { outline: none; }
+
 @layer pages {
   .copilot-page {
     display: grid;

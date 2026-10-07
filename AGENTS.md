@@ -15,6 +15,10 @@
   completion → next ticket. Do not start the next implementation while the current PR awaits CI
   or merge; start its branch from the updated `dev` to avoid overlapping work and merge conflicts.
   Release publication remains separately authorized.
+- Request Copilot PR review for substantial architecture changes, larger features, medium-to-high
+  complexity work, or concrete unresolved concerns. Small, understood changes do not need a routine
+  Copilot review; required CI and our own verification still apply. Assess findings against real
+  invariants rather than implementing every suggestion automatically.
 - Keep changes with their owner. Control Deck is a separate dependency, not source to copy into
   PHOENIX. Bundled in-game Copilot profiles live in `resources/copilots/`, not in this file.
 - Use [.agents/skills/codebase-audit/SKILL.md](.agents/skills/codebase-audit/SKILL.md) for systematic

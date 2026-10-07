@@ -1,6 +1,7 @@
 import type {
   EngineeringMaterialWatchlistResponse,
   EngineeringProject,
+  EngineeringProjectReport,
   EngineeringProjectCreateRequest,
   EngineeringProjectsChanged,
   EngineeringProjectsResponse,
@@ -22,6 +23,7 @@ export interface EngineeringProjects extends Subscribable<EngineeringProjectsCha
   delete(id: string): void
   deleteStep(projectId: string, stepId: string): EngineeringProject
   getAll(): EngineeringProjectsResponse
+  getReport(): EngineeringProjectReport
   getMaterialWatchlist(): EngineeringMaterialWatchlistResponse
   update(id: string, input: EngineeringProjectUpdateRequest): EngineeringProject
 }

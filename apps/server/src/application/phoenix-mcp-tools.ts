@@ -5,6 +5,8 @@ import type { Commands } from '../domain/commands.js'
 import { CommanderGetCurrentStateTool } from './mcp-tools/commander-get-current-state-tool.js'
 import { EquipmentGetReportTool } from './mcp-tools/equipment-get-report-tool.js'
 import { EngineeringListEngineersTool } from './mcp-tools/engineering-list-engineers-tool.js'
+import { EngineeringGetProjectReportTool } from './mcp-tools/engineering-get-project-report-tool.js'
+import type { EngineeringProjects } from '../domain/engineering-projects.js'
 import { EngineeringListMaterialInventoryTool } from './mcp-tools/engineering-list-material-inventory-tool.js'
 import { ControlsExecuteTool } from './mcp-tools/controls-execute-tool.js'
 import { ControlsFindActionsTool } from './mcp-tools/controls-find-actions-tool.js'
@@ -52,6 +54,7 @@ export interface PhoenixMcpToolDependencies {
   communications: CommunicationDataReader
   gameCatalogue: GameCatalogue
   engineers: CommanderEngineersQuery
+  engineeringProjects: Pick<EngineeringProjects, 'getReport'>
   display: DisplayCommands
   equipment: PersonalEquipmentReportReader
   exploration: ExplorationBodyQuery
@@ -79,6 +82,7 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new CommanderGetCurrentStateTool(dependencies.runtimeState),
     new EquipmentGetReportTool(dependencies.equipment),
     new EngineeringListEngineersTool(dependencies.engineers),
+    new EngineeringGetProjectReportTool(dependencies.engineeringProjects),
     new EngineeringListMaterialInventoryTool(dependencies.runtimeState),
     new CommsListMessagesTool(dependencies.communications),
     new ControlsFindActionsTool(dependencies.commands),

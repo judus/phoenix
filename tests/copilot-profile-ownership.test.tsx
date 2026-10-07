@@ -350,7 +350,7 @@ test.each(['replace', 'unmount'] as const)('obsolete chat stream cannot restart 
   const renderer = await mount(api, 'chat')
   try {
     act(() => renderer.root.findByType('textarea').props.onChange({ target: { value: 'Hello' } }))
-    act(() => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+    act(() => renderer.root.findByType('form').props.onSubmit({ preventDefault() {}, currentTarget: { querySelector: () => null } }))
     if (change === 'replace') await act(async () => renderer.update(page(current, 'chat')))
     else await act(async () => renderer.unmount())
     await act(async () => {
@@ -362,7 +362,7 @@ test.each(['replace', 'unmount'] as const)('obsolete chat stream cannot restart 
     if (change === 'replace') {
       expect(JSON.stringify(renderer.toJSON())).toContain('Current API history')
       expect(JSON.stringify(renderer.toJSON())).not.toContain('obsolete_tool')
-      expect(renderer.root.findByType('textarea').props.disabled).toBe(false)
+      expect(renderer.root.findByType('textarea').props.disabled).not.toBe(true)
     }
   } finally { if (change !== 'unmount') await act(async () => renderer.unmount()) }
 })
@@ -374,7 +374,7 @@ test('retained chat submit cannot dispatch through an obsolete API', async () =>
     act(() => renderer.root.findByType('textarea').props.onChange({ target: { value: 'Hello' } }))
     const retained = renderer.root.findByType('form').props.onSubmit
     await act(async () => renderer.update(page(apiWith(), 'chat')))
-    await act(async () => retained({ preventDefault() {} }))
+    await act(async () => retained({ preventDefault() {}, currentTarget: { querySelector: () => null } }))
     expect(api.streamCopilotMessage).not.toHaveBeenCalled()
   } finally { await act(async () => renderer.unmount()) }
 })
