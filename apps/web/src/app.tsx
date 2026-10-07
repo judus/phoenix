@@ -72,7 +72,7 @@ const SettingsPage = lazy(() => import('./features/settings/settings-page.js').t
 export function App({ application }: { application: PhoenixApplicationServices }) {
   return (
     <DevicePresentation preferences={application.devicePreferences}>
-      <PairingGate api={application.api} initialCode={application.initialPairingCode}>
+      <PairingGate api={application.api} initialCode={application.initialPairingCode} onPairingRequired={application.requirePairing}>
         <PhoenixProviders application={application}>
           <PhoenixApplication application={application} />
         </PhoenixProviders>

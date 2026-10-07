@@ -12,7 +12,61 @@ beforeAll(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 })
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers() })
+
+test('an idle authorized page returns to pairing after revocation and can pair again', async () => {
+  vi.useFakeTimers()
+  const getPairingStatus = vi.fn()
+    .mockResolvedValueOnce({ authenticated: true })
+    .mockRejectedValueOnce(new Error('Offline'))
+    .mockResolvedValueOnce({ authenticated: false })
+  const claimPairing = vi.fn(async () => ({ authenticated: true, installationId: 'test', pairingRequired: true, serverDevice: false }))
+  const api = { ...apiStub(claimPairing), getPairingStatus }
+  const requirePairing = vi.fn()
+  const renderer = await renderWithAct(<PairingGate api={api} onPairingRequired={requirePairing}><span>Protected content</span></PairingGate>)
+  expect(renderer.root.findByType('span').children).toEqual(['Protected content'])
+  await act(async () => { await vi.advanceTimersByTimeAsync(5000) })
+  expect(renderer.root.findByType('span').children).toEqual(['Protected content'])
+  expect(requirePairing).not.toHaveBeenCalled()
+  await act(async () => { await vi.advanceTimersByTimeAsync(5000) })
+  expect(renderer.root.findAllByType('span').some(node => node.children.includes('Protected content'))).toBe(false)
+  expect(requirePairing).toHaveBeenCalledTimes(1)
+  await act(async () => renderer.root.findByType('input').props.onChange({ target: { value: 'NEW-CODE' } }))
+  await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+  expect(claimPairing).toHaveBeenCalledWith('NEW-CODE')
+  expect(renderer.root.findByType('span').children).toEqual(['Protected content'])
+  await act(async () => renderer.unmount())
+  expect(vi.getTimerCount()).toBe(0)
+})
+
+test('concurrent protected API failures redirect once through the application boundary', async () => {
+  const browser = pairingBrowser('')
+  const replace = vi.fn()
+  browser.location.replace = replace
+  const application = createPhoenixApplication(browser, { request: vi.fn(async () => new Response(JSON.stringify({
+    error: { code: 'pairing_required', message: 'Pair this device with PHOENIX.' }
+  }), { status: 401 })) })
+  await Promise.allSettled([application.api.getHealth(), application.api.getRuntimeState()])
+  expect(replace).toHaveBeenCalledExactlyOnceWith('/pairing')
+})
+
+test('unmount aborts a pending status check and ignores its late revocation response', async () => {
+  vi.useFakeTimers()
+  let completeCheck!: (value: { authenticated: boolean }) => void
+  const getPairingStatus = vi.fn()
+    .mockResolvedValueOnce({ authenticated: true })
+    .mockImplementationOnce(() => new Promise(resolve => { completeCheck = resolve }))
+  const requirePairing = vi.fn()
+  const renderer = await renderWithAct(<PairingGate api={{ ...apiStub(vi.fn()), getPairingStatus }} onPairingRequired={requirePairing}><span>Protected</span></PairingGate>)
+  await act(async () => { await vi.advanceTimersByTimeAsync(5000) })
+  const signal = getPairingStatus.mock.calls[1]![0] as AbortSignal
+  expect(signal.aborted).toBe(false)
+  await act(async () => renderer.unmount())
+  expect(signal.aborted).toBe(true)
+  await act(async () => completeCheck({ authenticated: false }))
+  expect(requirePairing).not.toHaveBeenCalled()
+  expect(vi.getTimerCount()).toBe(0)
+})
 
 test('PairingGate checks authorization and admits the application only after a successful claim', async () => {
   const claimPairing = vi.fn(async () => ({
@@ -24,6 +78,9 @@ test('PairingGate checks authorization and admits the application only after a s
   const renderer = await renderWithAct(<PairingGate api={api}><span>Authorized application</span></PairingGate>)
 
   const input = renderer?.root.findByType('input')
+  expect(renderer?.root.findByProps({ className: 'pairing-logo' }).props).toMatchObject({
+    src: '/phoenix.svg', alt: 'Phoenix'
+  })
   await act(async () => input?.props.onChange({ target: { value: 'abcde-12345' } }))
   const form = renderer?.root.findByType('form')
   await act(async () => form?.props.onSubmit({ preventDefault() {} }))

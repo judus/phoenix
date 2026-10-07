@@ -4,6 +4,16 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Shorten Numpy's invalid-address status to “No match”.
+
+- Add an experimental Android tablet shell that loads PHOENIX from your computer, remembers
+  its connection and pairing session, and provides fullscreen, keep-awake and Android Back navigation.
+  Its Phoenix-branded connection card supports local QR scanning or manual URL/code pairing,
+  without a second browser form. Add the Phoenix logo to browser device authorization too.
+  Hide the redundant F11 fullscreen button inside the Android app, while keeping it in browsers.
+  Return revoked devices to pairing globally, including idle pages; the APK reopens its QR/manual card.
+  Add `npm run android:install` to build, select/connect a debug device, reinstall and launch the app.
+
 - Correct EDDN's gated-build status: pending uploads are cleared, not held for a future release.
   Document offline recovery, downtime omissions and unchanged retention limits, with an explicit
   real-game/native acceptance checklist.

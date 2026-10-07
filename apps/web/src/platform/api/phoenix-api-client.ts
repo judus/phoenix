@@ -210,9 +210,19 @@ export class PhoenixApiClient implements PhoenixApi {
   readonly #baseUrl: string
   readonly #request: typeof fetch
 
-  constructor(baseUrl = '', request: typeof fetch = globalThis.fetch) {
+  constructor(baseUrl = '', request: typeof fetch = globalThis.fetch, onPairingRequired?: () => void) {
     this.#baseUrl = baseUrl
-    this.#request = request.bind(globalThis)
+    const boundFetch = request.bind(globalThis)
+    this.#request = async (input, init) => {
+      const response = await boundFetch(input, init)
+      if (response.status === 401 && onPairingRequired) {
+        // Preserve the original body for ordinary API error reporting. A provider's 401 or an
+        // invalid pairing code is not evidence that this device's PHOENIX session was revoked.
+        const payload = await response.clone().json().catch(() => null) as { error?: { code?: string } } | null
+        if (payload?.error?.code === 'pairing_required') onPairingRequired()
+      }
+      return response
+    }
   }
 
   async getPairingStatus(signal?: AbortSignal): Promise<PairingStatus> {

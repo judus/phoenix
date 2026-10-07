@@ -71,6 +71,7 @@ export function PhoenixApplicationShell({
 }: PhoenixApplicationShellProps) {
   const fullscreen = useFullscreen()
   const focus = useWorkspaceFocus()
+  const androidShell = typeof navigator !== 'undefined' && /\bPhoenixAndroid\//.test(navigator.userAgent)
 
   return (
     <ApplicationShell
@@ -88,7 +89,7 @@ export function PhoenixApplicationShell({
             variant="compact"
             label="Utilities"
             current={activeDesktop}
-            items={utilityItems(fullscreen, focus.active)}
+            items={utilityItems(fullscreen, focus.active, androidShell)}
             onItemSelect={(item) => {
               if (item.id === 'fullscreen') {
                 void fullscreen.toggle()

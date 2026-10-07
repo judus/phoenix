@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:gravity="center" android:padding="24dp">
+        <LinearLayout android:id="@+id/connection_card" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:orientation="vertical"
+            android:background="@drawable/connection_card" android:padding="24dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:gravity="center_vertical" android:orientation="horizontal">
+                <ImageView android:layout_width="64dp" android:layout_height="64dp"
+                    android:src="@drawable/phoenix" android:contentDescription="@string/app_name" />
+                <LinearLayout android:layout_width="0dp" android:layout_weight="1"
+                    android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginStart="20dp">
+                    <TextView style="@style/ConnectionLabel" android:text="@string/connection_title" android:textColor="@color/information" />
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="@string/app_name" android:textSize="28sp" android:textColor="@color/text" android:letterSpacing="0.12" />
+                </LinearLayout>
+            </LinearLayout>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="16dp" android:text="@string/connection_help" android:textColor="@color/muted" android:textSize="16sp" />
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/border" android:layout_marginVertical="20dp" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="20dp">
+                <Button android:id="@+id/scan_mode" style="@style/ConnectionButton" android:layout_width="0dp" android:layout_weight="1" android:text="@string/scan_mode" />
+                <Button android:id="@+id/manual_mode" style="@style/ConnectionButton" android:layout_width="0dp" android:layout_weight="1" android:layout_marginStart="12dp" android:text="@string/manual_mode" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/scan_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="@string/scan_help" android:textColor="@color/text" android:textSize="16sp" android:layout_marginBottom="16dp" />
+                <Button android:id="@+id/scan" style="@style/ConnectionButton" android:text="@string/scan" />
+                <TextView android:id="@+id/scanned_server" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp" android:textColor="@color/information" android:textSize="16sp" android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/manual_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
+                <TextView style="@style/ConnectionLabel" android:text="@string/server_label" />
+                <EditText android:id="@+id/server_address" style="@style/ConnectionInput" android:hint="@string/server_hint" android:inputType="textUri" android:imeOptions="actionNext" />
+                <TextView style="@style/ConnectionLabel" android:text="@string/pairing_label" />
+                <EditText android:id="@+id/pairing_code" style="@style/ConnectionInput" android:hint="@string/pairing_hint" android:inputType="textCapCharacters|textNoSuggestions" android:imeOptions="actionGo" />
+            </LinearLayout>
+            <TextView android:id="@+id/connection_error" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="16dp" android:accessibilityLiveRegion="polite" android:textColor="#ffb66b" android:visibility="gone" />
+            <Button android:id="@+id/connect" style="@style/ConnectionButton" android:layout_marginTop="20dp" android:text="@string/connect" android:visibility="gone" />
+            <Button android:id="@+id/resume" style="@style/ConnectionButton" android:layout_marginTop="12dp" android:text="@string/resume" android:visibility="gone" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="20dp" android:text="@string/connection_back_hint" android:textColor="@color/muted" android:textSize="13sp" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

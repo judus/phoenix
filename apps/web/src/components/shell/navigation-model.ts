@@ -10,21 +10,21 @@ import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js
 
 export type RouteNavigationItem = NavigationItem & { route: PhoenixRoute }
 
-export function utilityItems(fullscreen: { active: boolean, supported: boolean }, focusActive = false): ApplicationNavigationItem[] {
+export function utilityItems(fullscreen: { active: boolean, supported: boolean }, focusActive = false, androidShell = false): ApplicationNavigationItem[] {
   return [
     routeItem('telemetry', 'Numpad', '011', { kind: 'numpad' }),
     routeItem('macros', 'Macros', 'MCR', { kind: 'macros' }),
     routeItem('journal', 'Commander log', 'LOG', { kind: 'journal', view: 'commander' }),
     routeItem('settings', 'Settings', 'STG', { kind: 'settings', view: 'general' }),
     routeItem('developer', 'Developer tools', 'DEV', { kind: 'developer', view: 'tools' }),
-    {
+    ...(!androidShell ? [{
       id: 'fullscreen',
-      kind: 'action',
+      kind: 'action' as const,
       label: fullscreen.active ? 'Exit fullscreen' : 'Enter fullscreen',
       shortLabel: 'F11',
       pressed: fullscreen.active,
       disabled: !fullscreen.supported
-    },
+    }] : []),
     {
       id: 'focus',
       kind: 'action',
