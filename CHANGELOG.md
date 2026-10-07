@@ -5,7 +5,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 ## Unreleased
 
 - Show Community Goal destinations as a separate CG layer on the Galactic Atlas, with official
-  objectives, progress and freshness in the location panel. Unresolved coordinates stay unplotted.
+  objectives, progress and freshness in the location panel. Green diamond markers distinguish them
+  from bookmarks; unresolved coordinates stay unplotted.
 
 - Let Copilot read official Community Goals on request, including briefings, destinations and
   source freshness, with a separate Activities permission for the installation and each profile.
