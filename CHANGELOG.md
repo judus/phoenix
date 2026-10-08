@@ -4,6 +4,11 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Prototype optional background GalNet analysis for newly received or revised news and changed
+  Community Goal briefings. Add a persistent queue, daily attempt limit, visible failures and
+  explicit historical catch-up. Show related saved coverage in publication order; shared subjects
+  do not automatically merge stories or retire Atlas leads. Background AI is off until enabled.
+
 - Color-code Atlas sources: magenta investigation leads, green Community Goals, cyan bookmarks
   and amber landmarks.
 
@@ -21,8 +26,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 - Analyse individual GalNet articles on request using your configured AI, with evidence quotes,
   separate investigation leads and references to existing Community Goals rather than duplicate
-  goals. Save reports with source revisions, CG snapshot freshness and token usage; nothing runs
-  automatically and unchanged evidence reuses the saved analysis.
+  goals. Save reports with source revisions, CG snapshot freshness and token usage; unchanged
+  evidence reuses the saved analysis. Automatic work has its own optional setting.
 
 - Retain observed GalNet articles and distinct revisions locally, including source references and
   dates, as a foundation for future analysis. The latest-news feed is unchanged; no AI runs.

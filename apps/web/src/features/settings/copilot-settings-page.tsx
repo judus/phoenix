@@ -14,6 +14,7 @@ import {
 import type { CopilotAiProvider, CopilotPermissionPolicy, CopilotSettings } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { CopilotPermissionEditor } from '../../components/copilot-permission-editor.js'
+import { GalnetAnalysisSettings } from './galnet-analysis-settings.js'
 
 export interface AudioSettingsController {
   devices: {
@@ -135,7 +136,7 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
                 <SettingRow
                   description={settings.openAi.configured
                     ? `Configured from ${settings.openAi.source}.${settings.openAi.restartRequired ? ' Restart required.' : ''}`
-                    : 'Required only for Copilot features.'}
+                    : 'Required for Copilot and optional GalNet analysis.'}
                   scope="Installation"
                   title="API key"
                 >
@@ -148,6 +149,8 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
               </SettingsList>}
           {settings?.openAi.restartRequired && <Status tone="warning" wrap>OpenAI configuration changed. Restart PHOENIX to apply it.</Status>}
         </Section>
+
+        <GalnetAnalysisSettings api={api} />
 
         <Section description="Stored only in this browser." title="Voice audio">
           <SettingsList>

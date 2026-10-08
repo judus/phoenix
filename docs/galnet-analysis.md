@@ -1,7 +1,7 @@
-# Manual GalNet analysis
+# GalNet analysis
 
 Comms → GalNet offers an optional **Analyse article** action below the article text. Opening
-the page or selecting an article only reads a saved report; it never invokes AI. Analysis uses
+the page or selecting an article only reads a saved report; it never invokes AI itself. Analysis uses
 the active OpenAI key from PHOENIX Settings and the existing `PHOENIX_OPENAI_MODEL` model
 selection (same default as text Copilot). The action discloses API-credit usage. It does not use
 a Copilot profile, conversation, permissions, game state or tools.
@@ -49,7 +49,8 @@ tokens and a 90-second inference timeout. One article job runs at a time per ins
 simultaneous requests for that article share the job. No fixed monetary estimate is invented.
 **Update analysis** reuses a successful saved report when the article revision, model, extractor
 version and CG contents match. Snapshot timestamps/cache-state alone do not cause another paid
-request. Changed evidence can incur a new request, but only after another explicit press.
+request. Changed evidence can incur a new request after another explicit press or through the
+separately enabled background queue described below.
 
 Migration 27 adds `galnet_analyses` to the existing SQLite database. Successful reports
 are keyed by an SHA-256 evidence/configuration digest; prior reports remain readable across
@@ -62,7 +63,61 @@ automatic retry. Quote matching does not invoke another model or alter the archi
 Navigating away cancels the browser request, not the shared installation job; a valid result
 can finish and be saved for a later visit. Application shutdown aborts inference and waits before
 closing SQLite; late/cancelled output is not persisted. Failures are visible in the article panel,
-not silently retried. This is a manual opt-in action, not a new automatically enabled AI service.
+not silently retried. Background work is separately opt-in, as described below.
+
+## Background work and historical catch-up (prototype)
+
+Settings → Copilot → GalNet intelligence enables automatic analysis separately from Copilot tool
+permissions. It is off by default to avoid charging an existing configured key without consent.
+Once enabled, the installation checks the existing news/CG services every 15 minutes, including
+when no browser is open. New articles published since background-state installation, and revisions
+changed after a first observation, become durable sequential jobs. This installation timestamp is
+created when migration 28 first runs; older installations are not silently backfilled.
+
+New or changed CG briefings/objectives/destinations/expiry recheck up to 100 recent saved reports
+that reference the campaign or mention its system. Progress quantities and fetch timestamps alone
+do not trigger inference. A missing campaign never implies that the story ended. CGs with no
+related saved article need no AI job: their structured records remain available directly.
+Stale news/CG responses do not advance the automatic baseline or enqueue work.
+
+The GalNet sidebar shows queue status, the 20 most recently updated jobs and failures. **Analyse
+older articles** explicitly queues up to 20 uncovered articles from the latest 100 retained archive
+entries, newest publication first; repeat for another batch after it completes. It works with
+automation off. It does not crawl the web or claim to search the entire historical GalNet catalogue.
+Already-current reports and pending/running articles are not queued again. Failed work requires
+explicit catch-up or the individual article action; normal polling never retries it.
+
+Migration 28 stores settings, observed revisions and jobs separately from the provider cache.
+Pending work survives restart. A request interrupted by a crash becomes failed on startup, since
+credit may already have been used. Superseded queued revisions are skipped rather than labelled
+as analyses of evidence never supplied. Disabling automation pauses unstarted automatic jobs;
+an in-flight request may finish, and explicitly requested catch-up remains eligible.
+Every producer shares a SQLite-enforced limit of 100 pending jobs. When full, automatic intake
+keeps the unadmitted evidence eligible for a later poll and shows a queue-full notice. Observations
+advance only after their idempotent job is durable, so an interrupted admission cannot lose work.
+
+The queue has a configurable 1–50 attempt limit per UTC day (default 10). Failed and cached attempts
+count conservatively; this is not a currency budget. Individual manual article actions are separate
+and do not consume this queue allowance. Requests use the existing per-article input/output/time
+limits; there is only one active article analysis, shared with manual actions. A missing active key
+pauses inference; saving/replacing a key still requires the existing PHOENIX restart.
+
+Reads of queue status, reports and related coverage never invoke the analyser. A running worker may
+independently complete a previously authorized job while a page is open. The article panel polls
+saved results so finished background work appears without needing navigation or another paid press.
+
+## Related coverage (prototype)
+
+Reports that identify the same exact named ship or person are offered as **Related coverage**.
+This is a candidate timeline from up to 100 recent saved reports plus the selected report, ordered
+by publication rather than analysis time. Shared systems/factions alone do not group articles.
+Changed reports are excluded. Earlier articles can be analysed through catch-up; the timeline is
+not an exhaustive story archive. Sources and individual activity/CG statuses stay visible.
+
+This first preview does not synthesize a merged story, resolve conflicting claims or automatically
+retire old Atlas leads. Shared subjects are not proof that activities are equivalent. Article
+reports remain independent and original evidence is preserved. Lifecycle reconciliation and its
+UX are the next part to agree after inspecting the prototype, not a completed capability.
 
 ## Copilot access to saved reports
 
@@ -121,7 +176,6 @@ bookmarks, the permanent POI catalogue or saved reports.
 
 ## Remaining scope
 
-No background analysis, web enrichment,
-personal CG tracking or story lifecycle reconciliation is included. Those require separate work,
-including settings and budgets before any automatic inference is introduced. The non-AI CG page
+No web enrichment, merged-story synthesis,
+personal CG tracking or story lifecycle reconciliation is included. The non-AI CG page
 and Atlas remain independent. See #60 and [the article archive](galnet-archive.md).

@@ -28,6 +28,14 @@ test('paired manual HTTP analysis preserves goal references and survives restart
     }
     expect(analyse).not.toHaveBeenCalled()
     expect((await fetch(`${origin}/api/galnet/investigation-leads`)).status).toBe(401)
+    for (const [path, method, body] of [
+      ['/api/galnet/background', 'GET', undefined],
+      ['/api/galnet/coverage?articleId=synthetic-analysis', 'GET', undefined],
+      ['/api/settings/galnet-background', 'PUT', { enabled: true, dailyLimit: 10 }],
+      ['/api/galnet/catch-up', 'POST', { articleIds: [analysisArticle.id] }]
+    ] as const) {
+      expect((await fetch(`${origin}${path}`, { method, ...(body ? { body: JSON.stringify(body) } : {}) })).status).toBe(401)
+    }
     const claim = await fetch(`${origin}/api/pairing/claim`, { method: 'POST', body: JSON.stringify({ code: access.pairingCode }) })
     const cookie = claim.headers.get('set-cookie')!.split(';')[0]!
     const request: typeof fetch = (input, init) => fetch(input, { ...init, headers: { ...init?.headers, cookie } })
@@ -35,6 +43,15 @@ test('paired manual HTTP analysis preserves goal references and survives restart
     await client.getGalnetNews()
     expect((await client.getGalnetAnalysis(analysisArticle.id)).analysis).toBeNull()
     expect(analyse).not.toHaveBeenCalled()
+    expect(await client.getGalnetBackground()).toMatchObject({ enabled: false, pending: 0, requestsToday: 0,
+      backlog: [{ articleId: analysisArticle.id }] })
+    expect(await client.getGalnetCoverage(analysisArticle.id)).toEqual({ subjects: [], reports: [] })
+    expect((await request(`${origin}/api/settings/galnet-background`, { method: 'PUT',
+      body: JSON.stringify({ enabled: true, dailyLimit: 500 }) })).status).toBe(400)
+    expect((await request(`${origin}/api/galnet/catch-up`, { method: 'POST',
+      body: JSON.stringify({ articleIds: Array.from({ length: 21 }, () => analysisArticle.id) }) })).status).toBe(400)
+    expect((await request(`${origin}/api/galnet/catch-up`, { method: 'POST',
+      body: JSON.stringify({ articleIds: ['not-archived'] }) })).status).toBe(400)
     const invalid = await request(`${origin}/api/galnet/analysis`, { method: 'POST',
       body: JSON.stringify({ articleId: analysisArticle.id, model: 'unapproved' }) })
     expect(invalid.status).toBe(400)
@@ -55,12 +72,15 @@ test('paired manual HTTP analysis preserves goal references and survives restart
       leads: [{ title: 'Investigate the beacon', systemName: 'Colonia', status: 'unknown', sourceUrl: analysisArticle.sourceUrl }] })
     await client.analyseGalnetArticle(analysisArticle.id)
     expect(analyse).toHaveBeenCalledTimes(2)
+    expect(await client.saveGalnetBackground({ enabled: false, dailyLimit: 5 })).toMatchObject({ enabled: false, dailyLimit: 5 })
+    expect(await client.catchUpGalnet([analysisArticle.id])).toMatchObject({ pending: 0 })
     await app.stop()
     const retained = new SqliteDatabase(path)
     try {
       retained.initialize()
       retained.initialize()
       expect(retained.galnetAnalyses.latest(analysisArticle.id)).toEqual(result.analysis)
+      expect(retained.galnetBackground.load()).toMatchObject({ enabled: false, dailyLimit: 5 })
     } finally { retained.close() }
   } finally { await app.stop(); rmSync(directory, { recursive: true, force: true }) }
 })

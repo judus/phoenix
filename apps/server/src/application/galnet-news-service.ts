@@ -12,7 +12,7 @@ export class GalnetNewsService implements GalnetNewsReader {
   public constructor (
     private readonly source: GalnetSource,
     private readonly cache: ProviderResponseCache,
-    private readonly archive: GalnetArticleArchive,
+    private readonly archive: Pick<GalnetArticleArchive, 'observe'>,
     private readonly now: () => Date = () => new Date()
   ) {}
 

@@ -21,6 +21,7 @@ export interface GalnetArticleArchive {
   observe(articles: GalnetSourceArticle[], observedAt: string): void
   getArticle(id: string): GalnetArticleRevision | null
   listRevisions(id: string): GalnetArticleRevision[]
+  recent(limit: number): GalnetArticleRevision[]
 }
 
 export interface GalnetSource {

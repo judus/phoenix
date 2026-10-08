@@ -52,6 +52,11 @@ bounded-read/streams rewrite was justified by these measurements. Repeat after m
 
 ## Browser stability check
 
+Use `--galnet-continuity` and open `#/comms/galnet` for three fictional articles about the same
+ship. Explicit catch-up runs a synthetic analyser (no model/provider requests); verify queue logs,
+the dated related-coverage timeline and the separate settings switch/limit in both themes and
+orientations. All external requests remain rejected by the preview.
+
 For Community Goals layout/selection checks, add `--community-goals` to the isolated preview
 command below. It supplies twenty fictional goals with long briefings for independent list/detail
 scrolling, without contacting Frontier or an AI provider.

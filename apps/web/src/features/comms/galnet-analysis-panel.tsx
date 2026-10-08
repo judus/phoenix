@@ -11,20 +11,33 @@ export function GalnetAnalysisPanel({ api, articleId }: { api: GalnetAnalysisApi
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   const request = useRef<AbortController | null>(null)
+  const saving = useRef(false)
+  const revision = useRef(0)
   useEffect(() => {
     const controller = new AbortController()
     request.current = controller
-    void api.getGalnetAnalysis(articleId, controller.signal).then(value => {
-      if (!controller.signal.aborted) setSnapshot(value)
-    }).catch(cause => {
-      if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Analysis unavailable.')
-    })
-    return () => controller.abort()
+    let timer: ReturnType<typeof setTimeout>
+    const refresh = async () => {
+      const currentRevision = revision.current
+      if (!saving.current) {
+        try {
+          const value = await api.getGalnetAnalysis(articleId, controller.signal)
+          if (!controller.signal.aborted && !saving.current && revision.current === currentRevision) setSnapshot(value)
+        } catch (cause) {
+          if (!controller.signal.aborted && !saving.current && revision.current === currentRevision) setError(cause instanceof Error ? cause.message : 'Analysis unavailable.')
+        }
+      }
+      if (!controller.signal.aborted) timer = setTimeout(() => void refresh(), 5_000)
+    }
+    void refresh()
+    return () => { controller.abort(); clearTimeout(timer) }
   }, [api, articleId])
 
   const analyse = async () => {
     const signal = request.current!.signal
     setBusy(true)
+    saving.current = true
+    revision.current++
     setError(undefined)
     try {
       const result = await api.analyseGalnetArticle(articleId, signal)
@@ -32,6 +45,7 @@ export function GalnetAnalysisPanel({ api, articleId }: { api: GalnetAnalysisApi
     } catch (cause) {
       if (!signal.aborted) setError(cause instanceof Error ? cause.message : 'Analysis failed.')
     } finally {
+      saving.current = false
       if (!signal.aborted) setBusy(false)
     }
   }
@@ -41,7 +55,7 @@ export function GalnetAnalysisPanel({ api, articleId }: { api: GalnetAnalysisApi
     {snapshot?.analysis ? 'Update analysis' : 'Analyse article'}
   </Button>}>
     <Stack gap="md">
-      <Status wrap tone="muted">Optional · uses your configured OpenAI model and API credit. Nothing runs automatically; unchanged evidence reuses the saved report.</Status>
+      <Status wrap tone="muted">Uses your configured OpenAI model and API credit. Background analysis is controlled separately in Settings; unchanged evidence reuses the saved report.</Status>
       {!snapshot && !error && <Status tone="muted">Reading saved analysis…</Status>}
       {snapshot && !snapshot.configured && <Status wrap tone="warning">Configure an OpenAI API key in Settings to analyse articles. Saved reports remain readable.</Status>}
       {snapshot && !snapshot.articleAvailable && <Status wrap tone="warning">This article has not been archived yet. Refresh the news after its cache expires.</Status>}
