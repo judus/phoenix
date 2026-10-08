@@ -1,3 +1,5 @@
+import type { AtlasDisplayLocation } from '@phoenix/contracts'
+
 export const CONTROL_CATEGORIES = [
   'quick',
   'ship',
@@ -29,7 +31,7 @@ export type InformationRoute =
   | { kind: 'information', section: 'fleet', view: 'catalogue', selectedShipId?: string }
   | { kind: 'information', section: 'galaxy', view: 'system', systemName?: string, selectedName?: string }
   | { kind: 'information', section: 'galaxy', view: 'route' }
-  | { kind: 'information', section: 'galaxy', view: 'atlas' }
+  | { kind: 'information', section: 'galaxy', view: 'atlas', location?: AtlasDisplayLocation, displayRequestId?: string }
   | { kind: 'information', section: 'galaxy', view: 'exobiology' }
   | { kind: 'information', section: 'galaxy', view: 'bookmarks', bookmarkId?: string, systemName?: string, bodyName?: string, stationName?: string }
   | { kind: 'information', section: 'galaxy', view: 'database', savedQueryId?: string, savedQueryRunId?: string, selectedQueryId?: GalaxyQueryId }

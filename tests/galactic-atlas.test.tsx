@@ -10,6 +10,34 @@ import { atlasRegions } from '../apps/web/src/features/galaxy/atlas-region-data.
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
 
+test('display destinations centre and select the Atlas, repeat while open, and do not override later user interaction', async () => {
+  const location = { systemName: 'Colonia', position: [-9530, -910, 19808] as [number, number, number] }
+  const props = { bookmarks: [], onNavigate: vi.fn(), onToggleBookmarks: vi.fn(), position: null, showBookmarks: false, systemName: null, location, displayRequestId: 'first' }
+  const renderer = await renderWithAct(<GalacticAtlas {...props} />)
+  const transform = () => renderer.root.findAllByType('g')[0].props.transform
+  const inspector = () => renderer.root.findByProps({ 'aria-label': 'Selected atlas location' })
+  try {
+    expect(inspector().findByType('h2').props.children).toBe('Colonia')
+    expect(renderer.root.findAllByProps({ 'aria-label': 'Colonia' })).toHaveLength(1)
+    expect(renderer.root.findAllByProps({ 'aria-label': '2 locations near Colonia' })).toHaveLength(0)
+    expect(inspector().findAllByType('a')[0].props.href).toBe('#/galaxy/system?name=Colonia')
+    const centred = transform()
+    await act(async () => renderer.root.findByProps({ 'aria-label': 'Zoom in' }).props.onClick())
+    expect(transform()).not.toBe(centred)
+    // Late player telemetry must not steal an explicit destination.
+    await act(async () => renderer.update(<GalacticAtlas {...props} position={[0, 0, 0]} systemName="Sol" />))
+    expect(transform()).not.toBe(centred)
+    await act(async () => renderer.update(<GalacticAtlas {...props} position={[0, 0, 0]} systemName="Sol" displayRequestId="second" />))
+    expect(transform()).toBe(centred)
+    const next = { systemName: 'Sagittarius A*', position: [25, -20, 25900] as [number, number, number] }
+    await act(async () => renderer.update(<GalacticAtlas {...props} location={next} displayRequestId="third" />))
+    expect(transform()).not.toBe(centred)
+    expect(inspector().findByType('h2').props.children).toBe('Sagittarius A*')
+    await act(async () => renderer.update(<GalacticAtlas {...props} location={undefined} displayRequestId={undefined} />))
+    expect(renderer.root.findAllByType('aside')).toHaveLength(0)
+  } finally { await act(async () => renderer.unmount()) }
+})
+
 test('catalogue filtering preserves site identities and body targeting; dense clusters retain every location', () => {
   const pois = atlasPoiMarkers(Array.from({ length: 1500 }, (_, index) => ({
     id: `synthetic:${index}`, label: `Site ${index}`, systemName: 'Example', position: [10, 20, 30] as [number, number, number],

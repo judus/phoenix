@@ -20,6 +20,7 @@ export const DISPLAY_PAGE_IDS = [
   'fleet.stored-modules',
   'fleet.catalogue',
   'galaxy.system',
+  'galaxy.atlas',
   'galaxy.route',
   'galaxy.exobiology',
   'galaxy.database',
@@ -71,7 +72,18 @@ const DisplayCommandBaseSchema = z.object({
   createdAt: z.iso.datetime()
 })
 
+export const AtlasDisplayLocationSchema = z.object({
+  systemName: z.string().trim().min(1),
+  position: z.tuple([z.number().finite(), z.number().finite(), z.number().finite()])
+})
+
+export type AtlasDisplayLocation = z.infer<typeof AtlasDisplayLocationSchema>
+
 export const DisplayCommandSchema = z.discriminatedUnion('type', [
+  DisplayCommandBaseSchema.extend({
+    type: z.literal('show_atlas'),
+    location: AtlasDisplayLocationSchema
+  }),
   DisplayCommandBaseSchema.extend({
     type: z.literal('open_page'),
     pageId: DisplayPageIdSchema

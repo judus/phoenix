@@ -75,6 +75,7 @@ import { PersonalEquipmentPlannerService } from './application/personal-equipmen
 import { PersonalEquipmentReportService } from './application/personal-equipment-report-service.js'
 import { LoggedGameActions } from './application/logged-game-actions.js'
 import { DisplayCommandService } from './application/display-command-service.js'
+import { DisplayAtlasService } from './application/display-atlas-service.js'
 import { RouteCompletionDisplay } from './application/route-completion-display.js'
 import { NavigationDataService } from './application/navigation-data-service.js'
 import { EliteDestinationService } from './application/elite-destination-service.js'
@@ -502,6 +503,7 @@ export class PhoenixApplication {
     copilotTools = createPhoenixMcpTools({
       commands: copilotCommands,
       display,
+      atlasDisplay: new DisplayAtlasService(displayCommandUpdates, cartography, this.stateStore),
       equipment: personalEquipmentReport,
       engineers: new DefaultCommanderEngineersQuery(engineering),
       engineeringProjects,

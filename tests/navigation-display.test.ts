@@ -1,6 +1,12 @@
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import { createEmptyRuntimeState, type CartographicSystem, type DisplayCommand } from '@phoenix/contracts'
 import { DisplayCommandService } from '../apps/server/src/application/display-command-service.js'
+import { DisplayAtlasService } from '../apps/server/src/application/display-atlas-service.js'
+import { DisplayShowGalacticAtlasTool } from '../apps/server/src/application/mcp-tools/display-show-galactic-atlas-tool.js'
+import { withToolErrorBoundary } from '../apps/server/src/application/mcp-tools/tool-error-boundary.js'
+import { ProviderQueryError } from '../apps/server/src/domain/provider-query-error.js'
+import { routeForDisplayCommand } from '../apps/web/src/application/navigation/display-page-routes.js'
+import { parsePhoenixRoute, phoenixRouteHash } from '../apps/web/src/application/navigation/phoenix-router.js'
 import { resolveDisplayPage } from '../apps/server/src/application/display-page-catalogue.js'
 import type { ExternalCartographySource } from '../apps/server/src/domain/cartography.js'
 import { InMemoryRuntimeStateStore } from '../apps/server/src/infrastructure/in-memory-runtime-state-store.js'
@@ -57,6 +63,8 @@ test('display commands resolve current context and publish a browser-neutral ins
 })
 
 test.each([
+  ['galactic atlas', 'galaxy.atlas'],
+  ['atlas', 'galaxy.atlas'],
   ['plotted route', 'galaxy.route'],
   ['current route', 'galaxy.route'],
   ['show me the current route', 'galaxy.route'],
@@ -70,6 +78,46 @@ test.each([
   ['please take me to GalNet Radio', 'comms.radio']
 ] as const)('display page catalogue resolves %s without exposing browser routes', (request, pageId) => {
   expect(resolveDisplayPage(request).id).toBe(pageId)
+})
+
+test('Atlas tool resolves canonical coordinates before publishing and defaults to current context', async () => {
+  const runtime = new InMemoryRuntimeStateStore()
+  const state = createEmptyRuntimeState()
+  runtime.replace({ ...state, system: { ...state.system, name: 'Sol' } })
+  const commands: DisplayCommand[] = []
+  const publisher = new InProcessPublisher<DisplayCommand>()
+  publisher.subscribe(command => commands.push(command))
+  const getSystem = vi.fn(async (_name: string) => ({ cache: 'local' as const, system: fixtureSystem('Sol') }))
+  const service = new DisplayAtlasService(publisher, { getSystem }, runtime)
+  const result = await service.show({})
+  expect(getSystem).toHaveBeenCalledWith('Sol')
+  expect(result.structuredContent).toEqual({ displayed: true, location: { systemName: 'Sol', position: [0, 0, 0] } })
+  expect(commands[0]).toMatchObject({ type: 'show_atlas', location: { systemName: 'Sol', position: [0, 0, 0] } })
+  const route = routeForDisplayCommand(commands[0])
+  expect(parsePhoenixRoute(phoenixRouteHash(route))).toEqual(route)
+  await service.show({ systemName: ' sol ' })
+  expect(getSystem).toHaveBeenLastCalledWith('sol')
+  expect(commands[1].id).not.toBe(commands[0].id)
+  expect(routeForDisplayCommand({ id: 'open', type: 'open_page', pageId: 'galaxy.atlas', createdAt: commands[0].createdAt }))
+    .toEqual({ kind: 'information', section: 'galaxy', view: 'atlas' })
+})
+
+test('Atlas failures publish nothing and give Copilot actionable, correctly classified errors', async () => {
+  const runtime = new InMemoryRuntimeStateStore()
+  const publish = vi.fn()
+  const getSystem = vi.fn(async (_name: string) => ({ cache: 'local' as const, system: { ...fixtureSystem('Unknown'), position: null } }))
+  const tool = withToolErrorBoundary(new DisplayShowGalacticAtlasTool(new DisplayAtlasService({ publish }, { getSystem }, runtime)))
+  const context = { callId: 'atlas', runId: 'atlas', deadline: '2026-10-09T12:00:00Z', signal: new AbortController().signal }
+  await expect(tool.execute({}, context)).rejects.toMatchObject({ category: 'tool_validation', message: expect.stringContaining('Provide systemName') })
+  expect(getSystem).not.toHaveBeenCalled()
+  await expect(tool.execute({ systemName: 'Unknown' }, context)).rejects.toMatchObject({ category: 'tool_validation', message: expect.stringContaining('display.show_system_schematic') })
+  getSystem.mockRejectedValueOnce(new ProviderQueryError('EDSM', 'timeout'))
+  await expect(tool.execute({ systemName: 'Sol' }, context)).rejects.toMatchObject({ category: 'timeout', retryable: true })
+  expect(publish).not.toHaveBeenCalled()
+})
+
+test.each(['1,2', '1,,3', '1,Infinity,3', '1,no,3', '1,2,3,4'])('Atlas route rejects invalid coordinate input %s', position => {
+  expect(parsePhoenixRoute(`#/galaxy/atlas?name=Sol&position=${position}&request=unused`)).toEqual({ kind: 'information', section: 'galaxy', view: 'atlas' })
 })
 
 test('display service publishes a stable page destination', () => {

@@ -52,7 +52,7 @@ export function GalaxyPage({ api, controller, onNavigate, querySessions, route, 
   route: GalaxyRoute
   runtime: RuntimeStateSnapshot
 }) {
-  if (route.view === 'atlas') return <GalacticAtlasPage api={api} onNavigate={onNavigate} runtime={runtime} />
+  if (route.view === 'atlas') return <GalacticAtlasPage api={api} onNavigate={onNavigate} runtime={runtime} location={route.location} displayRequestId={route.displayRequestId} />
   if (route.view === 'database') return <QueryConsole key={route.savedQueryRunId ?? 'editor'} api={api} onNavigate={onNavigate} querySessions={querySessions} route={route} runtime={runtime} />
   if (route.view === 'saved-queries') return <SavedGalaxyQueriesPage api={api} onNavigate={onNavigate} />
   if (route.view === 'exobiology') return <ExobiologyPage controller={controller} />

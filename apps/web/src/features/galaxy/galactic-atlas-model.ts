@@ -8,7 +8,7 @@ export interface AtlasMarker {
   label: string
   systemName: string
   position: GalacticPosition
-  kind: 'landmark' | 'nebula' | 'bookmark' | 'commander' | 'community-goal' | 'investigation'
+  kind: 'landmark' | 'nebula' | 'bookmark' | 'commander' | 'community-goal' | 'investigation' | 'system'
   selectedName?: string
   poi?: AtlasPoi
   communityGoal?: CommunityGoal
