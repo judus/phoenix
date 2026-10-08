@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { GalnetArticleSchema, type GalnetNewsResponse } from '@phoenix/contracts'
+import { GalnetArticleSchema, type GalnetNewsResponse, type GalnetArchiveQuery, type GalnetArchiveResponse } from '@phoenix/contracts'
 
 export const GalnetSourceArticleSchema = GalnetArticleSchema.extend({
   changedAt: z.string().datetime({ offset: true }),
@@ -26,6 +26,10 @@ export interface GalnetArticleArchive {
 
 export interface GalnetSource {
   getLatest(limit: number): Promise<GalnetSourceArticle[]>
+}
+
+export interface GalnetArchiveBrowser extends Pick<GalnetArticleArchive, 'getArticle'> {
+  search(query: GalnetArchiveQuery): GalnetArchiveResponse
 }
 
 export interface GalnetNewsReader {

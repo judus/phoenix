@@ -65,6 +65,8 @@ import type { ExplorationDataReader } from '../application/exploration-data-serv
 import type { ExplorationTargetReader } from '../application/default-exploration-target-query.js'
 import { DEFAULT_GALAXY_RESULT_LIMIT, type GalaxyDataReader } from '../application/galaxy-data-service.js'
 import type { GalnetNewsReader } from '../domain/galnet.js'
+import type { GalnetArchiveService } from '../application/galnet-archive-service.js'
+import { GalnetArchiveQuerySchema } from '@phoenix/contracts'
 import type { GalnetAnalysisReader } from '../domain/galnet-analysis.js'
 import type { GalnetInvestigationLeadsService } from '../application/galnet-investigation-leads-service.js'
 import { GalnetAnalyseRequestSchema } from '@phoenix/contracts'
@@ -148,6 +150,7 @@ export interface PhoenixHttpServerOptions extends SettingsHttpServices, Engineer
   catalogueSuggestions: Pick<CatalogueSuggestionService, 'suggest'>
   marketSignals: MarketSignalReader
   galnet: GalnetNewsReader
+  galnetArchive: Pick<GalnetArchiveService, 'search' | 'get'>
   galnetAnalysis: GalnetAnalysisReader
   galnetBackground: Pick<GalnetBackgroundService, 'status' | 'setSettings' | 'catchUp'>
   galnetCoverage: Pick<GalnetCoverageService, 'get'>
@@ -390,6 +393,20 @@ export class PhoenixHttpServer {
       writeJson(response, 200, await this.options.galnet.getLatest(
         Number.isSafeInteger(requestedLimit) ? requestedLimit : 40
       ))
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/galnet/archive') {
+      const input = GalnetArchiveQuerySchema.safeParse(Object.fromEntries(url.searchParams))
+      if (!input.success) { writeJson(response, 400, { error: input.error.flatten() }); return }
+      writeJson(response, 200, this.options.galnetArchive.search(input.data))
+      return
+    }
+    if (request.method === 'GET' && url.pathname === '/api/galnet/archive/article') {
+      const input = GalnetAnalyseRequestSchema.safeParse(Object.fromEntries(url.searchParams))
+      if (!input.success) { writeJson(response, 400, { error: input.error.flatten() }); return }
+      const retained = this.options.galnetArchive.get(input.data.articleId)
+      writeJson(response, retained ? 200 : 404, retained ?? { error: 'Retained GalNet article not found.' })
       return
     }
 
