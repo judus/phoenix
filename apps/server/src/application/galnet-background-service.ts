@@ -71,7 +71,9 @@ export class GalnetBackgroundService {
     })
     if (this.repository.pending() + eligible.length > 100) throw new AiError('rate_limit', 'The GalNet queue is full. Let existing work finish before requesting more catch-up.', { code: 'galnet_background_queue_full' })
     // Explicit catch-up permits retrying failures, but not duplicate queued work or current reports.
-    for (const article of eligible) {
+    // Select the newest uncovered batch, but analyse it chronologically so later coverage can
+    // use the earlier saved evidence without a second synthesis request.
+    for (const article of eligible.sort((a, b) => Date.parse(a.article.publishedAt) - Date.parse(b.article.publishedAt))) {
       if (!this.enqueue(article.article.id, 'catch-up', randomUUID())) throw new AiError('rate_limit',
         'The GalNet queue is full. Let existing work finish before requesting more catch-up.', { code: 'galnet_background_queue_full' })
     }
@@ -145,7 +147,7 @@ export class GalnetBackgroundService {
     if (state.lastCheckedAt !== null && state.enabled) {
       const changed = goals.goals.filter(goal => state.goals[goal.id] !== goalKeys[goal.id])
       const pending = new Set(this.repository.activeArticleIds())
-      for (const saved of this.reports.recent(100)) {
+      for (const saved of this.reports.recent(100).sort((a, b) => Date.parse(a.analysis.publishedAt) - Date.parse(b.analysis.publishedAt))) {
         if (saved.articleChanged) continue
         const related = changed.filter(goal => saved.analysis.content.activities.some(activity => activity.communityGoalId === goal.id) ||
           saved.analysis.content.entities.some(entity => entity.kind === 'system' && entity.name.toLowerCase() === goal.systemName.toLowerCase()))

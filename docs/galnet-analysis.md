@@ -31,7 +31,7 @@ Schema validation and ID/quote checks reject malformed evidence, unknown or dupl
 references and inconsistent relationships before persistence. These checks are not proof that
 the interpretation is true or that an unlinked activity is genuinely separate: manual quality
 review remains necessary. Absence from the current CG snapshot does not prove an old campaign
-never existed. Historical CG reconciliation and multi-article story merging are separate work.
+never existed. Dated historical campaign references can also support story updates, as described below.
 
 The report shows its analysis time, model, source link, CG snapshot freshness and known input/
 output token counts (unknown counts remain unknown). A changed archived article is flagged.
@@ -44,11 +44,11 @@ with [strict structured output](https://developers.openai.com/api/docs/guides/st
 No hosted tools, MCP, online research, conversation history or automatic repair/retry are enabled.
 Provider response storage is disabled. Article/CG contents are untrusted input, not instructions.
 
-Each explicit action permits one request: at most 60,000 serialized input characters, 4,000 output
+Each explicit action permits one request: at most 60,000 serialized input characters, 6,000 output
 tokens and a 90-second inference timeout. One article job runs at a time per installation;
 simultaneous requests for that article share the job. No fixed monetary estimate is invented.
 **Update analysis** reuses a successful saved report when the article revision, model, extractor
-version and CG contents match. Snapshot timestamps/cache-state alone do not cause another paid
+version, CG contents and selected earlier report identities match. Snapshot timestamps/cache-state alone do not cause another paid
 request. Changed evidence can incur a new request after another explicit press or through the
 separately enabled background queue described below.
 
@@ -82,7 +82,8 @@ Stale news/CG responses do not advance the automatic baseline or enqueue work.
 
 The GalNet sidebar shows queue status, the 20 most recently updated jobs and failures. **Analyse
 older articles** explicitly queues up to 20 uncovered articles from the latest 100 retained archive
-entries, newest publication first; repeat for another batch after it completes. It works with
+entries, selecting newest publications first but executing that batch oldest first so later articles
+can use earlier saved coverage. Repeat for another batch after it completes. It works with
 automation off. It does not crawl the web or claim to search the entire historical GalNet catalogue.
 Already-current reports and pending/running articles are not queued again. Failed work requires
 explicit catch-up or the individual article action; normal polling never retries it.
@@ -106,7 +107,7 @@ Reads of queue status, reports and related coverage never invoke the analyser. A
 independently complete a previously authorized job while a page is open. The article panel polls
 saved results so finished background work appears without needing navigation or another paid press.
 
-## Related coverage (prototype)
+## Related coverage and bounded story updates
 
 Reports that identify the same exact named ship or person are offered as **Related coverage**.
 This is a candidate timeline from up to 100 recent saved reports plus the selected report, ordered
@@ -114,10 +115,33 @@ by publication rather than analysis time. Shared systems/factions alone do not g
 Changed reports are excluded. Earlier articles can be analysed through catch-up; the timeline is
 not an exhaustive story archive. Sources and individual activity/CG statuses stay visible.
 
-This first preview does not synthesize a merged story, resolve conflicting claims or automatically
-retire old Atlas leads. Shared subjects are not proof that activities are equivalent. Article
-reports remain independent and original evidence is preserved. Lifecycle reconciliation and its
-UX are the next part to agree after inspecting the prototype, not a completed capability.
+Version-3 analysis supplies at most five earlier articles from those 100 saved reports, matched by
+the same exact named ship or person in the current source. Corrected sources are excluded. The
+model receives the original revisions, immutable prior activity IDs and their dated referenced CG
+snapshots in the **same** bounded article request. The combined 60,000-character limit includes
+this context; oversized input fails before inference rather than silently dropping evidence.
+Shared names are candidates only: the model can reject unrelated coverage and return no story update.
+
+An accepted **Story update** preserves a combined summary, source-quoted developments and explicit
+assessments of individual earlier leads: unresolved, resolved, superseded by a current activity or
+reconciled to a known current/historical CG ID. IDs must come from supplied context. Resolution
+requires quoted evidence published later than the original activity; replacement requires a valid
+current independent activity. Unknown/duplicate IDs or unverifiable quotes reject the whole new
+report without replacing the previous successful report. These checks constrain evidence identity,
+not the truth of the model's interpretation. Original reports and revisions remain preserved.
+
+Atlas reconciliation reads 100 recent saved reports but still plots only the 20 most recently
+analysed articles. It applies the latest explicit assessment **per immutable lead**, not a whole-story
+newest-wins rule. Omitted assessments keep leads; equal-publication conflicting assessments keep
+them unresolved. Finding a missing ship therefore does not implicitly end a later combat appeal.
+Age and absence from today's CG list never resolve a lead.
+
+If an anchor article changes, or any supplied earlier revision/report identity changes, its previous
+lead decisions no longer apply. `contextChanged` warns about this stale earlier evidence. Context
+changes alone do not enqueue another paid request: an explicit update or otherwise authorized
+article/CG job is required. Earlier historical batches may add context unavailable to an already
+analysed newer article; that article needs an explicit update to incorporate it. This remains a
+bounded account, not a complete story registry, fuzzy-name search or exhaustive archive.
 
 ## Copilot access to saved reports
 
@@ -130,12 +154,15 @@ report means the player needs to use **Analyse article**, not that nothing is ha
 Detail retains the original report's source/revision, dates, model, quotes, facts, interpretations,
 leads and token usage. To avoid sending unrelated campaign briefings, its CG snapshot contains
 only the campaigns referenced by that report, with the original snapshot timestamp/freshness.
+Version-3 detail also retains story developments, per-lead decisions and the supplied historical
+source/CG snapshots. List summaries include the saved story summary when present.
 These are dated references, not duplicate goals or current campaign availability; the existing
 Community Goals tool supplies current public data. Report prose remains untrusted AI output.
 
 The current archived article title is labelled `currentArticleTitle`, separately from the saved
 report. `articleChanged` warns when its revision no longer matches (including an unavailable
-current archived revision). Neither operation updates reports, refreshes news/CGs or invokes the
+current archived revision). `contextChanged` separately identifies changed earlier evidence or
+analysis; its old lead decisions are not current. Neither operation updates reports, refreshes news/CGs or invokes the
 analyser; saved reports remain usable without a configured AI key. Normal chat generation still
 has its usual AI cost—reading a report adds no separate analysis request.
 
@@ -160,7 +187,8 @@ cannot prove that semantic interpretation. Regions, nearby systems, unnamed stat
 and historical positions of movable ships are not substitutes for an explicit destination.
 
 Existing version-1 reports remain readable without inventing destinations. **Update analysis** is
-required to produce version 2 and may consume API credits. No automatic migration invokes AI.
+required to produce a current version-3 report and may consume API credits. Version-2 reports
+remain readable with their existing destinations. No automatic migration invokes AI.
 That notice appears beside each legacy article report, not as a technical count in the Atlas footer.
 Leads with no explicit destination are described as having no known destination; reanalysis does
 not guarantee that the source provides one.
@@ -169,13 +197,14 @@ Coordinates come from existing system cartography, with at most two concurrent l
 lookup per distinct system name. A missing position, failed lookup or different canonical system
 name leaves the lead unplotted; the Atlas reports unresolved systems instead of guessing. The
 location panel retains the article link, source quotes, publication/analysis dates, model and status.
-Markers are dated AI interpretations, not verified current opportunities. Independent articles are
-not automatically merged into stories or reconciled for expiry; older ongoing/unknown reports may
-therefore require player judgement. Turning off Leads hides this layer without changing CGs,
+Markers are dated AI interpretations, not verified current opportunities. Explicit story assessments
+can retire individual earlier leads as described above; ongoing/unknown reports still require
+player judgement. Turning off Leads hides this layer without changing CGs,
 bookmarks, the permanent POI catalogue or saved reports.
 
 ## Remaining scope
 
-No web enrichment, merged-story synthesis,
-personal CG tracking or story lifecycle reconciliation is included. The non-AI CG page
-and Atlas remain independent. See #60 and [the article archive](galnet-archive.md).
+No web enrichment, personal CG tracking, exhaustive story registry or alias/fuzzy entity matching
+is included. Semantic story quality and live gameplay opportunities still need player validation.
+The non-AI CG page remains independent and usable without analysis. See #60 and
+[the article archive](galnet-archive.md).

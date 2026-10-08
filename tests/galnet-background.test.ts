@@ -6,6 +6,7 @@ import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-databas
 import { GalnetBackgroundService } from '../apps/server/src/application/galnet-background-service.js'
 import { GalnetAnalysisService } from '../apps/server/src/application/galnet-analysis-service.js'
 import { SavedGalnetAnalysisService } from '../apps/server/src/application/saved-galnet-analysis-service.js'
+import type { GalnetArticleAnalyser } from '../apps/server/src/domain/galnet-analysis.js'
 import { analysisArticle, analysisContent, analysisGoals, analysisUsage } from './support/galnet-analysis-fixtures.js'
 
 function fixture() {
@@ -17,7 +18,7 @@ function fixture() {
   let goals = structuredClone(analysisGoals)
   const now = () => clock
   const analyser = { model: 'synthetic-model', configured: () => true,
-    analyse: vi.fn(async () => ({ content: structuredClone(analysisContent), usage: analysisUsage })) }
+    analyse: vi.fn<GalnetArticleAnalyser['analyse']>(async () => ({ content: structuredClone(analysisContent), continuity: null, usage: analysisUsage })) }
   const goalReader = { getCurrent: vi.fn(async () => goals) }
   const news = { getLatest: vi.fn(async () => {
     db.galnetArchive.observe(articles, now().toISOString())
@@ -94,6 +95,18 @@ test('manual catch-up works with automation off and deduplicates pending/current
     expect(f.news.getLatest).not.toHaveBeenCalled()
     expect(() => f.worker.catchUp([analysisArticle.id, 'not-archived'])).toThrow('not archived')
     expect(f.worker.status().pending).toBe(0)
+  } finally { await f.close() }
+})
+
+test('manual catch-up executes its selected batch chronologically, one existing attempt per article', async () => {
+  const f = fixture()
+  try {
+    const older = { ...analysisArticle, id: 'older', publishedAt: '2026-09-01T12:00:00Z' }
+    f.db.galnetArchive.observe([analysisArticle, older], '2026-10-07T12:00:00Z')
+    f.worker.catchUp([analysisArticle.id, older.id])
+    await f.worker.tick()
+    expect(f.analyser.analyse.mock.calls.map(call => call[0].article.id)).toEqual(['older', analysisArticle.id])
+    expect(f.worker.status()).toMatchObject({ requestsToday: 2, pending: 0 })
   } finally { await f.close() }
 })
 
@@ -233,7 +246,7 @@ test('shutdown aborts an active analysis, retains failed-work diagnostics and le
     f.worker.catchUp([analysisArticle.id, 'second-article'])
     f.analyser.analyse.mockImplementationOnce(async () => {
       await result
-      return { content: structuredClone(analysisContent), usage: analysisUsage }
+      return { content: structuredClone(analysisContent), continuity: null, usage: analysisUsage }
     })
     const work = f.worker.tick()
     await vi.waitFor(() => expect(f.analyser.analyse).toHaveBeenCalledTimes(1))

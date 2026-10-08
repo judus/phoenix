@@ -7,7 +7,7 @@ import { analysisArticle, analysisContent, analysisGoals, analysisUsage } from '
 import { renderWithAct } from './support/render-with-act.js'
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
-const empty: GalnetAnalysisResponse = { configured: true, articleAvailable: true, articleChanged: false, analysis: null }
+const empty: GalnetAnalysisResponse = { configured: true, articleAvailable: true, articleChanged: false, contextChanged: false, analysis: null }
 const report = { schemaVersion: 2 as const, extractorVersion: 'galnet-analysis-v2' as const,
   cacheKey: 'synthetic-cache', articleId: analysisArticle.id, articleRevisionId: 'synthetic-revision',
   sourceUrl: analysisArticle.sourceUrl, publishedAt: analysisArticle.publishedAt,
@@ -75,4 +75,27 @@ test('CG activities are shown once as canonical references, not repeated as inde
   expect(leads).not.toContain('Supply campaign')
   expect(markup).toContain('not live gameplay status')
   expect(markup).toContain('Current Community Goals')
+})
+
+test('story reports retain dated source citations and warn when earlier analysis changes, without inference', async () => {
+  const story = GalnetAnalysisSchema.parse({ ...report, schemaVersion: 3, extractorVersion: 'galnet-analysis-v3',
+    context: [{ articleId: 'earlier', articleRevisionId: 'earlier-revision', analysisCacheKey: 'earlier-cache',
+      title: 'Earlier coverage', sourceUrl: 'https://example.com/earlier', publishedAt: '2026-09-01T12:00:00Z', communityGoals: analysisGoals }],
+    continuity: { summary: 'The search ended; a separate investigation remains unresolved.', relatedArticleIds: ['earlier'],
+      developments: [{ text: 'The ship was missing.', evidence: { articleId: 'earlier', quote: 'A ship went missing.' } }],
+      updates: [{ leadId: 'galnet-lead:earlier-cache:0', disposition: 'resolved', explanation: 'The ship was found.',
+        evidence: { articleId: report.articleId, quote: 'The ship was found.' }, replacementActivityIndex: null, communityGoalId: null }] } })
+  const markup = renderToStaticMarkup(<GalnetAnalysisReport analysis={story} />)
+  expect(markup).toContain('Story update')
+  expect(markup).toContain('Earlier leads')
+  expect(markup).toContain('https://example.com/earlier')
+  expect(markup).toContain(report.sourceUrl)
+  expect(markup).toContain('2 dated articles, not verified live availability')
+  const api = { getGalnetAnalysis: vi.fn(async () => ({ ...empty, contextChanged: true, analysis: story })),
+    analyseGalnetArticle: vi.fn(async () => empty) }
+  const renderer = await renderWithAct(<GalnetAnalysisPanel api={api} articleId={report.articleId} />)
+  try {
+    expect(JSON.stringify(renderer.toJSON())).toContain('Its earlier lead decisions are not applied to the Atlas.')
+    expect(api.analyseGalnetArticle).not.toHaveBeenCalled()
+  } finally { await act(async () => renderer.unmount()) }
 })

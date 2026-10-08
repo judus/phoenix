@@ -10,7 +10,7 @@ function setup() {
   db.initialize()
   db.galnetArchive.observe([analysisArticle], '2026-10-07T12:00:00Z')
   const analyser = { model: 'synthetic-model', configured: () => true,
-    analyse: vi.fn<GalnetArticleAnalyser['analyse']>(async () => ({ content: structuredClone(analysisContent), usage: analysisUsage })) }
+    analyse: vi.fn<GalnetArticleAnalyser['analyse']>(async () => ({ content: structuredClone(analysisContent), continuity: null, usage: analysisUsage })) }
   const goals = { getCurrent: vi.fn(async () => structuredClone(analysisGoals)) }
   const service = new GalnetAnalysisService(db.galnetArchive, goals, db.galnetAnalyses, analyser)
   return { db, analyser, goals, service, close: async () => { await service.stop(); db.close() } }
@@ -45,14 +45,14 @@ test('all evidence fields retain original source quotes after presentation-only 
       for (const entry of content[group]) entry.evidence = '"Pilots\' reports" confirm Colonia.'
     }
     content.activities[1]!.destination!.evidence = '"Pilots\' reports" confirm Colonia.'
-    fixture.analyser.analyse.mockResolvedValue({ content, usage: analysisUsage })
+    fixture.analyser.analyse.mockResolvedValue({ content, continuity: null, usage: analysisUsage })
     const result = await fixture.service.analyse(analysisArticle.id)
     const saved = fixture.db.galnetAnalyses.latest(analysisArticle.id)!
     expect(saved).toEqual(result.analysis)
     for (const group of ['facts', 'interpretations', 'entities', 'activities'] as const) {
       expect(saved.content[group].every(entry => entry.evidence === passage)).toBe(true)
     }
-    expect(saved.schemaVersion === 2 && saved.content.activities[1]!.destination?.evidence).toBe(passage)
+    expect(saved.schemaVersion === 3 && saved.content.activities[1]!.destination?.evidence).toBe(passage)
     expect(fixture.db.galnetArchive.getArticle(analysisArticle.id)!.article.body).toBe(passage)
     await fixture.service.analyse(analysisArticle.id)
     expect(fixture.analyser.analyse).toHaveBeenCalledTimes(1)
@@ -69,7 +69,7 @@ test.each(['facts', 'interpretations', 'entities', 'activities', 'destination'] 
     const quote = 'Unverified "beacon" <script> text'
     if (group === 'destination') content.activities[1]!.destination!.evidence = quote
     else content[group][0]!.evidence = quote
-    fixture.analyser.analyse.mockResolvedValue({ content, usage: analysisUsage })
+    fixture.analyser.analyse.mockResolvedValue({ content, continuity: null, usage: analysisUsage })
     const path = group === 'destination' ? 'activities[1].destination.evidence' : `${group}[0].evidence`
     await expect(fixture.service.analyse(analysisArticle.id)).rejects.toMatchObject({
       message: expect.stringContaining(`quote in ${path}: ${JSON.stringify(quote)}`),
@@ -78,7 +78,7 @@ test.each(['facts', 'interpretations', 'entities', 'activities', 'destination'] 
     expect(fixture.service.get(analysisArticle.id).analysis).toEqual(original)
     expect(fixture.analyser.analyse).toHaveBeenCalledTimes(2)
     // A new request happens only after the player explicitly retries.
-    fixture.analyser.analyse.mockResolvedValue({ content: analysisContent, usage: analysisUsage })
+    fixture.analyser.analyse.mockResolvedValue({ content: analysisContent, continuity: null, usage: analysisUsage })
     await fixture.service.analyse(analysisArticle.id)
     expect(fixture.analyser.analyse).toHaveBeenCalledTimes(3)
   } finally { await fixture.close() }
@@ -95,7 +95,7 @@ test.each(['facts', 'interpretations', 'entities', 'activities', 'destination'] 
     const content = structuredClone(analysisContent)
     if (group === 'destination') content.activities[1]!.destination!.evidence = quote
     else content[group][0]!.evidence = quote
-    fixture.analyser.analyse.mockResolvedValue({ content, usage: analysisUsage })
+    fixture.analyser.analyse.mockResolvedValue({ content, continuity: null, usage: analysisUsage })
     const path = group === 'destination' ? 'activities[1].destination.evidence' : `${group}[0].evidence`
     await expect(fixture.service.analyse(analysisArticle.id)).rejects.toMatchObject({
       code: group === 'destination' ? 'galnet_analysis_invalid_destination' : 'galnet_analysis_invalid_evidence',
@@ -133,7 +133,7 @@ test.each(['quote', 'unknown-goal', 'duplicate-goal', 'missing-relationship'] as
     if (fault === 'unknown-goal') content.activities[0]!.communityGoalId = 'invented-id'
     if (fault === 'duplicate-goal') content.activities.push({ ...content.activities[0]! })
     if (fault === 'missing-relationship') content.activities[0]!.relationship = 'none'
-    fixture.analyser.analyse.mockResolvedValue({ content, usage: analysisUsage })
+    fixture.analyser.analyse.mockResolvedValue({ content, continuity: null, usage: analysisUsage })
     await expect(fixture.service.analyse(analysisArticle.id)).rejects.toMatchObject({ category: 'structured_output_validation' })
     expect(fixture.service.get(analysisArticle.id).analysis).toBeNull()
   } finally { await fixture.close() }
@@ -164,7 +164,7 @@ test('one manual job at a time, shutdown aborts it and late output is never pers
   fixture.analyser.analyse.mockImplementation(async (_article, _goals, currentSignal) => {
     signal = currentSignal
     await new Promise<void>(resolve => { release = resolve })
-    return { content: analysisContent, usage: analysisUsage }
+    return { content: analysisContent, continuity: null, usage: analysisUsage }
   })
   try {
     const running = fixture.service.analyse(analysisArticle.id)
@@ -181,7 +181,7 @@ test('one manual job at a time, shutdown aborts it and late output is never pers
   } finally { release?.(); await fixture.close() }
 })
 
-test('existing v1 evidence stays readable without calls; explicit update creates a v2 report without overwriting it', async () => {
+test('existing v1 evidence stays readable without calls; explicit update creates a v3 report without overwriting it', async () => {
   const fixture = setup()
   try {
     const legacy = GalnetAnalysisSchema.parse({ ...savedGalnetAnalysis(), schemaVersion: 1,
@@ -190,7 +190,7 @@ test('existing v1 evidence stays readable without calls; explicit update creates
     fixture.db.galnetAnalyses.put(legacy)
     expect(fixture.service.get(analysisArticle.id).analysis).toEqual(legacy)
     expect(fixture.analyser.analyse).not.toHaveBeenCalled()
-    expect((await fixture.service.analyse(analysisArticle.id)).analysis).toMatchObject({ schemaVersion: 2, extractorVersion: 'galnet-analysis-v2' })
+    expect((await fixture.service.analyse(analysisArticle.id)).analysis).toMatchObject({ schemaVersion: 3, extractorVersion: 'galnet-analysis-v3' })
     expect(fixture.db.galnetAnalyses.get(legacy.cacheKey)).toEqual(legacy)
     expect(fixture.analyser.analyse).toHaveBeenCalledTimes(1)
   } finally { await fixture.close() }
@@ -208,7 +208,7 @@ test.each(['quote', 'name', 'entity', 'partial-prefix', 'partial-suffix'] as con
       content.activities[1]!.destination!.systemName = name
       content.entities.push({ ...content.entities.find(entity => entity.name === 'Colonia')!, name })
     }
-    fixture.analyser.analyse.mockResolvedValue({ content, usage: analysisUsage })
+    fixture.analyser.analyse.mockResolvedValue({ content, continuity: null, usage: analysisUsage })
     await expect(fixture.service.analyse(analysisArticle.id)).rejects.toMatchObject({ code: 'galnet_analysis_invalid_destination' })
     expect(fixture.service.get(analysisArticle.id).analysis).toBeNull()
   } finally { await fixture.close() }
@@ -225,7 +225,7 @@ test.each(['SMOJE TO-Z d13-40', 'BD+05 1295'])('accepts a fully quoted system na
     entity.name = name
     entity.evidence = entity.evidence.replace('Colonia', name)
     fixture.db.galnetArchive.observe([{ ...analysisArticle, body: analysisArticle.body.replace('Colonia', name) }], '2026-10-08T12:00:00Z')
-    fixture.analyser.analyse.mockResolvedValue({ content, usage: analysisUsage })
+    fixture.analyser.analyse.mockResolvedValue({ content, continuity: null, usage: analysisUsage })
     expect((await fixture.service.analyse(analysisArticle.id)).analysis?.content.activities[1]).toMatchObject({ destination: { systemName: name } })
   } finally { await fixture.close() }
 })

@@ -61,9 +61,21 @@ const application = new PhoenixApplication({
     }, { id: 'synthetic-narrative', title: 'Synthetic narrative only', body: 'A ceremonial speech was broadcast.',
       image: null, publishedAt: '2026-09-30T12:00:00Z', changedAt: '2026-09-30T12:00:00Z',
       slug: 'synthetic-narrative', sourceUrl: 'https://example.com/galnet/synthetic-narrative' }] },
-    galnetAnalyser: { model: 'synthetic-no-network', configured: () => true, analyse: async article => {
+    galnetAnalyser: { model: 'synthetic-no-network', configured: () => true, analyse: async (article, _goals, _signal, context) => {
       await new Promise(resolve => setTimeout(resolve, 200))
-      if (galnetContinuity) return { usage: { inputTokens: 1200, outputTokens: 400 }, content: {
+      const found = article.article.id === 'synthetic-found' ? article.article : context.find(entry => entry.source.articleId === 'synthetic-found')?.article
+      const continuity = context.length === 0 ? null : {
+        summary: article.article.id === 'synthetic-found' ? 'The missing ship was located. The earlier search has concluded.'
+          : 'The ship disappeared, was located, and later coverage reports a separate combat appeal. The search ending does not conclude the combat campaign.',
+        relatedArticleIds: context.map(entry => entry.source.articleId),
+        developments: [...context].reverse().map(entry => ({ text: entry.article.title, evidence: { articleId: entry.article.id, quote: entry.article.body } }))
+          .concat([{ text: article.article.title, evidence: { articleId: article.article.id, quote: article.article.body } }]),
+        updates: found ? context.filter(entry => entry.source.articleId === 'synthetic-missing').flatMap(entry => entry.activities.map(activity => ({
+          leadId: activity.leadId, disposition: 'resolved', explanation: 'The missing-ship search concluded when the ship was located.',
+          evidence: { articleId: found.id, quote: found.body }, replacementActivityIndex: null, communityGoalId: null
+        }))) : []
+      }
+      if (galnetContinuity) return { continuity, usage: { inputTokens: 1200, outputTokens: 400 }, content: {
         summary: article.article.body, facts: [{ text: article.article.title, evidence: article.article.body }], interpretations: [],
         entities: [{ name: 'EVE-597', kind: 'ship', role: 'Synthetic story subject', evidence: article.article.body }],
         activities: [{ title: article.article.id === 'synthetic-breakout' ? 'Combat appeal' : 'Find the ship',
@@ -72,7 +84,7 @@ const application = new PhoenixApplication({
           relationship: article.article.id === 'synthetic-breakout' ? 'explicit' : 'none',
           status: article.article.id === 'synthetic-found' ? 'ended' : 'unknown', destination: null }]
       } }
-      return { usage: { inputTokens: 1200, outputTokens: 400 }, content: {
+      return { continuity: null, usage: { inputTokens: 1200, outputTokens: 400 }, content: {
         summary: 'Synthetic public-news analysis; no AI request was made.',
         facts: [{ text: 'The source describes a fictional event.', evidence: article.article.body }],
         interpretations: [], entities: article.article.id === 'synthetic-analysis' ? [{ name: 'Colonia', kind: 'system',

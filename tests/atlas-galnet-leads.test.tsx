@@ -12,7 +12,7 @@ import { phoenixApiStub } from './support/phoenix-api-stub.js'
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
 function snapshot(): GalnetInvestigationLeadsResponse {
   const analysis = savedGalnetAnalysis()
-  return new GalnetInvestigationLeadsService({ recent: () => [{ analysis, articleChanged: false, currentArticleTitle: 'Synthetic story' }] }).get()
+  return new GalnetInvestigationLeadsService({ recent: () => [{ analysis, articleChanged: false, contextChanged: false, currentArticleTitle: 'Synthetic story' }] }).get()
 }
 
 test.each([1, 2])('page describes unknown destinations without technical legacy-report notices: %i', async count => {
@@ -39,12 +39,12 @@ test('Atlas projection includes only independent, unended, destination-backed v2
   const legacy = GalnetAnalysisSchema.parse({ ...analysis, schemaVersion: 1, extractorVersion: 'galnet-analysis-v1',
     content: { ...analysis.content, activities: analysis.content.activities.map(({ destination: _destination, ...activity }) => activity) } })
   const recent = vi.fn(() => [
-    { analysis, articleChanged: false, currentArticleTitle: 'Synthetic story' },
-    { analysis: legacy, articleChanged: false, currentArticleTitle: 'Old report' },
-    { analysis, articleChanged: true, currentArticleTitle: 'Corrected story' }
+    { analysis, articleChanged: false, contextChanged: false, currentArticleTitle: 'Synthetic story' },
+    { analysis: legacy, articleChanged: false, contextChanged: false, currentArticleTitle: 'Old report' },
+    { analysis, articleChanged: true, contextChanged: false, currentArticleTitle: 'Corrected story' }
   ])
   const result = new GalnetInvestigationLeadsService({ recent }).get()
-  expect(recent).toHaveBeenCalledWith(20)
+  expect(recent).toHaveBeenCalledWith(100)
   expect(result.omitted).toEqual({ legacyReports: 1, changedReports: 1, endedLeads: 1, withoutDestination: 1 })
   expect(result.leads).toHaveLength(1)
   expect(result.leads[0]).toMatchObject({ title: 'Investigate the beacon', systemName: 'Colonia', status: 'unknown',

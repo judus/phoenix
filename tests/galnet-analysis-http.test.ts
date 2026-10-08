@@ -12,7 +12,7 @@ test('paired manual HTTP analysis preserves goal references and survives restart
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-analysis-http-'))
   const path = join(directory, 'state.sqlite')
   const access = new PairingAccessController(join(directory, 'pairing.json'))
-  const analyse = vi.fn(async () => ({ content: analysisContent, usage: analysisUsage }))
+  const analyse = vi.fn(async () => ({ content: analysisContent, continuity: null, usage: analysisUsage }))
   const app = new PhoenixApplication({ databasePath: path, eliteDirectory: null, host: '127.0.0.1', port: 0,
     copilot: null, copilotRealtime: null, openAiEnvironmentKey: null, accessControl: access,
     galnetSource: { getLatest: async () => [analysisArticle] },
@@ -58,7 +58,7 @@ test('paired manual HTTP analysis preserves goal references and survives restart
     expect(analyse).not.toHaveBeenCalled()
     const invalidContent = structuredClone(analysisContent)
     invalidContent.facts[0]!.evidence = 'Invented "beacon" quote'
-    analyse.mockResolvedValueOnce({ content: invalidContent, usage: analysisUsage })
+    analyse.mockResolvedValueOnce({ content: invalidContent, continuity: null, usage: analysisUsage })
     const rejected = await request(`${origin}/api/galnet/analysis`, { method: 'POST', body: JSON.stringify({ articleId: analysisArticle.id }) })
     expect(rejected.status).toBe(502)
     expect(await rejected.json()).toMatchObject({ error: { code: 'galnet_analysis_invalid_evidence',
@@ -66,6 +66,9 @@ test('paired manual HTTP analysis preserves goal references and survives restart
     expect(analyse).toHaveBeenCalledTimes(1)
     expect((await client.getGalnetAnalysis(analysisArticle.id)).analysis).toBeNull()
     const result = await client.analyseGalnetArticle(analysisArticle.id)
+    expect(await client.getGalnetCoverage(analysisArticle.id)).toMatchObject({ reports: [{
+      analysis: { schemaVersion: 3, cacheKey: result.analysis!.cacheKey }, contextChanged: false
+    }] })
     expect(result.analysis?.content).toEqual(analysisContent)
     expect(result.analysis?.communityGoals.goals).toEqual(analysisGoals.goals)
     expect(await client.getGalnetInvestigationLeads()).toMatchObject({ reportLimit: 20,

@@ -35,9 +35,9 @@ test('saved reader flags corrected articles, retains dated evidence and does not
     const report = savedGalnetAnalysis({ articleRevisionId: db.galnetArchive.getArticle(analysisArticle.id)!.revisionId })
     db.galnetAnalyses.put(report)
     const reader = new SavedGalnetAnalysisService(db.galnetAnalyses, db.galnetArchive)
-    expect(reader.get(report.articleId)).toEqual({ analysis: report, currentArticleTitle: analysisArticle.title, articleChanged: false })
+    expect(reader.get(report.articleId)).toEqual({ analysis: report, currentArticleTitle: analysisArticle.title, articleChanged: false, contextChanged: false })
     db.galnetArchive.observe([{ ...analysisArticle, title: 'Corrected title' }], '2026-10-08T12:00:00Z')
-    expect(reader.recent(10)).toEqual([{ analysis: report, currentArticleTitle: 'Corrected title', articleChanged: true }])
+    expect(reader.recent(10)).toEqual([{ analysis: report, currentArticleTitle: 'Corrected title', articleChanged: true, contextChanged: false }])
     expect(reader.get('missing')).toBeNull()
   } finally { db.close() }
 })
@@ -46,7 +46,7 @@ test('tool summaries stay compact; detail preserves facts, uncertainty and only 
   const report = savedGalnetAnalysis()
   report.communityGoals.cache = 'stale'
   report.communityGoals.goals.push({ ...report.communityGoals.goals[0]!, id: 'unrelated', briefing: 'Unrelated briefing' })
-  const saved = { analysis: report, currentArticleTitle: 'Corrected title', articleChanged: true }
+  const saved = { analysis: report, currentArticleTitle: 'Corrected title', articleChanged: true, contextChanged: false }
   const recent = vi.fn(() => [saved])
   const get = vi.fn(() => saved)
   const list = new CommsListGalnetAnalysesTool({ recent })
