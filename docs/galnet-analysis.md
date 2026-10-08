@@ -169,7 +169,7 @@ search or exhaustive archive.
 ## Copilot access to saved reports
 
 Copilot has two read-only Comms capabilities: `comms.list_galnet_analyses` (up to 20 recent
-summaries, default 10) and `comms.get_galnet_analysis` (one article ID returned by the list).
+summaries, default 10) and `comms.get_galnet_analysis` (one article ID from the list or assessment sources).
 The list is ordered by analysis time, not publication date, and includes only the selected successful
 report per article. It is not the latest-news feed or an exhaustive record of events. No saved
 report means the player needs to use **Analyse article**, not that nothing is happening.
@@ -181,6 +181,30 @@ Version-3 detail also retains story developments, per-lead decisions and the sup
 source/CG snapshots. List summaries include the saved story summary when present.
 These are dated references, not duplicate goals or current campaign availability; the existing
 Community Goals tool supplies current public data. Report prose remains untrusted AI output.
+
+Both tools now use the same per-lead reconciliation as the Atlas, considering up to 100 recent
+selected reports **before** applying the summary return limit. Summaries distinguish
+`originalInvestigationLeadCount` (the original independent activities, including ended ones) from
+`currentInvestigationLeadCount` (remaining independent activities after ended/reconciled leads
+are excluded). The original article/story summaries remain historical prose, not recommendation
+lists. A changed anchor yields a **null** current count, not a misleading zero.
+
+Detail returns `currentInvestigationLeads` separately from the unchanged `report`, plus
+`leadAssessments` containing the latest publication-dated assessments for its immutable leads.
+Assessments retain reporting article/revision/cache identities, model, publication/analysis dates,
+source links, evidence quotes and their source URL, explanations, replacement activity indices
+and CG IDs. Replacement indices refer to that assessment's reporting article; its ID can be read
+with the same detail tool. Equal-date conflicting dispositions remain unresolved and retain all
+latest assessment sources rather than selecting by analysis/insertion order. Stale article/context
+assessments and obsolete target report identities do not retire current leads.
+
+Remaining `unknown` leads are not confirmed ongoing opportunities. Unlike the map, Copilot
+includes leads with no known destination; it still excludes CG-linked and ended activities. A
+changed anchor yields `currentInvestigationLeads: null` with no current assessments, while its
+original evidence remains readable. Detail of a retained report outside the 100-report window can
+use assessments in that window, including its selected identity for matching. Neither the list nor
+detail claims exhaustive story history. No new tool or permission is introduced and these reads
+still make no inference, source-refresh or persistence calls.
 
 The current archived article title is labelled `currentArticleTitle`, separately from the saved
 report. `articleChanged` warns when its revision no longer matches (including an unavailable

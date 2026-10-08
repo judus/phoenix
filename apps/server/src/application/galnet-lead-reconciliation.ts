@@ -9,9 +9,26 @@ export function galnetContextChanged(analysis: GalnetAnalysis, archive: Pick<Gal
     reports.latest(source.articleId)?.cacheKey !== source.analysisCacheKey)
 }
 
+interface GalnetLeadAssessment {
+  articleId: string
+  articleRevisionId: string
+  analysisCacheKey: string
+  sourceUrl: string
+  publishedAt: string
+  analysedAt: string
+  model: string
+  evidenceSourceUrl: string
+  update: GalnetContinuity['updates'][number]
+}
+
+export interface GalnetLeadDecision {
+  disposition: GalnetContinuity['updates'][number]['disposition']
+  assessments: GalnetLeadAssessment[]
+}
+
 /** Latest explicit per-lead assessment, not latest-article-wins. Equal-date conflicts keep a lead. */
-export function reconciledGalnetLeads(reports: SavedGalnetAnalysis[]): Set<string> {
-  const decisions = new Map<string, { publishedAt: number, disposition: GalnetContinuity['updates'][number]['disposition'] }>()
+export function galnetLeadDecisions(reports: SavedGalnetAnalysis[]): Map<string, GalnetLeadDecision> {
+  const decisions = new Map<string, GalnetLeadDecision>()
   const latest = new Map(reports.map(saved => [saved.analysis.articleId, saved.analysis.cacheKey]))
   for (const saved of reports) {
     const report = saved.analysis
@@ -22,9 +39,22 @@ export function reconciledGalnetLeads(reports: SavedGalnetAnalysis[]): Set<strin
       if (!source || latest.get(source.articleId) !== source.analysisCacheKey) continue
       const publishedAt = Date.parse(report.publishedAt)
       const previous = decisions.get(update.leadId)
-      if (!previous || publishedAt > previous.publishedAt) decisions.set(update.leadId, { publishedAt, disposition: update.disposition })
-      else if (publishedAt === previous.publishedAt && previous.disposition !== update.disposition) previous.disposition = 'unresolved'
+      const assessment: GalnetLeadAssessment = { articleId: report.articleId, articleRevisionId: report.articleRevisionId,
+        analysisCacheKey: report.cacheKey, sourceUrl: report.sourceUrl, publishedAt: report.publishedAt,
+        analysedAt: report.analysedAt, model: report.model, update,
+        evidenceSourceUrl: update.evidence.articleId === report.articleId ? report.sourceUrl
+          : report.context.find(entry => entry.articleId === update.evidence.articleId)!.sourceUrl }
+      if (!previous || publishedAt > Date.parse(previous.assessments[0]!.publishedAt)) {
+        decisions.set(update.leadId, { disposition: update.disposition, assessments: [assessment] })
+      } else if (publishedAt === Date.parse(previous.assessments[0]!.publishedAt)) {
+        previous.assessments.push(assessment)
+        if (previous.disposition !== update.disposition) previous.disposition = 'unresolved'
+      }
     }
   }
-  return new Set([...decisions].filter(([, decision]) => decision.disposition !== 'unresolved').map(([id]) => id))
+  return decisions
+}
+
+export function reconciledGalnetLeads(reports: SavedGalnetAnalysis[]): Set<string> {
+  return new Set([...galnetLeadDecisions(reports)].filter(([, decision]) => decision.disposition !== 'unresolved').map(([id]) => id))
 }

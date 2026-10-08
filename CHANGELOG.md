@@ -4,6 +4,10 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Give Copilot the reconciled GalNet lead picture rather than original activity counts. Keep
+  source-backed resolutions, replacements and campaign links alongside unchanged original reports;
+  uncertain or conflicting leads remain visible, including those without a map destination.
+
 - Refresh saved GalNet stories automatically when earlier related coverage is analysed or changes,
   while background analysis is enabled. Process dependencies oldest-first, reuse valid cached
   reports and keep failed unchanged evidence from retrying itself.
