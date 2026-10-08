@@ -36,20 +36,24 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
   public configured (): boolean { return this.analyser.configured() }
 
   /** Read-only scheduling evidence; use exactly the context the next analysis would receive. */
-  public contextRefreshes (): { articleId: string, evidenceKey: string }[] {
+  public contextWork (): { refreshes: { articleId: string, evidenceKey: string }[], blockedArticleIds: string[] } {
     // Parse the bounded report window once, not once per article on every worker/UI poll.
     const reports = this.repository.recent(100)
     const byId = new Map(reports.map(report => [report.articleId, report]))
     const reader = { recent: () => reports, latest: (id: string) => byId.get(id) ?? this.repository.latest(id) }
-    return reports.sort((a, b) => Date.parse(a.publishedAt) - Date.parse(b.publishedAt)).flatMap(report => {
+    const blockedArticleIds: string[] = []
+    const refreshes = reports.sort((a, b) => Date.parse(a.publishedAt) - Date.parse(b.publishedAt)).flatMap(report => {
       const article = this.articles.getArticle(report.articleId)
       if (!article || report.schemaVersion !== 3 || report.articleRevisionId !== article.revisionId) return []
       // Wait for corrected earlier articles, rather than removing their context temporarily
       // and spending another request when their corrected report arrives.
-      if (report.context.some(source => this.articles.getArticle(source.articleId)?.revisionId !==
-        reader.latest(source.articleId)?.articleRevisionId)) return []
       const context = galnetStoryContext(article, this.articles, reader)
-      if (context.some(entry => galnetContextChanged(byId.get(entry.source.articleId)!, this.articles, reader))) return []
+      if (report.context.some(source => this.articles.getArticle(source.articleId)?.revisionId !==
+        reader.latest(source.articleId)?.articleRevisionId) ||
+        context.some(entry => galnetContextChanged(byId.get(entry.source.articleId)!, this.articles, reader))) {
+        blockedArticleIds.push(report.articleId)
+        return []
+      }
       const keys = context.map(entry => entry.source.analysisCacheKey)
       if (JSON.stringify(keys) === JSON.stringify(report.context.map(source => source.analysisCacheKey))) return []
       // Include the replaced report: returning to an earlier cached context must select it
@@ -57,6 +61,7 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
       return [{ articleId: report.articleId,
         evidenceKey: createHash('sha256').update(JSON.stringify([report.cacheKey, keys])).digest('hex') }]
     })
+    return { refreshes, blockedArticleIds }
   }
 
   public analyse (articleId: string): Promise<GalnetAnalysisResponse> {

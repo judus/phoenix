@@ -20,7 +20,8 @@ export class GalnetBackgroundService {
     private readonly goals: CommunityGoalsReader,
     private readonly archive: GalnetArticleArchive,
     private readonly reports: SavedGalnetAnalysisReader,
-    private readonly analysis: GalnetAnalysisReader & { isBusy(): boolean, contextRefreshes(): { articleId: string, evidenceKey: string }[] },
+    private readonly analysis: GalnetAnalysisReader & { isBusy(): boolean,
+      contextWork(): { refreshes: { articleId: string, evidenceKey: string }[], blockedArticleIds: string[] } },
     private readonly configured: () => boolean,
     private readonly now: () => Date = () => new Date()
   ) {}
@@ -43,7 +44,7 @@ export class GalnetBackgroundService {
   public status(): GalnetBackgroundStatus {
     const { goals: _goals, ...state } = this.repository.load()
     const queued = new Set(this.repository.activeArticleIds())
-    const changedContext = new Set(this.analysis.contextRefreshes().map(refresh => refresh.articleId))
+    const changedContext = new Set(this.analysis.contextWork().refreshes.map(refresh => refresh.articleId))
     const backlog = this.archive.recent(100).filter(({ article }) => {
       const saved = this.reports.get(article.id)
       return !queued.has(article.id) && (!saved || saved.articleChanged || saved.contextChanged || changedContext.has(article.id))
@@ -66,7 +67,7 @@ export class GalnetBackgroundService {
       return article
     })
     const pending = new Set(this.repository.activeArticleIds())
-    const changedContext = new Set(this.analysis.contextRefreshes().map(refresh => refresh.articleId))
+    const changedContext = new Set(this.analysis.contextWork().refreshes.map(refresh => refresh.articleId))
     const eligible = articles.filter(article => {
       const saved = this.reports.get(article.article.id)
       return !pending.has(article.article.id) && (!saved || saved.articleChanged || saved.contextChanged || changedContext.has(article.article.id))
@@ -99,9 +100,10 @@ export class GalnetBackgroundService {
     }
     while (!this.stopped && this.configured() && !this.analysis.isBusy()) {
       const settings = this.repository.load()
-      if (settings.enabled) this.queueContextRefreshes()
+      const context = this.analysis.contextWork()
+      if (settings.enabled) this.queueContextRefreshes(context.refreshes)
       if (this.requestsToday() >= settings.dailyLimit) break
-      const job = this.repository.next(settings.enabled)
+      const job = this.repository.next(settings.enabled, context.blockedArticleIds)
       if (!job) break
       if (this.archive.getArticle(job.articleId)?.revisionId !== job.articleRevisionId) {
         this.repository.put({ ...job, state: 'skipped', finishedAt: this.now().toISOString(), error: 'A newer article revision replaced this queued evidence.' })
@@ -118,9 +120,9 @@ export class GalnetBackgroundService {
     }
   }
 
-  private queueContextRefreshes(): void {
+  private queueContextRefreshes(refreshes: { articleId: string, evidenceKey: string }[]): void {
     const pending = new Set(this.repository.activeArticleIds())
-    for (const { articleId, evidenceKey } of this.analysis.contextRefreshes()) {
+    for (const { articleId, evidenceKey } of refreshes) {
       if (pending.has(articleId)) continue
       // A full queue loses no observation: the next tick recomputes the same evidence key.
       this.enqueue(articleId, 'story-context', evidenceKey)

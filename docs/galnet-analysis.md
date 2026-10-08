@@ -88,7 +88,9 @@ catch-up can therefore refresh an already analysed newer article. This uses the 
 context selection as analysis, not a separate story matcher. Queue jobs run in publication order,
 including jobs admitted in separate batches. Corrected earlier articles must have a matching
 successful report before their existing dependents refresh; dependents with stale earlier context
-also wait. A failed refresh leaves the last successful report intact and never retries unchanged
+also wait. This readiness check applies to already queued jobs, including explicit catch-up:
+blocked dependents remain pending without consuming an attempt, while unrelated work can proceed.
+A successful prerequisite releases them on a later tick. A failed refresh leaves the last successful report intact and never retries unchanged
 evidence, including after restart. A later genuine evidence change or explicit retry can proceed.
 Context checks only revisit existing reports; they never start analysing uncovered history.
 

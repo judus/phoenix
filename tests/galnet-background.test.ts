@@ -125,6 +125,28 @@ test('story refresh needs background consent and obeys the existing UTC allowanc
   } finally { await f.close() }
 })
 
+test('a failed catch-up prerequisite leaves dependents pending, allows unrelated work, and releases them after retry', async () => {
+  const f = storyFixture()
+  try {
+    for (const article of f.articles) await f.analysis.analyse(article.id)
+    f.db.galnetArchive.observe([{ ...f.articles[0]!, title: 'Corrected EVE-597 report' },
+      { ...analysisArticle, id: 'unrelated', publishedAt: '2026-09-14T12:00:00Z', body: 'Independent news.' }
+    ], '2026-10-07T13:00:00Z')
+    f.worker.catchUp(['later', 'middle', 'earlier', 'unrelated'])
+    f.analyser.analyse.mockRejectedValueOnce(new Error('Synthetic prerequisite failure'))
+    await f.worker.tick()
+    expect(f.analyser.analyse.mock.calls.slice(3).map(call => call[0].article.id)).toEqual(['earlier', 'unrelated'])
+    expect(f.db.galnetBackground.list('pending').map(job => job.articleId)).toEqual(['middle', 'later'])
+    expect(f.worker.status()).toMatchObject({ enabled: false, requestsToday: 2, pending: 2 })
+    f.db.initialize(); await f.worker.tick()
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(5)
+    f.worker.catchUp(['earlier']); await f.worker.tick()
+    expect(f.analyser.analyse.mock.calls.slice(-3).map(call => call[0].article.id)).toEqual(['earlier', 'middle', 'later'])
+    expect(f.worker.status()).toMatchObject({ pending: 0, requestsToday: 5 })
+    expect(f.analysis.get('later').contextChanged).toBe(false)
+  } finally { await f.close() }
+})
+
 test('returning to an earlier cached context selects it for subsequent reads without inference', async () => {
   const f = storyFixture()
   try {

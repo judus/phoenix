@@ -16,7 +16,7 @@ export interface GalnetBackgroundRepository {
   enqueue(job: GalnetBackgroundJob): boolean
   put(job: GalnetBackgroundJob): void
   list(state?: GalnetBackgroundJob['state'], limit?: number): GalnetBackgroundJob[]
-  next(includeAutomatic: boolean): GalnetBackgroundJob | null
+  next(includeAutomatic: boolean, blockedArticleIds?: string[]): GalnetBackgroundJob | null
   activeArticleIds(): string[]
   pending(): number
   requestsSince(since: string): number
