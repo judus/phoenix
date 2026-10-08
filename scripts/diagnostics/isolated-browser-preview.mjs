@@ -1,6 +1,7 @@
 // npm run build, then: node --import tsx scripts/diagnostics/isolated-browser-preview.mjs
 // In-memory browser diagnostics only: no real journals, game input, or provider requests.
 // Add --prospecting for a synthetic pre-Odyssey candidate with unknown signal counts.
+// Add --copilot-navigation for delayed synthetic chat using real MCP and history persistence.
 import { createRequire } from 'node:module'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -12,6 +13,7 @@ import { createEmptyRuntimeState } from '@phoenix/contracts'
 import { mockDenseCartography } from './mock-dense-cartography.mjs'
 import { SqliteEddnOutbox } from '../../apps/server/src/infrastructure/sqlite-eddn-outbox.ts'
 import { SqliteGalnetArticleArchive } from '../../apps/server/src/infrastructure/sqlite-galnet-article-archive.ts'
+import { createNavigationCopilot } from './copilot-navigation-fixture.mjs'
 
 const require = createRequire(import.meta.url)
 const { RecordingKeyboardOutput } = require('control-deck/adapter-keyboard')
@@ -22,6 +24,9 @@ const prospecting = process.argv.includes('--prospecting')
 const atlasPois = process.argv.includes('--atlas-pois')
 const communityGoals = process.argv.includes('--community-goals')
 const galnetArchive = process.argv.includes('--galnet-archive')
+// Exercise display-tool navigation during a real HTTP chat stream, without paid inference.
+const copilotNavigation = process.argv.includes('--copilot-navigation')
+let copilotOrigin
 const galnetContinuity = process.argv.includes('--galnet-continuity') || galnetArchive
 const galnetAnalysis = process.argv.includes('--galnet-analysis') || galnetContinuity
 const continuityArticles = [
@@ -51,7 +56,7 @@ const application = new PhoenixApplication({
   port: 0,
   keyboardOutput: new RecordingKeyboardOutput(),
   webRoot: `${projectRoot}apps/web/dist`,
-  copilot: null,
+  copilot: copilotNavigation ? createNavigationCopilot(() => copilotOrigin) : null,
   copilotRealtime: null,
   openAiEnvironmentKey: null,
   ...(galnetAnalysis ? {
@@ -133,6 +138,7 @@ const application = new PhoenixApplication({
   }) }
 })
 const { port } = await application.start()
+copilotOrigin = `http://127.0.0.1:${port}`
 if (galnetArchive) {
   const connection = new DatabaseSync(databasePath)
   try {

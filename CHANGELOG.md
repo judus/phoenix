@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Keep Copilot text turns running across workspace switches and when a tool opens another page. Returning to chat preserves
+  the pending exchange and its completed history instead of silently cancelling and losing it.
+
 - Let Copilot open the Galactic Atlas and show a system, centred with its location details.
   The new Atlas tool lives under Display permissions and checks coordinates before navigating.
 
