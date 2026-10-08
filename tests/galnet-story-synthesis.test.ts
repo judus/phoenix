@@ -143,6 +143,24 @@ test('historical CG references remain dated and reconcile leads without manufact
   } finally { await f.close() }
 })
 
+test.each([true, false])('context offers only independent leads without renumbering their original indices: mixed=%s', async mixed => {
+  const f = setup()
+  try {
+    const report = structuredClone(f.prior)
+    report.content.activities = [{ ...report.content.activities[0]!, communityGoalId: analysisGoals.goals[0]!.id,
+      relationship: 'explicit' }, ...(mixed ? [report.content.activities[1]!] : [])]
+    f.db.galnetAnalyses.put({ ...report, cacheKey: 'campaign-context', analysedAt: '2026-10-08T12:00:00Z' })
+    const context = galnetStoryContext(f.db.galnetArchive.getArticle('found')!, f.db.galnetArchive, f.db.galnetAnalyses)
+    expect(context[0]!.activities.map(activity => activity.leadId))
+      .toEqual(mixed ? ['galnet-lead:campaign-context:1'] : [])
+    expect(context[0]!.source.communityGoals.goals.map(goal => goal.id)).toEqual([analysisGoals.goals[0]!.id])
+    f.continuity.updates = []
+    const result = await f.service.analyse('found')
+    expect(result.analysis?.schemaVersion === 3 && result.analysis.continuity?.summary).toBe(f.continuity.summary)
+    expect(f.analyser.analyse.mock.calls[0]![3][0]!.activities).toEqual(context[0]!.activities)
+  } finally { await f.close() }
+})
+
 test('corrected source evidence stops reconciliation; changed related context is visibly flagged', async () => {
   const f = setup()
   try {

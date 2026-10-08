@@ -18,7 +18,8 @@ export function galnetStoryContext(article: GalnetArticleRevision, archive: Pick
       analysisCacheKey: report.cacheKey, title: revision.article.title, sourceUrl: report.sourceUrl,
       publishedAt: report.publishedAt, communityGoals: { ...report.communityGoals,
         goals: report.communityGoals.goals.filter(goal => linked.has(goal.id)) } }, article: revision.article,
-      activities: report.content.activities.map((activity, index) => ({ leadId: `galnet-lead:${report.cacheKey}:${index}`, activity })) })
+      activities: report.content.activities.flatMap((activity, index) => activity.communityGoalId === null
+        ? [{ leadId: `galnet-lead:${report.cacheKey}:${index}`, activity }] : []) })
     if (contexts.length === 5) break
   }
   return contexts
