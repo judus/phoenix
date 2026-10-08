@@ -5,6 +5,7 @@ export interface GalnetAnalysisRepository {
   get(cacheKey: string): GalnetAnalysis | null
   latest(articleId: string): GalnetAnalysis | null
   recent(limit: number): GalnetAnalysis[]
+  /** Retain immutable evidence and select it as this article's current successful report. */
   put(analysis: GalnetAnalysis): void
 }
 

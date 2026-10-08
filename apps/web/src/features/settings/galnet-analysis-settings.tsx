@@ -6,7 +6,7 @@ export function GalnetAnalysisSettings({ api }: { api: GalnetBackgroundApi }) {
   return <Section title="GalNet intelligence" description="Optional background AI analysis, separate from Copilot permissions. Uses your configured model and API credit.">
     <SettingsList>
       <SettingRow title="Analyse new coverage automatically" scope="Installation"
-        description="Checks every 15 minutes for new or revised articles and changed Community Goal briefings. Older articles require manual catch-up in GalNet. An in-flight request may still finish after switching off. Off until explicitly enabled.">
+        description="Checks every 15 minutes for new or revised articles and changed Community Goal briefings. Refreshes saved stories when earlier coverage changes or is analysed later. Unanalysed older articles require manual catch-up in GalNet. An in-flight request may still finish after switching off. Off until explicitly enabled.">
         <SettingToggle label={status?.enabled ? 'On' : 'Off'} checked={status?.enabled ?? false} disabled={!status || pending}
           onChange={() => status && void change(signal => api.saveGalnetBackground({ enabled: !status.enabled, dailyLimit: status.dailyLimit }, signal))} />
       </SettingRow>

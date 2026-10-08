@@ -39,6 +39,159 @@ function fixture() {
   }
 }
 
+function storyFixture() {
+  const f = fixture()
+  const articles = ['earlier', 'middle', 'later'].map((id, index) => ({ ...analysisArticle, id,
+    title: `EVE-597 report ${index}`, body: 'EVE-597 needs investigation.',
+    publishedAt: `2026-09-${10 + index}T12:00:00Z` }))
+  f.db.galnetArchive.observe(articles, '2026-10-07T12:00:00Z')
+  f.analyser.analyse.mockImplementation(async article => ({ content: {
+    summary: article.article.title, facts: [], interpretations: [], activities: [],
+    entities: article.article.body.includes('EVE-597')
+      ? [{ name: 'EVE-597', kind: 'ship', role: 'Subject', evidence: 'EVE-597' }] : []
+  }, continuity: null, usage: analysisUsage }))
+  return { ...f, articles }
+}
+
+test('late earlier analysis refreshes an existing newer report once without analysing uncovered history', async () => {
+  const f = storyFixture()
+  try {
+    await f.analysis.analyse('later')
+    await f.analysis.analyse('earlier')
+    const earlier = f.db.galnetAnalyses.latest('earlier')!
+    f.enable(); await f.worker.tick()
+    expect(f.analyser.analyse.mock.calls.map(call => call[0].article.id)).toEqual(['later', 'earlier', 'later'])
+    expect(f.db.galnetAnalyses.latest('later')).toMatchObject({ context: [{ analysisCacheKey: earlier.cacheKey }] })
+    expect(f.worker.status().jobs).toMatchObject([{ reason: 'story-context', state: 'succeeded' }])
+    f.advance(); await f.worker.tick(); f.db.initialize(); await f.worker.tick()
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(3)
+    expect(f.db.galnetAnalyses.latest('middle')).toBeNull()
+  } finally { await f.close() }
+})
+
+test('changed earlier evidence refreshes dependencies oldest first, then stops', async () => {
+  const f = storyFixture()
+  try {
+    for (const article of f.articles) await f.analysis.analyse(article.id)
+    const old = f.db.galnetAnalyses.latest('earlier')!
+    f.db.galnetArchive.observe([{ ...f.articles[0]!, title: 'Corrected EVE-597 report' }], '2026-10-07T13:00:00Z')
+    f.enable(); await f.worker.tick()
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(3) // Wait for the corrected earlier report.
+    f.worker.catchUp(['earlier']); await f.worker.tick()
+    expect(f.analyser.analyse.mock.calls.map(call => call[0].article.id)).toEqual([
+      'earlier', 'middle', 'later', 'earlier', 'middle', 'later'
+    ])
+    expect(f.db.galnetAnalyses.get(old.cacheKey)).toEqual(old)
+    expect(f.analysis.get('middle').contextChanged).toBe(false)
+    expect(f.analysis.get('later').contextChanged).toBe(false)
+    await f.worker.tick()
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(6)
+  } finally { await f.close() }
+})
+
+test('failed story refresh does not retry unchanged evidence or refresh downstream against stale context', async () => {
+  const f = storyFixture()
+  try {
+    for (const article of f.articles) await f.analysis.analyse(article.id)
+    f.db.galnetArchive.observe([{ ...f.articles[0]!, title: 'Corrected EVE-597 report' }], '2026-10-07T13:00:00Z')
+    await f.analysis.analyse('earlier')
+    f.analyser.analyse.mockRejectedValueOnce(new Error('Synthetic refresh failure'))
+    f.enable(); await f.worker.tick()
+    expect(f.worker.status().jobs).toMatchObject([{ articleId: 'middle', state: 'failed', reason: 'story-context' }])
+    f.db.initialize(); f.advance(); await f.worker.tick(); await f.worker.tick()
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(5)
+    // An explicit successful retry releases its newer dependent; no worker retry loop.
+    expect(f.worker.status().backlog.map(article => article.articleId)).toContain('middle')
+    f.worker.catchUp(['middle']); await f.worker.tick()
+    expect(f.analyser.analyse.mock.calls.slice(-2).map(call => call[0].article.id)).toEqual(['middle', 'later'])
+  } finally { await f.close() }
+})
+
+test('story refresh needs background consent and obeys the existing UTC allowance', async () => {
+  const f = storyFixture()
+  try {
+    await f.analysis.analyse('later'); await f.analysis.analyse('earlier')
+    await f.worker.tick()
+    expect(f.worker.status().jobs).toEqual([])
+    // Consume today's queue allowance with explicit work, then turn automatic refresh on.
+    f.worker.catchUp(['middle']); await f.worker.tick()
+    f.worker.setSettings({ enabled: true, dailyLimit: 1 }); await f.worker.tick()
+    expect(f.worker.status()).toMatchObject({ requestsToday: 1, pending: 1 })
+    f.worker.setSettings({ enabled: false, dailyLimit: 1 }); f.advance(24 * 60)
+    await f.worker.tick()
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(3)
+    f.enable(); await f.worker.tick()
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(4)
+  } finally { await f.close() }
+})
+
+test('a failed catch-up prerequisite leaves dependents pending, allows unrelated work, and releases them after retry', async () => {
+  const f = storyFixture()
+  try {
+    for (const article of f.articles) await f.analysis.analyse(article.id)
+    f.db.galnetArchive.observe([{ ...f.articles[0]!, title: 'Corrected EVE-597 report' },
+      { ...analysisArticle, id: 'unrelated', publishedAt: '2026-09-14T12:00:00Z', body: 'Independent news.' }
+    ], '2026-10-07T13:00:00Z')
+    f.worker.catchUp(['later', 'middle', 'earlier', 'unrelated'])
+    f.analyser.analyse.mockRejectedValueOnce(new Error('Synthetic prerequisite failure'))
+    await f.worker.tick()
+    expect(f.analyser.analyse.mock.calls.slice(3).map(call => call[0].article.id)).toEqual(['earlier', 'unrelated'])
+    expect(f.db.galnetBackground.list('pending').map(job => job.articleId)).toEqual(['middle', 'later'])
+    expect(f.worker.status()).toMatchObject({ enabled: false, requestsToday: 2, pending: 2 })
+    f.db.initialize(); await f.worker.tick()
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(5)
+    f.worker.catchUp(['earlier']); await f.worker.tick()
+    expect(f.analyser.analyse.mock.calls.slice(-3).map(call => call[0].article.id)).toEqual(['earlier', 'middle', 'later'])
+    expect(f.worker.status()).toMatchObject({ pending: 0, requestsToday: 5 })
+    expect(f.analysis.get('later').contextChanged).toBe(false)
+  } finally { await f.close() }
+})
+
+test('returning to an earlier cached context selects it for subsequent reads without inference', async () => {
+  const f = storyFixture()
+  try {
+    const original = (await f.analysis.analyse('later')).analysis!
+    await f.analysis.analyse('earlier')
+    f.enable(); await f.worker.tick()
+    expect(f.db.galnetAnalyses.latest('later')?.cacheKey).not.toBe(original.cacheKey)
+    f.db.galnetArchive.observe([{ ...f.articles[0]!, body: 'No named subject.' }], '2026-10-07T13:00:00Z')
+    await f.analysis.analyse('earlier'); await f.worker.tick()
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(4)
+    expect(f.analysis.get('later').analysis).toEqual(original)
+    expect(f.db.galnetAnalyses.recent(100)).toContainEqual(original)
+    f.db.initialize(); await f.worker.tick()
+    expect(f.analysis.get('later').analysis).toEqual(original)
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(4)
+  } finally { await f.close() }
+})
+
+test('an older job admitted later runs before a pending newer report', async () => {
+  const f = storyFixture()
+  try {
+    f.worker.catchUp(['later'])
+    f.worker.catchUp(['earlier'])
+    await f.worker.tick()
+    expect(f.analyser.analyse.mock.calls.map(call => call[0].article.id)).toEqual(['earlier', 'later'])
+    expect(f.analyser.analyse.mock.calls[1]![3]).toHaveLength(1)
+  } finally { await f.close() }
+})
+
+test('full capacity defers story refresh without losing eligibility on the next tick', async () => {
+  const f = storyFixture()
+  try {
+    await f.analysis.analyse('later'); await f.analysis.analyse('earlier')
+    f.worker.catchUp(['middle']); await f.worker.tick()
+    fillQueue(f.db)
+    f.worker.setSettings({ enabled: true, dailyLimit: 1 }); await f.worker.tick()
+    expect(f.db.galnetBackground.pending()).toBe(100)
+    expect(f.db.galnetBackground.list('pending').some(job => job.reason === 'story-context')).toBe(false)
+    freeQueueSlot(f.db); await f.worker.tick()
+    expect(f.db.galnetBackground.pending()).toBe(100)
+    expect(f.db.galnetBackground.list('pending').some(job => job.reason === 'story-context')).toBe(true)
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(3)
+  } finally { await f.close() }
+})
+
 test('first-install baseline and read/settings paths do not analyse historical articles', async () => {
   const f = fixture()
   try {

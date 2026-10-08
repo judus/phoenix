@@ -82,8 +82,20 @@ do not trigger inference. A missing campaign never implies that the story ended.
 related saved article need no AI job: their structured records remain available directly.
 Stale news/CG responses do not advance the automatic baseline or enqueue work.
 
+With background analysis enabled, the existing five-second worker also checks saved version-3
+reports for changed selected story context. Analysing an earlier related article manually or via
+catch-up can therefore refresh an already analysed newer article. This uses the same bounded
+context selection as analysis, not a separate story matcher. Queue jobs run in publication order,
+including jobs admitted in separate batches. Corrected earlier articles must have a matching
+successful report before their existing dependents refresh; dependents with stale earlier context
+also wait. This readiness check applies to already queued jobs, including explicit catch-up:
+blocked dependents remain pending without consuming an attempt, while unrelated work can proceed.
+A successful prerequisite releases them on a later tick. A failed refresh leaves the last successful report intact and never retries unchanged
+evidence, including after restart. A later genuine evidence change or explicit retry can proceed.
+Context checks only revisit existing reports; they never start analysing uncovered history.
+
 The GalNet sidebar shows queue status, the 20 most recently updated jobs and failures. **Analyse
-older articles** explicitly queues up to 20 uncovered articles from the latest 100 retained archive
+older articles** explicitly queues up to 20 uncovered or outdated reports from the latest 100 retained archive
 entries, selecting newest publications first but executing that batch oldest first so later articles
 can use earlier saved coverage. Repeat for another batch after it completes. It works with
 automation off. It does not crawl the web or claim to search the entire historical GalNet catalogue.
@@ -91,6 +103,9 @@ Already-current reports and pending/running articles are not queued again. Faile
 explicit catch-up or the individual article action; normal polling never retries it.
 
 Migration 28 stores settings, observed revisions and jobs separately from the provider cache.
+Migration 29 records the selected successful report per article separately from immutable analysis
+history. Reusing an older valid cache entry selects it for subsequent reads too, without changing
+its original analysis timestamp or deleting any other successful evidence.
 Pending work survives restart. A request interrupted by a crash becomes failed on startup, since
 credit may already have been used. Superseded queued revisions are skipped rather than labelled
 as analyses of evidence never supplied. Disabling automation pauses unstarted automatic jobs;
@@ -144,17 +159,18 @@ them unresolved. Finding a missing ship therefore does not implicitly end a late
 Age and absence from today's CG list never resolve a lead.
 
 If an anchor article changes, or any supplied earlier revision/report identity changes, its previous
-lead decisions no longer apply. `contextChanged` warns about this stale earlier evidence. Context
-changes alone do not enqueue another paid request: an explicit update or otherwise authorized
-article/CG job is required. Earlier historical batches may add context unavailable to an already
-analysed newer article; that article needs an explicit update to incorporate it. This remains a
-bounded account, not a complete story registry, fuzzy-name search or exhaustive archive.
+lead decisions no longer apply. `contextChanged` warns about this stale earlier evidence. When
+background analysis is enabled, changed selected context (including newly analysed earlier coverage)
+queues a story refresh under the same consent, capacity and daily allowance as other automatic
+work. With automation off, use an explicit update or catch-up. Failed unchanged evidence is not
+retried automatically. This remains a bounded account, not a complete story registry, fuzzy-name
+search or exhaustive archive.
 
 ## Copilot access to saved reports
 
 Copilot has two read-only Comms capabilities: `comms.list_galnet_analyses` (up to 20 recent
 summaries, default 10) and `comms.get_galnet_analysis` (one article ID returned by the list).
-The list is ordered by analysis time, not publication date, and includes only the newest saved
+The list is ordered by analysis time, not publication date, and includes only the selected successful
 report per article. It is not the latest-news feed or an exhaustive record of events. No saved
 report means the player needs to use **Analyse article**, not that nothing is happening.
 
@@ -180,7 +196,7 @@ The same registry enforces discovery/execution permissions for local, MCP and re
 
 ## Atlas investigation destinations
 
-The Atlas **Leads** toggle shows a separate, temporary layer from the newest saved report per
+The Atlas **Leads** toggle shows a separate, temporary layer from the selected successful report per
 article, limited to the 20 most recently analysed articles. It does not analyse articles or refresh
 news/CG sources. Only independent activities with an explicit system destination are eligible;
 CG-linked activities stay in the existing CG layer. Ended activities and reports whose archived

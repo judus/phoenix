@@ -35,6 +35,35 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
   public isBusy (): boolean { return this.running !== undefined }
   public configured (): boolean { return this.analyser.configured() }
 
+  /** Read-only scheduling evidence; use exactly the context the next analysis would receive. */
+  public contextWork (): { refreshes: { articleId: string, evidenceKey: string }[], blockedArticleIds: string[] } {
+    // Parse the bounded report window once, not once per article on every worker/UI poll.
+    const reports = this.repository.recent(100)
+    const byId = new Map(reports.map(report => [report.articleId, report]))
+    const reader = { recent: () => reports, latest: (id: string) => byId.get(id) ?? this.repository.latest(id) }
+    const blockedArticleIds: string[] = []
+    const refreshes = reports.sort((a, b) => Date.parse(a.publishedAt) - Date.parse(b.publishedAt)).flatMap(report => {
+      const article = this.articles.getArticle(report.articleId)
+      if (!article || report.schemaVersion !== 3 || report.articleRevisionId !== article.revisionId) return []
+      // Wait for corrected earlier articles, rather than removing their context temporarily
+      // and spending another request when their corrected report arrives.
+      const context = galnetStoryContext(article, this.articles, reader)
+      if (report.context.some(source => this.articles.getArticle(source.articleId)?.revisionId !==
+        reader.latest(source.articleId)?.articleRevisionId) ||
+        context.some(entry => galnetContextChanged(byId.get(entry.source.articleId)!, this.articles, reader))) {
+        blockedArticleIds.push(report.articleId)
+        return []
+      }
+      const keys = context.map(entry => entry.source.analysisCacheKey)
+      if (JSON.stringify(keys) === JSON.stringify(report.context.map(source => source.analysisCacheKey))) return []
+      // Include the replaced report: returning to an earlier cached context must select it
+      // again, but failed unchanged evidence must never retry itself.
+      return [{ articleId: report.articleId,
+        evidenceKey: createHash('sha256').update(JSON.stringify([report.cacheKey, keys])).digest('hex') }]
+    })
+    return { refreshes, blockedArticleIds }
+  }
+
   public analyse (articleId: string): Promise<GalnetAnalysisResponse> {
     if (this.shutdown.signal.aborted) return Promise.reject(new AiError('cancelled', 'GalNet analysis is stopping.', { code: 'galnet_analysis_stopped' }))
     if (this.running) {
@@ -64,9 +93,10 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
       model: this.analyser.model, extractor: EXTRACTOR_VERSION, goals: goalEvidence,
       context: context.map(entry => entry.source.analysisCacheKey) })).digest('hex')
     const cached = this.repository.get(cacheKey)
-    if (cached) return { ...this.get(articleId), analysis: cached,
-      contextChanged: galnetContextChanged(cached, this.articles, this.repository),
-      articleChanged: this.articles.getArticle(articleId)?.revisionId !== cached.articleRevisionId }
+    if (cached) {
+      this.repository.put(cached)
+      return this.get(articleId)
+    }
     if (JSON.stringify({ article: article.article, communityGoals: goals, ...(context.length > 0 ? { context } : {}) }).length > 60_000) {
       throw new AiError('invalid_request', 'The article, related coverage and Community Goals exceed the analysis input limit. No AI request was made.', { code: 'galnet_analysis_input_limit' })
     }
