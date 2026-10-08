@@ -31,8 +31,8 @@ function apiWith(patch: Partial<PhoenixApi> = {}): PhoenixApi {
     ...patch
   } as PhoenixApi
 }
-function page(api: PhoenixApi, view: 'profiles' | 'chat' | 'away' = 'profiles') {
-  return <CopilotVoiceProvider api={api} clientIdentity={identity} devicePreferences={preferences} events={events}><CopilotTextProvider api={api} clientIdentity={identity} events={events}>{view !== 'away' && <CopilotPage api={api} view={view} />}</CopilotTextProvider></CopilotVoiceProvider>
+function page(api: PhoenixApi, view: 'profiles' | 'chat' | 'away' = 'profiles', eventHub = events) {
+  return <CopilotVoiceProvider api={api} clientIdentity={identity} devicePreferences={preferences} events={eventHub}><CopilotTextProvider api={api} clientIdentity={identity} events={eventHub}>{view !== 'away' && <CopilotPage api={api} view={view} />}</CopilotTextProvider></CopilotVoiceProvider>
 }
 async function mount(api: PhoenixApi, view: 'profiles' | 'chat' = 'profiles'): Promise<ReactTestRenderer> {
   let renderer!: ReactTestRenderer
@@ -399,6 +399,36 @@ test('a background turn failure is shown when returning to chat', async () => {
     expect(JSON.stringify(renderer.toJSON())).toContain('Provider unavailable')
     act(() => renderer.root.findByType('textarea').props.onChange({ target: { value: 'Try again' } }))
     expect(renderer.root.findByProps({ 'aria-label': 'Send, ENTER' }).props.disabled).toBe(false)
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('a remote completion deferred by a local turn is refreshed even when the local turn fails', async () => {
+  const completed = deferred<void>()
+  let listener!: (event: unknown) => void
+  const eventHub = { subscribe: (type: string, callback: (event: unknown) => void) => {
+    if (type === 'conversation-event') listener = callback
+    return () => undefined
+  } } as unknown as PhoenixEventHub
+  const history = vi.fn().mockResolvedValueOnce({ messages: [] }).mockResolvedValue({ messages: [{ id: 'remote', role: 'assistant', text: 'Saved remote response', createdAt: '2026-10-09T12:00:00Z' }] })
+  const api = apiWith({ getCopilotHistory: history, streamCopilotMessage: vi.fn().mockReturnValue(completed.promise) })
+  let renderer!: ReactTestRenderer
+  await act(async () => { renderer = create(page(api, 'chat', eventHub)) })
+  try {
+    act(() => renderer.root.findByType('textarea').props.onChange({ target: { value: 'Hello' } }))
+    act(() => renderer.root.findByType('form').props.onSubmit({ preventDefault() {}, currentTarget: { querySelector: () => null } }))
+    await act(async () => {
+      listener({ type: 'turn.completed', clientId: 'other-device', conversationId: 'phoenix-copilot', turnId: 'remote' })
+    })
+    expect(history).toHaveBeenCalledOnce()
+    await act(async () => completed.reject(new Error('Local provider failed')))
+    expect(history).toHaveBeenCalledTimes(2)
+    expect(JSON.stringify(renderer.toJSON())).toContain('Saved remote response')
+    expect(JSON.stringify(renderer.toJSON())).toContain('Local provider failed')
+    await act(async () => listener({ type: 'tool.status', clientId: 'other-device', conversationId: 'phoenix-copilot', turnId: 'remote-2', name: 'remote_tool', status: 'calling' }))
+    expect(JSON.stringify(renderer.toJSON())).toContain('remote_tool: calling')
+    await act(async () => listener({ type: 'turn.failed', clientId: 'other-device', conversationId: 'phoenix-copilot', turnId: 'remote-2', message: 'Remote provider failed' }))
+    expect(JSON.stringify(renderer.toJSON())).not.toContain('remote_tool: calling')
+    expect(JSON.stringify(renderer.toJSON())).toContain('Remote provider failed')
   } finally { await act(async () => renderer.unmount()) }
 })
 

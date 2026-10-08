@@ -34,6 +34,7 @@ export function CopilotTextProvider({ api, clientIdentity, events, children }: {
   const lifetime = useRef<{ api: PhoenixApi, abort: AbortController } | undefined>(undefined)
   const historyRequest = useRef<AbortController | undefined>(undefined)
   const streamRequest = useRef<AbortController | undefined>(undefined)
+  const historyRefreshDeferred = useRef(false)
 
   useEffect(() => {
     const abort = new AbortController()
@@ -49,6 +50,7 @@ export function CopilotTextProvider({ api, clientIdentity, events, children }: {
       streamRequest.current?.abort()
       historyRequest.current = undefined
       streamRequest.current = undefined
+      historyRefreshDeferred.current = false
     }
   }, [api])
 
@@ -57,7 +59,11 @@ export function CopilotTextProvider({ api, clientIdentity, events, children }: {
     if (!owner || owner.api !== api || owner.abort.signal.aborted) return
     // An earlier snapshot must not replace the optimistic messages of a live local turn.
     // Its completion refresh also picks up any remote/voice turns completed meanwhile.
-    if (streamRequest.current && !completedLocalTurn) return
+    if (streamRequest.current && !completedLocalTurn) {
+      historyRefreshDeferred.current = true
+      return
+    }
+    historyRefreshDeferred.current = false
     historyRequest.current?.abort()
     const abort = new AbortController()
     historyRequest.current = abort
@@ -78,7 +84,7 @@ export function CopilotTextProvider({ api, clientIdentity, events, children }: {
     else if (event.type === 'user.transcript') setRemoteTurns(turns => ({ ...turns, [event.turnId]: { assistantText: turns[event.turnId]?.assistantText ?? '', id: event.turnId, userText: event.text } }))
     else if (event.type === 'assistant.transcript') setRemoteTurns(turns => ({ ...turns, [event.turnId]: { assistantText: event.text, id: event.turnId, userText: turns[event.turnId]?.userText ?? '' } }))
     else if (event.type === 'tool.status') setToolStatus(event.name ? `${event.name}: ${event.status}` : `Tool: ${event.status}`)
-    else if (event.type === 'turn.failed') { setRemoteTurns(turns => without(turns, event.turnId)); setError(event.message) }
+    else if (event.type === 'turn.failed') { setRemoteTurns(turns => without(turns, event.turnId)); setToolStatus(undefined); setError(event.message) }
     else if (event.type === 'turn.cancelled' || event.type === 'turn.completed') {
       setRemoteTurns(turns => without(turns, event.turnId))
       setToolStatus(undefined)
@@ -120,6 +126,7 @@ export function CopilotTextProvider({ api, clientIdentity, events, children }: {
         streamRequest.current = undefined
         setPending(false)
         setToolStatus(undefined)
+        if (historyRefreshDeferred.current) void loadHistory()
       }
     }
   }
