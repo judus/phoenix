@@ -12,7 +12,7 @@ export class FrontierGalnetSource implements GalnetSource {
     const url = new URL(this.endpoint)
     url.searchParams.set('sort', '-published_at')
     url.searchParams.set('page[limit]', String(limit))
-    const response = await this.request(url, { headers: { accept: 'application/vnd.api+json' } })
+    const response = await this.request(url, { headers: { accept: 'application/vnd.api+json' }, signal: AbortSignal.timeout(15_000) })
     if (!response.ok) throw new Error(`Frontier GalNet request failed (${response.status}).`)
     const document = await response.json() as unknown
     if (!isRecord(document) || !Array.isArray(document.data)) throw new Error('Frontier returned an invalid GalNet document.')

@@ -84,6 +84,8 @@ import { ExplorationDataService } from './application/exploration-data-service.j
 import { DefaultCommanderEngineersQuery } from './application/default-commander-engineers-query.js'
 import { GalnetNewsService } from './application/galnet-news-service.js'
 import { GalnetAnalysisService } from './application/galnet-analysis-service.js'
+import { GalnetBackgroundService } from './application/galnet-background-service.js'
+import { GalnetCoverageService } from './application/galnet-coverage-service.js'
 import { SavedGalnetAnalysisService } from './application/saved-galnet-analysis-service.js'
 import { GalnetInvestigationLeadsService } from './application/galnet-investigation-leads-service.js'
 import type { GalnetArticleAnalyser } from './domain/galnet-analysis.js'
@@ -175,6 +177,7 @@ export class PhoenixApplication {
   private readonly eliteControls: ControlDeckCommandService
   private readonly database: SqliteDatabase
   private readonly galnetAnalysis: GalnetAnalysisService
+  private readonly galnetBackground: GalnetBackgroundService
   private readonly initializeShortcuts: (newProfile: boolean) => void
   private readonly eventIngestion: GameEventIngestionService
   private readonly journalSource: EliteJournalFileSource
@@ -486,6 +489,9 @@ export class PhoenixApplication {
     const explorationData = new ExplorationDataService(this.database, this.database)
     let copilotTools: ReturnType<typeof createPhoenixMcpTools> = []
     const savedGalnetAnalyses = new SavedGalnetAnalysisService(this.database.galnetAnalyses, this.database.galnetArchive)
+    this.galnetBackground = new GalnetBackgroundService(this.database.galnetBackground, galnet, communityGoals,
+      this.database.galnetArchive, savedGalnetAnalyses, this.galnetAnalysis,
+      () => this.galnetAnalysis.configured())
     const copilotCapabilities = new DefaultCopilotCapabilityService(
       () => copilotTools.map(tool => tool.definition),
       commandCatalogue,
@@ -597,6 +603,8 @@ export class PhoenixApplication {
       personalEquipmentPlanner,
       galnet,
       galnetAnalysis: this.galnetAnalysis,
+      galnetBackground: this.galnetBackground,
+      galnetCoverage: new GalnetCoverageService(savedGalnetAnalyses),
       galnetInvestigationLeads: new GalnetInvestigationLeadsService(savedGalnetAnalyses),
       communityGoals,
       atlas,
@@ -621,6 +629,7 @@ export class PhoenixApplication {
       await this.inventorySource.start()
       await this.navigationRouteSource.start()
       const address = await this.server.start()
+      this.galnetBackground.start()
       void this.journalBackfill.start()
       return address
     } catch (cause) {
@@ -644,7 +653,11 @@ export class PhoenixApplication {
       () => this.inventorySource.stop(),
       () => this.navigationRouteSource.stop(),
       () => this.journalBackfill.stop(),
-      () => this.galnetAnalysis.stop(),
+      async () => {
+        const results = await Promise.allSettled([this.galnetBackground.stop(), this.galnetAnalysis.stop()])
+        const failures = results.flatMap(result => result.status === 'rejected' ? [result.reason] : [])
+        if (failures.length > 0) throw new AggregateError(failures, 'GalNet shutdown failed.')
+      },
       () => this.server.stop(),
       () => this.controlDeck.stop(),
       () => this.gameActions.stop?.(),

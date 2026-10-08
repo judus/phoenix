@@ -41,6 +41,9 @@ import type {
   GameActionResult,
   GalnetNewsResponse,
   GalnetAnalysisResponse,
+  GalnetBackgroundStatus,
+  GalnetBackgroundSettings,
+  GalnetCoverageResponse,
   GalnetInvestigationLeadsResponse,
   CommunityGoalsResponse,
   FleetResponse,
@@ -182,6 +185,10 @@ export interface PhoenixApi {
   getAtlasCatalogue(signal?: AbortSignal): Promise<AtlasCatalogueResponse>
   getGalnetNews(limit?: number, signal?: AbortSignal): Promise<GalnetNewsResponse>
   getGalnetAnalysis(articleId: string, signal?: AbortSignal): Promise<GalnetAnalysisResponse>
+  getGalnetBackground(signal?: AbortSignal): Promise<GalnetBackgroundStatus>
+  getGalnetCoverage(articleId: string, signal?: AbortSignal): Promise<GalnetCoverageResponse>
+  saveGalnetBackground(settings: GalnetBackgroundSettings, signal?: AbortSignal): Promise<GalnetBackgroundStatus>
+  catchUpGalnet(articleIds: string[], signal?: AbortSignal): Promise<GalnetBackgroundStatus>
   getGalnetInvestigationLeads(signal?: AbortSignal): Promise<GalnetInvestigationLeadsResponse>
   analyseGalnetArticle(articleId: string, signal?: AbortSignal): Promise<GalnetAnalysisResponse>
   getCommunityGoals(signal?: AbortSignal): Promise<CommunityGoalsResponse>

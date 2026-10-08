@@ -87,6 +87,16 @@ export class SqliteGalnetArticleArchive implements GalnetArticleArchive {
     `).all(id) as unknown as RevisionRow[]
     return rows.map(revision)
   }
+
+  public recent(limit: number): GalnetArticleRevision[] {
+    const rows = this.connection.prepare(`
+      SELECT r.revision_id, r.document, r.first_observed_at, r.last_observed_at
+      FROM galnet_articles a JOIN galnet_article_revisions r
+        ON r.article_id = a.article_id AND r.revision_id = a.revision_id
+      ORDER BY julianday(json_extract(r.document, '$.article.publishedAt')) DESC, a.article_id ASC LIMIT ?
+    `).all(limit) as unknown as RevisionRow[]
+    return rows.map(revision)
+  }
 }
 
 function revision (row: RevisionRow): GalnetArticleRevision {

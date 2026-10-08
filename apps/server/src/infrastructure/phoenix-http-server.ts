@@ -2,6 +2,9 @@ import { createReadStream, existsSync, statSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import type { EddnContributionService } from '../application/eddn-contribution-service.js'
 import { CatalogueSuggestionKindSchema } from '@phoenix/contracts'
+import { GalnetBackgroundSettingsSchema, GalnetCatchUpRequestSchema } from '@phoenix/contracts'
+import type { GalnetBackgroundService } from '../application/galnet-background-service.js'
+import type { GalnetCoverageService } from '../application/galnet-coverage-service.js'
 import type { CatalogueSuggestionService } from '../application/catalogue-suggestion-service.js'
 import {
   createServer,
@@ -146,6 +149,8 @@ export interface PhoenixHttpServerOptions extends SettingsHttpServices, Engineer
   marketSignals: MarketSignalReader
   galnet: GalnetNewsReader
   galnetAnalysis: GalnetAnalysisReader
+  galnetBackground: Pick<GalnetBackgroundService, 'status' | 'setSettings' | 'catchUp'>
+  galnetCoverage: Pick<GalnetCoverageService, 'get'>
   galnetInvestigationLeads: Pick<GalnetInvestigationLeadsService, 'get'>
   communityGoals: CommunityGoalsReader
   atlas: AtlasCatalogueReader
@@ -390,6 +395,31 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/galnet/investigation-leads') {
       writeJson(response, 200, this.options.galnetInvestigationLeads.get())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/galnet/background') {
+      writeJson(response, 200, this.options.galnetBackground.status())
+      return
+    }
+    if (request.method === 'GET' && url.pathname === '/api/galnet/coverage') {
+      const input = GalnetAnalyseRequestSchema.safeParse({ articleId: url.searchParams.get('articleId') })
+      if (!input.success) throw new HttpRequestValidationError('articleId must be a nonempty string of at most 200 characters.')
+      writeJson(response, 200, this.options.galnetCoverage.get(input.data.articleId))
+      return
+    }
+    if (request.method === 'PUT' && url.pathname === '/api/settings/galnet-background') {
+      const settings = await readValidatedJsonBody(request, GalnetBackgroundSettingsSchema)
+      writeJson(response, 200, this.options.galnetBackground.setSettings(settings))
+      return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/galnet/catch-up') {
+      const input = await readValidatedJsonBody(request, GalnetCatchUpRequestSchema)
+      try { writeJson(response, 202, this.options.galnetBackground.catchUp(input.articleIds)) }
+      catch (cause) {
+        if (!(cause instanceof AiError)) throw cause
+        writeJson(response, copilotErrorStatus(cause), { error: { code: cause.code, message: cause.message } })
+      }
       return
     }
 

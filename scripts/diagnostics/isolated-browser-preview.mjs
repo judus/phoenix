@@ -20,7 +20,14 @@ const eddnSubmissions = process.argv.includes('--eddn-submissions')
 const prospecting = process.argv.includes('--prospecting')
 const atlasPois = process.argv.includes('--atlas-pois')
 const communityGoals = process.argv.includes('--community-goals')
-const galnetAnalysis = process.argv.includes('--galnet-analysis')
+const galnetContinuity = process.argv.includes('--galnet-continuity')
+const galnetAnalysis = process.argv.includes('--galnet-analysis') || galnetContinuity
+const continuityArticles = [
+  { id: 'synthetic-breakout', title: 'Synthetic ship breakout', body: 'Synthetic EVE-597 reported a breakout in Sol. Pilots can register at Galileo.', publishedAt: '2026-10-01T12:00:00Z' },
+  { id: 'synthetic-found', title: 'Synthetic ship located', body: 'Synthetic EVE-597 has been found in Sol; the search has ended.', publishedAt: '2026-09-22T12:00:00Z' },
+  { id: 'synthetic-missing', title: 'Synthetic ship missing', body: 'Synthetic EVE-597 is missing after departing Sol. Its current position is unknown.', publishedAt: '2026-09-17T12:00:00Z' }
+].map(article => ({ ...article, changedAt: article.publishedAt, image: null, slug: article.id,
+  sourceUrl: `https://example.com/galnet/${article.id}` }))
 const fixtureDirectory = eddnSubmissions ? mkdtempSync(join(tmpdir(), 'phoenix-eddn-preview-')) : undefined
 const databasePath = fixtureDirectory ? join(fixtureDirectory, 'preview.sqlite') : ':memory:'
 // This preview must never upload, even when launched from a test-enabled development shell.
@@ -46,7 +53,7 @@ const application = new PhoenixApplication({
   copilotRealtime: null,
   openAiEnvironmentKey: null,
   ...(galnetAnalysis ? {
-    galnetSource: { getLatest: async () => [{
+    galnetSource: { getLatest: async () => galnetContinuity ? continuityArticles : [{
       id: 'synthetic-analysis', title: 'Synthetic research campaign',
       body: 'Pilots should deliver supplies to Galileo in Sol. A separate beacon in Colonia needs investigation.',
       image: null, publishedAt: '2026-10-01T12:00:00Z', changedAt: '2026-10-01T12:00:00Z',
@@ -56,6 +63,15 @@ const application = new PhoenixApplication({
       slug: 'synthetic-narrative', sourceUrl: 'https://example.com/galnet/synthetic-narrative' }] },
     galnetAnalyser: { model: 'synthetic-no-network', configured: () => true, analyse: async article => {
       await new Promise(resolve => setTimeout(resolve, 200))
+      if (galnetContinuity) return { usage: { inputTokens: 1200, outputTokens: 400 }, content: {
+        summary: article.article.body, facts: [{ text: article.article.title, evidence: article.article.body }], interpretations: [],
+        entities: [{ name: 'EVE-597', kind: 'ship', role: 'Synthetic story subject', evidence: article.article.body }],
+        activities: [{ title: article.article.id === 'synthetic-breakout' ? 'Combat appeal' : 'Find the ship',
+          action: article.article.body, evidence: article.article.body,
+          communityGoalId: article.article.id === 'synthetic-breakout' ? 'synthetic-0' : null,
+          relationship: article.article.id === 'synthetic-breakout' ? 'explicit' : 'none',
+          status: article.article.id === 'synthetic-found' ? 'ended' : 'unknown', destination: null }]
+      } }
       return { usage: { inputTokens: 1200, outputTokens: 400 }, content: {
         summary: 'Synthetic public-news analysis; no AI request was made.',
         facts: [{ text: 'The source describes a fictional event.', evidence: article.article.body }],

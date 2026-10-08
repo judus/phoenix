@@ -14,7 +14,7 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
   private readonly shutdown = new AbortController()
 
   public constructor (
-    private readonly articles: GalnetArticleArchive,
+    private readonly articles: Pick<GalnetArticleArchive, 'getArticle'>,
     private readonly goals: CommunityGoalsReader,
     private readonly repository: GalnetAnalysisRepository,
     private readonly analyser: GalnetArticleAnalyser,
@@ -27,6 +27,9 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
     return { configured: this.analyser.configured(), articleAvailable: article !== null,
       articleChanged: analysis !== null && article?.revisionId !== analysis.articleRevisionId, analysis }
   }
+
+  public isBusy (): boolean { return this.running !== undefined }
+  public configured (): boolean { return this.analyser.configured() }
 
   public analyse (articleId: string): Promise<GalnetAnalysisResponse> {
     if (this.shutdown.signal.aborted) return Promise.reject(new AiError('cancelled', 'GalNet analysis is stopping.', { code: 'galnet_analysis_stopped' }))

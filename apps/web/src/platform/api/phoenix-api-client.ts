@@ -1,5 +1,8 @@
 import {
   GalnetAnalysisResponseSchema,
+  GalnetBackgroundStatusSchema,
+  GalnetCoverageResponseSchema,
+  type GalnetBackgroundSettings,
   GalnetInvestigationLeadsResponseSchema,
   type GalnetAnalysisResponse,
   AtlasCatalogueResponseSchema,
@@ -498,6 +501,21 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getGalnetAnalysis(articleId: string, signal?: AbortSignal): Promise<GalnetAnalysisResponse> {
     return this.#get(`/api/galnet/analysis?${new URLSearchParams({ articleId })}`, GalnetAnalysisResponseSchema, signal)
+  }
+
+  async getGalnetBackground(signal?: AbortSignal) {
+    return this.#get('/api/galnet/background', GalnetBackgroundStatusSchema, signal)
+  }
+  async getGalnetCoverage(articleId: string, signal?: AbortSignal) {
+    return this.#get(`/api/galnet/coverage?${new URLSearchParams({ articleId })}`, GalnetCoverageResponseSchema, signal)
+  }
+
+  async saveGalnetBackground(settings: GalnetBackgroundSettings, signal?: AbortSignal) {
+    return this.#json('/api/settings/galnet-background', 'PUT', settings, GalnetBackgroundStatusSchema, signal)
+  }
+
+  async catchUpGalnet(articleIds: string[], signal?: AbortSignal) {
+    return this.#json('/api/galnet/catch-up', 'POST', { articleIds }, GalnetBackgroundStatusSchema, signal)
   }
 
   async getGalnetInvestigationLeads(signal?: AbortSignal) {

@@ -28,9 +28,14 @@ import { GalnetRadioControls } from '../../components/galnet-radio-controls.js'
 import { PhoenixDateTime, UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import type { CommsControllerSnapshot, CommsView } from './use-comms-controller.js'
 import { GalnetAnalysisPanel, type GalnetAnalysisApi } from './galnet-analysis-panel.js'
+import type { PhoenixApi } from '../../application/api/phoenix-api.js'
+import { GalnetBackgroundPanel } from './galnet-background-panel.js'
+import { GalnetCoveragePanel } from './galnet-coverage-panel.js'
+
+type GalnetApi = GalnetAnalysisApi & Pick<PhoenixApi, 'getGalnetBackground' | 'saveGalnetBackground' | 'catchUpGalnet' | 'getGalnetCoverage'>
 
 export function CommsPage({ controller, onExecuteAction, view, analysisApi }: {
-  analysisApi: GalnetAnalysisApi
+  analysisApi: GalnetApi
   controller: CommsControllerSnapshot
   onExecuteAction(actionId: string): Promise<GameActionResult>
   view: CommsView
@@ -195,7 +200,7 @@ function CorrespondentDetail({ contact }: { contact: CommunicationContact }) {
   )
 }
 
-function Galnet({ news, api }: { news: NonNullable<CommsControllerSnapshot['galnet']>, api: GalnetAnalysisApi }) {
+function Galnet({ news, api }: { news: NonNullable<CommsControllerSnapshot['galnet']>, api: GalnetApi }) {
   const [selectedId, setSelectedId] = useState<string>()
   const selected = news.articles.find(article => article.id === selectedId) ?? news.articles[0]
   return (
@@ -205,6 +210,7 @@ function Galnet({ news, api }: { news: NonNullable<CommsControllerSnapshot['galn
         <div className="galnet-layout">
           <DataTableGroup className="galnet-index" meta={`${news.articles.length} articles`} title="Latest news">
             <div className="galnet-index-scroll" tabIndex={0}>
+              <GalnetBackgroundPanel api={api} />
               <ItemList className="surface" density="compact" aria-label="GalNet articles">
                 {news.articles.map(article => (
                   <ItemListItem
@@ -229,12 +235,13 @@ function Galnet({ news, api }: { news: NonNullable<CommsControllerSnapshot['galn
   )
 }
 
-function GalnetArticleDetail({ article, api }: { article: GalnetArticle, api: GalnetAnalysisApi }) {
+function GalnetArticleDetail({ article, api }: { article: GalnetArticle, api: GalnetApi }) {
   return (
     <article className="galnet-reader">
       <header><small>GalNet</small><h2>{article.title}</h2></header>
       <div className="article-body" tabIndex={0}><Stack gap="lg">
         <div className="article-text">{article.body.split(/\r?\n/u).filter(Boolean).map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
+        <GalnetCoveragePanel api={api} articleId={article.id} />
         <GalnetAnalysisPanel api={api} articleId={article.id} />
       </Stack></div>
     </article>
