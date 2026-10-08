@@ -20,7 +20,7 @@ export class GalnetBackgroundService {
     private readonly goals: CommunityGoalsReader,
     private readonly archive: GalnetArticleArchive,
     private readonly reports: SavedGalnetAnalysisReader,
-    private readonly analysis: GalnetAnalysisReader & { isBusy(): boolean },
+    private readonly analysis: GalnetAnalysisReader & { isBusy(): boolean, contextRefreshes(): { articleId: string, evidenceKey: string }[] },
     private readonly configured: () => boolean,
     private readonly now: () => Date = () => new Date()
   ) {}
@@ -43,9 +43,10 @@ export class GalnetBackgroundService {
   public status(): GalnetBackgroundStatus {
     const { goals: _goals, ...state } = this.repository.load()
     const queued = new Set(this.repository.activeArticleIds())
+    const changedContext = new Set(this.analysis.contextRefreshes().map(refresh => refresh.articleId))
     const backlog = this.archive.recent(100).filter(({ article }) => {
       const saved = this.reports.get(article.id)
-      return !queued.has(article.id) && (!saved || saved.articleChanged)
+      return !queued.has(article.id) && (!saved || saved.articleChanged || saved.contextChanged || changedContext.has(article.id))
     }).map(({ article }) => ({ articleId: article.id, title: article.title, publishedAt: article.publishedAt }))
     return { ...state, sourceError: this.runtimeError ?? state.sourceError, configured: this.configured(), requestsToday: this.requestsToday(),
       pending: this.repository.pending(), jobs: this.repository.list(undefined, 20), backlog }
@@ -65,9 +66,10 @@ export class GalnetBackgroundService {
       return article
     })
     const pending = new Set(this.repository.activeArticleIds())
+    const changedContext = new Set(this.analysis.contextRefreshes().map(refresh => refresh.articleId))
     const eligible = articles.filter(article => {
       const saved = this.reports.get(article.article.id)
-      return !pending.has(article.article.id) && (!saved || saved.articleChanged)
+      return !pending.has(article.article.id) && (!saved || saved.articleChanged || saved.contextChanged || changedContext.has(article.article.id))
     })
     if (this.repository.pending() + eligible.length > 100) throw new AiError('rate_limit', 'The GalNet queue is full. Let existing work finish before requesting more catch-up.', { code: 'galnet_background_queue_full' })
     // Explicit catch-up permits retrying failures, but not duplicate queued work or current reports.
@@ -97,6 +99,7 @@ export class GalnetBackgroundService {
     }
     while (!this.stopped && this.configured() && !this.analysis.isBusy()) {
       const settings = this.repository.load()
+      if (settings.enabled) this.queueContextRefreshes()
       if (this.requestsToday() >= settings.dailyLimit) break
       const job = this.repository.next(settings.enabled)
       if (!job) break
@@ -112,6 +115,15 @@ export class GalnetBackgroundService {
       } catch (cause) {
         this.repository.put({ ...started, state: 'failed', finishedAt: this.now().toISOString(), error: message(cause) })
       }
+    }
+  }
+
+  private queueContextRefreshes(): void {
+    const pending = new Set(this.repository.activeArticleIds())
+    for (const { articleId, evidenceKey } of this.analysis.contextRefreshes()) {
+      if (pending.has(articleId)) continue
+      // A full queue loses no observation: the next tick recomputes the same evidence key.
+      this.enqueue(articleId, 'story-context', evidenceKey)
     }
   }
 

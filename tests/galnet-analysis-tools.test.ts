@@ -12,7 +12,7 @@ import { analysisArticle, savedGalnetAnalysis } from './support/galnet-analysis-
 const context = () => ({ callId: 'galnet', runId: 'test', signal: new AbortController().signal,
   deadline: new Date(Date.now() + 30_000).toISOString() })
 
-test('stored reports are ranked per article before limiting, matching latest including timestamp ties', () => {
+test('current report selection matches latest and recent, even when reusing older evidence', () => {
   const db = new SqliteDatabase(':memory:')
   try {
     db.initialize()
@@ -22,8 +22,13 @@ test('stored reports are ranked per article before limiting, matching latest inc
     const another = savedGalnetAnalysis({ cacheKey: 'another', articleId: 'another', analysedAt: '2026-10-08T12:00:00Z' })
     for (const report of [original, tied, another, olderInsertedLast]) db.galnetAnalyses.put(report)
     expect(db.galnetAnalyses.recent(1)).toEqual([another])
+    expect(db.galnetAnalyses.recent(20)).toEqual([another, olderInsertedLast])
+    expect(db.galnetAnalyses.latest(original.articleId)).toEqual(olderInsertedLast)
+    db.galnetAnalyses.put(tied)
+    db.initialize()
     expect(db.galnetAnalyses.recent(20)).toEqual([another, tied])
     expect(db.galnetAnalyses.latest(original.articleId)).toEqual(tied)
+    expect(db.galnetAnalyses.get(olderInsertedLast.cacheKey)).toEqual(olderInsertedLast)
   } finally { db.close() }
 })
 

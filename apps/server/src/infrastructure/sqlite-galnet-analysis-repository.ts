@@ -16,6 +16,26 @@ export class SqliteGalnetAnalysisRepository implements GalnetAnalysisRepository 
       CREATE INDEX IF NOT EXISTS galnet_analyses_article ON galnet_analyses(article_id, analysed_at DESC);
       INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (27, datetime('now'));
     `)
+    if (!this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = 29').get()) {
+      this.connection.exec('BEGIN IMMEDIATE')
+      try {
+        this.connection.exec(`
+        CREATE TABLE galnet_analysis_heads (article_id TEXT PRIMARY KEY, cache_key TEXT NOT NULL
+          REFERENCES galnet_analyses(cache_key)) STRICT;
+        INSERT INTO galnet_analysis_heads
+          SELECT article_id, cache_key FROM (
+            SELECT article_id, cache_key,
+              ROW_NUMBER() OVER (PARTITION BY article_id ORDER BY analysed_at DESC, rowid DESC) AS rank
+            FROM galnet_analyses
+          ) WHERE rank = 1;
+        INSERT INTO schema_migrations (version, applied_at) VALUES (29, datetime('now'));
+        `)
+        this.connection.exec('COMMIT')
+      } catch (cause) {
+        this.connection.exec('ROLLBACK')
+        throw cause
+      }
+    }
   }
 
   public get (cacheKey: string): GalnetAnalysis | null {
@@ -23,25 +43,32 @@ export class SqliteGalnetAnalysisRepository implements GalnetAnalysisRepository 
   }
 
   public latest (articleId: string): GalnetAnalysis | null {
-    return parse(this.connection.prepare('SELECT document FROM galnet_analyses WHERE article_id = ? ORDER BY analysed_at DESC, rowid DESC LIMIT 1').get(articleId))
+    return parse(this.connection.prepare(`SELECT a.document FROM galnet_analysis_heads h
+      JOIN galnet_analyses a ON a.cache_key = h.cache_key WHERE h.article_id = ?`).get(articleId))
   }
 
   public put (analysis: GalnetAnalysis): void {
     const validated = GalnetAnalysisSchema.parse(analysis)
-    this.connection.prepare(`INSERT INTO galnet_analyses(cache_key, article_id, analysed_at, document)
-      VALUES (?, ?, ?, ?) ON CONFLICT(cache_key) DO NOTHING`)
-      .run(validated.cacheKey, validated.articleId, validated.analysedAt, JSON.stringify(validated))
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      this.connection.prepare(`INSERT INTO galnet_analyses(cache_key, article_id, analysed_at, document)
+        VALUES (?, ?, ?, ?) ON CONFLICT(cache_key) DO NOTHING`)
+        .run(validated.cacheKey, validated.articleId, validated.analysedAt, JSON.stringify(validated))
+      this.connection.prepare(`INSERT INTO galnet_analysis_heads VALUES (?, ?)
+        ON CONFLICT(article_id) DO UPDATE SET cache_key = excluded.cache_key`).run(validated.articleId, validated.cacheKey)
+      this.connection.exec('COMMIT')
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
+    }
   }
 
   public recent (limit: number): GalnetAnalysis[] {
-    // Rank before limiting: each article contributes only its latest saved report, with the
-    // same timestamp/rowid tie-break as latest(). Older evidence/configuration variants remain saved.
+    // Select the same current report as latest(), including a reused older cache entry.
+    // Analysis timestamps still describe the actual inference, not cache selection time.
     return this.connection.prepare(`
-      SELECT document FROM (
-        SELECT document, analysed_at, rowid,
-          ROW_NUMBER() OVER (PARTITION BY article_id ORDER BY analysed_at DESC, rowid DESC) AS rank
-        FROM galnet_analyses
-      ) WHERE rank = 1 ORDER BY analysed_at DESC, rowid DESC LIMIT ?
+      SELECT a.document FROM galnet_analysis_heads h JOIN galnet_analyses a ON a.cache_key = h.cache_key
+      ORDER BY a.analysed_at DESC, a.rowid DESC LIMIT ?
     `).all(limit).map(row => parse(row)!)
   }
 }

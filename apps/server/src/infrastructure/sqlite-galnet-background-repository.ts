@@ -73,8 +73,13 @@ export class SqliteGalnetBackgroundRepository implements GalnetBackgroundReposit
   }
 
   public next(includeAutomatic: boolean): GalnetBackgroundJob | null {
-    const row = this.db.prepare(`SELECT document FROM galnet_background_jobs
-      WHERE state = 'pending' AND (? OR json_extract(document, '$.reason') = 'catch-up') ORDER BY rowid ASC LIMIT 1`).get(Number(includeAutomatic))
+    // Publication order is the dependency order: story context only uses strictly earlier
+    // articles. Admission order alone fails when an older correction arrives after a new job.
+    const row = this.db.prepare(`SELECT j.document FROM galnet_background_jobs j
+      LEFT JOIN galnet_article_revisions r ON r.article_id = j.article_id
+        AND r.revision_id = json_extract(j.document, '$.articleRevisionId')
+      WHERE j.state = 'pending' AND (? OR json_extract(j.document, '$.reason') = 'catch-up')
+      ORDER BY julianday(json_extract(r.document, '$.article.publishedAt')) ASC, j.rowid ASC LIMIT 1`).get(Number(includeAutomatic))
     return row ? GalnetBackgroundJobSchema.parse(JSON.parse(String(row.document))) : null
   }
 

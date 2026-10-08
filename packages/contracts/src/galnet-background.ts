@@ -7,7 +7,7 @@ export const GalnetBackgroundSettingsSchema = z.object({
 
 export const GalnetBackgroundJobSchema = z.object({
   id: z.string(), articleId: z.string(), articleRevisionId: z.string(), title: z.string(),
-  reason: z.enum(['article', 'community-goal', 'catch-up']),
+  reason: z.enum(['article', 'community-goal', 'catch-up', 'story-context']),
   state: z.enum(['pending', 'running', 'succeeded', 'failed', 'skipped']),
   queuedAt: z.string(), startedAt: z.string().nullable(), finishedAt: z.string().nullable(),
   error: z.string().nullable()
