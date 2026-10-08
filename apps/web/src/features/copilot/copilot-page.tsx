@@ -1,28 +1,23 @@
 import { memo, useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import type { CopilotHistoryMessage, CopilotProfileCapabilitySettings, CopilotProfileDocument, CopilotPermissionPolicy } from '@phoenix/contracts'
 import { Breadcrumbs, Button, CommandTile, DataTable, DescriptionItem, DescriptionList, Field, Form, FormActions, FormGrid, Identity, PageFrame, PageHeader, Select, Status, Tabs, Textarea, TextInput, Widget } from '@phoenix/ui'
-import type { PhoenixApi, CopilotStreamEvent } from '../../application/api/phoenix-api.js'
-import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
-import type { ClientIdentity } from '../../application/identity/client-identity.js'
+import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { LatestRequest } from '../../application/requests/latest-request.js'
 import { CopilotMarkdown } from './copilot-markdown.js'
 import { CopilotPermissionEditor } from '../../components/copilot-permission-editor.js'
 import { CopilotVoiceToggle } from './copilot-voice-toggle.js'
 import { useCopilotVoice } from './copilot-voice-provider.js'
+import { useCopilotText, type RemoteTurn } from './copilot-text-provider.js'
 
-const CONVERSATION_ID = 'phoenix-copilot'
 const VOICES = ['alloy', 'ash', 'ballad', 'cedar', 'coral', 'echo', 'marin', 'sage', 'shimmer', 'verse']
 type CopilotView = 'chat' | 'profiles'
-interface RemoteTurn { assistantText: string, id: string, userText: string }
 interface ProfileDraft { characterSpeech: string, characterText: string, description: string, id: string, mark: string, name: string, templateProfileId?: string, voice: string }
 
-export function CopilotPage({ api, clientIdentity, events, view }: { api: PhoenixApi, clientIdentity: ClientIdentity, events: PhoenixEventHub, view: CopilotView }) {
+export function CopilotPage({ api, view }: { api: PhoenixApi, view: CopilotView }) {
   const voice = useCopilotVoice()
-  const [messages, setMessages] = useState<readonly CopilotHistoryMessage[]>([])
-  const [pending, setPending] = useState(false)
+  const chat = useCopilotText()
+  const { messages, pending, toolStatus, remoteTurns, submit } = chat
   const [error, setError] = useState<string>()
-  const [toolStatus, setToolStatus] = useState<string>()
-  const [remoteTurns, setRemoteTurns] = useState<Record<string, RemoteTurn>>({})
   const [draft, setDraft] = useState<ProfileDraft>()
   const [profileCapabilities, setProfileCapabilities] = useState<CopilotProfileCapabilitySettings>()
   const [permissionsPending, setPermissionsPending] = useState(false)
@@ -30,9 +25,6 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
   const [profileError, setProfileError] = useState<string>()
   const [saving, setSaving] = useState(false)
   const [composer, setComposer] = useState('')
-  const clientId = useRef(clientIdentity.forScope('copilot'))
-  const historyRequest = useRef<AbortController | undefined>(undefined)
-  const streamRequest = useRef<AbortController | undefined>(undefined)
   const [profileRequest] = useState(() => new LatestRequest())
   const lifetime = useRef<{ api: PhoenixApi, abort: AbortController } | undefined>(undefined)
   const profileRevision = useRef(0)
@@ -48,62 +40,8 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
     setPermissionsPending(false)
     setPermissionsError(undefined)
     setProfileError(undefined)
-    setPending(false)
-    setToolStatus(undefined)
     return () => { abort.abort(); profileRequest.cancel() }
   }, [api, profileRequest])
-  const loadHistory = useCallback(async () => {
-    historyRequest.current?.abort()
-    const abort = new AbortController()
-    historyRequest.current = abort
-    try {
-      const result = await api.getCopilotHistory(CONVERSATION_ID, abort.signal)
-      if (!abort.signal.aborted && historyRequest.current === abort) setMessages(result.messages)
-    } catch (cause) {
-      if (!abort.signal.aborted && historyRequest.current === abort) throw cause
-    } finally {
-      if (historyRequest.current === abort) historyRequest.current = undefined
-    }
-  }, [api])
-
-  useEffect(() => {
-    void loadHistory().catch(cause => {
-      setError(message(cause, 'Conversation history unavailable.'))
-    })
-    return () => historyRequest.current?.abort()
-  }, [loadHistory, voice.historyVersion])
-  useEffect(() => () => streamRequest.current?.abort(), [api])
-  useEffect(() => events.subscribe('conversation-event', event => {
-    if (event.clientId === clientId.current || event.conversationId !== CONVERSATION_ID) return
-    if (event.type === 'turn.started') setRemoteTurns(turns => ({ ...turns, [event.turnId]: { assistantText: '', id: event.turnId, userText: event.userText } }))
-    else if (event.type === 'user.transcript') setRemoteTurns(turns => ({ ...turns, [event.turnId]: { assistantText: turns[event.turnId]?.assistantText ?? '', id: event.turnId, userText: event.text } }))
-    else if (event.type === 'assistant.transcript') setRemoteTurns(turns => ({ ...turns, [event.turnId]: { assistantText: event.text, id: event.turnId, userText: turns[event.turnId]?.userText ?? '' } }))
-    else if (event.type === 'tool.status') setToolStatus(event.name ? `${event.name}: ${event.status}` : `Tool: ${event.status}`)
-    else if (event.type === 'turn.failed') { setRemoteTurns(turns => without(turns, event.turnId)); setError(event.message) }
-    else if (event.type === 'turn.cancelled' || event.type === 'turn.completed') { setRemoteTurns(turns => without(turns, event.turnId)); setToolStatus(undefined); if (event.type === 'turn.completed') void loadHistory().catch(cause => setError(message(cause, 'Conversation history unavailable.'))) }
-  }), [events, loadHistory])
-
-  const submit = async (candidate: string) => {
-    const owner = lifetime.current
-    if (!owner || owner.api !== api || owner.abort.signal.aborted) return
-    const text = candidate.trim()
-    if (!text || pending) return
-    if (voice.canSendRealtimeText) { try { voice.sendText(text); setError(undefined) } catch (cause) { setError(message(cause, 'Realtime message failed.')) }; return }
-    const turnId = `text-${Date.now()}-${Math.random().toString(16).slice(2)}`
-    const userId = `pending-user-${turnId}`
-    const assistantId = `pending-assistant-${turnId}`
-    setPending(true); setError(undefined); setToolStatus(undefined)
-    setMessages(current => [...current, temporary(userId, 'user', text), temporary(assistantId, 'assistant', '')])
-    const abort = new AbortController()
-    streamRequest.current = abort
-    try {
-      await api.streamCopilotMessage({ clientId: clientId.current, conversationId: CONVERSATION_ID, message: text, turnId }, event => {
-        if (!abort.signal.aborted && streamRequest.current === abort) applyStream(event, assistantId, setMessages, setToolStatus)
-      }, abort.signal)
-      if (!abort.signal.aborted && streamRequest.current === abort) await loadHistory()
-    } catch (cause) { if (!abort.signal.aborted) { setMessages(current => current.filter(item => item.id !== assistantId || item.text)); setError(message(cause, 'Copilot request failed.')) } }
-    finally { if (streamRequest.current === abort) streamRequest.current = undefined; if (!abort.signal.aborted) { setPending(false); setToolStatus(undefined) } }
-  }
   const edit = useCallback(async (id: string, manual = true) => {
     const owner = lifetime.current
     if (!owner || owner.api !== api || owner.abort.signal.aborted) return
@@ -211,7 +149,7 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
 
   return <PageFrame className={`copilot-page copilot-page-${view}`} layout="fit">
     {view === 'profiles'
-      ? <PageHeader context={<Breadcrumbs items={[{ label: 'Copilot' }, { label: 'Profiles' }]} />} title="Profiles" variant="cockpit" status={error ?? voice.error} actions={<Button size="sm" variant="outline" onClick={() => void create()}>New profile</Button>} />
+      ? <PageHeader context={<Breadcrumbs items={[{ label: 'Copilot' }, { label: 'Profiles' }]} />} title="Profiles" variant="cockpit" status={error ?? chat.error ?? voice.error} actions={<Button size="sm" variant="outline" onClick={() => void create()}>New profile</Button>} />
       : null}
     {view === 'chat'
       ? <div className="copilot-workspace">
@@ -241,7 +179,7 @@ export function CopilotPage({ api, clientIdentity, events, view }: { api: Phoeni
               <section className="copilot-chat" aria-label="Copilot conversation">
                 <CopilotMessages messages={messages} remoteTurns={remoteTurns} activeTurn={voice.activeTurn} pending={pending} profileName={voice.activeProfile.name} />
                 {toolStatus || voice.toolStatus ? <Status tone="muted">{toolStatus ?? voice.toolStatus}</Status> : null}
-                {error || voice.error ? <Status tone="danger">{error ?? voice.error}</Status> : null}
+                {error || chat.error || voice.error ? <Status tone="danger">{error ?? chat.error ?? voice.error}</Status> : null}
               </section>
             </Widget>
             <div className="copilot-composer-row">
@@ -369,9 +307,6 @@ function ProfileEditor({ capabilities, draft, profileError, permissionsError, on
     </section>
   </div>
 }
-function applyStream(event: CopilotStreamEvent, assistantId: string, setMessages: (update: (messages: readonly CopilotHistoryMessage[]) => readonly CopilotHistoryMessage[]) => void, setTool: (value: string | undefined) => void) { if (event.type === 'delta') setMessages(items => items.map(item => item.id === assistantId ? { ...item, text: `${item.text}${event.delta}` } : item)); else if (event.type === 'reset') setMessages(items => items.map(item => item.id === assistantId ? { ...item, text: '' } : item)); else if (event.type === 'retrying') setTool(`Provider stream retry ${event.attempt}…`); else if (event.type === 'tool') setTool(event.name ? `${event.name}: ${event.status}` : `Tool: ${event.status}`) }
-function temporary(id: string, role: CopilotHistoryMessage['role'], text: string): CopilotHistoryMessage { return { createdAt: new Date().toISOString(), id, role, text } }
-function without(turns: Record<string, RemoteTurn>, id: string) { const next = { ...turns }; delete next[id]; return next }
 function toDraft(document: CopilotProfileDocument): ProfileDraft { return { characterSpeech: document.characterSpeech, characterText: document.characterText, description: document.profile.description, id: document.profile.id, mark: document.profile.mark, name: document.profile.name, voice: document.profile.voice } }
 function profileId(name: string) { const id = name.trim().toLowerCase().replace(/[^a-z0-9_-]+/gu, '-').replace(/^-+|-+$/gu, ''); return /^[a-z]/u.test(id) ? id : `copilot-${id || 'profile'}` }
 function message(cause: unknown, fallback: string) { return cause instanceof Error ? cause.message : fallback }

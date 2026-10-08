@@ -16,6 +16,12 @@ setting. A fresh request ID allows showing the same destination again after manu
 The destination survives the normal route hash and workspace history; later telemetry or
 catalogue updates do not re-centre the map.
 
+Text conversations belong to the application session, not the mounted chat page. Display-tool
+navigation and manual workspace switching can unload the page without cancelling a turn or
+discarding messages. Returning shows the same pending exchange; completion refreshes the saved
+history. Application disposal or replacement still aborts its requests. History snapshots received
+before a local turn completes cannot overwrite that turn's optimistic messages.
+
 The new capability appears in the **Display** permission group. Fresh installations include it
 in the default installation policy. Existing installation/profile allowlists are not expanded:
 enable **Show Galactic Atlas** in the installation's AI tools settings and in the Copilot

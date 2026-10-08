@@ -7,6 +7,7 @@ import type { ClientIdentity } from '../apps/web/src/application/identity/client
 import type { DevicePreferences } from '../apps/web/src/application/settings/device-preferences.js'
 import { CopilotPage } from '../apps/web/src/features/copilot/copilot-page.js'
 import { CopilotVoiceProvider } from '../apps/web/src/features/copilot/copilot-voice-provider.js'
+import { CopilotTextProvider } from '../apps/web/src/features/copilot/copilot-text-provider.js'
 
 const api = {
   async getCopilotProfiles() { return { activeProfileId: 'marin', profiles: [{ description: 'Shipboard companion.', id: 'marin', mark: 'M', name: 'Marin', voice: 'marin' }] } },
@@ -33,7 +34,7 @@ test.each(['success', 'failure'] as const)('composer keeps the next draft throug
   let renderer!: ReactTestRenderer
   await act(async () => {
     renderer = create(<CopilotVoiceProvider api={chatApi} clientIdentity={identity} devicePreferences={devicePreferences} events={events}>
-      <CopilotPage api={chatApi} clientIdentity={identity} events={events} view="chat" />
+      <CopilotTextProvider api={chatApi} clientIdentity={identity} events={events}><CopilotPage api={chatApi} view="chat" /></CopilotTextProvider>
     </CopilotVoiceProvider>)
   })
   const focus = vi.fn()
@@ -63,7 +64,7 @@ test.each(['success', 'failure'] as const)('composer keeps the next draft throug
 })
 
 test('Copilot chat is conversation-first and exposes compact voice control', () => {
-  const markup = renderToStaticMarkup(<CopilotVoiceProvider api={api} clientIdentity={identity} devicePreferences={devicePreferences} events={events}><CopilotPage api={api} clientIdentity={identity} events={events} view="chat" /></CopilotVoiceProvider>)
+  const markup = renderToStaticMarkup(<CopilotVoiceProvider api={api} clientIdentity={identity} devicePreferences={devicePreferences} events={events}><CopilotTextProvider api={api} clientIdentity={identity} events={events}><CopilotPage api={api} view="chat" /></CopilotTextProvider></CopilotVoiceProvider>)
 
   expect(markup).toContain('aria-label="Active Copilot profile"')
   expect(markup).not.toContain('<h1>Copilot</h1>')
@@ -74,7 +75,7 @@ test('Copilot chat is conversation-first and exposes compact voice control', () 
 })
 
 test('Copilot profiles reserve the protected character editor surface', () => {
-  const markup = renderToStaticMarkup(<CopilotVoiceProvider api={api} clientIdentity={identity} devicePreferences={devicePreferences} events={events}><CopilotPage api={api} clientIdentity={identity} events={events} view="profiles" /></CopilotVoiceProvider>)
+  const markup = renderToStaticMarkup(<CopilotVoiceProvider api={api} clientIdentity={identity} devicePreferences={devicePreferences} events={events}><CopilotTextProvider api={api} clientIdentity={identity} events={events}><CopilotPage api={api} view="profiles" /></CopilotTextProvider></CopilotVoiceProvider>)
 
   expect(markup).toContain('<h1>Profiles</h1>')
   expect(markup).toContain('New profile')

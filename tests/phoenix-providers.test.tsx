@@ -144,6 +144,7 @@ class MemoryStorage {
 
 function apiStub(): PhoenixApi {
   return phoenixApiStub({
+    async getCopilotHistory() { return { conversationId: 'phoenix-copilot', messages: [] } },
     async getCopilotProfiles() {
       return {
         activeProfileId: 'marin',

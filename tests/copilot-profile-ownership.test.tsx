@@ -6,6 +6,7 @@ import type { DevicePreferences } from '../apps/web/src/application/settings/dev
 import { CopilotPermissionEditor } from '../apps/web/src/components/copilot-permission-editor.js'
 import { CopilotPage } from '../apps/web/src/features/copilot/copilot-page.js'
 import { CopilotVoiceProvider } from '../apps/web/src/features/copilot/copilot-voice-provider.js'
+import { CopilotTextProvider } from '../apps/web/src/features/copilot/copilot-text-provider.js'
 
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
 
@@ -30,8 +31,8 @@ function apiWith(patch: Partial<PhoenixApi> = {}): PhoenixApi {
     ...patch
   } as PhoenixApi
 }
-function page(api: PhoenixApi, view: 'profiles' | 'chat' = 'profiles') {
-  return <CopilotVoiceProvider api={api} clientIdentity={identity} devicePreferences={preferences} events={events}><CopilotPage api={api} clientIdentity={identity} events={events} view={view} /></CopilotVoiceProvider>
+function page(api: PhoenixApi, view: 'profiles' | 'chat' | 'away' = 'profiles', eventHub = events) {
+  return <CopilotVoiceProvider api={api} clientIdentity={identity} devicePreferences={preferences} events={eventHub}><CopilotTextProvider api={api} clientIdentity={identity} events={eventHub}>{view !== 'away' && <CopilotPage api={api} view={view} />}</CopilotTextProvider></CopilotVoiceProvider>
 }
 async function mount(api: PhoenixApi, view: 'profiles' | 'chat' = 'profiles'): Promise<ReactTestRenderer> {
   let renderer!: ReactTestRenderer
@@ -338,6 +339,96 @@ test('created profiles retain their persisted identity without losing edits made
     await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
     expect(api.createCopilotProfile).toHaveBeenCalledOnce()
     expect(api.updateCopilotProfile).toHaveBeenCalledWith('created', expect.objectContaining({ profile: expect.objectContaining({ id: 'created', name: 'Edited while creating' }) }))
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('workspace navigation retains the live turn and refreshes saved history only after completion', async () => {
+  const completed = deferred<void>()
+  let receive!: Parameters<PhoenixApi['streamCopilotMessage']>[1]
+  const saved = [{ createdAt: '2026-10-09T12:00:00Z', id: 'user', role: 'user', text: 'Show Colonia' }, { createdAt: '2026-10-09T12:00:01Z', id: 'assistant', role: 'assistant', text: 'Here is Colonia.' }]
+  const history = vi.fn().mockResolvedValueOnce({ messages: [] }).mockResolvedValue({ messages: saved })
+  const stream = vi.fn().mockImplementation((_input, callback) => { receive = callback; return completed.promise })
+  const api = apiWith({ getCopilotHistory: history, streamCopilotMessage: stream })
+  const renderer = await mount(api, 'chat')
+  try {
+    act(() => renderer.root.findByType('textarea').props.onChange({ target: { value: 'Show Colonia' } }))
+    act(() => renderer.root.findByType('form').props.onSubmit({ preventDefault() {}, currentTarget: { querySelector: () => null } }))
+    await act(async () => renderer.update(page(api, 'away')))
+    expect(renderer.root.findAllByType(CopilotPage)).toHaveLength(0)
+    expect(stream.mock.calls[0]![2].aborted).toBe(false)
+    act(() => receive({ type: 'delta', delta: 'Here is ' }))
+    await act(async () => renderer.update(page(api, 'chat')))
+    expect(JSON.stringify(renderer.toJSON())).toContain('Show Colonia')
+    expect(JSON.stringify(renderer.toJSON())).toContain('Here is')
+    expect(renderer.root.findByProps({ 'aria-label': 'Send, ENTER' }).props.disabled).toBe(true)
+    expect(history).toHaveBeenCalledOnce()
+    await act(async () => renderer.update(page(api, 'away')))
+    await act(async () => completed.resolve())
+    await act(async () => renderer.update(page(api, 'chat')))
+    expect(history).toHaveBeenCalledTimes(2)
+    expect(JSON.stringify(renderer.toJSON())).toContain('Here is Colonia.')
+    act(() => renderer.root.findByType('textarea').props.onChange({ target: { value: 'Next message' } }))
+    expect(renderer.root.findByProps({ 'aria-label': 'Send, ENTER' }).props.disabled).toBe(false)
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('a stale initial history response cannot erase a turn started before it loaded', async () => {
+  const initial = deferred<{ messages: [] }>()
+  const completed = deferred<void>()
+  const api = apiWith({ getCopilotHistory: vi.fn().mockReturnValue(initial.promise), streamCopilotMessage: vi.fn().mockReturnValue(completed.promise) })
+  const renderer = await mount(api, 'chat')
+  try {
+    act(() => renderer.root.findByType('textarea').props.onChange({ target: { value: 'Keep this message' } }))
+    act(() => renderer.root.findByType('form').props.onSubmit({ preventDefault() {}, currentTarget: { querySelector: () => null } }))
+    await act(async () => initial.resolve({ messages: [] }))
+    expect(JSON.stringify(renderer.toJSON())).toContain('Keep this message')
+    expect(renderer.root.findByProps({ 'aria-label': 'Send, ENTER' }).props.disabled).toBe(true)
+  } finally { await act(async () => renderer.unmount()); completed.resolve() }
+})
+
+test('a background turn failure is shown when returning to chat', async () => {
+  const completed = deferred<void>()
+  const api = apiWith({ streamCopilotMessage: vi.fn().mockReturnValue(completed.promise) })
+  const renderer = await mount(api, 'chat')
+  try {
+    act(() => renderer.root.findByType('textarea').props.onChange({ target: { value: 'Hello' } }))
+    act(() => renderer.root.findByType('form').props.onSubmit({ preventDefault() {}, currentTarget: { querySelector: () => null } }))
+    await act(async () => renderer.update(page(api, 'away')))
+    await act(async () => completed.reject(new Error('Provider unavailable')))
+    await act(async () => renderer.update(page(api, 'chat')))
+    expect(JSON.stringify(renderer.toJSON())).toContain('Provider unavailable')
+    act(() => renderer.root.findByType('textarea').props.onChange({ target: { value: 'Try again' } }))
+    expect(renderer.root.findByProps({ 'aria-label': 'Send, ENTER' }).props.disabled).toBe(false)
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('a remote completion deferred by a local turn is refreshed even when the local turn fails', async () => {
+  const completed = deferred<void>()
+  let listener!: (event: unknown) => void
+  const eventHub = { subscribe: (type: string, callback: (event: unknown) => void) => {
+    if (type === 'conversation-event') listener = callback
+    return () => undefined
+  } } as unknown as PhoenixEventHub
+  const history = vi.fn().mockResolvedValueOnce({ messages: [] }).mockResolvedValue({ messages: [{ id: 'remote', role: 'assistant', text: 'Saved remote response', createdAt: '2026-10-09T12:00:00Z' }] })
+  const api = apiWith({ getCopilotHistory: history, streamCopilotMessage: vi.fn().mockReturnValue(completed.promise) })
+  let renderer!: ReactTestRenderer
+  await act(async () => { renderer = create(page(api, 'chat', eventHub)) })
+  try {
+    act(() => renderer.root.findByType('textarea').props.onChange({ target: { value: 'Hello' } }))
+    act(() => renderer.root.findByType('form').props.onSubmit({ preventDefault() {}, currentTarget: { querySelector: () => null } }))
+    await act(async () => {
+      listener({ type: 'turn.completed', clientId: 'other-device', conversationId: 'phoenix-copilot', turnId: 'remote' })
+    })
+    expect(history).toHaveBeenCalledOnce()
+    await act(async () => completed.reject(new Error('Local provider failed')))
+    expect(history).toHaveBeenCalledTimes(2)
+    expect(JSON.stringify(renderer.toJSON())).toContain('Saved remote response')
+    expect(JSON.stringify(renderer.toJSON())).toContain('Local provider failed')
+    await act(async () => listener({ type: 'tool.status', clientId: 'other-device', conversationId: 'phoenix-copilot', turnId: 'remote-2', name: 'remote_tool', status: 'calling' }))
+    expect(JSON.stringify(renderer.toJSON())).toContain('remote_tool: calling')
+    await act(async () => listener({ type: 'turn.failed', clientId: 'other-device', conversationId: 'phoenix-copilot', turnId: 'remote-2', message: 'Remote provider failed' }))
+    expect(JSON.stringify(renderer.toJSON())).not.toContain('remote_tool: calling')
+    expect(JSON.stringify(renderer.toJSON())).toContain('Remote provider failed')
   } finally { await act(async () => renderer.unmount()) }
 })
 
