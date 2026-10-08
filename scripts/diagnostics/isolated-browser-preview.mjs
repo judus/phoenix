@@ -11,6 +11,7 @@ import { PhoenixApplication } from '../../apps/server/src/phoenix-application.ts
 import { createEmptyRuntimeState } from '@phoenix/contracts'
 import { mockDenseCartography } from './mock-dense-cartography.mjs'
 import { SqliteEddnOutbox } from '../../apps/server/src/infrastructure/sqlite-eddn-outbox.ts'
+import { SqliteGalnetArticleArchive } from '../../apps/server/src/infrastructure/sqlite-galnet-article-archive.ts'
 
 const require = createRequire(import.meta.url)
 const { RecordingKeyboardOutput } = require('control-deck/adapter-keyboard')
@@ -20,7 +21,8 @@ const eddnSubmissions = process.argv.includes('--eddn-submissions')
 const prospecting = process.argv.includes('--prospecting')
 const atlasPois = process.argv.includes('--atlas-pois')
 const communityGoals = process.argv.includes('--community-goals')
-const galnetContinuity = process.argv.includes('--galnet-continuity')
+const galnetArchive = process.argv.includes('--galnet-archive')
+const galnetContinuity = process.argv.includes('--galnet-continuity') || galnetArchive
 const galnetAnalysis = process.argv.includes('--galnet-analysis') || galnetContinuity
 const continuityArticles = [
   { id: 'synthetic-breakout', title: 'Synthetic ship breakout', body: 'Synthetic EVE-597 reported a breakout in Sol. Pilots can register at Galileo.', publishedAt: '2026-10-01T12:00:00Z' },
@@ -28,7 +30,7 @@ const continuityArticles = [
   { id: 'synthetic-missing', title: 'Synthetic ship missing', body: 'Synthetic EVE-597 is missing after departing Sol. Its current position is unknown.', publishedAt: '2026-09-17T12:00:00Z' }
 ].map(article => ({ ...article, changedAt: article.publishedAt, image: null, slug: article.id,
   sourceUrl: `https://example.com/galnet/${article.id}` }))
-const fixtureDirectory = eddnSubmissions ? mkdtempSync(join(tmpdir(), 'phoenix-eddn-preview-')) : undefined
+const fixtureDirectory = eddnSubmissions || galnetArchive ? mkdtempSync(join(tmpdir(), 'phoenix-isolated-preview-')) : undefined
 const databasePath = fixtureDirectory ? join(fixtureDirectory, 'preview.sqlite') : ':memory:'
 // This preview must never upload, even when launched from a test-enabled development shell.
 process.env.PHOENIX_EDDN_TEST_MODE = '0'
@@ -131,6 +133,18 @@ const application = new PhoenixApplication({
   }) }
 })
 const { port } = await application.start()
+if (galnetArchive) {
+  const connection = new DatabaseSync(databasePath)
+  try {
+    const archive = new SqliteGalnetArticleArchive(connection)
+    archive.observe(Array.from({ length: 45 }, (_, index) => ({
+      ...continuityArticles[0], id: `synthetic-archive-${String(index).padStart(2, '0')}`,
+      title: `Retained synthetic broadcast ${index}`, body: `Archived beacon evidence ${index}.`,
+      sourceUrl: `https://example.com/galnet/synthetic-archive-${index}`,
+      publishedAt: '2026-09-01T12:00:00Z'
+    })), '2026-10-08T12:00:00Z')
+  } finally { connection.close() }
+}
 if (eddnSubmissions) {
   const connection = new DatabaseSync(databasePath)
   try {

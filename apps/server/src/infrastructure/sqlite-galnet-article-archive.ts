@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
+import type { GalnetArchiveQuery, GalnetArchiveResponse } from '@phoenix/contracts'
 import { GalnetSourceArticleSchema, type GalnetArticleArchive, type GalnetArticleRevision, type GalnetSourceArticle } from '../domain/galnet.js'
 
 const SCHEMA_MIGRATION = 26
@@ -96,6 +97,20 @@ export class SqliteGalnetArticleArchive implements GalnetArticleArchive {
       ORDER BY julianday(json_extract(r.document, '$.article.publishedAt')) DESC, a.article_id ASC LIMIT ?
     `).all(limit) as unknown as RevisionRow[]
     return rows.map(revision)
+  }
+
+  public search({ query, limit, offset }: GalnetArchiveQuery): GalnetArchiveResponse {
+    const matching = `FROM galnet_articles a JOIN galnet_article_revisions r
+      ON r.article_id = a.article_id AND r.revision_id = a.revision_id
+      WHERE instr(lower(json_extract(r.document, '$.article.title') || char(10) ||
+        json_extract(r.document, '$.article.body')), lower(?)) > 0`
+    const { total } = this.connection.prepare(`SELECT count(*) AS total ${matching}`).get(query) as { total: number }
+    const articles = this.connection.prepare(`SELECT a.article_id AS id,
+      json_extract(r.document, '$.article.title') AS title,
+      json_extract(r.document, '$.article.publishedAt') AS publishedAt ${matching}
+      ORDER BY julianday(json_extract(r.document, '$.article.publishedAt')) DESC, a.article_id ASC
+      LIMIT ? OFFSET ?`).all(query, limit, offset) as GalnetArchiveResponse['articles']
+    return { articles, total, limit, offset }
   }
 }
 

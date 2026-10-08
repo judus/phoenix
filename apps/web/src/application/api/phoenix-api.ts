@@ -40,6 +40,7 @@ import type {
   GameActionOperation,
   GameActionResult,
   GalnetNewsResponse,
+  GalnetArchiveQuery, GalnetArchiveResponse, GalnetArchivedArticle,
   GalnetAnalysisResponse,
   GalnetBackgroundStatus,
   GalnetBackgroundSettings,
@@ -184,6 +185,8 @@ export interface PhoenixApi {
   getGalaxyBookmarks(signal?: AbortSignal): Promise<GalaxyBookmarksResponse>
   getAtlasCatalogue(signal?: AbortSignal): Promise<AtlasCatalogueResponse>
   getGalnetNews(limit?: number, signal?: AbortSignal): Promise<GalnetNewsResponse>
+  getGalnetArchive(query: GalnetArchiveQuery, signal?: AbortSignal): Promise<GalnetArchiveResponse>
+  getGalnetArchivedArticle(articleId: string, signal?: AbortSignal): Promise<GalnetArchivedArticle>
   getGalnetAnalysis(articleId: string, signal?: AbortSignal): Promise<GalnetAnalysisResponse>
   getGalnetBackground(signal?: AbortSignal): Promise<GalnetBackgroundStatus>
   getGalnetCoverage(articleId: string, signal?: AbortSignal): Promise<GalnetCoverageResponse>

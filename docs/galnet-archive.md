@@ -34,7 +34,7 @@ point back to an already retained revision. Observation times are not part of th
 A batch updates revision evidence and current pointers in one SQLite transaction. Validation
 or storage failure cannot leave a partially recorded batch. `getArticle(id)` reads the current
 observation; `listRevisions(id)` reads retained distinct revisions, newest first observation first.
-These are internal repository reads, not new HTTP endpoints or Copilot tools.
+These repository reads also support the local archive browser described below.
 
 ## Feed and failure semantics
 
@@ -46,7 +46,28 @@ archived articles are not injected back into it. Source or archive failures do n
 freshness. If cache persistence fails after a committed archive write, the evidence remains
 retained and an identical retry deduplicates it.
 
-This slice makes no AI calls, infers no stories/actions/locations and adds no Atlas markers,
-personal participation tracking, archive UI or background worker. Future analysis needs its own
-settings, budget and versioned extraction contract; it must preserve sources and distinguish
-reported facts from interpretations. See issue #60 for that separate scope.
+## Retained article browsing
+
+Comms → GalNet keeps **Latest news** separate from **Archive**. The archive lists all retained
+current article revisions, newest publication first with article ID as a stable tie-breaker.
+Search matches a literal substring in the current title or body (SQLite's ASCII case folding);
+`%` and `_` are not wildcards. Superseded revision text is not included in search results.
+Pages show 40 articles. An article leaving the latest feed remains accessible here. The archive
+is a record of what this installation observed, not an exhaustive GalNet history.
+
+Paired, read-only endpoints:
+
+- `GET /api/galnet/archive?query=...&limit=40&offset=0` returns title/date/ID summaries and a
+  matching total. Query is trimmed and limited to 200 characters; limit is 1–100, offset is a
+  nonnegative safe integer. Invalid or unknown arguments return 400.
+- `GET /api/galnet/archive/article?articleId=...` returns the current retained text, source URL,
+  revision identity, upstream change time and first/last observation times. Missing articles
+  return 404. Dates of publication, upstream change and local observation remain distinct.
+
+Related coverage has an **Open article** action that uses retained lookup by ID, even when the
+article is outside the latest feed or current archive page. It opens the same article reader
+and existing saved-analysis panel. Changed source/report warnings and explicit analysis controls
+are unchanged. The archive remains reachable if the latest feed fails; neither endpoint refreshes
+Frontier, performs inference or mutates retained evidence. No historical crawling, revision
+comparison UI or new Copilot tool is introduced. Analysis and background intake are separately
+documented in [GalNet analysis](galnet-analysis.md); broader intelligence remains under issue #60.

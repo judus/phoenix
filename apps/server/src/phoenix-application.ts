@@ -83,6 +83,7 @@ import { EngineeringProjectService } from './application/engineering-project-ser
 import { ExplorationDataService } from './application/exploration-data-service.js'
 import { DefaultCommanderEngineersQuery } from './application/default-commander-engineers-query.js'
 import { GalnetNewsService } from './application/galnet-news-service.js'
+import { GalnetArchiveService } from './application/galnet-archive-service.js'
 import { GalnetAnalysisService } from './application/galnet-analysis-service.js'
 import { GalnetBackgroundService } from './application/galnet-background-service.js'
 import { GalnetCoverageService } from './application/galnet-coverage-service.js'
@@ -602,6 +603,7 @@ export class PhoenixApplication {
       personalEquipmentSpecialists,
       personalEquipmentPlanner,
       galnet,
+      galnetArchive: new GalnetArchiveService(this.database.galnetArchive),
       galnetAnalysis: this.galnetAnalysis,
       galnetBackground: this.galnetBackground,
       galnetCoverage: new GalnetCoverageService(savedGalnetAnalyses),

@@ -14,6 +14,29 @@ const article = {
 const first = '2026-10-02T10:00:00.000Z'
 const second = '2026-10-02T11:00:00.000Z'
 
+test('archive browsing searches current title/text literally and pages by publication then ID', () => {
+  const db = new SqliteDatabase(':memory:')
+  db.initialize()
+  try {
+    db.galnetArchive.observe([
+      { ...article, id: 'b', title: 'Old name', body: 'Superseded clue' },
+      { ...article, id: 'a', title: 'BEACON found', body: '100% _literal_ text' },
+      { ...article, id: 'older', body: 'A beacon report', publishedAt: '2026-09-01T11:00:00Z' }
+    ], first)
+    db.galnetArchive.observe([{ ...article, id: 'b', title: 'Corrected name', body: 'A beacon update' }], second)
+    const search = (query: string, offset = 0, limit = 1) => db.galnetArchive.search({ query, offset, limit })
+    expect(search('beacon')).toMatchObject({ total: 3, articles: [{ id: 'a' }], limit: 1, offset: 0 })
+    expect(search('BEACON', 1)).toMatchObject({ total: 3, articles: [{ id: 'b', title: 'Corrected name' }] })
+    expect(search('beacon', 2)).toMatchObject({ total: 3, articles: [{ id: 'older' }] })
+    expect(search('beacon', 3)).toMatchObject({ total: 3, articles: [] })
+    expect(search('')).toMatchObject({ total: 3 })
+    expect(search('Superseded')).toMatchObject({ total: 0, articles: [] })
+    expect(search('100% _literal_')).toMatchObject({ total: 1, articles: [{ id: 'a' }] })
+    expect(search("' OR 1=1 --")).toMatchObject({ total: 0, articles: [] })
+    expect(db.galnetArchive.listRevisions('b')).toHaveLength(2)
+  } finally { db.close() }
+})
+
 test('archive deduplicates observations, retains changed evidence and tracks current even after a reversion', () => {
   const db = new SqliteDatabase(':memory:')
   db.initialize()

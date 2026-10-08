@@ -4,6 +4,10 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Browse and search retained GalNet articles independently of the latest feed. Open related
+  coverage inside PHOENIX with its source and saved analysis, even after it leaves the feed;
+  archive browsing stays local and never runs AI.
+
 - Give Copilot the reconciled GalNet lead picture rather than original activity counts. Keep
   source-backed resolutions, replacements and campaign links alongside unchanged original reports;
   uncertain or conflicting leads remain visible, including those without a map destination.

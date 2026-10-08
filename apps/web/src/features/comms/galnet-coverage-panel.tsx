@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { GalnetCoverageResponse } from '@phoenix/contracts'
-import { DataTableGroup, ItemList, ItemListItem, Stack, Status } from '@phoenix/ui'
+import { Button, DataTableGroup, ItemList, ItemListItem, Stack, Status } from '@phoenix/ui'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { PhoenixDateTime } from '../../components/phoenix-date-time.js'
 
-export function GalnetCoveragePanel({ api, articleId }: { api: Pick<PhoenixApi, 'getGalnetCoverage'>, articleId: string }) {
+export function GalnetCoveragePanel({ api, articleId, onOpen }: { api: Pick<PhoenixApi, 'getGalnetCoverage'>, articleId: string, onOpen(articleId: string): void }) {
   const [coverage, setCoverage] = useState<GalnetCoverageResponse>()
   const [error, setError] = useState<string>()
   useEffect(() => {
@@ -31,7 +31,7 @@ export function GalnetCoveragePanel({ api, articleId }: { api: Pick<PhoenixApi, 
         title={currentArticleTitle ?? 'Archived article'}
         eyebrow={<PhoenixDateTime value={analysis.publishedAt} precision="date" />}
         description={analysis.content.summary}
-        meta={<><a href={analysis.sourceUrl} target="_blank" rel="noreferrer">Source</a>{articleChanged ? ' · Article changed' : ''}
+        meta={<><Button size="sm" onClick={() => onOpen(analysis.articleId)}>Open article</Button>{' · '}<a href={analysis.sourceUrl} target="_blank" rel="noreferrer">Source</a>{articleChanged ? ' · Article changed' : ''}
           {analysis.content.activities.map((activity, index) => <span key={index}><br />{activity.title} · {activity.status}{activity.communityGoalId ? ' · Community Goal reference' : ''}</span>)}</>} />)}</ItemList>
     </>}
   </Stack></DataTableGroup>

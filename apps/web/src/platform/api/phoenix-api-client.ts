@@ -1,5 +1,6 @@
 import {
   GalnetAnalysisResponseSchema,
+  GalnetArchiveResponseSchema, GalnetArchivedArticleSchema, type GalnetArchiveQuery,
   GalnetBackgroundStatusSchema,
   GalnetCoverageResponseSchema,
   type GalnetBackgroundSettings,
@@ -501,6 +502,14 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getGalnetAnalysis(articleId: string, signal?: AbortSignal): Promise<GalnetAnalysisResponse> {
     return this.#get(`/api/galnet/analysis?${new URLSearchParams({ articleId })}`, GalnetAnalysisResponseSchema, signal)
+  }
+
+  async getGalnetArchive({ query, limit, offset }: GalnetArchiveQuery, signal?: AbortSignal) {
+    return this.#get(`/api/galnet/archive?${new URLSearchParams({ query, limit: String(limit), offset: String(offset) })}`, GalnetArchiveResponseSchema, signal)
+  }
+
+  async getGalnetArchivedArticle(articleId: string, signal?: AbortSignal) {
+    return this.#get(`/api/galnet/archive/article?${new URLSearchParams({ articleId })}`, GalnetArchivedArticleSchema, signal)
   }
 
   async getGalnetBackground(signal?: AbortSignal) {
