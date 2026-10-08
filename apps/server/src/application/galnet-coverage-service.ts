@@ -13,8 +13,11 @@ export class GalnetCoverageService {
     const keys = new Set(subjects.map(entity => `${entity.kind}:${entity.name.trim().toLowerCase()}`))
     const related = this.reports.recent(100).filter(saved => saved.analysis.articleId !== articleId &&
       !saved.articleChanged && saved.analysis.content.entities.some(entity => keys.has(`${entity.kind}:${entity.name.trim().toLowerCase()}`)))
+    const shared = new Set(related.flatMap(saved => saved.analysis.content.entities.map(entity => `${entity.kind}:${entity.name.trim().toLowerCase()}`)))
+    const names = new Map(subjects.filter(entity => shared.has(`${entity.kind}:${entity.name.trim().toLowerCase()}`))
+      .map(entity => [`${entity.kind}:${entity.name.trim().toLowerCase()}`, entity.name]))
     related.push(selected)
-    return { subjects: subjects.map(entity => entity.name), reports: related.sort((a, b) =>
+    return { subjects: [...names.values()], reports: related.sort((a, b) =>
       Date.parse(a.analysis.publishedAt) - Date.parse(b.analysis.publishedAt) || a.analysis.articleId.localeCompare(b.analysis.articleId)) }
   }
 }

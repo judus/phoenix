@@ -92,6 +92,9 @@ Pending work survives restart. A request interrupted by a crash becomes failed o
 credit may already have been used. Superseded queued revisions are skipped rather than labelled
 as analyses of evidence never supplied. Disabling automation pauses unstarted automatic jobs;
 an in-flight request may finish, and explicitly requested catch-up remains eligible.
+Every producer shares a SQLite-enforced limit of 100 pending jobs. When full, automatic intake
+keeps the unadmitted evidence eligible for a later poll and shows a queue-full notice. Observations
+advance only after their idempotent job is durable, so an interrupted admission cannot lose work.
 
 The queue has a configurable 1–50 attempt limit per UTC day (default 10). Failed and cached attempts
 count conservatively; this is not a currency budget. Individual manual article actions are separate

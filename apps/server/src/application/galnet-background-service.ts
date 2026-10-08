@@ -71,7 +71,10 @@ export class GalnetBackgroundService {
     })
     if (this.repository.pending() + eligible.length > 100) throw new AiError('rate_limit', 'The GalNet queue is full. Let existing work finish before requesting more catch-up.', { code: 'galnet_background_queue_full' })
     // Explicit catch-up permits retrying failures, but not duplicate queued work or current reports.
-    for (const article of eligible) this.enqueue(article.article.id, 'catch-up', randomUUID())
+    for (const article of eligible) {
+      if (!this.enqueue(article.article.id, 'catch-up', randomUUID())) throw new AiError('rate_limit',
+        'The GalNet queue is full. Let existing work finish before requesting more catch-up.', { code: 'galnet_background_queue_full' })
+    }
     return this.status()
   }
 
@@ -126,13 +129,17 @@ export class GalnetBackgroundService {
       return
     }
     const goalKeys = Object.fromEntries(goals.goals.map(goal => [goal.id, goalKey(goal)]))
+    let queueFull = false
     for (const article of [...news.articles].sort((a, b) => Date.parse(a.publishedAt) - Date.parse(b.publishedAt))) {
       const revision = this.archive.getArticle(article.id)!
-      const previous = this.repository.observe(article.id, revision.revisionId)
+      const previous = this.repository.observed(article.id)
       if (state.enabled && previous !== revision.revisionId &&
         (previous !== null || Date.parse(article.publishedAt) >= Date.parse(state.installedAt))) {
-        this.enqueue(article.id, 'article', revision.revisionId)
+        if (!this.enqueue(article.id, 'article', revision.revisionId)) { queueFull = true; continue }
       }
+      // Advance only after durable admission. A crash here replays the same idempotent job,
+      // never loses work or retries a failed provider request.
+      this.repository.observe(article.id, revision.revisionId)
     }
     // CG content changes matter; quantities/fetch times do not. Missing goals do not prove ending.
     if (state.lastCheckedAt !== null && state.enabled) {
@@ -142,15 +149,17 @@ export class GalnetBackgroundService {
         if (saved.articleChanged) continue
         const related = changed.filter(goal => saved.analysis.content.activities.some(activity => activity.communityGoalId === goal.id) ||
           saved.analysis.content.entities.some(entity => entity.kind === 'system' && entity.name.toLowerCase() === goal.systemName.toLowerCase()))
-        if (related.length > 0 && !pending.has(saved.analysis.articleId)) this.enqueue(saved.analysis.articleId, 'community-goal', hash(related.map(goal => goalKeys[goal.id]).sort()))
+        if (related.length > 0 && !pending.has(saved.analysis.articleId) &&
+          !this.enqueue(saved.analysis.articleId, 'community-goal', hash(related.map(goal => goalKeys[goal.id]).sort()))) queueFull = true
       }
     }
-    this.repository.save({ ...this.repository.load(), goals: goalKeys, lastCheckedAt: this.now().toISOString(), sourceError: null })
+    this.repository.save({ ...this.repository.load(), goals: queueFull ? state.goals : goalKeys,
+      lastCheckedAt: this.now().toISOString(), sourceError: queueFull ? 'The GalNet queue is full. Unadmitted coverage will be checked again on a later poll.' : null })
   }
 
-  private enqueue(articleId: string, reason: GalnetBackgroundJob['reason'], evidenceKey: string): void {
+  private enqueue(articleId: string, reason: GalnetBackgroundJob['reason'], evidenceKey: string): boolean {
     const article = this.archive.getArticle(articleId)!
-    this.repository.enqueue({ id: hash([articleId, reason, article.revisionId, evidenceKey]),
+    return this.repository.enqueue({ id: hash([articleId, reason, article.revisionId, evidenceKey]),
       articleId, articleRevisionId: article.revisionId, title: article.article.title, reason, state: 'pending', queuedAt: this.now().toISOString(),
       startedAt: null, finishedAt: null, error: null })
   }

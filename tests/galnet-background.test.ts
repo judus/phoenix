@@ -275,3 +275,77 @@ test('a real SQLite reopen retains consent, observations, pending work and attem
     expect(db.galnetBackground.list()).toEqual(jobs)
   } finally { db.close(); rmSync(directory, { recursive: true, force: true }) }
 })
+
+function fillQueue(db: SqliteDatabase) {
+  for (let index = 0; index < 100; index++) expect(db.galnetBackground.enqueue({
+    id: `capacity-${index}`, articleId: `capacity-${index}`, articleRevisionId: 'revision', title: 'Synthetic queued article',
+    reason: 'article', state: 'pending', queuedAt: '2026-10-07T12:00:00Z', startedAt: null, finishedAt: null, error: null
+  })).toBe(true)
+}
+
+function freeQueueSlot(db: SqliteDatabase) {
+  const job = db.galnetBackground.next(true)!
+  db.galnetBackground.put({ ...job, state: 'skipped', finishedAt: '2026-10-07T13:00:00Z' })
+}
+
+test('automatic article admission obeys capacity and leaves rejected evidence eligible for a later poll', async () => {
+  const f = fixture()
+  try {
+    f.enable(); await f.worker.tick(); f.configured(false)
+    fillQueue(f.db)
+    f.add(); f.advance(); await f.worker.tick()
+    expect(f.worker.status()).toMatchObject({ pending: 100, sourceError: expect.stringContaining('queue is full') })
+    expect(f.db.galnetBackground.observed('new-article')).toBeNull()
+    const existing = f.db.galnetBackground.next(true)!
+    expect(f.db.galnetBackground.enqueue(existing)).toBe(true)
+    f.configured(true)
+    expect(() => f.worker.catchUp([analysisArticle.id])).toThrow(expect.objectContaining({ code: 'galnet_background_queue_full' }))
+    f.configured(false)
+    freeQueueSlot(f.db); f.advance(); await f.worker.tick()
+    expect(f.worker.status()).toMatchObject({ pending: 100, sourceError: null })
+    expect(f.db.galnetBackground.observed('new-article')).toBe(f.db.galnetArchive.getArticle('new-article')!.revisionId)
+    expect(f.analyser.analyse).not.toHaveBeenCalled()
+  } finally { await f.close() }
+})
+
+test('CG admission obeys capacity without consuming the changed briefing baseline', async () => {
+  const f = fixture()
+  try {
+    f.enable(); await f.worker.tick()
+    f.worker.catchUp([analysisArticle.id]); await f.worker.tick(); f.configured(false)
+    const baseline = f.db.galnetBackground.load().goals
+    fillQueue(f.db)
+    f.goals({ ...analysisGoals, goals: analysisGoals.goals.map(goal => ({ ...goal, briefing: 'Updated orders.' })) })
+    f.advance(); await f.worker.tick()
+    expect(f.db.galnetBackground.pending()).toBe(100)
+    expect(f.db.galnetBackground.load().goals).toEqual(baseline)
+    freeQueueSlot(f.db); f.advance(); await f.worker.tick()
+    expect(f.db.galnetBackground.load().goals).not.toEqual(baseline)
+    expect(f.db.galnetBackground.list('pending').some(job => job.reason === 'community-goal')).toBe(true)
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(1)
+  } finally { await f.close() }
+})
+
+test.each(['before-admission', 'after-admission'] as const)('failure %s never loses automatic work or creates duplicate jobs', async stage => {
+  const f = fixture()
+  try {
+    f.enable(); await f.worker.tick(); f.configured(false)
+    if (stage === 'before-admission') vi.spyOn(f.db.galnetBackground, 'enqueue').mockImplementationOnce(() => { throw new Error('Synthetic write failure') })
+    else {
+      const observe = f.db.galnetBackground.observe.bind(f.db.galnetBackground)
+      vi.spyOn(f.db.galnetBackground, 'observe').mockImplementation((id, revision) => {
+        if (id === 'new-article') throw new Error('Synthetic exit after admission')
+        return observe(id, revision)
+      })
+    }
+    f.add(); f.advance(); await f.worker.tick()
+    expect(f.db.galnetBackground.observed('new-article')).toBeNull()
+    expect(f.db.galnetBackground.pending()).toBe(stage === 'before-admission' ? 0 : 1)
+    vi.restoreAllMocks()
+    f.advance(); await f.worker.tick()
+    expect(f.db.galnetBackground.pending()).toBe(1)
+    expect(f.db.galnetBackground.observed('new-article')).not.toBeNull()
+    f.configured(true); await f.worker.tick()
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(1)
+  } finally { vi.restoreAllMocks(); await f.close() }
+})

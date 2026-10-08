@@ -35,16 +35,24 @@ export class SqliteGalnetBackgroundRepository implements GalnetBackgroundReposit
       .run(JSON.stringify(state))
   }
 
-  public observe(articleId: string, revisionId: string): string | null {
+  public observed(articleId: string): string | null {
     const old = this.db.prepare('SELECT revision_id FROM galnet_background_observations WHERE article_id = ?').get(articleId) as { revision_id: string } | undefined
-    this.db.prepare(`INSERT INTO galnet_background_observations VALUES (?, ?)
-      ON CONFLICT(article_id) DO UPDATE SET revision_id = excluded.revision_id`).run(articleId, revisionId)
     return old?.revision_id ?? null
   }
 
-  public enqueue(job: GalnetBackgroundJob): void {
-    this.db.prepare('INSERT OR IGNORE INTO galnet_background_jobs VALUES (?, ?, ?, ?, ?)')
-      .run(job.id, job.articleId, job.state, job.startedAt, JSON.stringify(job))
+  public observe(articleId: string, revisionId: string): string | null {
+    const old = this.observed(articleId)
+    this.db.prepare(`INSERT INTO galnet_background_observations VALUES (?, ?)
+      ON CONFLICT(article_id) DO UPDATE SET revision_id = excluded.revision_id`).run(articleId, revisionId)
+    return old
+  }
+
+  public enqueue(job: GalnetBackgroundJob): boolean {
+    // Admission and its capacity check are one SQLite statement, for every producer.
+    const inserted = this.db.prepare(`INSERT OR IGNORE INTO galnet_background_jobs
+      SELECT ?, ?, ?, ?, ? WHERE (SELECT COUNT(*) FROM galnet_background_jobs WHERE state = 'pending') < 100`)
+      .run(job.id, job.articleId, job.state, job.startedAt, JSON.stringify(job)).changes
+    return inserted !== 0 || this.db.prepare('SELECT id FROM galnet_background_jobs WHERE id = ?').get(job.id) !== undefined
   }
 
   public put(job: GalnetBackgroundJob): void {

@@ -10,8 +10,10 @@ export interface GalnetBackgroundState extends GalnetBackgroundSettings {
 export interface GalnetBackgroundRepository {
   load(): GalnetBackgroundState
   save(state: GalnetBackgroundState): void
+  observed(articleId: string): string | null
   observe(articleId: string, revisionId: string): string | null
-  enqueue(job: GalnetBackgroundJob): void
+  /** False when pending capacity is exhausted; an already durable job counts as admitted. */
+  enqueue(job: GalnetBackgroundJob): boolean
   put(job: GalnetBackgroundJob): void
   list(state?: GalnetBackgroundJob['state'], limit?: number): GalnetBackgroundJob[]
   next(includeAutomatic: boolean): GalnetBackgroundJob | null

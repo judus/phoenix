@@ -18,13 +18,17 @@ test('related reports use exact ship/person subjects and publication chronology,
       const report = savedGalnetAnalysis({ articleId: id, cacheKey: id, publishedAt, analysedAt,
         articleRevisionId: db.galnetArchive.getArticle(id)!.revisionId })
       report.content.entities = [{ name, kind, role: 'Reported ship', evidence: 'Synthetic evidence' }]
+      if (id === 'missing') report.content.entities.push(report.content.entities[0]!,
+        { name: 'UNSHARED', kind: 'person', role: 'Not shared', evidence: 'Synthetic evidence' })
       db.galnetAnalyses.put(report)
     }
     const service = new GalnetCoverageService(new SavedGalnetAnalysisService(db.galnetAnalyses, db.galnetArchive))
     expect(service.get('missing').reports.map(saved => saved.analysis.articleId)).toEqual(['missing', 'found'])
+    expect(service.get('missing').subjects).toEqual(['EVE-597'])
     expect(service.get('unknown')).toEqual({ subjects: [], reports: [] })
     db.galnetArchive.observe([{ ...analysisArticle, id: 'found', title: 'Changed', publishedAt: '2026-09-22T12:00:00Z' }], '2026-10-08T12:00:00Z')
     expect(service.get('missing').reports.map(saved => saved.analysis.articleId)).toEqual(['missing'])
+    expect(service.get('missing').subjects).toEqual([])
     expect(service.get('found')).toEqual({ subjects: [], reports: [] })
   } finally { db.close() }
 })
