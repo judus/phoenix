@@ -15,8 +15,10 @@ original fetch time. AI reports retain that entire snapshot, not a manufactured 
 
 The report separates facts, interpretation, mentioned entities and possible activities. Every
 supporting quote must match a contiguous passage in the article title or body. Matching tolerates
-only whitespace runs/line endings and straight-versus-curly single/double quotation marks; saved
-evidence is restored to the exact original source passage. Changed wording, case, numbers, omitted
+only whitespace runs/line endings, straight-versus-curly single/double quotation marks and one
+paired outer double-quote wrapper added around an excerpt. Full-source matches take precedence;
+saved evidence is restored to the exact original source passage without invented wrappers.
+Changed wording, case, numbers, omitted
 words and other punctuation are not normalized. Unverifiable quotes reject the report atomically;
 the error identifies the evidence field and rejected quote. The existing 800-character evidence
 limit also applies to restored source passages; exceeding it produces a specific validation error,

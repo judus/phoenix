@@ -25,3 +25,26 @@ test('never joins title and body or noncontiguous passages into a source quote',
   expect(resolve('news Pilots')).toBeUndefined()
   expect(resolve('Pilots report Details are unknown.')).toBeUndefined()
 })
+
+test.each(['"Pilots report activity."', '“Pilots report activity.”', '  “ Pilots report activity. ”  '])
+('accepts a paired outer double-quote wrapper and returns only original evidence: %j', quote => {
+  expect(createGalnetQuoteResolver('Title', 'Pilots report\r\nactivity. More follows.')(quote))
+    .toBe('Pilots report\r\nactivity.')
+})
+
+test('accepts an excerpt closed before the original speech ends, preserving interior quotes', () => {
+  const resolve = createGalnetQuoteResolver('Title', '“The pilots’ reports mention ‘Colonia’. More follows.”')
+  expect(resolve('“The pilots\' reports mention \'Colonia\'.”')).toBe('The pilots’ reports mention ‘Colonia’.')
+  expect(resolve('“The pilots\' reports mention \'Colonia\'. More follows.”'))
+    .toBe('“The pilots’ reports mention ‘Colonia’. More follows.”')
+})
+
+test.each(['“pilots report activity.”', '“Pilots report discoveries.”', '“Pilots report activity!”',
+  '“Pilots ... activity.”', '“Pilots report activity.', 'Pilots report activity.”', '“”', '“  ”'])
+('wrapper handling does not accept changed evidence, unpaired quotes or empty text: %j', quote => {
+  expect(createGalnetQuoteResolver('Title', 'Pilots report activity.')(quote)).toBeUndefined()
+})
+
+test('does not repair a period substituted for the source comma', () => {
+  expect(createGalnetQuoteResolver('Title', 'The ship was found,” the pilot said.')('“The ship was found.”')).toBeUndefined()
+})

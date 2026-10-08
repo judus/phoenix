@@ -16,9 +16,16 @@ export function createGalnetQuoteResolver(title: string, body: string): (quote: 
     const normalized = normalize(quote).trim()
     if (!normalized) return undefined
     for (const { source } of sources) if (source.includes(quote)) return quote
-    for (const { source, text, spans } of sources) {
-      const start = text.indexOf(normalized)
-      if (start !== -1) return source.slice(spans[start]!.start, spans[start + normalized.length - 1]!.end)
+    // Models sometimes wrap a verbatim excerpt in quotation marks not present at those
+    // source boundaries. Prefer the full quote; allow only one paired double-quote wrapper.
+    const candidates = normalized.startsWith('"') && normalized.endsWith('"')
+      ? [normalized, normalized.slice(1, -1).trim()] : [normalized]
+    for (const candidate of candidates) {
+      if (!candidate) continue
+      for (const { source, text, spans } of sources) {
+        const start = text.indexOf(candidate)
+        if (start !== -1) return source.slice(spans[start]!.start, spans[start + candidate.length - 1]!.end)
+      }
     }
     return undefined
   }

@@ -109,11 +109,15 @@ test('an explicitly identified replacement retires only its particular predecess
   } finally { await f.close() }
 })
 
-test('story quotes restore original source formatting rather than saving normalized model prose', async () => {
+test('story quotes remove added wrappers and restore original source formatting', async () => {
   const f = setup()
   try {
     f.db.galnetArchive.observe([{ ...f.found, body: f.found.body.replace('has been', 'has\r\nbeen') }], '2026-10-09T12:00:00Z')
+    f.continuity.developments[0]!.evidence.quote = '“EVE-597 has been found in Sol.”'
+    f.continuity.updates[0]!.evidence.quote = '"EVE-597 has been found in Sol."'
     const result = await f.service.analyse('found')
+    expect(result.analysis?.schemaVersion === 3 && result.analysis.continuity?.developments[0]?.evidence.quote)
+      .toBe('EVE-597 has\r\nbeen found in Sol.')
     expect(result.analysis?.schemaVersion === 3 && result.analysis.continuity?.updates[0]?.evidence.quote)
       .toBe('EVE-597 has\r\nbeen found in Sol.')
   } finally { await f.close() }

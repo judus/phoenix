@@ -42,9 +42,9 @@ test('all evidence fields retain original source quotes after presentation-only 
     fixture.db.galnetArchive.observe([{ ...analysisArticle, body: passage }], '2026-10-08T12:00:00Z')
     const content = structuredClone(analysisContent)
     for (const group of ['facts', 'interpretations', 'entities', 'activities'] as const) {
-      for (const entry of content[group]) entry.evidence = '"Pilots\' reports" confirm Colonia.'
+      for (const entry of content[group]) entry.evidence = '“"Pilots\' reports" confirm Colonia.”'
     }
-    content.activities[1]!.destination!.evidence = '"Pilots\' reports" confirm Colonia.'
+    content.activities[1]!.destination!.evidence = '“"Pilots\' reports" confirm Colonia.”'
     fixture.analyser.analyse.mockResolvedValue({ content, continuity: null, usage: analysisUsage })
     const result = await fixture.service.analyse(analysisArticle.id)
     const saved = fixture.db.galnetAnalyses.latest(analysisArticle.id)!
