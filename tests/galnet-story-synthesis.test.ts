@@ -178,10 +178,14 @@ test('equal-date conflicting assessments keep the prior lead rather than choosin
   try {
     const report = (await f.service.analyse('found')).analysis!
     if (report.schemaVersion !== 3) throw new Error('Expected v3')
-    const other = { ...f.found, id: 'alternative' }
+    const other = { ...f.found, id: 'alternative', sourceUrl: 'https://example.com/galnet/alternative' }
     f.db.galnetArchive.observe([other], '2026-10-08T12:00:00Z')
     f.db.galnetAnalyses.put({ ...report, articleId: other.id, articleRevisionId: f.db.galnetArchive.getArticle(other.id)!.revisionId,
-      cacheKey: 'alternative', continuity: { ...f.continuity, updates: f.continuity.updates.map(update => ({ ...update, disposition: 'unresolved' })) } })
+      cacheKey: 'alternative', sourceUrl: other.sourceUrl, continuity: { ...f.continuity,
+        developments: f.continuity.developments.map(development => ({ ...development,
+          evidence: { ...development.evidence, articleId: other.id } })),
+        updates: f.continuity.updates.map(update => ({ ...update, disposition: 'unresolved',
+          evidence: { ...update.evidence, articleId: other.id } })) } })
     expect(f.atlas.get().leads.map(lead => lead.title)).toContain('Find the ship')
   } finally { await f.close() }
 })

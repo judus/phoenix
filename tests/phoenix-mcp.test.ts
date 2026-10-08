@@ -20,7 +20,7 @@ import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-clien
 import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
 import { analysisArticle, savedGalnetAnalysis } from './support/galnet-analysis-fixtures.js'
 
-test('GalNet tools read persisted analysis over MCP without inference or source refresh and expose both Comms permissions', async () => {
+test('GalNet tools reconcile persisted reports over MCP without inference or source refresh and expose both Comms permissions', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-galnet-tools-'))
   const databasePath = join(directory, 'state.sqlite')
   const db = new SqliteDatabase(databasePath)
@@ -30,6 +30,20 @@ test('GalNet tools read persisted analysis over MCP without inference or source 
     db.galnetArchive.observe([analysisArticle], '2026-10-07T12:00:00Z')
     report = savedGalnetAnalysis({ articleRevisionId: db.galnetArchive.getArticle(analysisArticle.id)!.revisionId })
     db.galnetAnalyses.put(report)
+    const followup = { ...analysisArticle, id: 'beacon-completed', title: 'Beacon research complete',
+      body: 'Beacon research completed in Colonia.', publishedAt: '2026-10-02T12:00:00Z',
+      sourceUrl: 'https://example.com/galnet/beacon-completed' }
+    db.galnetArchive.observe([followup], '2026-10-08T12:00:00Z')
+    db.galnetAnalyses.put({ ...savedGalnetAnalysis(), schemaVersion: 3, extractorVersion: 'galnet-analysis-v3',
+      articleId: followup.id, articleRevisionId: db.galnetArchive.getArticle(followup.id)!.revisionId,
+      cacheKey: 'completed-cache', publishedAt: followup.publishedAt, analysedAt: '2026-10-08T12:00:00Z', sourceUrl: followup.sourceUrl,
+      content: { summary: followup.body, facts: [], interpretations: [], entities: [], activities: [] },
+      context: [{ articleId: report.articleId, articleRevisionId: report.articleRevisionId, analysisCacheKey: report.cacheKey,
+        title: analysisArticle.title, sourceUrl: report.sourceUrl, publishedAt: report.publishedAt, communityGoals: report.communityGoals }],
+      continuity: { summary: followup.body, relatedArticleIds: [report.articleId],
+        developments: [{ text: followup.body, evidence: { articleId: followup.id, quote: followup.body } }],
+        updates: [{ leadId: `galnet-lead:${report.cacheKey}:1`, disposition: 'resolved', explanation: 'Research completed.',
+          evidence: { articleId: followup.id, quote: followup.body }, replacementActivityIndex: null, communityGoalId: null }] } })
   } finally { db.close() }
   const analyse = vi.fn(async () => { throw new Error('Unexpected inference') })
   const getLatest = vi.fn(async () => { throw new Error('Unexpected news refresh') })
@@ -55,10 +69,14 @@ test('GalNet tools read persisted analysis over MCP without inference or source 
     }
     await client.user('What is the story behind this campaign?').run()
     expect(provider.requests[1]?.messages.at(-1)?.content).toMatchObject([{ type: 'tool_result', status: 'success', structuredContent: {
-      limit: 2, reports: [{ articleId: analysisArticle.id, articleChanged: false, summary: report.content.summary }]
+      limit: 2, reports: [{ articleId: 'beacon-completed', currentInvestigationLeadCount: 0 },
+        { articleId: analysisArticle.id, articleChanged: false, summary: report.content.summary,
+          originalInvestigationLeadCount: 1, currentInvestigationLeadCount: 0 }]
     } }])
     expect(provider.requests[2]?.messages.at(-1)?.content).toMatchObject([{ type: 'tool_result', status: 'success', structuredContent: {
-      articleChanged: false, report
+      articleChanged: false, report, currentInvestigationLeads: [],
+      leadAssessments: [{ disposition: 'resolved', assessments: [{ articleId: 'beacon-completed',
+        evidenceSourceUrl: 'https://example.com/galnet/beacon-completed', update: { evidence: { quote: 'Beacon research completed in Colonia.' } } }] }]
     } }])
     expect((await api.getGalnetAnalysis(analysisArticle.id)).analysis).toEqual(report)
     expect(analyse).not.toHaveBeenCalled()

@@ -58,11 +58,12 @@ test('tool summaries stay compact; detail preserves facts, uncertainty and only 
   expect(list.execute({ limit: 1 }).structuredContent).toMatchObject({ limit: 1, reports: [{
     articleId: report.articleId, sourceUrl: report.sourceUrl, articleChanged: true,
     currentArticleTitle: 'Corrected title', summary: report.content.summary, communityGoalIds: ['cg-research'],
-    investigationLeadCount: 1, communityGoals: { fetchedAt: report.communityGoals.fetchedAt, cache: 'stale' }
+    originalInvestigationLeadCount: 1, currentInvestigationLeadCount: null,
+    communityGoals: { fetchedAt: report.communityGoals.fetchedAt, cache: 'stale' }
   }] })
   expect(JSON.stringify(list.execute({}).structuredContent)).not.toContain('Register at Galileo')
-  expect(recent).toHaveBeenLastCalledWith(10)
-  const detail = new CommsGetGalnetAnalysisTool({ get }).execute({ articleId: report.articleId })
+  expect(recent).toHaveBeenLastCalledWith(100)
+  const detail = new CommsGetGalnetAnalysisTool({ get, recent }).execute({ articleId: report.articleId })
   expect(detail.structuredContent).toMatchObject({ articleChanged: true, report: {
     articleRevisionId: report.articleRevisionId, content: report.content, model: report.model,
     sourceUrl: report.sourceUrl, usage: report.usage,
@@ -77,7 +78,7 @@ test('empty and missing analysis explain manual generation, never claim the gala
   const list = new CommsListGalnetAnalysesTool({ recent: () => [] }).execute({})
   expect(list.structuredContent).toEqual({ limit: 10, reports: [] })
   expect(list.content?.[0]).toMatchObject({ text: expect.stringContaining('Absence of a report or lead does not prove nothing is happening') })
-  const missing = new CommsGetGalnetAnalysisTool({ get: () => null }).execute({ articleId: 'not-analysed' })
+  const missing = new CommsGetGalnetAnalysisTool({ get: () => null, recent: () => [] }).execute({ articleId: 'not-analysed' })
   expect(missing.structuredContent).toEqual({ articleId: 'not-analysed', report: null })
   expect(missing.content?.[0]).toMatchObject({ text: expect.stringContaining('Analyse article in Comms > GalNet') })
 })
@@ -85,7 +86,7 @@ test('empty and missing analysis explain manual generation, never claim the gala
 test('both Comms permissions validate before reading and enforce installation/profile ceilings without broadening saved policies', async () => {
   const recent = vi.fn(() => [])
   const get = vi.fn(() => null)
-  const tools = [new CommsListGalnetAnalysesTool({ recent }), new CommsGetGalnetAnalysisTool({ get })].map(withToolErrorBoundary)
+  const tools = [new CommsListGalnetAnalysesTool({ recent }), new CommsGetGalnetAnalysisTool({ get, recent })].map(withToolErrorBoundary)
   const settings = new InMemorySystemSettingsRepository()
   const capabilities = new DefaultCopilotCapabilityService(() => tools.map(tool => tool.definition), {
     find: () => undefined, getCatalog: () => ({ schemaVersion: 1, commands: [] })
