@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Accept harmless added outer quotation marks in GalNet evidence and retain the original source
+  passage. Keep wording and punctuation validation strict, without automatic paid retries.
+
 - Connect related GalNet articles into a source-backed story update within the existing analysis
   request. Keep original reports and dated campaign references; retire only explicitly reconciled
   earlier Atlas leads, leaving unrelated or uncertain activities visible. Changed source context
