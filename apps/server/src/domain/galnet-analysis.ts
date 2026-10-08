@@ -34,6 +34,7 @@ export interface GalnetArticleAnalyser {
 export interface GalnetStoryContext {
   source: GalnetStorySource
   article: GalnetArticleRevision['article']
+  /** Only independent activities are editable leads; campaigns remain in source.communityGoals. */
   activities: { leadId: string, activity: GalnetAnalysis['content']['activities'][number] }[]
 }
 

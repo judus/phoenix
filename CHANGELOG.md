@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Keep Community Goal activities out of editable GalNet story leads. Constrain analysis updates
+  to the supplied independent lead IDs; campaign-only stories can still produce a story summary.
+
 - Accept harmless added outer quotation marks in GalNet evidence and retain the original source
   passage. Keep wording and punctuation validation strict, without automatic paid retries.
 

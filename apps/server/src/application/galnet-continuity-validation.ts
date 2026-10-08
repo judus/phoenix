@@ -24,8 +24,9 @@ export function validateGalnetContinuity(value: GalnetContinuity | null, article
   const updated = new Set<string>()
   for (const [index, update] of story.updates.entries()) {
     const path = `updates[${index}]`
-    const origin = context.find(entry => related.has(entry.source.articleId) && entry.activities.some(activity => activity.leadId === update.leadId && activity.activity.communityGoalId === null))
-    if (!origin || updated.has(update.leadId)) invalid(path, 'unknown, linked or duplicate prior lead')
+    const origin = context.find(entry => related.has(entry.source.articleId) && entry.activities.some(activity => activity.leadId === update.leadId))
+    if (!origin) invalid(path, `lead ${JSON.stringify(update.leadId)} does not belong to a selected related article`)
+    if (updated.has(update.leadId)) invalid(path, `duplicate lead ${JSON.stringify(update.leadId)}`)
     updated.add(update.leadId)
     const source = quote(update.evidence, `${path}.evidence`)
     if (update.disposition !== 'unresolved' && Date.parse(source.publishedAt) <= Date.parse(origin.source.publishedAt)) invalid(path, 'resolution requires later source evidence')

@@ -59,6 +59,36 @@ test('earlier original sources, immutable lead IDs and dated campaign references
   expect(text.type).toBe('text')
   if (text.type !== 'text') throw new Error('Expected the evidence payload')
   expect(JSON.parse(text.text)).toEqual({ article: analysisArticle, communityGoals: analysisGoals, context })
+  expect(request.responseFormat).toMatchObject({ schema: { properties: { continuity: { anyOf: [
+    { properties: { updates: { items: { properties: { leadId: { enum: ['galnet-lead:earlier-cache:0'] } } } } } }, { type: 'null' }
+  ] } } } })
   expect(request.tools).toBeUndefined()
   expect(request.hostedTools).toBeUndefined()
+})
+
+test.each([true, false])('request schema rejects invented lead updates when eligible leads exist: %s', async hasLeads => {
+  const { analyser, provider, response } = setup()
+  const context = [{ source: { articleId: 'earlier', articleRevisionId: 'revision', analysisCacheKey: 'cache',
+    title: 'Earlier', sourceUrl: analysisArticle.sourceUrl, publishedAt: '2026-09-01T12:00:00Z', communityGoals: analysisGoals },
+    article: { ...analysisArticle, id: 'earlier' }, activities: hasLeads
+      ? [{ leadId: 'galnet-lead:cache:1', activity: analysisContent.activities[1]! }] : [] }]
+  const continuity = { summary: 'A story update.', relatedArticleIds: ['earlier'],
+    developments: [{ text: 'A development.', evidence: { articleId: analysisArticle.id, quote: analysisArticle.body } }],
+    updates: [{ leadId: 'invented-lead', disposition: 'resolved', explanation: 'The search ended.',
+      evidence: { articleId: analysisArticle.id, quote: analysisArticle.body }, replacementActivityIndex: null, communityGoalId: null }] }
+  vi.mocked(provider.generate).mockResolvedValue({ ...response, message: { ...response.message,
+    content: [{ type: 'text', text: JSON.stringify({ content: analysisContent, continuity }) }] } })
+  await expect(analyser.analyse(article, analysisGoals, new AbortController().signal, context))
+    .rejects.toMatchObject({ code: 'galnet_analysis_invalid_output' })
+  expect(provider.generate).toHaveBeenCalledTimes(1)
+  if (!hasLeads) expect(vi.mocked(provider.generate).mock.calls[0]![0].responseFormat)
+    .toMatchObject({ schema: { properties: { continuity: { anyOf: [
+      { properties: { updates: { maxItems: 0 } } }, { type: 'null' }
+    ] } } } })
+  vi.mocked(provider.generate).mockResolvedValue({ ...response, message: { ...response.message,
+    content: [{ type: 'text', text: JSON.stringify({ content: analysisContent, continuity: { ...continuity, updates: hasLeads
+      ? [{ ...continuity.updates[0], leadId: 'galnet-lead:cache:1' }] : [] } }) }] } })
+  const result = await analyser.analyse(article, analysisGoals, new AbortController().signal, context)
+  expect(result.continuity?.summary).toBe('A story update.')
+  expect(result.continuity?.updates).toHaveLength(hasLeads ? 1 : 0)
 })

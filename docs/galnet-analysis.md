@@ -124,6 +124,11 @@ snapshots in the **same** bounded article request. The combined 60,000-character
 this context; oversized input fails before inference rather than silently dropping evidence.
 Shared names are candidates only: the model can reject unrelated coverage and return no story update.
 
+Only independent activities receive editable lead IDs in this context; campaign activities remain
+represented by their dated CG snapshots. The request-specific structured-output schema restricts
+updates to those eligible IDs, or requires an empty list when there are none. Campaign-only
+coverage can still produce a story summary and source-backed developments.
+
 An accepted **Story update** preserves a combined summary, source-quoted developments and explicit
 assessments of individual earlier leads: unresolved, resolved, superseded by a current activity or
 reconciled to a known current/historical CG ID. IDs must come from supplied context. Resolution
