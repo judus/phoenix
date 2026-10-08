@@ -14,6 +14,8 @@ import { ControlsSetSwitchTool } from './mcp-tools/controls-set-switch-tool.js'
 import { DisplayShowBodyTool } from './mcp-tools/display-show-body-tool.js'
 import { DisplayShowSystemTool } from './mcp-tools/display-show-system-tool.js'
 import { DisplayOpenPageTool } from './mcp-tools/display-open-page-tool.js'
+import { DisplayShowGalacticAtlasTool } from './mcp-tools/display-show-galactic-atlas-tool.js'
+import type { DisplayAtlasService } from './display-atlas-service.js'
 import { NavigationCanJumpToTool } from './mcp-tools/navigation-can-jump-to-tool.js'
 import { NavigationGetRouteTool } from './mcp-tools/navigation-get-route-tool.js'
 import { ShipGetCargoTool } from './mcp-tools/ship-get-cargo-tool.js'
@@ -62,6 +64,7 @@ export interface PhoenixMcpToolDependencies {
   engineers: CommanderEngineersQuery
   engineeringProjects: Pick<EngineeringProjects, 'getReport'>
   display: DisplayCommands
+  atlasDisplay: Pick<DisplayAtlasService, 'show'>
   equipment: PersonalEquipmentReportReader
   exploration: ExplorationBodyQuery
   explorationTargets: ExplorationTargetQuery
@@ -97,6 +100,7 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new ControlsExecuteTool(dependencies.commands),
     new ControlsSetSwitchTool(dependencies.statefulActions, dependencies.commands),
     new DisplayOpenPageTool(dependencies.display),
+    new DisplayShowGalacticAtlasTool(dependencies.atlasDisplay),
     new DisplayShowBodyTool(dependencies.display),
     new DisplayShowSystemTool(dependencies.display),
     new ExplorationGetCurrentBodyTool(dependencies.exploration),

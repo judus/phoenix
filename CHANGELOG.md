@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Let Copilot open the Galactic Atlas and show a system, centred with its location details.
+  The new Atlas tool lives under Display permissions and checks coordinates before navigating.
+
 - Browse and search retained GalNet articles independently of the latest feed. Open related
   coverage inside PHOENIX with its source and saved analysis, even after it leaves the feed;
   archive browsing stays local and never runs AI.

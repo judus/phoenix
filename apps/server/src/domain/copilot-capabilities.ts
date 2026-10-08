@@ -24,6 +24,7 @@ export const DEFAULT_COPILOT_FIXED_TOOL_NAMES = [
   'display.open_page',
   'display.show_body_details',
   'display.show_system_schematic',
+  'display.show_galactic_atlas',
   'exploration.get_current_body_signals',
   'exploration.find_exploration_targets',
   'factions.find_faction_presence',

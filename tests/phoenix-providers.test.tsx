@@ -68,6 +68,14 @@ test('providers start global services and route allowed display commands through
     selectedName: 'Earth'
   })
 
+  await act(async () => events.emit('display-command', {
+    id: 'atlas-1', type: 'show_atlas', location: { systemName: 'Colonia', position: [-9530, -910, 19808] },
+    createdAt: '2026-08-16T12:00:00.000Z'
+  }))
+  expect(application.router.getSnapshot()).toEqual({
+    kind: 'information', section: 'galaxy', view: 'atlas',
+    location: { systemName: 'Colonia', position: [-9530, -910, 19808] }, displayRequestId: 'atlas-1'
+  })
   devicePreferences.update({ followCopilotNavigation: false })
   await act(async () => events.emit('display-command', {
     id: 'display-2',
@@ -76,7 +84,7 @@ test('providers start global services and route allowed display commands through
     selectedName: null,
     createdAt: '2026-08-16T12:01:00.000Z'
   }))
-  expect(application.router.href(application.router.getSnapshot())).toBe('#/galaxy/system?name=Sol&selected=Earth')
+  expect(application.router.getSnapshot()).toMatchObject({ view: 'atlas', displayRequestId: 'atlas-1' })
 
   await act(async () => renderer.unmount())
   expect(runtime.stop).toHaveBeenCalledTimes(1)

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type SetStateAction } from 'react'
 import { Breadcrumbs, Button, ControlContext, Field, IconButton, Inline, PageFrame, PageHeader, Select, Status, TextInput, ToggleButton } from '@phoenix/ui'
-import type { AtlasCatalogueResponse, CommunityGoalsResponse } from '@phoenix/contracts'
+import type { AtlasCatalogueResponse, AtlasDisplayLocation, CommunityGoalsResponse } from '@phoenix/contracts'
 import { PhoenixDateTime, UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
@@ -15,10 +15,12 @@ import { useAtlasCommunityGoals } from './use-atlas-community-goals.js'
 import { useAtlasGalnetLeads } from './use-atlas-galnet-leads.js'
 import { formatCommunityGoalExpiry } from '../../application/community-goals/community-goal-expiry.js'
 
-export function GalacticAtlasPage({ api, onNavigate, runtime }: {
+export function GalacticAtlasPage({ api, onNavigate, runtime, location, displayRequestId }: {
   api: PhoenixApi
   onNavigate(route: PhoenixRoute): void
   runtime: RuntimeStateSnapshot
+  location?: AtlasDisplayLocation
+  displayRequestId?: string
 }) {
   const [showBookmarks, setShowBookmarks] = useState(true)
   const [showCommunityGoals, setShowCommunityGoals] = useState(true)
@@ -30,6 +32,8 @@ export function GalacticAtlasPage({ api, onNavigate, runtime }: {
   const catalogue = useAtlasCatalogue(api)
   const system = runtime.status === 'ready' ? runtime.state.system : undefined
   return <GalacticAtlas
+    location={location}
+    displayRequestId={displayRequestId}
     catalogue={catalogue.catalogue}
     catalogueStatus={catalogue.error ?? (catalogue.loading ? 'Loading POI catalogue…' : undefined)}
     communityGoals={showCommunityGoals ? communityGoals.markers : []}
@@ -68,7 +72,9 @@ export function GalacticAtlasPage({ api, onNavigate, runtime }: {
 }
 
 /** Unique cartographic instrument. SVG coordinates/transforms are runtime geometry, not layout styling. */
-export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueStatus, communityGoals, communityGoalsSnapshot, communityGoalsStatus, investigations, investigationsStatus, onNavigate, onToggleBookmarks, onToggleCommunityGoals, onToggleInvestigations, position, showBookmarks, showCommunityGoals = false, showInvestigations = false, systemName }: {
+export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueStatus, communityGoals, communityGoalsSnapshot, communityGoalsStatus, investigations, investigationsStatus, onNavigate, onToggleBookmarks, onToggleCommunityGoals, onToggleInvestigations, position, showBookmarks, showCommunityGoals = false, showInvestigations = false, systemName, location, displayRequestId }: {
+  location?: AtlasDisplayLocation
+  displayRequestId?: string
   bookmarks: AtlasMarker[]
   bookmarkStatus?: string
   catalogue?: AtlasCatalogueResponse
@@ -109,14 +115,21 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
   const pois = useMemo(() => atlasPoiMarkers(catalogue?.pois ?? []), [catalogue])
   const categories = useMemo(() => [...new Set(catalogue?.pois.flatMap(poi => poi.categories) ?? [])].sort(), [catalogue])
   const landmarks = useMemo(() => filterAtlasPois([...ATLAS_LANDMARKS, ...pois], search, category), [pois, search, category])
+  const displayTarget = useMemo<AtlasMarker | undefined>(() => {
+    if (!location) return undefined
+    const landmark = ATLAS_LANDMARKS.find(marker => marker.systemName.toLowerCase() === location.systemName.toLowerCase())
+    return { id: landmark?.id ?? 'display-target', kind: landmark?.kind ?? 'system',
+      label: landmark?.label ?? location.systemName, systemName: location.systemName, position: location.position }
+  }, [location])
   const markers = useMemo(() => [
+    ...(displayTarget ? [displayTarget] : []),
     ...(position && systemName ? [{ id: 'commander', kind: 'commander' as const, label: systemName, systemName, position }] : []),
     ...(showCommunityGoals ? communityGoals ?? [] : []),
     ...(showInvestigations ? investigations ?? [] : []),
     ...bookmarks,
-    ...ATLAS_LANDMARKS,
+    ...ATLAS_LANDMARKS.filter(marker => marker.id !== displayTarget?.id),
     ...(showLandmarks ? landmarks.filter(marker => marker.poi) : landmarks.filter(marker => marker.poi && marker.id === selectedId))
-  ], [bookmarks, communityGoals, investigations, landmarks, position, showCommunityGoals, showInvestigations, showLandmarks, systemName, selectedId])
+  ], [bookmarks, communityGoals, investigations, landmarks, position, showCommunityGoals, showInvestigations, showLandmarks, systemName, selectedId, displayTarget])
   const selected = markers.find(marker => marker.id === selectedId)
   const options = selection.map(id => markers.find(marker => marker.id === id)).filter((marker): marker is AtlasMarker => !!marker)
   const clusters = clusterAtlasMarkers(markers, camera, size.width, size.height)
@@ -124,6 +137,19 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
   const centre = { x: size.width / 2, y: size.height / 2 }
   const changeZoom = (factor: number) => updateCamera(value => zoomAtlas(value, factor, centre, size.width, size.height))
   const locate = (target: GalacticPosition, zoom = Math.max(4, camera.zoom)) => updateCamera({ ...projectGalacticPosition(target), zoom })
+
+  useEffect(() => {
+    if (!displayTarget) {
+      setSelection([])
+      setSelectedId(undefined)
+      return
+    }
+    initialCameraApplied.current = true
+    setCamera({ ...projectGalacticPosition(displayTarget.position), zoom: 4 })
+    setSelection([displayTarget.id])
+    setSelectedId(displayTarget.id)
+    setShowSearch(false)
+  }, [displayTarget, displayRequestId])
 
   useEffect(() => {
     if (!position || initialCameraApplied.current) return

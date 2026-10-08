@@ -13,6 +13,7 @@ import { ScriptedProvider, textModelCapabilities } from '@jdu/llm-client/testing
 import { StaticEliteDangerousBindings } from './support/static-elite-dangerous-bindings.js'
 import { InMemorySystemSettingsRepository } from '../apps/server/src/infrastructure/json-system-configuration.js'
 import { InMemoryMacroRepository } from '../apps/server/src/infrastructure/macro-repositories.js'
+import { mockDenseCartography } from '../scripts/diagnostics/mock-dense-cartography.mjs'
 import { RecordingKeyboardOutput } from 'control-deck/adapter-keyboard'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { JsonConversationStore } from '../apps/server/src/infrastructure/json-conversation-store.js'
@@ -83,6 +84,32 @@ test('GalNet tools reconcile persisted reports over MCP without inference or sou
     expect(getLatest).not.toHaveBeenCalled()
     expect(getCurrent).not.toHaveBeenCalled()
   } finally { await application.stop(); rmSync(directory, { recursive: true, force: true }) }
+})
+
+test('Atlas navigation over MCP resolves cartography and exposes a Display permission', async () => {
+  const fetchSystem = vi.fn(async (name: string) => mockDenseCartography(name))
+  const application = new PhoenixApplication({ databasePath: ':memory:', eliteDirectory: null,
+    host: '127.0.0.1', port: 0, cartographySource: { fetchSystem } })
+  const address = await application.start()
+  const origin = `http://${address.host}:${address.port}`
+  const api = new PhoenixApiClient(origin)
+  const provider = configuredProvider([
+    response('atlas', [{ arguments: { systemName: 'Colonia' }, callId: 'atlas', name: 'phoenix__display_show_galactic_atlas', type: 'tool_call' }], 'tool_calls'),
+    response('done', [{ source: 'generated', text: 'Atlas opened.', type: 'text' }], 'stop')
+  ])
+  const client = createAiClient({ mcp: [{ name: 'phoenix', url: `${origin}/mcp` }], provider })
+  try {
+    const permissions = await api.getCopilotSettings()
+    expect(permissions.capabilities.groups.find(group => group.id === 'tools.display')?.capabilities)
+      .toContainEqual(expect.objectContaining({ id: 'tool:display.show_galactic_atlas', label: 'Show Galactic Atlas', access: 'display', available: true, enabled: true }))
+    expect(fetchSystem).not.toHaveBeenCalled()
+    await client.user('Show Colonia on the PHOENIX Atlas.').run()
+    expect(fetchSystem).toHaveBeenCalledWith('Colonia')
+    expect(provider.requests[1]?.messages.at(-1)?.content).toMatchObject([{
+      type: 'tool_result', status: 'success', structuredContent: { displayed: true,
+        location: { systemName: 'Colonia', position: mockDenseCartography('Colonia').position } }
+    }])
+  } finally { await application.stop() }
 })
 
 test('Community Goals over MCP reuse the Activities snapshot and expose their read-only permission', async () => {
@@ -269,6 +296,7 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
       'phoenix__controls_execute_command',
       'phoenix__controls_set_control_state',
       'phoenix__display_open_page',
+      'phoenix__display_show_galactic_atlas',
       'phoenix__display_show_body_details',
       'phoenix__display_show_system_schematic',
       'phoenix__exploration_get_current_body_signals',
