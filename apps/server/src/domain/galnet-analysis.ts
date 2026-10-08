@@ -1,4 +1,4 @@
-import type { CommunityGoalsResponse, GalnetAnalysis, GalnetAnalysisContent, GalnetAnalysisResponse } from '@phoenix/contracts'
+import type { CommunityGoalsResponse, GalnetAnalysis, GalnetAnalysisContent, GalnetAnalysisResponse, GalnetContinuity, GalnetStorySource } from '@phoenix/contracts'
 import type { GalnetArticleRevision } from './galnet.js'
 
 export interface GalnetAnalysisRepository {
@@ -12,6 +12,7 @@ export interface SavedGalnetAnalysis {
   analysis: GalnetAnalysis
   currentArticleTitle: string | null
   articleChanged: boolean
+  contextChanged: boolean
 }
 
 /** Stored evidence only; deliberately has no inference or source-refresh operation. */
@@ -23,10 +24,17 @@ export interface SavedGalnetAnalysisReader {
 export interface GalnetArticleAnalyser {
   readonly model: string
   configured(): boolean
-  analyse(article: GalnetArticleRevision, goals: CommunityGoalsResponse, signal: AbortSignal): Promise<{
+  analyse(article: GalnetArticleRevision, goals: CommunityGoalsResponse, signal: AbortSignal, context: GalnetStoryContext[]): Promise<{
     content: GalnetAnalysisContent
+    continuity: GalnetContinuity | null
     usage: GalnetAnalysis['usage']
   }>
+}
+
+export interface GalnetStoryContext {
+  source: GalnetStorySource
+  article: GalnetArticleRevision['article']
+  activities: { leadId: string, activity: GalnetAnalysis['content']['activities'][number] }[]
 }
 
 export interface GalnetAnalysisReader {

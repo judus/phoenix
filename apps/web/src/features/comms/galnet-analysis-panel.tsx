@@ -60,6 +60,7 @@ export function GalnetAnalysisPanel({ api, articleId }: { api: GalnetAnalysisApi
       {snapshot && !snapshot.configured && <Status wrap tone="warning">Configure an OpenAI API key in Settings to analyse articles. Saved reports remain readable.</Status>}
       {snapshot && !snapshot.articleAvailable && <Status wrap tone="warning">This article has not been archived yet. Refresh the news after its cache expires.</Status>}
       {snapshot?.articleChanged && <Status wrap tone="warning">The article has changed since this report. Update analysis to use the latest archived revision.</Status>}
+      {snapshot?.contextChanged && <Status wrap tone="warning">Earlier evidence or its analysis has changed since this story update. Its earlier lead decisions are not applied to the Atlas.</Status>}
       {snapshot?.analysis?.schemaVersion === 1 && <Status wrap tone="muted">This saved report predates investigation destinations. Update analysis explicitly to extract them for the Atlas; this may use API credit.</Status>}
       {error && <Status wrap tone="danger" role="alert">{error}</Status>}
       {snapshot?.analysis && <GalnetAnalysisReport analysis={snapshot.analysis} />}
@@ -69,11 +70,28 @@ export function GalnetAnalysisPanel({ api, articleId }: { api: GalnetAnalysisApi
 
 export function GalnetAnalysisReport({ analysis }: { analysis: GalnetAnalysis }) {
   const { content } = analysis
-  const activities = analysis.schemaVersion === 2 ? analysis.content.activities
-    : analysis.content.activities.map(activity => ({ ...activity, destination: null }))
+  const activities = analysis.schemaVersion === 1 ? analysis.content.activities.map(activity => ({ ...activity, destination: null }))
+    : analysis.content.activities
   const linked = activities.filter(activity => activity.communityGoalId !== null)
   const leads = activities.filter(activity => activity.communityGoalId === null)
   return <Stack gap="lg">
+    {analysis.schemaVersion === 3 && analysis.continuity && <DataTableGroup title="Story update" contentGap="sm">
+      <Stack gap="md">
+        <Status wrap>{analysis.continuity.summary}</Status>
+        <Status wrap tone="muted">AI interpretation of {analysis.continuity.relatedArticleIds.length + 1} dated articles, not verified live availability.</Status>
+        <ItemList density="compact">{analysis.continuity.developments.map((development, index) => {
+          const source = analysis.context.find(entry => entry.articleId === development.evidence.articleId) ?? analysis
+          return <ItemListItem key={index} title={development.text} meta={<><PhoenixDateTime value={source.publishedAt} precision="date" /> · <a href={source.sourceUrl} target="_blank" rel="noreferrer">Source</a><br />“{development.evidence.quote}”</>} />
+        })}</ItemList>
+        {analysis.continuity.updates.length > 0 && <DataTableGroup title="Earlier leads">
+          <ItemList density="compact">{analysis.continuity.updates.map(update => {
+            const source = analysis.context.find(entry => entry.articleId === update.evidence.articleId) ?? analysis
+            return <ItemListItem key={update.leadId} title={update.explanation} eyebrow={update.disposition}
+              meta={<><PhoenixDateTime value={source.publishedAt} precision="date" /> · <a href={source.sourceUrl} target="_blank" rel="noreferrer">Source</a><br />“{update.evidence.quote}”</>} />
+          })}</ItemList>
+        </DataTableGroup>}
+      </Stack>
+    </DataTableGroup>}
     <Status wrap>{content.summary}</Status>
     <DescriptionList density="compact">
       <DescriptionItem label="Analysed" value={<><PhoenixDateTime value={analysis.analysedAt} /> · {analysis.model}</>} />

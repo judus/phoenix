@@ -4,6 +4,11 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Connect related GalNet articles into a source-backed story update within the existing analysis
+  request. Keep original reports and dated campaign references; retire only explicitly reconciled
+  earlier Atlas leads, leaving unrelated or uncertain activities visible. Changed source context
+  invalidates those decisions. Copilot reads the same saved story without another analysis call.
+
 - Prototype optional background GalNet analysis for newly received or revised news and changed
   Community Goal briefings. Add a persistent queue, daily attempt limit, visible failures and
   explicit historical catch-up. Show related saved coverage in publication order; shared subjects

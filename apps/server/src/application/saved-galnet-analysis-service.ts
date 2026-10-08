@@ -1,6 +1,7 @@
 import type { GalnetAnalysis } from '@phoenix/contracts'
 import type { GalnetArticleArchive } from '../domain/galnet.js'
 import type { GalnetAnalysisRepository, SavedGalnetAnalysis, SavedGalnetAnalysisReader } from '../domain/galnet-analysis.js'
+import { galnetContextChanged } from './galnet-lead-reconciliation.js'
 
 export class SavedGalnetAnalysisService implements SavedGalnetAnalysisReader {
   public constructor (
@@ -20,6 +21,7 @@ export class SavedGalnetAnalysisService implements SavedGalnetAnalysisReader {
   private describe (analysis: GalnetAnalysis): SavedGalnetAnalysis {
     const current = this.articles.getArticle(analysis.articleId)
     return { analysis, currentArticleTitle: current?.article.title ?? null,
+      contextChanged: galnetContextChanged(analysis, this.articles, this.reports),
       articleChanged: current?.revisionId !== analysis.articleRevisionId }
   }
 }

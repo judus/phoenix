@@ -5,8 +5,11 @@ import type { GalnetArticleArchive } from '../domain/galnet.js'
 import type { CommunityGoalsReader } from '../domain/community-goals.js'
 import type { GalnetAnalysisReader, GalnetAnalysisRepository, GalnetArticleAnalyser } from '../domain/galnet-analysis.js'
 import { createGalnetQuoteResolver } from './galnet-quote-resolver.js'
+import { galnetStoryContext } from './galnet-story-context.js'
+import { validateGalnetContinuity } from './galnet-continuity-validation.js'
+import { galnetContextChanged } from './galnet-lead-reconciliation.js'
 
-const EXTRACTOR_VERSION = 'galnet-analysis-v2'
+const EXTRACTOR_VERSION = 'galnet-analysis-v3'
 const EvidenceSchema = GalnetAnalysisContentSchema.shape.facts.element.shape.evidence
 
 export class GalnetAnalysisService implements GalnetAnalysisReader {
@@ -25,7 +28,8 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
     const article = this.articles.getArticle(articleId)
     const analysis = this.repository.latest(articleId)
     return { configured: this.analyser.configured(), articleAvailable: article !== null,
-      articleChanged: analysis !== null && article?.revisionId !== analysis.articleRevisionId, analysis }
+      articleChanged: analysis !== null && article?.revisionId !== analysis.articleRevisionId,
+      contextChanged: analysis !== null && galnetContextChanged(analysis, this.articles, this.repository), analysis }
   }
 
   public isBusy (): boolean { return this.running !== undefined }
@@ -55,16 +59,19 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
     this.shutdown.signal.throwIfAborted()
     // Ignore fetch time and cache-state changes, but not changed CG facts.
     const goalEvidence = [...goals.goals].sort((left, right) => left.id.localeCompare(right.id))
+    const context = galnetStoryContext(article, this.articles, this.repository)
     const cacheKey = createHash('sha256').update(JSON.stringify({ revision: article.revisionId,
-      model: this.analyser.model, extractor: EXTRACTOR_VERSION, goals: goalEvidence })).digest('hex')
+      model: this.analyser.model, extractor: EXTRACTOR_VERSION, goals: goalEvidence,
+      context: context.map(entry => entry.source.analysisCacheKey) })).digest('hex')
     const cached = this.repository.get(cacheKey)
     if (cached) return { ...this.get(articleId), analysis: cached,
+      contextChanged: galnetContextChanged(cached, this.articles, this.repository),
       articleChanged: this.articles.getArticle(articleId)?.revisionId !== cached.articleRevisionId }
-    if (JSON.stringify({ article: article.article, communityGoals: goals }).length > 60_000) {
-      throw new AiError('invalid_request', 'The article and Community Goals exceed the analysis input limit. No AI request was made.', { code: 'galnet_analysis_input_limit' })
+    if (JSON.stringify({ article: article.article, communityGoals: goals, ...(context.length > 0 ? { context } : {}) }).length > 60_000) {
+      throw new AiError('invalid_request', 'The article, related coverage and Community Goals exceed the analysis input limit. No AI request was made.', { code: 'galnet_analysis_input_limit' })
     }
     const signal = AbortSignal.any([this.shutdown.signal, AbortSignal.timeout(90_000)])
-    const result = await this.analyser.analyse(article, goals, signal)
+    const result = await this.analyser.analyse(article, goals, signal, context)
     signal.throwIfAborted()
     const content = GalnetAnalysisContentSchema.parse(result.content)
     const resolveQuote = createGalnetQuoteResolver(article.article.title, article.article.body)
@@ -97,10 +104,11 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
       }
       if (id !== null) linked.add(id)
     }
-    const analysis = GalnetAnalysisSchema.parse({ schemaVersion: 2, extractorVersion: EXTRACTOR_VERSION,
+    const continuity = validateGalnetContinuity(result.continuity, article, context, content, goals)
+    const analysis = GalnetAnalysisSchema.parse({ schemaVersion: 3, extractorVersion: EXTRACTOR_VERSION,
       cacheKey, articleId, articleRevisionId: article.revisionId, sourceUrl: article.article.sourceUrl,
       publishedAt: article.article.publishedAt, analysedAt: this.now().toISOString(), model: this.analyser.model,
-      communityGoals: goals, usage: result.usage, content })
+      communityGoals: goals, usage: result.usage, content, continuity, context: context.map(entry => entry.source) })
     this.repository.put(analysis)
     return this.get(articleId)
   }
