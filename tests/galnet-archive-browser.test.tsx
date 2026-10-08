@@ -101,7 +101,7 @@ test('a failed search can be retried without keeping its error or triggering ana
   } finally { await act(async () => renderer.unmount()) }
 })
 
-test('keyboard selection cancels a pending reader and late text cannot replace the selected article', async () => {
+test('native selection cancels a pending reader and late text cannot replace the selected article', async () => {
   const methods = api()
   methods.getGalnetArchive.mockResolvedValue({ ...page, total: 2, articles: [archived.article, { ...archived.article, id: 'second' }] })
   let release!: (value: GalnetArchivedArticle) => void
@@ -109,7 +109,11 @@ test('keyboard selection cancels a pending reader and late text cannot replace t
   const renderer = await renderWithAct(<GalnetArchiveBrowser api={methods} />)
   try {
     const signal = methods.getGalnetArchivedArticle.mock.calls[0]![1]
-    await act(async () => { renderer.root.findAllByType('li')[1]!.props.onKeyDown({ key: 'Enter', preventDefault() {} }) })
+    const choices = renderer.root.findAllByType('li').map(node => node.findByType('button'))
+    expect(choices[0]!.props['aria-pressed']).toBe(true)
+    expect(choices[1]!.props['aria-pressed']).toBe(false)
+    await act(async () => { choices[1]!.props.onClick() })
+    expect(renderer.root.findAllByType('li')[1]!.findByType('button').props['aria-pressed']).toBe(true)
     expect(signal?.aborted).toBe(true)
     await act(async () => { release(archived) })
     expect(renderer.root.findByType('article').findAllByType('h2')[0]!.children).toEqual(['Retained second'])

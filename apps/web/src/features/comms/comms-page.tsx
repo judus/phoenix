@@ -223,10 +223,8 @@ function Galnet({ news, api, error }: { news?: CommsControllerSnapshot['galnet']
                   <ItemListItem
                     eyebrow={<PhoenixDateTime precision="date" value={article.publishedAt} />}
                     key={article.id}
-                    onClick={() => setSelectedId(article.id)}
-                    onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedId(article.id) } }}
+                    onActivate={() => setSelectedId(article.id)}
                     selected={article.id === selected?.id}
-                    tabIndex={0}
                     title={article.title}
                   />
                 ))}

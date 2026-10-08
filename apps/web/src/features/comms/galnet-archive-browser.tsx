@@ -47,11 +47,9 @@ function ArchivePage({ api, query, selectedId, onSelect, onPage, search }: {
         {error ? <Status tone="danger" wrap role="alert">{error}</Status> : !page ? <Status tone="muted">Reading archive…</Status>
           : page.articles.length === 0 ? <Status tone="muted">No retained articles match.</Status>
             : <ItemList className="surface" density="compact" aria-label="Archived GalNet articles">{page.articles.map(article =>
-              <ItemListItem key={article.id} title={article.title} selected={selected === article.id} tabIndex={0}
+              <ItemListItem key={article.id} title={article.title} selected={selected === article.id}
                 eyebrow={<PhoenixDateTime value={article.publishedAt} precision="date" />}
-                onClick={() => onSelect(article.id)} onKeyDown={event => {
-                  if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(article.id) }
-                }} />)}</ItemList>}
+                onActivate={() => onSelect(article.id)} />)}</ItemList>}
         {page && <Inline justify="space-between">
           <Button size="sm" disabled={query.offset === 0} onClick={() => onPage(Math.max(0, query.offset - query.limit))}>Previous</Button>
           <Status tone="muted">{page.total === 0 ? '0' : `${Math.min(query.offset + 1, page.total)}–${Math.min(query.offset + query.limit, page.total)}`} / {page.total}</Status>

@@ -40,10 +40,16 @@ test('paired archive HTTP/client reads retained articles with the source offline
       revisionId: before[0]!.revisionId, firstObservedAt: before[0]!.firstObservedAt, lastObservedAt: before[0]!.lastObservedAt
     })
     for (const query of ['limit=0', 'limit=101', 'offset=-1', 'offset=1.5', 'limit=nope', `query=${'x'.repeat(201)}`, 'unknown=1']) {
-      expect((await request(`${origin}/api/galnet/archive?${query}`)).status).toBe(400)
+      const invalid = await request(`${origin}/api/galnet/archive?${query}`)
+      expect(invalid.status).toBe(400)
+      expect(await invalid.json()).toMatchObject({ error: { code: 'invalid_request', message: expect.any(String) } })
     }
-    expect((await request(`${origin}/api/galnet/archive/article`)).status).toBe(400)
+    const missingId = await request(`${origin}/api/galnet/archive/article`)
+    expect(missingId.status).toBe(400)
+    expect(await missingId.json()).toMatchObject({ error: { code: 'invalid_request', message: expect.stringContaining('articleId') } })
     expect((await request(`${origin}/api/galnet/archive/article?articleId=missing`)).status).toBe(404)
+    await expect(client.getGalnetArchivedArticle('missing')).rejects.toThrow('Retained GalNet article not found.')
+    await expect(client.getGalnetArchive({ query: '', limit: 101, offset: 0 })).rejects.toThrow('limit:')
     expect(source.getLatest).not.toHaveBeenCalled()
     expect(analyse).not.toHaveBeenCalled()
     await app.stop()

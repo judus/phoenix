@@ -398,15 +398,15 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/galnet/archive') {
       const input = GalnetArchiveQuerySchema.safeParse(Object.fromEntries(url.searchParams))
-      if (!input.success) { writeJson(response, 400, { error: input.error.flatten() }); return }
+      if (!input.success) throw new HttpRequestValidationError(input.error.issues.map(issue => `${issue.path.join('.') || 'query'}: ${issue.message}`).join('; '))
       writeJson(response, 200, this.options.galnetArchive.search(input.data))
       return
     }
     if (request.method === 'GET' && url.pathname === '/api/galnet/archive/article') {
       const input = GalnetAnalyseRequestSchema.safeParse(Object.fromEntries(url.searchParams))
-      if (!input.success) { writeJson(response, 400, { error: input.error.flatten() }); return }
+      if (!input.success) throw new HttpRequestValidationError('Only articleId is accepted; it must be a nonempty string of at most 200 characters.')
       const retained = this.options.galnetArchive.get(input.data.articleId)
-      writeJson(response, retained ? 200 : 404, retained ?? { error: 'Retained GalNet article not found.' })
+      writeJson(response, retained ? 200 : 404, retained ?? { error: { code: 'galnet_article_not_found', message: 'Retained GalNet article not found.' } })
       return
     }
 
