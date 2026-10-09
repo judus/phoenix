@@ -82,9 +82,24 @@
     }
 
     .control-deck-surface {
+      position: relative;
       display: grid;
       min-inline-size: 0;
       min-block-size: 0;
+    }
+
+    .control-deck-drag-preview {
+      position: absolute;
+      z-index: 3;
+      pointer-events: none;
+      opacity: 0.75;
+      outline: var(--control-border-width) solid var(--color-information);
+
+      > .tile.btn {
+        inline-size: 100%;
+        block-size: 100%;
+        min-block-size: 0;
+      }
     }
 
     .control-deck-slot {

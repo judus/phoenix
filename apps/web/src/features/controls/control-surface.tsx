@@ -32,6 +32,7 @@ export function ControlSurface({
   renderEmpty(cell: EmptyCell): ReactNode
 }) {
   const move = useButtonMove(Boolean(onMove), deck, (id, column, row) => onMove?.(id, column, row))
+  const previewElement = move.preview && deck.elements.find(element => element.id === move.preview?.id)
   const style: CSSProperties = {
     gridTemplateColumns: `repeat(${deck.layout.columns}, minmax(0, 1fr))`,
     gridTemplateRows: `repeat(${deck.layout.rows}, minmax(0, 1fr))`
@@ -73,6 +74,12 @@ export function ControlSurface({
         />}
       </div>
     })}
+    {move.preview && previewElement?.kind === 'command' && <div
+      aria-hidden="true"
+      inert
+      className="control-deck-drag-preview"
+      style={{ left: move.preview.left, top: move.preview.top, width: move.preview.width, height: move.preview.height, transform: `translate(${move.preview.x}px, ${move.preview.y}px)` }}
+    >{renderCommand(previewElement)}</div>}
   </div>
 }
 

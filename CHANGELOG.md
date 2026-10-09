@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Show a translucent button preview following your finger while relocating deck buttons,
+  including small movements before the move threshold is reached.
+
 - Use scalable square tactile grips, aligned with button text insets. In deck edit mode,
   the same grip becomes a bright drag handle without changing its shape or touch target.
 
