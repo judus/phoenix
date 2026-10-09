@@ -7,7 +7,7 @@ import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js
 import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
 import { atlasBoundaries, atlasRegions } from './atlas-region-data.js'
-import { ATLAS_LANDMARKS, LY_PER_MAP_UNIT, WHOLE_GALAXY, atlasPoiMarkers, filterAtlasPois, atlasScale, clusterAtlasMarkers, distanceLy, galacticRegion, projectGalacticPosition, screenPoint, zoomAtlas, type AtlasCamera, type AtlasMarker, type AtlasPoint, type GalacticPosition } from './galactic-atlas-model.js'
+import { ATLAS_LANDMARKS, LY_PER_MAP_UNIT, MAX_ATLAS_ZOOM, WHOLE_GALAXY, atlasPoiMarkers, filterAtlasPois, atlasScale, clusterAtlasMarkers, distanceLy, galacticRegion, projectGalacticPosition, screenPoint, zoomAtlas, type AtlasCamera, type AtlasMarker, type AtlasPoint, type GalacticPosition } from './galactic-atlas-model.js'
 import { useAtlasBookmarks } from './use-atlas-bookmarks.js'
 import { useAtlasPointerGestures } from './use-atlas-pointer-gestures.js'
 import { useAtlasCatalogue } from './use-atlas-catalogue.js'
@@ -270,7 +270,7 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
       </div>
         <div className="atlas-zoom" role="group" aria-label="Atlas zoom controls">
           <IconButton variant="outline" size="sm" label="Zoom out" disabled={camera.zoom <= 1} onClick={() => changeZoom(1 / 1.5)}>−</IconButton>
-          <IconButton variant="outline" size="sm" label="Zoom in" disabled={camera.zoom >= 64} onClick={() => changeZoom(1.5)}>+</IconButton>
+          <IconButton variant="outline" size="sm" label="Zoom in" disabled={camera.zoom >= MAX_ATLAS_ZOOM} onClick={() => changeZoom(1.5)}>+</IconButton>
         </div>
       </div>
       {(selected || showSearch) && <aside className="atlas-inspector" aria-label={selected ? 'Selected atlas location' : 'Find atlas POI'}>
@@ -340,7 +340,7 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
         </dl>
         <ControlContext context="toolbar" density="compact">
           <Inline gap="sm">
-          <Button className="display" variant="outline" onClick={() => locate(selected.position, Math.min(64, Math.max(4, camera.zoom * 2)))}>Zoom here</Button>
+          <Button className="display" variant="outline" onClick={() => locate(selected.position, Math.min(MAX_ATLAS_ZOOM, Math.max(4, camera.zoom * 2)))}>Zoom here</Button>
           {selected.investigation && <a className="atlas-system-link" href="#/comms/galnet">Open GalNet</a>}
           {selected.communityGoal && <a className="atlas-system-link" href="#/activities/community-goals" onClick={event => {
             if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return

@@ -16,6 +16,7 @@ export interface AtlasMarker {
 }
 export interface AtlasCamera { x: number, y: number, zoom: number }
 export const WHOLE_GALAXY: AtlasCamera = { x: 1024, y: 1024, zoom: 1 }
+export const MAX_ATLAS_ZOOM = 128
 export const LY_PER_MAP_UNIT = 4096 / 83
 
 export function atlasPoiMarkers(pois: AtlasPoi[]): AtlasMarker[] {
@@ -64,7 +65,7 @@ export function screenPoint(point: AtlasPoint, camera: AtlasCamera, width: numbe
 }
 
 export function zoomAtlas(camera: AtlasCamera, factor: number, anchor: AtlasPoint, width: number, height: number): AtlasCamera {
-  const zoom = Math.max(1, Math.min(64, camera.zoom * factor))
+  const zoom = Math.max(1, Math.min(MAX_ATLAS_ZOOM, camera.zoom * factor))
   const before = atlasScale(width, height, camera.zoom), after = atlasScale(width, height, zoom)
   return { zoom, x: camera.x + (anchor.x - width / 2) * (1 / before - 1 / after), y: camera.y + (anchor.y - height / 2) * (1 / before - 1 / after) }
 }

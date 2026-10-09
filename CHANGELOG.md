@@ -4,6 +4,11 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Zoom twice as close on the Galactic Atlas to separate nearby Bubble locations more easily.
+
+- Keep Atlas bookmark, Community Goal and GalNet lead markers visible while their layers refresh,
+  replacing each marker set together instead of flickering when switched back on.
+
 ## 0.1.6 — 2026-10-09 (prerelease)
 
 - Keep entering Copilot chat responsive with long conversations: initially show recent messages,

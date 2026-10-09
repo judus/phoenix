@@ -17,7 +17,7 @@ export function useAtlasGalnetLeads(api: PhoenixApi, enabled: boolean): State {
     if (!enabled) return
     const controller = new AbortController()
     const { signal } = controller
-    setState({ markers: [], loading: true, unlocatedSystems: [] })
+    setState(current => ({ ...current, loading: true, error: undefined }))
     void (async () => {
       try {
         const snapshot = await api.getGalnetInvestigationLeads(signal)
