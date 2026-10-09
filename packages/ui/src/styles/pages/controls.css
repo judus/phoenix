@@ -98,6 +98,18 @@
         block-size: 100%;
       }
 
+      > .tile.btn::after {
+        inset-inline-end: calc(var(--command-padding) + var(--control-border-width));
+        inset-block-start: auto;
+        inset-block-end: calc(var(--command-padding) + var(--control-border-width));
+        transform: none;
+      }
+
+      &:has(> .control-deck-move-handle) > .tile.btn::after {
+        background: var(--color-information);
+        opacity: 1;
+      }
+
       &.moving { outline: var(--control-border-width) dashed var(--color-information); outline-offset: calc(-1 * var(--control-border-width)); }
       &.drop-target { outline: var(--control-border-width) solid var(--color-information); outline-offset: calc(-1 * var(--control-border-width)); }
 
@@ -119,13 +131,6 @@
         touch-action: none;
         user-select: none;
 
-        > span {
-          padding: var(--spacing-xxs);
-          border: var(--control-border-width) solid var(--color-information);
-          background: var(--color-canvas);
-          pointer-events: none;
-        }
-
         &:active { cursor: grabbing; }
       }
     }
@@ -143,9 +148,7 @@
     }
 
     &:not(.theme-phoenix) .control-deck .control-deck-slot > .tile.btn::after {
-      background:
-        radial-gradient(circle, var(--control-deck-accent) 0 0.08rem, transparent 0.1rem)
-        0 0 / 33.333% 33.333%;
+      --command-grip: var(--control-deck-accent);
     }
 
     .control-deck-empty { background: var(--color-canvas); }

@@ -8,11 +8,11 @@
     position: absolute;
     inset-inline-end: var(--spacing-sm);
     inset-block-end: var(--spacing-sm);
-    inline-size: 0.9rem;
+    /* Cropped grid, scaled down 25% without changing the square/gap ratio. */
+    inline-size: calc(clamp(0.9rem, 12%, 1.4rem) * 32 / 27 * 0.75);
     aspect-ratio: 1;
-    background:
-      radial-gradient(circle, var(--command-grip) 0 0.08rem, transparent 0.1rem)
-      0 0 / 33.333% 33.333%;
+    background: var(--command-grip);
+    mask: url('../../assets/tactile-grip.svg') center / contain no-repeat;
     opacity: var(--command-grip-opacity);
     content: '';
     pointer-events: none;

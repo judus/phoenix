@@ -75,9 +75,10 @@
   }
 
   &.btn {
+    --command-padding: var(--spacing-sm);
     display: block;
     min-block-size: 8rem;
-    padding: var(--spacing-sm);
+    padding: var(--command-padding);
     border-color: var(--command-border);
     color: var(--command-text);
     background: var(--command-background);

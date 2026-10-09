@@ -70,7 +70,7 @@ export function ControlSurface({
           type="button"
           onPointerDown={event => move.begin(event, element.id, key)}
           onClick={() => move.select(element.id, key)}
-        ><span aria-hidden="true">⠿</span></button>}
+        />}
       </div>
     })}
   </div>

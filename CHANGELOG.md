@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Use scalable square tactile grips, aligned with button text insets. In deck edit mode,
+  the same grip becomes a bright drag handle without changing its shape or touch target.
+
 - Remove tactile grips from small action buttons and align deck management actions with the
   existing form-button styles and Save changes / Cancel labels. Use compact, bordered square
   icons with accessible labels for deck-row actions instead of crowded text buttons.
