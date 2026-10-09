@@ -20,6 +20,9 @@ test.each([
   ['Mission_OnFoot_RebootRestore_MB_name', 'Settlement restoration', []],
   ['Mission_OnFoot_Sabotage_Power_MB_name', 'Sabotage', []],
   ['Mission_OnFoot_Onslaught_MB_name', 'Settlement combat', []],
+  ['Mission_OnFoot_OnslaughtIllegal_MB_name', 'Settlement combat', ['Illegal contract']],
+  ['Mission_OnFoot_AssassinationIllegal_MB_name', 'Assassination', ['Illegal contract']],
+  ['Mission_OnFoot_SalvageIllegal_MB_name', 'Salvage', ['Illegal contract']],
   ['Mission_OnFoot_FutureThing_MB_name', null, []],
   ['Mission_OnFoot_Heist_Legal_Illegal_MB_name', 'Heist', []]
 ])('classifies only explicit invariant tokens: %s', (name, activity, conditions) => {

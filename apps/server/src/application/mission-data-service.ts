@@ -121,7 +121,10 @@ export class MissionDataService implements MissionDataReader, MissionLookup {
       localizedName: text(event.LocalisedName) ?? current.localizedName,
       name: text(event.Name) ?? current.name,
       provenance: provenance(current, source, { terminalObserved: true }),
-      receivedRewards: status === 'completed'
+      // Backfill may fill an unknown reward after a completed startup snapshot, but
+      // cannot attribute stale rewards to an active contract or replace newer rewards.
+      receivedRewards: status === 'completed' && next.status === 'completed' &&
+        (event.timestamp >= current.statusUpdatedAt || current.receivedRewards === null)
         ? { credits: integer(event.Reward), materials: materialRewards(event.MaterialsReward) }
         : current.receivedRewards,
       killCount: integer(event.KillCount) ?? current.killCount,

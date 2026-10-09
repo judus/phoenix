@@ -5,7 +5,13 @@ export function classifyMission(name: string | null): {
   activity: string | null
   conditions: string[]
 } {
-  const tokens = new Set(name?.replace(/^\$/u, '').replace(/;$/u, '').split('_') ?? [])
+  const compoundTokens: Readonly<Record<string, readonly string[]>> = {
+    OnslaughtIllegal: ['Onslaught', 'Illegal'],
+    AssassinationIllegal: ['Assassination', 'Illegal'],
+    SalvageIllegal: ['Salvage', 'Illegal']
+  }
+  const tokens = new Set((name?.replace(/^\$/u, '').replace(/;$/u, '').split('_') ?? [])
+    .flatMap(token => compoundTokens[token] ?? [token]))
   const onFoot = tokens.has('OnFoot')
   const conditions: string[] = []
   if (!onFoot) return { onFoot, activity: null, conditions }

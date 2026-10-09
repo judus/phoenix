@@ -52,16 +52,30 @@ test('startup mission snapshot creates honest partial records and does not let o
     Active: [{ MissionID: 7, Name: 'Mission_Courier_name', Expires: 3600 }], Failed: [], Complete: []
   }, 'live-journal')
   missions.ingest({
-    timestamp: '2026-08-14T08:00:00Z', event: 'MissionCompleted', MissionID: 7, Name: 'Mission_Courier_name'
+    timestamp: '2026-08-14T08:00:00Z', event: 'MissionCompleted', MissionID: 7, Name: 'Mission_Courier_name',
+    Reward: 200, MaterialsReward: [{ Name: 'iron', Count: 1 }]
   }, 'historical-journal')
 
   expect(missions.getMissions().missions[0]).toMatchObject({
     id: 7,
     status: 'active',
     statusUpdatedAt: '2026-08-15T08:00:00Z',
+    receivedRewards: null,
     provenance: { acceptanceObserved: false, details: 'partial', snapshotObserved: true }
   })
   expect(missions.getMissions().snapshotAt).toBe('2026-08-15T08:00:00Z')
+})
+
+test('completion backfill fills unknown snapshot rewards but cannot replace newer observed rewards', () => {
+  const missions = new MissionDataService(new MemoryMissionRepository())
+  missions.ingest({ timestamp: '2026-08-15T08:00:00Z', event: 'Missions',
+    Active: [], Failed: [], Complete: [{ MissionID: 7 }] }, 'live-journal')
+  missions.ingest({ timestamp: '2026-08-14T08:00:00Z', event: 'MissionCompleted',
+    MissionID: 7, Reward: 200 }, 'historical-journal')
+  expect(missions.getMission(7)?.receivedRewards?.credits).toBe(200)
+  missions.ingest({ timestamp: '2026-08-13T08:00:00Z', event: 'MissionCompleted',
+    MissionID: 7, Reward: 100 }, 'historical-journal')
+  expect(missions.getMission(7)?.receivedRewards?.credits).toBe(200)
 })
 
 test('a newer startup snapshot reconciles active missions discovered later by historical backfill', () => {
