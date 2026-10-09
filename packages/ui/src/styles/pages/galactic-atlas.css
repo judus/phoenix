@@ -34,7 +34,10 @@
     user-select: none;
     cursor: grab;
     &:active { cursor: grabbing; }
-    > svg { display: block; }
+    > svg {
+      display: block;
+      &:focus { outline: none; }
+    }
   }
 
   .atlas-zoom {
@@ -89,6 +92,7 @@
     stroke-width: 1.5px;
     .hit-area { fill: transparent; stroke: none; }
     .cluster-ring { fill: none; opacity: 0.6; }
+    .atlas-height { fill: none; opacity: 0.5; stroke-width: 1px; pointer-events: none; }
     text { fill: var(--color-text); }
     &.commander { fill: var(--color-information); stroke: var(--color-information); }
     &.bookmark { fill: var(--color-information); stroke: var(--color-information); }

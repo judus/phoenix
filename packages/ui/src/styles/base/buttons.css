@@ -1,6 +1,8 @@
 .btn {
   position: relative;
 
+  &.btn-no-grip::after { content: none; }
+
   &::after {
     position: absolute;
     inset-inline-end: var(--spacing-sm);
@@ -61,6 +63,12 @@
     &.btn-start {
       justify-content: flex-start;
       text-align: start;
+    }
+
+    &.btn-min-square {
+      min-inline-size: var(--control-block-size);
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     &.btn-primary {

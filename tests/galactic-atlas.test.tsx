@@ -184,7 +184,7 @@ test('atlas selection opens the correct system and supports keyboard zoom and re
   await act(async () => currentSystem.props.onClick({ button: 0, preventDefault() {} }))
   expect(onNavigate).toHaveBeenCalledWith({ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Sol' })
   const zoomControls = renderer.root.findByProps({ 'aria-label': 'Atlas zoom controls' })
-  expect(zoomControls.findAllByType('button').map(button => button.props['aria-label'])).toEqual(['Zoom out', 'Zoom in'])
+  expect(zoomControls.findAllByType('button').map(button => button.props['aria-label'])).toEqual(['3D atlas view', 'Zoom out', 'Zoom in'])
   expect(renderer.root.findByProps({ className: 'atlas-viewport' }).findAllByType('button')).toHaveLength(0)
   const initial = renderer.root.findAllByType('g')[0].props.transform
   await act(async () => map().props.onKeyDown({ target: 1, currentTarget: 1, key: 'Home', preventDefault() {} }))
@@ -315,15 +315,15 @@ test('pinch captures both pointers on the viewport and remaining fingers continu
   await act(async () => viewport().props.onPointerMove(event(1, 80)))
   const pinched = transform()
   expect(pinched).not.toBe(original)
-  const scale = pinched.match(/scale\(([^)]+)\)/)![1]
+  const scale = pinched.match(/matrix\(([^ ]+)/)![1]
   await act(async () => viewport().props.onPointerUp(event(2, 200)))
   await act(async () => viewport().props.onPointerMove(event(1, 60)))
   expect(transform()).not.toBe(pinched)
-  expect(transform()).toContain(`scale(${scale})`)
+  expect(transform()).toContain(`matrix(${scale} `)
   await act(async () => viewport().props.onPointerCancel(event(1, 60)))
   await act(async () => viewport().props.onPointerDown(event(3, 100)))
   await act(async () => viewport().props.onPointerMove(event(3, 130)))
-  expect(transform()).toContain(`scale(${scale})`)
+  expect(transform()).toContain(`matrix(${scale} `)
   const keyboardClick = { detail: 0, preventDefault: vi.fn(), stopPropagation: vi.fn() }
   viewport().props.onClickCapture(keyboardClick)
   expect(keyboardClick.stopPropagation).not.toHaveBeenCalled()

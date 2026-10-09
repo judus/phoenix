@@ -4,6 +4,10 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Experiment with an optional orthographic 3D Galactic Atlas: tilt/orbit the reference plane,
+  show real POI heights with connecting lines, and return to top-down without losing map selection.
+  Keep its floating controls grip-free and remove the map's browser focus outline.
+
 - Zoom twice as close on the Galactic Atlas to separate nearby Bubble locations more easily.
 
 - Keep Atlas bookmark, Community Goal and GalNet lead markers visible while their layers refresh,

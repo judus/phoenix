@@ -15,6 +15,9 @@ export interface AtlasMarker {
   investigation?: GalnetInvestigationLead
 }
 export interface AtlasCamera { x: number, y: number, zoom: number }
+export interface AtlasView { azimuth: number, tilt: number }
+export const TOP_DOWN_VIEW: AtlasView = { azimuth: 0, tilt: 0 }
+export const TILTED_VIEW: AtlasView = { azimuth: -Math.PI / 12, tilt: Math.PI / 3.6 }
 export const WHOLE_GALAXY: AtlasCamera = { x: 1024, y: 1024, zoom: 1 }
 export const MAX_ATLAS_ZOOM = 128
 export const LY_PER_MAP_UNIT = 4096 / 83
@@ -59,27 +62,69 @@ export function atlasScale(width: number, height: number, zoom: number): number 
   return Math.max(1, Math.min(width, height) - 32) / 2048 * zoom
 }
 
-export function screenPoint(point: AtlasPoint, camera: AtlasCamera, width: number, height: number): AtlasPoint {
+/** Orthographic projection: Elite Y is real height, not an exaggerated display offset. */
+export function screenPoint(point: AtlasPoint, camera: AtlasCamera, width: number, height: number, view = TOP_DOWN_VIEW, heightLy = 0): AtlasPoint {
   const scale = atlasScale(width, height, camera.zoom)
-  return { x: width / 2 + (point.x - camera.x) * scale, y: height / 2 + (point.y - camera.y) * scale }
+  const dx = point.x - camera.x, dy = point.y - camera.y
+  const u = dx * Math.cos(view.azimuth) - dy * Math.sin(view.azimuth)
+  const v = dx * Math.sin(view.azimuth) + dy * Math.cos(view.azimuth)
+  return { x: width / 2 + u * scale,
+    y: height / 2 + (v * Math.cos(view.tilt) - heightLy / LY_PER_MAP_UNIT * Math.sin(view.tilt)) * scale }
 }
 
-export function zoomAtlas(camera: AtlasCamera, factor: number, anchor: AtlasPoint, width: number, height: number): AtlasCamera {
+function planeOffset(x: number, y: number, view: AtlasView): AtlasPoint {
+  const v = y / Math.cos(view.tilt)
+  return { x: x * Math.cos(view.azimuth) + v * Math.sin(view.azimuth),
+    y: -x * Math.sin(view.azimuth) + v * Math.cos(view.azimuth) }
+}
+
+export function panAtlas(camera: AtlasCamera, delta: AtlasPoint, width: number, height: number, view = TOP_DOWN_VIEW): AtlasCamera {
+  const scale = atlasScale(width, height, camera.zoom)
+  const offset = planeOffset(delta.x / scale, delta.y / scale, view)
+  return { ...camera, x: camera.x - offset.x, y: camera.y - offset.y }
+}
+
+export function orbitAtlas(view: AtlasView, delta: AtlasPoint): AtlasView {
+  return { azimuth: (view.azimuth + delta.x * 0.006) % (2 * Math.PI),
+    tilt: Math.max(Math.PI / 18, Math.min(Math.PI * 7 / 18, view.tilt + delta.y * 0.006)) }
+}
+
+export function focusAtlas(position: GalacticPosition, zoom: number, view = TOP_DOWN_VIEW): AtlasCamera {
+  const plane = projectGalacticPosition(position)
+  const offset = position[1] / LY_PER_MAP_UNIT * Math.tan(view.tilt)
+  return { zoom, x: plane.x - offset * Math.sin(view.azimuth), y: plane.y - offset * Math.cos(view.azimuth) }
+}
+
+/** The galactic plane is affine under orthographic projection; reuse its existing SVG paths. */
+export function atlasPlaneTransform(camera: AtlasCamera, width: number, height: number, view = TOP_DOWN_VIEW): string {
+  const scale = atlasScale(width, height, camera.zoom)
+  const a = scale * Math.cos(view.azimuth), b = scale * Math.sin(view.azimuth) * Math.cos(view.tilt)
+  const c = -scale * Math.sin(view.azimuth), d = scale * Math.cos(view.azimuth) * Math.cos(view.tilt)
+  return `matrix(${a} ${b} ${c} ${d} ${width / 2 - a * camera.x - c * camera.y} ${height / 2 - b * camera.x - d * camera.y})`
+}
+
+export function zoomAtlas(camera: AtlasCamera, factor: number, anchor: AtlasPoint, width: number, height: number, view = TOP_DOWN_VIEW): AtlasCamera {
   const zoom = Math.max(1, Math.min(MAX_ATLAS_ZOOM, camera.zoom * factor))
   const before = atlasScale(width, height, camera.zoom), after = atlasScale(width, height, zoom)
-  return { zoom, x: camera.x + (anchor.x - width / 2) * (1 / before - 1 / after), y: camera.y + (anchor.y - height / 2) * (1 / before - 1 / after) }
+  const offset = planeOffset((anchor.x - width / 2) * (1 / before - 1 / after), (anchor.y - height / 2) * (1 / before - 1 / after), view)
+  return { zoom, x: camera.x + offset.x, y: camera.y + offset.y }
 }
 
-export function clusterAtlasMarkers(markers: AtlasMarker[], camera: AtlasCamera, width: number, height: number) {
-  const clusters: { point: AtlasPoint, markers: AtlasMarker[] }[] = []
+export function clusterAtlasMarkers(markers: AtlasMarker[], camera: AtlasCamera, width: number, height: number, view = TOP_DOWN_VIEW) {
+  const clusters: { point: AtlasPoint, ground: AtlasPoint, depth: number, markers: AtlasMarker[] }[] = []
   for (const marker of markers) {
-    const point = screenPoint(projectGalacticPosition(marker.position), camera, width, height)
+    const plane = projectGalacticPosition(marker.position)
+    const ground = screenPoint(plane, camera, width, height, view)
+    const point = screenPoint(plane, camera, width, height, view, marker.position[1])
     if (point.x < -24 || point.y < -24 || point.x > width + 24 || point.y > height + 24) continue
     const cluster = clusters.find(cluster => Math.hypot(cluster.point.x - point.x, cluster.point.y - point.y) < 30)
     if (cluster) cluster.markers.push(marker)
-    else clusters.push({ point, markers: [marker] })
+    else {
+      const v = (plane.x - camera.x) * Math.sin(view.azimuth) + (plane.y - camera.y) * Math.cos(view.azimuth)
+      clusters.push({ point, ground, depth: v * Math.sin(view.tilt) + marker.position[1] / LY_PER_MAP_UNIT * Math.cos(view.tilt), markers: [marker] })
+    }
   }
-  return clusters
+  return view.tilt ? clusters.sort((a, b) => a.depth - b.depth) : clusters
 }
 
 // Coordinates verified against EDSM api-v1/systems, 2026-10-03.

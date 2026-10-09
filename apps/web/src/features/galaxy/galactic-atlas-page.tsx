@@ -7,7 +7,7 @@ import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js
 import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
 import { atlasBoundaries, atlasRegions } from './atlas-region-data.js'
-import { ATLAS_LANDMARKS, LY_PER_MAP_UNIT, MAX_ATLAS_ZOOM, WHOLE_GALAXY, atlasPoiMarkers, filterAtlasPois, atlasScale, clusterAtlasMarkers, distanceLy, galacticRegion, projectGalacticPosition, screenPoint, zoomAtlas, type AtlasCamera, type AtlasMarker, type AtlasPoint, type GalacticPosition } from './galactic-atlas-model.js'
+import { ATLAS_LANDMARKS, LY_PER_MAP_UNIT, MAX_ATLAS_ZOOM, WHOLE_GALAXY, TOP_DOWN_VIEW, TILTED_VIEW, atlasPlaneTransform, atlasPoiMarkers, filterAtlasPois, atlasScale, clusterAtlasMarkers, distanceLy, focusAtlas, galacticRegion, orbitAtlas, panAtlas, projectGalacticPosition, screenPoint, zoomAtlas, type AtlasCamera, type AtlasMarker, type AtlasPoint, type GalacticPosition } from './galactic-atlas-model.js'
 import { useAtlasBookmarks } from './use-atlas-bookmarks.js'
 import { useAtlasPointerGestures } from './use-atlas-pointer-gestures.js'
 import { useAtlasCatalogue } from './use-atlas-catalogue.js'
@@ -95,6 +95,8 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
   systemName: string | null
 }) {
   const [camera, setCamera] = useState<AtlasCamera>(() => position ? { ...projectGalacticPosition(position), zoom: 4 } : WHOLE_GALAXY)
+  const [view, setView] = useState(TOP_DOWN_VIEW)
+  const [orbiting, setOrbiting] = useState(false)
   const initialCameraApplied = useRef(position !== null)
   const updateCamera = (next: SetStateAction<AtlasCamera>) => {
     initialCameraApplied.current = true
@@ -110,7 +112,10 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
   const [selection, setSelection] = useState<string[]>([])
   const [selectedId, setSelectedId] = useState<string>()
   const viewport = useRef<HTMLDivElement>(null)
-  const pointerGestures = useAtlasPointerGestures(updateCamera, size)
+  const pointerGestures = useAtlasPointerGestures(updateCamera, size, view, {
+    enabled: orbiting,
+    move: delta => setView(current => orbitAtlas(current, delta))
+  })
   const currentRegion = position ? galacticRegion(position) : undefined
   const pois = useMemo(() => atlasPoiMarkers(catalogue?.pois ?? []), [catalogue])
   const categories = useMemo(() => [...new Set(catalogue?.pois.flatMap(poi => poi.categories) ?? [])].sort(), [catalogue])
@@ -132,11 +137,11 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
   ], [bookmarks, communityGoals, investigations, landmarks, position, showCommunityGoals, showInvestigations, showLandmarks, systemName, selectedId, displayTarget])
   const selected = markers.find(marker => marker.id === selectedId)
   const options = selection.map(id => markers.find(marker => marker.id === id)).filter((marker): marker is AtlasMarker => !!marker)
-  const clusters = clusterAtlasMarkers(markers, camera, size.width, size.height)
+  const clusters = clusterAtlasMarkers(markers, camera, size.width, size.height, view)
   const scale = atlasScale(size.width, size.height, camera.zoom)
   const centre = { x: size.width / 2, y: size.height / 2 }
-  const changeZoom = (factor: number) => updateCamera(value => zoomAtlas(value, factor, centre, size.width, size.height))
-  const locate = (target: GalacticPosition, zoom = Math.max(4, camera.zoom)) => updateCamera({ ...projectGalacticPosition(target), zoom })
+  const changeZoom = (factor: number) => updateCamera(value => zoomAtlas(value, factor, centre, size.width, size.height, view))
+  const locate = (target: GalacticPosition, zoom = Math.max(4, camera.zoom)) => updateCamera(focusAtlas(target, zoom, view))
 
   useEffect(() => {
     if (!displayTarget) {
@@ -145,7 +150,7 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
       return
     }
     initialCameraApplied.current = true
-    setCamera({ ...projectGalacticPosition(displayTarget.position), zoom: 4 })
+    setCamera(focusAtlas(displayTarget.position, 4, view))
     setSelection([displayTarget.id])
     setSelectedId(displayTarget.id)
     setShowSearch(false)
@@ -154,7 +159,7 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
   useEffect(() => {
     if (!position || initialCameraApplied.current) return
     initialCameraApplied.current = true
-    setCamera({ ...projectGalacticPosition(position), zoom: 4 })
+    setCamera(focusAtlas(position, 4, view))
   }, [position])
 
   useEffect(() => {
@@ -174,21 +179,23 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
       event.preventDefault()
       initialCameraApplied.current = true
       const rect = element.getBoundingClientRect()
-      setCamera(value => zoomAtlas(value, Math.exp(-Math.max(-150, Math.min(150, event.deltaY)) * 0.005), { x: event.clientX - rect.left, y: event.clientY - rect.top }, size.width, size.height))
+      setCamera(value => zoomAtlas(value, Math.exp(-Math.max(-150, Math.min(150, event.deltaY)) * 0.005), { x: event.clientX - rect.left, y: event.clientY - rect.top }, size.width, size.height, view))
     }
     element.addEventListener('wheel', wheel, { passive: false })
     return () => element.removeEventListener('wheel', wheel)
-  }, [size])
+  }, [size, view])
 
   const keyboard = (event: KeyboardEvent<SVGSVGElement>) => {
     if (event.target !== event.currentTarget) return
     if (event.key === '+' || event.key === '=') changeZoom(1.5)
     else if (event.key === '-') changeZoom(1 / 1.5)
-    else if (event.key === 'Home') updateCamera(WHOLE_GALAXY)
-    else if (event.key.startsWith('Arrow')) updateCamera(value => ({ ...value,
-      x: value.x + (event.key === 'ArrowLeft' ? -80 : event.key === 'ArrowRight' ? 80 : 0) / scale,
-      y: value.y + (event.key === 'ArrowUp' ? -80 : event.key === 'ArrowDown' ? 80 : 0) / scale
-    }))
+    else if (event.key === 'Home') { updateCamera(WHOLE_GALAXY); setView(TOP_DOWN_VIEW); setOrbiting(false) }
+    else if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+      const delta = { x: event.key === 'ArrowLeft' ? 80 : event.key === 'ArrowRight' ? -80 : 0,
+        y: event.key === 'ArrowUp' ? 80 : event.key === 'ArrowDown' ? -80 : 0 }
+      if (event.shiftKey && view.tilt) setView(current => orbitAtlas(current, delta))
+      else updateCamera(value => panAtlas(value, delta, size.width, size.height, view))
+    }
     else return
     event.preventDefault()
   }
@@ -223,9 +230,9 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
         setShowSearch(false)
       }}>
         <svg width="100%" height="100%" viewBox={`0 0 ${size.width} ${size.height}`} tabIndex={0} role="group"
-          aria-label="Top-down galaxy map. Drag to pan, pinch or use plus and minus to zoom. Arrow keys pan; Home shows the whole galaxy."
+          aria-label={`${view.tilt ? '3D orthographic' : 'Top-down'} galaxy map. Drag to ${orbiting ? 'orbit' : 'pan'}, pinch or use plus and minus to zoom. Arrow keys pan; Shift and arrows orbit in 3D; Home resets to the whole galaxy top-down.`}
           onKeyDown={keyboard}>
-          <g transform={`translate(${centre.x - camera.x * scale} ${centre.y - camera.y * scale}) scale(${scale})`}>
+          <g className="atlas-plane" transform={atlasPlaneTransform(camera, size.width, size.height, view)}>
             <g className="atlas-grid" aria-hidden="true">
               {[0, 500, 1000, 1500, 2000].map(value => <path key={value} d={`M${value},0V2048M0,${value}H2048`} vectorEffect="non-scaling-stroke" />)}
             </g>
@@ -249,6 +256,10 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
               aria-label={cluster.markers.length > 1 ? `${cluster.markers.length} locations near ${marker.label}` : `${commander ? 'Your position: ' : ''}${marker.label}`}
               onClick={choose} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose() } }}>
               <title>{cluster.markers.map(marker => marker.label).join(' · ')}</title>
+              {view.tilt !== 0 && <g className="atlas-height" aria-hidden="true">
+                <path d={`M0,0L${cluster.ground.x - cluster.point.x},${cluster.ground.y - cluster.point.y}`} />
+                <circle cx={cluster.ground.x - cluster.point.x} cy={cluster.ground.y - cluster.point.y} r={2} />
+              </g>}
               <circle className="hit-area" r={22} />
               {commander ? <path d="M0,-10L7,7L0,3L-7,7Z" /> : communityGoal ? <path d="M0,-8L8,0L0,8L-8,0Z" /> : investigation ? <path d="M-8,0L-4,-7H4L8,0L4,7H-4Z" /> : marker.kind === 'bookmark' ? <path d="M-5,-7H5V8L0,4L-5,8Z" /> : <circle r={cluster.markers.length > 1 ? 7 : 4} />}
               {cluster.markers.length > 1 && <circle className="cluster-ring" r={12} />}
@@ -256,7 +267,7 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
             </g>
           })}
           {showRegions && [...atlasRegions].sort((a, b) => Number(b.id === currentRegion?.id) - Number(a.id === currentRegion?.id)).map(region => {
-            const point = screenPoint({ x: region.label[0], y: region.label[1] }, camera, size.width, size.height)
+            const point = screenPoint({ x: region.label[0], y: region.label[1] }, camera, size.width, size.height, view)
             if (camera.zoom < 1.8 && region.id !== currentRegion?.id && region.id !== 1 && region.id % 3 !== 0) return null
             if (!labelFits(point, region.name, true)) return null
             return <text key={region.id} x={point.x} y={point.y} className={`atlas-region-label${region.id === currentRegion?.id ? ' active' : ''}`}>{region.name}</text>
@@ -265,12 +276,17 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
             <path d={`M0,-5V0H${scaleLy / LY_PER_MAP_UNIT * scale}V-5`} />
             <text x={0} y={-12}>{scaleLy.toLocaleString('en-GB')} LY</text>
           </g>
-          <text className="atlas-orientation" x={size.width - 16} y={24}>+Z ↑ · X/Z</text>
+          <text className="atlas-orientation" x={size.width - 16} y={24}>{view.tilt ? 'X/Z PLANE · Y HEIGHT' : '+Z ↑ · X/Z'}</text>
         </svg>
       </div>
         <div className="atlas-zoom" role="group" aria-label="Atlas zoom controls">
-          <IconButton variant="outline" size="sm" label="Zoom out" disabled={camera.zoom <= 1} onClick={() => changeZoom(1 / 1.5)}>−</IconButton>
-          <IconButton variant="outline" size="sm" label="Zoom in" disabled={camera.zoom >= MAX_ATLAS_ZOOM} onClick={() => changeZoom(1.5)}>+</IconButton>
+          <ToggleButton className="display btn-no-grip btn-min-square" aria-label="3D atlas view" title="Tilt the galactic plane and show real location heights" pressed={view.tilt !== 0} onClick={() => {
+            setView(view.tilt ? TOP_DOWN_VIEW : TILTED_VIEW)
+            setOrbiting(false)
+          }}>3D</ToggleButton>
+          {view.tilt !== 0 && <ToggleButton className="display btn-no-grip btn-min-square" aria-label="Orbit atlas camera" title="Drag to rotate the camera instead of panning; two fingers still pan and zoom" pressed={orbiting} onClick={() => setOrbiting(value => !value)}>Orbit</ToggleButton>}
+          <IconButton className="btn-no-grip btn-min-square" variant="outline" label="Zoom out" disabled={camera.zoom <= 1} onClick={() => changeZoom(1 / 1.5)}>−</IconButton>
+          <IconButton className="btn-no-grip btn-min-square" variant="outline" label="Zoom in" disabled={camera.zoom >= MAX_ATLAS_ZOOM} onClick={() => changeZoom(1.5)}>+</IconButton>
         </div>
       </div>
       {(selected || showSearch) && <aside className="atlas-inspector" aria-label={selected ? 'Selected atlas location' : 'Find atlas POI'}>
