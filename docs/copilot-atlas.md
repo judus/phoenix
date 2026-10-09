@@ -22,6 +22,10 @@ discarding messages. Returning shows the same pending exchange; completion refre
 history. Application disposal or replacement still aborts its requests. History snapshots received
 before a local turn completes cannot overwrite that turn's optimistic messages.
 
+The chat view initially renders only the latest 30 messages; the full conversation remains in
+the session and model history. “Load older messages” reveals earlier batches while preserving
+the current reading position. Incoming text follows the bottom only when the reader is there.
+
 The new capability appears in the **Display** permission group. Fresh installations include it
 in the default installation policy. Existing installation/profile allowlists are not expanded:
 enable **Show Galactic Atlas** in the installation's AI tools settings and in the Copilot
