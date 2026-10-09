@@ -109,7 +109,7 @@ export function ControlsPage({ deckId, controller, editing, macros, runtime, var
         <Button variant="quiet" onClick={() => void macros.cancelRecording()}>Cancel</Button>
         <Button variant="primary" onClick={() => void macros.stopRecording()}>Stop and save</Button>
       </section>}
-      {editing && editingPosition === undefined && activeConfiguration && deck && group && <DeckSettings
+      {editing && editingPosition === undefined && activeConfiguration && deck && <DeckSettings
         configuration={activeConfiguration}
         deck={deck}
         group={group}
@@ -338,7 +338,7 @@ export function ControlsPage({ deckId, controller, editing, macros, runtime, var
 function DeckSettings ({ configuration, deck, group, onChange, onSave, onCancel, saving }: {
   configuration: PhoenixControlDeckConfiguration
   deck: ControlDeckGridDeck
-  group: ControlDeckDeckGroup
+  group: ControlDeckDeckGroup | undefined
   onChange(configuration: PhoenixControlDeckConfiguration): void
   onSave(): void
   onCancel(): void
@@ -459,15 +459,10 @@ function controlDeckTheme (deck: ControlDeckGridDeck | undefined, group: Control
 export function applyControlDeckTheme (
   configuration: PhoenixControlDeckConfiguration,
   deck: ControlDeckGridDeck,
-  group: ControlDeckDeckGroup,
+  group: ControlDeckDeckGroup | undefined,
   theme: PhoenixControlDeckTheme
 ): PhoenixControlDeckConfiguration {
-  const groupAppearance = withoutColorScheme(group.appearance)
   const deckAppearance = withoutColorScheme(deck.appearance)
-  const normalizedGroup: ControlDeckDeckGroup = {
-    ...group,
-    appearance: groupAppearance
-  }
   const themedDeck: ControlDeckGridDeck = {
     ...deck,
     appearance: theme === 'phoenix'
@@ -475,7 +470,7 @@ export function applyControlDeckTheme (
       : { ...deckAppearance, colorScheme: theme }
   }
   return replaceControlDeck(
-    replaceControlDeckGroup(configuration, normalizedGroup),
+    group ? replaceControlDeckGroup(configuration, { ...group, appearance: withoutColorScheme(group.appearance) }) : configuration,
     themedDeck
   ) as PhoenixControlDeckConfiguration
 }

@@ -416,6 +416,24 @@ test('button relocation stays in the editing draft until saved, and cancelling d
   await act(async () => renderer.unmount())
 })
 
+test('standalone decks can edit layout/theme, save and cancel without a group', async () => {
+  const configuration = { ...DEFAULT_CONTROL_DECK_CONFIGURATION, decks: [...DEFAULT_CONTROL_DECK_CONFIGURATION.decks, { id: 'utility', name: 'Utility', description: 'Standalone controls', context: null, layout: { kind: 'grid' as const, columns: 2, rows: 2 }, elements: [] }] }
+  const save = vi.fn(async (configuration: typeof DEFAULT_CONTROL_DECK_CONFIGURATION) => configuration)
+  const editingChange = vi.fn()
+  const renderer = await renderWithAct(<ControlsPage deckId="utility" editing controller={{ status: 'ready', configuration }} macros={emptyMacroRuntime()} variableFontSizes onEditingChange={editingChange} onExecuteAction={vi.fn()} onSaveConfiguration={save} />)
+  try {
+    await act(async () => renderer.root.findByProps({ 'aria-label': 'Deck columns' }).props.onChange({ target: { value: '3' } }))
+    await act(async () => renderer.root.findByProps({ 'aria-label': 'Deck theme' }).props.onChange({ target: { value: 'red' } }))
+    await act(async () => renderer.root.findByProps({ 'aria-label': 'Save and finish editing' }).props.onClick())
+    expect(save).toHaveBeenCalledOnce()
+    expect(save.mock.calls[0]![0].decks.find(deck => deck.id === 'utility')).toMatchObject({ id: 'utility', layout: { columns: 3, rows: 2 }, appearance: { colorScheme: 'red' } })
+    expect(save.mock.calls[0]![0].groups).toEqual(configuration.groups)
+    expect(editingChange).toHaveBeenCalledWith(false)
+    await act(async () => renderer.root.findByProps({ 'aria-label': 'Cancel editing' }).props.onClick())
+    expect(renderer.root.findByType(ControlSurface).props.deck).toEqual(configuration.decks.at(-1))
+  } finally { await act(async () => renderer.unmount()) }
+})
+
 test('opening directly in edit mode supports saving unchanged and cancelling a changed draft', async () => {
   const save = vi.fn(async (configuration: typeof DEFAULT_CONTROL_DECK_CONFIGURATION) => configuration)
   const props = {

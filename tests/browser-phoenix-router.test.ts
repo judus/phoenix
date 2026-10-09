@@ -3,6 +3,23 @@ import { BrowserPhoenixRouter } from '../apps/web/src/platform/routing/browser-p
 import { parsePhoenixRoute, phoenixRouteHash } from '../apps/web/src/application/navigation/phoenix-router.js'
 
 describe('BrowserPhoenixRouter', () => {
+  test('deck manager stays active without replacing deck recall across workspace switches and reloads', () => {
+    const browser = new FakeBrowserWindow('#/controls/combat')
+    const router = new BrowserPhoenixRouter(browser as unknown as Window)
+    router.push({ kind: 'controls', deckId: 'manage' })
+    expect(router.getSnapshot()).toEqual({ kind: 'controls', deckId: 'manage' })
+    expect(browser.sessionStorage.getItem('phoenix.desktop.controls-route')).toBe('#/controls/combat')
+    router.push({ kind: 'copilot', view: 'chat' })
+    expect(router.routeForWorkspace('controls')).toEqual({ kind: 'controls', deckId: 'combat' })
+    router.push({ kind: 'controls', deckId: 'manage' })
+    const restored = new BrowserPhoenixRouter(browser as unknown as Window)
+    restored.push({ kind: 'copilot', view: 'chat' })
+    expect(restored.routeForWorkspace('controls')).toEqual({ kind: 'controls', deckId: 'combat' })
+    const cold = new BrowserPhoenixRouter(new FakeBrowserWindow('#/controls/manage') as unknown as Window)
+    cold.push({ kind: 'copilot', view: 'chat' })
+    expect(cold.routeForWorkspace('controls', 'ship')).toEqual({ kind: 'controls', deckId: 'ship' })
+  })
+
   test('CTR and CPT recall their own pages across workspace changes and reloads', () => {
     const browser = new FakeBrowserWindow('#/controls/combat')
     const router = new BrowserPhoenixRouter(browser as unknown as Window)

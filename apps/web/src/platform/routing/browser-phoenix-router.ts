@@ -39,7 +39,7 @@ export class BrowserPhoenixRouter implements PhoenixRouter {
         const hash = browserWindow.sessionStorage.getItem(`phoenix.desktop.${workspace}-route`)
         if (!hash) continue
         const route = parsePhoenixRoute(hash)
-        if (workspaceForRoute(route) === workspace) this.#rememberedWorkspaces.set(workspace, route)
+        if (workspaceForRoute(route) === workspace && !(route.kind === 'controls' && route.deckId === 'manage')) this.#rememberedWorkspaces.set(workspace, route)
       } catch {
         // Session preferences may be unavailable; in-memory recall still works.
       }
@@ -126,6 +126,7 @@ export class BrowserPhoenixRouter implements PhoenixRouter {
 
   #rememberWorkspace(route: PhoenixRoute): void {
     if (route.kind !== 'controls' && route.kind !== 'copilot') return
+    if (route.kind === 'controls' && route.deckId === 'manage') return
     this.#rememberedWorkspaces.set(route.kind, route)
     try {
       this.#window.sessionStorage.setItem(`phoenix.desktop.${route.kind}-route`, phoenixRouteHash(route))
