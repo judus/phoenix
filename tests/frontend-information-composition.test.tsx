@@ -76,7 +76,7 @@ test('Equipment selected IDs and Commander feature variants keep their existing 
 })
 
 test('inactive Information workspace keeps its remembered context without mounting a feature', () => {
-  const shell = composition({ kind: 'controls', category: 'ship' })
+  const shell = composition({ kind: 'controls', deckId: 'ship' })
   expect(shell.information).toBeNull()
   expect(shell.informationContextLabel).toBe('Commander views')
 })

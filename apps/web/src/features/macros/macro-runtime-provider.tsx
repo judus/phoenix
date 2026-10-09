@@ -120,7 +120,7 @@ export function MacroRuntimeProvider ({
         activeRecordingId.current = started.id
         setRecording(started)
         setError(undefined)
-        router.push({ kind: 'controls', category: 'ship' })
+        router.push({ kind: 'controls', deckId: 'ship' })
       } catch (cause) { if (!lifetime.signal.aborted) setError(message(cause, 'Unable to start recording.')) }
     },
     stopRecording: async () => {

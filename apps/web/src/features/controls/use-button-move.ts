@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 
 
 type Selection = { id: string, slot: string }
 type Drag = Selection & { pointerId: number, x: number, y: number, moved: boolean }
+type Preview = Selection & { left: number, top: number, width: number, height: number, x: number, y: number }
 
 // UI-only gesture state. The runtime owns placement and swap semantics.
 export function useButtonMove(enabled: boolean, revision: unknown, onMove: (id: string, column: number, row: number) => void) {
@@ -10,7 +11,8 @@ export function useButtonMove(enabled: boolean, revision: unknown, onMove: (id: 
   const suppressUntil = useRef(0)
   const [selection, setSelection] = useState<Selection>()
   const [destination, setDestination] = useState<string>()
-  const cancel = () => { drag.current = undefined; setSelection(undefined); setDestination(undefined) }
+  const [preview, setPreview] = useState<Preview>()
+  const cancel = () => { drag.current = undefined; setSelection(undefined); setDestination(undefined); setPreview(undefined) }
 
   useEffect(() => {
     cancel()
@@ -42,10 +44,14 @@ export function useButtonMove(enabled: boolean, revision: unknown, onMove: (id: 
     surface,
     sourceSlot: selection?.slot,
     destination,
+    preview,
     begin(event: PointerEvent<HTMLButtonElement>, id: string, slot: string) {
       if (!enabled || !event.isPrimary || event.button !== 0) return
       event.currentTarget.setPointerCapture(event.pointerId)
       drag.current = { id, slot, pointerId: event.pointerId, x: event.clientX, y: event.clientY, moved: false }
+      const source = event.currentTarget.parentElement!.getBoundingClientRect()
+      const bounds = surface.current!.getBoundingClientRect()
+      setPreview({ id, slot, left: source.left - bounds.left, top: source.top - bounds.top, width: source.width, height: source.height, x: 0, y: 0 })
     },
     select(id: string, slot: string) {
       setSelection(current => current?.id === id ? undefined : { id, slot })
@@ -54,6 +60,7 @@ export function useButtonMove(enabled: boolean, revision: unknown, onMove: (id: 
       onPointerMove(event: PointerEvent<HTMLDivElement>) {
         const current = drag.current
         if (!current || current.pointerId !== event.pointerId) return
+        setPreview(value => value && { ...value, x: event.clientX - current.x, y: event.clientY - current.y })
         if (Math.hypot(event.clientX - current.x, event.clientY - current.y) >= 6) current.moved = true
         if (!current.moved) return
         setSelection({ id: current.id, slot: current.slot })
@@ -63,6 +70,7 @@ export function useButtonMove(enabled: boolean, revision: unknown, onMove: (id: 
         const current = drag.current
         if (!current || current.pointerId !== event.pointerId) return
         drag.current = undefined
+        setPreview(undefined)
         if (!current.moved) return
         suppressUntil.current = Date.now() + 400
         const slot = slotAt(document.elementFromPoint(event.clientX, event.clientY))
@@ -70,7 +78,7 @@ export function useButtonMove(enabled: boolean, revision: unknown, onMove: (id: 
         else cancel()
       },
       onPointerCancel() { cancel() },
-      onLostPointerCapture() { if (drag.current?.moved) cancel(); drag.current = undefined },
+      onLostPointerCapture() { if (drag.current?.moved) cancel(); drag.current = undefined; setPreview(undefined) },
       onClickCapture(event: MouseEvent<HTMLDivElement>) {
         if (event.detail > 0 && Date.now() < suppressUntil.current) {
           event.preventDefault(); event.stopPropagation(); return

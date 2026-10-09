@@ -85,7 +85,8 @@
     }
 
     .tile.btn {
-      padding: var(--spacing-xs);
+      --command-padding: var(--spacing-xs);
+      padding: var(--command-padding);
       font-weight: var(--font-weight-normal);
 
       &::after {

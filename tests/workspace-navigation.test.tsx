@@ -6,7 +6,7 @@ import { App } from '../apps/web/src/app.js'
 import type { PhoenixApplicationServices } from '../apps/web/src/bootstrap/create-application.js'
 import type { PhoenixApplicationShellProps } from '../apps/web/src/components/shell/phoenix-application-shell.js'
 import type { ControlsControllerSnapshot } from '../apps/web/src/features/controls/use-controls-controller.js'
-import { firstControlCategory } from '../apps/web/src/features/controls/controls-navigation.js'
+import { firstControlDeckId } from '../apps/web/src/features/controls/controls-navigation.js'
 import { DEFAULT_ROUTE, defaultRouteForWorkspace } from '../apps/web/src/application/navigation/phoenix-route.js'
 import { phoenixRouteHash, type PhoenixRouter } from '../apps/web/src/application/navigation/phoenix-router.js'
 import { workspaceItems } from '../apps/web/src/components/shell/navigation-model.js'
@@ -31,14 +31,34 @@ const configuration = {
 }
 
 test('the initial Controls destination follows saved deck order', () => {
-  expect(firstControlCategory(DEFAULT_CONTROL_DECK_CONFIGURATION)).toBe('quick')
-  expect(`phoenix:${firstControlCategory(configuration)}`).toBe(configuration.decks[0].context)
-  expect(firstControlCategory()).toBe('quick')
+  expect(firstControlDeckId(DEFAULT_CONTROL_DECK_CONFIGURATION)).toBe('quick')
+  expect(`phoenix:${firstControlDeckId(configuration)}`).toBe(configuration.decks[0].context)
+  expect(firstControlDeckId()).toBe('quick')
 })
 
 test('workspace links reflect recalled Controls and Copilot pages', () => {
-  const items = workspaceItems(DEFAULT_ROUTE, { kind: 'controls', category: 'combat' }, { kind: 'copilot', view: 'profiles' })
+  const items = workspaceItems(DEFAULT_ROUTE, { kind: 'controls', deckId: 'combat' }, { kind: 'copilot', view: 'profiles' })
   expect(items.map(item => item.href)).toEqual(['#/controls/combat', '#/commander/dashboard', '#/copilot/profiles'])
+})
+
+test.each([false, true])('deleted active or recalled decks resolve to the first saved deck; active=%s', async active => {
+  state.controls = { status: 'ready', configuration }
+  const missing = { kind: 'controls' as const, deckId: 'deleted-deck' }
+  const replace = vi.fn()
+  const router: PhoenixRouter = {
+    getSnapshot: () => active ? missing : DEFAULT_ROUTE,
+    getRememberedInformationRoute: () => DEFAULT_ROUTE,
+    subscribe: () => () => {}, href: phoenixRouteHash, push: vi.fn(), replace,
+    routeForWorkspace: workspace => workspace === 'controls' ? missing : defaultRouteForWorkspace(workspace)
+  }
+  const renderer = await import('./support/render-with-act.js').then(({ renderWithAct }) =>
+    renderWithAct(<App application={{ router } as unknown as PhoenixApplicationServices} />))
+  try {
+    const resolved = { kind: 'controls', deckId: configuration.decks[0]!.id }
+    expect(state.shell!.controlsDestination).toEqual(resolved)
+    if (active) expect(replace).toHaveBeenCalledExactlyOnceWith(resolved)
+    else expect(replace).not.toHaveBeenCalled()
+  } finally { await act(async () => renderer.unmount()) }
 })
 
 test.each([false, true])('CTR waits for initial deck settings; cancelled=%s', async cancelled => {
@@ -50,7 +70,7 @@ test.each([false, true])('CTR waits for initial deck settings; cancelled=%s', as
       subscribe: () => () => {},
       href: phoenixRouteHash,
       routeForWorkspace: (workspace, category = 'quick') => workspace === 'controls'
-        ? { kind: 'controls', category }
+        ? { kind: 'controls', deckId: category }
         : defaultRouteForWorkspace(workspace),
       push,
       replace: vi.fn()
@@ -65,6 +85,6 @@ test.each([false, true])('CTR waits for initial deck settings; cancelled=%s', as
   await act(async () => renderer.update(<App application={application} />))
   expect(push).toHaveBeenCalledExactlyOnceWith(cancelled
     ? { kind: 'copilot', view: 'chat' }
-    : { kind: 'controls', category: firstControlCategory(configuration) })
+    : { kind: 'controls', deckId: firstControlDeckId(configuration) })
   await act(async () => renderer.unmount())
 })

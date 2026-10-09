@@ -1,3 +1,10 @@
+.manage-decks-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  min-block-size: 0;
+}
+
   .controls-page {
     --control-deck-accent: #55c7ff;
     --control-deck-panel: #123247;
@@ -45,11 +52,6 @@
       grid-template-columns: minmax(0, 1fr) auto;
       gap: var(--spacing-xs);
 
-      .control-deck-save {
-        align-self: stretch;
-        block-size: 100%;
-      }
-
       .control-deck-settings-form {
         padding: var(--spacing-xs);
 
@@ -80,9 +82,24 @@
     }
 
     .control-deck-surface {
+      position: relative;
       display: grid;
       min-inline-size: 0;
       min-block-size: 0;
+    }
+
+    .control-deck-drag-preview {
+      position: absolute;
+      z-index: 3;
+      pointer-events: none;
+      opacity: 0.75;
+      outline: var(--control-border-width) solid var(--color-information);
+
+      > .tile.btn {
+        inline-size: 100%;
+        block-size: 100%;
+        min-block-size: 0;
+      }
     }
 
     .control-deck-slot {
@@ -94,6 +111,18 @@
       > * {
         inline-size: 100%;
         block-size: 100%;
+      }
+
+      > .tile.btn::after {
+        inset-inline-end: calc(var(--command-padding) + var(--control-border-width));
+        inset-block-start: auto;
+        inset-block-end: calc(var(--command-padding) + var(--control-border-width));
+        transform: none;
+      }
+
+      &:has(> .control-deck-move-handle) > .tile.btn::after {
+        background: var(--color-information);
+        opacity: 1;
       }
 
       &.moving { outline: var(--control-border-width) dashed var(--color-information); outline-offset: calc(-1 * var(--control-border-width)); }
@@ -117,13 +146,6 @@
         touch-action: none;
         user-select: none;
 
-        > span {
-          padding: var(--spacing-xxs);
-          border: var(--control-border-width) solid var(--color-information);
-          background: var(--color-canvas);
-          pointer-events: none;
-        }
-
         &:active { cursor: grabbing; }
       }
     }
@@ -141,9 +163,7 @@
     }
 
     &:not(.theme-phoenix) .control-deck .control-deck-slot > .tile.btn::after {
-      background:
-        radial-gradient(circle, var(--control-deck-accent) 0 0.08rem, transparent 0.1rem)
-        0 0 / 33.333% 33.333%;
+      --command-grip: var(--control-deck-accent);
     }
 
     .control-deck-empty { background: var(--color-canvas); }

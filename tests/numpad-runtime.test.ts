@@ -163,7 +163,7 @@ test.each(['cancel', 'route', 'stop', 'revision'] as const)('late execution cann
   await fixture.settle()
   for (const digit of '0112') fixture.key(digit)
   if (mode === 'cancel') fixture.runtime.controller.cancel()
-  else if (mode === 'route') fixture.router.push({ kind: 'controls', category: 'ship' })
+  else if (mode === 'route') fixture.router.push({ kind: 'controls', deckId: 'ship' })
   else if (mode === 'revision') fixture.changed(2)
   else fixture.runtime.stop()
   resolve(fixture.result)
