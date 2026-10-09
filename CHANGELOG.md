@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+## 0.1.6 — 2026-10-09 (prerelease)
+
 - Keep entering Copilot chat responsive with long conversations: initially show recent messages,
   load older messages on demand, and preserve your reading position instead of forcing a jump.
 

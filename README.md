@@ -14,8 +14,8 @@ browser on that computer, or pair a tablet over your local network.
 
 Download the pre-release installer:
 
-- Windows installer: [PHOENIX-windows-x64-setup.exe](https://github.com/judus/phoenix/releases/download/v0.1.5/PHOENIX-windows-x64-setup.exe)
-- AppImage for Linux: [PHOENIX-linux-x64.AppImage](https://github.com/judus/phoenix/releases/download/v0.1.5/PHOENIX-linux-x64.AppImage)
+- Windows installer: [PHOENIX-windows-x64-setup.exe](https://github.com/judus/phoenix/releases/download/v0.1.6/PHOENIX-windows-x64-setup.exe)
+- AppImage for Linux: [PHOENIX-linux-x64.AppImage](https://github.com/judus/phoenix/releases/download/v0.1.6/PHOENIX-linux-x64.AppImage)
 
 ![PHOENIX commander dashboard](docs/screens/img.webp)
 
@@ -49,7 +49,8 @@ Download the pre-release installer:
   Use name suggestions, bookmark systems and stations, and save searches that follow your current
   system instead of a fixed location.
 - **Activities and news.** Check missions, objectives, community goals, Powerplay, colonisation,
-  GalNet, and radio without leaving PHOENIX.
+  GalNet, and radio without leaving PHOENIX. Optional GalNet analysis connects reports and
+  investigation leads with the Atlas and Copilot; background analysis is off until enabled.
 - **Optional Copilot.** Chat by text or realtime voice, with separate profiles and conversation
   history. Let it look things up, open pages on your screens, or use controls and macros you’ve
   explicitly allowed. It can also just chat, which is occasionally safer for everyone involved.
