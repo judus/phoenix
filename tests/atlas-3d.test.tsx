@@ -82,6 +82,15 @@ test('3D controls preserve selection, orbit with one finger, pinch with two and 
     expect(renderer.root.findAllByProps({ className: 'atlas-height' }).length).toBeGreaterThan(0)
     await act(async () => renderer.root.findByProps({ 'aria-label': marker.label }).props.onClick())
     expect(renderer.root.findAllByProps({ 'aria-label': 'Selected atlas location' })).toHaveLength(1)
+    const orientation = () => plane().slice(7, -1).split(' ').slice(0, 4)
+    const beforeKeyboardOrbit = orientation()
+    const preventDefault = vi.fn()
+    const map = renderer.root.findAllByType('svg').find(node => node.props.onKeyDown)!
+    await act(async () => map.props.onKeyDown({ target: 1, currentTarget: 1,
+      key: 'ArrowRight', shiftKey: true, preventDefault }))
+    expect(orientation()).not.toEqual(beforeKeyboardOrbit)
+    expect(preventDefault).toHaveBeenCalledOnce()
+    expect(renderer.root.findAllByProps({ 'aria-label': 'Selected atlas location' })).toHaveLength(1)
     await act(async () => renderer.root.findByProps({ 'aria-label': 'Orbit atlas camera' }).props.onClick())
     const tilted = plane()
     await act(async () => viewport().props.onPointerDown(event(1, 100)))
