@@ -1,13 +1,13 @@
-import { memo, useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import type { CopilotHistoryMessage, CopilotProfileCapabilitySettings, CopilotProfileDocument, CopilotPermissionPolicy } from '@phoenix/contracts'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import type { CopilotProfileCapabilitySettings, CopilotProfileDocument, CopilotPermissionPolicy } from '@phoenix/contracts'
 import { Breadcrumbs, Button, CommandTile, DataTable, DescriptionItem, DescriptionList, Field, Form, FormActions, FormGrid, Identity, PageFrame, PageHeader, Select, Status, Tabs, Textarea, TextInput, Widget } from '@phoenix/ui'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { LatestRequest } from '../../application/requests/latest-request.js'
-import { CopilotMarkdown } from './copilot-markdown.js'
+import { CopilotMessages } from './copilot-messages.js'
 import { CopilotPermissionEditor } from '../../components/copilot-permission-editor.js'
 import { CopilotVoiceToggle } from './copilot-voice-toggle.js'
 import { useCopilotVoice } from './copilot-voice-provider.js'
-import { useCopilotText, type RemoteTurn } from './copilot-text-provider.js'
+import { useCopilotText } from './copilot-text-provider.js'
 
 const VOICES = ['alloy', 'ash', 'ballad', 'cedar', 'coral', 'echo', 'marin', 'sage', 'shimmer', 'verse']
 type CopilotView = 'chat' | 'profiles'
@@ -216,15 +216,6 @@ export function CopilotPage({ api, view }: { api: PhoenixApi, view: CopilotView 
   </PageFrame>
 }
 
-const CopilotMessages = memo(function CopilotMessages({ activeTurn, messages, pending, profileName, remoteTurns }: { activeTurn?: { assistantText: string, userText: string }, messages: readonly CopilotHistoryMessage[], pending: boolean, profileName: string, remoteTurns: Record<string, RemoteTurn> }) {
-  const end = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    end.current?.scrollIntoView({ block: 'end' })
-  }, [activeTurn, messages, remoteTurns])
-  const turns = Object.values(remoteTurns)
-  return <div className="copilot-messages" aria-live="polite">{messages.length === 0 && !activeTurn && turns.length === 0 ? <Status tone="muted">No conversation yet. {profileName} is standing by.</Status> : null}{messages.map(item => <Message key={item.id} role={item.role} text={item.text || (pending ? '…' : '')} />)}{activeTurn?.userText ? <Message role="user" text={activeTurn.userText} live /> : null}{activeTurn ? <Message role="assistant" text={activeTurn.assistantText || '…'} live /> : null}{turns.flatMap(turn => [turn.userText ? <Message key={`${turn.id}-user`} role="user" text={turn.userText} live /> : null, <Message key={`${turn.id}-assistant`} role="assistant" text={turn.assistantText || '…'} live />])}<div ref={end} /></div>
-})
-function Message({ live = false, role, text }: { live?: boolean, role: CopilotHistoryMessage['role'], text: string }) { return <article className={`copilot-message copilot-message-${role}${live ? ' live' : ''}`}><small>{role === 'user' ? 'Commander' : role === 'assistant' ? 'Copilot' : 'System'}{live ? ' · live' : ''}</small><div>{role === 'assistant' ? <CopilotMarkdown>{text}</CopilotMarkdown> : text}</div></article> }
 function CopilotComposer({ onSubmit, onTextChange, pending, profileName, text }: { onSubmit(text: string): Promise<void>, onTextChange(text: string): void, pending: boolean, profileName: string, text: string }) {
   const input = useRef<HTMLTextAreaElement>(null)
   useEffect(() => {

@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Keep entering Copilot chat responsive with long conversations: initially show recent messages,
+  load older messages on demand, and preserve your reading position instead of forcing a jump.
+
 - Keep Copilot text turns running across workspace switches and when a tool opens another page. Returning to chat preserves
   the pending exchange and its completed history instead of silently cancelling and losing it.
 
