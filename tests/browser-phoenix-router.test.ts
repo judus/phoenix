@@ -8,7 +8,7 @@ describe('BrowserPhoenixRouter', () => {
     const router = new BrowserPhoenixRouter(browser as unknown as Window)
     router.push({ kind: 'copilot', view: 'profiles' })
     router.push({ kind: 'information', section: 'galaxy', view: 'bookmarks' })
-    expect(router.routeForWorkspace('controls', 'navigation')).toEqual({ kind: 'controls', category: 'combat' })
+    expect(router.routeForWorkspace('controls', 'navigation')).toEqual({ kind: 'controls', deckId: 'combat' })
     expect(router.routeForWorkspace('copilot')).toEqual({ kind: 'copilot', view: 'profiles' })
     const restored = new BrowserPhoenixRouter(browser as unknown as Window)
     expect(restored.routeForWorkspace('controls', 'quick')).toEqual(router.routeForWorkspace('controls'))
@@ -18,21 +18,21 @@ describe('BrowserPhoenixRouter', () => {
   test('unvisited CTR uses supplied first deck, without overriding explicit or remembered routes', () => {
     const browser = new FakeBrowserWindow('#/commander/dashboard')
     const router = new BrowserPhoenixRouter(browser as unknown as Window)
-    expect(router.routeForWorkspace('controls', 'navigation')).toEqual({ kind: 'controls', category: 'navigation' })
-    expect(router.routeForWorkspace('controls')).toEqual({ kind: 'controls', category: 'quick' })
-    router.push({ kind: 'controls', category: 'ship' })
-    expect(router.routeForWorkspace('controls', 'navigation')).toEqual({ kind: 'controls', category: 'ship' })
+    expect(router.routeForWorkspace('controls', 'navigation')).toEqual({ kind: 'controls', deckId: 'navigation' })
+    expect(router.routeForWorkspace('controls')).toEqual({ kind: 'controls', deckId: 'quick' })
+    router.push({ kind: 'controls', deckId: 'ship' })
+    expect(router.routeForWorkspace('controls', 'navigation')).toEqual({ kind: 'controls', deckId: 'ship' })
   })
 
   test('wrong-workspace stored routes are rejected and unavailable storage retains in-memory recall', () => {
     const browser = new FakeBrowserWindow('#/commander/dashboard')
     browser.sessionStorage.setItem('phoenix.desktop.controls-route', '#/copilot/profiles')
     const router = new BrowserPhoenixRouter(browser as unknown as Window)
-    expect(router.routeForWorkspace('controls')).toEqual({ kind: 'controls', category: 'quick' })
+    expect(router.routeForWorkspace('controls')).toEqual({ kind: 'controls', deckId: 'quick' })
     browser.sessionStorage.setItem = () => { throw new Error('Storage unavailable') }
-    router.push({ kind: 'controls', category: 'combat' })
+    router.push({ kind: 'controls', deckId: 'combat' })
     router.push({ kind: 'copilot', view: 'profiles' })
-    expect(router.routeForWorkspace('controls')).toEqual({ kind: 'controls', category: 'combat' })
+    expect(router.routeForWorkspace('controls')).toEqual({ kind: 'controls', deckId: 'combat' })
     router.push({ kind: 'information', section: 'commander', view: 'dashboard' })
     expect(router.routeForWorkspace('copilot')).toEqual({ kind: 'copilot', view: 'profiles' })
   })
@@ -43,7 +43,7 @@ describe('BrowserPhoenixRouter', () => {
     router.subscribe(() => {})
     browser.navigateFromBrowser('#/controls/navigation')
     browser.navigateFromBrowser('#/copilot/profiles')
-    expect(router.routeForWorkspace('controls')).toEqual({ kind: 'controls', category: 'navigation' })
+    expect(router.routeForWorkspace('controls')).toEqual({ kind: 'controls', deckId: 'navigation' })
   })
   test('experimental effect routes preserve exact recipe identity', () => {
     const route = { kind: 'information', section: 'engineering', view: 'experimental-effects', selectedEffectSymbol: 'special_weapon_lightweight' } as const

@@ -22,7 +22,7 @@ describe('PHOENIX route parsing and generation', () => {
 
   test.each([
     ['#/commander/dashboard', { kind: 'information', section: 'commander', view: 'dashboard' }, 'info'],
-    ['#/controls/navigation', { kind: 'controls', category: 'navigation' }, 'controls'],
+    ['#/controls/navigation', { kind: 'controls', deckId: 'navigation' }, 'controls'],
     ['#/commander/inventory', { kind: 'information', section: 'commander', view: 'inventory' }, 'info'],
     ['#/commander/loadouts', { kind: 'information', section: 'commander', view: 'loadouts' }, 'info'],
     ['#/equipment/gear', { kind: 'information', section: 'equipment', view: 'gear' }, 'info'],
@@ -215,7 +215,7 @@ describe('PHOENIX route parsing and generation', () => {
   })
 
   test('workspace destinations use explicit defaults', () => {
-    expect(defaultRouteForWorkspace('controls')).toEqual({ kind: 'controls', category: 'quick' })
+    expect(defaultRouteForWorkspace('controls')).toEqual({ kind: 'controls', deckId: 'quick' })
     expect(defaultRouteForWorkspace('info')).toEqual(DEFAULT_ROUTE)
     expect(defaultRouteForWorkspace('telemetry')).toEqual({ kind: 'numpad' })
   })

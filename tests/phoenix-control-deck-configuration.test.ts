@@ -2,7 +2,7 @@ import { PhoenixControlDeckConfigurationSchema } from '@phoenix/contracts'
 import { expect, test } from 'vitest'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 
-test('PHOENIX accepts only its canonical Control Deck configuration and rejects stale writers', async () => {
+test('PHOENIX accepts custom decks and rejects stale writers', async () => {
   const application = new PhoenixApplication({
     databasePath: ':memory:',
     eliteDirectory: null,
@@ -42,8 +42,7 @@ test('PHOENIX accepts only its canonical Control Deck configuration and rejects 
         elements: []
       }]
     }
-    expect((await putJson(`${baseUrl}/api/control-deck/configuration`, withUtilityDeck)).status).toBe(400)
-    expect((await putJson(`${baseUrl}/api/control-deck/configuration`, updated)).status).toBe(200)
+    expect((await putJson(`${baseUrl}/api/control-deck/configuration`, withUtilityDeck)).status).toBe(200)
     expect((await putJson(`${baseUrl}/api/control-deck/configuration`, updated)).status).toBe(409)
 
     const saved = PhoenixControlDeckConfigurationSchema.parse(await getJson(
@@ -51,6 +50,7 @@ test('PHOENIX accepts only its canonical Control Deck configuration and rejects 
     ))
     expect(saved.groups).toContainEqual(expect.objectContaining({ id: shipGroupId, appearance: { colorScheme: 'orange' } }))
     expect(saved.decks.find(deck => deck.id === 'ship')).toMatchObject({ groupId: shipGroupId, name: 'S1', elements: [] })
+    expect(saved.decks.find(deck => deck.id === 'utility')).toMatchObject({ layout: { columns: 2, rows: 2 } })
   } finally {
     await application.stop()
   }

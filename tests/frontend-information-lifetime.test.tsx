@@ -71,7 +71,7 @@ test('mounted App preserves Galaxy view instances, href-keyed Fleet remounts and
   expect(lifecycle.mounted).toEqual([1, 2, 3, 4])
   expect(lifecycle.unmounted).toEqual([1, 2, 3])
 
-  await navigate({ kind: 'controls', category: 'ship' })
+  await navigate({ kind: 'controls', deckId: 'ship' })
   expect(lifecycle.unmounted).toEqual([1, 2, 3, 4])
   await navigate(remembered)
   expect(lifecycle.mounted).toEqual([1, 2, 3, 4, 5])

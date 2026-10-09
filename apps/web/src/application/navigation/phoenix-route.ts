@@ -1,18 +1,7 @@
 import type { AtlasDisplayLocation } from '@phoenix/contracts'
 
-export const CONTROL_CATEGORIES = [
-  'quick',
-  'ship',
-  'combat',
-  'navigation',
-  'vessel',
-  'srv',
-  'on_foot',
-  'radio',
-  'emote'
-] as const
-
-export type ControlCategory = typeof CONTROL_CATEGORIES[number]
+/** Controls routes identify saved decks, independently of their names or game context. */
+export type ControlDeckId = string
 
 export type InformationPrimarySection =
   | 'commander'
@@ -50,7 +39,7 @@ export type InformationRoute =
 
 export type PhoenixRoute =
   | InformationRoute
-  | { kind: 'controls', category: ControlCategory }
+  | { kind: 'controls', deckId: ControlDeckId }
   | { kind: 'copilot', view: 'chat' | 'profiles' }
   | { kind: 'numpad' }
   | { kind: 'macros' }
@@ -114,7 +103,7 @@ export function defaultRouteForWorkspace(
   rememberedInformation: InformationRoute = DEFAULT_ROUTE
 ): PhoenixRoute {
   switch (workspace) {
-    case 'controls': return { kind: 'controls', category: 'quick' }
+    case 'controls': return { kind: 'controls', deckId: 'quick' }
     case 'info': return rememberedInformation
     case 'copilot': return { kind: 'copilot', view: 'chat' }
     case 'telemetry': return { kind: 'numpad' }

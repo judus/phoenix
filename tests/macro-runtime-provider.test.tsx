@@ -65,7 +65,7 @@ test('macro recording uses the shared API, browser identity, and typed router', 
 
   await act(async () => runtime?.startRecording())
   expect(api.startMacroRecording).toHaveBeenCalledWith('macro-browser')
-  expect(push).toHaveBeenLastCalledWith({ kind: 'controls', category: 'ship' })
+  expect(push).toHaveBeenLastCalledWith({ kind: 'controls', deckId: 'ship' })
   expect(runtime?.recording).toEqual(recording)
 
   await act(async () => runtime?.stopRecording())

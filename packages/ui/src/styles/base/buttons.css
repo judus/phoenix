@@ -1,7 +1,8 @@
 .btn {
   position: relative;
 
-  &.btn-no-grip::after { content: none; }
+  &.btn-no-grip::after,
+  &.btn-sm::after { content: none; }
 
   &::after {
     position: absolute;

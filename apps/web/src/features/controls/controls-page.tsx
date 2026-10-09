@@ -10,22 +10,23 @@ import {
   useCustomControlDeckLayout,
   type ControlDeckElementAppearance,
   type ControlDeckGridDeck,
+  type ControlDeckLayoutPreset,
   type ControlDeckDeckGroup
 } from 'control-deck/core'
 import { PHOENIX_CONTROL_LAYOUT_PRESETS, PhoenixControlDeckThemeSchema, controlDeckTargetToPhoenixTarget, phoenixControlLayoutPreset, type CommandTarget, type GameActionAvailability, type GameActionOperation, type PhoenixControlDeckConfiguration, type PhoenixControlDeckTheme, type RuntimeState } from '@phoenix/contracts'
-import { Breadcrumbs, Button, CheckIcon, compactBindingLabel, ControlContext, DataTable, IconButton, Loading, NumberInput, PageFrame, PageHeader, Select, Status, TileButton, Widget } from '@phoenix/ui'
+import { Breadcrumbs, Button, CheckIcon, compactBindingLabel, ControlContext, CrossIcon, DataTable, IconButton, Inline, Loading, NumberInput, PageFrame, PageHeader, Select, Status, TileButton, Widget } from '@phoenix/ui'
 import { createClientId } from '../../application/identity/client-identity.js'
 import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
-import type { ControlCategory } from '../../application/navigation/phoenix-route.js'
-import { controlsCategoryLabel, gameActionCategoryLabel } from './controls-navigation.js'
+import type { ControlDeckId } from '../../application/navigation/phoenix-route.js'
+import { gameActionCategoryLabel } from './controls-navigation.js'
 import type { ControlsControllerSnapshot } from './use-controls-controller.js'
 import { HoldGestureController } from './hold-gesture-controller.js'
 import { ArmingController } from './arming-controller.js'
 import { ButtonEditor } from './button-editor.js'
 import { ControlSurface } from './control-surface.js'
 
-export function ControlsPage({ category, controller, editing, macros, runtime, variableFontSizes, onEditingChange, onExecuteAction, onExecuteNavigation, onSaveConfiguration }: {
-  category: ControlCategory
+export function ControlsPage({ deckId, controller, editing, macros, runtime, variableFontSizes, onEditingChange, onExecuteAction, onExecuteNavigation, onSaveConfiguration }: {
+  deckId: ControlDeckId
   controller: ControlsControllerSnapshot
   editing: boolean
   macros: MacroRuntime
@@ -37,7 +38,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, v
   onSaveConfiguration(configuration: PhoenixControlDeckConfiguration): Promise<PhoenixControlDeckConfiguration>
 }) {
   const [error, setError] = useState<string>()
-  const [draft, setDraft] = useState<PhoenixControlDeckConfiguration>()
+  const [draft, setDraft] = useState<PhoenixControlDeckConfiguration | undefined>(controller.configuration)
   const [editingPosition, setEditingPosition] = useState<number>()
   const [saving, setSaving] = useState(false)
   const held = useRef(new HoldGestureController())
@@ -46,7 +47,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, v
   const suppressClicks = useRef(new Set<string>())
   const armedElementId = useSyncExternalStore(arming.subscribe, arming.getSnapshot, arming.getSnapshot)
   useEffect(() => { if (!editing) setDraft(controller.configuration) }, [controller.configuration, editing])
-  useEffect(() => { onEditingChange(false); setEditingPosition(undefined); arming.cancel() }, [category])
+  useEffect(() => { setEditingPosition(undefined); arming.cancel() }, [deckId])
   useEffect(() => {
     if (editing) arming.cancel()
   }, [arming, editing])
@@ -55,10 +56,11 @@ export function ControlsPage({ category, controller, editing, macros, runtime, v
     for (const timer of armingTimers.current.values()) globalThis.clearTimeout(timer)
     armingTimers.current.clear()
     arming.cancel()
-  }, [arming, category])
+  }, [arming, deckId])
   const activeConfiguration = draft ?? controller.configuration
-  const deck = activeConfiguration?.decks.find(candidate => candidate.context === `phoenix:${category}`)
+  const deck = activeConfiguration?.decks.find(candidate => candidate.id === deckId)
   const group = deck?.groupId ? activeConfiguration?.groups?.find(candidate => candidate.id === deck.groupId) : undefined
+  const deckLabel = group?.name ?? deck?.name ?? deckId
   const actions = new Map(controller.actions?.actions.map(action => [action.definition.id, action]) ?? [])
   const editorColumn = editingPosition === undefined || !deck ? undefined : (editingPosition - 1) % deck.layout.columns + 1
   const editorRow = editingPosition === undefined || !deck ? undefined : Math.floor((editingPosition - 1) / deck.layout.columns) + 1
@@ -118,9 +120,10 @@ export function ControlsPage({ category, controller, editing, macros, runtime, v
           void onSaveConfiguration(draft).then(saved => { setDraft(saved); onEditingChange(false); setError(undefined) }).catch(cause => setError(cause instanceof Error ? cause.message : 'Unable to save Control Deck configuration.')).finally(() => setSaving(false))
         }}
         saving={saving}
+        onCancel={() => { setDraft(controller.configuration); onEditingChange(false); setError(undefined) }}
       />}
       {editing && editingPosition !== undefined && editorColumn !== undefined && editorRow !== undefined && <PageHeader
-        context={<Breadcrumbs items={[{ label: 'Controls' }, { label: controlsCategoryLabel(category) }]} />}
+        context={<Breadcrumbs items={[{ label: 'Controls' }, { label: deckLabel }]} />}
         title={`Button Slot ${editorColumn}:${editorRow}`}
         variant="cockpit"
       />}
@@ -185,7 +188,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, v
                 />
               </div>
             : <ControlSurface
-              aria-label={`${controlsCategoryLabel(category)} command grid`}
+              aria-label={`${deckLabel} command grid`}
               className="controls controls-command control-deck"
               deck={deck}
               onMove={editing ? (elementId, column, row) => setDraft(replaceControlDeck(activeConfiguration, moveControlDeckGridElement(deck, elementId, { column, row }))) : undefined}
@@ -332,29 +335,40 @@ export function ControlsPage({ category, controller, editing, macros, runtime, v
   )
 }
 
-function DeckSettings ({ configuration, deck, group, onChange, onSave, saving }: {
+function DeckSettings ({ configuration, deck, group, onChange, onSave, onCancel, saving }: {
   configuration: PhoenixControlDeckConfiguration
   deck: ControlDeckGridDeck
   group: ControlDeckDeckGroup
   onChange(configuration: PhoenixControlDeckConfiguration): void
   onSave(): void
+  onCancel(): void
   saving: boolean
 }) {
   const [columns, setColumns] = useState(String(deck.layout.columns))
   const [rows, setRows] = useState(String(deck.layout.rows))
+  const [error, setError] = useState<string>()
   useEffect(() => setColumns(String(deck.layout.columns)), [deck.layout.columns])
   useEffect(() => setRows(String(deck.layout.rows)), [deck.layout.rows])
   const locked = Boolean(deck.layoutPresetId)
-  const presets = deck.context === 'phoenix:ship' ? PHOENIX_CONTROL_LAYOUT_PRESETS : []
+  const presets = PHOENIX_CONTROL_LAYOUT_PRESETS
+  const changeSize = (columns: number, rows: number) => {
+    try {
+      onChange(replaceControlDeck(configuration, resizeDeck(deck, columns, rows)))
+      setError(undefined)
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to resize deck.') }
+  }
   return <section aria-label="Deck settings" className="control-deck-settings widget-command-row">
     <Widget aria-label="Deck layout settings" className="control-deck-settings-form">
       <ControlContext className="control-deck-settings-controls" density="compact">
         <Select aria-label="Deck layout" className="form-mini" value={deck.layoutPresetId ?? ''} onChange={event => {
           const preset = event.target.value === '' ? null : phoenixControlLayoutPreset(event.target.value)
           if (event.target.value !== '' && !preset) return
-          onChange(replaceControlDeck(configuration, preset
-            ? applyControlDeckLayoutPreset(deck, preset)
-            : useCustomControlDeckLayout(deck)))
+          try {
+            onChange(replaceControlDeck(configuration, preset
+              ? applyDeckPreset(deck, preset)
+              : useCustomControlDeckLayout(deck)))
+            setError(undefined)
+          } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to change deck layout.') }
         }}>
           <option value="">Custom</option>
           {presets.map(preset => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
@@ -364,14 +378,14 @@ function DeckSettings ({ configuration, deck, group, onChange, onSave, saving }:
           onChange={event => {
             setColumns(event.target.value)
             const nextColumns = boundedInteger(event.target.value, 1, 12)
-            if (nextColumns !== undefined) onChange(replaceControlDeck(configuration, resizeDeck(deck, nextColumns, deck.layout.rows)))
+            if (nextColumns !== undefined) changeSize(nextColumns, deck.layout.rows)
           }} />
         <NumberInput aria-label="Deck rows" className="form-mini" disabled={locked} min={1} max={12} value={rows}
           onBlur={() => setRows(String(deck.layout.rows))}
           onChange={event => {
             setRows(event.target.value)
             const nextRows = boundedInteger(event.target.value, 1, 12)
-            if (nextRows !== undefined) onChange(replaceControlDeck(configuration, resizeDeck(deck, deck.layout.columns, nextRows)))
+            if (nextRows !== undefined) changeSize(deck.layout.columns, nextRows)
           }} />
         <Select aria-label="Deck theme" className="form-mini" value={controlDeckTheme(deck, group)} onChange={event => {
           const theme = PhoenixControlDeckThemeSchema.parse(event.target.value)
@@ -380,17 +394,21 @@ function DeckSettings ({ configuration, deck, group, onChange, onSave, saving }:
           {['phoenix', 'blue', 'cyan', 'green', 'amber', 'orange', 'red', 'violet', 'magenta'].map(theme => <option key={theme} value={theme}>{themeLabel(PhoenixControlDeckThemeSchema.parse(theme))}</option>)}
         </Select>
       </ControlContext>
+      {error && <Status tone="danger">{error}</Status>}
     </Widget>
-    <IconButton
-      aria-busy={saving || undefined}
-      className="control-deck-save"
-      disabled={saving}
-      label="Save and finish editing"
-      variant="primary"
-      onClick={onSave}
-    >
-      <CheckIcon />
-    </IconButton>
+    <Inline gap="xs" wrap={false}>
+      <IconButton className="btn-no-grip" variant="outline" label="Cancel editing" disabled={saving} onClick={onCancel}><CrossIcon /></IconButton>
+      <IconButton
+        aria-busy={saving || undefined}
+        className="btn-no-grip"
+        disabled={saving}
+        label="Save and finish editing"
+        variant="primary"
+        onClick={onSave}
+      >
+        <CheckIcon />
+      </IconButton>
+    </Inline>
   </section>
 }
 
@@ -403,13 +421,25 @@ export function resizeDeck (
   columns: number,
   rows: number
 ): ControlDeckGridDeck {
+  const outside = deck.elements.filter(element => element.placement.row + element.placement.rowSpan - 1 > rows ||
+    element.placement.column + element.placement.columnSpan - 1 > columns)
+  if (outside.some(element => element.kind === 'command')) {
+    throw new Error('Move or remove buttons outside the new grid before shrinking this deck.')
+  }
   return {
     ...deck,
     layout: { kind: 'grid', columns, rows },
-    elements: deck.elements.filter(element =>
-      element.placement.row + element.placement.rowSpan - 1 <= rows &&
-      element.placement.column + element.placement.columnSpan - 1 <= columns)
+    elements: deck.elements.filter(element => !outside.includes(element))
   }
+}
+
+export function applyDeckPreset(deck: ControlDeckGridDeck, preset: ControlDeckLayoutPreset): ControlDeckGridDeck {
+  const next = applyControlDeckLayoutPreset(deck, preset)
+  const kept = new Set(next.elements.filter(element => element.kind === 'command').map(element => element.id))
+  if (deck.elements.some(element => element.kind === 'command' && !kept.has(element.id))) {
+    throw new Error('Move or remove buttons outside the preset slots before changing this layout.')
+  }
+  return next
 }
 
 function boundedInteger (candidate: string, minimum: number, maximum: number): number | undefined {

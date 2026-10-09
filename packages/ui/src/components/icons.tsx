@@ -1,3 +1,15 @@
+export function OpenIcon () {
+  return <svg aria-hidden="true" fill="none" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4 10 14M11 4H4v16h16v-7" strokeWidth="1.75" /></svg>
+}
+
+export function ArrowUpIcon () {
+  return <svg aria-hidden="true" fill="none" viewBox="0 0 24 24"><path d="m6 10 6-6 6 6M12 4v16" strokeWidth="1.75" /></svg>
+}
+
+export function ArrowDownIcon () {
+  return <svg aria-hidden="true" fill="none" viewBox="0 0 24 24"><path d="m6 14 6 6 6-6M12 4v16" strokeWidth="1.75" /></svg>
+}
+
 export function PencilIcon () {
   return (
     <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">

@@ -3,7 +3,7 @@ import {
   defaultRouteForWorkspace,
   isInformationRoute,
   workspaceForRoute,
-  type ControlCategory,
+  type ControlDeckId,
   type InformationRoute,
   type PhoenixRoute,
   type PhoenixWorkspace
@@ -58,11 +58,11 @@ export class BrowserPhoenixRouter implements PhoenixRouter {
 
   replace = (route: PhoenixRoute): void => this.#navigate(route, true)
 
-  routeForWorkspace = (workspace: PhoenixWorkspace, firstControlCategory: ControlCategory = 'quick'): PhoenixRoute => {
+  routeForWorkspace = (workspace: PhoenixWorkspace, firstControlDeckId: ControlDeckId = 'quick'): PhoenixRoute => {
     if (workspaceForRoute(this.#route) === workspace) return this.#route
     const remembered = this.#rememberedWorkspaces.get(workspace)
     if (remembered) return remembered
-    if (workspace === 'controls') return { kind: 'controls', category: firstControlCategory }
+    if (workspace === 'controls') return { kind: 'controls', deckId: firstControlDeckId }
     return defaultRouteForWorkspace(workspace, this.#rememberedInformation)
   }
 

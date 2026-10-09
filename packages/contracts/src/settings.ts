@@ -27,20 +27,10 @@ export const PHOENIX_CONTROL_CONTEXTS = [
   'phoenix:emote'
 ] as const
 export const PhoenixControlDeckConfigurationSchema = ControlDeckConfigurationSchema.safeExtend({
-  decks: z.array(ControlDeckGridDeckSchema).max(256)
+  decks: z.array(ControlDeckGridDeckSchema).min(1).max(256)
 }).superRefine((configuration, context) => {
-  const expectedContexts = new Set<string>(PHOENIX_CONTROL_CONTEXTS)
-  const actualContexts = new Set(configuration.decks.map(deck => deck.context))
-  if (configuration.decks.length !== expectedContexts.size || actualContexts.size !== expectedContexts.size) {
-    context.addIssue({ code: 'custom', message: 'PHOENIX requires exactly one deck for each PHOENIX control context.' })
-  }
-  for (const expected of expectedContexts) {
-    if (!actualContexts.has(expected)) context.addIssue({ code: 'custom', message: `Missing PHOENIX control context ${expected}.` })
-  }
   for (const deck of configuration.decks) {
-    if (!deck.context || !expectedContexts.has(deck.context)) {
-      context.addIssue({ code: 'custom', message: `Unsupported PHOENIX control context ${deck.context ?? 'null'}.` })
-    }
+    if (deck.id === 'manage') context.addIssue({ code: 'custom', message: 'The deck ID manage is reserved for deck management.' })
     for (const element of deck.elements) {
       if (element.kind === 'command' && (element.target.adapterId !== PHOENIX_CONTROL_DECK_ADAPTER_ID || Object.keys(element.target.configuration).length > 0)) {
         context.addIssue({ code: 'custom', message: `Deck ${deck.id} contains a non-PHOENIX command target.` })

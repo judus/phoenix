@@ -4,6 +4,14 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Remove tactile grips from small action buttons and align deck management actions with the
+  existing form-button styles and Save changes / Cancel labels. Use compact, bordered square
+  icons with accessible labels for deck-row actions instead of crowded text buttons.
+
+- Manage personal control decks: create, rename, reorder and delete decks; the Controls rail and
+  Numpy follow saved deck identity and order. Existing decks remain editable starting defaults.
+  Resizing refuses to discard configured buttons, and layout presets are available on every deck.
+
 - Experiment with an optional orthographic 3D Galactic Atlas: tilt/orbit the reference plane,
   show real POI heights with connecting lines, and return to top-down without losing map selection.
   Keep its floating controls grip-free and remove the map's browser focus outline.

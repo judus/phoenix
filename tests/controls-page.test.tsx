@@ -16,7 +16,7 @@ afterEach(() => vi.useRealTimers())
 test('the controls page renders bound and unbound discovered commands', () => {
   const markup = renderToStaticMarkup(
     <ControlsPage
-      category="ship"
+      deckId="ship"
       editing={false}
       controller={{
         status: 'ready',
@@ -80,7 +80,7 @@ test('a button label override replaces the command catalogue label', () => {
   }
   const markup = renderToStaticMarkup(
     <ControlsPage
-      category="ship"
+      deckId="ship"
       editing={false}
       controller={{
         status: 'ready',
@@ -129,7 +129,7 @@ test('a button color override is applied to the command tile', () => {
   }
   const markup = renderToStaticMarkup(
     <ControlsPage
-      category="ship"
+      deckId="ship"
       editing={false}
       controller={{
         status: 'ready',
@@ -169,7 +169,7 @@ test('the control picker disambiguates commands with the same label by context',
 test('unavailable commands remain clickable while editing the control deck', () => {
   const markup = renderToStaticMarkup(
     <ControlsPage
-      category="ship"
+      deckId="ship"
       editing
       controller={{
         status: 'ready',
@@ -206,12 +206,13 @@ test('unavailable commands remain clickable while editing the control deck', () 
   expect(markup).toContain('<option value="phoenix" selected="">Phoenix</option>')
   expect(markup).not.toMatch(/<strong class="label"[^>]*>Cancel<\/strong>/)
   expect(markup).toContain('aria-label="Save and finish editing"')
-  expect(markup).toMatch(/class="btn btn-primary btn-icon btn-icon-square control-deck-save"[^>]*aria-label="Save and finish editing"/)
+  expect(markup).toMatch(/class="btn btn-primary btn-icon btn-icon-square btn-no-grip"[^>]*aria-label="Save and finish editing"/)
+  expect(markup).toMatch(/class="btn btn-outline btn-icon btn-icon-square btn-no-grip"[^>]*aria-label="Cancel editing"/)
   expect(markup).not.toContain('Subdeck')
   expect(markup).not.toContain('Delete deck')
 })
 
-test('resizing a PHOENIX deck removes only cells that no longer fit', () => {
+test('resizing a PHOENIX deck rejects losing configured buttons', () => {
   const source = DEFAULT_CONTROL_DECK_CONFIGURATION.decks.find(candidate => candidate.context === 'phoenix:ship')!
   const element = source.elements[0]!
   const placements = [
@@ -226,9 +227,8 @@ test('resizing a PHOENIX deck removes only cells that no longer fit', () => {
     ...element, id, placement: { kind: 'grid' as const, ...placement }
   })) }
   const original = structuredClone(deck)
-  const resized = resizeDeck(deck, 4, 4)
-
-  expect(resized.layout).toEqual({ kind: 'grid', columns: 4, rows: 4 })
+  expect(() => resizeDeck(deck, 4, 4)).toThrow('Move or remove buttons')
+  const resized = resizeDeck({ ...deck, elements: deck.elements.slice(0, 2) }, 4, 4)
   expect(resized.elements).toEqual(original.elements.slice(0, 2))
   expect(deck).toEqual(original)
   expect(resizeDeck(deck, 6, 6).elements).toEqual(original.elements)
@@ -283,7 +283,7 @@ test('PHOENIX uses the shared hold-to-arm interaction before executing a safety 
   const eject = { ...actionCandidate, definition: { ...actionCandidate.definition, risk: 'dangerous' as const } }
   let renderer!: ReturnType<typeof create>
   act(() => { renderer = create(<ControlsPage
-    category="ship"
+    deckId="ship"
     editing={false}
     controller={{
       status: 'ready',
@@ -332,7 +332,7 @@ test('Quick access navigation executes locally and missing targets remain editab
     }))
   }] })
   const props = {
-    category: 'quick' as const, editing: false, macros: emptyMacroRuntime(), variableFontSizes: true,
+    deckId: 'quick' as const, editing: false, macros: emptyMacroRuntime(), variableFontSizes: true,
     controller: { status: 'ready' as const, configuration: DEFAULT_CONTROL_DECK_CONFIGURATION, commands },
     onEditingChange: vi.fn(), onExecuteAction, onExecuteNavigation,
     onSaveConfiguration: async (configuration: typeof DEFAULT_CONTROL_DECK_CONFIGURATION) => configuration
@@ -358,7 +358,7 @@ test('Quick access navigation executes locally and missing targets remain editab
 test.each(['tap', 'hold'] as const)('game-action buttons opt into swipes only for tap activation: %s', async inputMode => {
   const lights = action('elite.ShipSpotLightToggle', 'ShipSpotLightToggle', 'Ship Lights', 'L')
   const props = {
-    category: 'ship' as const, editing: false, macros: emptyMacroRuntime(), variableFontSizes: true,
+    deckId: 'ship' as const, editing: false, macros: emptyMacroRuntime(), variableFontSizes: true,
     controller: {
       status: 'ready' as const, configuration: DEFAULT_CONTROL_DECK_CONFIGURATION,
       actions: {
@@ -391,7 +391,7 @@ test.each(['tap', 'hold'] as const)('game-action buttons opt into swipes only fo
 test('button relocation stays in the editing draft until saved, and cancelling discards it', async () => {
   const save = vi.fn(async (configuration: typeof DEFAULT_CONTROL_DECK_CONFIGURATION) => configuration)
   const props = {
-    category: 'quick' as const, editing: false, macros: emptyMacroRuntime(), variableFontSizes: true,
+    deckId: 'quick' as const, editing: false, macros: emptyMacroRuntime(), variableFontSizes: true,
     controller: { status: 'ready' as const, configuration: DEFAULT_CONTROL_DECK_CONFIGURATION },
     onEditingChange: vi.fn(), onExecuteAction: vi.fn(), onExecuteNavigation: vi.fn(), onSaveConfiguration: save
   }
@@ -414,6 +414,31 @@ test('button relocation stays in the editing draft until saved, and cancelling d
   expect(props.onExecuteAction).not.toHaveBeenCalled()
   expect(props.onExecuteNavigation).not.toHaveBeenCalled()
   await act(async () => renderer.unmount())
+})
+
+test('opening directly in edit mode supports saving unchanged and cancelling a changed draft', async () => {
+  const save = vi.fn(async (configuration: typeof DEFAULT_CONTROL_DECK_CONFIGURATION) => configuration)
+  const props = {
+    deckId: 'quick', editing: true, macros: emptyMacroRuntime(), variableFontSizes: true,
+    controller: { status: 'ready' as const, configuration: DEFAULT_CONTROL_DECK_CONFIGURATION },
+    onEditingChange: vi.fn(), onExecuteAction: vi.fn(), onExecuteNavigation: vi.fn(), onSaveConfiguration: save
+  }
+  const renderer = await renderWithAct(<ControlsPage {...props} />)
+  try {
+    expect(props.onEditingChange).not.toHaveBeenCalled()
+    await act(async () => renderer.root.findAllByType('button').find(button => button.props['aria-label'] === 'Save and finish editing')!.props.onClick())
+    expect(save).toHaveBeenCalledWith(DEFAULT_CONTROL_DECK_CONFIGURATION)
+    expect(props.onEditingChange).toHaveBeenCalledWith(false)
+    const surface = () => renderer.root.findByType(ControlSurface)
+    const original = surface().props.deck
+    const source = original.elements.find((element: { kind: string }) => element.kind === 'command')
+    await act(async () => surface().props.onMove(source.id, 2, 1))
+    await act(async () => renderer.root.findAllByType('button').find(button => button.props['aria-label'] === 'Cancel editing')!.props.onClick())
+    expect(surface().props.deck).toEqual(original)
+    expect(save).toHaveBeenCalledOnce()
+  } finally {
+    await act(async () => renderer.unmount())
+  }
 })
 
 function emptyMacroRuntime (): MacroRuntime {
