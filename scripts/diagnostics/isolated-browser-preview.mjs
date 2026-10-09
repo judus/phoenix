@@ -9,6 +9,9 @@ import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { fileURLToPath } from 'node:url'
 import { PhoenixApplication } from '../../apps/server/src/phoenix-application.ts'
+import { MissionDataService } from '../../apps/server/src/application/mission-data-service.ts'
+import { SqliteDatabase } from '../../apps/server/src/infrastructure/sqlite-database.ts'
+import { parseMicroResourceInventory } from '@phoenix/elite'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
 import { mockDenseCartography } from './mock-dense-cartography.mjs'
 import { SqliteEddnOutbox } from '../../apps/server/src/infrastructure/sqlite-eddn-outbox.ts'
@@ -23,6 +26,7 @@ const eddnSubmissions = process.argv.includes('--eddn-submissions')
 const prospecting = process.argv.includes('--prospecting')
 const atlasPois = process.argv.includes('--atlas-pois')
 const communityGoals = process.argv.includes('--community-goals')
+const missionBrief = process.argv.includes('--mission-brief')
 const galnetArchive = process.argv.includes('--galnet-archive')
 // Exercise display-tool navigation during a real HTTP chat stream, without paid inference.
 const copilotNavigation = process.argv.includes('--copilot-navigation')
@@ -35,7 +39,7 @@ const continuityArticles = [
   { id: 'synthetic-missing', title: 'Synthetic ship missing', body: 'Synthetic EVE-597 is missing after departing Sol. Its current position is unknown.', publishedAt: '2026-09-17T12:00:00Z' }
 ].map(article => ({ ...article, changedAt: article.publishedAt, image: null, slug: article.id,
   sourceUrl: `https://example.com/galnet/${article.id}` }))
-const fixtureDirectory = eddnSubmissions || galnetArchive ? mkdtempSync(join(tmpdir(), 'phoenix-isolated-preview-')) : undefined
+const fixtureDirectory = eddnSubmissions || galnetArchive || missionBrief ? mkdtempSync(join(tmpdir(), 'phoenix-isolated-preview-')) : undefined
 const databasePath = fixtureDirectory ? join(fixtureDirectory, 'preview.sqlite') : ':memory:'
 // This preview must never upload, even when launched from a test-enabled development shell.
 process.env.PHOENIX_EDDN_TEST_MODE = '0'
@@ -139,6 +143,29 @@ const application = new PhoenixApplication({
 })
 const { port } = await application.start()
 copilotOrigin = `http://127.0.0.1:${port}`
+if (missionBrief) {
+  const database = new SqliteDatabase(databasePath)
+  try {
+    database.initialize()
+    const missions = new MissionDataService(database)
+    missions.ingest({
+      timestamp: '2026-10-10T12:00:00Z', event: 'MissionAccepted', MissionID: 42,
+      Name: 'Mission_OnFoot_Heist_Covert_NCD_MB_name', LocalisedName: 'Retrieve documents',
+      DestinationSystem: 'Sol', DestinationSettlement: 'Synthetic research base',
+      Commodity: 'personalDocuments', Commodity_Localised: 'Personal documents', Count: 1,
+      Target: 'Synthetic contact', TargetType: '$MissionContact;', TargetType_Localised: 'Contact',
+      TargetFaction: 'Synthetic researchers', Reward: 100000
+    }, 'live-journal')
+    application.ingestGameEvent({
+      schemaVersion: 1, id: 'synthetic-mission-items', type: 'inventory.backpack_changed',
+      source: 'synthetic', gameTimestamp: '2026-10-10T12:05:00Z', ingestedAt: new Date().toISOString(),
+      payload: parseMicroResourceInventory({
+        timestamp: '2026-10-10T12:05:00Z', event: 'Backpack',
+        Items: [{ Name: 'personalDocuments', Name_Localised: 'Personal documents', Count: 1, MissionID: 42 }]
+      })
+    })
+  } finally { database.close() }
+}
 if (galnetArchive) {
   const connection = new DatabaseSync(databasePath)
   try {

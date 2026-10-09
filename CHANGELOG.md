@@ -4,6 +4,10 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Enrich on-foot mission briefs with known activity/conditions, separate targets, required items
+  and kills, and mission-tagged backpack/locker observations. Keep expected credits separate
+  from received credits/material rewards and share the same brief with Copilot.
+
 - Align deck edit-bar action buttons with the full height of the layout-settings panel.
 
 - Show a translucent button preview following your finger while relocating deck buttons,

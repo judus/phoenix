@@ -1,5 +1,11 @@
 # Isolated diagnostics
 
+## Mission briefs
+
+After building, run `node --import tsx scripts/diagnostics/isolated-browser-preview.mjs --mission-brief`
+and open `#/activities/missions` on the printed URL. This creates a synthetic on-foot contract
+and tagged backpack snapshot in temporary storage; no player journals or provider requests.
+
 ## Journal ingestion responsiveness
 
 Build the workspace packages, then run this from the repository root:

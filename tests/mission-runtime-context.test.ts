@@ -6,6 +6,11 @@ test('mission runtime context stays compact and marks incomplete evidence', () =
   const response: MissionsResponse = {
     missions: [{
       acceptedAt: null, abandonedAt: null, commodity: null, commodityCount: null,
+      commodityId: null, targetTypeId: null, receivedRewards: null,
+      briefing: {
+        onFoot: false, activity: null, conditions: [],
+        inventory: { backpackAt: null, shipLockerAt: null, items: [] }
+      },
       completedAt: null, destinationSettlement: null, destinationStation: 'Galileo',
       destinationSystem: 'Sol', donated: null, donation: null, expiry: null, faction: null,
       failedAt: null, id: 42, influence: null, killCount: null, localizedName: 'Deliver medicines',

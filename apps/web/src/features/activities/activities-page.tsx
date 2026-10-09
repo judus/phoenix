@@ -177,8 +177,8 @@ const MISSION_COLUMNS: readonly SortableDataTableColumn<MissionViewModel>[] = [
 
 function MissionDetail({ mission }: { mission: MissionViewModel }) {
   return (
-    <DataTableGroup contentGap="sm" title="Mission details">
-      <Stack gap="lg">
+    <DataTableGroup contentGap="sm" fill title="Mission details">
+      <Stack className="table-region" gap="lg">
         <MissionTitle detail value={mission.title} />
         {mission.incomplete
           ? <Status tone="warning">Acceptance detail was not observed. This record is intentionally incomplete.</Status>
@@ -186,14 +186,15 @@ function MissionDetail({ mission }: { mission: MissionViewModel }) {
         <DescriptionList columns="one" density="compact">
           <DescriptionItem label="Faction" value={mission.faction} />
           <DescriptionItem label="Destination" value={<SystemLocationLink locationName={mission.destinationLocation} systemName={mission.destinationSystem} />} />
-          <DescriptionItem label="Target" value={mission.target} />
-          <DescriptionItem label="Cargo" value={mission.cargo} />
-          <DescriptionItem label="Delivery progress" value={mission.progress} />
-          <DescriptionItem label="Reward" value={<PhoenixCredits value={mission.rewardCredits} />} />
+          {mission.details.map(detail => <DescriptionItem key={detail.label} label={detail.label} value={detail.value} />)}
+          <DescriptionItem label="Expected reward" value={<PhoenixCredits value={mission.rewardCredits} />} />
+          {mission.receivedCredits !== null ? <DescriptionItem label="Received credits" value={<PhoenixCredits value={mission.receivedCredits} />} /> : null}
+          {mission.receivedMaterials !== null ? <DescriptionItem label="Received materials" value={mission.receivedMaterials} /> : null}
           <DescriptionItem label="Accepted" value={mission.accepted} />
           <DescriptionItem label="Expiry" value={mission.expiry} />
           <DescriptionItem label="Status" value={<Status tone={mission.statusTone}>{mission.status}</Status>} />
         </DescriptionList>
+        <small>Only observed contract details are shown. Item possession is not objective completion.</small>
       </Stack>
     </DataTableGroup>
   )

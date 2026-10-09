@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import type { Mission } from '@phoenix/contracts'
+import type { MissionRecord as Mission } from '@phoenix/contracts'
 import { MissionDataService } from '../apps/server/src/application/mission-data-service.js'
 import type { MissionRepository } from '../apps/server/src/domain/missions.js'
 import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
@@ -12,7 +12,7 @@ test('mission journal projection retains acceptance, delivery progress, redirect
     timestamp: '2026-08-14T10:00:00Z', event: 'MissionAccepted', MissionID: 42,
     LocalisedName: 'Deliver medicines', Name: 'Mission_Delivery_name', Faction: 'Rescue Wing',
     DestinationSystem: 'Sol', DestinationStation: 'Galileo', Commodity: '$BasicMedicines_Name;',
-    Count: 20, Reward: 125000, Wing: true
+    Commodity_Localised: 'Basic medicines', Count: 20, Reward: 125000, Wing: true
   }, 'historical-journal')
   missions.ingest({
     timestamp: '2026-08-14T10:15:00Z', event: 'CargoDepot', MissionID: 42,
@@ -30,8 +30,10 @@ test('mission journal projection retains acceptance, delivery progress, redirect
     summary: { active: 0, completed: 1, partial: 0, total: 1 },
     missions: [{
       id: 42, status: 'completed', localizedName: 'Deliver medicines', faction: 'Rescue Wing',
-      destinationSystem: 'Alpha Centauri', destinationStation: 'Hutton Orbital', reward: 150000,
+      destinationSystem: 'Alpha Centauri', destinationStation: 'Hutton Orbital', reward: 125000,
+      receivedRewards: { credits: 150000, materials: null },
       completedAt: '2026-08-14T11:00:00Z',
+      commodity: 'Basic medicines', commodityId: '$BasicMedicines_Name;',
       progress: { collected: 20, delivered: 8, required: 20 },
       provenance: {
         acceptanceObserved: true, details: 'complete', terminalObserved: true,
@@ -50,16 +52,30 @@ test('startup mission snapshot creates honest partial records and does not let o
     Active: [{ MissionID: 7, Name: 'Mission_Courier_name', Expires: 3600 }], Failed: [], Complete: []
   }, 'live-journal')
   missions.ingest({
-    timestamp: '2026-08-14T08:00:00Z', event: 'MissionCompleted', MissionID: 7, Name: 'Mission_Courier_name'
+    timestamp: '2026-08-14T08:00:00Z', event: 'MissionCompleted', MissionID: 7, Name: 'Mission_Courier_name',
+    Reward: 200, MaterialsReward: [{ Name: 'iron', Count: 1 }]
   }, 'historical-journal')
 
   expect(missions.getMissions().missions[0]).toMatchObject({
     id: 7,
     status: 'active',
     statusUpdatedAt: '2026-08-15T08:00:00Z',
+    receivedRewards: null,
     provenance: { acceptanceObserved: false, details: 'partial', snapshotObserved: true }
   })
   expect(missions.getMissions().snapshotAt).toBe('2026-08-15T08:00:00Z')
+})
+
+test('completion backfill fills unknown snapshot rewards but cannot replace newer observed rewards', () => {
+  const missions = new MissionDataService(new MemoryMissionRepository())
+  missions.ingest({ timestamp: '2026-08-15T08:00:00Z', event: 'Missions',
+    Active: [], Failed: [], Complete: [{ MissionID: 7 }] }, 'live-journal')
+  missions.ingest({ timestamp: '2026-08-14T08:00:00Z', event: 'MissionCompleted',
+    MissionID: 7, Reward: 200 }, 'historical-journal')
+  expect(missions.getMission(7)?.receivedRewards?.credits).toBe(200)
+  missions.ingest({ timestamp: '2026-08-13T08:00:00Z', event: 'MissionCompleted',
+    MissionID: 7, Reward: 100 }, 'historical-journal')
+  expect(missions.getMission(7)?.receivedRewards?.credits).toBe(200)
 })
 
 test('a newer startup snapshot reconciles active missions discovered later by historical backfill', () => {
