@@ -1,5 +1,5 @@
 import { useRef, type Dispatch, type MouseEvent, type PointerEvent, type SetStateAction } from 'react'
-import { atlasScale, zoomAtlas, type AtlasCamera, type AtlasPoint } from './galactic-atlas-model.js'
+import { panAtlas, TOP_DOWN_VIEW, zoomAtlas, type AtlasCamera, type AtlasPoint, type AtlasView } from './galactic-atlas-model.js'
 
 const DRAG_THRESHOLD = 5
 const MIN_PINCH_SEPARATION = 1
@@ -7,7 +7,9 @@ const MIN_PINCH_SEPARATION = 1
 /** Keep gesture capture on the viewport: markers can disappear as the camera moves. */
 export function useAtlasPointerGestures(
   setCamera: Dispatch<SetStateAction<AtlasCamera>>,
-  size: { width: number, height: number }
+  size: { width: number, height: number },
+  view: AtlasView = TOP_DOWN_VIEW,
+  orbit?: { enabled: boolean, move(delta: AtlasPoint): void }
 ) {
   const pointers = useRef(new Map<number, AtlasPoint>())
   const movement = useRef(0)
@@ -47,16 +49,16 @@ export function useAtlasPointerGestures(
     const after = [...pointers.current.values()]
     const previousCentre = midpoint(before)
     const nextCentre = midpoint(after)
+    const delta = { x: nextCentre.x - previousCentre.x, y: nextCentre.y - previousCentre.y }
+    if (before.length === 1 && orbit?.enabled) {
+      orbit.move(delta)
+      return
+    }
     setCamera(camera => {
       const zoomed = before.length === 2 && separation(before) > MIN_PINCH_SEPARATION
-        ? zoomAtlas(camera, separation(after) / separation(before), previousCentre, size.width, size.height)
+        ? zoomAtlas(camera, separation(after) / separation(before), previousCentre, size.width, size.height, view)
         : camera
-      const scale = atlasScale(size.width, size.height, zoomed.zoom)
-      return {
-        ...zoomed,
-        x: zoomed.x - (nextCentre.x - previousCentre.x) / scale,
-        y: zoomed.y - (nextCentre.y - previousCentre.y) / scale
-      }
+      return panAtlas(zoomed, delta, size.width, size.height, view)
     })
   }
 

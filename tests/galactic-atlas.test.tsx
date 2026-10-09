@@ -133,7 +133,7 @@ test('zoom holds the pointer anchor fixed and clamps scale', () => {
   const after = screenPoint(point, zoomAtlas(camera, 1.5, anchor, 900, 600), 900, 600)
   expect(after.x).toBeCloseTo(anchor.x)
   expect(after.y).toBeCloseTo(anchor.y)
-  expect(zoomAtlas(camera, 10000, anchor, 900, 600).zoom).toBe(64)
+  expect(zoomAtlas(camera, 10000, anchor, 900, 600).zoom).toBe(128)
   expect(zoomAtlas(camera, 0.001, anchor, 900, 600).zoom).toBe(1)
 })
 
@@ -142,6 +142,34 @@ test('nearby landmarks cluster without losing selectable locations', () => {
   const sol = clusters.find(cluster => cluster.markers.some(marker => marker.id === 'sol'))!
   expect(sol.markers.map(marker => marker.id)).toContain('orion')
   expect(clusters.flatMap(cluster => cluster.markers)).toHaveLength(ATLAS_LANDMARKS.length)
+})
+
+test('closer zoom separates nearby Bubble markers that shared a cluster at the previous limit', () => {
+  const position = [0, 0, 0] as const
+  const markers = [
+    { id: 'a', label: 'A', systemName: 'A', position, kind: 'bookmark' as const },
+    { id: 'b', label: 'B', systemName: 'B', position: [50, 0, 0] as const, kind: 'bookmark' as const }
+  ]
+  const camera = { ...projectGalacticPosition(position), zoom: 64 }
+  expect(clusterAtlasMarkers(markers, camera, 900, 600)).toHaveLength(1)
+  const closer = zoomAtlas(camera, 2, { x: 450, y: 300 }, 900, 600)
+  expect(clusterAtlasMarkers(markers, closer, 900, 600)).toHaveLength(2)
+})
+
+test('atlas zoom controls allow the extended range and disable at its ceiling', async () => {
+  const renderer = await renderWithAct(<GalacticAtlas bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={[0, 0, 0]} showBookmarks systemName="Sol" />)
+  try {
+    const zoomIn = () => renderer.root.findByProps({ 'aria-label': 'Zoom in' })
+    for (let step = 0; step < 9; step++) {
+      expect(zoomIn().props.disabled).toBe(false)
+      await act(async () => zoomIn().props.onClick())
+    }
+    expect(zoomIn().props.disabled).toBe(true)
+    await act(async () => renderer.root.findByProps({ 'aria-label': 'Zoom out' }).props.onClick())
+    expect(zoomIn().props.disabled).toBe(false)
+  } finally {
+    await act(async () => renderer.unmount())
+  }
 })
 
 test('atlas selection opens the correct system and supports keyboard zoom and reset', async () => {
@@ -156,7 +184,7 @@ test('atlas selection opens the correct system and supports keyboard zoom and re
   await act(async () => currentSystem.props.onClick({ button: 0, preventDefault() {} }))
   expect(onNavigate).toHaveBeenCalledWith({ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Sol' })
   const zoomControls = renderer.root.findByProps({ 'aria-label': 'Atlas zoom controls' })
-  expect(zoomControls.findAllByType('button').map(button => button.props['aria-label'])).toEqual(['Zoom out', 'Zoom in'])
+  expect(zoomControls.findAllByType('button').map(button => button.props['aria-label'])).toEqual(['3D atlas view', 'Zoom out', 'Zoom in'])
   expect(renderer.root.findByProps({ className: 'atlas-viewport' }).findAllByType('button')).toHaveLength(0)
   const initial = renderer.root.findAllByType('g')[0].props.transform
   await act(async () => map().props.onKeyDown({ target: 1, currentTarget: 1, key: 'Home', preventDefault() {} }))
@@ -287,15 +315,15 @@ test('pinch captures both pointers on the viewport and remaining fingers continu
   await act(async () => viewport().props.onPointerMove(event(1, 80)))
   const pinched = transform()
   expect(pinched).not.toBe(original)
-  const scale = pinched.match(/scale\(([^)]+)\)/)![1]
+  const scale = pinched.match(/matrix\(([^ ]+)/)![1]
   await act(async () => viewport().props.onPointerUp(event(2, 200)))
   await act(async () => viewport().props.onPointerMove(event(1, 60)))
   expect(transform()).not.toBe(pinched)
-  expect(transform()).toContain(`scale(${scale})`)
+  expect(transform()).toContain(`matrix(${scale} `)
   await act(async () => viewport().props.onPointerCancel(event(1, 60)))
   await act(async () => viewport().props.onPointerDown(event(3, 100)))
   await act(async () => viewport().props.onPointerMove(event(3, 130)))
-  expect(transform()).toContain(`scale(${scale})`)
+  expect(transform()).toContain(`matrix(${scale} `)
   const keyboardClick = { detail: 0, preventDefault: vi.fn(), stopPropagation: vi.fn() }
   viewport().props.onClickCapture(keyboardClick)
   expect(keyboardClick.stopPropagation).not.toHaveBeenCalled()
