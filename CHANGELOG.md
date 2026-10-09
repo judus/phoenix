@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Align deck edit-bar action buttons with the full height of the layout-settings panel.
+
 - Show a translucent button preview following your finger while relocating deck buttons,
   including small movements before the move threshold is reached.
 

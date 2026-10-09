@@ -396,7 +396,7 @@ function DeckSettings ({ configuration, deck, group, onChange, onSave, onCancel,
       </ControlContext>
       {error && <Status tone="danger">{error}</Status>}
     </Widget>
-    <Inline gap="xs" wrap={false}>
+    <Inline align="stretch" gap="xs" wrap={false}>
       <IconButton className="btn-no-grip" variant="outline" label="Cancel editing" disabled={saving} onClick={onCancel}><CrossIcon /></IconButton>
       <IconButton
         aria-busy={saving || undefined}
