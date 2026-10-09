@@ -1,3 +1,4 @@
+import { readSseEvents } from './support/sse-events.js'
 import { expect, test } from 'vitest'
 import { CopilotVoiceHostCommandSchema } from '@phoenix/contracts'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
@@ -102,26 +103,8 @@ test('remote voice control fails clearly when no desktop host is armed', async (
 })
 
 async function readCommand (response: Response) {
-  if (!response.body) throw new Error('Voice command stream has no response body.')
-  const reader = response.body.getReader()
-  const decoder = new TextDecoder()
-  let buffered = ''
-  try {
-    while (true) {
-      const chunk = await reader.read()
-      if (chunk.done) throw new Error('Voice command stream ended early.')
-      buffered += decoder.decode(chunk.value, { stream: true })
-      const boundary = buffered.indexOf('\n\n')
-      if (boundary < 0) continue
-      const frame = buffered.slice(0, boundary)
-      buffered = buffered.slice(boundary + 2)
-      const type = frame.split('\n').find(line => line.startsWith('event: '))?.slice(7)
-      const data = frame.split('\n').find(line => line.startsWith('data: '))?.slice(6)
-      if (type === 'voice-host-command' && data) {
-        return CopilotVoiceHostCommandSchema.parse(JSON.parse(data))
-      }
-    }
-  } finally {
-    await reader.cancel()
+  for await (const { event, data } of readSseEvents(response)) {
+    if (event === 'voice-host-command') return CopilotVoiceHostCommandSchema.parse(JSON.parse(data))
   }
+  throw new Error('Voice command stream ended early.')
 }

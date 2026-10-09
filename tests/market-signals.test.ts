@@ -84,7 +84,7 @@ test('dashboard market signals use the selected saved query with the live system
     useOnDashboard: true
   }
   const savedQueries: SavedGalaxyQueries = {
-    create: vi.fn(), delete: vi.fn(), getAll: vi.fn(), update: vi.fn(),
+    create: vi.fn(), delete: vi.fn(), getAll: vi.fn(), importPredefined: vi.fn(), update: vi.fn(),
     getDashboardQuery: vi.fn(() => query)
   }
   const response = signalResponse()

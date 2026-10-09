@@ -9,6 +9,22 @@ import { SpanshExplorationTargetSource } from '../apps/server/src/infrastructure
 import { SpanshSearchClient, type SpanshSearchGateway } from '../apps/server/src/infrastructure/spansh-search-client.js'
 
 describe('exploration target search', () => {
+  it('pre-Odyssey filters include the cutoff day without excluding old non-landable or unreported bodies', async () => {
+    const search = vi.fn<SpanshSearchGateway['search']>(async () => [{
+      name: 'Old record 1', system_name: 'Old record', distance: 10, is_landable: false,
+      surface_temperature: 180, subtype: 'High metal content world'
+    }])
+    const source = new SpanshExplorationTargetSource({ search, findFieldValues: vi.fn() })
+    const result = await source.findTargets({
+      ...searchInput(), referencePosition: [0, 0, 0], lastReportedBefore: '2021-05-18',
+      minTemperatureK: 165, bodySubtypes: ['High metal content world']
+    })
+    const filters = search.mock.calls[0]![1].filters
+    expect(filters).not.toHaveProperty('is_landable')
+    expect(filters).not.toHaveProperty('signals')
+    expect(filters).toMatchObject({ updated_at: { comparison: '<=>', value: ['2014-12-16T00:00:00.000Z', '2021-05-18T23:59:59.999Z'] } })
+    expect(result[0]).toMatchObject({ landable: false, biologicalSignals: null, geologicalSignals: null })
+  })
   it.each([
     [undefined, null, null],
     [[], null, null],
@@ -191,6 +207,6 @@ function searchInput (): ExplorationTargetSearchInput {
     maxGravityG: null, maxTemperatureK: null, minBiologicalSignals: 0, minGeologicalSignals: 0,
     minGravityG: null, minTemperatureK: null, systemName: 'Sol', volcanismTypes: [] }
 }
-function cartography (): SystemCartography { return { getSystem: vi.fn(async () => ({ cache: 'fresh', system: { name: 'Sol', position: [0, 0, 0] } as CartographicSystem })) } }
+function cartography (): SystemCartography { return { getSystem: vi.fn<SystemCartography['getSystem']>(async () => ({ cache: 'fresh', system: { name: 'Sol', position: [0, 0, 0] } as CartographicSystem })) } }
 function cache (): ProviderResponseCache { const entries = new Map<string, ProviderCacheEntry>(); return { getProviderResponse: (namespace, key) => entries.get(`${namespace}:${key}`) ?? null, putProviderResponse: (namespace, key, fetchedAt, value) => { entries.set(`${namespace}:${key}`, { fetchedAt, value }) } } }
 function response (body: unknown): Response { return new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' }, status: 200 }) }

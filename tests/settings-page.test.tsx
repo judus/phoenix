@@ -70,8 +70,11 @@ test('saved OpenAI configuration clearly reports that PHOENIX must restart', asy
   expect(markup).toContain('OpenAI configuration changed. Restart PHOENIX to apply it.')
   expect(markup).toContain('AI provider')
   expect(markup).toContain('Only OpenAI is integrated currently.')
-  expect(markup).toContain('AI load')
-  expect(markup).toContain('Focused')
+  expect(markup).toContain('Installation-wide permission ceiling')
+  expect(markup).toContain('Each Copilot profile chooses its own capabilities within this limit')
+  expect(renderer.root.findAllByProps({ className: 'copilot-load' })).toHaveLength(0)
+  expect(markup).not.toContain('Focused —')
+  expect(markup).not.toContain('AI overloaded')
   expect(markup).toContain('External')
   expect(markup).not.toContain('tool:web.search_web')
   expect(markup).not.toContain('Dangerous actions')
@@ -86,7 +89,7 @@ test('saved OpenAI configuration clearly reports that PHOENIX must restart', asy
 function settingsApi (openAi: Awaited<ReturnType<PhoenixApi['getCopilotSettings']>>['openAi'] = { configured: false, source: 'none', stored: false, restartRequired: false }): PhoenixApi {
   return {
     async getEddnStatus() {
-      return { enabled: true, mode: 'unavailable', queued: 0, lastSuccessAt: null, detail: 'Release review pending.', error: null }
+      return { enabled: true, mode: 'unavailable', queued: 0, lastSuccessAt: null, losses: [], detail: 'Release review pending.', error: null }
     },
     async getGeneralSettings() {
       return { controlsEnabled: true }

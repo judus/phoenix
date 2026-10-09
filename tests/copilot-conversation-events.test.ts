@@ -30,6 +30,16 @@ test('an explicit cancellation removes a disconnected browser turn', () => {
   expect(events.active('phoenix-copilot')).toEqual([])
 })
 
+test('superseding a turn preserves another client and another conversation', () => {
+  const events = new CopilotConversationEventService()
+  events.publish(started('old', '2026-08-11T15:00:00.000Z'))
+  events.publish({ ...started('tablet', '2026-08-11T15:00:00.000Z'), clientId: 'tablet' })
+  events.publish({ ...started('other-chat', '2026-08-11T15:00:00.000Z'), conversationId: 'other' })
+  events.publish(started('replacement', '2026-08-11T15:00:01.000Z'))
+  expect(events.active('phoenix-copilot').map(event => event.turnId)).toEqual(['tablet', 'replacement'])
+  expect(events.active('other').map(event => event.turnId)).toEqual(['other-chat'])
+})
+
 function started (turnId: string, occurredAt: string): CopilotConversationEvent {
   return {
     ...base(turnId, occurredAt),

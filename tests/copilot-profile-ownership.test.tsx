@@ -6,6 +6,7 @@ import type { DevicePreferences } from '../apps/web/src/application/settings/dev
 import { CopilotPermissionEditor } from '../apps/web/src/components/copilot-permission-editor.js'
 import { CopilotPage } from '../apps/web/src/features/copilot/copilot-page.js'
 import { CopilotVoiceProvider } from '../apps/web/src/features/copilot/copilot-voice-provider.js'
+import { CopilotTextProvider } from '../apps/web/src/features/copilot/copilot-text-provider.js'
 
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
 
@@ -30,15 +31,16 @@ function apiWith(patch: Partial<PhoenixApi> = {}): PhoenixApi {
     ...patch
   } as PhoenixApi
 }
-function page(api: PhoenixApi, view: 'profiles' | 'chat' = 'profiles') {
-  return <CopilotVoiceProvider api={api} clientIdentity={identity} devicePreferences={preferences} events={events}><CopilotPage api={api} clientIdentity={identity} events={events} view={view} /></CopilotVoiceProvider>
+function page(api: PhoenixApi, view: 'profiles' | 'chat' | 'away' = 'profiles', eventHub = events) {
+  return <CopilotVoiceProvider api={api} clientIdentity={identity} devicePreferences={preferences} events={eventHub}><CopilotTextProvider api={api} clientIdentity={identity} events={eventHub}>{view !== 'away' && <CopilotPage api={api} view={view} />}</CopilotTextProvider></CopilotVoiceProvider>
 }
 async function mount(api: PhoenixApi, view: 'profiles' | 'chat' = 'profiles'): Promise<ReactTestRenderer> {
   let renderer!: ReactTestRenderer
   await act(async () => { renderer = create(page(api, view)) })
   return renderer
 }
-function click(renderer: ReactTestRenderer, label: string) { renderer.root.findAllByType('button').find(button => button.children.join('') === label)!.props.onClick() }
+function click(renderer: ReactTestRenderer, label: string) { renderer.root.findAll(node => node.type === 'button' || node.type === 'tr').find(node => node.props['aria-label'] === label || node.children.join('') === label)!.props.onClick() }
+function selectedProfiles(renderer: ReactTestRenderer) { return renderer.root.findByType('table').findAllByType('tr').filter(row => row.props['aria-selected']).map(row => row.props['aria-label']) }
 function name(renderer: ReactTestRenderer) { return renderer.root.findAllByType('input')[0]!.props.value }
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -46,6 +48,185 @@ function deferred<T>() {
   const promise = new Promise<T>((accept, fail) => { resolve = accept; reject = fail })
   return { promise, resolve, reject }
 }
+
+test('the active profile editor loads on entry without a profile-button click', async () => {
+  const renderer = await mount(apiWith())
+  try {
+    expect(name(renderer)).toBe('Alpha')
+    expect(selectedProfiles(renderer)).toEqual(['Alpha'])
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.permissions.enabledCapabilityIds).toEqual(['Alpha'])
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.profileLoad).toEqual(capabilities('Alpha').capabilities.load)
+    expect(renderer.root.findAllByProps({ className: 'copilot-load' })).toHaveLength(1)
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('profile roster follows the editor without switching the chat profile', async () => {
+  const api = apiWith({ selectCopilotProfile: vi.fn() })
+  const renderer = await mount(api)
+  try {
+    await act(async () => click(renderer, 'Beta'))
+    expect(name(renderer)).toBe('Beta')
+    expect(selectedProfiles(renderer)).toEqual(['Beta'])
+    const table = renderer.root.findByType('table')
+    expect(table.props.className).toContain('data-table compact surface')
+    expect(table.findByType('caption').children.join('')).toBe('Profiles to edit')
+    for (const row of table.findAllByType('tr')) {
+      expect(row.props.tabIndex).toBe(0)
+      expect(row.findByType('th').props.scope).toBe('row')
+    }
+    expect(table.findAllByType('button')).toHaveLength(0)
+    expect(api.selectCopilotProfile).not.toHaveBeenCalled()
+    await act(async () => click(renderer, 'New profile'))
+    expect(selectedProfiles(renderer)).toEqual([])
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('editor tabs preserve unsaved character fields without saving or switching the chat profile', async () => {
+  const api = apiWith({ updateCopilotProfile: vi.fn(), selectCopilotProfile: vi.fn() })
+  const renderer = await mount(api)
+  try {
+    act(() => renderer.root.findAllByType('input')[0]!.props.onChange({ target: { value: 'Unsaved name' } }))
+    await act(async () => click(renderer, 'Permissions'))
+    expect(renderer.root.findByProps({ id: 'profile-panel', role: 'tabpanel' }).props.hidden).toBe(true)
+    expect(renderer.root.findByProps({ id: 'permissions-panel', role: 'tabpanel' }).props.hidden).toBe(false)
+    await act(async () => click(renderer, 'Profile'))
+    expect(name(renderer)).toBe('Unsaved name')
+    expect(selectedProfiles(renderer)).toEqual(['Alpha'])
+    expect(api.updateCopilotProfile).not.toHaveBeenCalled()
+    expect(api.selectCopilotProfile).not.toHaveBeenCalled()
+    await act(async () => click(renderer, 'Permissions'))
+    await act(async () => click(renderer, 'Beta'))
+    expect(name(renderer)).toBe('Beta')
+    expect(renderer.root.findByProps({ id: 'profile-panel', role: 'tabpanel' }).props.hidden).toBe(false)
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('permission changes save immediately with pending/error feedback, independently of the draft', async () => {
+  const saved = deferred<ReturnType<typeof capabilities>>()
+  const api = apiWith({ updateCopilotProfileCapabilities: vi.fn().mockReturnValue(saved.promise), updateCopilotProfile: vi.fn() })
+  const renderer = await mount(api)
+  try {
+    act(() => renderer.root.findAllByType('input')[0]!.props.onChange({ target: { value: 'Unsaved name' } }))
+    await act(async () => click(renderer, 'Permissions'))
+    act(() => renderer.root.findByType(CopilotPermissionEditor).props.onChange({ version: 2, enabledCapabilityIds: [] }))
+    expect(api.updateCopilotProfileCapabilities).toHaveBeenCalledWith('Alpha', { version: 2, enabledCapabilityIds: [] })
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.disabled).toBe(true)
+    expect(JSON.stringify(renderer.toJSON())).toContain('Saving permissions…')
+    await act(async () => saved.reject(new Error('Permission save failed')))
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.disabled).toBe(false)
+    expect(renderer.root.findByProps({ id: 'permissions-panel', role: 'tabpanel' }).findAllByType('span').some(node => node.children.includes('Permission save failed'))).toBe(true)
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.permissions.enabledCapabilityIds).toEqual(['Alpha'])
+    const retry = deferred<ReturnType<typeof capabilities>>()
+    vi.mocked(api.updateCopilotProfileCapabilities).mockReturnValueOnce(retry.promise)
+    act(() => renderer.root.findByType(CopilotPermissionEditor).props.onChange({ version: 2, enabledCapabilityIds: [] }))
+    expect(JSON.stringify(renderer.toJSON())).toContain('Saving permissions…')
+    expect(JSON.stringify(renderer.toJSON())).not.toContain('Permission save failed')
+    await act(async () => retry.resolve({ ...capabilities('Alpha'), permissions: { version: 2, enabledCapabilityIds: [] } }))
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.permissions.enabledCapabilityIds).toEqual([])
+    await act(async () => click(renderer, 'Profile'))
+    expect(name(renderer)).toBe('Unsaved name')
+    expect(api.updateCopilotProfile).not.toHaveBeenCalled()
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('new profiles show inherited permissions read-only until creation succeeds', async () => {
+  const api = apiWith({ createCopilotProfile: vi.fn().mockResolvedValue(document('created')), updateCopilotProfileCapabilities: vi.fn() })
+  const renderer = await mount(api)
+  try {
+    await act(async () => click(renderer, 'New profile'))
+    await act(async () => click(renderer, 'Permissions'))
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.disabled).toBe(true)
+    expect(JSON.stringify(renderer.toJSON())).toContain('Create the profile before changing them.')
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.permissions.enabledCapabilityIds).toEqual(['Alpha'])
+    await act(async () => click(renderer, 'Profile'))
+    act(() => renderer.root.findAllByType('input')[0]!.props.onChange({ target: { value: 'Created' } }))
+    await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+    await act(async () => click(renderer, 'Permissions'))
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.disabled).toBe(false)
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.permissions.enabledCapabilityIds).toEqual(['created'])
+    expect(api.createCopilotProfile).toHaveBeenCalledWith(expect.objectContaining({ templateProfileId: 'Alpha' }))
+    expect(api.updateCopilotProfileCapabilities).not.toHaveBeenCalled()
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('profile and permission failures stay with their respective actions and do not clear each other', async () => {
+  const history = deferred<{ messages: [] }>()
+  const api = apiWith({
+    getCopilotHistory: vi.fn().mockReturnValue(history.promise),
+    updateCopilotProfile: vi.fn().mockRejectedValue(new Error('Character save failed')),
+    updateCopilotProfileCapabilities: vi.fn().mockRejectedValue(new Error('Permission save failed'))
+  })
+  const renderer = await mount(api)
+  const panelText = (id: string) => renderer.root.findByProps({ id, role: 'tabpanel' }).findAllByType('span').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ')
+  try {
+    await act(async () => history.reject(new Error('Unrelated history failure')))
+    expect(renderer.root.findByProps({ className: 'page-status' }).children.join('')).toContain('Unrelated history failure')
+    await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+    const formText = () => panelText('profile-panel')
+    expect(formText()).toContain('Character save failed')
+    expect(renderer.root.findAllByType('span').find(node => node.props.role === 'alert')!.props.className).toContain('status-danger')
+    expect(renderer.root.findByProps({ className: 'page-status' }).children.join('')).toContain('Unrelated history failure')
+    await act(async () => click(renderer, 'Permissions'))
+    expect(panelText('permissions-panel')).not.toContain('Character save failed')
+    expect(panelText('permissions-panel')).not.toContain('Unrelated history failure')
+    await act(async () => renderer.root.findByType(CopilotPermissionEditor).props.onChange({ version: 2, enabledCapabilityIds: [] }))
+    expect(panelText('permissions-panel')).toContain('Permission save failed')
+    expect(formText()).not.toContain('Permission save failed')
+    vi.mocked(api.updateCopilotProfileCapabilities).mockResolvedValueOnce(capabilities('Alpha'))
+    await act(async () => renderer.root.findByType(CopilotPermissionEditor).props.onChange({ version: 2, enabledCapabilityIds: [] }))
+    expect(panelText('permissions-panel')).not.toContain('Permission save failed')
+    expect(formText()).toContain('Character save failed')
+    await act(async () => click(renderer, 'Beta'))
+    expect(formText()).not.toContain('Character save failed')
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test.each(['Enter', ' '])('profile roster supports keyboard selection with %s', async key => {
+  const renderer = await mount(apiWith())
+  try {
+    const row = renderer.root.findAllByType('tr').find(row => row.props['aria-label'] === 'Beta')!
+    const preventDefault = vi.fn()
+    await act(async () => row.props.onKeyDown({ key, preventDefault }))
+    expect(preventDefault).toHaveBeenCalledOnce()
+    expect(name(renderer)).toBe('Beta')
+    expect(selectedProfiles(renderer)).toEqual(['Beta'])
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('profiles header provides the standard creation action without redundant supporting text', async () => {
+  const renderer = await mount(apiWith())
+  try {
+    const header = renderer.root.findByProps({ className: 'page-header page-header-cockpit' })
+    expect(header.props.className).toContain('page-header-cockpit')
+    expect(header.findAllByType('p')).toHaveLength(0)
+    expect(header.findAllByProps({ 'aria-label': 'Breadcrumb' })).toHaveLength(1)
+    expect(header.findAllByProps({ className: 'page-status' })).toHaveLength(0)
+    const button = header.findByType('button')
+    expect(button.children.join('')).toBe('New profile')
+    expect(button.props.className).toContain('btn-outline')
+    expect(renderer.root.findByType('aside').findAllByType('button')).toHaveLength(0)
+    await act(async () => button.props.onClick())
+    expect(name(renderer)).toBe('')
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('the load display follows the selected profile rather than the installation ceiling', async () => {
+  const api = apiWith({ getCopilotProfileCapabilities: vi.fn().mockImplementation(async id => {
+    const settings = capabilities(id)
+    return { ...settings, capabilities: { ...settings.capabilities, load: {
+      ...settings.capabilities.load, score: id === 'Alpha' ? 17 : 83, percentage: id === 'Alpha' ? 17 : 83,
+      level: id === 'Alpha' ? 'focused' : 'broad'
+    } } }
+  }) })
+  const renderer = await mount(api)
+  try {
+    expect(JSON.stringify(renderer.toJSON())).toContain('17%')
+    await act(async () => click(renderer, 'Beta'))
+    expect(renderer.root.findByType(CopilotPermissionEditor).props.profileLoad.percentage).toBe(83)
+    expect(JSON.stringify(renderer.toJSON())).toContain('83%')
+    expect(JSON.stringify(renderer.toJSON())).not.toContain('17%')
+  } finally { await act(async () => renderer.unmount()) }
+})
 
 test.each(['resolve', 'reject'] as const)('profile reads ignore obsolete %s after another selection', async outcome => {
   const old = deferred<ReturnType<typeof document>>()
@@ -56,8 +237,22 @@ test.each(['resolve', 'reject'] as const)('profile reads ignore obsolete %s afte
     await act(async () => click(renderer, 'Beta'))
     await act(async () => outcome === 'resolve' ? old.resolve(document('Alpha')) : old.reject(new Error('obsolete profile read')))
     expect(name(renderer)).toBe('Beta')
+    expect(selectedProfiles(renderer)).toEqual(['Beta'])
     expect(JSON.stringify(renderer.toJSON())).not.toContain('obsolete profile read')
     expect(api.getCopilotProfile).toHaveBeenCalledWith('Alpha', expect.any(AbortSignal))
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('profile highlight stays with the loaded draft while another profile loads or fails', async () => {
+  const loading = deferred<ReturnType<typeof document>>()
+  const api = apiWith({ getCopilotProfile: vi.fn().mockImplementation(id => id === 'Beta' ? loading.promise : Promise.resolve(document(id))) })
+  const renderer = await mount(api)
+  try {
+    act(() => click(renderer, 'Beta'))
+    expect(selectedProfiles(renderer)).toEqual(['Alpha'])
+    await act(async () => loading.reject(new Error('Profile unavailable')))
+    expect(name(renderer)).toBe('Alpha')
+    expect(selectedProfiles(renderer)).toEqual(['Alpha'])
   } finally { await act(async () => renderer.unmount()) }
 })
 
@@ -147,6 +342,96 @@ test('created profiles retain their persisted identity without losing edits made
   } finally { await act(async () => renderer.unmount()) }
 })
 
+test('workspace navigation retains the live turn and refreshes saved history only after completion', async () => {
+  const completed = deferred<void>()
+  let receive!: Parameters<PhoenixApi['streamCopilotMessage']>[1]
+  const saved = [{ createdAt: '2026-10-09T12:00:00Z', id: 'user', role: 'user', text: 'Show Colonia' }, { createdAt: '2026-10-09T12:00:01Z', id: 'assistant', role: 'assistant', text: 'Here is Colonia.' }]
+  const history = vi.fn().mockResolvedValueOnce({ messages: [] }).mockResolvedValue({ messages: saved })
+  const stream = vi.fn().mockImplementation((_input, callback) => { receive = callback; return completed.promise })
+  const api = apiWith({ getCopilotHistory: history, streamCopilotMessage: stream })
+  const renderer = await mount(api, 'chat')
+  try {
+    act(() => renderer.root.findByType('textarea').props.onChange({ target: { value: 'Show Colonia' } }))
+    act(() => renderer.root.findByType('form').props.onSubmit({ preventDefault() {}, currentTarget: { querySelector: () => null } }))
+    await act(async () => renderer.update(page(api, 'away')))
+    expect(renderer.root.findAllByType(CopilotPage)).toHaveLength(0)
+    expect(stream.mock.calls[0]![2].aborted).toBe(false)
+    act(() => receive({ type: 'delta', delta: 'Here is ' }))
+    await act(async () => renderer.update(page(api, 'chat')))
+    expect(JSON.stringify(renderer.toJSON())).toContain('Show Colonia')
+    expect(JSON.stringify(renderer.toJSON())).toContain('Here is')
+    expect(renderer.root.findByProps({ 'aria-label': 'Send, ENTER' }).props.disabled).toBe(true)
+    expect(history).toHaveBeenCalledOnce()
+    await act(async () => renderer.update(page(api, 'away')))
+    await act(async () => completed.resolve())
+    await act(async () => renderer.update(page(api, 'chat')))
+    expect(history).toHaveBeenCalledTimes(2)
+    expect(JSON.stringify(renderer.toJSON())).toContain('Here is Colonia.')
+    act(() => renderer.root.findByType('textarea').props.onChange({ target: { value: 'Next message' } }))
+    expect(renderer.root.findByProps({ 'aria-label': 'Send, ENTER' }).props.disabled).toBe(false)
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('a stale initial history response cannot erase a turn started before it loaded', async () => {
+  const initial = deferred<{ messages: [] }>()
+  const completed = deferred<void>()
+  const api = apiWith({ getCopilotHistory: vi.fn().mockReturnValue(initial.promise), streamCopilotMessage: vi.fn().mockReturnValue(completed.promise) })
+  const renderer = await mount(api, 'chat')
+  try {
+    act(() => renderer.root.findByType('textarea').props.onChange({ target: { value: 'Keep this message' } }))
+    act(() => renderer.root.findByType('form').props.onSubmit({ preventDefault() {}, currentTarget: { querySelector: () => null } }))
+    await act(async () => initial.resolve({ messages: [] }))
+    expect(JSON.stringify(renderer.toJSON())).toContain('Keep this message')
+    expect(renderer.root.findByProps({ 'aria-label': 'Send, ENTER' }).props.disabled).toBe(true)
+  } finally { await act(async () => renderer.unmount()); completed.resolve() }
+})
+
+test('a background turn failure is shown when returning to chat', async () => {
+  const completed = deferred<void>()
+  const api = apiWith({ streamCopilotMessage: vi.fn().mockReturnValue(completed.promise) })
+  const renderer = await mount(api, 'chat')
+  try {
+    act(() => renderer.root.findByType('textarea').props.onChange({ target: { value: 'Hello' } }))
+    act(() => renderer.root.findByType('form').props.onSubmit({ preventDefault() {}, currentTarget: { querySelector: () => null } }))
+    await act(async () => renderer.update(page(api, 'away')))
+    await act(async () => completed.reject(new Error('Provider unavailable')))
+    await act(async () => renderer.update(page(api, 'chat')))
+    expect(JSON.stringify(renderer.toJSON())).toContain('Provider unavailable')
+    act(() => renderer.root.findByType('textarea').props.onChange({ target: { value: 'Try again' } }))
+    expect(renderer.root.findByProps({ 'aria-label': 'Send, ENTER' }).props.disabled).toBe(false)
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('a remote completion deferred by a local turn is refreshed even when the local turn fails', async () => {
+  const completed = deferred<void>()
+  let listener!: (event: unknown) => void
+  const eventHub = { subscribe: (type: string, callback: (event: unknown) => void) => {
+    if (type === 'conversation-event') listener = callback
+    return () => undefined
+  } } as unknown as PhoenixEventHub
+  const history = vi.fn().mockResolvedValueOnce({ messages: [] }).mockResolvedValue({ messages: [{ id: 'remote', role: 'assistant', text: 'Saved remote response', createdAt: '2026-10-09T12:00:00Z' }] })
+  const api = apiWith({ getCopilotHistory: history, streamCopilotMessage: vi.fn().mockReturnValue(completed.promise) })
+  let renderer!: ReactTestRenderer
+  await act(async () => { renderer = create(page(api, 'chat', eventHub)) })
+  try {
+    act(() => renderer.root.findByType('textarea').props.onChange({ target: { value: 'Hello' } }))
+    act(() => renderer.root.findByType('form').props.onSubmit({ preventDefault() {}, currentTarget: { querySelector: () => null } }))
+    await act(async () => {
+      listener({ type: 'turn.completed', clientId: 'other-device', conversationId: 'phoenix-copilot', turnId: 'remote' })
+    })
+    expect(history).toHaveBeenCalledOnce()
+    await act(async () => completed.reject(new Error('Local provider failed')))
+    expect(history).toHaveBeenCalledTimes(2)
+    expect(JSON.stringify(renderer.toJSON())).toContain('Saved remote response')
+    expect(JSON.stringify(renderer.toJSON())).toContain('Local provider failed')
+    await act(async () => listener({ type: 'tool.status', clientId: 'other-device', conversationId: 'phoenix-copilot', turnId: 'remote-2', name: 'remote_tool', status: 'calling' }))
+    expect(JSON.stringify(renderer.toJSON())).toContain('remote_tool: calling')
+    await act(async () => listener({ type: 'turn.failed', clientId: 'other-device', conversationId: 'phoenix-copilot', turnId: 'remote-2', message: 'Remote provider failed' }))
+    expect(JSON.stringify(renderer.toJSON())).not.toContain('remote_tool: calling')
+    expect(JSON.stringify(renderer.toJSON())).toContain('Remote provider failed')
+  } finally { await act(async () => renderer.unmount()) }
+})
+
 test.each(['replace', 'unmount'] as const)('obsolete chat stream cannot restart old history after %s', async change => {
   const completed = deferred<void>()
   let streamEvent!: Parameters<PhoenixApi['streamCopilotMessage']>[1]
@@ -156,7 +441,7 @@ test.each(['replace', 'unmount'] as const)('obsolete chat stream cannot restart 
   const renderer = await mount(api, 'chat')
   try {
     act(() => renderer.root.findByType('textarea').props.onChange({ target: { value: 'Hello' } }))
-    act(() => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+    act(() => renderer.root.findByType('form').props.onSubmit({ preventDefault() {}, currentTarget: { querySelector: () => null } }))
     if (change === 'replace') await act(async () => renderer.update(page(current, 'chat')))
     else await act(async () => renderer.unmount())
     await act(async () => {
@@ -168,7 +453,7 @@ test.each(['replace', 'unmount'] as const)('obsolete chat stream cannot restart 
     if (change === 'replace') {
       expect(JSON.stringify(renderer.toJSON())).toContain('Current API history')
       expect(JSON.stringify(renderer.toJSON())).not.toContain('obsolete_tool')
-      expect(renderer.root.findByType('textarea').props.disabled).toBe(false)
+      expect(renderer.root.findByType('textarea').props.disabled).not.toBe(true)
     }
   } finally { if (change !== 'unmount') await act(async () => renderer.unmount()) }
 })
@@ -180,7 +465,7 @@ test('retained chat submit cannot dispatch through an obsolete API', async () =>
     act(() => renderer.root.findByType('textarea').props.onChange({ target: { value: 'Hello' } }))
     const retained = renderer.root.findByType('form').props.onSubmit
     await act(async () => renderer.update(page(apiWith(), 'chat')))
-    await act(async () => retained({ preventDefault() {} }))
+    await act(async () => retained({ preventDefault() {}, currentTarget: { querySelector: () => null } }))
     expect(api.streamCopilotMessage).not.toHaveBeenCalled()
   } finally { await act(async () => renderer.unmount()) }
 })

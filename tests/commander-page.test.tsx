@@ -53,11 +53,12 @@ test('commander loadouts and equipment gear share observed state without duplica
 
   expect(equipmentNavigationItems.map(item => [item.label, item.href])).toEqual([
     ['Gear', '#/equipment/gear'],
-    ['Planner', '#/equipment/planner'],
     ['Upgrades', '#/equipment/upgrades'],
     ['Specialists', '#/equipment/specialists'],
-    ['Materials', '#/equipment/materials']
+    ['Materials', '#/equipment/materials'],
+    ['Upgrade planner', '#/equipment/planner']
   ])
+  expect(equipmentNavigationItems.at(-1)?.shortLabel).toBe('PLN')
   expect(loadouts).toContain('<h1>Suit Loadouts</h1>')
   expect(loadouts).toContain('EXPEDITION')
   expect(loadouts).toContain('Equipped')

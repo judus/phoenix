@@ -1,8 +1,10 @@
 # Embedded Control Deck artifacts
 
-The JavaScript runtime is now `control-deck-phoenix-runtime-0.1.12.tgz`, built with
-`npm run package:phoenix` in the owning repository. It adds the render-independent Numpy input
-controller, including bounded cold-start buffering and stale-completion protection.
+The JavaScript runtime is now `control-deck-phoenix-runtime-0.1.13.tgz`, built with
+`npm run package:phoenix` in the owning repository. It adds Backspace navigation to the
+render-independent Numpy controller: erase pending digits before returning to the parent menu,
+stay active at root, and preserve confirmation and executing-command safety.
+Source: Control Deck commit `152919fa626206a25420788c720360e8e2613204`, merged through PR #3.
 The native Linux helper remains at 0.1.10; its input behavior is unchanged. The npm lockfile pins
 the runtime archive integrity. No standalone Control Deck UI is bundled in this runtime.
 

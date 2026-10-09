@@ -40,9 +40,12 @@ test('Copilot game execution follows explicit installation permissions', async (
   const copilot = new CopilotCommands(dispatcher, stubCapabilities(registry, () => allowed))
 
   expect((await copilot.execute({ target: { type: 'game-action', actionId: 'elite.BoundAction' } }, 'copilot')).status).toBe('rejected')
+  expect(actions.calls).toEqual([])
   allowed = true
   expect((await copilot.execute({ target: { type: 'game-action', actionId: 'elite.BoundAction' } }, 'copilot')).status).toBe('accepted')
+  expect(actions.calls).toEqual(['elite.BoundAction'])
   expect((await dispatcher.execute({ target: { type: 'game-action', actionId: 'elite.BoundAction' } }, 'ui')).status).toBe('accepted')
+  expect(actions.calls).toEqual(['elite.BoundAction', 'elite.BoundAction'])
 })
 
 test('Copilot authorizes an exact macro while retaining its effective risk as metadata', async () => {
@@ -87,6 +90,10 @@ function stubCapabilities (
   return {
     catalogue: () => ({ groups: [], load: { score: 0, percentage: 0, level: 'focused', enabled: { fixedTools: 0, gameActions: 0, macros: 0, total: 0 } } }),
     normalizePolicy: policy => policy,
+    profilePolicy: () => { throw new Error('Profile policy is not used by this test') },
+    profileSettings: () => { throw new Error('Profile settings are not used by this test') },
+    saveInstallationPolicy: policy => policy,
+    saveProfilePolicy: () => { throw new Error('Profile persistence is not used by this test') },
     isCommandEnabled: target => allowed() && registry.find(target) !== undefined,
     isDescriptorEnabled: descriptor => allowed() && registry.find(descriptor.target) !== undefined,
     isToolEnabled: () => false

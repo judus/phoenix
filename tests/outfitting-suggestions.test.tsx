@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { afterEach, beforeAll, beforeEach, expect, test, vi } from 'vitest'
 import { matchCatalogueSuggestions } from '@phoenix/elite'
@@ -43,8 +44,7 @@ test('a failed catalogue fetch is retryable rather than cached', async () => {
 test('module suggestion buttons select the canonical name and never submit the form', async () => {
   const onChange = vi.fn()
   const api = { getCatalogueSuggestions: vi.fn().mockResolvedValue([{ label: 'Point Defence', value: 'Point Defence', source: 'Spansh' }]) } as unknown as PhoenixApi
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<CatalogueSuggestionInput api={api} kind="module" label="Module" value="point defense" onChange={onChange} />) })
+  const renderer = await renderWithAct(<CatalogueSuggestionInput api={api} kind="module" label="Module" value="point defense" onChange={onChange} />)
   await act(async () => renderer.root.findAllByType('div').find(node => node.props.onFocus)!.props.onFocus())
   await act(async () => { await vi.advanceTimersByTimeAsync(151) })
   const button = renderer.root.findByType('button')
@@ -57,8 +57,7 @@ test('module suggestion buttons select the canonical name and never submit the f
 
 test('catalogue failure leaves manual entry available with an honest message', async () => {
   const api = { getCatalogueSuggestions: vi.fn().mockRejectedValue(new Error('offline')) } as unknown as PhoenixApi
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<CatalogueSuggestionInput api={api} kind="module" label="Module" value="Point Defence" onChange={vi.fn()} />) })
+  const renderer = await renderWithAct(<CatalogueSuggestionInput api={api} kind="module" label="Module" value="Point Defence" onChange={vi.fn()} />)
   await act(async () => renderer.root.findAllByType('div').find(node => node.props.onFocus)!.props.onFocus())
   await act(async () => { await vi.advanceTimersByTimeAsync(151) })
   expect(JSON.stringify(renderer.toJSON())).toContain('Suggestions unavailable')
@@ -69,8 +68,7 @@ test('catalogue failure leaves manual entry available with an honest message', a
 test.each(['ship', 'commodity'] as const)('%s suggestions support arrows, Enter and Escape without submitting the form', async kind => {
   const onChange = vi.fn()
   const api = { getCatalogueSuggestions: vi.fn().mockResolvedValue([{ label: 'Gold', value: 'gold', source: 'Elite' }]) } as unknown as PhoenixApi
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<CatalogueSuggestionInput api={api} kind={kind} label="Name" value="go" onChange={onChange} />) })
+  const renderer = await renderWithAct(<CatalogueSuggestionInput api={api} kind={kind} label="Name" value="go" onChange={onChange} />)
   await act(async () => renderer.root.findAllByType('div').find(node => node.props.onFocus)!.props.onFocus())
   await act(async () => { await vi.advanceTimersByTimeAsync(151) })
   const preventDefault = vi.fn()
@@ -92,8 +90,7 @@ test('superseded requests are aborted and cannot replace newer results', async (
   const getCatalogueSuggestions = vi.fn().mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve }))
     .mockResolvedValue([{ label: 'Silver', value: 'silver', source: 'Elite' }])
   const api = { getCatalogueSuggestions } as unknown as PhoenixApi
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<CatalogueSuggestionInput api={api} kind="commodity" label="Commodity" value="go" onChange={vi.fn()} />) })
+  const renderer = await renderWithAct(<CatalogueSuggestionInput api={api} kind="commodity" label="Commodity" value="go" onChange={vi.fn()} />)
   await act(async () => renderer.root.findAllByType('div').find(node => node.props.onFocus)!.props.onFocus())
   await act(async () => { await vi.advanceTimersByTimeAsync(151) })
   await act(async () => renderer.update(<CatalogueSuggestionInput api={api} kind="commodity" label="Commodity" value="sil" onChange={vi.fn()} />))

@@ -46,7 +46,7 @@ describe('EDDN contribution lifecycle', () => {
     expect(f.outbox.status().queued).toBe(1)
     await f.service.flush()
     f.service.observe(f.event, { id: 'jump', replayed: false })
-    expect(f.outbox.status()).toEqual({ queued: 0, lastSuccessAt: new Date(startTime).toISOString() })
+    expect(f.outbox.status()).toEqual({ queued: 0, lastSuccessAt: new Date(startTime).toISOString(), losses: [] })
     expect(f.send).toHaveBeenCalledOnce()
     const log = f.service.submissionLog()
     expect(log.entries).toHaveLength(1)
@@ -101,6 +101,9 @@ describe('EDDN contribution lifecycle', () => {
     expect(f.service.submissionLog().entries).toMatchObject([
       { outcome: 'accepted', httpStatus: 200 }, { outcome: 'rejected', httpStatus: status }
     ])
+    expect(f.service.status()).toMatchObject({ error: null, losses: [
+      { reason: 'rejected', count: 1, lastAt: new Date(startTime).toISOString() }
+    ] })
   })
 
   test('disable cancels in-flight work, clears queue, and late completion cannot undo opt-out', async () => {
@@ -125,14 +128,32 @@ describe('EDDN contribution lifecycle', () => {
     expect(f.outbox.status().queued).toBe(1)
   })
 
-  test('storage failures do not propagate into journal projection; queue capacity is bounded', () => {
+  test('failed preference clears cannot send old rows or classify them as age expiry', async () => {
+    const f = fixture()
+    f.service.observe(f.event, { id: 'before-opt-in', replayed: false })
+    const clear = vi.spyOn(f.outbox, 'clear').mockImplementation(() => { throw new Error('Synthetic failed clear') })
+    f.advance(1000)
+    f.service.setEnabled(false)
+    f.service.setEnabled(true)
+    clear.mockRestore()
+    await f.service.flush()
+    expect(f.send).not.toHaveBeenCalled()
+    expect(f.service.status()).toMatchObject({ queued: 0, losses: [{ reason: 'cleared', count: 1 }] })
+  })
+
+  test('storage failures do not propagate into journal projection; queue capacity is bounded', async () => {
     const f = fixture()
     vi.spyOn(f.outbox, 'enqueue').mockImplementationOnce(() => { throw new Error('private path') })
     expect(() => f.service.observe(f.event, { id: 'failure', replayed: false })).not.toThrow()
     expect(f.service.status().error).not.toContain('private path')
     for (let index = 0; index <= 1000; index++) f.service.observe(f.event, { id: String(index), replayed: false })
     expect(f.outbox.status().queued).toBe(1000)
+    expect(f.service.status()).toMatchObject({ losses: [{ reason: 'capacity', count: 1 }] })
     expect((f.connection.prepare('SELECT COUNT(*) AS count FROM eddn_receipts').get() as { count: number }).count).toBe(1000)
+    expect(f.service.status().error).toContain('storage is at capacity')
+    await f.service.flush()
+    f.service.observe(f.event, { id: '1000', replayed: false })
+    expect(f.service.status()).toMatchObject({ queued: 1000, error: null, losses: [{ reason: 'capacity', count: 1 }] })
   })
 
   test('expired and future observations are excluded, expired queue entries are pruned', async () => {
@@ -145,6 +166,7 @@ describe('EDDN contribution lifecycle', () => {
     await f.service.flush()
     expect(f.outbox.status().queued).toBe(0)
     expect(f.send).not.toHaveBeenCalled()
+    expect(f.service.status()).toMatchObject({ losses: [{ reason: 'expired', count: 1 }] })
   })
 
   test.each(['null', '{}', '{broken'])('a corrupt queued document (%s) cannot block later observations', async document => {
@@ -156,6 +178,7 @@ describe('EDDN contribution lifecycle', () => {
     await f.service.flush()
     expect(f.outbox.status().queued).toBe(0)
     expect(f.send).toHaveBeenCalledOnce()
+    expect(f.service.status()).toMatchObject({ error: null, losses: [{ reason: 'invalid', count: 1 }] })
   })
 
   test('shutdown aborts a send and preserves its durable retry deadline', async () => {
@@ -171,5 +194,34 @@ describe('EDDN contribution lifecycle', () => {
     expect(f.outbox.next(startTime)).toBeUndefined()
     expect(f.outbox.next(startTime + 75_000)).toMatchObject({ id: 'one', attempts: 1 })
     expect(f.service.submissionLog().entries[0]).toMatchObject({ outcome: 'interrupted', httpStatus: null })
+  })
+
+  test('offline expiry at restart remains visible after a fresh upload succeeds', async () => {
+    const f = fixture()
+    f.service.observe(f.event, { id: 'offline', replayed: false })
+    await f.service.stop()
+    f.advance(24 * 60 * 60_000)
+    const restarted = new EddnContributionService(f.options)
+    restarted.start()
+    try {
+      expect(restarted.status()).toMatchObject({ queued: 0, losses: [{ reason: 'expired', count: 1 }] })
+      await restarted.flush()
+      expect(f.send).not.toHaveBeenCalled()
+      restarted.observe({ event: 'Fileheader', timestamp: f.event.timestamp, gameversion: '4.0', build: 'r1' }, { id: 'header', replayed: true })
+      restarted.observe({ event: 'LoadGame', timestamp: f.event.timestamp, Commander: 'Test', Horizons: true }, { id: 'load', replayed: true })
+      restarted.observe({ ...f.event, timestamp: new Date(startTime + 24 * 60 * 60_000).toISOString() }, { id: 'fresh', replayed: false })
+      await restarted.flush()
+      expect(f.send).toHaveBeenCalledOnce()
+      expect(restarted.status()).toMatchObject({ queued: 0, error: null, losses: [{ reason: 'expired', count: 1 }] })
+    } finally { await restarted.stop() }
+  })
+
+  test('a queued timestamp outside the future tolerance is invalid, not expired', async () => {
+    const f = fixture()
+    f.service.observe(f.event, { id: 'future-queue', replayed: false })
+    f.connection.prepare("UPDATE eddn_outbox SET document = json_set(document, '$.message.timestamp', ?)").run(new Date(startTime + 10 * 60_000).toISOString())
+    await f.service.flush()
+    expect(f.send).not.toHaveBeenCalled()
+    expect(f.service.status()).toMatchObject({ queued: 0, losses: [{ reason: 'invalid', count: 1 }] })
   })
 })

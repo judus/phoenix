@@ -1,4 +1,5 @@
 import { atlasRegionRows, atlasRegions } from './atlas-region-data.js'
+import type { AtlasPoi, CommunityGoal, GalnetInvestigationLead } from '@phoenix/contracts'
 
 export type GalacticPosition = readonly [number, number, number]
 export interface AtlasPoint { x: number, y: number }
@@ -7,12 +8,30 @@ export interface AtlasMarker {
   label: string
   systemName: string
   position: GalacticPosition
-  kind: 'landmark' | 'nebula' | 'bookmark' | 'commander'
+  kind: 'landmark' | 'nebula' | 'bookmark' | 'commander' | 'community-goal' | 'investigation' | 'system'
   selectedName?: string
+  poi?: AtlasPoi
+  communityGoal?: CommunityGoal
+  investigation?: GalnetInvestigationLead
 }
 export interface AtlasCamera { x: number, y: number, zoom: number }
 export const WHOLE_GALAXY: AtlasCamera = { x: 1024, y: 1024, zoom: 1 }
 export const LY_PER_MAP_UNIT = 4096 / 83
+
+export function atlasPoiMarkers(pois: AtlasPoi[]): AtlasMarker[] {
+  return pois.map(poi => ({
+    id: poi.id, label: poi.label, systemName: poi.systemName, position: poi.position,
+    kind: poi.categories.includes('Nebulae') ? 'nebula' : 'landmark', poi,
+    ...(poi.bodyName ? { selectedName: poi.bodyName.startsWith(`${poi.systemName} `) ? poi.bodyName : `${poi.systemName} ${poi.bodyName}` } : {})
+  }))
+}
+
+export function filterAtlasPois(markers: AtlasMarker[], search: string, category: string): AtlasMarker[] {
+  const query = search.trim().toLowerCase()
+  return markers.filter(marker => (!category || marker.poi?.categories.includes(category)) &&
+    (!query || [marker.label, marker.systemName, marker.poi?.bodyName, marker.poi?.siteType, ...marker.poi?.categories ?? []]
+      .some(value => value?.toLowerCase().includes(query))))
+}
 
 // Same origin and 49.3494 ly grid as the source lookup. SVG is top-down; Elite Y is height.
 export function projectGalacticPosition(position: GalacticPosition): AtlasPoint {

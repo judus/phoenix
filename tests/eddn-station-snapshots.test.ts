@@ -17,7 +17,7 @@ function builder () {
   return value
 }
 
-test('snapshot reader limits size and event paths and refuses partial files', () => {
+test('snapshot reader restricts event paths and refuses missing or partial files', () => {
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-eddn-stock-'))
   const reader = new EliteJournalSnapshotReader(directory)
   const event = { event: 'Market', timestamp, MarketID: 42 }
@@ -25,12 +25,24 @@ test('snapshot reader limits size and event paths and refuses partial files', ()
     expect(reader.read(event)).toBeUndefined()
     writeFileSync(join(directory, 'Market.json'), '{"Items":[')
     expect(reader.read(event)).toBeUndefined()
-    writeFileSync(join(directory, 'Market.json'), ' '.repeat(2 * 1024 * 1024 + 1))
-    expect(reader.read(event)).toBeUndefined()
     writeFileSync(join(directory, 'Market.json'), JSON.stringify({ ...dock, ...event, Items: [] }))
     expect(reader.read(event)).toMatchObject({ event: 'Market', MarketID: 42 })
     expect(reader.read({ ...event, event: '../Market' })).toBeUndefined()
     expect(new EliteJournalSnapshotReader(null).read(event)).toBeUndefined()
+  } finally { rmSync(directory, { recursive: true, force: true }) }
+})
+
+test('snapshot reader accepts valid JSON at the byte limit and rejects it one byte over', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-eddn-stock-size-'))
+  const reader = new EliteJournalSnapshotReader(directory)
+  const event = { event: 'Market', timestamp, MarketID: 42 }
+  const snapshot = { ...event, Items: [] }
+  const atLimit = JSON.stringify(snapshot).padEnd(2 * 1024 * 1024, ' ')
+  try {
+    writeFileSync(join(directory, 'Market.json'), atLimit)
+    expect(reader.read(event)).toEqual(snapshot)
+    writeFileSync(join(directory, 'Market.json'), `${atLimit} `)
+    expect(reader.read(event)).toBeUndefined()
   } finally { rmSync(directory, { recursive: true, force: true }) }
 })
 

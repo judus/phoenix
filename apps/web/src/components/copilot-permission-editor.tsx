@@ -19,14 +19,18 @@ import type {
 export function CopilotPermissionEditor ({
   capabilities,
   disabled = false,
+  layout = 'flow',
   onChange,
   permissions,
+  profileLoad,
   visibleCapabilityIds
 }: {
   capabilities: CopilotCapabilityCatalogue
   disabled?: boolean
+  layout?: 'flow' | 'fit'
   onChange(permissions: CopilotPermissionPolicy): void
   permissions: CopilotPermissionPolicy
+  profileLoad?: CopilotCapabilityCatalogue['load']
   visibleCapabilityIds?: readonly string[]
 }) {
   const groups = useMemo(() => filterGroups(capabilities.groups, visibleCapabilityIds), [capabilities.groups, visibleCapabilityIds])
@@ -47,22 +51,22 @@ export function CopilotPermissionEditor ({
     onChange({ version: 2, enabledCapabilityIds: [...ids].sort() })
   }
 
-  return <>
-    <div className="copilot-load">
+  return <div className={`copilot-permissions ${layout}`}>
+    {profileLoad && <div className="copilot-load">
       <Meter
         label="AI load"
         layout="inline"
-        tone={loadTone(capabilities.load.level)}
-        value={capabilities.load.percentage}
-        valueLabel={`${capabilities.load.percentage}%`}
+        tone={loadTone(profileLoad.level)}
+        value={profileLoad.percentage}
+        valueLabel={`${profileLoad.percentage}%`}
       />
-      <Status tone={loadStatusTone(capabilities.load.level)} wrap>
-        {loadMessage(capabilities.load.level)}
+      <Status tone={loadStatusTone(profileLoad.level)} wrap>
+        {loadMessage(profileLoad.level)}
       </Status>
       <small>
-        {capabilities.load.enabled.fixedTools} fixed tools / {capabilities.load.enabled.gameActions} controls / {capabilities.load.enabled.macros} macros
+        {profileLoad.enabled.fixedTools} fixed tools / {profileLoad.enabled.gameActions} controls / {profileLoad.enabled.macros} macros
       </small>
-    </div>
+    </div>}
     <div className="capability-groups">
       {groups.map(group => <CapabilityGroup
         group={group}
@@ -72,7 +76,7 @@ export function CopilotPermissionEditor ({
         onToggleCapability={toggleCapability}
       />)}
     </div>
-  </>
+  </div>
 }
 
 function CapabilityGroup ({ group, onSetCapabilities, onToggleCapability, pending }: {

@@ -194,6 +194,28 @@
     }
   }
 
+  .select-control {
+    position: relative;
+    display: block;
+    min-inline-size: 0;
+    color: var(--field-text);
+
+    > .form-select {
+      appearance: none;
+      padding-inline-end: calc(var(--font-size-sm) + 2 * var(--control-padding-inline));
+    }
+
+    > svg {
+      position: absolute;
+      inset-inline-end: var(--control-padding-inline);
+      inset-block-start: 50%;
+      inline-size: var(--font-size-sm);
+      block-size: var(--font-size-sm);
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+  }
+
   .form-control,
   .form-select {
     inline-size: 100%;

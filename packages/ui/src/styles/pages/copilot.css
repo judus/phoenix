@@ -1,3 +1,5 @@
+.copilot-composer textarea:focus-visible { outline: none; }
+
 @layer pages {
   .copilot-page {
     display: grid;
@@ -200,38 +202,56 @@
   .copilot-profiles {
     display: grid;
     min-block-size: 0;
-    grid-template-columns: minmax(12rem, 0.65fr) minmax(20rem, 2.8fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
     gap: var(--spacing-md);
     overflow: hidden;
   }
 
   .copilot-profiles > aside {
-    display: flex;
+    display: grid;
     min-block-size: 0;
-    flex-direction: column;
-    gap: var(--spacing-sm);
+    grid-template-rows: minmax(0, 1fr);
   }
 
-  .copilot-profiles > aside ul {
+  .copilot-profiles > aside > .table-region {
     min-block-size: 0;
-    margin: 0;
-    padding: 0;
     overflow-y: auto;
-    list-style: none;
-  }
-
-  .copilot-profiles > aside li + li {
-    border-block-start: 1px solid var(--color-border);
-  }
-
-  .copilot-profiles > aside .btn {
-    inline-size: 100%;
   }
 
   .copilot-profile-editor {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--spacing-md);
+    min-inline-size: 0;
+    min-block-size: 0;
+    overflow: hidden;
+  }
+
+  .copilot-profile-panel {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: var(--spacing-sm);
+    min-inline-size: 0;
+    min-block-size: 0;
+    overflow: hidden;
+
+    &[hidden] { display: none; }
+  }
+
+  .copilot-profile-fields {
+    display: grid;
+    align-content: start;
+    gap: var(--spacing-md);
     min-block-size: 0;
     padding-inline-end: var(--spacing-xs);
     overflow-y: auto;
+  }
+
+  @container page-frame (aspect-ratio < 1) or (width < 48rem) {
+    .copilot-profiles {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr) minmax(0, 3fr);
+    }
   }
 
   @media (max-width: 52rem) {
@@ -241,10 +261,6 @@
 
     .copilot-portrait {
       display: none;
-    }
-
-    .copilot-profiles {
-      grid-template-columns: minmax(9rem, 0.7fr) minmax(18rem, 2fr);
     }
 
     .copilot-composer {

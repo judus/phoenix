@@ -1,4 +1,67 @@
-# Isolated browser stability check
+# Isolated diagnostics
+
+## Journal ingestion responsiveness
+
+Build the workspace packages, then run this from the repository root:
+
+```sh
+npm run build
+node --import tsx scripts/diagnostics/journal-profile.mjs --small=200 --large=20000 --repeats=3
+```
+
+The diagnostic creates and removes its own temporary journals and runs a fresh PHOENIX worker
+with in-memory SQLite for each sample. EDDN is explicitly disabled, external fetch is rejected,
+Copilot is disabled, and keyboard output remains simulated. No player files are accepted.
+Generated records mix Progress/runtime changes, ReceiveText/persisted communications, FuelScoop
+and an FSDJump every 250 records. Each sample measures latest-file startup, idle, appended tail,
+truncation/offset reset, historical backfill and checkpoint-only replay. Complete-record counts
+and final delivered SSE revisions must agree; the subsequent checkpoint replay must process zero records.
+
+HTTP and SSE probes run in the **parent process**, independently of the server's event loop.
+JSON output includes Node/platform/CPU, byte/line counts, ingestion wall time, before/after memory,
+sampled RSS peak, cumulative process RSS high-water mark, event-loop histogram and timer lag,
+HTTP p95/max latency, and maximum SSE delivery gap. Event-loop sampling gets a 50 ms drain after
+ingestion; the parent separately waits for the actual target SSE revision with a 15-second safety
+timeout, not a timing pass threshold. Wall time excludes these waits. Bootstrap begins at `start()`
+after application construction/module loading; no HTTP/SSE server is available during bootstrap.
+Explicit refreshes bypass the normal 500 ms live polling wait, so tail time is processing time,
+not end-to-end gameplay latency. The worker uses private source handles only for this controlled
+diagnostic; no production instrumentation or public lifecycle API is added.
+
+Interpret results in this order: correct record/offset/revision handling, repeated latency versus
+idle, then total processing time and memory. A large change repeated across samples is evidence;
+small differences, sampled RSS and retained heap alone do not establish a leak. There are no
+machine-dependent millisecond pass thresholds in CI. In-memory SQLite and this synthetic event
+mix do not establish real journal/disk, EDDN-enabled, tablet, or Windows performance.
+
+On 2026-10-06, Node 24.14.0/Linux x64/i7-14700K, three runs of 20,000 records (~1.82 MB) showed:
+
+| Measurement | Before | After yielding every 256 complete lines |
+| --- | --- | --- |
+| Live tail total processing | 624–645 ms | 658–681 ms |
+| Live tail worst HTTP response | 621–643 ms | 14–39 ms |
+| Live tail maximum SSE delivery gap | 631–654 ms | 19–46 ms |
+| Bootstrap maximum timer lag | 640–657 ms | 26–29 ms |
+| Offset-reset maximum timer lag (2,000 records) | 54–61 ms | 10–20 ms |
+
+Idle worst HTTP responses were 2–3 ms before and 2–4 ms after. Historical backfill already
+yielded between 64 KiB reads: its maximum timer lag was 18–23 ms before and 11–25 ms after;
+no history change was warranted. Latest-file bootstrap wall time stayed about 650 ms.
+This improves fairness, **not throughput**. RSS deltas were noisy; no memory optimization or
+bounded-read/streams rewrite was justified by these measurements. Repeat after meaningful changes.
+
+## Browser stability check
+
+Use `--galnet-continuity` and open `#/comms/galnet` for three fictional articles about the same
+ship. Explicit catch-up runs a synthetic analyser (no model/provider requests); verify queue logs,
+the source-backed story update, earlier search resolution, dated related-coverage timeline and
+separate settings switch/limit in both themes and orientations. The later combat appeal stays a
+canonical Community Goal, not a duplicate investigation lead. All external requests remain
+rejected by the preview.
+
+For Community Goals layout/selection checks, add `--community-goals` to the isolated preview
+command below. It supplies twenty fictional goals with long briefings for independent list/detail
+scrolling, without contacting Frontier or an AI provider.
 
 Use only the supplied in-memory preview, never a player's server. It uses mock cartography,
 simulated keyboard output, and no Elite journal ingestion or Copilot provider. Build the web
@@ -26,6 +89,17 @@ errors must be investigated. Stop both fixture and diagnostic Chrome after the r
 
 This accelerated desktop-browser test does not prove physical-tablet stability. Re-test on the
 affected tablet during a sustained gameplay session before closing the reported lag/crash issue.
+
+## Atlas POIs
+
+Use `--atlas-pois` and open `#/galaxy/atlas` to test 1,500 synthetic POIs without external requests.
+Check search/category filtering, off-screen location selection, dense clusters, source details and
+map/sidebar interactions in both themes and orientations. The default preview disables external
+Atlas feeds; the small bundled historical site remains available.
+
+```sh
+node --import tsx scripts/diagnostics/isolated-browser-preview.mjs --atlas-pois
+```
 
 ## EDDN submission log
 

@@ -1,7 +1,8 @@
-import { lazy, memo, Suspense, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { lazy, memo, Suspense, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
 import type { ApplicationNavigationItem } from '@phoenix/ui'
+import { Loading, PageFrame } from '@phoenix/ui'
 import { PhoenixApplicationShell } from './components/shell/phoenix-application-shell.js'
-import { isInformationRoute, workspaceForRoute, type InformationRoute } from './application/navigation/phoenix-route.js'
+import { isInformationRoute, workspaceForRoute, type InformationRoute, type PhoenixRoute } from './application/navigation/phoenix-route.js'
 import { parsePhoenixRoute, type PhoenixRouter } from './application/navigation/phoenix-router.js'
 import { usePhoenixRoute } from './application/navigation/use-phoenix-route.js'
 import { usePhoenixEventConnection } from './application/events/use-phoenix-event-connection.js'
@@ -34,8 +35,8 @@ import { useCommsController } from './features/comms/use-comms-controller.js'
 import { engineeringContextForRoute, engineeringNavigationItems } from './features/engineering/engineering-navigation.js'
 import { useEngineeringController } from './features/engineering/use-engineering-controller.js'
 import { engineeringRuntimeFingerprint } from './features/engineering/engineering-runtime-fingerprint.js'
-import { controlsContext, controlsNavigationItems } from './features/controls/controls-navigation.js'
-import { useControlsController } from './features/controls/use-controls-controller.js'
+import { controlsContext, controlsNavigationItems, firstControlCategory } from './features/controls/controls-navigation.js'
+import { useControlsController, type ControlsControllerSnapshot } from './features/controls/use-controls-controller.js'
 import { useMacroRuntime } from './features/macros/macro-runtime-provider.js'
 import { useJournalController } from './features/journal/use-journal-controller.js'
 import { developerNavigationItems, journalContext, journalNavigationItems } from './features/journal/journal-navigation.js'
@@ -71,7 +72,7 @@ const SettingsPage = lazy(() => import('./features/settings/settings-page.js').t
 export function App({ application }: { application: PhoenixApplicationServices }) {
   return (
     <DevicePresentation preferences={application.devicePreferences}>
-      <PairingGate api={application.api} initialCode={application.initialPairingCode}>
+      <PairingGate api={application.api} initialCode={application.initialPairingCode} onPairingRequired={application.requirePairing}>
         <PhoenixProviders application={application}>
           <PhoenixApplication application={application} />
         </PhoenixProviders>
@@ -84,6 +85,16 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
   const { router } = application
   const route = usePhoenixRoute(router)
   const activeDesktop = workspaceForRoute(route)
+  const controlsController = useControlsController(application.api, application.events)
+  const controlsDestination = router.routeForWorkspace('controls', firstControlCategory(controlsController.configuration))
+  const [pendingControlsFrom, setPendingControlsFrom] = useState<PhoenixRoute | null>(null)
+  useEffect(() => {
+    if (!pendingControlsFrom) return
+    if (route !== pendingControlsFrom || controlsController.status !== 'loading') {
+      setPendingControlsFrom(null)
+      if (route === pendingControlsFrom) router.push(controlsDestination)
+    }
+  }, [pendingControlsFrom, route, controlsController.status, controlsDestination, router])
   const informationRoute = isInformationRoute(route) ? route : router.getRememberedInformationRoute()
   const controlsRoute = route.kind === 'controls' ? route : undefined
   const logRoute = route.kind === 'journal' || route.kind === 'developer' ? route : undefined
@@ -104,12 +115,21 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
   return (
     <PhoenixApplicationShell
       activeDesktop={activeDesktop}
+      controlsDestination={controlsDestination}
+      copilotDestination={router.routeForWorkspace('copilot')}
       informationRoute={informationRoute}
       {...informationContext}
       onNavigateRoute={router.push}
-      onNavigateWorkspace={(workspace) => router.push(router.routeForWorkspace(workspace))}
+      onNavigateWorkspace={(workspace) => {
+        if (workspace === 'controls' && controlsController.status === 'loading') {
+          setPendingControlsFrom(route)
+        } else {
+          setPendingControlsFrom(null)
+          router.push(workspace === 'controls' ? controlsDestination : router.routeForWorkspace(workspace))
+        }
+      }}
       controls={activeDesktop === 'controls'
-        ? <FeatureBoundary><ControlsFeature application={application} category={controlsRoute?.category ?? 'ship'} editing={controlsEditing} onEditingChange={setControlsEditing} /></FeatureBoundary>
+        ? <FeatureBoundary><ControlsFeature application={application} controller={controlsController} category={controlsRoute?.category ?? 'quick'} editing={controlsEditing} onEditingChange={setControlsEditing} /></FeatureBoundary>
         : null}
       controlsContextItems={controlsRailItems}
       controlsCurrentContext={controlsContext(controlsRoute?.category ?? 'ship')}
@@ -208,7 +228,7 @@ function renderInformationFeature(application: PhoenixApplicationServices, route
 }
 
 function FeatureBoundary({ children }: { children: ReactNode }) {
-  return <Suspense fallback={null}>{children}</Suspense>
+  return <Suspense fallback={<PageFrame layout="fit"><Loading /></PageFrame>}>{children}</Suspense>
 }
 
 const StableCopilotFeature = memo(CopilotFeature)
@@ -244,13 +264,13 @@ const JournalFeature = memo(function JournalFeature({ application }: { applicati
   return <JournalPage controller={useJournalController(application.api, application.events)} />
 })
 
-const ControlsFeature = memo(function ControlsFeature({ application, category, editing, onEditingChange }: {
+const ControlsFeature = memo(function ControlsFeature({ application, controller, category, editing, onEditingChange }: {
   application: PhoenixApplicationServices
+  controller: ControlsControllerSnapshot
   category: Extract<ReturnType<PhoenixRouter['getSnapshot']>, { kind: 'controls' }>['category']
   editing: boolean
   onEditingChange(editing: boolean): void
 }) {
-  const controller = useControlsController(application.api, application.events)
   const runtime = useRuntimeState(application.runtime)
   const macros = useMacroRuntime()
   const devicePreferences = useSyncExternalStore(application.devicePreferences.subscribe, application.devicePreferences.getSnapshot, application.devicePreferences.getSnapshot)
@@ -292,6 +312,7 @@ const CommsFeature = memo(function CommsFeature({ application, route }: {
 }) {
   const controller = useCommsController(application.api, application.events, route.view)
   return <CommsPage
+    analysisApi={application.api}
     controller={controller}
     onExecuteAction={actionId => application.api.executeAction(actionId, 'tap')}
     view={route.view}

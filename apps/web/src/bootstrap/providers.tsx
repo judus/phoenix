@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { CopilotVoiceProvider } from '../features/copilot/copilot-voice-provider.js'
+import { CopilotTextProvider } from '../features/copilot/copilot-text-provider.js'
 import { MacroRuntimeProvider } from '../features/macros/macro-runtime-provider.js'
 import type { PhoenixApplicationServices } from './create-application.js'
 import { NumpadActivation } from '../features/numpad/numpad-activation.js'
@@ -41,13 +42,15 @@ export function PhoenixProviders({
         events={application.events}
         devicePreferences={devicePreferences}
       >
-        <MacroRuntimeProvider
-          api={application.api}
-          clientIdentity={application.clientIdentity}
-          router={application.router}
-        >
-          {children}
-        </MacroRuntimeProvider>
+        <CopilotTextProvider api={application.api} clientIdentity={application.clientIdentity} events={application.events}>
+          <MacroRuntimeProvider
+            api={application.api}
+            clientIdentity={application.clientIdentity}
+            router={application.router}
+          >
+            {children}
+          </MacroRuntimeProvider>
+        </CopilotTextProvider>
       </CopilotVoiceProvider>
     </PhoenixApplicationContext.Provider>
   )

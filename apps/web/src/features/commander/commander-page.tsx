@@ -3,6 +3,7 @@ import {
   Breadcrumbs,
   DataTable,
   DataTableGroup,
+  Loading,
   PageFrame,
   PageHeader,
   Stack,
@@ -21,12 +22,11 @@ export function CommanderPage({ model, runtime, view }: {
 }) {
   if (runtime.status !== 'ready' || !model) {
     return (
-      <PageFrame className="record-page" layout="fit" aria-busy={runtime.status !== 'error'}>
+      <PageFrame className="record-page" layout="fit">
         <div className="record-page-layout">
           <CommanderHeader view={view} />
-          <Status tone={runtime.status === 'error' ? 'danger' : 'muted'}>
-            {runtime.status === 'error' ? runtime.error : 'Waiting for commander telemetry…'}
-          </Status>
+          {runtime.status === 'error' ? <Status tone="danger">{runtime.error}</Status>
+            : <Loading>Waiting for commander telemetry…</Loading>}
         </div>
       </PageFrame>
     )

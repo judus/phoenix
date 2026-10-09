@@ -62,8 +62,6 @@ test('recording ownership prevents another browser contaminating a draft', async
   const client = new PhoenixApiClient(`http://${address.host}:${address.port}`)
 
   try {
-    const settings = await client.getModuleSettings()
-    await client.saveModuleSettings({ ...settings, macros: { ...settings.macros, enabled: true } })
     const recording = await client.startMacroRecording('tablet-one')
     await expect(client.recordMacroAction(
       recording.id,

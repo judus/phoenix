@@ -14,7 +14,7 @@ test('the information workspace composes primary navigation, rail, and page cont
       onNavigate={() => undefined}
       primaryItems={primaryItems}
     >
-      <PlaceholderPage context="Commander" description="Current page" title="Overview" />
+      <PlaceholderPage context="Commander" title="Overview" />
     </InformationWorkspace>
   )
 
@@ -23,7 +23,7 @@ test('the information workspace composes primary navigation, rail, and page cont
   expect(markup).toContain('aria-label="Commander views"')
   expect(markup).toContain('href="#/commander/dashboard"')
   expect(markup).not.toContain('aria-label="Home"')
-  expect(markup).toContain('href="#/galaxy/system"')
+  expect(markup).toContain('href="#/galaxy/atlas"')
   expect(markup).toContain('class="page-frame page-flow"')
   expect(markup).toContain('<h1>Overview</h1>')
 })

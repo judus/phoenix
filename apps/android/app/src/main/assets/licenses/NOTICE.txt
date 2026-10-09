@@ -1,0 +1,40 @@
+PHOENIX Android shell — third-party runtime notices
+
+ZXing Android Embedded 4.3.0
+Copyright Journey Mobile, Inc. and contributors.
+https://github.com/journeyapps/zxing-android-embedded/tree/v4.3.0
+
+ZXing Core 3.4.1
+Copyright ZXing authors and contributors.
+https://github.com/zxing/zxing/tree/zxing-3.4.1
+
+AndroidX Activity and its AndroidX dependencies
+Copyright The Android Open Source Project and contributors.
+https://developer.android.com/jetpack/androidx
+
+Kotlin standard library and kotlinx.coroutines (AndroidX dependencies)
+Copyright JetBrains s.r.o. and contributors.
+https://github.com/JetBrains/kotlin
+https://github.com/Kotlin/kotlinx.coroutines
+
+These libraries are licensed under the Apache License, Version 2.0.
+The complete licence is included alongside this notice as Apache-2.0.txt.
+No upstream library source has been modified.
+
+ZXing upstream notices:
+--------------------------------------------------------------------------------
+NOTICES FOR BARCODE4J
+--------------------------------------------------------------------------------
+
+Barcode4J
+Copyright 2002-2010 Jeremias Märki
+Copyright 2005-2006 Dietmar Bürkle
+
+Portions of this software were contributed under section 5 of the
+Apache License. Contributors are listed under:
+http://barcode4j.sourceforge.net/contributors.html
+--------------------------------------------------------------------------------
+NOTICES FOR JCOMMANDER
+--------------------------------------------------------------------------------
+
+Copyright 2010 Cedric Beust cedric@beust.com

@@ -11,7 +11,7 @@ export class ExplorationSearchTargetsTool implements LocalTool {
         atmospheres: { items: { minLength: 1, type: 'string' }, type: 'array' },
         bodySubtypes: { items: { minLength: 1, type: 'string' }, type: 'array' },
         landable: { enum: ['any', 'yes', 'no'], type: 'string' }, limit: { maximum: 20, minimum: 1, type: 'integer' },
-        lastReportedBefore: { description: 'Latest accepted community body-report date in YYYY-MM-DD format. Use 2021-05-19 with zero required biological signals to inspect pre-Odyssey cartography candidates.', pattern: '^\\d{4}-\\d{2}-\\d{2}$', type: 'string' },
+        lastReportedBefore: { description: 'Latest accepted community body-report date in YYYY-MM-DD format, inclusive of the selected day. For pre-Odyssey prospecting use 2021-05-18, landable="any" and minBiologicalSignals=0 (no signal-count constraint, not exactly zero). Old body reports do not prove unvisited worlds, biology or available First Footfall.', pattern: '^\\d{4}-\\d{2}-\\d{2}$', type: 'string' },
         maxDistance: { maximum: 500, minimum: 1, type: 'integer' }, maxGravityG: { minimum: 0, type: 'number' },
         maxTemperatureK: { minimum: 0, type: 'number' }, minBiologicalSignals: { minimum: 0, type: 'integer' },
         minGeologicalSignals: { minimum: 0, type: 'integer' }, minGravityG: { minimum: 0, type: 'number' },

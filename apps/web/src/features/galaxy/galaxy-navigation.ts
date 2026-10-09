@@ -15,8 +15,8 @@ const routes = {
 } as const satisfies Record<string, InformationRoute>
 
 export const galaxyNavigationItems: GalaxyNavigationItem[] = [
-  item('system', 'Current system', 'SYS'),
   item('atlas', 'Galactic atlas', 'ATL'),
+  item('system', 'Current system', 'SYS'),
   item('route', 'Plotted route', 'RTE'),
   item('exobiology', 'Exobiology', 'EXO'),
   item('database', 'Galaxy database', 'DBS'),

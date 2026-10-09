@@ -13,9 +13,168 @@ import { ScriptedProvider, textModelCapabilities } from '@jdu/llm-client/testing
 import { StaticEliteDangerousBindings } from './support/static-elite-dangerous-bindings.js'
 import { InMemorySystemSettingsRepository } from '../apps/server/src/infrastructure/json-system-configuration.js'
 import { InMemoryMacroRepository } from '../apps/server/src/infrastructure/macro-repositories.js'
+import { mockDenseCartography } from '../scripts/diagnostics/mock-dense-cartography.mjs'
 import { RecordingKeyboardOutput } from 'control-deck/adapter-keyboard'
 import { PhoenixApplication } from '../apps/server/src/phoenix-application.js'
 import { JsonConversationStore } from '../apps/server/src/infrastructure/json-conversation-store.js'
+import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-client.js'
+import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
+import { analysisArticle, savedGalnetAnalysis } from './support/galnet-analysis-fixtures.js'
+
+test('GalNet tools reconcile persisted reports over MCP without inference or source refresh and expose both Comms permissions', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-galnet-tools-'))
+  const databasePath = join(directory, 'state.sqlite')
+  const db = new SqliteDatabase(databasePath)
+  let report
+  try {
+    db.initialize()
+    db.galnetArchive.observe([analysisArticle], '2026-10-07T12:00:00Z')
+    report = savedGalnetAnalysis({ articleRevisionId: db.galnetArchive.getArticle(analysisArticle.id)!.revisionId })
+    db.galnetAnalyses.put(report)
+    const followup = { ...analysisArticle, id: 'beacon-completed', title: 'Beacon research complete',
+      body: 'Beacon research completed in Colonia.', publishedAt: '2026-10-02T12:00:00Z',
+      sourceUrl: 'https://example.com/galnet/beacon-completed' }
+    db.galnetArchive.observe([followup], '2026-10-08T12:00:00Z')
+    db.galnetAnalyses.put({ ...savedGalnetAnalysis(), schemaVersion: 3, extractorVersion: 'galnet-analysis-v3',
+      articleId: followup.id, articleRevisionId: db.galnetArchive.getArticle(followup.id)!.revisionId,
+      cacheKey: 'completed-cache', publishedAt: followup.publishedAt, analysedAt: '2026-10-08T12:00:00Z', sourceUrl: followup.sourceUrl,
+      content: { summary: followup.body, facts: [], interpretations: [], entities: [], activities: [] },
+      context: [{ articleId: report.articleId, articleRevisionId: report.articleRevisionId, analysisCacheKey: report.cacheKey,
+        title: analysisArticle.title, sourceUrl: report.sourceUrl, publishedAt: report.publishedAt, communityGoals: report.communityGoals }],
+      continuity: { summary: followup.body, relatedArticleIds: [report.articleId],
+        developments: [{ text: followup.body, evidence: { articleId: followup.id, quote: followup.body } }],
+        updates: [{ leadId: `galnet-lead:${report.cacheKey}:1`, disposition: 'resolved', explanation: 'Research completed.',
+          evidence: { articleId: followup.id, quote: followup.body }, replacementActivityIndex: null, communityGoalId: null }] } })
+  } finally { db.close() }
+  const analyse = vi.fn(async () => { throw new Error('Unexpected inference') })
+  const getLatest = vi.fn(async () => { throw new Error('Unexpected news refresh') })
+  const getCurrent = vi.fn(async () => { throw new Error('Unexpected CG refresh') })
+  const application = new PhoenixApplication({ databasePath, eliteDirectory: null, host: '127.0.0.1', port: 0,
+    copilot: null, copilotRealtime: null, openAiEnvironmentKey: null,
+    galnetAnalyser: { configured: () => false, model: 'no-model', analyse },
+    galnetSource: { getLatest }, communityGoalsSource: { getCurrent } })
+  try {
+    const address = await application.start()
+    const origin = `http://${address.host}:${address.port}`
+    const provider = configuredProvider([
+      response('galnet-list', [{ arguments: { limit: 2 }, callId: 'list', name: 'phoenix__comms_list_galnet_analyses', type: 'tool_call' }], 'tool_calls'),
+      response('galnet-detail', [{ arguments: { articleId: analysisArticle.id }, callId: 'detail', name: 'phoenix__comms_get_galnet_analysis', type: 'tool_call' }], 'tool_calls'),
+      response('done', [{ source: 'generated', text: 'Saved report received.', type: 'text' }], 'stop')
+    ])
+    const client = createAiClient({ mcp: [{ name: 'phoenix', url: `${origin}/mcp` }], provider })
+    const api = new PhoenixApiClient(origin)
+    const permissions = await api.getCopilotSettings()
+    const comms = permissions.capabilities.groups.find(group => group.id === 'tools.comms')!
+    for (const id of ['tool:comms.list_galnet_analyses', 'tool:comms.get_galnet_analysis']) {
+      expect(comms.capabilities).toContainEqual(expect.objectContaining({ id, access: 'read', available: true, enabled: true }))
+    }
+    await client.user('What is the story behind this campaign?').run()
+    expect(provider.requests[1]?.messages.at(-1)?.content).toMatchObject([{ type: 'tool_result', status: 'success', structuredContent: {
+      limit: 2, reports: [{ articleId: 'beacon-completed', currentInvestigationLeadCount: 0 },
+        { articleId: analysisArticle.id, articleChanged: false, summary: report.content.summary,
+          originalInvestigationLeadCount: 1, currentInvestigationLeadCount: 0 }]
+    } }])
+    expect(provider.requests[2]?.messages.at(-1)?.content).toMatchObject([{ type: 'tool_result', status: 'success', structuredContent: {
+      articleChanged: false, report, currentInvestigationLeads: [],
+      leadAssessments: [{ disposition: 'resolved', assessments: [{ articleId: 'beacon-completed',
+        evidenceSourceUrl: 'https://example.com/galnet/beacon-completed', update: { evidence: { quote: 'Beacon research completed in Colonia.' } } }] }]
+    } }])
+    expect((await api.getGalnetAnalysis(analysisArticle.id)).analysis).toEqual(report)
+    expect(analyse).not.toHaveBeenCalled()
+    expect(getLatest).not.toHaveBeenCalled()
+    expect(getCurrent).not.toHaveBeenCalled()
+  } finally { await application.stop(); rmSync(directory, { recursive: true, force: true }) }
+})
+
+test('Atlas navigation over MCP resolves cartography and exposes a Display permission', async () => {
+  const fetchSystem = vi.fn(async (name: string) => mockDenseCartography(name))
+  const application = new PhoenixApplication({ databasePath: ':memory:', eliteDirectory: null,
+    host: '127.0.0.1', port: 0, cartographySource: { fetchSystem } })
+  const address = await application.start()
+  const origin = `http://${address.host}:${address.port}`
+  const api = new PhoenixApiClient(origin)
+  const provider = configuredProvider([
+    response('atlas', [{ arguments: { systemName: 'Colonia' }, callId: 'atlas', name: 'phoenix__display_show_galactic_atlas', type: 'tool_call' }], 'tool_calls'),
+    response('done', [{ source: 'generated', text: 'Atlas opened.', type: 'text' }], 'stop')
+  ])
+  const client = createAiClient({ mcp: [{ name: 'phoenix', url: `${origin}/mcp` }], provider })
+  try {
+    const permissions = await api.getCopilotSettings()
+    expect(permissions.capabilities.groups.find(group => group.id === 'tools.display')?.capabilities)
+      .toContainEqual(expect.objectContaining({ id: 'tool:display.show_galactic_atlas', label: 'Show Galactic Atlas', access: 'display', available: true, enabled: true }))
+    expect(fetchSystem).not.toHaveBeenCalled()
+    await client.user('Show Colonia on the PHOENIX Atlas.').run()
+    expect(fetchSystem).toHaveBeenCalledWith('Colonia')
+    expect(provider.requests[1]?.messages.at(-1)?.content).toMatchObject([{
+      type: 'tool_result', status: 'success', structuredContent: { displayed: true,
+        location: { systemName: 'Colonia', position: mockDenseCartography('Colonia').position } }
+    }])
+  } finally { await application.stop() }
+})
+
+test('Community Goals over MCP reuse the Activities snapshot and expose their read-only permission', async () => {
+  const getCurrent = vi.fn(async () => [{
+    id: 'synthetic-cg', title: 'Research supplies', systemName: 'Sol', stationName: 'Galileo',
+    activityType: 'trade', objective: 'Deliver supplies', targetCommodities: 'Basic Medicines',
+    contributed: 125, target: 1000, expiry: '2026-10-08 10:00:00', briefing: 'Sign up at Galileo.\nDeliver supplies.'
+  }])
+  const application = new PhoenixApplication({ databasePath: ':memory:', eliteDirectory: null,
+    host: '127.0.0.1', port: 0, communityGoalsSource: { getCurrent } })
+  const address = await application.start()
+  const origin = `http://${address.host}:${address.port}`
+  const api = new PhoenixApiClient(origin)
+  const provider = configuredProvider([
+    response('community-goals', [{ arguments: {}, callId: 'goals', name: 'phoenix__activities_list_community_goals', type: 'tool_call' }], 'tool_calls'),
+    response('done', [{ source: 'generated', text: 'Goals received.', type: 'text' }], 'stop')
+  ])
+  const client = createAiClient({ mcp: [{ name: 'phoenix', url: `${origin}/mcp` }], provider })
+  try {
+    expect(getCurrent).not.toHaveBeenCalled()
+    const permissions = await api.getCopilotSettings()
+    expect(permissions.capabilities.groups.find(group => group.id === 'tools.activities')?.capabilities)
+      .toContainEqual(expect.objectContaining({ id: 'tool:activities.list_community_goals', label: 'List Community Goals', access: 'read', available: true }))
+    const before = await api.getCommunityGoals()
+    await client.user('Which Community Goals can I participate in?').run()
+    expect(provider.requests[1]?.messages.at(-1)?.content).toMatchObject([{
+      type: 'tool_result', status: 'success', structuredContent: {
+        ...before, cache: 'fresh', sourceUrl: 'https://www.elitedangerous.com/community/goals/'
+      }
+    }])
+    expect(getCurrent).toHaveBeenCalledTimes(1)
+  } finally { await application.stop() }
+})
+
+test('project report reads persisted plans over MCP and appears in installation permission settings', async () => {
+  const settings = new InMemorySystemSettingsRepository()
+  const application = new PhoenixApplication({ databasePath: ':memory:', eliteDirectory: null,
+    host: '127.0.0.1', port: 0, systemSettingsRepository: settings })
+  const address = await application.start()
+  const origin = `http://${address.host}:${address.port}`
+  const api = new PhoenixApiClient(origin)
+  const provider = configuredProvider([
+    response('project-report', [{ arguments: {}, callId: 'report', name: 'phoenix__engineering_get_project_report', type: 'tool_call' }], 'tool_calls'),
+    response('done', [{ source: 'generated', text: 'Report received.', type: 'text' }], 'stop')
+  ])
+  const client = createAiClient({ mcp: [{ name: 'phoenix', url: `${origin}/mcp` }], provider })
+  try {
+    const project = await api.createEngineeringProject({ name: 'Fixture refit', note: null, priority: 'high' })
+    await api.addEngineeringProjectStep(project.id, {
+      blueprintSymbol: 'TestModule_Reinforced', targetGrade: 1, plannedRolls: 3, note: null
+    })
+    const before = await api.getEngineeringProjects()
+    const permissions = await api.getCopilotSettings()
+    expect(permissions.capabilities.groups.find(group => group.id === 'tools.engineering')?.capabilities)
+      .toContainEqual(expect.objectContaining({ id: 'tool:engineering.get_project_report', access: 'read', available: true }))
+    await client.user('What do I need for my projects?').run()
+    expect(provider.requests[1]?.messages.at(-1)?.content).toMatchObject([{
+      type: 'tool_result', status: 'success', structuredContent: {
+        projects: [{ id: project.id, name: 'Fixture refit', steps: [{ plannedRolls: 3 }] }],
+        materials: [{ materialId: 'TestWidgets', required: 3, owned: null, missing: null }]
+      }
+    }])
+    expect(await api.getEngineeringProjects()).toEqual(before)
+  } finally { await application.stop() }
+})
 
 test('handler corrections support a corrected MCP call and survive persisted text history safely', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-tool-history-'))
@@ -94,6 +253,12 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
         type: 'tool_call'
       },
       {
+        arguments: {},
+        callId: 'projects-1',
+        name: 'phoenix__engineering_get_project_report',
+        type: 'tool_call'
+      },
+      {
         arguments: { query: 'turn the ship lights on' },
         callId: 'find-lights-1',
         name: 'phoenix__controls_find_actions',
@@ -122,12 +287,16 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
       'phoenix__commander_get_current_situation',
       'phoenix__equipment_get_equipment_report',
       'phoenix__engineering_list_engineers',
+      'phoenix__engineering_get_project_report',
       'phoenix__engineering_list_material_inventory',
       'phoenix__comms_list_messages',
+      'phoenix__comms_list_galnet_analyses',
+      'phoenix__comms_get_galnet_analysis',
       'phoenix__controls_find_actions',
       'phoenix__controls_execute_command',
       'phoenix__controls_set_control_state',
       'phoenix__display_open_page',
+      'phoenix__display_show_galactic_atlas',
       'phoenix__display_show_body_details',
       'phoenix__display_show_system_schematic',
       'phoenix__exploration_get_current_body_signals',
@@ -138,6 +307,7 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
       'phoenix__navigation_check_jump_reachability',
       'phoenix__navigation_get_plotted_route',
       'phoenix__missions_list_missions',
+      'phoenix__activities_list_community_goals',
       'phoenix__stations_find_stations_selling_module',
       'phoenix__markets_find_commodity_markets',
       'phoenix__markets_find_trade_opportunities',
@@ -175,6 +345,19 @@ test('the portable AI client discovers and calls PHOENIX tools over MCP', async 
           structuredContent: {
             location: { state: 'unknown' },
             revision: 0
+          },
+          type: 'tool_result'
+        },
+        {
+          callId: 'projects-1',
+          status: 'success',
+          structuredContent: {
+            inventoryAvailable: false,
+            observedAt: null,
+            projects: [],
+            materials: [],
+            personalEquipment: 'unsaved_preview_only',
+            schemaVersion: 1
           },
           type: 'tool_result'
         },

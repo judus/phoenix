@@ -6,6 +6,8 @@ test('uses repository-local writable roots explicitly in development', () => {
   const paths = ApplicationPaths.development('/workspace/phoenix', {})
 
   expect(paths.resources.copilots).toBe(resolve('/workspace/phoenix', 'resources/copilots'))
+  expect(paths.resources.queries).toBe(resolve('/workspace/phoenix', 'resources/queries'))
+  expect(paths.resources.atlas).toBe(resolve('/workspace/phoenix', 'resources/atlas'))
   expect(paths.user.config).toBe(resolve('/workspace/phoenix', 'data'))
   expect(paths.user.data).toBe(resolve('/workspace/phoenix', 'data'))
   expect(paths.user.logs).toBe(resolve('/workspace/phoenix', 'data', 'runtime', 'logs'))

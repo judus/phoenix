@@ -128,7 +128,7 @@ const GALAXY_QUERY_DEFINITIONS: GalaxyQueryDefinition[] = [
       { id: 'volcanism', label: 'Volcanism', options: VOLCANISM_TYPES, type: 'multi-select' },
       { id: 'minBiologicalSignals', label: 'Minimum biological signals', min: 0, type: 'number' },
       { id: 'minGeologicalSignals', label: 'Minimum geological signals', min: 0, type: 'number' },
-      { id: 'lastReportedBefore', label: 'Last reported before', hint: 'For pre-Odyssey candidates, use 2021-05-19 and set minimum biological signals to 0.', type: 'date' }
+      { id: 'lastReportedBefore', label: 'Last reported before', hint: 'For pre-Odyssey prospecting, use 2021-05-18, Landable = Any and minimum biological signals = 0 (no signal-count constraint). This filters body-report dates, not visits; biology and First Footfall are not guaranteed.', type: 'date' }
     ],
     id: 'exploration-targets',
     purpose: 'Locate reported bodies by physical characteristics and surface signals without claiming unfinished exploration.',

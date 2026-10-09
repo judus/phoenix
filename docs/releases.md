@@ -7,7 +7,9 @@
 - Promote `dev` to `main` with a PR after native CI passes. Use a **merge commit** for this
   long-lived branch promotion, not squash/rebase, so their shared history remains intact.
 - Synchronize `main` back into `dev` through a PR after promotion; hotfixes must also return to `dev`.
-- Both branches require the `CI passed` check and a PR. Required human approval count is zero
+- `dev` requires `CI passed`; `main` requires `Installers passed`, both from GitHub Actions,
+  with up-to-date branches and a PR. Ordinary source checks cannot satisfy the promotion gate.
+  Required human approval count is zero
   for this solo-maintainer repository; this does not waive CI. Force pushes/deletion are blocked,
   including for administrators. Feature branches can use squash merges.
 
@@ -17,11 +19,17 @@ Only PHOENIX is covered here; Control Deck has its own independent repository/re
 
 `ci.yml` runs on pushes and pull requests to `dev`/`main`, and manual dispatch. It calls the same
 native verification workflow on Ubuntu 24.04 x64 and Windows Server 2022 x64 with Node 24.14.0.
-Every run executes `npm ci` and `npm run check`. Promotions to `main`, pushes to `main`, and manual
+Every run executes `npm ci` and `npm run check`. Pull requests into `main` and manual
 CI runs additionally verify the native packages: Linux verifies the pinned AppImage runtime,
 helpers and file hashes, then smoke-tests AppRun and the image's extract-and-run lifecycle;
 Windows installs, smoke-tests its native launcher, then uninstalls. Ordinary
 CI retains no installer artifacts or dependency caches. Superseded CI runs are cancelled.
+Pushes to either branch skip packaging, avoiding a duplicate installer build after promotion.
+The final gate is named `Installers passed` only for PRs into `main` and manual CI runs;
+all ordinary runs report `CI passed`. It accepts only a successful aggregate native result:
+failed, skipped or cancelled verification cannot pass. A cancelled gate also cannot authorize merge.
+Version tags still build and verify release installers from the exact tagged commit, rather than
+reusing development packages.
 
 `release.yml` runs for `v*` version tags or a manual retry specifying an existing tag. It:
 
@@ -56,6 +64,8 @@ Use the actual next version; never reuse or move a release tag. Wait for `Draft 
 complete, then review assets/notes in GitHub Releases. Native installer tests are not proof of real
 Elite input, tablet pairing, antivirus acceptance or actual user-data upgrade behavior. Use the
 acceptance checklist in `scripts/package/README.md`. Windows binaries are currently unsigned.
+The [acceptance matrix](acceptance.md) records build-specific evidence and outstanding gameplay,
+tablet and platform checks. Refresh it for the exact release revision; CI is not gameplay acceptance.
 
 Publishing is an explicit maintainer action. The first release remains a preview. Keep it marked
 prerelease; do not mark it latest. Later, a fully accepted build may be published as a normal

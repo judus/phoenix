@@ -127,6 +127,11 @@ describe('PHOENIX route parsing and generation', () => {
     expect(defaultRouteForInformationSection('equipment')).toEqual({ kind: 'information', section: 'equipment', view: 'gear' })
   })
 
+  test('Galaxy lands on the Atlas', () => {
+    expect(defaultRouteForInformationSection('galaxy')).toEqual({ kind: 'information', section: 'galaxy', view: 'atlas' })
+    expect(phoenixRouteHash(parsePhoenixRoute('#/galaxy'))).toBe('#/galaxy/atlas')
+  })
+
   test('Exobiology is an owned Galaxy route', () => {
     const route = parsePhoenixRoute('#/galaxy/exobiology')
     expect(route).toEqual({ kind: 'information', section: 'galaxy', view: 'exobiology' })
@@ -210,7 +215,7 @@ describe('PHOENIX route parsing and generation', () => {
   })
 
   test('workspace destinations use explicit defaults', () => {
-    expect(defaultRouteForWorkspace('controls')).toEqual({ kind: 'controls', category: 'ship' })
+    expect(defaultRouteForWorkspace('controls')).toEqual({ kind: 'controls', category: 'quick' })
     expect(defaultRouteForWorkspace('info')).toEqual(DEFAULT_ROUTE)
     expect(defaultRouteForWorkspace('telemetry')).toEqual({ kind: 'numpad' })
   })

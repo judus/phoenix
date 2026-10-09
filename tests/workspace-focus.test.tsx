@@ -15,28 +15,36 @@ test('focus view toggles explicitly and Escape exits it', () => {
   vi.stubGlobal('addEventListener', add)
   vi.stubGlobal('removeEventListener', remove)
 
+  let renderer: ReturnType<typeof create> | undefined
   try {
-    let renderer!: ReturnType<typeof create>
     act(() => { renderer = create(<FocusHarness />) })
-    const button = renderer.root.findByType('button')
+    const button = renderer!.root.findByType('button')
 
     act(() => button.props.onClick())
-    expect(renderer.root.findByType('main').props['data-active']).toBe(true)
+    expect(renderer!.root.findByType('main').props['data-active']).toBe(true)
+    expect(listeners.size).toBe(1)
 
     const preventDefault = vi.fn()
     act(() => {
       for (const listener of listeners) listener({ key: 'Escape', preventDefault } as unknown as KeyboardEvent)
     })
     expect(preventDefault).toHaveBeenCalledOnce()
-    expect(renderer.root.findByType('main').props['data-active']).toBe(false)
+    expect(renderer!.root.findByType('main').props['data-active']).toBe(false)
+    expect(listeners.size).toBe(0)
+    act(() => button.props.onClick())
+    expect(listeners.size).toBe(1)
+    act(() => renderer!.unmount())
+    expect(listeners.size).toBe(0)
   } finally {
+    act(() => renderer?.unmount())
     vi.unstubAllGlobals()
   }
 })
 
-test('a two-touch pinch enters and exits focus without treating one touch as focus input', () => {
+test('a two-touch pinch enters and exits focus without treating one touch as focus input', ({ onTestFinished }) => {
   let renderer!: ReturnType<typeof create>
   act(() => { renderer = create(<FocusHarness />) })
+  onTestFinished(() => { act(() => renderer.unmount()) })
   let target = renderer.root.findByType('main')
 
   act(() => {

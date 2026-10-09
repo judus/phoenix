@@ -2,7 +2,7 @@ import type { EddnStatus, EddnSubmissionDetail, EddnSubmissionLog, EliteGameStat
 import type { EliteJournalEvent, EliteJournalObservationSource } from '@phoenix/elite'
 import { EddnMessageBuilder, EDDN_JOURNAL_EVENTS, EDDN_SNAPSHOT_EVENTS } from '../domain/eddn-message-builder.js'
 import { EddnSignalBuffer } from '../domain/eddn-signal-buffer.js'
-import { EDDN_MAX_AGE_MS, EDDN_REQUEST_TIMEOUT_MS, type EddnMessage, type EddnMode, type EddnOutbox, type EddnTransport } from '../domain/eddn.js'
+import { EDDN_MAX_AGE_MS, EDDN_REQUEST_TIMEOUT_MS, EddnQueueCapacityError, type EddnMessage, type EddnMode, type EddnOutbox, type EddnTransport } from '../domain/eddn.js'
 import type { SystemSettingsRepository } from '../domain/system-configuration.js'
 
 interface Options {
@@ -28,6 +28,9 @@ export class EddnContributionService {
   private inflight?: AbortController
   private pending?: Promise<void>
   private readonly signals = new EddnSignalBuffer()
+  private signalCheckpointed = false
+  private closingSignals?: { message: EddnMessage | null }
+  private readonly signalDiscards = new Map<string, 'invalid' | 'cleared' | 'capacity'>()
   private readonly snapshots = new Map<string, { content: string, at: number }>()
 
   public constructor (private readonly options: Options) {
@@ -44,7 +47,7 @@ export class EddnContributionService {
       this.enabledSince = preference.eddnChangedAt
       this.options.outbox.initialize()
       this.options.outbox.prune(this.now())
-      if (!this.enabled || this.options.mode === 'unavailable') this.options.outbox.clear()
+      if (!this.enabled || this.options.mode === 'unavailable') this.options.outbox.clear(this.now())
       this.ready = true
       if (this.options.mode === 'test') {
         this.timer = setInterval(() => { void this.flush() }, 1000)
@@ -56,8 +59,10 @@ export class EddnContributionService {
   }
 
   public async stop (): Promise<void> {
+    this.retrySignalDiscards()
     // Only flush against already established context, never infer a missing arrival on shutdown.
     if (this.active()) this.flushSignals()
+    this.retrySignalDiscards()
     this.running = false
     if (this.timer) clearInterval(this.timer)
     this.timer = undefined
@@ -72,20 +77,24 @@ export class EddnContributionService {
     this.options.settings.save({ ...settings, community: { eddnEnabled: enabled, eddnChangedAt: changedAt } })
     this.enabled = enabled
     this.enabledSince = changedAt
+    const batch = this.signals.peek()
+    if (batch && this.signalCheckpointed) this.signalDiscards.set(batch.id, this.signalDiscards.get(batch.id) ?? 'cleared')
     this.signals.clear()
+    this.signalCheckpointed = false
+    this.closingSignals = undefined
     this.snapshots.clear()
     this.inflight?.abort()
-    try { if (this.ready) this.options.outbox.clear() } catch { this.storageFailure() }
+    try { if (this.ready) this.options.outbox.clear(this.now()) } catch { this.storageFailure() }
     return this.status()
   }
 
   public status (): EddnStatus {
-    let storage = { queued: 0, lastSuccessAt: null as string | null }
+    let storage: Pick<EddnStatus, 'queued' | 'lastSuccessAt' | 'losses'> = { queued: 0, lastSuccessAt: null, losses: [] }
     try { if (this.ready) storage = this.options.outbox.status() } catch { this.storageFailure() }
     return {
       enabled: this.enabled, mode: this.options.mode, ...storage, error: this.error,
       detail: !this.enabled ? 'Disabled. Pending uploads are cleared; already transmitted data cannot be recalled.'
-        : this.options.mode === 'unavailable' ? 'Enabled by preference. Uploads are held until EDDN release review is complete.'
+        : this.options.mode === 'unavailable' ? 'Enabled by preference. Uploads are disabled in this build; pending uploads are cleared.'
           : 'Test stream only; EDMC parity is incomplete. Keep your existing uploader. Live community publishing is not enabled.'
     }
   }
@@ -101,21 +110,38 @@ export class EddnContributionService {
   /** Called after normal projection. Contribution failures must never hold up cockpit ingestion. */
   public observe (event: EliteJournalEvent, source: EliteJournalObservationSource): void {
     try {
-      const reset = ['Fileheader', 'LoadGame', 'JoinACrew', 'QuitACrew'].includes(event.event) ||
+      this.retrySignalDiscards()
+      const continuation = this.builder.isSessionContinuation(event)
+      const reset = (event.event === 'Fileheader' && !continuation) ||
+        ['LoadGame', 'JoinACrew', 'QuitACrew'].includes(event.event) ||
         (event.event === 'Music' && event.MusicTrack === 'MainMenu')
       if (reset || source.replayed || !this.active()) {
+        const batch = this.signals.peek()
+        if (batch && this.signalCheckpointed) this.signalDiscards.set(batch.id, this.signalDiscards.get(batch.id) ?? 'cleared')
+        this.retrySignalDiscards()
         this.signals.clear()
+        this.signalCheckpointed = false
+        this.closingSignals = undefined
         this.snapshots.clear()
       }
       const arrival = ['FSDJump', 'CarrierJump', 'Location'].includes(event.event)
+      if (this.closingSignals) this.flushSignals()
       // Flush with the incoming location for Odyssey, or the previous location for other events.
-      if (!arrival && event.event !== 'FSSSignalDiscovered') this.flushSignals()
+      if (!arrival && event.event !== 'FSSSignalDiscovered' && event.event !== 'Continued' && !continuation) this.flushSignals()
       this.builder.observe(event)
       if (arrival) this.flushSignals()
       if (!this.active() || source.replayed || Date.parse(event.timestamp) < this.enabledSince || !this.fresh(event.timestamp)) return
       if (!this.builder.canContribute()) return
       if (event.event === 'FSSSignalDiscovered') {
-        if (!this.signals.add(event, source.id)) this.error = 'A signal batch exceeded the safety limit and was skipped.'
+        if (this.closingSignals) return // Failed storage cannot mix runs or their system contexts.
+        if (this.signals.peek()?.overflow) return
+        if (!this.signals.add(event, source.id)) {
+          const batch = this.signals.peek()!
+          if (!this.signalCheckpointed) this.signalCheckpointed = this.options.outbox.checkpointSignals(batch.id, null, this.now())
+          if (this.signalCheckpointed) this.signalDiscards.set(batch.id, 'invalid')
+          this.retrySignalDiscards()
+          this.error = 'A signal batch exceeded the safety limit and was skipped.'
+        } else this.checkpointSignals(event)
         return
       }
       let message: EddnMessage | undefined
@@ -137,8 +163,8 @@ export class EddnContributionService {
         this.options.outbox.enqueue(source.id, message, this.now())
         this.snapshots.set(message.$schemaRef, { content, at: this.now() })
       } else this.options.outbox.enqueue(source.id, message, this.now())
-    } catch {
-      this.storageFailure()
+    } catch (cause) {
+      this.storageFailure(cause)
     }
   }
 
@@ -147,18 +173,72 @@ export class EddnContributionService {
   }
 
   private flushSignals (): void {
-    const batch = this.signals.take()
+    const batch = this.signals.peek()
     if (!batch || !this.active()) return
     try {
-      const eligible = batch.events.filter(event => this.fresh(event.timestamp) && Date.parse(event.timestamp) >= this.enabledSince)
-      const message = this.builder.signals(eligible)
-      if (!message) return // Mission-only or wrong-system run: no public observation to submit.
-      if (!this.options.valid(message)) {
+      if (batch.overflow) {
+        // Retry removal if the original oversize/capacity invalidation could not write.
+        if (this.signalCheckpointed) this.options.outbox.discardSignals(batch.id, this.signalDiscards.get(batch.id) ?? 'invalid', this.now())
+        this.signals.clear()
+        this.signalCheckpointed = false
+        this.closingSignals = undefined
+        return
+      }
+      if (!this.closingSignals) {
+        const eligible = batch.events.filter(event => this.fresh(event.timestamp) && Date.parse(event.timestamp) >= this.enabledSince)
+        const message = this.builder.signals(eligible)
+        this.closingSignals = { message: message && this.options.valid(message) ? message : null }
+      }
+      if (!this.closingSignals.message) {
+        if (this.signalCheckpointed) this.options.outbox.discardSignals(batch.id, 'invalid', this.now())
+        this.signals.clear()
+        this.signalCheckpointed = false
+        this.closingSignals = undefined
         this.error = 'A signal batch was skipped: invalid or oversized observation.'
         return
       }
-      this.options.outbox.enqueue(batch.id, message, this.now())
-    } catch { this.storageFailure() }
+      if (!this.signalCheckpointed) this.signalCheckpointed = this.options.outbox.checkpointSignals(batch.id, null, this.now())
+      if (this.signalCheckpointed) this.options.outbox.sealSignals(batch.id, this.closingSignals.message, this.now())
+      this.signals.clear()
+      this.signalCheckpointed = false
+      this.closingSignals = undefined
+    } catch (cause) {
+      if (cause instanceof EddnQueueCapacityError) {
+        if (this.signalCheckpointed) this.signalDiscards.set(batch.id, 'capacity')
+        // This run's boundary was already processed; cleanup must not suppress the next run.
+        this.signals.clear()
+        this.signalCheckpointed = false
+        this.closingSignals = undefined
+      }
+      this.storageFailure(cause)
+    }
+  }
+
+  private checkpointSignals (event: EliteJournalEvent): void {
+    const batch = this.signals.peek()
+    if (!batch) return // Mission targets are filtered before a batch is created.
+    const message = this.builder.signals([event])
+    try {
+      const saved = this.options.outbox.checkpointSignals(batch.id, message && this.options.valid(message) ? message : null, this.now())
+      this.signalCheckpointed ||= saved
+      if (!saved) this.signals.reject() // The sealed/receipted original owns this ID, not this duplicate run.
+    } catch (cause) {
+      if (cause instanceof EddnQueueCapacityError) {
+        this.signals.reject()
+        if (this.signalCheckpointed) this.signalDiscards.set(batch.id, 'capacity')
+      }
+      throw cause
+    }
+  }
+
+  private retrySignalDiscards (): void {
+    try { this.options.outbox.retryCapacityLosses() } catch (cause) { this.storageFailure(cause) }
+    for (const [id, reason] of this.signalDiscards) {
+      try {
+        this.options.outbox.discardSignals(id, reason, this.now())
+        this.signalDiscards.delete(id)
+      } catch (cause) { this.storageFailure(cause); break }
+    }
   }
 
   public flush (): Promise<void> {
@@ -169,14 +249,27 @@ export class EddnContributionService {
   }
 
   private async sendNext (): Promise<void> {
+    this.retrySignalDiscards()
     if (!this.active()) return
     try {
+      if (this.closingSignals) this.flushSignals()
       this.options.outbox.prune(this.now())
       const next = this.options.outbox.next(this.now())
       if (!next) return
-      if (!this.options.valid(next.message) || !this.fresh(next.message.message.timestamp) || Date.parse(String(next.message.message.timestamp)) < this.enabledSince) {
-        this.options.outbox.discard(next.id)
+      if (!this.options.valid(next.message)) {
+        this.options.outbox.drop(next.id, 'invalid', this.now())
+        this.error = 'An invalid queued observation was discarded.'
+        return
+      }
+      if (!this.fresh(next.message.message.timestamp)) {
+        const timestamp = Date.parse(String(next.message.message.timestamp))
+        this.options.outbox.drop(next.id, Number.isFinite(timestamp) && timestamp <= this.now() ? 'expired' : 'invalid', this.now())
         this.error = 'An expired or invalid queued observation was discarded.'
+        return
+      }
+      if (Date.parse(String(next.message.message.timestamp)) < this.enabledSince) {
+        this.options.outbox.drop(next.id, 'cleared', this.now())
+        this.error = 'An observation from before the current opt-in was cleared.'
         return
       }
       const abort = new AbortController()
@@ -203,7 +296,7 @@ export class EddnContributionService {
       } else {
         this.snapshots.delete(next.message.$schemaRef)
         this.options.outbox.finishAttempt(attempt, 'rejected', status, this.now())
-        this.options.outbox.discard(next.id)
+        this.options.outbox.drop(next.id, 'rejected', this.now())
         this.error = `EDDN rejected an observation (HTTP ${status}). It will not be retried; check for a PHOENIX update.`
       }
     } catch {
@@ -218,7 +311,8 @@ export class EddnContributionService {
     const time = typeof timestamp === 'string' ? Date.parse(timestamp) : NaN
     return Number.isFinite(time) && time > this.now() - EDDN_MAX_AGE_MS && time <= this.now() + 5 * 60_000
   }
-  private storageFailure (): void {
-    this.error = 'Contribution could not process local data. Check local storage and restart PHOENIX if this persists.'
+  private storageFailure (cause?: unknown): void {
+    this.error = cause instanceof EddnQueueCapacityError ? cause.message
+      : 'Contribution could not process local data. Check local storage and restart PHOENIX if this persists.'
   }
 }

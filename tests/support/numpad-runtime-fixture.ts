@@ -1,3 +1,4 @@
+import { phoenixApiStub } from './phoenix-api-stub.js'
 import { vi } from 'vitest'
 import type { NumpadExecutionResult, NumpadTreeSnapshot, PhoenixModules } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../apps/web/src/application/api/phoenix-api.js'
@@ -37,7 +38,7 @@ export function numpadRuntimeFixture() {
   } as unknown as PhoenixRouter
   const routeSession = { arm: vi.fn(), acknowledge: vi.fn(), isArmed: () => false, discard: vi.fn(), leave: vi.fn(() => false), navigate: vi.fn() }
   const paints: (() => void)[] = []
-  const runtime = new NumpadRuntime(api as PhoenixApi, events, router, routeSession, notify => { paints.push(notify) })
+  const runtime = new NumpadRuntime(phoenixApiStub(api), events, router, routeSession, notify => { paints.push(notify) })
   return {
     api, events, router, routeSession, runtime, paints, settings, result,
     changed: (revision: number, generatedAt = numpadTree.generatedAt) => catalogue({ revision, generatedAt }),

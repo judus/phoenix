@@ -10,21 +10,21 @@ import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js
 
 export type RouteNavigationItem = NavigationItem & { route: PhoenixRoute }
 
-export function utilityItems(fullscreen: { active: boolean, supported: boolean }, focusActive = false): ApplicationNavigationItem[] {
+export function utilityItems(fullscreen: { active: boolean, supported: boolean }, focusActive = false, androidShell = false): ApplicationNavigationItem[] {
   return [
     routeItem('telemetry', 'Numpad', '011', { kind: 'numpad' }),
     routeItem('macros', 'Macros', 'MCR', { kind: 'macros' }),
     routeItem('journal', 'Commander log', 'LOG', { kind: 'journal', view: 'commander' }),
-    routeItem('developer', 'Developer tools', 'DEV', { kind: 'developer', view: 'tools' }),
     routeItem('settings', 'Settings', 'STG', { kind: 'settings', view: 'general' }),
-    {
+    routeItem('developer', 'Developer tools', 'DEV', { kind: 'developer', view: 'tools' }),
+    ...(!androidShell ? [{
       id: 'fullscreen',
-      kind: 'action',
+      kind: 'action' as const,
       label: fullscreen.active ? 'Exit fullscreen' : 'Enter fullscreen',
       shortLabel: 'F11',
       pressed: fullscreen.active,
       disabled: !fullscreen.supported
-    },
+    }] : []),
     {
       id: 'focus',
       kind: 'action',
@@ -47,11 +47,11 @@ export const primaryItems: RouteNavigationItem[] = [
 
 export const emptyContextItems: NavigationItem[] = []
 
-export function workspaceItems(informationRoute: InformationRoute): RouteNavigationItem[] {
+export function workspaceItems(informationRoute: InformationRoute, controlsRoute = defaultRouteForWorkspace('controls'), copilotRoute = defaultRouteForWorkspace('copilot')): RouteNavigationItem[] {
   return [
-    routeItem('controls', 'Controls', 'CTR', defaultRouteForWorkspace('controls')),
+    routeItem('controls', 'Controls', 'CTR', controlsRoute),
     routeItem('info', 'Info', 'INF', informationRoute),
-    routeItem('copilot', 'Copilot', 'CPT', defaultRouteForWorkspace('copilot'))
+    routeItem('copilot', 'Copilot', 'CPT', copilotRoute)
   ]
 }
 

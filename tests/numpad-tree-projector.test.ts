@@ -18,9 +18,12 @@ test('Controls selects saved decks in order and never synthesizes macro menus', 
       ['1', 'Quick access'], ['2', 'Ship'], ['3', 'Combat'], ['4', 'Navigation'], ['5', 'Vessel'],
       ['6', 'SRV'], ['7', 'On Foot'], ['8', 'Radio'], ['9', 'Emotes']
     ])
-  expect(snapshot.nodes.some(node => node.id.includes('macros') || node.action?.type === 'command' && node.action.target.commandId.startsWith('command.macro.'))).toBe(false)
+  expect(snapshot.nodes.some(node => node.action?.type === 'command' && node.action.target.commandId.startsWith('command.macro.'))).toBe(false)
   expect(snapshot.nodes.filter(node => node.parentId === null).map(node => [node.address, node.label]))
-    .toEqual([['1', 'Controls'], ['2', 'Info'], ['3', 'Copilot'], ['5', 'Log'], ['6', 'Settings']])
+    .toEqual([['1', 'Controls'], ['2', 'Info'], ['3', 'Copilot'], ['4', 'Macros'], ['5', 'Log'], ['6', 'Settings']])
+  expect(snapshot.nodes.find(node => node.address === '4')).toMatchObject({
+    action: { type: 'command', target: { commandId: 'command.navigation.macros.library' } }
+  })
 
   for (const [digit, id] of [['1', 'quick'], ['2', 'ship'], ['3', 'combat']]) {
     let state = activateControlDeckNumpadSession()

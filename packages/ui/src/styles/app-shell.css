@@ -319,6 +319,11 @@
   touch-action: pan-y;
 }
 
+/* Carry the zone policy through nested scroll owners. Map/control surfaces
+   keep their more specific touch-action rules and no-swipe exclusions. */
+:where(.deskplane-swipe-zone *) { touch-action: inherit; }
+:where(.deskplane-swipe-zone [data-deskplane-no-swipe]) { touch-action: auto; }
+
 .shell-body.deskplane-viewport .deskplane-desktop { overflow: hidden; }
 
 @container application-shell (width < 42rem) {

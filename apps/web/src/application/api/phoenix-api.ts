@@ -40,6 +40,13 @@ import type {
   GameActionOperation,
   GameActionResult,
   GalnetNewsResponse,
+  GalnetArchiveQuery, GalnetArchiveResponse, GalnetArchivedArticle,
+  GalnetAnalysisResponse,
+  GalnetBackgroundStatus,
+  GalnetBackgroundSettings,
+  GalnetCoverageResponse,
+  GalnetInvestigationLeadsResponse,
+  CommunityGoalsResponse,
   FleetResponse,
   EngineeringBlueprintDetail,
   EngineeringBlueprintsResponse,
@@ -64,6 +71,7 @@ import type {
   GalaxyStationLookupResponse,
   GalaxyTradeOpportunitiesResponse,
   GalaxyBookmark,
+  AtlasCatalogueResponse,
   GalaxyBookmarksResponse,
   GalaxyBookmarkWriteRequest,
   HealthResponse,
@@ -175,7 +183,18 @@ export interface PhoenixApi {
   getDashboardMarketSignals(signal?: AbortSignal): Promise<DashboardMarketSignalsResponse>
   getFleet(signal?: AbortSignal): Promise<FleetResponse>
   getGalaxyBookmarks(signal?: AbortSignal): Promise<GalaxyBookmarksResponse>
+  getAtlasCatalogue(signal?: AbortSignal): Promise<AtlasCatalogueResponse>
   getGalnetNews(limit?: number, signal?: AbortSignal): Promise<GalnetNewsResponse>
+  getGalnetArchive(query: GalnetArchiveQuery, signal?: AbortSignal): Promise<GalnetArchiveResponse>
+  getGalnetArchivedArticle(articleId: string, signal?: AbortSignal): Promise<GalnetArchivedArticle>
+  getGalnetAnalysis(articleId: string, signal?: AbortSignal): Promise<GalnetAnalysisResponse>
+  getGalnetBackground(signal?: AbortSignal): Promise<GalnetBackgroundStatus>
+  getGalnetCoverage(articleId: string, signal?: AbortSignal): Promise<GalnetCoverageResponse>
+  saveGalnetBackground(settings: GalnetBackgroundSettings, signal?: AbortSignal): Promise<GalnetBackgroundStatus>
+  catchUpGalnet(articleIds: string[], signal?: AbortSignal): Promise<GalnetBackgroundStatus>
+  getGalnetInvestigationLeads(signal?: AbortSignal): Promise<GalnetInvestigationLeadsResponse>
+  analyseGalnetArticle(articleId: string, signal?: AbortSignal): Promise<GalnetAnalysisResponse>
+  getCommunityGoals(signal?: AbortSignal): Promise<CommunityGoalsResponse>
   findGalaxySystems(input: GalaxySystemSearch, signal?: AbortSignal): Promise<GalaxySystemSearchResponse>
   findGalaxyCommodityMarkets(input: GalaxyCommodityMarketSearch, signal?: AbortSignal): Promise<GalaxyCommodityMarketsResponse>
   findGalaxyMarketSignals(input: GalaxyMarketSignalSearch, signal?: AbortSignal): Promise<GalaxyMarketSignalsResponse>
@@ -206,6 +225,7 @@ export interface PhoenixApi {
   getPairingStatus(signal?: AbortSignal): Promise<PairingStatus>
   getRuntimeState(signal?: AbortSignal): Promise<RuntimeState>
   getSavedGalaxyQueries(signal?: AbortSignal): Promise<SavedGalaxyQueriesResponse>
+  importPredefinedGalaxyQueries(signal?: AbortSignal): Promise<SavedGalaxyQueriesResponse>
   getShipCatalogue(signal?: AbortSignal): Promise<ShipCatalogueResponse>
   getSystemCartography(systemName?: string, signal?: AbortSignal): Promise<CartographyLookupResponse>
   persistCopilotRealtimeTurn(input: CopilotRealtimeTurnRequest, signal?: AbortSignal): Promise<void>

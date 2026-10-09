@@ -1,8 +1,11 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeAll, expect, test, vi } from 'vitest'
 import { act, create } from 'react-test-renderer'
 import { EngineeringAddBlueprintPage } from '../apps/web/src/features/engineering/engineering-add-blueprint-page.js'
 import { EngineeringEffectsPage } from '../apps/web/src/features/engineering/engineering-effects-page.js'
+import { EngineeringProjectsPage } from '../apps/web/src/features/engineering/engineering-projects-page.js'
+import { EngineeringProjectDetailPage } from '../apps/web/src/features/engineering/engineering-project-detail-page.js'
 import type { EngineeringControllerActions } from '../apps/web/src/features/engineering/use-engineering-controller.js'
 import type { EngineeringBlueprintDetail, EngineeringEngineer, EngineeringMaterial } from '@phoenix/contracts'
 import { EngineeringPage } from '../apps/web/src/features/engineering/engineering-page.js'
@@ -14,11 +17,10 @@ beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) 
 test('experimental applications allow empty drafts and submit exact effect and module identities', async () => {
   const project = engineeringProject('00000000-0000-4000-8000-000000000001')
   const addStep = vi.fn().mockResolvedValue(project)
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<EngineeringEffectsPage
+  const renderer = await renderWithAct(<EngineeringEffectsPage
     effects={[{ symbol: 'effect', name: 'Shared name', description: '', modules: [{ id: 'mc', name: 'Multi-cannon' }], components: [] }]}
     selectedSymbol="effect" projects={[project]} actions={{ addStep } as unknown as EngineeringControllerActions} onNavigate={onNavigate}
-  />) })
+  />)
   const change = async (value: string) => act(async () => renderer.root.findByType('input').props.onChange({ target: { value } }))
   const submit = async () => act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
   for (const invalid of ['', '0', '-1', '1.5', '101']) {
@@ -36,11 +38,10 @@ test('experimental applications allow empty drafts and submit exact effect and m
 test('planned rolls can be cleared and replaced, and invalid drafts cannot be submitted', async () => {
   const project = engineeringProject('00000000-0000-4000-8000-000000000001')
   const addStep = vi.fn().mockResolvedValue(project)
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<EngineeringAddBlueprintPage
+  const renderer = await renderWithAct(<EngineeringAddBlueprintPage
     actions={{ addStep } as unknown as EngineeringControllerActions}
     blueprint={blueprint()} projects={[project]} onNavigate={onNavigate}
-  />) })
+  />)
   const field = () => renderer.root.findByType('input')
   const change = async (value: string) => act(async () => field().props.onChange({ target: { value } }))
   const submit = async () => act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
@@ -62,9 +63,9 @@ test('planned rolls can be cleared and replaced, and invalid drafts cannot be su
 
 test('Engineering exposes project planning and catalogue views through typed routes', () => {
   expect(engineeringNavigationItems.map(item => [item.label, item.href])).toEqual([
-    ['Projects', '#/engineering/projects'], ['Blueprints', '#/engineering/blueprints'], ['Experimental effects', '#/engineering/experimental-effects'], ['Engineers', '#/engineering/engineers'],
+    ['Blueprints', '#/engineering/blueprints'], ['Experimental effects', '#/engineering/experimental-effects'], ['Engineers', '#/engineering/engineers'],
     ['Raw materials', '#/engineering/materials/raw'], ['Manufactured materials', '#/engineering/materials/manufactured'],
-    ['Encoded materials', '#/engineering/materials/encoded'], ['Xeno materials', '#/engineering/materials/xeno']
+    ['Encoded materials', '#/engineering/materials/encoded'], ['Xeno materials', '#/engineering/materials/xeno'], ['Projects', '#/engineering/projects']
   ])
 })
 
@@ -77,6 +78,26 @@ test('Blueprint catalogue is independent from current-ship application and keeps
   expect(markup).not.toContain('Current ship')
   expect(markup).toContain('#/engineering/blueprints?symbol=dirty-drive')
   expect(markup).not.toContain('1 fitted')
+})
+
+test('blueprint search matches names, catalogue aliases and modules without changing detail links', async () => {
+  const renderer = await renderWithAct(<EngineeringPage controller={{ status: 'ready', blueprints: { blueprints: [
+    { appliedModuleCount: 0, moduleNames: ['Thrusters'], name: 'Dirty drive tuning', originalName: 'DirtyDrive', symbol: 'dirty-drive' },
+    { appliedModuleCount: 0, moduleNames: ['Power Plant'], name: 'Overcharged', originalName: 'OverchargedPowerPlant', symbol: 'overcharged' }
+  ] } }} onNavigate={onNavigate} route={{ kind: 'information', section: 'engineering', view: 'blueprints' }} />)
+  try {
+    const input = () => renderer.root.findByType('input')
+    expect(input().props.className).toContain('form-mini')
+    const links = () => renderer.root.findAllByType('a').filter(link => link.props.href.includes('?symbol=')).map(link => link.props.href)
+    for (const value of [' dirty ', 'DIRTYDRIVE', 'thrusters']) {
+      await act(async () => input().props.onChange({ target: { value } }))
+      expect(links()).toEqual(['#/engineering/blueprints?symbol=dirty-drive'])
+    }
+    await act(async () => input().props.onChange({ target: { value: 'nothing' } }))
+    expect(links()).toEqual([])
+    await act(async () => input().props.onChange({ target: { value: '' } }))
+    expect(links()).toHaveLength(2)
+  } finally { await act(async () => renderer.unmount()) }
 })
 
 test('Engineering project index summarizes plans and links to dedicated project details', () => {
@@ -102,10 +123,62 @@ test('Engineering project detail owns settings, blueprint steps, and its materia
     status: 'ready',
     watchlist: { activeProjectCount: 1, materials: [{ category: 'raw', grade: 2, highestPriority: 'high', materialId: 'Arsenic', materialName: 'Arsenic', missing: 4, owned: 2, projectCount: 1, projects: [{ id: projectId, name: 'Explorer refit' }], required: 6, stepCount: 1 }], observedAt: '2026-09-13T12:00:00Z', schemaVersion: 1
   }}} onNavigate={onNavigate} route={{ kind: 'information', section: 'engineering', view: 'project-detail', selectedProjectId: projectId }} />)
-  expect(markup).toContain('Project settings')
+  expect(markup).toContain('Project details')
+  expect(markup).toContain('Edit project')
+  expect(markup).not.toContain('<form')
   expect(markup).toContain('Long Range FSD')
   expect(markup).toContain('Project material plan')
   expect(markup).toContain('<td>6</td><td class="text-danger">4</td>')
+})
+
+test('New project belongs to the page header and navigates from an empty ledger', async () => {
+  const navigate = vi.fn()
+  const renderer = await renderWithAct(<EngineeringProjectsPage onNavigate={navigate} projects={[]} />)
+  try {
+    const header = renderer.root.findByProps({ className: 'page-header page-header-cockpit' })
+    const button = header.findByType('button')
+    expect(button.children).toEqual(['New project'])
+    await act(async () => button.props.onClick())
+    expect(navigate).toHaveBeenCalledWith({ kind: 'information', section: 'engineering', view: 'project-new' })
+    expect(renderer.root.findAllByType('button')).toHaveLength(1)
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('project header editing cancels drafts, retains errors and closes only after a successful save', async () => {
+  const project = engineeringProject('00000000-0000-4000-8000-000000000001')
+  const updateProject = vi.fn().mockRejectedValueOnce(new Error('Save failed')).mockResolvedValue(project)
+  const actions: EngineeringControllerActions = {
+    addStep: vi.fn().mockResolvedValue(project), createProject: vi.fn().mockResolvedValue(project),
+    deleteProject: vi.fn().mockResolvedValue(undefined), deleteStep: vi.fn().mockResolvedValue(project), updateProject
+  }
+  const navigate = vi.fn()
+  const renderer = await renderWithAct(<EngineeringProjectDetailPage actions={actions} onNavigate={navigate} project={project} />)
+  const edit = () => renderer.root.findByProps({ className: 'page-header page-header-cockpit' }).findByType('button')
+  const name = () => renderer.root.findByProps({ id: 'engineering-project-name' })
+  const cancel = () => renderer.root.findAllByType('button').find(button => button.children.includes('Cancel'))!
+  const submit = () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} })
+  try {
+    expect(renderer.root.findAllByType('form')).toHaveLength(0)
+    await act(async () => edit().props.onClick())
+    await act(async () => name().props.onChange({ target: { value: 'Discard me' } }))
+    await act(async () => cancel().props.onClick())
+    expect(updateProject).not.toHaveBeenCalled()
+    expect(navigate).not.toHaveBeenCalled()
+    await act(async () => edit().props.onClick())
+    expect(name().props.value).toBe(project.name)
+    await act(async () => name().props.onChange({ target: { value: 'New name' } }))
+    await act(async () => submit())
+    expect(renderer.root.findAllByType('form')).toHaveLength(1)
+    expect(name().props.value).toBe('New name')
+    expect(renderer.root.findAllByType('span').some(span => span.children.includes('Save failed'))).toBe(true)
+    await act(async () => submit())
+    expect(updateProject).toHaveBeenLastCalledWith(project.id, { name: 'New name', note: null, priority: 'high', status: 'active' })
+    expect(renderer.root.findAllByType('form')).toHaveLength(0)
+    await act(async () => edit().props.onClick())
+    await act(async () => renderer.root.findByProps({ 'aria-label': `Delete ${project.name}` }).props.onClick())
+    expect(actions.deleteProject).toHaveBeenCalledWith(project.id)
+    expect(navigate).toHaveBeenCalledWith({ kind: 'information', section: 'engineering', view: 'projects' })
+  } finally { await act(async () => renderer.unmount()) }
 })
 
 test('Engineer tables retain access grouping and system navigation', () => {

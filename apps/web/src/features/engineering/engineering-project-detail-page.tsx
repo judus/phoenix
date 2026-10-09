@@ -6,6 +6,8 @@ import {
   CrossIcon,
   DataTable,
   DataTableGroup,
+  DescriptionItem,
+  DescriptionList,
   Field,
   Form,
   FormActions,
@@ -35,12 +37,26 @@ export function EngineeringProjectDetailPage ({ actions, onNavigate, project, wa
   project: EngineeringProject
   watchlist?: EngineeringMaterialWatchlistResponse
 }) {
+  const [editing, setEditing] = useState(false)
+  useEffect(() => setEditing(false), [project.id])
   return (
     <PageFrame layout="fit">
       <Stack fill gap="sm">
-        <EngineeringHeader title={project.name} trail={[{ label: 'Projects', href: '#/engineering/projects' }, { label: project.name }]} />
+        <EngineeringHeader
+          actions={!editing ? <Button disabled={!actions} size="sm" variant="outline" onClick={() => setEditing(true)}>Edit project</Button> : undefined}
+          title={project.name}
+          trail={[{ label: 'Projects', href: '#/engineering/projects' }, { label: project.name }]}
+        />
         <Stack className="engineering-scroll-content" gap="sm">
-          <ProjectSettings actions={actions} onNavigate={onNavigate} project={project} />
+          {editing
+            ? <ProjectSettings actions={actions} onNavigate={onNavigate} onClose={() => setEditing(false)} project={project} />
+            : <Section title="Project details">
+                <DescriptionList columns="two" density="compact">
+                  <DescriptionItem label="Priority" value={project.priority} />
+                  <DescriptionItem label="Status" value={project.status} />
+                  <DescriptionItem label="Note" value={project.note ?? '—'} />
+                </DescriptionList>
+              </Section>}
           <ProjectSteps actions={actions} project={project} />
           <ProjectMaterialPlan project={project} watchlist={watchlist} />
         </Stack>
@@ -49,8 +65,9 @@ export function EngineeringProjectDetailPage ({ actions, onNavigate, project, wa
   )
 }
 
-function ProjectSettings ({ actions, onNavigate, project }: {
+function ProjectSettings ({ actions, onClose, onNavigate, project }: {
   actions?: EngineeringControllerActions
+  onClose(): void
   onNavigate(route: PhoenixRoute): void
   project: EngineeringProject
 }) {
@@ -72,7 +89,7 @@ function ProjectSettings ({ actions, onNavigate, project }: {
     setWorking('save')
     setError(undefined)
     void actions.updateProject(project.id, { name, note: note.trim() || null, priority, status })
-      .then(() => setWorking(undefined))
+      .then(onClose)
       .catch(cause => {
         setError(message(cause))
         setWorking(undefined)
@@ -112,7 +129,7 @@ function ProjectSettings ({ actions, onNavigate, project }: {
         </Field>
         <FormActions
           message={error ? <Status tone="danger" wrap>{error}</Status> : undefined}
-          navigation={<Button type="button" variant="outline" onClick={() => onNavigate(engineeringProjectRoutes.index)}>Back</Button>}
+          navigation={<Button disabled={working !== undefined} type="button" variant="outline" onClick={onClose}>Cancel</Button>}
         >
           <IconButton busy={working === 'delete'} disabled={!actions || working === 'save'} label={`Delete ${project.name}`} type="button" variant="danger" onClick={remove}><TrashIcon /></IconButton>
           <IconButton busy={working === 'save'} disabled={!actions || !name.trim() || working === 'delete'} label="Save project" type="submit" variant="primary"><CheckIcon /></IconButton>

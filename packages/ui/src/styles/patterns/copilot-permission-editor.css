@@ -105,3 +105,16 @@
   letter-spacing: normal;
   text-transform: none;
 }
+.copilot-permissions.fit {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 0;
+  overflow: hidden;
+
+  > .copilot-load { flex: none; }
+  > .capability-groups {
+    min-block-size: 0;
+    overflow-y: auto;
+    align-content: start;
+  }
+}

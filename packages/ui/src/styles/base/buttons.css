@@ -197,13 +197,12 @@
     &:focus-visible { outline-offset: 0; }
   }
 
-  .theme-elite {
-    .btn {
-      font-weight: var(--font-weight-normal);
-      font-family: var(--font-family-display);
-      letter-spacing: var(--font-tracking-display);
-      text-transform: uppercase;
-    }
+  .btn.display,
+  .theme-elite .btn {
+    font-weight: var(--font-weight-normal);
+    font-family: var(--font-family-display);
+    letter-spacing: var(--font-tracking-display);
+    text-transform: uppercase;
   }
 
   @media (prefers-reduced-motion: reduce) {

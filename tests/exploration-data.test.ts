@@ -32,17 +32,29 @@ describe('ExplorationDataService', () => {
   })
 
   it('keeps commander completion corrections separate from journal observations', () => {
-    const store = new ObservationStore([observation('Synuefe X', '2026-08-11T08:00:00.000Z')])
+    const incomplete = observation('Synuefe X', '2026-08-11T08:00:00.000Z')
+    Object.assign(incomplete.bodies[0]!.organicSamples[0]!, { completed: false, progress: 1, scanTypes: ['Log'] })
+    const original = structuredClone(incomplete)
+    const store = new ObservationStore([incomplete])
     const service = new ExplorationDataService(store, store)
     const body = service.getLedger().systems[0]!.bodies[0]!
+    expect(service.getLedger().totals.samplesCompleted).toBe(0)
 
     expect(service.setBiologicalSignalManualCompletion(
       body.key,
       '$Codex_Ent_Bacterial_Genus_Name;',
       true
     )).toBe(true)
-    expect(service.getLedger().systems[0]!.bodies[0]!.manualBiologicalCompletions).toHaveLength(1)
-    expect(store.findRecord('Synuefe X')!.local!.bodies[0]!.organicSamples[0]!.completed).toBe(true)
+    expect(service.getLedger().systems[0]!.bodies[0]!.manualBiologicalCompletions).toEqual([
+      { signalKey: '$Codex_Ent_Bacterial_Genus_Name;', completedAt: '2026-08-11T09:00:00.000Z' }
+    ])
+    expect(service.getLedger().totals.samplesCompleted).toBe(1)
+    expect(store.findRecord('Synuefe X')!.local).toEqual(original)
+
+    expect(service.setBiologicalSignalManualCompletion(body.key, '$Codex_Ent_Bacterial_Genus_Name;', false)).toBe(true)
+    expect(service.getLedger().systems[0]!.bodies[0]!.manualBiologicalCompletions).toEqual([])
+    expect(service.getLedger().totals.samplesCompleted).toBe(0)
+    expect(store.findRecord('Synuefe X')!.local).toEqual(original)
   })
 })
 
@@ -68,6 +80,7 @@ class ObservationStore implements CartographyRepository {
 
 function observation (systemName: string, updatedAt: string): LocalSystemCartographyObservation {
   return {
+    position: null,
     allBodiesFound: true,
     systemName,
     systemAddress: 42,
@@ -79,6 +92,7 @@ function observation (systemName: string, updatedAt: string): LocalSystemCartogr
       bodySignals: null,
       previouslyDiscovered: false,
       previouslyFootfalled: false,
+      footfallCompleted: false,
       previouslyMapped: true,
       observedAt: updatedAt,
       organicSamples: [{

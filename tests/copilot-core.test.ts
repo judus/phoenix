@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
-import type { AiResult, AiStreamEvent } from '@jdu/llm-client'
+import type { AiResult, AiRunOptions, AiStreamEvent } from '@jdu/llm-client'
 import {
   AgentPromptComposer,
   FileAgentProfileRepository,
@@ -173,7 +173,7 @@ test('runtime context renders typed PHOENIX state without legacy compatibility s
   expect(rendered).not.toContain('undefined')
 })
 
-test('text pipeline delegates execution and streaming to judus-llm-client-compatible clients', async () => {
+test.each(['bridge-log', undefined])('text pipeline preserves results, events and options; conversation=%s', async conversationId => {
   const factory = new RecordingClientFactory()
   const pipeline = new TextCopilotPipeline(
     factory,
@@ -181,20 +181,26 @@ test('text pipeline delegates execution and streaming to judus-llm-client-compat
     new RuntimeContextRenderer()
   )
   const turn = {
-    conversationId: 'bridge-log',
+    conversationId,
     message: 'Status report.',
     profileId: 'marin',
     runtimeState: createEmptyRuntimeState()
   }
 
-  await pipeline.run(turn)
-  for await (const _event of pipeline.stream(turn)) {}
+  const options: AiRunOptions = { signal: new AbortController().signal }
+  await expect(pipeline.run(turn, options)).resolves.toBe(factory.result)
+  const received: AiStreamEvent[] = []
+  for await (const event of pipeline.stream(turn, options)) received.push(event)
+  expect(received).toEqual(factory.events)
+  expect(factory.options).toHaveLength(2)
+  expect(factory.options[0]).toBe(options)
+  expect(factory.options[1]).toBe(options)
 
   expect(factory.instructions).toContain('TEXT CHARACTER')
   expect(factory.instructions).toContain('## Runtime Context')
   expect(factory.requests).toEqual([
-    { conversationId: 'bridge-log', message: 'Status report.', method: 'run' },
-    { conversationId: 'bridge-log', message: 'Status report.', method: 'stream' }
+    { conversationId, message: 'Status report.', method: 'run' },
+    { conversationId, message: 'Status report.', method: 'stream' }
   ])
 })
 
@@ -206,6 +212,22 @@ class StaticProfileRepository implements AgentProfileRepository {
 class RecordingClientFactory implements CopilotAiClientFactory {
   public instructions = ''
   public readonly requests: Array<{ conversationId?: string, message: string, method: string }> = []
+  public readonly options: Array<AiRunOptions | undefined> = []
+  public readonly result: AiResult = {
+    chatId: 'bridge-log',
+    finishReason: 'stop',
+    message: {
+      content: [{ source: 'generated', text: 'All clear.', type: 'text' }],
+      conversationId: 'bridge-log', createdAt: '2026-10-06T12:00:00Z', id: 'reply', role: 'assistant'
+    },
+    text: 'All clear.',
+    usage: { inputTokens: 2, outputTokens: 2 }
+  }
+  public readonly events: AiStreamEvent[] = [
+    { chatId: 'bridge-log', type: 'run.started' },
+    { delta: 'All clear.', type: 'text.delta' },
+    { result: this.result, type: 'run.completed' }
+  ]
 
   public create (instructions: string): CopilotAiClient {
     this.instructions = instructions
@@ -219,13 +241,15 @@ class RecordingClientFactory implements CopilotAiClientFactory {
 
   private request (message: string, conversationId?: string): CopilotAiRequest {
     return {
-      run: async () => {
+      run: async options => {
+        this.options.push(options)
         this.requests.push({ conversationId, message, method: 'run' })
-        return {} as AiResult
+        return this.result
       },
-      stream: async function * (this: RecordingClientFactory) {
+      stream: async function * (this: RecordingClientFactory, options?: AiRunOptions) {
+        this.options.push(options)
         this.requests.push({ conversationId, message, method: 'stream' })
-        if (false) yield {} as AiStreamEvent
+        yield * this.events
       }.bind(this)
     }
   }

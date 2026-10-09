@@ -21,12 +21,114 @@ const fixturePath = fileURLToPath(
   new URL('./fixtures/elite/Journal.2026-08-10T120000.01.log', import.meta.url)
 )
 
+test('live rotation drains the old tail and every intervening file in order', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-journal-rotation-'))
+  const paths = ['01', '02', '03'].map(part => join(directory, `Journal.2026-10-07T000000.${part}.log`))
+  const line = (id: number) => JSON.stringify({ timestamp: '2026-10-07T00:00:00Z', event: 'Progress', id }) + '\n'
+  const seen: number[] = [], replayed: boolean[] = []
+  writeFileSync(paths[0], line(0))
+  const source = new EliteJournalFileSource(directory, event => { seen.push(Number(event.id)) }, {
+    onObservation: (_, origin) => replayed.push(origin.replayed)
+  })
+  try {
+    await source.refresh()
+    appendFileSync(paths[0], line(1))
+    writeFileSync(paths[1], line(2))
+    writeFileSync(paths[2], line(3))
+    await source.refresh()
+    expect(seen).toEqual([0, 1, 2, 3])
+    expect(replayed).toEqual([true, false, false, false])
+    expect(await source.refresh()).toBe(false)
+    expect(source.getDiagnostics()).toMatchObject({ filePath: paths[2], linesRead: 4, error: null })
+  } finally { await source.stop(); rmSync(directory, { recursive: true, force: true }) }
+})
+
+test('rotation waits for a failed projection instead of skipping into the next file', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-journal-rotation-retry-'))
+  const first = join(directory, 'Journal.2026-10-07T000000.01.log')
+  const second = join(directory, 'Journal.2026-10-07T000000.02.log')
+  const line = (id: number) => JSON.stringify({ timestamp: '2026-10-07T00:00:00Z', event: 'Progress', id }) + '\n'
+  const seen: number[] = []
+  let fail = true
+  writeFileSync(first, line(0))
+  const source = new EliteJournalFileSource(directory, event => {
+    if (event.id === 1 && fail) { fail = false; throw new Error('Synthetic projection failure') }
+    seen.push(Number(event.id))
+  })
+  try {
+    await source.refresh()
+    appendFileSync(first, line(1))
+    writeFileSync(second, line(2))
+    await source.refresh()
+    expect(seen).toEqual([0])
+    expect(source.getDiagnostics().error).toBe('Synthetic projection failure')
+    await source.refresh()
+    expect(seen).toEqual([0, 1, 2])
+  } finally { await source.stop(); rmSync(directory, { recursive: true, force: true }) }
+})
+
+test.each(['json', 'newline', 'utf8'] as const)('rotation gives an incomplete %s tail one additional refresh, retaining event order and identity', async split => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-journal-tail-grace-'))
+  const paths = ['01', '02', '03'].map(part => join(directory, `Journal.2026-10-07T000000.${part}.log`))
+  const line = (id: number) => JSON.stringify({ timestamp: '2026-10-07T00:00:00Z', event: 'Progress', id, label: 'Synthetic é' }) + '\n'
+  const seen: number[] = [], observations: Array<{ id: string, replayed: boolean }> = []
+  writeFileSync(paths[0], line(0))
+  const source = new EliteJournalFileSource(directory, event => { seen.push(Number(event.id)) }, {
+    onObservation: (_, origin) => observations.push(origin)
+  })
+  try {
+    await source.refresh()
+    const tail = Buffer.from(line(1))
+    const boundary = split === 'json' ? 20 : split === 'newline' ? tail.length - 1 : tail.indexOf(Buffer.from('é')) + 1
+    appendFileSync(paths[0], tail.subarray(0, boundary))
+    writeFileSync(paths[1], line(2))
+    writeFileSync(paths[2], line(3))
+    expect(await source.refresh()).toBe(false)
+    expect(seen).toEqual([0])
+    expect(source.getDiagnostics().filePath).toBe(paths[0])
+    appendFileSync(paths[0], tail.subarray(boundary))
+    expect(await source.refresh()).toBe(true)
+    expect(seen).toEqual([0, 1, 2, 3])
+    expect(observations.map(origin => origin.replayed)).toEqual([true, false, false, false])
+    expect(new Set(observations.map(origin => origin.id)).size).toBe(4)
+    expect(source.getDiagnostics()).toMatchObject({ filePath: paths[2], linesRead: 4, error: null })
+    expect(await source.refresh()).toBe(false)
+    expect(seen).toEqual([0, 1, 2, 3])
+  } finally { await source.stop(); rmSync(directory, { recursive: true, force: true }) }
+})
+
+test('a permanently truncated old tail delays rotation once, then advances without replaying late records backwards', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-journal-truncated-'))
+  const paths = ['01', '02'].map(part => join(directory, `Journal.2026-10-07T000000.${part}.log`))
+  const line = (id: number) => JSON.stringify({ timestamp: '2026-10-07T00:00:00Z', event: 'Progress', id }) + '\n'
+  const seen: number[] = []
+  writeFileSync(paths[0], line(0))
+  const source = new EliteJournalFileSource(directory, event => { seen.push(Number(event.id)) })
+  try {
+    await source.refresh()
+    const tail = line(1)
+    appendFileSync(paths[0], tail.slice(0, -1))
+    writeFileSync(paths[1], line(2))
+    expect(await source.refresh()).toBe(false)
+    expect(seen).toEqual([0])
+    expect(await source.refresh()).toBe(true)
+    expect(seen).toEqual([0, 2])
+    expect(source.getDiagnostics()).toMatchObject({ filePath: paths[1], linesRead: 2,
+      error: 'An incomplete record in a rotated journal was skipped after one additional refresh.' })
+    appendFileSync(paths[0], '\n')
+    appendFileSync(paths[1], line(3))
+    await source.refresh()
+    expect(seen).toEqual([0, 2, 3])
+    expect(source.getDiagnostics()).toMatchObject({ linesRead: 3, error: null })
+  } finally { await source.stop(); rmSync(directory, { recursive: true, force: true }) }
+})
+
 test('the journal source replays, tails partial writes and follows journal rotation', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-journal-source-'))
   const firstJournal = join(directory, basename(fixturePath))
   const events: EliteJournalEvent[] = []
   copyFileSync(fixturePath, firstJournal)
-  const source = new EliteJournalFileSource(directory, event => events.push(event), {
+  const source = new EliteJournalFileSource(directory, event => { events.push(event) }, {
     pollInterval: 60_000
   })
 
@@ -84,7 +186,7 @@ test('the live journal source reads only the latest file during startup', async 
     join(directory, 'Journal.2026-08-10T120000.01.log'),
     '{"timestamp":"2026-08-10T12:00:00Z","event":"Location","StarSystem":"Current system"}\n'
   )
-  const source = new EliteJournalFileSource(directory, event => events.push(event), {
+  const source = new EliteJournalFileSource(directory, event => { events.push(event) }, {
     pollInterval: 60_000
   })
 
@@ -149,7 +251,7 @@ test('historical journal backfill resumes from durable file checkpoints', async 
   )
 
   try {
-    const first = new EliteJournalHistoryBackfill(directory, event => events.push(event), checkpoints)
+    const first = new EliteJournalHistoryBackfill(directory, event => { events.push(event) }, checkpoints)
     await first.start()
     expect(events.map(event => event.event)).toEqual(['Scan', 'FSSAllBodiesFound'])
     expect(first.getDiagnostics()).toMatchObject({
@@ -163,7 +265,7 @@ test('historical journal backfill resumes from durable file checkpoints', async 
     const secondEvents: EliteJournalEvent[] = []
     const second = new EliteJournalHistoryBackfill(
       directory,
-      event => secondEvents.push(event),
+      event => { secondEvents.push(event) },
       checkpoints
     )
     await second.start()

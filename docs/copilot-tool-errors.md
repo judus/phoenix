@@ -40,7 +40,7 @@ shared boundary; an arbitrary `Error` must not be reclassified as a usage error.
 | Tools | Handler and error responsibility |
 | --- | --- |
 | `commander.get_current_situation`, `ship.get_current_ship_status`, `ship.get_cargo_manifest`, `ship.list_installed_modules`, `engineering.list_material_inventory` | Local observed state; unknown observations and empty filtered results are data. Common argument parser errors receive correction hints. |
-| `equipment.get_equipment_report`, `comms.list_messages`, `missions.list_missions`, `fleet.list_owned_ships`, `fleet.list_stored_modules`, `engineering.list_engineers` | Local read models; typed argument errors are corrected, unexpected repository errors stay internal. |
+| `equipment.get_equipment_report`, `engineering.get_project_report`, `comms.list_messages`, `missions.list_missions`, `fleet.list_owned_ships`, `fleet.list_stored_modules`, `engineering.list_engineers` | Local read models; typed argument errors are corrected, unexpected repository errors stay internal. |
 | `controls.find_actions` | Read-only discovery; empty matches do not authorize execution. |
 | `controls.execute_command` | Macro operation and press/release lease combinations validate before dispatch. Gateway rejection/failure/cancellation/timeout retain distinct safe outcomes. |
 | `controls.set_control_state` | Capability checks precede state changes. Permission failures require the user to change Settings; execution failures never imply that retrying is safe. |
@@ -67,5 +67,7 @@ corrected execution and the Realtime bridge. `tests/phoenix-mcp.test.ts` verifie
 MCP feedback, a corrected follow-up, and safe disk-backed text conversation persistence.
 Provider and application-specific tests verify the corresponding domain corrections.
 
-PHOENIX consumes the pinned library archive under `vendor/llm-client`. This audit does not
-publish or change that dependency, and does not authorize retries or game input.
+PHOENIX server and Copilot pin the published npm package `@jdu/llm-client` to version `0.1.3`,
+which includes structured tool-usage corrections and preserved MCP error feedback. The lockfile
+records the registry artifact and its integrity; no patched local LLM archive is required.
+Tool-error corrections do not authorize retries or game input.

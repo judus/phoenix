@@ -17,7 +17,7 @@ export function createCommanderLogViewModel (
   entries: readonly CommanderLogEntry[],
   locale = 'en-CH'
 ): CommanderLogItemViewModel[] {
-  return entries.slice(0, 20).reverse().map(entry => ({
+  return entries.slice(0, 20).map(entry => ({
     category: categoryLabel(entry.category),
     dateTime: formatPhoenixDateTime(entry.timestamp),
     detail: entry.detail,

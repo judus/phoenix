@@ -13,6 +13,27 @@ will be accepted.
 Small, clearly bounded fixes may be submitted directly. Keep each contribution focused and explain
 the user-visible problem it solves.
 
+## Issue labels and completion
+
+- `bug`: something is broken or behaving incorrectly.
+- `task`: accepted work to do. An approved bug fix can carry both `bug` and `task`.
+- `feature request`: a proposed feature awaiting a maintainer decision, not an approved TODO.
+- `idea`: an exploratory suggestion, not authorization to implement it.
+
+When a request or idea is accepted, replace that label with `task` and record the agreed scope.
+Rejected proposals are closed as **not planned**, with a short explanation. Use additional labels
+such as `documentation` where useful; prefer these explicit categories over generic `enhancement`.
+
+Implementation issues stay open while work is local, on a feature branch, or in an unmerged PR.
+Close them as **completed** only after their full agreed scope is verified and merged into `dev`.
+Include the merged PR or commit reference in the closing comment. Partial completion does not close
+an umbrella issue; update its checklist instead. Promotion to `main` and release publication are
+separate checkpoints, not prerequisites for closing completed development work.
+
+Reference issues in PRs and reconcile their status at each merge checkpoint. Since `main` is the
+GitHub default branch, do not rely on closing keywords to close issues when a PR merges into `dev`;
+verify that merge and explicitly close the completed issues.
+
 ## Architecture and quality
 
 - Understand the existing owner and flow before changing it. Do not add parallel implementations,
@@ -27,6 +48,12 @@ the user-visible problem it solves.
 - Add focused tests for behavior and contracts. Do not freeze incidental pixel values in tests.
 - Run `npm run check` before submitting a pull request and report any environment-dependent checks
   that could not be completed.
+- `check` includes `npm run typecheck:tests`: strict, no-emit compilation of every TypeScript
+  test and helper, using the same bundler resolution as Vitest and the browser. JavaScript build
+  and diagnostic scripts imported by tests are available for inference, not silently asserted as
+  TypeScript; JavaScript tests remain runtime-validated by Vitest. Native CI runs the gate on both
+  Linux and Windows. Run the production typecheck first to build workspace declarations on a
+  fresh checkout; no test-specific production schema relaxations or diagnostic suppressions.
 
 ## Privacy and third-party material
 

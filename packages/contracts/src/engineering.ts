@@ -224,6 +224,24 @@ export const EngineeringMaterialWatchlistResponseSchema = z.object({
   materials: z.array(EngineeringMaterialWatchItemSchema)
 }).strict()
 
+/** Saved targets and shared stock, not evidence that any upgrade has been completed. */
+export const EngineeringProjectReportSchema = z.object({
+  schemaVersion: z.literal(1),
+  observedAt: z.iso.datetime().nullable(),
+  inventoryAvailable: z.boolean(),
+  projects: z.array(EngineeringProjectSchema.pick({ id: true, name: true, priority: true, note: true }).extend({
+    steps: z.array(z.discriminatedUnion('kind', [
+      EngineeringBlueprintStepSchema.omit({ requirements: true, createdAt: true }),
+      EngineeringExperimentalStepSchema.omit({ requirements: true, createdAt: true })
+    ]))
+  })),
+  materials: z.array(EngineeringMaterialWatchItemSchema.extend({
+    owned: z.number().int().nonnegative().nullable(),
+    missing: z.number().int().nonnegative().nullable()
+  })),
+  personalEquipment: z.literal('unsaved_preview_only')
+}).strict()
+
 export const EngineeringProjectsChangedSchema = z.object({
   schemaVersion: z.literal(1),
   changedAt: z.iso.datetime()
@@ -246,4 +264,5 @@ export type EngineeringProjectStepCreateRequest = z.infer<typeof EngineeringProj
 export type EngineeringProjectsResponse = z.infer<typeof EngineeringProjectsResponseSchema>
 export type EngineeringMaterialWatchItem = z.infer<typeof EngineeringMaterialWatchItemSchema>
 export type EngineeringMaterialWatchlistResponse = z.infer<typeof EngineeringMaterialWatchlistResponseSchema>
+export type EngineeringProjectReport = z.infer<typeof EngineeringProjectReportSchema>
 export type EngineeringProjectsChanged = z.infer<typeof EngineeringProjectsChangedSchema>

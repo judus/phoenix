@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { GalaxyBookmark } from '@phoenix/contracts'
@@ -15,8 +16,7 @@ test('station bookmarks open the station and edit the existing target', async ()
   const route = { kind: 'information', section: 'galaxy', view: 'bookmarks' } as const
   const stationRoute = { ...route, stationName: 'Sweet Terminal', systemName: 'Smoje TO-Z d13-40' }
   expect(parsePhoenixRoute(phoenixRouteHash(stationRoute))).toEqual(stationRoute)
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<BookmarksPage api={api} onNavigate={() => {}} route={route} />) })
+  const renderer = await renderWithAct(<BookmarksPage api={api} onNavigate={() => {}} route={route} />)
   expect(renderer.root.findAllByType('a').map(node => node.props.href)).toContain(phoenixRouteHash({ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Smoje TO-Z d13-40', selectedName: 'Sweet Terminal' }))
   await act(async () => renderer.root.findByProps({ id: 'bookmark-search' }).props.onChange({ target: { value: 'sweet' } }))
   expect(renderer.root.findAllByType('strong').map(node => node.children.join(''))).toContain('Sweet Terminal')
@@ -47,14 +47,11 @@ const bookmarks: GalaxyBookmark[] = [
 
 test('bookmark list searches notes and filters reusable tags', async () => {
   const api = { getGalaxyBookmarks: vi.fn().mockResolvedValue({ bookmarks }) } as unknown as PhoenixApi
-  let renderer: ReturnType<typeof create>
-  await act(async () => {
-    renderer = create(<BookmarksPage
+  const renderer = await renderWithAct(<BookmarksPage
       api={api}
       onNavigate={() => {}}
       route={{ kind: 'information', section: 'galaxy', view: 'bookmarks' }}
     />)
-  })
 
   expect(renderer.root.findAllByType('a').map(node => node.props.href)).toContain('#/galaxy/system')
   expect(renderer.root.findAllByType('a').map(node => node.props.href)).toContain('#/galaxy/system?name=Sol')
@@ -79,14 +76,11 @@ test('bookmark editor saves notes and comma-separated tags for its target', asyn
     getGalaxyBookmarks: vi.fn().mockResolvedValue({ bookmarks: [] }),
     saveGalaxyBookmark
   } as unknown as PhoenixApi
-  let renderer: ReturnType<typeof create>
-  await act(async () => {
-    renderer = create(<BookmarksPage
+  const renderer = await renderWithAct(<BookmarksPage
       api={api}
       onNavigate={onNavigate}
       route={{ bodyName: 'Earth', kind: 'information', section: 'galaxy', systemName: 'Sol', view: 'bookmarks' }}
     />)
-  })
   await act(async () => renderer.root.findByProps({ id: 'bookmark-note' }).props.onChange({ target: { value: 'Home world' } }))
   await act(async () => renderer.root.findByProps({ id: 'bookmark-editor-tags' }).props.onChange({ target: { value: 'Home, Historic' } }))
   await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))

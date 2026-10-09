@@ -171,12 +171,85 @@ function serviceFixture () {
   const observe = (event: EliteJournalEvent, replayed = false) => service.observe(event, { id: String(++id), replayed })
   for (const event of [header, load, location]) observe(event, true)
   cleanup.push(async () => { await service.stop(); connection.close() })
-  const messages = () => (connection.prepare('SELECT document FROM eddn_outbox ORDER BY rowid').all() as Array<{ document: string }>).map(row => JSON.parse(row.document))
+  const messages = () => (connection.prepare('SELECT document FROM eddn_outbox WHERE ready = 1 ORDER BY rowid').all() as Array<{ document: string }>).map(row => JSON.parse(row.document))
   return { service, outbox, send, readSnapshot, observe, messages }
 }
 const signal = { timestamp, event: 'FSSSignalDiscovered', SystemAddress: 123, SignalName: 'Public Signal', TimeRemaining: 77, SignalName_Localised: 'private' }
 
 describe('expanded EDDN ingestion sequences', () => {
+  test.each([true, false, undefined])('preserves observed first-footfall status %s without inventing it', async WasFootfalled => {
+    const f = serviceFixture()
+    f.observe({ timestamp, event: 'Scan', SystemAddress: 123, BodyName: 'Sol 1',
+      WasDiscovered: false, WasMapped: true, WasFootfalled,
+      Commander: 'private', FirstFootfallCommander: 'private', UnknownFutureField: 'private' })
+    await f.service.flush()
+    expect(f.send).toHaveBeenCalledOnce()
+    expect(f.send.mock.calls[0][0].message).toEqual({
+      timestamp, event: 'Scan', StarSystem: 'Sol', SystemAddress: 123, StarPos: [0, 0, 0],
+      horizons: true, odyssey: true, BodyName: 'Sol 1', WasDiscovered: false, WasMapped: true,
+      ...(WasFootfalled === undefined ? {} : { WasFootfalled })
+    })
+  })
+
+  test.each(['FSDJump', 'Location', 'CarrierJump'])('%s preserves public Powerplay 2 state, not commander progress', async event => {
+    const f = serviceFixture()
+    const publicState = {
+      Powers: ['Felicia Winters', 'Zemina Torval'], ControllingPower: 'Felicia Winters', PowerplayState: 'Stronghold',
+      PowerplayStateControlProgress: 0.753582, PowerplayStateReinforcement: 0, PowerplayStateUndermining: 1942,
+      PowerplayConflictProgress: [{ Power: 'Zemina Torval', ConflictProgress: 4.1 }]
+    }
+    f.observe({ ...location, ...publicState, event,
+      PowerplayConflictProgress: [{ ...publicState.PowerplayConflictProgress[0], Merits: 42, Power_Localised: 'private' }],
+      Merits: 42, Rank: 5, PowerplayRank: 5, Commander: 'private',
+      Factions: [{ Name: 'Public faction', Influence: 0.5, MyReputation: 99, HomeSystem: true,
+        HappiestSystem: true, SquadronFaction: true, Happiness_Localised: 'private' }] })
+    await f.service.flush()
+    expect(f.send).toHaveBeenCalledOnce()
+    expect(f.send.mock.calls[0][0].message).toEqual({
+      ...location, event, ...publicState, horizons: true, odyssey: true,
+      Factions: [{ Name: 'Public faction', Influence: 0.5 }]
+    })
+  })
+
+  test.each(['Docked', 'Location', 'CarrierJump'])('%s preserves colonisation station metadata, not construction contributions', async event => {
+    const f = serviceFixture()
+    const publicStation = { MarketID: 42, StationName: '$EXT_PANEL_ColonisationShip;', StationType: 'ColonisationShip',
+      StationEconomy: '$economy_Colony;', StationEconomies: [{ Name: '$economy_Colony;', Proportion: 1 }],
+      StationServices: ['dock', 'commodities'], StationFaction: { Name: 'Public faction' } }
+    f.observe({ ...location, ...publicStation, event,
+      StationName_Localised: 'private', StationFaction: { ...publicStation.StationFaction, MyReputation: 99 },
+      StationEconomies: [{ ...publicStation.StationEconomies[0], Name_Localised: 'private' }],
+      ConstructionProgress: 0.5, Contributions: [{ Name: '$titanium_name;', Amount: 50 }] })
+    await f.service.flush()
+    expect(f.send).toHaveBeenCalledOnce()
+    expect(f.send.mock.calls[0][0].message).toEqual({
+      ...location, event, ...publicStation, horizons: true, odyssey: true
+    })
+  })
+
+  test.each(['ColonisationConstructionDepot', 'ColonisationContribution', 'ColonisationSystemClaim', 'Powerplay', 'PowerplayMerits'])('%s has no supported EDDN journal route', async event => {
+    const f = serviceFixture()
+    f.observe({ ...location, event, MarketID: 42, ConstructionProgress: 0.5,
+      Contributions: [{ Name: '$titanium_name;', Amount: 50 }], Merits: 42 })
+    await f.service.flush()
+    expect(f.messages()).toHaveLength(0)
+    expect(f.send).not.toHaveBeenCalled()
+  })
+
+  test('preserves colonisation conflict stakes without localised or private siblings', async () => {
+    const f = serviceFixture()
+    const conflict = { WarType: 'war', Status: 'active',
+      Faction1: { Name: 'First faction', Stake: '$EXT_PANEL_ColonisationShip;', WonDays: 0 },
+      Faction2: { Name: 'Second faction', Stake: 'Test depot', WonDays: 1 } }
+    f.observe({ ...location, Conflicts: [{ ...conflict,
+      Faction1: { ...conflict.Faction1, Stake_Localised: 'private', MyReputation: 99 } }] })
+    await f.service.flush()
+    expect(f.send).toHaveBeenCalledOnce()
+    expect(f.send.mock.calls[0][0].message).toEqual({
+      ...location, Conflicts: [conflict], horizons: true, odyssey: true
+    })
+  })
+
   test.each(cases)('$event travels through the real service/outbox/validator path', item => {
     const f = serviceFixture()
     f.observe({ timestamp, SystemAddress: 123, ...item.data, event: item.event })
@@ -290,5 +363,34 @@ describe('expanded EDDN ingestion sequences', () => {
     await f.service.stop()
     expect(f.messages()).toHaveLength(1)
     expect(f.send).not.toHaveBeenCalled()
+  })
+
+  test('an open signal batch is durable but not sendable before its run closes', async () => {
+    const f = serviceFixture()
+    f.observe(signal)
+    f.observe({ ...signal, SignalName: 'Second' })
+    expect(f.outbox.status().queued).toBe(1)
+    expect(f.outbox.next(now)).toBeUndefined()
+    await f.service.flush()
+    expect(f.send).not.toHaveBeenCalled()
+    f.observe({ timestamp, event: 'Music' })
+    await f.service.flush()
+    expect(f.send).toHaveBeenCalledOnce()
+    expect(f.send.mock.calls[0][0].message.signals).toEqual([
+      { timestamp, SignalName: 'Public Signal' }, { timestamp, SignalName: 'Second' }
+    ])
+  })
+
+  test('oversize rejection is durably counted once even if later uploads succeed', async () => {
+    const f = serviceFixture()
+    f.observe(signal)
+    f.observe({ ...signal, SignalName: 's'.repeat(EDDN_MAX_MESSAGE_BYTES) })
+    f.observe(signal)
+    f.observe({ timestamp, event: 'Music' })
+    f.observe(signal)
+    f.observe({ timestamp, event: 'Music' })
+    await f.service.flush()
+    expect(f.send).toHaveBeenCalledOnce()
+    expect(f.outbox.status()).toMatchObject({ queued: 0, losses: [{ reason: 'invalid', count: 1 }] })
   })
 })

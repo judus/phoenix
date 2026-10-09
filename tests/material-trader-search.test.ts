@@ -1,4 +1,5 @@
 import { expect, test, vi } from 'vitest'
+import type { SpanshSearchGateway } from '../apps/server/src/infrastructure/spansh-search-client.js'
 import { SpanshMaterialTraderSource } from '../apps/server/src/infrastructure/spansh-material-trader-source.js'
 import { SpanshStationServiceSource } from '../apps/server/src/infrastructure/spansh-station-service-source.js'
 import { MATERIAL_TRADER_SERVICES } from '@phoenix/contracts'
@@ -8,7 +9,7 @@ import type { StationQuery } from '../apps/server/src/application/mcp-tools/tool
 
 test.each(['Raw', 'Manufactured', 'Encoded'] as const)('Spansh filters %s traders explicitly and retains only suitable pads', async traderType => {
   const row = { name: 'Trader', system_name: 'Nearby', material_trader: traderType, distance: 10, large_pads: 1, market_id: 42 }
-  const search = vi.fn(async () => [
+  const search = vi.fn<SpanshSearchGateway['search']>(async () => [
     row, { ...row, name: 'Closer', distance: 2, market_id: 43 },
     { ...row, material_trader: 'Other' }, { ...row, material_trader: undefined },
     { ...row, large_pads: 0, small_pads: 1 }, { ...row, distance: undefined }
@@ -43,7 +44,7 @@ test('console and Copilot expose all trader types while preserving the any ident
 
 test('Vista Genomics search filters services, validates pads and orders by distance', async () => {
   const row = { name: 'Vista', system_name: 'Nearby', services: [{ name: 'Vista Genomics' }], distance: 10, large_pads: 1, market_id: 42 }
-  const search = vi.fn(async () => [
+  const search = vi.fn<SpanshSearchGateway['search']>(async () => [
     row, { ...row, name: 'Closer', distance: 2, market_id: 43 },
     { ...row, services: [{ name: 'Universal Cartographics' }] },
     { ...row, services: undefined }, { ...row, distance: undefined },

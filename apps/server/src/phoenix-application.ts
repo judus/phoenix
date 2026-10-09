@@ -1,5 +1,10 @@
 import { randomUUID } from 'node:crypto'
+import { AtlasPoiSchema } from '@phoenix/contracts'
+import { AtlasCatalogueService } from './application/atlas-catalogue-service.js'
+import { atlasPoiSources } from './infrastructure/atlas-poi-sources.js'
+import type { AtlasPoiSource } from './domain/atlas.js'
 import { readFileSync } from 'node:fs'
+import { loadPredefinedGalaxyQueries } from './infrastructure/predefined-galaxy-queries.js'
 import { EddnContributionService } from './application/eddn-contribution-service.js'
 import { EddnHttpTransport } from './infrastructure/eddn-http-transport.js'
 import { EddnSchemaValidator } from './infrastructure/eddn-schema-validator.js'
@@ -70,6 +75,7 @@ import { PersonalEquipmentPlannerService } from './application/personal-equipmen
 import { PersonalEquipmentReportService } from './application/personal-equipment-report-service.js'
 import { LoggedGameActions } from './application/logged-game-actions.js'
 import { DisplayCommandService } from './application/display-command-service.js'
+import { DisplayAtlasService } from './application/display-atlas-service.js'
 import { RouteCompletionDisplay } from './application/route-completion-display.js'
 import { NavigationDataService } from './application/navigation-data-service.js'
 import { EliteDestinationService } from './application/elite-destination-service.js'
@@ -77,8 +83,18 @@ import { EngineeringDataService } from './application/engineering-data-service.j
 import { EngineeringProjectService } from './application/engineering-project-service.js'
 import { ExplorationDataService } from './application/exploration-data-service.js'
 import { DefaultCommanderEngineersQuery } from './application/default-commander-engineers-query.js'
-import { DefaultStationMarketQuery } from './application/default-station-market-query.js'
 import { GalnetNewsService } from './application/galnet-news-service.js'
+import { GalnetArchiveService } from './application/galnet-archive-service.js'
+import { GalnetAnalysisService } from './application/galnet-analysis-service.js'
+import { GalnetBackgroundService } from './application/galnet-background-service.js'
+import { GalnetCoverageService } from './application/galnet-coverage-service.js'
+import { SavedGalnetAnalysisService } from './application/saved-galnet-analysis-service.js'
+import { GalnetInvestigationLeadsService } from './application/galnet-investigation-leads-service.js'
+import type { GalnetArticleAnalyser } from './domain/galnet-analysis.js'
+import { OpenAiGalnetArticleAnalyser } from './infrastructure/openai-galnet-article-analyser.js'
+import { CommunityGoalsService } from './application/community-goals-service.js'
+import type { CommunityGoalsSource } from './domain/community-goals.js'
+import { FrontierCommunityGoalsSource } from './infrastructure/frontier-community-goals-source.js'
 import { MissionDataService } from './application/mission-data-service.js'
 import { CommunicationDataService } from './application/communication-data-service.js'
 import { LocalTrafficService } from './application/local-traffic-service.js'
@@ -87,14 +103,10 @@ import { CachedCartographyStationResolver } from './application/cached-cartograp
 import { GalaxyBookmarkService } from './application/galaxy-bookmark-service.js'
 import { SavedGalaxyQueryService } from './application/saved-galaxy-query-service.js'
 import { DashboardMarketSignalService } from './application/dashboard-market-signal-service.js'
-import { MarketSignalService } from './application/market-signal-service.js'
 import { DefaultExplorationBodyQuery } from './application/default-exploration-body-query.js'
-import { DefaultExplorationTargetQuery } from './application/default-exploration-target-query.js'
 import type { CopilotText } from './application/copilot-text-service.js'
 import type { CopilotRealtime } from './application/copilot-realtime-service.js'
 import type { ExternalCartographySource } from './domain/cartography.js'
-import type { ExplorationTargetSearchSource } from './domain/exploration-target.js'
-import type { FactionPresenceSearchSource, OutfittingSearchSource, ShipyardSearchSource, StationLookupSource, StationSearchSource, StationStockSource, SystemSearchSource } from './domain/station-market.js'
 import type { GalnetSource } from './domain/galnet.js'
 import type { OpenAiSecretRepository, SystemSettingsRepository } from './domain/system-configuration.js'
 import type { MacroRepository } from './domain/macros.js'
@@ -117,20 +129,8 @@ import { SqliteDatabase } from './infrastructure/sqlite-database.js'
 import { EdsmCartographySource } from './infrastructure/edsm-cartography-source.js'
 import { createConfiguredCopilot } from './infrastructure/configured-copilot.js'
 import { PhoenixMcpServer } from './infrastructure/phoenix-mcp-server.js'
-import { ArdentStationSearchSource } from './infrastructure/ardent-station-search-source.js'
-import { EdsmStationStockSource } from './infrastructure/edsm-station-stock-source.js'
-import { SpanshShipyardSearchSource } from './infrastructure/spansh-shipyard-search-source.js'
-import { SpanshOutfittingSearchSource } from './infrastructure/spansh-outfitting-search-source.js'
-import { SpanshStationLookupSource } from './infrastructure/spansh-station-lookup-source.js'
-import { SpanshMaterialTraderSource } from './infrastructure/spansh-material-trader-source.js'
-import type { MaterialTraderSearchSource, StationServiceSearchSource } from './domain/station-market.js'
-import { SpanshStationServiceSource } from './infrastructure/spansh-station-service-source.js'
-import { SpanshSearchClient } from './infrastructure/spansh-search-client.js'
-import { SpanshSystemSearchSource } from './infrastructure/spansh-system-search-source.js'
-import { SpanshFactionPresenceSource } from './infrastructure/spansh-faction-presence-source.js'
-import { SpanshExplorationTargetSource } from './infrastructure/spansh-exploration-target-source.js'
+import { createGalaxyQueries, type GalaxyQuerySources } from './infrastructure/create-galaxy-queries.js'
 import { CatalogueSnapshotLoader } from './infrastructure/catalogue-snapshot-loader.js'
-import { CatalogueSuggestionService } from './application/catalogue-suggestion-service.js'
 import { ApplicationPaths } from './infrastructure/application-paths.js'
 import { FrontierGalnetSource } from './infrastructure/frontier-galnet-source.js'
 import type { PairingAccessController } from './infrastructure/pairing-access-controller.js'
@@ -139,7 +139,7 @@ import { OpenAiWebSearchSource } from './infrastructure/openai-web-search-source
 import { ControlDeckEliteDestinationInput } from './infrastructure/control-deck-elite-destination-input.js'
 import type { WebSearchSource } from './domain/web-search.js'
 
-export interface PhoenixApplicationOptions {
+export interface PhoenixApplicationOptions extends GalaxyQuerySources {
   applicationPaths?: ApplicationPaths
   eliteBindings?: EliteDangerousBindingSource
   accessControl?: PairingAccessController
@@ -155,6 +155,9 @@ export interface PhoenixApplicationOptions {
   eliteBindingsDirectory?: string | null
   host?: string
   galnetSource?: GalnetSource
+  galnetAnalyser?: GalnetArticleAnalyser
+  communityGoalsSource?: CommunityGoalsSource
+  atlasSources?: AtlasPoiSource[]
   keyboardOutput?: KeyboardOutput
   keyboardOutputId?: string
   moduleCataloguePath?: string
@@ -164,16 +167,6 @@ export interface PhoenixApplicationOptions {
   port?: number
   personalEquipmentCataloguePath?: string
   shipCataloguePath?: string
-  stationSearchSource?: StationSearchSource
-  shipyardSearchSource?: ShipyardSearchSource
-  outfittingSearchSource?: OutfittingSearchSource
-  stationLookupSource?: StationLookupSource
-  materialTraderSource?: MaterialTraderSearchSource
-  stationServiceSource?: StationServiceSearchSource
-  systemSearchSource?: SystemSearchSource
-  factionPresenceSource?: FactionPresenceSearchSource
-  explorationTargetSource?: ExplorationTargetSearchSource
-  stationStockSource?: StationStockSource
   systemSettingsRepository?: SystemSettingsRepository
   webPort?: number
   webRoot?: string
@@ -185,7 +178,9 @@ export class PhoenixApplication {
   private readonly controlDeck: ControlDeckIntegration
   private readonly eliteControls: ControlDeckCommandService
   private readonly database: SqliteDatabase
-  private readonly initializeShortcuts: () => void
+  private readonly galnetAnalysis: GalnetAnalysisService
+  private readonly galnetBackground: GalnetBackgroundService
+  private readonly initializeShortcuts: (newProfile: boolean) => void
   private readonly eventIngestion: GameEventIngestionService
   private readonly journalSource: EliteJournalFileSource
   private readonly journalBackfill: EliteJournalHistoryBackfill
@@ -223,7 +218,7 @@ export class PhoenixApplication {
     const localTraffic = new LocalTrafficService(this.database)
     const shortcutsChanged = () => commandCatalogueChanges.publish({ source: 'shortcuts' })
     const bookmarks = new GalaxyBookmarkService(this.database, undefined, undefined, shortcutsChanged)
-    const savedGalaxyQueries = new SavedGalaxyQueryService(this.database.savedGalaxyQueries, undefined, undefined, shortcutsChanged)
+    const savedGalaxyQueries = new SavedGalaxyQueryService(this.database.savedGalaxyQueries, undefined, undefined, shortcutsChanged, loadPredefinedGalaxyQueries(paths.resources.queries))
     let shortcutsReady = false
     const navigationDestinations = () => shortcutsReady
       ? shortcutNavigationDestinations(bookmarks, savedGalaxyQueries)
@@ -251,7 +246,7 @@ export class PhoenixApplication {
       this.stateStore
     )
     const fleet = new FleetDataService(
-      this.database,
+      this.database.fleet,
       {
         resolveBlueprintDisplayName: symbol => engineeringCatalogue.getBlueprint(symbol)?.displayName ?? null,
         resolveModule: identifier => gameCatalogue.resolveModule(identifier),
@@ -423,7 +418,8 @@ export class PhoenixApplication {
       macroRepository
     )
     const commandCatalogue = new CommandCatalogueService(commandRegistry, commandCatalogueChanges)
-    this.initializeShortcuts = () => {
+    this.initializeShortcuts = newProfile => {
+      if (newProfile) savedGalaxyQueries.importPredefined()
       shortcutsReady = true
       shortcutsChanged()
     }
@@ -463,31 +459,17 @@ export class PhoenixApplication {
     )
     const navigation = new DefaultNavigationQuery(navigationRoutes, cartography, this.stateStore)
     const systems = new DefaultSystemDetailsQuery(cartography, this.stateStore)
-    const spansh = new SpanshSearchClient()
-    const stationSearchSource = options.stationSearchSource ?? new ArdentStationSearchSource({
-      resolveCommodity: identifier => gameCatalogue.resolveCommodity(identifier)
-    })
-    const shipyards = options.shipyardSearchSource ?? new SpanshShipyardSearchSource(spansh)
-    const outfitting = options.outfittingSearchSource ?? new SpanshOutfittingSearchSource(spansh)
-    const catalogueSuggestions = new CatalogueSuggestionService(gameCatalogue, shipyards, outfitting)
-    const stationMarkets = new DefaultStationMarketQuery(
-      stationSearchSource,
-      options.stationStockSource ?? new EdsmStationStockSource(),
-      shipyards,
-      outfitting,
-      options.stationLookupSource ?? new SpanshStationLookupSource(spansh),
-      options.systemSearchSource ?? new SpanshSystemSearchSource(spansh),
-      options.factionPresenceSource ?? new SpanshFactionPresenceSource(spansh),
-      cartography,
-      this.stateStore,
-      this.database,
-      undefined,
-      options.materialTraderSource ?? new SpanshMaterialTraderSource(spansh),
-      options.stationServiceSource ?? new SpanshStationServiceSource(spansh)
+    const { stationMarkets, catalogueSuggestions, marketSignals, explorationTargets } = createGalaxyQueries(
+      gameCatalogue, cartography, this.stateStore, this.database, options
     )
-    const marketSignals = new MarketSignalService(stationSearchSource, this.database)
     const dashboardMarketSignals = new DashboardMarketSignalService(savedGalaxyQueries, marketSignals, this.stateStore)
-    const galnet = new GalnetNewsService(options.galnetSource ?? new FrontierGalnetSource(), this.database)
+    const galnet = new GalnetNewsService(options.galnetSource ?? new FrontierGalnetSource(), this.database, this.database.galnetArchive)
+    const communityGoals = new CommunityGoalsService(options.communityGoalsSource ?? new FrontierCommunityGoalsSource(), this.database)
+    this.galnetAnalysis = new GalnetAnalysisService(this.database.galnetArchive, communityGoals,
+      this.database.galnetAnalyses, options.galnetAnalyser ?? new OpenAiGalnetArticleAnalyser(
+        () => openAiConfiguration.activeApiKey(), process.env.PHOENIX_OPENAI_MODEL ?? 'gpt-5.6-terra'))
+    const atlas = new AtlasCatalogueService(options.atlasSources ?? atlasPoiSources(), this.database, undefined,
+      AtlasPoiSchema.array().parse(JSON.parse(readFileSync(resolve(paths.resources.atlas, 'known-sites.json'), 'utf8'))))
     const navigationData = new NavigationDataService(cartography, navigationRoutes, this.stateStore)
     const eliteDestinations = new EliteDestinationService(
       new ControlDeckEliteDestinationInput(eliteBindings, keyboardOutput),
@@ -507,13 +489,11 @@ export class PhoenixApplication {
     )
     const exploration = new DefaultExplorationBodyQuery(this.database, cartography, this.stateStore)
     const explorationData = new ExplorationDataService(this.database, this.database)
-    const explorationTargets = new DefaultExplorationTargetQuery(
-      options.explorationTargetSource ?? new SpanshExplorationTargetSource(spansh),
-      cartography,
-      this.stateStore,
-      this.database
-    )
     let copilotTools: ReturnType<typeof createPhoenixMcpTools> = []
+    const savedGalnetAnalyses = new SavedGalnetAnalysisService(this.database.galnetAnalyses, this.database.galnetArchive)
+    this.galnetBackground = new GalnetBackgroundService(this.database.galnetBackground, galnet, communityGoals,
+      this.database.galnetArchive, savedGalnetAnalyses, this.galnetAnalysis,
+      () => this.galnetAnalysis.configured())
     const copilotCapabilities = new DefaultCopilotCapabilityService(
       () => copilotTools.map(tool => tool.definition),
       commandCatalogue,
@@ -523,8 +503,10 @@ export class PhoenixApplication {
     copilotTools = createPhoenixMcpTools({
       commands: copilotCommands,
       display,
+      atlasDisplay: new DisplayAtlasService(displayCommandUpdates, cartography, this.stateStore),
       equipment: personalEquipmentReport,
       engineers: new DefaultCommanderEngineersQuery(engineering),
+      engineeringProjects,
       exploration,
       explorationTargets,
       factions: stationMarkets,
@@ -534,6 +516,8 @@ export class PhoenixApplication {
       markets: stationMarkets,
       missions,
       communications,
+      communityGoals,
+      galnetAnalyses: savedGalnetAnalyses,
       runtimeState: this.stateStore,
       statefulActions,
       stations: stationMarkets,
@@ -621,6 +605,13 @@ export class PhoenixApplication {
       personalEquipmentSpecialists,
       personalEquipmentPlanner,
       galnet,
+      galnetArchive: new GalnetArchiveService(this.database.galnetArchive),
+      galnetAnalysis: this.galnetAnalysis,
+      galnetBackground: this.galnetBackground,
+      galnetCoverage: new GalnetCoverageService(savedGalnetAnalyses),
+      galnetInvestigationLeads: new GalnetInvestigationLeadsService(savedGalnetAnalyses),
+      communityGoals,
+      atlas,
       navigationData,
       navigationRouteUpdates,
       numpad,
@@ -632,9 +623,8 @@ export class PhoenixApplication {
   }
 
   public async start (): Promise<{ host: string, port: number }> {
-    this.database.initialize()
-    this.initializeShortcuts()
     try {
+      this.initializeShortcuts(this.database.initialize())
       this.eddn.start()
       await this.controlDeck.start()
       await this.eliteControls.start()
@@ -643,33 +633,48 @@ export class PhoenixApplication {
       await this.inventorySource.start()
       await this.navigationRouteSource.start()
       const address = await this.server.start()
+      this.galnetBackground.start()
       void this.journalBackfill.start()
       return address
     } catch (cause) {
-      await this.eddn.stop()
-      this.journalSource.stop()
-      this.statusSource.stop()
-      this.inventorySource.stop()
-      this.navigationRouteSource.stop()
-      await this.controlDeck.stop()
-      await this.eliteControls.stop()
-      this.database.close()
+      try {
+        await this.stop()
+      } catch (cleanupError) {
+        throw new AggregateError([cause, cleanupError], 'PHOENIX startup failed and cleanup encountered errors.', { cause })
+      }
       throw cause
     }
   }
 
   public async stop (): Promise<void> {
-    this.journalSource.stop()
-    await this.eddn.stop()
-    this.statusSource.stop()
-    this.inventorySource.stop()
-    this.navigationRouteSource.stop()
-    await this.journalBackfill.stop()
-    await this.server.stop()
-    await this.controlDeck.stop()
-    await this.gameActions.stop?.()
-    await this.eliteControls.stop()
-    this.database.close()
+    const errors: unknown[] = []
+    // Keep dependencies alive until their consumers finish: journal before EDDN,
+    // game actions before the Elite adapter, and all persistence users before SQLite.
+    for (const cleanup of [
+      () => this.journalSource.stop(),
+      () => this.eddn.stop(),
+      () => this.statusSource.stop(),
+      () => this.inventorySource.stop(),
+      () => this.navigationRouteSource.stop(),
+      () => this.journalBackfill.stop(),
+      async () => {
+        const results = await Promise.allSettled([this.galnetBackground.stop(), this.galnetAnalysis.stop()])
+        const failures = results.flatMap(result => result.status === 'rejected' ? [result.reason] : [])
+        if (failures.length > 0) throw new AggregateError(failures, 'GalNet shutdown failed.')
+      },
+      () => this.server.stop(),
+      () => this.controlDeck.stop(),
+      () => this.gameActions.stop?.(),
+      () => this.eliteControls.stop(),
+      () => this.database.close()
+    ]) {
+      try {
+        await cleanup()
+      } catch (cause) {
+        errors.push(cause)
+      }
+    }
+    if (errors.length > 0) throw new AggregateError(errors, 'PHOENIX shutdown encountered errors.')
   }
 
   public ingestGameEvent (candidate: unknown): GameEventEnvelope {

@@ -88,6 +88,41 @@ test('external migration 12 commits before local migration 13 fails, leaving 14 
   })
 })
 
+test('coordinate migration upgrades records and requests journal replay exactly once', () => {
+  withRetainedDatabase((path, retained) => {
+    retained.prepare('DELETE FROM schema_migrations WHERE version = 25').run()
+    const { position: _, ...old } = observation('Local only')
+    retained.prepare('UPDATE cartography_records SET local_document = ? WHERE system_key = ?').run(JSON.stringify(old), 'local only')
+    retained.prepare('INSERT INTO elite_journal_checkpoints VALUES (?, ?, ?, ?)').run('journal.log', 100, 100, timestamp)
+    retained.close()
+    const database = new SqliteDatabase(path)
+    try {
+      database.initialize()
+      expect(database.findRecord('Local only')?.local?.position).toBeNull()
+      expect(database.getJournalCheckpoint('journal.log')).toBeNull()
+      database.putJournalCheckpoint({ filePath: 'journal.log', byteOffset: 100, fileSize: 100, updatedAt: timestamp })
+      database.initialize()
+      expect(database.getJournalCheckpoint('journal.log')?.byteOffset).toBe(100)
+    } finally { database.close() }
+  })
+})
+
+test('invalid coordinate migration rolls back records and preserves journal checkpoints', () => {
+  withRetainedDatabase((path, retained) => {
+    retained.prepare('DELETE FROM schema_migrations WHERE version = 25').run()
+    retained.prepare('UPDATE cartography_records SET local_document = ? WHERE system_key = ?').run('{broken', 'local only')
+    retained.prepare('INSERT INTO elite_journal_checkpoints VALUES (?, ?, ?, ?)').run('journal.log', 100, 100, timestamp)
+    retained.close()
+    const database = new SqliteDatabase(path)
+    try { expect(() => database.initialize()).toThrow() } finally { database.close() }
+    const failed = new DatabaseSync(path)
+    try {
+      expect(failed.prepare('SELECT 1 FROM schema_migrations WHERE version = 25').get()).toBeUndefined()
+      expect(failed.prepare('SELECT byte_offset FROM elite_journal_checkpoints WHERE file_path = ?').get('journal.log')).toEqual({ byte_offset: 100 })
+    } finally { failed.close() }
+  })
+})
+
 function withRetainedDatabase (review: (path: string, retained: DatabaseSync) => void): void {
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-cartography-migrations-'))
   const path = join(directory, 'phoenix.sqlite')
@@ -107,7 +142,7 @@ function withRetainedDatabase (review: (path: string, retained: DatabaseSync) =>
 }
 
 function observation (systemName: string): LocalSystemCartographyObservation {
-  return { allBodiesFound: false, bodies: [], reportedBodyCount: null, systemAddress: null, systemName, updatedAt: timestamp }
+  return { position: null, allBodiesFound: false, bodies: [], reportedBodyCount: null, systemAddress: null, systemName, updatedAt: timestamp }
 }
 
 function system (name: string): CartographicSystem {

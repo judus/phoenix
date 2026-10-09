@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { Loading } from '@phoenix/ui'
 import type {
   EngineeringBlueprintDetail,
   EngineeringBlueprintSummary,
@@ -11,11 +12,13 @@ import {
   DataTableGroup,
   DescriptionItem,
   DescriptionList,
+  Field,
   Meter,
   PageFrame,
   Section,
   Stack,
   Status,
+  TextInput,
   ThirdsGrid
 } from '@phoenix/ui'
 import { SystemLocationLink } from '../../components/system-location-link.js'
@@ -65,10 +68,10 @@ export function EngineeringPage({ controller, onNavigate, route }: {
 
 function EngineeringState({ error, title }: { error?: string, title: string }) {
   return (
-    <PageFrame aria-busy={!error}>
-      <Stack gap="sm">
+    <PageFrame layout="fit">
+      <Stack fill gap="sm">
         <EngineeringHeader title={title} trail={[{ label: title }]} />
-        <Status tone={error ? 'danger' : 'muted'}>{error ?? 'Loading engineering records…'}</Status>
+        {error ? <Status tone="danger">{error}</Status> : <Loading>Loading engineering records…</Loading>}
       </Stack>
     </PageFrame>
   )
@@ -162,11 +165,19 @@ function MaterialGroup({ entries, group }: { entries: EngineeringMaterial[], gro
 }
 
 function Blueprints({ blueprints }: { blueprints: EngineeringBlueprintSummary[] }) {
+  const [filter, setFilter] = useState('')
+  const query = filter.trim().toLowerCase()
+  const shown = blueprints.filter(blueprint =>
+    [blueprint.name, blueprint.originalName, ...blueprint.moduleNames].join(' ').toLowerCase().includes(query)
+  )
   return (
     <PageFrame layout="fit">
       <Stack fill gap="sm">
         <EngineeringHeader title="Blueprints" trail={[{ label: 'Blueprints' }]} />
-        <BlueprintGroup blueprints={blueprints} title="Blueprints" />
+        <Field label="Filter blueprints or modules" htmlFor="blueprint-filter">
+          <TextInput className="form-mini" id="blueprint-filter" value={filter} onChange={event => setFilter(event.target.value)} />
+        </Field>
+        <BlueprintGroup blueprints={shown} title="Blueprints" />
       </Stack>
     </PageFrame>
   )

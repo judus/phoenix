@@ -1,4 +1,12 @@
 import {
+  GalnetAnalysisResponseSchema,
+  GalnetArchiveResponseSchema, GalnetArchivedArticleSchema, type GalnetArchiveQuery,
+  GalnetBackgroundStatusSchema,
+  GalnetCoverageResponseSchema,
+  type GalnetBackgroundSettings,
+  GalnetInvestigationLeadsResponseSchema,
+  type GalnetAnalysisResponse,
+  AtlasCatalogueResponseSchema,
   EddnStatusSchema,
   EddnSubmissionLogSchema,
   EddnSubmissionDetailSchema,
@@ -47,6 +55,7 @@ import {
   GameActionCatalogResponseSchema,
   GameActionResultSchema,
   GalnetNewsResponseSchema,
+  CommunityGoalsResponseSchema,
   FleetResponseSchema,
   EngineeringBlueprintDetailSchema,
   EngineeringBlueprintsResponseSchema,
@@ -102,6 +111,7 @@ import {
 } from '@phoenix/contracts'
 import { ControlDeckCommandCatalogueSchema, type ControlDeckCommandCatalogue } from 'control-deck/core'
 import type {
+  AtlasCatalogueResponse,
   ActivityLogResponse,
   CartographyLookupResponse,
   CommunicationsResponse,
@@ -136,6 +146,7 @@ import type {
   GameActionOperation,
   GameActionResult,
   GalnetNewsResponse,
+  CommunityGoalsResponse,
   FleetResponse,
   EngineeringBlueprintDetail,
   EngineeringBlueprintsResponse,
@@ -208,9 +219,19 @@ export class PhoenixApiClient implements PhoenixApi {
   readonly #baseUrl: string
   readonly #request: typeof fetch
 
-  constructor(baseUrl = '', request: typeof fetch = globalThis.fetch) {
+  constructor(baseUrl = '', request: typeof fetch = globalThis.fetch, onPairingRequired?: () => void) {
     this.#baseUrl = baseUrl
-    this.#request = request.bind(globalThis)
+    const boundFetch = request.bind(globalThis)
+    this.#request = async (input, init) => {
+      const response = await boundFetch(input, init)
+      if (response.status === 401 && onPairingRequired) {
+        // Preserve the original body for ordinary API error reporting. A provider's 401 or an
+        // invalid pairing code is not evidence that this device's PHOENIX session was revoked.
+        const payload = await response.clone().json().catch(() => null) as { error?: { code?: string } } | null
+        if (payload?.error?.code === 'pairing_required') onPairingRequired()
+      }
+      return response
+    }
   }
 
   async getPairingStatus(signal?: AbortSignal): Promise<PairingStatus> {
@@ -367,6 +388,10 @@ export class PhoenixApiClient implements PhoenixApi {
     return this.#get('/api/galaxy/bookmarks', GalaxyBookmarksResponseSchema, signal)
   }
 
+  async getAtlasCatalogue(signal?: AbortSignal): Promise<AtlasCatalogueResponse> {
+    return this.#get('/api/galaxy/atlas/pois', AtlasCatalogueResponseSchema, signal)
+  }
+
   async saveGalaxyBookmark(input: GalaxyBookmarkWriteRequest, id?: string, signal?: AbortSignal): Promise<GalaxyBookmark> {
     return this.#json(
       id ? `/api/galaxy/bookmarks/${encodeURIComponent(id)}` : '/api/galaxy/bookmarks',
@@ -383,6 +408,10 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getSavedGalaxyQueries(signal?: AbortSignal): Promise<SavedGalaxyQueriesResponse> {
     return this.#get('/api/galaxy/saved-queries', SavedGalaxyQueriesResponseSchema, signal)
+  }
+
+  async importPredefinedGalaxyQueries(signal?: AbortSignal): Promise<SavedGalaxyQueriesResponse> {
+    return this.#json('/api/galaxy/saved-queries/predefined', 'POST', {}, SavedGalaxyQueriesResponseSchema, signal)
   }
 
   async saveGalaxyQuery(input: SavedGalaxyQueryWriteRequest, id?: string, signal?: AbortSignal): Promise<SavedGalaxyQuery> {
@@ -469,6 +498,45 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getGalnetNews(limit = 40, signal?: AbortSignal): Promise<GalnetNewsResponse> {
     return this.#get(`/api/galnet?limit=${encodeURIComponent(String(limit))}`, GalnetNewsResponseSchema, signal)
+  }
+
+  async getGalnetAnalysis(articleId: string, signal?: AbortSignal): Promise<GalnetAnalysisResponse> {
+    return this.#get(`/api/galnet/analysis?${new URLSearchParams({ articleId })}`, GalnetAnalysisResponseSchema, signal)
+  }
+
+  async getGalnetArchive({ query, limit, offset }: GalnetArchiveQuery, signal?: AbortSignal) {
+    return this.#get(`/api/galnet/archive?${new URLSearchParams({ query, limit: String(limit), offset: String(offset) })}`, GalnetArchiveResponseSchema, signal)
+  }
+
+  async getGalnetArchivedArticle(articleId: string, signal?: AbortSignal) {
+    return this.#get(`/api/galnet/archive/article?${new URLSearchParams({ articleId })}`, GalnetArchivedArticleSchema, signal)
+  }
+
+  async getGalnetBackground(signal?: AbortSignal) {
+    return this.#get('/api/galnet/background', GalnetBackgroundStatusSchema, signal)
+  }
+  async getGalnetCoverage(articleId: string, signal?: AbortSignal) {
+    return this.#get(`/api/galnet/coverage?${new URLSearchParams({ articleId })}`, GalnetCoverageResponseSchema, signal)
+  }
+
+  async saveGalnetBackground(settings: GalnetBackgroundSettings, signal?: AbortSignal) {
+    return this.#json('/api/settings/galnet-background', 'PUT', settings, GalnetBackgroundStatusSchema, signal)
+  }
+
+  async catchUpGalnet(articleIds: string[], signal?: AbortSignal) {
+    return this.#json('/api/galnet/catch-up', 'POST', { articleIds }, GalnetBackgroundStatusSchema, signal)
+  }
+
+  async getGalnetInvestigationLeads(signal?: AbortSignal) {
+    return this.#get('/api/galnet/investigation-leads', GalnetInvestigationLeadsResponseSchema, signal)
+  }
+
+  async analyseGalnetArticle(articleId: string, signal?: AbortSignal): Promise<GalnetAnalysisResponse> {
+    return this.#json('/api/galnet/analysis', 'POST', { articleId }, GalnetAnalysisResponseSchema, signal)
+  }
+
+  async getCommunityGoals(signal?: AbortSignal): Promise<CommunityGoalsResponse> {
+    return this.#get('/api/operations/community-goals', CommunityGoalsResponseSchema, signal)
   }
 
   async getShipCatalogue(signal?: AbortSignal): Promise<ShipCatalogueResponse> {

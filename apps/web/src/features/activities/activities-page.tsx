@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { Loading } from '@phoenix/ui'
 import {
   Breadcrumbs,
   DataTable,
@@ -20,19 +21,15 @@ import { PhoenixCredits } from '../../components/phoenix-credits.js'
 import { SystemLocationLink } from '../../components/system-location-link.js'
 import { DataSyncNotice } from '../../components/data-sync-notice.js'
 import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
+import { CommunityGoalsPage } from './community-goals-page.js'
 
-type RetainedActivityView = Exclude<ActivitiesView, 'missions'>
+type RetainedActivityView = Exclude<ActivitiesView, 'missions' | 'community-goals'>
 
 const activityViews: Record<RetainedActivityView, { empty: string, ledger: string, title: string }> = {
   objectives: {
     empty: 'No authoritative commander objective record is currently available.',
     ledger: 'Objective ledger',
     title: 'Objectives'
-  },
-  'community-goals': {
-    empty: 'No authoritative Community Goal participation record is currently available.',
-    ledger: 'Community Goal ledger',
-    title: 'Community goals'
   },
   powerplay: {
     empty: 'No authoritative commander Powerplay record is currently available.',
@@ -50,6 +47,7 @@ export function ActivitiesPage({ controller, view }: {
   controller: ActivitiesControllerSnapshot
   view: ActivitiesView
 }) {
+  if (view === 'community-goals') return <CommunityGoalsPage controller={controller} />
   if (view !== 'missions') return <ActivityLedger view={view} />
   if (controller.status === 'idle' || controller.status === 'loading') return <ActivitiesState title="Missions" />
   if (controller.status === 'error' || !controller.missions) {
@@ -62,10 +60,10 @@ export function ActivitiesPage({ controller, view }: {
 
 function ActivitiesState({ error, title }: { error?: string, title: string }) {
   return (
-    <PageFrame aria-busy={!error}>
-      <Stack gap="xl">
+    <PageFrame layout="fit">
+      <Stack fill gap="xl">
         <ActivitiesHeader title={title} />
-        <Status tone={error ? 'danger' : 'muted'}>{error ?? 'Reconstructing journal-backed mission records…'}</Status>
+        {error ? <Status tone="danger">{error}</Status> : <Loading>Reconstructing journal-backed mission records…</Loading>}
       </Stack>
     </PageFrame>
   )

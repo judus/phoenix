@@ -1,4 +1,7 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { ItemListItem } from '@phoenix/ui'
 import { beforeAll, expect, test, vi } from 'vitest'
 import { CommanderLogPage } from '../apps/web/src/features/journal/commander-log-page.js'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
@@ -19,9 +22,8 @@ test('player history supports loading more and filtering without showing raw pay
   const api = { getCommanderLog: vi.fn().mockResolvedValue({ entries }) } as unknown as PhoenixApi
   const unsubscribe = vi.fn()
   const events = { subscribe: vi.fn(() => unsubscribe) } as unknown as PhoenixEventHub
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<CommanderLogPage api={api} events={events} />) })
-  const rows = () => renderer.root.findAllByType('li')
+  const renderer = await renderWithAct(<CommanderLogPage api={api} events={events} />)
+  const rows = () => renderer.root.findAllByType(ItemListItem)
   expect(rows()).toHaveLength(50)
   await act(async () => renderer.root.findByType('button').props.onClick())
   expect(rows()).toHaveLength(60)
@@ -33,6 +35,18 @@ test('player history supports loading more and filtering without showing raw pay
   expect(JSON.stringify(renderer.toJSON())).toContain('No matching log entries')
   await act(async () => renderer.unmount())
   expect(unsubscribe).toHaveBeenCalledOnce()
+})
+
+test('commander history uses the shared header and breadcrumb navigation', () => {
+  const api = { getCommanderLog: vi.fn() } as unknown as PhoenixApi
+  const events = { subscribe: vi.fn() } as unknown as PhoenixEventHub
+  const markup = renderToStaticMarkup(<CommanderLogPage api={api} events={events} />)
+  expect(markup).toContain('class="page-header page-header-cockpit"')
+  expect(markup).toContain('aria-label="Breadcrumb"')
+  expect(markup).toContain('class="breadcrumb-separator"')
+  expect(markup).toContain('<span>Log</span>')
+  expect(markup).toContain('<span aria-current="page">Commander</span>')
+  expect(markup).not.toContain('Log · Commander')
 })
 
 test('LOG and DEV have independent top rail buttons and contextual pages', () => {

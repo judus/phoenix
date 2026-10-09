@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
@@ -19,7 +20,7 @@ test('Engineering selects one focused API query for each view', async () => {
   let route: EngineeringRoute = { kind: 'information', section: 'engineering', view: 'blueprints' }
 
   function Probe() { snapshot = useEngineeringController(api, route, 1); return null }
-  const renderer = await act(async () => create(<Probe />))
+  const renderer = await renderWithAct(<Probe />)
   expect(api.getEngineeringBlueprints).toHaveBeenCalledTimes(1)
   expect(snapshot).toMatchObject({ blueprints: { blueprints: [] }, status: 'ready' })
 
@@ -55,14 +56,14 @@ test('Engineering retains a successful page snapshot while a revisit refreshes',
   let snapshot: EngineeringControllerSnapshot | undefined
 
   function Probe() { snapshot = useEngineeringController(api, { kind: 'information', section: 'engineering', view: 'blueprints' }); return null }
-  let renderer = await act(async () => create(<Probe />))
+  let renderer = await renderWithAct(<Probe />)
   expect(snapshot).toMatchObject({ blueprints, status: 'ready' })
   await act(async () => renderer.unmount())
 
   expect(readControllerSnapshot(api, 'engineering:blueprints::')).toEqual({ blueprints, status: 'ready' })
 
   vi.mocked(api.getEngineeringBlueprints).mockImplementationOnce(() => new Promise(() => undefined))
-  renderer = await act(async () => create(<Probe />))
+  renderer = await renderWithAct(<Probe />)
 
   expect(api.getEngineeringBlueprints).toHaveBeenCalledTimes(2)
   expect(snapshot).toMatchObject({ blueprints, status: 'ready' })

@@ -11,11 +11,15 @@ test('journal projection retry resumes at the failed projection', async () => {
   const event = { event: 'Docked', timestamp: '2026-08-19T12:00:00.000Z' }
 
   await expect(pipeline.project(event)).rejects.toThrow('SQLite temporarily unavailable.')
+  expect(first).toHaveBeenCalledWith(event)
+  expect(second).toHaveBeenCalledWith(event)
+  expect(third).not.toHaveBeenCalled()
   await expect(pipeline.project(event)).resolves.toBeUndefined()
 
   expect(first).toHaveBeenCalledOnce()
   expect(second).toHaveBeenCalledTimes(2)
   expect(third).toHaveBeenCalledOnce()
+  expect(third).toHaveBeenCalledWith(event)
 })
 
 test('journal projection retry rejects a different event until recovery completes', async () => {

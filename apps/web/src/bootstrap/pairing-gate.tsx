@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
-import { Button, Field, Form, FormActions, PageFrame, PageHeader, TextInput } from '@phoenix/ui'
+import { Button, Field, Form, FormActions, PageFrame, TextInput } from '@phoenix/ui'
 import type { PairingInfo } from '@phoenix/contracts'
 import type { PhoenixApi } from '../application/api/phoenix-api.js'
 import { PairingAccess } from '../components/pairing-access.js'
@@ -9,7 +9,7 @@ type PairingGateState =
   | { status: 'pairing', error?: string, info?: PairingInfo }
   | { status: 'authenticated' }
 
-export function PairingGate({ api, children, initialCode = '' }: { api: PhoenixApi, children: ReactNode, initialCode?: string }) {
+export function PairingGate({ api, children, initialCode = '', onPairingRequired }: { api: PhoenixApi, children: ReactNode, initialCode?: string, onPairingRequired?: () => void }) {
   const [state, setState] = useState<PairingGateState>({ status: 'checking' })
 
   useEffect(() => {
@@ -44,6 +44,33 @@ export function PairingGate({ api, children, initialCode = '' }: { api: PhoenixA
       })
     return () => abort.abort()
   }, [api])
+
+  useEffect(() => {
+    if (state.status !== 'authenticated') return
+    const abort = new AbortController()
+    let checking = false
+    const check = async (): Promise<void> => {
+      if (checking) return
+      checking = true
+      try {
+        const status = await api.getPairingStatus(abort.signal)
+        if (!abort.signal.aborted && !status.authenticated) {
+          setState({ status: 'pairing' })
+          onPairingRequired?.()
+        }
+      } catch {
+        // Offline/server failures are not revocation. Normal connection feedback still applies.
+      } finally { checking = false }
+    }
+    const visible = (): void => { if (!document.hidden) void check() }
+    const timer = setInterval(() => void check(), 5000)
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', visible)
+    return () => {
+      abort.abort()
+      clearInterval(timer)
+      if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', visible)
+    }
+  }, [api, state.status, onPairingRequired])
 
   if (state.status === 'authenticated') return children
   return (
@@ -96,12 +123,14 @@ function PairingPage({
   return (
     <PageFrame className="pairing-gate" layout="fit">
       <section>
-        <PageHeader
-          context="Device authorization"
-          description="Authorize this browser against the local PHOENIX installation."
-          title="PHOENIX"
-          variant="cockpit"
-        />
+        <header>
+          <img className="pairing-logo" src="/phoenix.svg" alt="Phoenix" />
+          <div>
+            <small>Device authorization</small>
+            <h1>PHOENIX</h1>
+          </div>
+          <p>Authorize this browser against the local PHOENIX installation.</p>
+        </header>
         {checking
           ? <p className="pairing-status">Establishing secure link…</p>
           : (

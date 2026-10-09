@@ -43,10 +43,11 @@ do not invent an upload schema for it.
 
 1. Complete and test journal/file mappings, privacy and chronological context. Exercise the
    full service path, not just schema-valid happy paths. Synthetic tests never upload externally.
-2. Complete field-level comparison for the permissive journal schema, including current
-   Powerplay/colonisation additions; an event-name checklist alone is insufficient.
-3. Implement authenticated CAPI coverage with PHOENIX's own registered client. No existing
-   CAPI/OAuth service was found in this checkout. Never use EDMC's ID or borrow its tokens.
+2. Keep field-level comparison current for the permissive journal schema; the bounded
+   Powerplay/colonisation review below is not a guarantee of future-field or EDMC parity.
+3. Keep CAPI/OAuth explicitly deferred from native journal/file readiness. Full EDMC source
+   parity still requires separately approved authenticated CAPI coverage with PHOENIX's own
+   registered client. Never use EDMC's ID or borrow its tokens.
 4. Reconcile documented delivery differences, prove packaging and real-game acceptance,
    coordinate with maintainers, then deliberately review live release. Until then tell users
    to keep their existing uploader; test acceptance is not downstream ingestion proof.
@@ -73,7 +74,8 @@ initial gap findings; this section records their current disposition.
 - Delivery now uses gzip and a 2 MiB uncompressed safety cap. History is bounded by 100 entries,
   seven days and 16 MiB. A 2,500-system route passes without truncation.
 - Package version advances to 0.1.3 to identify the changed submission content. The pin/hash
-  manifest is `resources/eddn/upstream.json`; the scheduled/later checker is not implemented yet.
+  manifest is `resources/eddn/upstream.json`. The opt-in [read-only upstream checker](eddn-upstream-checker.md)
+  detects revision/schema/documentation drift; it never updates mappings or waives readiness gates.
 
 ## Remaining gaps, not waived
 
@@ -99,13 +101,62 @@ additional CAPI coverage from this parity target.
 Frontier's [v38 manual](https://hosting.zaonce.net/community/journal/v38/Journal_Manual_v38.pdf)
 was checked for travel/scan/Codex fields. The reviewed basic public fields are allowlisted; personal
 travel flags (Taxi, Multicrew, InSRV, OnFoot), rank/reputation and unknown future fields are not.
-The PDF itself does not fully describe current Powerplay/colonisation extensions. Finish their
-field-level evidence review with current journal fixtures/provider contracts before signing off.
+The PDF itself does not fully describe current Powerplay/colonisation extensions. The bounded
+review below supplements it with independent observed-journal contracts, not provider data.
 Do not replace the allowlist with EDMC's generic pass-through-minus-exclusions just to claim parity.
 
+#### Public-field review (2026-10-07, #112)
+
+Compared the six generic journal mappings with the observed Odyssey journal contracts in
+[ed-journal-schemas at e4976b5](https://github.com/jixxed/ed-journal-schemas/tree/e4976b5f9b46f784029364453622c2668087cfd6/schemas).
+These are community-maintained source contracts, not Frontier or EDDN schemas. The pinned
+[EDDN journal rules](https://github.com/EDCD/EDDN/blob/4ad669bb7bbe1eae080e4c354e786dca4db91f35/schemas/journal-README.md)
+still govern event routing and privacy. The read-only upstream check found no pin drift.
+
+- **Fixed:** `Scan.WasFootfalled` was dropped. The observed contract defines a boolean;
+  [EDDI's independent journal parser](https://github.com/EDCD/EDDI/blob/d3b964ea7c8bb959ad6537f55b308f293a326905/JournalMonitor/JournalMonitor.cs)
+  interprets it as existing first-footfall status, analogous to `WasDiscovered`/`WasMapped`.
+  Preserve native true/false when present; do not infer a value or send a discoverer's identity.
+- **Already covered:** Powerplay 2's `ControllingPower`, `Powers`, `PowerplayState`,
+  `PowerplayStateControlProgress`, reinforcement/undermining counters and array-shaped
+  `PowerplayConflictProgress` (`Power`, `ConflictProgress`) on `FSDJump`, `Location` and
+  `CarrierJump`. Preserve source values without clamping or inventing alternate shapes.
+- **Already covered:** colonisation station names/types, economies/services and conflict-stake
+  symbols through existing public station/conflict mappings. New string values need no enum
+  changes. Nested localisation and commander reputation remain excluded.
+- **Not supported by EDDN:** standalone colonisation construction, contributions and claims,
+  or personal Powerplay progress events. Public construction progress is not necessarily
+  private, but currently has no supported schema/event route. Do not invent one or tunnel it
+  through a different journal event. Station market snapshots keep their ordinary mapping.
+
+Synthetic tests exercise these decisions through the contribution service, official schema
+validator, SQLite outbox and injected transport, including false/absent first-footfall status,
+zero and above-one Powerplay values, private nested siblings and unsupported event rejection.
+No real player journals or external submissions were used. Dedicated schemas, CAPI, future
+unknown fields and real-game acceptance are not signed off by this bounded comparison.
+
 Our source-only deduplication, finite queue/24-hour expiry and no bootstrap/history upload are
-intentional safety policies, not demonstrated EDMC equivalents. Still review offline retention,
-visible loss accounting (a later accepted upload currently clears the single error), long-running
-journal file rotation/session continuity, and busy-system memory-only signal loss on crashes.
-Pinning schemas alone cannot establish these invariants. New families also need authorized
-gameplay acceptance and native Windows packaging validation. Until then, keep the test-only gate.
+intentional safety policies, not demonstrated EDMC equivalents. The bounded offline-policy review
+(#114) verified file-backed recovery versus downtime omission, independent observation/admission
+age limits, durable retry deadlines and queue/byte/receipt limits. These policies are retained,
+not extended; see [offline policy](eddn-contribution.md#offline-policy-reviewed-2026-10-07-114).
+Live journal rotation/session continuity was addressed in #109. Incomplete old tails now receive
+one additional refresh before advancing; permanently truncated tails cannot block new files.
+This bounded grace does not recover arbitrary writes made after the reader has advanced (#111).
+Pinning schemas alone cannot establish these invariants. Authorized gameplay acceptance and
+native runtime/packaging validation remain open in the [readiness checklist](eddn-readiness.md).
+Until those gates are deliberately satisfied, keep the test-only gate.
+
+Delivery-accounting follow-up: persistent reason totals now cover queue expiry, invalid queued
+documents, HTTP rejection, capacity-skipped admission and deliberate clearing. Success and history
+expiry no longer erase this evidence. Existing 24-hour retention and retry reservations remain;
+open signal batches now checkpoint their last public envelope inside the bounded outbox. Resolved
+checkpoints recover through ordinary validation; unresolved pre-arrival markers are counted invalid,
+not reconstructed from bootstrap. Oversize/capacity skips and session clears are accounted for.
+Live rotation now drains unread tails/intermediate files and preserves explicitly linked session
+parts; startup remains newest-file-only without reconstructing missing earlier context.
+Failed writes cannot preserve new data; gameplay acceptance remains open.
+Capacity rejection before draft admission retains a bounded in-memory count/time accumulator
+when the counter write fails. Worker/shutdown retries persist it after storage recovers, even
+while disabled; unwritten counts cannot survive process loss. This is not a full EDMC
+delivery-policy equivalence claim.

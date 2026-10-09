@@ -1,10 +1,12 @@
+import { AtlasDisplayLocationSchema } from '@phoenix/contracts'
 import {
   CONTROL_CATEGORIES,
   GALAXY_QUERY_IDS,
   DEFAULT_ROUTE,
   type InformationRoute,
   type PhoenixRoute,
-  type PhoenixWorkspace
+  type PhoenixWorkspace,
+  type ControlCategory
 } from './phoenix-route.js'
 
 type RawRouteQuery = Readonly<Record<string, string>>
@@ -15,7 +17,7 @@ export interface PhoenixRouter {
   href(route: PhoenixRoute): string
   push(route: PhoenixRoute): void
   replace(route: PhoenixRoute): void
-  routeForWorkspace(workspace: PhoenixWorkspace): PhoenixRoute
+  routeForWorkspace(workspace: PhoenixWorkspace, firstControlCategory?: ControlCategory): PhoenixRoute
   subscribe(listener: () => void): () => void
 }
 
@@ -126,6 +128,11 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
     case 'settings': path = `/settings/${route.view}`; break
   }
   const parameters = new URLSearchParams()
+  if (route.kind === 'information' && route.section === 'galaxy' && route.view === 'atlas' && route.location) {
+    parameters.set('name', route.location.systemName)
+    parameters.set('position', route.location.position.join(','))
+    if (route.displayRequestId) parameters.set('request', route.displayRequestId)
+  }
   if (route.kind === 'settings' && route.view === 'help' && route.topic) parameters.set('topic', route.topic)
   if (route.kind === 'information' && route.section === 'galaxy' && route.view === 'system') {
     if (route.systemName) parameters.set('name', route.systemName)
@@ -209,7 +216,16 @@ function parseFleetRoute(rest: string[], query: RawRouteQuery): InformationRoute
 }
 
 function parseGalaxyRoute(rest: string[], query: RawRouteQuery): InformationRoute {
-  const view = oneOf(rest[0], ['system', 'atlas', 'route', 'database', 'saved-queries', 'exobiology', 'bookmarks'] as const) ?? 'system'
+  const view = oneOf(rest[0], ['system', 'atlas', 'route', 'database', 'saved-queries', 'exobiology', 'bookmarks'] as const) ?? (rest[0] ? 'system' : 'atlas')
+  if (view === 'atlas') {
+    const coordinates = query.position?.split(',')
+    const parsed = AtlasDisplayLocationSchema.safeParse({
+      systemName: query.name,
+      position: coordinates?.map(value => value.trim() ? Number(value) : NaN)
+    })
+    return { kind: 'information', section: 'galaxy', view,
+      ...(parsed.success ? { location: parsed.data, ...(query.request?.trim() ? { displayRequestId: query.request.trim() } : {}) } : {}) }
+  }
   if (view === 'system') {
     const { name, selected } = query
     return {

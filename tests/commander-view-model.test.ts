@@ -64,7 +64,11 @@ test('commander view model reports honest unknowns when snapshots are absent', (
   const model = createCommanderViewModel(createEmptyRuntimeState())
 
   expect(model.name).toBe('Unknown commander')
+  expect(model.ranks.map(rank => rank.label)).toEqual([
+    'Combat', 'Trade', 'Exploration', 'CQC', 'Mercenary', 'Exobiologist', 'Federation', 'Empire'
+  ])
   expect(model.ranks.every(rank => rank.level === '—' && rank.progressLabel === 'Not reported')).toBe(true)
+  expect(model.reputation.map(reputation => reputation.label)).toEqual(['Federation', 'Empire', 'Alliance', 'Independent'])
   expect(model.reputation.every(reputation => reputation.status === 'Unknown')).toBe(true)
   expect(model.statistics).toBeNull()
   expect(model.stores.map(store => store.meta)).toEqual(['0 units · No snapshot', '0 units · No snapshot'])

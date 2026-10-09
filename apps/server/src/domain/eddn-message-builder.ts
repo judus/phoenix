@@ -1,4 +1,4 @@
-import type { EliteJournalEvent } from '@phoenix/elite'
+import { EliteJournalSession, type EliteJournalEvent } from '@phoenix/elite'
 import type { EliteGameStatus } from '@phoenix/contracts'
 import { EDDN_SCHEMA_VERSIONS, type EddnMessage, type EddnSchema } from './eddn.js'
 
@@ -29,7 +29,7 @@ const location: Fields = {
 }
 const scan: Fields = {
   ScanType: true, BodyName: true, BodyID: true, DistanceFromArrivalLS: true,
-  WasDiscovered: true, WasMapped: true,
+  WasDiscovered: true, WasMapped: true, WasFootfalled: true,
   Parents: [{ Null: true, Star: true, Planet: true, Ring: true }],
   StarType: true, Subclass: true, StellarMass: true, Radius: true, AbsoluteMagnitude: true,
   Age_MY: true, SurfaceTemperature: true, Luminosity: true,
@@ -106,6 +106,7 @@ export function isRecord (value: unknown): value is RecordValue {
 interface SystemContext { StarSystem: string, SystemAddress: number, StarPos: number[] }
 
 export class EddnMessageBuilder {
+  private readonly session = new EliteJournalSession()
   private commander?: string
   private gameversion = ''
   private gamebuild = ''
@@ -119,7 +120,10 @@ export class EddnMessageBuilder {
 
   public constructor (private readonly version: string) {}
 
+  public isSessionContinuation (event: EliteJournalEvent): boolean { return this.session.isContinuation(event) }
+
   public observe (event: EliteJournalEvent): void {
+    if (this.session.observe(event)) return
     if (['Fileheader', 'LoadGame', 'Shutdown', 'FSDJump', 'CarrierJump', 'Location', 'JoinACrew', 'QuitACrew'].includes(event.event) ||
       (event.event === 'Music' && event.MusicTrack === 'MainMenu')) {
       this.body = undefined

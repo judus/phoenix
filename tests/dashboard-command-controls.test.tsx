@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { expect, test, vi } from 'vitest'
 import type { GameActionCatalogResponse, GameActionResult } from '@phoenix/contracts'
@@ -7,17 +8,13 @@ test('dashboard commands control voice, radio, and the next route target while d
   const connect = vi.fn(() => Promise.resolve())
   const disconnect = vi.fn()
   const onExecute = vi.fn((actionId: string) => Promise.resolve(result(actionId)))
-  let renderer: ReturnType<typeof create>
-
-  await act(async () => {
-    renderer = create(
+  const renderer = await renderWithAct(
       <DashboardCommandControls
         actions={actionCatalogue()}
         onExecute={onExecute}
         voice={{ connected: false, connect, disconnect, transitioning: false }}
       />
     )
-  })
 
   await act(async () => renderer.root.findByProps({ 'aria-label': 'Connect Copilot voice' }).props.onClick())
   expect(connect).toHaveBeenCalledOnce()

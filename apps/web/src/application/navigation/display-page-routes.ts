@@ -21,6 +21,7 @@ const DISPLAY_PAGE_ROUTES = {
   'fleet.stored-modules': { kind: 'information', section: 'fleet', view: 'stored-modules' },
   'fleet.catalogue': { kind: 'information', section: 'fleet', view: 'catalogue' },
   'galaxy.system': { kind: 'information', section: 'galaxy', view: 'system' },
+  'galaxy.atlas': { kind: 'information', section: 'galaxy', view: 'atlas' },
   'galaxy.route': { kind: 'information', section: 'galaxy', view: 'route' },
   'galaxy.exobiology': { kind: 'information', section: 'galaxy', view: 'exobiology' },
   'galaxy.database': { kind: 'information', section: 'galaxy', view: 'database' },
@@ -71,6 +72,9 @@ export function routeForDisplayPage (pageId: DisplayPageId): PhoenixRoute {
 
 export function routeForDisplayCommand (command: DisplayCommand): PhoenixRoute {
   if (command.type === 'open_page') return routeForDisplayPage(command.pageId)
+  if (command.type === 'show_atlas') return {
+    kind: 'information', section: 'galaxy', view: 'atlas', location: command.location, displayRequestId: command.id
+  }
   return {
     kind: 'information',
     section: 'galaxy',

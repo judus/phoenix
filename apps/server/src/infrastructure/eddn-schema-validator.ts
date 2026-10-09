@@ -1,15 +1,21 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import Ajv from 'ajv-draft-04'
+import AjvDefault from 'ajv-draft-04'
+import type AjvModule = require('ajv-draft-04')
 import type { ValidateFunction } from 'ajv'
 import { z } from 'zod'
 import { EDDN_MAX_MESSAGE_BYTES, EDDN_SCHEMA_VERSIONS, type EddnMessage } from '../domain/eddn.js'
+
+// The pinned CJS export is the constructor itself. NodeNext types its ESM default
+// as a namespace, unlike Bundler; use the CJS declaration for this interop boundary.
+// Keep a static import so the installer bundler includes the dependency.
+const Ajv = AjvDefault as unknown as typeof AjvModule.default
 
 export class EddnSchemaValidator {
   private readonly validators = new Map<string, ValidateFunction>()
 
   public constructor (directory: string) {
-    const ajv = new Ajv.default({ strict: false, allErrors: false })
+    const ajv = new Ajv({ strict: false, allErrors: false })
     ajv.addFormat('date-time', value => z.iso.datetime({ offset: true }).safeParse(value).success)
     for (const [name, version] of Object.entries(EDDN_SCHEMA_VERSIONS)) {
       const schema = JSON.parse(readFileSync(join(directory, `${name}-v${version}.0.json`), 'utf8'))

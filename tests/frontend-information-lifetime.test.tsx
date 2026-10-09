@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { act, create } from 'react-test-renderer'
@@ -5,7 +6,7 @@ import { beforeAll, expect, test, vi } from 'vitest'
 import { App } from '../apps/web/src/app.js'
 import type { PhoenixApplicationServices } from '../apps/web/src/bootstrap/create-application.js'
 import type { PhoenixApplicationShellProps } from '../apps/web/src/components/shell/phoenix-application-shell.js'
-import type { PhoenixRoute } from '../apps/web/src/application/navigation/phoenix-route.js'
+import { defaultRouteForWorkspace, type PhoenixRoute, type InformationRoute } from '../apps/web/src/application/navigation/phoenix-route.js'
 import { phoenixRouteHash } from '../apps/web/src/application/navigation/phoenix-router.js'
 
 const lifecycle = vi.hoisted(() => ({ next: 0, mounted: [] as number[], unmounted: [] as number[] }))
@@ -28,6 +29,7 @@ vi.mock('../apps/web/src/components/shell/phoenix-application-shell.js', () => (
 vi.mock('../apps/web/src/application/runtime/use-runtime-state.js', () => ({ useRuntimeState: () => ({ status: 'idle' }) }))
 vi.mock('../apps/web/src/features/galaxy/use-galaxy-controller.js', () => ({ useGalaxyController: () => ({ status: 'idle' }) }))
 vi.mock('../apps/web/src/features/fleet/use-fleet-controller.js', () => ({ useFleetController: () => ({ status: 'idle' }) }))
+vi.mock('../apps/web/src/features/controls/use-controls-controller.js', () => ({ useControlsController: () => ({ status: 'loading' }) }))
 vi.mock('../apps/web/src/features/galaxy/galaxy-page.js', () => ({ GalaxyPage: () => <PageProbe /> }))
 vi.mock('../apps/web/src/features/fleet/fleet-page.js', () => ({ FleetPage: () => <PageProbe /> }))
 
@@ -35,13 +37,14 @@ beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) 
 
 test('mounted App preserves Galaxy view instances, href-keyed Fleet remounts and workspace unmounts', async () => {
   let route: PhoenixRoute = { kind: 'information', section: 'galaxy', view: 'system', systemName: 'Sol' }
-  let remembered = route
+  let remembered: InformationRoute = route
   const listeners = new Set<() => void>()
   const application = {
     router: {
       getSnapshot: () => route,
       getRememberedInformationRoute: () => remembered,
       href: phoenixRouteHash,
+      routeForWorkspace: defaultRouteForWorkspace,
       subscribe: (listener: () => void) => { listeners.add(listener); return () => listeners.delete(listener) }
     }
   } as unknown as PhoenixApplicationServices
@@ -52,7 +55,7 @@ test('mounted App preserves Galaxy view instances, href-keyed Fleet remounts and
       for (const listener of listeners) listener()
     })
   }
-  const renderer = await act(async () => create(<App application={application} />))
+  const renderer = await renderWithAct(<App application={application} />)
   expect(lifecycle.mounted).toEqual([1])
 
   await navigate({ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Achenar' })

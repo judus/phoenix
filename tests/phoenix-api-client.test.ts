@@ -23,6 +23,21 @@ test('the API client invokes a browser-style fetch with the global receiver', as
 })
 
 describe('pairing transport', () => {
+  test.each([
+    [401, 'pairing_required', true],
+    [401, 'pairing_code_invalid', false],
+    [401, 'provider_authentication', false],
+    [403, 'pairing_required', false]
+  ])('only device authorization failure invokes the global pairing handler: %s %s', async (status, code, redirects) => {
+    const onPairingRequired = vi.fn()
+    const request = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({
+      error: { code, message: 'Original error message' }
+    }), { status }))
+    const client = new PhoenixApiClient('', request, onPairingRequired)
+    await expect(client.getHealth()).rejects.toThrow('Original error message')
+    expect(onPairingRequired).toHaveBeenCalledTimes(redirects ? 1 : 0)
+  })
+
   test('validates status and claims with same-origin browser credentials', async () => {
     const request = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(jsonResponse({

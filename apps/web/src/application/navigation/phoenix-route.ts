@@ -1,3 +1,5 @@
+import type { AtlasDisplayLocation } from '@phoenix/contracts'
+
 export const CONTROL_CATEGORIES = [
   'quick',
   'ship',
@@ -29,7 +31,7 @@ export type InformationRoute =
   | { kind: 'information', section: 'fleet', view: 'catalogue', selectedShipId?: string }
   | { kind: 'information', section: 'galaxy', view: 'system', systemName?: string, selectedName?: string }
   | { kind: 'information', section: 'galaxy', view: 'route' }
-  | { kind: 'information', section: 'galaxy', view: 'atlas' }
+  | { kind: 'information', section: 'galaxy', view: 'atlas', location?: AtlasDisplayLocation, displayRequestId?: string }
   | { kind: 'information', section: 'galaxy', view: 'exobiology' }
   | { kind: 'information', section: 'galaxy', view: 'bookmarks', bookmarkId?: string, systemName?: string, bodyName?: string, stationName?: string }
   | { kind: 'information', section: 'galaxy', view: 'database', savedQueryId?: string, savedQueryRunId?: string, selectedQueryId?: GalaxyQueryId }
@@ -99,7 +101,7 @@ export function defaultRouteForInformationSection(section: InformationPrimarySec
   switch (section) {
     case 'commander': return DEFAULT_ROUTE
     case 'fleet': return { kind: 'information', section, view: 'current-overview' }
-    case 'galaxy': return { kind: 'information', section, view: 'system' }
+    case 'galaxy': return { kind: 'information', section, view: 'atlas' }
     case 'activities': return { kind: 'information', section, view: 'missions' }
     case 'engineering': return { kind: 'information', section, view: 'blueprints' }
     case 'equipment': return { kind: 'information', section, view: 'gear' }
@@ -112,7 +114,7 @@ export function defaultRouteForWorkspace(
   rememberedInformation: InformationRoute = DEFAULT_ROUTE
 ): PhoenixRoute {
   switch (workspace) {
-    case 'controls': return { kind: 'controls', category: 'ship' }
+    case 'controls': return { kind: 'controls', category: 'quick' }
     case 'info': return rememberedInformation
     case 'copilot': return { kind: 'copilot', view: 'chat' }
     case 'telemetry': return { kind: 'numpad' }

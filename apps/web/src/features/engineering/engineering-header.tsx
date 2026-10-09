@@ -6,13 +6,15 @@ type EngineeringBreadcrumb = {
   label: string
 }
 
-export function EngineeringHeader ({ status, title, trail }: {
+export function EngineeringHeader ({ actions, status, title, trail }: {
+  actions?: ReactNode
   status?: ReactNode
   title: string
   trail: EngineeringBreadcrumb[]
 }) {
   return (
     <PageHeader
+      actions={actions}
       variant="cockpit"
       context={<Breadcrumbs items={[{ label: 'Engineering', href: '#/engineering/blueprints' }, ...trail]} />}
       status={status}

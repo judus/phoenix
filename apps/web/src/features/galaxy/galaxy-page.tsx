@@ -1,4 +1,5 @@
-import { lazy, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { lazy, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { Loading } from '@phoenix/ui'
 import { RoutePlotFeedback } from './route-plot-feedback.js'
 import { CatalogueSuggestionInput } from './catalogue-suggestion-input.js'
 import {
@@ -8,6 +9,7 @@ import {
   CheckIcon,
   ControlContext,
   Field,
+  FleetCarrierIcon,
   Form,
   FormActionGroup,
   FormActions,
@@ -33,7 +35,7 @@ import { GalaxyQueryResults, galaxyQueryResultCount, type GalaxyQueryResult } fr
 import type { GalaxyQuerySessionStore } from './galaxy-query-session-store.js'
 import { PlottedRoute } from './plotted-route.js'
 import { ExobiologyPage } from './exobiology-page.js'
-import { SystemSchematic, type CartographicSelection } from './system-schematic.js'
+import { isFleetCarrier, SystemSchematic, type CartographicSelection } from './system-schematic.js'
 import { BookmarksPage } from './bookmarks-page.js'
 import { SavedGalaxyQueriesPage } from './saved-galaxy-queries-page.js'
 import { useSystemBookmarkStatus } from './use-system-bookmark-status.js'
@@ -50,7 +52,7 @@ export function GalaxyPage({ api, controller, onNavigate, querySessions, route, 
   route: GalaxyRoute
   runtime: RuntimeStateSnapshot
 }) {
-  if (route.view === 'atlas') return <GalacticAtlasPage api={api} onNavigate={onNavigate} runtime={runtime} />
+  if (route.view === 'atlas') return <GalacticAtlasPage api={api} onNavigate={onNavigate} runtime={runtime} location={route.location} displayRequestId={route.displayRequestId} />
   if (route.view === 'database') return <QueryConsole key={route.savedQueryRunId ?? 'editor'} api={api} onNavigate={onNavigate} querySessions={querySessions} route={route} runtime={runtime} />
   if (route.view === 'saved-queries') return <SavedGalaxyQueriesPage api={api} onNavigate={onNavigate} />
   if (route.view === 'exobiology') return <ExobiologyPage controller={controller} />
@@ -89,6 +91,7 @@ function SystemView({ api, commanderName, lookup, onNavigate, route }: {
   route: Extract<GalaxyRoute, { view: 'system' }>
 }) {
   const following = route.systemName === undefined
+  const [showFleetCarriers, setShowFleetCarriers] = useState(true)
   const [query, setQuery] = useState(route.systemName ?? lookup.system.name)
   const [plotting, setPlotting] = useState(false)
   const [plotResult, setPlotResult] = useState<PlotEliteDestinationResult>()
@@ -105,7 +108,9 @@ function SystemView({ api, commanderName, lookup, onNavigate, route }: {
   }, [lookup.system.name])
   const selected = useMemo<CartographicSelection | null>(() => {
     if (!route.selectedName) return null
-    return lookup.system.bodies.find(item => item.name === route.selectedName)
+    // Site catalogues can capitalize body suffixes differently from cartography providers.
+    const bodyName = route.selectedName.toLowerCase()
+    return lookup.system.bodies.find(item => item.name.toLowerCase() === bodyName)
       ?? lookup.system.stations.find(item => item.name === route.selectedName)
       ?? null
   }, [lookup.system, route.selectedName])
@@ -146,6 +151,19 @@ function SystemView({ api, commanderName, lookup, onNavigate, route }: {
   return (
     <PageFrame className="galaxy-system-page" layout="fit">
       <SystemHeader
+        carrierToggle={<IconButton
+          aria-pressed={showFleetCarriers}
+          className={`system-query__action system-query__toggle btn-toggle${showFleetCarriers ? ' active' : ''}`}
+          label={showFleetCarriers ? 'Hide fleet carriers' : 'Show fleet carriers'}
+          size="sm"
+          type="button"
+          onClick={() => {
+            if (showFleetCarriers && selected && 'services' in selected && isFleetCarrier(selected)) {
+              onNavigate({ kind: 'information', section: 'galaxy', view: 'system', ...(route.systemName ? { systemName: lookup.system.name } : {}) })
+            }
+            setShowFleetCarriers(value => !value)
+          }}
+        ><FleetCarrierIcon /></IconButton>}
         bookmarked={systemBookmarked}
         following={following}
         onBookmark={() => onNavigate({ kind: 'information', section: 'galaxy', view: 'bookmarks', systemName: lookup.system.name })}
@@ -175,6 +193,7 @@ function SystemView({ api, commanderName, lookup, onNavigate, route }: {
           ...(selectedName ? { selectedName } : {})
         })}
         selected={selected}
+        showFleetCarriers={showFleetCarriers}
         system={lookup.system}
       />
     </PageFrame>
@@ -216,14 +235,15 @@ function SystemState({ api, error, onNavigate, route, runtime }: {
         systemName={systemName ?? 'System schematic'}
       />
       <div className="system-schematic__state">
-        <Status tone="muted">{error ?? 'Loading system schematic…'}</Status>
+        {error ? <Status tone="muted">{error}</Status> : <Loading>Loading system schematic…</Loading>}
       </div>
     </PageFrame>
   )
 }
 
-function SystemHeader({ bookmarked = false, following, onBookmark, onFollow, onLoad, onPlot, plotResult, plotting = false, query, setQuery, systemName }: {
+function SystemHeader({ bookmarked = false, carrierToggle, following, onBookmark, onFollow, onLoad, onPlot, plotResult, plotting = false, query, setQuery, systemName }: {
   bookmarked?: boolean
+  carrierToggle?: ReactNode
   following: boolean
   onBookmark?: () => void
   onFollow(): void
@@ -251,6 +271,7 @@ function SystemHeader({ bookmarked = false, following, onBookmark, onFollow, onL
         >
           {plotResult && <RoutePlotFeedback result={plotResult} />}
           <div className="system-query__controls">
+            {carrierToggle}
             <label className="sr-only" htmlFor="system-query-name">System name</label>
             <TextInput
               className="system-query__input"
@@ -557,7 +578,7 @@ function SaveQueryPanel ({ dashboardEligible, error, name, onCancel, onChange, o
 }
 
 function QueryConsoleState ({ error }: { error?: string }) {
-  return <PageFrame><PageHeader variant="cockpit" context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Query console' }]} />} title="Query console" /><Status tone={error ? 'danger' : 'muted'}>{error ?? 'Loading saved query…'}</Status></PageFrame>
+  return <PageFrame layout="fit"><PageHeader variant="cockpit" context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Query console' }]} />} title="Query console" />{error ? <Status tone="danger">{error}</Status> : <Loading>Loading saved query…</Loading>}</PageFrame>
 }
 
 function queryValues (definition: GalaxyQueryDefinition, parameters: SavedGalaxyQuery['parameters'] | undefined): Record<string, GalaxyQueryValue> {
@@ -642,7 +663,7 @@ function GalaxyState({ error, title }: { error?: string, title: string }) {
         context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: title }]} />}
         title={title}
       />
-      <Status tone={error ? 'danger' : 'muted'}>{error ?? `Loading ${title.toLocaleLowerCase()}…`}</Status>
+      {error ? <Status tone="danger">{error}</Status> : <Loading>{`Loading ${title.toLocaleLowerCase()}…`}</Loading>}
     </PageFrame>
   )
 }

@@ -55,7 +55,7 @@ export function PlottedRoute({ actions, api, route, runtimeState }: PlottedRoute
     [route]
   )
   const [requestedPreviewIndex, setRequestedPreviewIndex] = useState(defaultPreviewIndex)
-  const previewIndex = canPreview(requestedPreviewIndex, currentIndex, progressKnown, route.route.length)
+  const previewIndex = canPreview(requestedPreviewIndex, route.route.length)
     ? requestedPreviewIndex
     : defaultPreviewIndex
   const previewHop = route.route[previewIndex]
@@ -200,7 +200,7 @@ export function PlottedRoute({ actions, api, route, runtimeState }: PlottedRoute
                       <thead><tr><th>Jump</th><th>System</th><th>Star</th><th className="numeric">Leg</th><th className="numeric">Route distance</th></tr></thead>
                       <tbody>
                         {legs.map(leg => {
-                          const selectable = canPreview(leg.index, currentIndex, progressKnown, route.route.length)
+                          const selectable = canPreview(leg.index, route.route.length)
                           return (
                             <tr
                               aria-selected={leg.index === previewIndex || undefined}
@@ -244,14 +244,15 @@ export function centerRouteRow (
   scroller.scrollTop = Math.max(0, scroller.scrollTop + rowRect.top - scrollerRect.top - (scroller.clientHeight - rowRect.height) / 2)
 }
 
-function canPreview(index: number, currentIndex: number, progressKnown: boolean, routeLength: number): boolean {
-  return index >= 0 && index < routeLength && (!progressKnown || index >= currentIndex)
+function canPreview(index: number, routeLength: number): boolean {
+  return index >= 0 && index < routeLength
 }
 
 function previewTitle(index: number, currentIndex: number, progressKnown: boolean): string {
   if (index < 0) return 'Route complete'
   if (!progressKnown) return index === 0 ? 'Route origin' : `Jump ${index}`
   const jumpsAhead = index - currentIndex
+  if (jumpsAhead < 0) return `${-jumpsAhead} ${jumpsAhead === -1 ? 'jump' : 'jumps'} behind`
   if (jumpsAhead === 0) return 'Current system'
   if (jumpsAhead === 1) return 'Next jump'
   return `${jumpsAhead} jumps ahead`

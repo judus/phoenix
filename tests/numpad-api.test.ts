@@ -37,7 +37,7 @@ test('the numpad API projects and executes the current authoritative command map
     })
     const initial = await client.getNumpadSnapshot()
     expect(initial.nodes).toContainEqual(expect.objectContaining({ id: 'phoenix:desktop.controls', address: '1' }))
-    expect(initial.nodes.some(node => node.id === 'phoenix:navigation.macros.library')).toBe(false)
+    expect(initial.nodes).toContainEqual(expect.objectContaining({ id: 'phoenix:navigation.macros.library', address: '4', label: 'Macros' }))
     expect(initial.nodes).toContainEqual(expect.objectContaining({ id: 'phoenix:controls.quick', address: '11', label: 'Quick access' }))
     expect(initial.nodes).toContainEqual(expect.objectContaining({ id: 'phoenix:controls.ship', address: '12', label: 'Ship' }))
     expect(initial.nodes).toContainEqual(expect.objectContaining({ id: 'phoenix:navigation.log.journal', address: '5', label: 'Log' }))
@@ -54,11 +54,12 @@ test('the numpad API projects and executes the current authoritative command map
       { operation: 'release', configuration: { key: 'Space', modifiers: [] } }
     ])
     expect(initial.nodes.some(node => node.address.startsWith('0'))).toBe(false)
-    const destination = initial.nodes.find(node => node.action?.type === 'command' && node.action.target.commandId.startsWith('command.navigation.'))
+    const destination = initial.nodes.find(node => node.address === '4')
     expect(destination).toBeDefined()
 
     const firstExecution = await client.executeNumpadAddress(destination!.address, initial.revision)
     expect(firstExecution.status).toBe('accepted')
+    expect(firstExecution.command?.navigationHref).toBe('#/macros')
 
     const current = await client.getNumpadSnapshot()
     const currentDestination = current.nodes.find(node => node.id === destination!.id)!

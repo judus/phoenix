@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "queries": [
+    {
+      "id": "43beb460-98db-4395-9c88-4a8f9d181e89",
+      "name": "Pre-Odyssey Stratum candidates",
+      "queryId": "exploration-targets",
+      "useOnDashboard": false,
+      "parameters": {
+        "originMode": "current",
+        "origin": "",
+        "maxDistance": "500",
+        "bodyType": ["High metal content world"],
+        "atmosphere": ["Thin Ammonia", "Thin Carbon dioxide", "Thin Carbon dioxide-rich", "Thin Oxygen", "Thin Sulphur dioxide", "Thin Water", "Thin Water-rich"],
+        "landable": "any",
+        "minGravityG": "",
+        "maxGravityG": "",
+        "minTemperatureK": "165",
+        "maxTemperatureK": "",
+        "volcanism": [],
+        "minBiologicalSignals": "0",
+        "minGeologicalSignals": "0",
+        "lastReportedBefore": "2021-05-18"
+      }
+    }
+  ]
+}

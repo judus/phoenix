@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { EddnSubmission, EddnSubmissionDetail, EddnSubmissionLog } from '@phoenix/contracts'
 import { Breadcrumbs, Button, DataTable, DataTableGroup, PageFrame, PageHeader, Status } from '@phoenix/ui'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
+import { EddnLossSummary } from '../../components/eddn-loss-summary.js'
 
 export function EddnPage ({ api }: { api: PhoenixApi }) {
   const [log, setLog] = useState<EddnSubmissionLog>()
@@ -54,6 +55,7 @@ export function EddnPage ({ api }: { api: PhoenixApi }) {
       <DataTableGroup className="developer-tool-list" fill title="Recent attempts" meta="Up to 100 · 7 days · 16 MiB">
         {error && <Status tone="danger">{error}</Status>}
         {log?.status.error && <Status tone="warning">{log.status.error}</Status>}
+        {log && <EddnLossSummary losses={log.status.losses} />}
         {!log ? <Status tone="muted">Loading submissions…</Status>
           : log.entries.length === 0 ? <Status tone="muted">No submission attempts yet. {log.status.detail}</Status>
             : <DataTable density="compact" label="EDDN submission attempts" narrow="priority" scheme="surface" stickyHeader>

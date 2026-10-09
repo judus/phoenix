@@ -1,11 +1,18 @@
 import { z } from 'zod'
 
 export const EddnSettingsUpdateSchema = z.object({ enabled: z.boolean() })
+export const EddnLossSchema = z.object({
+  reason: z.enum(['expired', 'invalid', 'rejected', 'capacity', 'cleared']),
+  count: z.number().int().positive(),
+  lastAt: z.iso.datetime()
+})
+export type EddnLoss = z.infer<typeof EddnLossSchema>
 export const EddnStatusSchema = z.object({
   enabled: z.boolean(),
   mode: z.enum(['unavailable', 'test']),
   queued: z.number().int().nonnegative(),
   lastSuccessAt: z.iso.datetime().nullable(),
+  losses: z.array(EddnLossSchema),
   detail: z.string(),
   error: z.string().nullable()
 })

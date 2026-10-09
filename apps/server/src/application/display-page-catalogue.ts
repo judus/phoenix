@@ -26,6 +26,7 @@ export const DISPLAY_PAGE_CATALOGUE = {
   'fleet.stored-modules': page('Stored modules', 'module storage'),
   'fleet.catalogue': page('Ship catalogue', 'ships catalogue', 'ship database'),
   'galaxy.system': page('Current system', 'system', 'system schematic'),
+  'galaxy.atlas': page('Galactic atlas', 'atlas', 'galaxy atlas'),
   'galaxy.route': page('Plotted route', 'current route', 'navigation route', 'route'),
   'galaxy.exobiology': page('Exobiology', 'biology', 'exo'),
   'galaxy.database': page('Galaxy database', 'galaxy search'),

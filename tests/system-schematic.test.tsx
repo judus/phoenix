@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
@@ -185,7 +186,9 @@ test('schematic cartography connects nested invisible barycentre axes without ga
   const outerConnection = layout.edges.find(edge => edge.key === 'barycentre:0:barycentre:1')
   const innerConnection = layout.edges.find(edge => edge.key === 'barycentre:1:body:2')
 
-  expect(outerConnection?.points.at(-1)).toEqual(innerConnection?.points[0])
+  expect(outerConnection?.points.length).toBeGreaterThan(1)
+  expect(innerConnection?.points.length).toBeGreaterThan(1)
+  expect(outerConnection!.points.at(-1)).toEqual(innerConnection!.points[0])
 })
 
 test('schematic cartography preserves unresolved ancestors while live scans are incomplete', () => {
@@ -223,7 +226,7 @@ test('schematic cartography prefers reported installation parents and otherwise 
   const root = expectBody(hierarchy.roots[0])
 
   expect(root.installations.map(item => [item.station.name, item.source])).toEqual([['Solar Carrier', 'distance']])
-  expect(root.children[0]?.installations.map(item => [item.station.name, item.source])).toEqual([['Galileo', 'explicit']])
+  expect(expectBody(root.children[0]).installations.map(item => [item.station.name, item.source])).toEqual([['Galileo', 'explicit']])
   expect(hierarchy.unassignedInstallations).toEqual([])
 })
 
@@ -334,10 +337,7 @@ test('schematic cartography uses the full map workspace until an object is selec
 })
 
 test('schematic zoom changes the orbital canvas scale and resets to 100 percent', async () => {
-  let renderer: ReturnType<typeof create>
-  await act(async () => {
-    renderer = create(<SystemSchematic onSelect={vi.fn()} system={fixtureSystem()} />)
-  })
+  const renderer = await renderWithAct(<SystemSchematic onSelect={vi.fn()} system={fixtureSystem()} />)
 
   const orbitalViewport = () => renderer.root.findByProps({ className: 'system-orbital-layout' })
   const orbitalCanvas = () => renderer.root.findByProps({ className: 'system-orbital-layout__canvas' })
@@ -361,7 +361,7 @@ test('schematic zoom changes the orbital canvas scale and resets to 100 percent'
   await act(async () => renderer.unmount())
 })
 
-test('fleet carrier toggle removes attached and unresolved carriers, preserves stations, and restores them', async () => {
+test('fleet carrier visibility removes attached and unresolved carriers, preserves stations, and restores them', async () => {
   const system = fixtureSystem()
   const station = system.stations[0]!
   system.stations.push(
@@ -369,18 +369,16 @@ test('fleet carrier toggle removes attached and unresolved carriers, preserves s
     { ...station, id: 3, marketId: 3, name: 'Carrier Beta', type: 'FleetCarrier', raw: {}, distanceToArrival: null }
   )
   const onSelect = vi.fn()
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<SystemSchematic onSelect={onSelect} selected={system.stations[1]} system={system} />) })
+  const renderer = await renderWithAct(<SystemSchematic onSelect={onSelect} selected={system.stations[1]} system={system} />)
   const installations = () => renderer.root.findAllByProps({ className: 'system-orbital-layout__installation' })
   expect(installations()).toHaveLength(3)
-  await act(async () => renderer.root.findByProps({ title: 'Hide fleet carriers' }).props.onClick())
-  expect(onSelect).toHaveBeenCalledWith()
+  await act(async () => renderer.update(<SystemSchematic onSelect={onSelect} showFleetCarriers={false} system={system} />))
   expect(installations()).toHaveLength(1)
   expect(JSON.stringify(installations()[0]!.props.children.props.installation.station.name)).toContain('Galileo')
-  await act(async () => renderer.update(<SystemSchematic onSelect={onSelect} system={{ ...system, name: 'Next system', bodies: [] }} />))
+  await act(async () => renderer.update(<SystemSchematic onSelect={onSelect} showFleetCarriers={false} system={{ ...system, name: 'Next system', bodies: [] }} />))
   const unresolved = renderer.root.findByProps({ className: 'system-unassigned-installations' })
   expect(unresolved.props.children).toHaveLength(1)
-  await act(async () => renderer.root.findByProps({ title: 'Show fleet carriers' }).props.onClick())
+  await act(async () => renderer.update(<SystemSchematic onSelect={onSelect} showFleetCarriers system={{ ...system, name: 'Next system', bodies: [] }} />))
   expect(renderer.root.findByProps({ className: 'system-unassigned-installations' }).props.children).toHaveLength(3)
   expect(system.stations).toHaveLength(3)
   await act(async () => renderer.unmount())

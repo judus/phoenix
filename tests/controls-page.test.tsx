@@ -1,3 +1,4 @@
+import { renderWithAct } from './support/render-with-act.js'
 import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { act, create } from 'react-test-renderer'
@@ -55,6 +56,9 @@ test('the controls page renders bound and unbound discovered commands', () => {
   expect(markup).toContain('Ship Lights')
   expect(markup).toContain('Unbound')
   expect(markup).toContain('class="page-frame page-fit controls-page theme-phoenix"')
+  expect(markup).toContain('class="tile btn variable-font-sizes"')
+  expect(markup).toContain('aria-label="Ship command grid"')
+  expect(markup).toContain('grid-template-columns:repeat(8, minmax(0, 1fr))')
   expect(markup).toContain('class="control-deck-empty"')
   expect(markup).toContain('disabled=""')
   expect(markup).not.toContain('class="page-header')
@@ -208,12 +212,26 @@ test('unavailable commands remain clickable while editing the control deck', () 
 })
 
 test('resizing a PHOENIX deck removes only cells that no longer fit', () => {
-  const deck = DEFAULT_CONTROL_DECK_CONFIGURATION.decks.find(candidate => candidate.context === 'phoenix:ship')!
+  const source = DEFAULT_CONTROL_DECK_CONFIGURATION.decks.find(candidate => candidate.context === 'phoenix:ship')!
+  const element = source.elements[0]!
+  const placements = [
+    { id: 'inside', column: 1, row: 1, columnSpan: 1, rowSpan: 1 },
+    { id: 'at-edge', column: 3, row: 3, columnSpan: 2, rowSpan: 2 },
+    { id: 'outside-column', column: 5, row: 1, columnSpan: 1, rowSpan: 1 },
+    { id: 'outside-row', column: 1, row: 5, columnSpan: 1, rowSpan: 1 },
+    { id: 'crosses-column', column: 4, row: 1, columnSpan: 2, rowSpan: 1 },
+    { id: 'crosses-row', column: 1, row: 4, columnSpan: 1, rowSpan: 2 }
+  ]
+  const deck = { ...source, elements: placements.map(({ id, ...placement }) => ({
+    ...element, id, placement: { kind: 'grid' as const, ...placement }
+  })) }
+  const original = structuredClone(deck)
   const resized = resizeDeck(deck, 4, 4)
 
   expect(resized.layout).toEqual({ kind: 'grid', columns: 4, rows: 4 })
-  expect(resized.elements.every(element => element.placement.row + element.placement.rowSpan - 1 <= 4)).toBe(true)
-  expect(resized.elements.every(element => element.placement.column + element.placement.columnSpan - 1 <= 4)).toBe(true)
+  expect(resized.elements).toEqual(original.elements.slice(0, 2))
+  expect(deck).toEqual(original)
+  expect(resizeDeck(deck, 6, 6).elements).toEqual(original.elements)
 })
 
 test('selecting the Phoenix theme clears legacy group and deck colors', () => {
@@ -287,12 +305,14 @@ test('PHOENIX uses the shared hold-to-arm interaction before executing a safety 
     variableFontSizes
   />) })
   const button = renderer.root.findAllByType('button').find(candidate => candidate.findAllByType('strong').some(label => label.children.includes('Eject all cargo')))!
+  expect(button.props['data-deskplane-swipe-through']).toBeUndefined()
 
   act(() => button.props.onPointerDown({ pointerId: 1, currentTarget: { setPointerCapture: vi.fn() } }))
-  act(() => vi.advanceTimersByTime(650))
+  act(() => { vi.advanceTimersByTime(650) })
   expect(button.findAllByType('small').some(meta => meta.children.includes('tap'))).toBe(true)
+  expect(button.props['data-deskplane-swipe-through']).toBeUndefined()
   act(() => button.props.onPointerUp({ pointerId: 1 }))
-  act(() => vi.advanceTimersByTime(0))
+  act(() => { vi.advanceTimersByTime(0) })
   act(() => button.props.onClick({ detail: 1 }))
 
   expect(execute).toHaveBeenCalledOnce()
@@ -317,9 +337,9 @@ test('Quick access navigation executes locally and missing targets remain editab
     onEditingChange: vi.fn(), onExecuteAction, onExecuteNavigation,
     onSaveConfiguration: async (configuration: typeof DEFAULT_CONTROL_DECK_CONFIGURATION) => configuration
   }
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<ControlsPage {...props} />) })
+  const renderer = await renderWithAct(<ControlsPage {...props} />)
   const button = () => renderer.root.findAllByType('button').find(node => node.props['aria-label'] === 'System schematic, Open')!
+  expect(button().props['data-deskplane-swipe-through']).toBe('')
   await act(async () => button().props.onClick())
   expect(onExecuteNavigation).toHaveBeenCalledWith({ type: 'navigation', destinationId: 'galaxy.current-system' })
   expect(onExecuteAction).not.toHaveBeenCalled()
@@ -327,10 +347,44 @@ test('Quick access navigation executes locally and missing targets remain editab
   await act(async () => renderer.update(<ControlsPage {...missing} />))
   expect(button().props.disabled).toBe(true)
   await act(async () => renderer.update(<ControlsPage {...missing} editing />))
+  expect(button().props['data-deskplane-swipe-through']).toBeUndefined()
   expect(button().props.disabled).toBe(false)
   await act(async () => button().props.onClick())
   expect(renderer.root.findAll(node => node.children.includes('Button Slot 1:1'))).not.toHaveLength(0)
   expect(onExecuteNavigation).toHaveBeenCalledTimes(1)
+  await act(async () => renderer.unmount())
+})
+
+test.each(['tap', 'hold'] as const)('game-action buttons opt into swipes only for tap activation: %s', async inputMode => {
+  const lights = action('elite.ShipSpotLightToggle', 'ShipSpotLightToggle', 'Ship Lights', 'L')
+  const props = {
+    category: 'ship' as const, editing: false, macros: emptyMacroRuntime(), variableFontSizes: true,
+    controller: {
+      status: 'ready' as const, configuration: DEFAULT_CONTROL_DECK_CONFIGURATION,
+      actions: {
+        backend: { id: 'test', available: true, simulated: true, detail: 'ready' },
+        bindingSource: {
+          directory: '/bindings', filePath: '/bindings/test.binds', presetNames: ['Test'],
+          available: true, bindingCount: 1, keyboardBindingCount: 1,
+          loadedAt: '2026-10-06T00:00:00.000Z', error: null
+        },
+        actions: [{ ...lights, definition: { ...lights.definition, inputMode } }]
+      }
+    },
+    onEditingChange: vi.fn(), onExecuteAction: vi.fn(async () => {}),
+    onSaveConfiguration: async (configuration: typeof DEFAULT_CONTROL_DECK_CONFIGURATION) => configuration
+  }
+  let renderer!: ReturnType<typeof create>
+  await act(async () => { renderer = create(<ControlsPage {...props} />) })
+  const button = () => renderer.root.findAllByType('button').find(node => node.props['aria-label'] === 'Ship Lights, L')!
+  expect(button().props['data-deskplane-swipe-through']).toBe(inputMode === 'tap' ? '' : undefined)
+  await act(async () => button().props.onPointerDown({ pointerId: 1, currentTarget: { setPointerCapture: vi.fn() } }))
+  if (inputMode === 'hold') expect(props.onExecuteAction).toHaveBeenCalledWith('elite.ShipSpotLightToggle', 'press', expect.any(String))
+  else expect(props.onExecuteAction).not.toHaveBeenCalled()
+  await act(async () => button().props.onPointerUp({ pointerId: 1 }))
+  if (inputMode === 'hold') expect(props.onExecuteAction).toHaveBeenCalledWith('elite.ShipSpotLightToggle', 'release', expect.any(String))
+  await act(async () => renderer.update(<ControlsPage {...props} editing />))
+  expect(button().props['data-deskplane-swipe-through']).toBeUndefined()
   await act(async () => renderer.unmount())
 })
 
@@ -341,8 +395,7 @@ test('button relocation stays in the editing draft until saved, and cancelling d
     controller: { status: 'ready' as const, configuration: DEFAULT_CONTROL_DECK_CONFIGURATION },
     onEditingChange: vi.fn(), onExecuteAction: vi.fn(), onExecuteNavigation: vi.fn(), onSaveConfiguration: save
   }
-  let renderer: ReturnType<typeof create>
-  await act(async () => { renderer = create(<ControlsPage {...props} />) })
+  const renderer = await renderWithAct(<ControlsPage {...props} />)
   const surface = () => renderer.root.findByType(ControlSurface)
   const original = surface().props.deck
   const source = original.elements.find((element: { kind: string }) => element.kind === 'command')
@@ -372,7 +425,6 @@ function emptyMacroRuntime (): MacroRuntime {
     play: async () => undefined,
     recordAction: async () => undefined,
     save: async () => undefined,
-    setDraft: () => undefined,
     startRecording: async () => undefined,
     stopRecording: async () => undefined
   }

@@ -1,4 +1,4 @@
-import type { EddnSubmission, EddnSubmissionDetail } from '@phoenix/contracts'
+import type { EddnLoss, EddnStatus, EddnSubmission, EddnSubmissionDetail } from '@phoenix/contracts'
 
 export type EddnSchema = keyof typeof EDDN_SCHEMA_VERSIONS
 export type EddnMode = 'unavailable' | 'test'
@@ -40,17 +40,25 @@ export interface EddnPendingMessage {
 
 export interface EddnOutbox {
   enqueue(id: string, message: EddnMessage, now: number): boolean
+  checkpointSignals(id: string, message: EddnMessage | null, now: number): boolean
+  sealSignals(id: string, message: EddnMessage | null, now: number): void
+  discardSignals(id: string, reason: 'invalid' | 'cleared' | 'capacity', now: number): void
+  retryCapacityLosses(): void
   next(now: number): EddnPendingMessage | undefined
   acknowledge(id: string, now: number): void
-  discard(id: string): void
+  drop(id: string, reason: EddnLoss['reason'], now: number): void
   beginAttempt(id: string, retryAt: number, now: number): number
   finishAttempt(id: number, outcome: Exclude<EddnSubmission['outcome'], 'sending'>, httpStatus: number | null, now: number, retryAt?: number): void
   submissions(now: number): EddnSubmission[]
   submission(id: number, now: number): EddnSubmissionDetail | undefined
   retry(id: string, nextAttempt: number): void
-  clear(): void
+  clear(now: number): void
   prune(now: number): void
-  status(): { queued: number, lastSuccessAt: string | null }
+  status(): Pick<EddnStatus, 'queued' | 'lastSuccessAt' | 'losses'>
+}
+
+export class EddnQueueCapacityError extends Error {
+  public constructor (options?: ErrorOptions) { super('Contribution storage is at capacity. This observation was skipped; queued observations will still retry.', options) }
 }
 
 export interface EddnTransport {

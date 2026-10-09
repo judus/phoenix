@@ -13,7 +13,7 @@ import {
   type ControlDeckDeckGroup
 } from 'control-deck/core'
 import { PHOENIX_CONTROL_LAYOUT_PRESETS, PhoenixControlDeckThemeSchema, controlDeckTargetToPhoenixTarget, phoenixControlLayoutPreset, type CommandTarget, type GameActionAvailability, type GameActionOperation, type PhoenixControlDeckConfiguration, type PhoenixControlDeckTheme, type RuntimeState } from '@phoenix/contracts'
-import { Breadcrumbs, Button, CheckIcon, compactBindingLabel, ControlContext, DataTable, IconButton, NumberInput, PageFrame, PageHeader, Select, Status, TileButton, Widget } from '@phoenix/ui'
+import { Breadcrumbs, Button, CheckIcon, compactBindingLabel, ControlContext, DataTable, IconButton, Loading, NumberInput, PageFrame, PageHeader, Select, Status, TileButton, Widget } from '@phoenix/ui'
 import { createClientId } from '../../application/identity/client-identity.js'
 import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
 import type { ControlCategory } from '../../application/navigation/phoenix-route.js'
@@ -127,7 +127,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, v
       {controller.status === 'error' || error || macros.error
         ? <Status tone="danger">{error ?? macros.error ?? controller.error}</Status>
         : controller.status === 'loading'
-          ? <Status tone="muted">Loading command grid…</Status>
+          ? <Loading>Loading command grid…</Loading>
           : !deck || !activeConfiguration
             ? <Status tone="danger">The PHOENIX Control Deck configuration is incomplete.</Status>
           : editing && editingPosition !== undefined && editorColumn !== undefined && editorRow !== undefined
@@ -206,6 +206,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, v
                   const armed = armedElementId === elementId
                   return <ControlDeckCommandTile
                     appearance={element.appearance}
+                    data-deskplane-swipe-through={!editing && confirmation.kind === 'none' ? '' : undefined}
                     binding={target.destinationId.startsWith('saved-query:') ? 'Run query' : 'Open'}
                     label={element.appearance.label ?? command?.label ?? target.destinationId}
                     interaction={armed || confirmation.kind !== 'arm-then-tap' ? 'tap' : 'arm'}
@@ -241,6 +242,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, v
                   const interaction = resolveControlDeckInteraction(element.interaction, 'tap')
                   return <ControlDeckCommandTile
                     appearance={element.appearance}
+                    data-deskplane-swipe-through={!editing && confirmation.kind === 'none' ? '' : undefined}
                     binding="Macro"
                     label={element.appearance.label ?? macro?.name ?? target.macroId}
                     interaction={armed ? 'tap' : interaction.interactionHint}
@@ -277,6 +279,7 @@ export function ControlsPage({ category, controller, editing, macros, runtime, v
                 const interaction = resolveControlDeckInteraction(element.interaction, action.definition.inputMode)
                 return <ControlDeckCommandTile
                   appearance={element.appearance}
+                  data-deskplane-swipe-through={!editing && action.definition.inputMode !== 'hold' && confirmation.kind === 'none' ? '' : undefined}
                   binding={action.binding?.display ?? 'Unbound'}
                   label={element.appearance.label ?? action.definition.label}
                   interaction={armed ? 'tap' : interaction.interactionHint}
