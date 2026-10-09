@@ -1,19 +1,27 @@
 import {
-  MissionSchema,
+  MissionRecordSchema,
   MissionsResponseSchema,
   type Mission,
+  type MissionRecord,
+  type CommanderInventory,
   type MissionStatus,
   type MissionsResponse
 } from '@phoenix/contracts'
 import type { EliteJournalEvent } from '@phoenix/elite'
 import type { MissionDataReader, MissionLookup, MissionRepository } from '../domain/missions.js'
+import { missionBriefing } from './mission-briefing.js'
 
 export type MissionJournalSource = 'historical-journal' | 'live-journal'
 
 export class MissionDataService implements MissionDataReader, MissionLookup {
   private latestSnapshot: { active: Set<number>, timestamp: string } | null = null
 
-  public constructor (private readonly repository: MissionRepository) {}
+  public constructor (
+    private readonly repository: MissionRepository,
+    private readonly inventory: () => CommanderInventory = () => ({
+      cargo: null, materials: null, backpack: null, shipLocker: null
+    })
+  ) {}
 
   public ingest (event: EliteJournalEvent, source: MissionJournalSource): void {
     switch (event.event) {
@@ -28,7 +36,8 @@ export class MissionDataService implements MissionDataReader, MissionLookup {
   }
 
   public getMissions (): MissionsResponse {
-    const missions = this.repository.listMissions().sort(compareMissions)
+    const inventory = this.inventory()
+    const missions = this.repository.listMissions().sort(compareMissions).map(record => missionBriefing(record, inventory))
     const count = (status: MissionStatus) => missions.filter(mission => mission.status === status).length
     return MissionsResponseSchema.parse({
       missions,
@@ -46,7 +55,8 @@ export class MissionDataService implements MissionDataReader, MissionLookup {
   }
 
   public getMission (id: number): Mission | null {
-    return this.repository.getMission(id)
+    const record = this.repository.getMission(id)
+    return record ? missionBriefing(record, this.inventory()) : null
   }
 
   private ingestAccepted (event: EliteJournalEvent, source: MissionJournalSource): void {
@@ -54,10 +64,11 @@ export class MissionDataService implements MissionDataReader, MissionLookup {
     if (id === null) return
     const current = this.repository.getMission(id) ?? emptyMission(id, event.timestamp)
     const next = mergeStatus(current, 'active', event.timestamp)
-    let mission = MissionSchema.parse({
+    let mission = MissionRecordSchema.parse({
       ...next,
       acceptedAt: current.acceptedAt ?? event.timestamp,
       commodity: text(event.Commodity_Localised) ?? text(event.Commodity) ?? current.commodity,
+      commodityId: text(event.Commodity) ?? current.commodityId,
       commodityCount: integer(event.Count) ?? current.commodityCount,
       destinationSettlement: text(event.DestinationSettlement) ?? current.destinationSettlement,
       destinationStation: text(event.DestinationStation) ?? current.destinationStation,
@@ -76,11 +87,12 @@ export class MissionDataService implements MissionDataReader, MissionLookup {
       target: text(event.Target) ?? current.target,
       targetFaction: text(event.TargetFaction) ?? current.targetFaction,
       targetType: text(event.TargetType_Localised) ?? text(event.TargetType) ?? current.targetType,
+      targetTypeId: text(event.TargetType) ?? current.targetTypeId,
       updatedAt: latest(current.updatedAt, event.timestamp),
       wing: boolean(event.Wing) ?? current.wing
     })
     if (source === 'historical-journal' && this.latestSnapshot && event.timestamp < this.latestSnapshot.timestamp && !this.latestSnapshot.active.has(id)) {
-      mission = MissionSchema.parse({
+      mission = MissionRecordSchema.parse({
         ...mergeStatus(mission, 'unknown', this.latestSnapshot.timestamp),
         provenance: provenance(mission, 'startup-snapshot', { snapshotObserved: true }),
         updatedAt: latest(mission.updatedAt, this.latestSnapshot.timestamp)
@@ -94,10 +106,14 @@ export class MissionDataService implements MissionDataReader, MissionLookup {
     if (id === null) return
     const current = this.repository.getMission(id) ?? emptyMission(id, event.timestamp)
     const next = mergeStatus(current, status, event.timestamp)
-    this.repository.putMission(MissionSchema.parse({
+    this.repository.putMission(MissionRecordSchema.parse({
       ...next,
       [`${status === 'completed' ? 'completed' : status}At`]: event.timestamp,
+      commodity: text(event.Commodity_Localised) ?? current.commodity ?? text(event.Commodity),
+      commodityId: text(event.Commodity) ?? current.commodityId,
+      commodityCount: integer(event.Count) ?? current.commodityCount,
       destinationStation: text(event.DestinationStation) ?? current.destinationStation,
+      destinationSettlement: text(event.DestinationSettlement) ?? current.destinationSettlement,
       destinationSystem: text(event.DestinationSystem) ?? current.destinationSystem,
       donated: integer(event.Donated) ?? current.donated,
       donation: integer(event.Donation) ?? current.donation,
@@ -105,11 +121,14 @@ export class MissionDataService implements MissionDataReader, MissionLookup {
       localizedName: text(event.LocalisedName) ?? current.localizedName,
       name: text(event.Name) ?? current.name,
       provenance: provenance(current, source, { terminalObserved: true }),
-      reward: integer(event.Reward) ?? current.reward,
+      receivedRewards: status === 'completed'
+        ? { credits: integer(event.Reward), materials: materialRewards(event.MaterialsReward) }
+        : current.receivedRewards,
       killCount: integer(event.KillCount) ?? current.killCount,
       target: text(event.Target) ?? current.target,
       targetFaction: text(event.TargetFaction) ?? current.targetFaction,
       targetType: text(event.TargetType_Localised) ?? text(event.TargetType) ?? current.targetType,
+      targetTypeId: text(event.TargetType) ?? current.targetTypeId,
       updatedAt: latest(current.updatedAt, event.timestamp)
     }))
   }
@@ -118,7 +137,7 @@ export class MissionDataService implements MissionDataReader, MissionLookup {
     const id = integer(event.MissionID)
     if (id === null) return
     const current = this.repository.getMission(id) ?? emptyMission(id, event.timestamp)
-    this.repository.putMission(MissionSchema.parse({
+    this.repository.putMission(MissionRecordSchema.parse({
       ...current,
       destinationStation: text(event.NewDestinationStation) ?? current.destinationStation,
       destinationSystem: text(event.NewDestinationSystem) ?? current.destinationSystem,
@@ -133,9 +152,10 @@ export class MissionDataService implements MissionDataReader, MissionLookup {
     const id = integer(event.MissionID)
     if (id === null) return
     const current = this.repository.getMission(id) ?? emptyMission(id, event.timestamp)
-    this.repository.putMission(MissionSchema.parse({
+    this.repository.putMission(MissionRecordSchema.parse({
       ...current,
-      commodity: text(event.CargoType) ?? current.commodity,
+      commodity: current.commodity ?? text(event.CargoType),
+      commodityId: text(event.CargoType) ?? current.commodityId,
       progress: {
         collected: integer(event.ItemsCollected) ?? current.progress.collected,
         delivered: integer(event.ItemsDelivered) ?? current.progress.delivered,
@@ -165,7 +185,7 @@ export class MissionDataService implements MissionDataReader, MissionLookup {
           : status === 'failed'
             ? { failedAt: current.failedAt ?? event.timestamp }
             : {}
-        this.repository.putMission(MissionSchema.parse({
+        this.repository.putMission(MissionRecordSchema.parse({
           ...next,
           ...terminalTime,
           expiry: expiry(item.Expires, event.timestamp) ?? current.expiry,
@@ -189,7 +209,7 @@ export class MissionDataService implements MissionDataReader, MissionLookup {
     }
     for (const current of this.repository.listMissions()) {
       if (current.status !== 'active' || observed.has(current.id) || event.timestamp < current.statusUpdatedAt) continue
-      this.repository.putMission(MissionSchema.parse({
+      this.repository.putMission(MissionRecordSchema.parse({
         ...mergeStatus(current, 'unknown', event.timestamp),
         provenance: provenance(current, 'startup-snapshot', { snapshotObserved: true }),
         updatedAt: latest(current.updatedAt, event.timestamp)
@@ -199,9 +219,10 @@ export class MissionDataService implements MissionDataReader, MissionLookup {
   }
 }
 
-function emptyMission (id: number, timestamp: string): Mission {
-  return MissionSchema.parse({
+function emptyMission (id: number, timestamp: string): MissionRecord {
+  return MissionRecordSchema.parse({
     acceptedAt: null, abandonedAt: null, commodity: null, commodityCount: null,
+    commodityId: null, targetTypeId: null, receivedRewards: null,
     completedAt: null, destinationSettlement: null, destinationStation: null,
     destinationSystem: null, donated: null, donation: null, expiry: null, faction: null, failedAt: null, id,
     influence: null, killCount: null, localizedName: null, name: null, passengerCount: null,
@@ -213,13 +234,13 @@ function emptyMission (id: number, timestamp: string): Mission {
   })
 }
 
-function mergeStatus (mission: Mission, status: MissionStatus, timestamp: string): Mission {
+function mergeStatus (mission: MissionRecord, status: MissionStatus, timestamp: string): MissionRecord {
   if (timestamp < mission.statusUpdatedAt) return mission
   if (timestamp === mission.statusUpdatedAt && statusRank(status) < statusRank(mission.status)) return mission
   return { ...mission, status, statusUpdatedAt: timestamp }
 }
 
-function provenance (mission: Mission, source: Mission['provenance']['sources'][number], changes: Partial<Mission['provenance']> = {}): Mission['provenance'] {
+function provenance (mission: MissionRecord, source: MissionRecord['provenance']['sources'][number], changes: Partial<MissionRecord['provenance']> = {}): MissionRecord['provenance'] {
   const acceptanceObserved = changes.acceptanceObserved ?? mission.provenance.acceptanceObserved
   return {
     ...mission.provenance,
@@ -234,12 +255,24 @@ function statusRank (status: MissionStatus): number {
   return { unknown: 0, active: 1, abandoned: 2, failed: 3, completed: 4 }[status]
 }
 
-function compareMissions (left: Mission, right: Mission): number {
+function compareMissions (left: MissionRecord, right: MissionRecord): number {
   const active = Number(right.status === 'active') - Number(left.status === 'active')
   return active || right.updatedAt.localeCompare(left.updatedAt) || right.id - left.id
 }
 
 function latest (left: string, right: string): string { return left > right ? left : right }
+function materialRewards (value: unknown): NonNullable<MissionRecord['receivedRewards']>['materials'] {
+  if (!Array.isArray(value)) return null
+  const rewards: NonNullable<NonNullable<MissionRecord['receivedRewards']>['materials']> = []
+  for (const item of value) {
+    if (!record(item)) return null
+    const id = text(item.Name)
+    const count = integer(item.Count)
+    if (id === null || count === null) return null
+    rewards.push({ id, count, label: text(item.Name_Localised), category: text(item.Category) })
+  }
+  return rewards
+}
 function record (value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value) }
 function text (value: unknown): string | null { return typeof value === 'string' && value.trim() ? value : null }
 function integer (value: unknown): number | null {

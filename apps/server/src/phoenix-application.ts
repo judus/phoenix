@@ -213,7 +213,7 @@ export class PhoenixApplication {
       )
     )
     const activityLog = new ActivityLogService(this.database)
-    const missions = new MissionDataService(this.database)
+    const missions = new MissionDataService(this.database, () => this.stateStore.getCurrent().inventory)
     const communications = new CommunicationDataService(this.database, communicationUpdates)
     const localTraffic = new LocalTrafficService(this.database)
     const shortcutsChanged = () => commandCatalogueChanges.publish({ source: 'shortcuts' })

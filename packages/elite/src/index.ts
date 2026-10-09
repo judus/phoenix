@@ -1,4 +1,5 @@
 export * from './catalogue/json-game-catalogue.js'
+export * from './missions/mission-classification.js'
 export * from './catalogue/suggestion-matching.js'
 export * from './engineering/json-engineering-catalogue.js'
 export * from './engineering/json-personal-equipment-catalogue.js'

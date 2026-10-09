@@ -1,10 +1,10 @@
-import type { Mission, MissionsResponse } from '@phoenix/contracts'
+import type { Mission, MissionRecord, MissionsResponse } from '@phoenix/contracts'
 
 export interface MissionRepository {
-  getMission(id: number): Mission | null
+  getMission(id: number): MissionRecord | null
   getMissionProjectionTimestamp(key: string): string | null
-  listMissions(): Mission[]
-  putMission(mission: Mission): void
+  listMissions(): MissionRecord[]
+  putMission(mission: MissionRecord): void
   putMissionProjectionTimestamp(key: string, timestamp: string): void
 }
 

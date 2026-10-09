@@ -1,5 +1,6 @@
 import type { MissionDataReader } from '../domain/missions.js'
 import type { RuntimeContextSupplement } from '@phoenix/copilot'
+import { missionContextDetails } from './mission-context-details.js'
 
 export class MissionRuntimeContext implements RuntimeContextSupplement {
   public constructor (private readonly missions: MissionDataReader) {}
@@ -15,8 +16,8 @@ export class MissionRuntimeContext implements RuntimeContextSupplement {
     for (const mission of active.slice(0, 8)) {
       const name = mission.localizedName ?? mission.name ?? `Mission ${mission.id}`
       const destination = [mission.destinationSystem, mission.destinationStation ?? mission.destinationSettlement].filter(Boolean).join(' / ')
-      const progress = mission.progress.required === null ? null : `${mission.progress.delivered ?? 0}/${mission.progress.required} delivered`
-      lines.push(`- ${name}${destination ? ` · ${destination}` : ''}${progress ? ` · ${progress}` : ''}${mission.expiry ? ` · expires ${mission.expiry}` : ''}${mission.provenance.details === 'partial' ? ' · details incomplete' : ''}`)
+      const details = missionContextDetails(mission)
+      lines.push(`- ${name}${destination ? ` · ${destination}` : ''}${details.length ? ` · ${details.join(' · ')}` : ''}${mission.expiry ? ` · expires ${mission.expiry}` : ''}${mission.provenance.details === 'partial' ? ' · details incomplete' : ''}`)
     }
     return lines.join('\n')
   }

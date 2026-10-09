@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import type { Mission } from '@phoenix/contracts'
+import type { MissionRecord as Mission } from '@phoenix/contracts'
 import { MissionDataService } from '../apps/server/src/application/mission-data-service.js'
 import type { MissionRepository } from '../apps/server/src/domain/missions.js'
 import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
@@ -12,7 +12,7 @@ test('mission journal projection retains acceptance, delivery progress, redirect
     timestamp: '2026-08-14T10:00:00Z', event: 'MissionAccepted', MissionID: 42,
     LocalisedName: 'Deliver medicines', Name: 'Mission_Delivery_name', Faction: 'Rescue Wing',
     DestinationSystem: 'Sol', DestinationStation: 'Galileo', Commodity: '$BasicMedicines_Name;',
-    Count: 20, Reward: 125000, Wing: true
+    Commodity_Localised: 'Basic medicines', Count: 20, Reward: 125000, Wing: true
   }, 'historical-journal')
   missions.ingest({
     timestamp: '2026-08-14T10:15:00Z', event: 'CargoDepot', MissionID: 42,
@@ -30,8 +30,10 @@ test('mission journal projection retains acceptance, delivery progress, redirect
     summary: { active: 0, completed: 1, partial: 0, total: 1 },
     missions: [{
       id: 42, status: 'completed', localizedName: 'Deliver medicines', faction: 'Rescue Wing',
-      destinationSystem: 'Alpha Centauri', destinationStation: 'Hutton Orbital', reward: 150000,
+      destinationSystem: 'Alpha Centauri', destinationStation: 'Hutton Orbital', reward: 125000,
+      receivedRewards: { credits: 150000, materials: null },
       completedAt: '2026-08-14T11:00:00Z',
+      commodity: 'Basic medicines', commodityId: '$BasicMedicines_Name;',
       progress: { collected: 20, delivered: 8, required: 20 },
       provenance: {
         acceptanceObserved: true, details: 'complete', terminalObserved: true,

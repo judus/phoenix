@@ -108,6 +108,13 @@ function mission(): Mission {
     acceptedAt: null,
     abandonedAt: null,
     commodity: '$BasicMedicines_Name;',
+    commodityId: '$BasicMedicines_Name;',
+    targetTypeId: null,
+    receivedRewards: null,
+    briefing: {
+      onFoot: false, activity: null, conditions: [],
+      inventory: { backpackAt: null, shipLockerAt: null, items: [] }
+    },
     commodityCount: 12,
     completedAt: null,
     destinationSettlement: null,

@@ -21,7 +21,9 @@ const missionEvents = new Set([
   'MissionCompleted',
   'MissionFailed',
   'MissionRedirected',
-  'Missions'
+  'Missions',
+  'inventory.backpack_changed',
+  'inventory.ship_locker_changed'
 ])
 
 export function useActivitiesController(
@@ -66,7 +68,7 @@ export function useActivitiesController(
 
     load(true)
     const unsubscribe = view === 'missions' ? events.subscribe('activity-entry', entry => {
-      if (entry.source === 'journal' && missionEvents.has(entry.event)) load()
+      if (missionEvents.has(entry.event)) load()
     }) : () => undefined
     return () => {
       request.cancel()

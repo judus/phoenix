@@ -1,5 +1,6 @@
 import type { JsonObject, LocalTool } from '@jdu/llm-client'
 import type { MissionDataReader } from '../../domain/missions.js'
+import { missionContextDetails } from '../mission-context-details.js'
 import { boundedLimit, json, optionalIntegerArgument, optionalStringArgument, output } from './tool-support.js'
 
 export class MissionsListMissionsTool implements LocalTool {
@@ -31,11 +32,9 @@ export class MissionsListMissionsTool implements LocalTool {
       : missions.map(mission => {
           const name = mission.localizedName ?? mission.name ?? `Mission ${mission.id}`
           const destination = [mission.destinationSystem, mission.destinationStation ?? mission.destinationSettlement].filter(Boolean).join(' / ')
-          const progress = mission.progress.required === null
-            ? ''
-            : `; delivered ${mission.progress.delivered ?? 0}/${mission.progress.required}`
+          const details = missionContextDetails(mission)
           const incomplete = mission.provenance.details === 'partial' ? '; details incomplete' : ''
-          return `- ${name}: ${mission.status}${destination ? `; ${destination}` : ''}${progress}${incomplete}`
+          return `- ${name}: ${mission.status}${destination ? `; ${destination}` : ''}${details.length ? `; ${details.join('; ')}` : ''}${incomplete}`
         }).join('\n')
     return output(text, json({ missions, summary: response.summary }))
   }
