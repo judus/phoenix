@@ -55,6 +55,7 @@ export const DISPLAY_PAGE_IDS = [
   'macros',
   'journal',
   'credits',
+  'notes',
   'settings',
   'help',
   'developer.overview',

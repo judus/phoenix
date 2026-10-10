@@ -1,4 +1,4 @@
-import { AtlasDisplayLocationSchema } from '@phoenix/contracts'
+import { AtlasDisplayLocationSchema, PersonalNoteTargetSchema } from '@phoenix/contracts'
 import {
   GALAXY_QUERY_IDS,
   DEFAULT_ROUTE,
@@ -40,6 +40,15 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
   }
 
   if (section === 'macros') return { kind: 'macros' }
+  if (section === 'notes') {
+    const candidate = query.mission !== undefined ? { kind: 'mission', missionId: query.mission.trim() ? Number(query.mission) : NaN }
+      : query.station ? { kind: 'station', systemName: query.system, stationName: query.station }
+        : query.body ? { kind: 'body', systemName: query.system, bodyName: query.body }
+          : { kind: 'system', systemName: query.system }
+    const target = PersonalNoteTargetSchema.safeParse(candidate)
+    return { kind: 'notes', ...(query.edit ? { noteId: query.edit } : {}),
+      ...(query.new === '1' ? { newNote: true } : {}), ...(target.success ? { target: target.data } : {}) }
+  }
   if (section === 'log') return { kind: 'journal', view: rest[0] === 'credits' ? 'credits' : 'commander' }
   if (section === 'journal' || (section === 'records' && rest[0] === 'journal')) return { kind: 'developer', view: 'journal' }
   if (section === 'records' && rest[0] === 'credits') return { kind: 'journal', view: 'credits' }
@@ -92,6 +101,11 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
 
   if (section === 'activities' || section === 'operations') {
     const view = oneOf(rest[0], ['missions', 'objectives', 'community-goals', 'powerplay', 'colonisation'] as const) ?? 'missions'
+    if (view === 'missions') {
+      const id = query.mission?.trim() ? Number(query.mission) : NaN
+      return { kind: 'information', section: 'activities', view,
+        ...(Number.isSafeInteger(id) && id >= 0 ? { selectedMissionId: id } : {}) }
+    }
     return { kind: 'information', section: 'activities', view }
   }
 
@@ -122,11 +136,26 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
     case 'copilot': path = `/copilot/${route.view}`; break
     case 'numpad': path = '/numpad'; break
     case 'macros': path = '/macros'; break
+    case 'notes': path = '/notes'; break
     case 'journal': path = `/log/${route.view}`; break
     case 'developer': path = `/developer/${route.view}`; break
     case 'settings': path = `/settings/${route.view}`; break
   }
   const parameters = new URLSearchParams()
+  if (route.kind === 'information' && route.section === 'activities' && route.view === 'missions' && route.selectedMissionId !== undefined) {
+    parameters.set('mission', String(route.selectedMissionId))
+  }
+  if (route.kind === 'notes') {
+    if (route.noteId) parameters.set('edit', route.noteId)
+    if (route.newNote) parameters.set('new', '1')
+    const target = route.target
+    if (target?.kind === 'mission') parameters.set('mission', String(target.missionId))
+    else if (target) {
+      parameters.set('system', target.systemName)
+      if (target.kind === 'station') parameters.set('station', target.stationName)
+      if (target.kind === 'body') parameters.set('body', target.bodyName)
+    }
+  }
   if (route.kind === 'information' && route.section === 'galaxy' && route.view === 'atlas' && route.location) {
     parameters.set('name', route.location.systemName)
     parameters.set('position', route.location.position.join(','))

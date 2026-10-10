@@ -23,6 +23,7 @@ export interface DesktopWorkspaceProps {
   informationContextLabel?: string
   informationCurrentContext?: string
   journal: ReactNode
+  notes?: ReactNode
   developer?: ReactNode
   developerContextItems?: NavigationItem[]
   developerCurrentContext?: string
@@ -52,6 +53,7 @@ export function DesktopWorkspace({
   informationCurrentContext = '',
   informationRoute,
   journal,
+  notes,
   developer,
   developerContextItems = emptyContextItems,
   developerCurrentContext = '',
@@ -179,6 +181,11 @@ export function DesktopWorkspace({
                   {information}
                 </InformationWorkspace>
               )
+            },
+            {
+              id: 'notes',
+              ariaLabel: 'Notes workspace',
+              children: <UtilityWorkspacePage swipeZone>{notes}</UtilityWorkspacePage>
             },
             {
               id: 'copilot',

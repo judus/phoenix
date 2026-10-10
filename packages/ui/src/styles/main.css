@@ -16,6 +16,8 @@
 @import './patterns/copilot-permission-editor.css';
 @import './components/data-display.css';
 @import './components/loading.css';
+@import './components/input-group.css';
+@import './components/masonry.css';
 @import './components/page-header.css';
 @import './components/navigation.css';
 @import './components/system-location.css';
@@ -45,6 +47,7 @@
 @import './pages/help.css';
 @import './pages/journal.css';
 @import './pages/personal-stores.css';
+@import './pages/personal-notes.css';
 @import './pages/pairing.css';
 @import './pages/plotted-route.css';
 @import './pages/query-console.css';

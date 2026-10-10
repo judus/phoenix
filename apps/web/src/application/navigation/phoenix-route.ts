@@ -1,4 +1,5 @@
 import type { AtlasDisplayLocation } from '@phoenix/contracts'
+import type { PersonalNoteTarget } from '@phoenix/contracts'
 
 /** Controls routes identify saved decks, independently of their names or game context. */
 export type ControlDeckId = string
@@ -25,7 +26,8 @@ export type InformationRoute =
   | { kind: 'information', section: 'galaxy', view: 'bookmarks', bookmarkId?: string, systemName?: string, bodyName?: string, stationName?: string }
   | { kind: 'information', section: 'galaxy', view: 'database', savedQueryId?: string, savedQueryRunId?: string, selectedQueryId?: GalaxyQueryId }
   | { kind: 'information', section: 'galaxy', view: 'saved-queries' }
-  | { kind: 'information', section: 'activities', view: 'missions' | 'objectives' | 'community-goals' | 'powerplay' | 'colonisation' }
+  | { kind: 'information', section: 'activities', view: 'missions', selectedMissionId?: number }
+  | { kind: 'information', section: 'activities', view: 'objectives' | 'community-goals' | 'powerplay' | 'colonisation' }
   | { kind: 'information', section: 'engineering', view: 'blueprints', selectedBlueprintSymbol?: string }
   | { kind: 'information', section: 'engineering', view: 'experimental-effects', selectedEffectSymbol?: string }
   | { kind: 'information', section: 'engineering', view: 'projects' | 'engineers' | 'materials-raw' | 'materials-manufactured' | 'materials-encoded' | 'materials-xeno' }
@@ -44,12 +46,14 @@ export type PhoenixRoute =
   | { kind: 'numpad' }
   | { kind: 'macros' }
   | { kind: 'journal', view: 'commander' | 'credits' }
+  | { kind: 'notes', noteId?: string, newNote?: boolean, target?: PersonalNoteTarget }
   | { kind: 'developer', view: 'tools' | 'journal' | 'eddn' }
   | { kind: 'settings', view: 'general' | 'pairing' | 'copilot' | 'help', topic?: string }
 
 export type PhoenixWorkspace =
   | 'controls'
   | 'info'
+  | 'notes'
   | 'copilot'
   | 'telemetry'
   | 'macros'
@@ -71,6 +75,7 @@ export function isPhoenixWorkspace(value: string): value is PhoenixWorkspace {
   return [
     'controls',
     'info',
+    'notes',
     'copilot',
     'telemetry',
     'macros',
@@ -106,6 +111,7 @@ export function defaultRouteForWorkspace(
     case 'controls': return { kind: 'controls', deckId: 'quick' }
     case 'info': return rememberedInformation
     case 'copilot': return { kind: 'copilot', view: 'chat' }
+    case 'notes': return { kind: 'notes' }
     case 'telemetry': return { kind: 'numpad' }
     case 'macros': return { kind: 'macros' }
     case 'journal': return { kind: 'journal', view: 'commander' }

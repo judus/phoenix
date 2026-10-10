@@ -66,6 +66,7 @@ const HelpPage = lazy(() => import('./features/settings/help-page.js').then(modu
 const CopilotSettingsPage = lazy(() => import('./features/settings/copilot-settings-page.js').then(module => ({ default: module.CopilotSettingsPage })))
 const PairingSettingsPage = lazy(() => import('./features/settings/pairing-settings-page.js').then(module => ({ default: module.PairingSettingsPage })))
 const JournalPage = lazy(() => import('./features/journal/journal-page.js').then(module => ({ default: module.JournalPage })))
+const PersonalNotesPage = lazy(() => import('./features/notes/personal-notes-page.js').then(module => ({ default: module.PersonalNotesPage })))
 const MacrosPage = lazy(() => import('./features/macros/macros-page.js').then(module => ({ default: module.MacrosPage })))
 const NumpadPage = lazy(() => import('./features/numpad/numpad-page.js').then(module => ({ default: module.NumpadPage })))
 const SettingsPage = lazy(() => import('./features/settings/settings-page.js').then(module => ({ default: module.SettingsPage })))
@@ -124,6 +125,7 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       activeDesktop={activeDesktop}
       controlsDestination={controlsDestination}
       copilotDestination={router.routeForWorkspace('copilot')}
+      notesDestination={router.routeForWorkspace('notes')}
       informationRoute={informationRoute}
       {...informationContext}
       onNavigateRoute={router.push}
@@ -149,6 +151,9 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       copilotCurrentContext={copilotContext(route)}
       information={activeDesktop === 'info'
         ? <FeatureBoundary>{renderInformationFeature(application, informationRoute)}</FeatureBoundary>
+        : null}
+      notes={route.kind === 'notes'
+        ? <FeatureBoundary><PersonalNotesPage api={application.api} onNavigate={route => router.push(route)} route={route} /></FeatureBoundary>
         : null}
       journal={activeDesktop === 'journal'
         ? <FeatureBoundary>{logRoute?.view === 'credits'
@@ -337,7 +342,9 @@ const ActivitiesFeature = memo(function ActivitiesFeature({ application, route }
   route: Extract<ReturnType<PhoenixRouter['getSnapshot']>, { kind: 'information', section: 'activities' }>
 }) {
   const controller = useActivitiesController(application.api, application.events, route.view)
-  return <ActivitiesPage controller={controller} view={route.view} />
+  return <ActivitiesPage controller={controller} view={route.view}
+    selectedMissionId={route.view === 'missions' ? route.selectedMissionId : undefined}
+    onAddNote={missionId => application.router.push({ kind: 'notes', newNote: true, target: { kind: 'mission', missionId } })} />
 })
 
 const GalaxyFeature = memo(function GalaxyFeature({ application, route }: {

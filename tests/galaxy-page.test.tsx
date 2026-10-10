@@ -552,11 +552,17 @@ test('selecting a body does not pin a schematic that is following the current sy
     route={{ kind: 'information', section: 'galaxy', view: 'system', selectedName: 'SOL' }}
     runtime={{ state: runtimeState, status: 'ready' }}
   />))
-  const bookmarkBody = renderer.root.findAllByType('button').find(button => button.props.children === 'Bookmark body')
+  const bookmarkBody = renderer.root.findAllByType('button').find(button => button.props['aria-label'] === 'Bookmark body')
   await act(async () => bookmarkBody!.props.onClick())
   expect(onNavigate).toHaveBeenLastCalledWith({
     bodyName: 'Sol', kind: 'information', section: 'galaxy', systemName: 'Sol', view: 'bookmarks'
   })
+  const noteButtons = renderer.root.findAllByType('button').filter(button => button.props['aria-label'] === 'Add note for Sol')
+  expect(noteButtons).toHaveLength(2)
+  await act(async () => noteButtons[0]!.props.onClick())
+  expect(onNavigate).toHaveBeenLastCalledWith({ kind: 'notes', newNote: true, target: { kind: 'system', systemName: 'Sol' } })
+  await act(async () => noteButtons[1]!.props.onClick())
+  expect(onNavigate).toHaveBeenLastCalledWith({ kind: 'notes', newNote: true, target: { kind: 'body', systemName: 'Sol', bodyName: 'Sol' } })
 
   await act(async () => renderer.unmount())
 })
@@ -611,6 +617,9 @@ test('system schematic keeps its navigation controls when cartography is unavail
     kind: 'information', section: 'galaxy', view: 'bookmarks', systemName: 'Unreported System'
   })
   expect(renderer.root.findAll(node => node.children.includes('No cartography record found.'))).not.toHaveLength(0)
+  await act(async () => renderer.root.findAllByType('button').find(button => button.props['aria-label'] === 'Add note for Unreported System')!.props.onClick())
+  expect(onNavigate).toHaveBeenLastCalledWith({ kind: 'notes', newNote: true,
+    target: { kind: 'system', systemName: 'Unreported System' } })
 
   await act(async () => renderer.unmount())
 })

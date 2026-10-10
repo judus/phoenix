@@ -135,6 +135,10 @@
     flex-direction: column;
     gap: var(--spacing-md);
     header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--spacing-sm);
       padding-block-end: var(--spacing-md);
       border-block-end: 1px solid var(--color-border);
       color: var(--color-action);

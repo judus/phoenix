@@ -13,6 +13,37 @@ import { SystemSchematic } from '../apps/web/src/features/galaxy/system-schemati
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
 
+test('body detail groups note and bookmark actions below its glyph', async () => {
+  const system = fixtureSystem()
+  const body = system.bodies[1]!
+  const onBookmarkBody = vi.fn()
+  const onAddNote = vi.fn()
+  const renderer = await renderWithAct(<SystemSchematic system={system} selected={body} onSelect={vi.fn()} onBookmarkBody={onBookmarkBody} onAddNote={onAddNote} />)
+  try {
+    const aside = renderer.root.findByType('aside')
+    const preview = aside.findByProps({ className: 'body-preview' })
+    expect(preview.findAllByType('svg')).toHaveLength(3)
+    const buttons = preview.findAllByType('button')
+    expect(buttons.map(button => button.props['aria-label'])).toEqual(['Bookmark body', `Add note for ${body.name}`])
+    expect(aside.findAllByType('footer')).toHaveLength(0)
+    await act(async () => { buttons[0]!.props.onClick(); buttons[1]!.props.onClick() })
+    expect(onBookmarkBody).toHaveBeenCalledWith(body.name)
+    expect(onAddNote).toHaveBeenCalledWith(body)
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('body and station detail note actions carry the actual selected entity', async () => {
+  const system = fixtureSystem()
+  const onAddNote = vi.fn()
+  for (const selected of [system.bodies[1]!, system.stations[0]!]) {
+    const renderer = await renderWithAct(<SystemSchematic system={system} selected={selected} onSelect={vi.fn()} onAddNote={onAddNote} />)
+    try {
+      await act(async () => renderer.root.findAllByType('button').find(button => button.props['aria-label'] === `Add note for ${selected.name}`)!.props.onClick())
+      expect(onAddNote).toHaveBeenLastCalledWith(selected)
+    } finally { await act(async () => renderer.unmount()) }
+  }
+})
+
 test('schematic cartography orders bodies by body id and preserves the complete parent hierarchy', () => {
   const system = fixtureSystem()
   system.bodies.reverse()

@@ -1,10 +1,12 @@
 import { lazy, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Loading } from '@phoenix/ui'
+import { AddNoteButton } from '../../components/add-note-button.js'
 import { RoutePlotFeedback } from './route-plot-feedback.js'
 import { CatalogueSuggestionInput } from './catalogue-suggestion-input.js'
 import {
   ActionTile,
   Breadcrumbs,
+  BookmarkIcon,
   Button,
   CheckIcon,
   ControlContext,
@@ -15,6 +17,7 @@ import {
   FormActions,
   FormGrid,
   IconButton,
+  InputGroup,
   MultiSelect,
   NumberInput,
   PageFrame,
@@ -167,6 +170,8 @@ function SystemView({ api, commanderName, lookup, onNavigate, route }: {
         bookmarked={systemBookmarked}
         following={following}
         onBookmark={() => onNavigate({ kind: 'information', section: 'galaxy', view: 'bookmarks', systemName: lookup.system.name })}
+        noteAction={<AddNoteButton className="system-query__action" label={`Add note for ${lookup.system.name}`} onNavigate={onNavigate}
+          target={{ kind: 'system', systemName: lookup.system.name }} />}
         onFollow={() => onNavigate({
           kind: 'information',
           section: 'galaxy',
@@ -185,6 +190,10 @@ function SystemView({ api, commanderName, lookup, onNavigate, route }: {
         commanderName={commanderName}
         onBookmarkBody={bodyName => onNavigate({ kind: 'information', section: 'galaxy', view: 'bookmarks', systemName: lookup.system.name, bodyName })}
         onBookmarkStation={stationName => onNavigate({ kind: 'information', section: 'galaxy', view: 'bookmarks', systemName: lookup.system.name, stationName })}
+        onAddNote={selection => onNavigate({ kind: 'notes', newNote: true,
+          target: 'services' in selection
+            ? { kind: 'station', systemName: lookup.system.name, stationName: selection.name }
+            : { kind: 'body', systemName: lookup.system.name, bodyName: selection.name } })}
         onSelect={selectedName => onNavigate({
           kind: 'information',
           section: 'galaxy',
@@ -220,6 +229,8 @@ function SystemState({ api, error, onNavigate, route, runtime }: {
         bookmarked={systemBookmarked}
         following={following}
         onBookmark={systemName ? () => onNavigate({ kind: 'information', section: 'galaxy', view: 'bookmarks', systemName }) : undefined}
+        noteAction={systemName ? <AddNoteButton className="system-query__action" label={`Add note for ${systemName}`} onNavigate={onNavigate}
+          target={{ kind: 'system', systemName }} /> : undefined}
         onFollow={() => {
           if (following && !systemName) return
           onNavigate({
@@ -241,11 +252,12 @@ function SystemState({ api, error, onNavigate, route, runtime }: {
   )
 }
 
-function SystemHeader({ bookmarked = false, carrierToggle, following, onBookmark, onFollow, onLoad, onPlot, plotResult, plotting = false, query, setQuery, systemName }: {
+function SystemHeader({ bookmarked = false, carrierToggle, following, onBookmark, noteAction, onFollow, onLoad, onPlot, plotResult, plotting = false, query, setQuery, systemName }: {
   bookmarked?: boolean
   carrierToggle?: ReactNode
   following: boolean
   onBookmark?: () => void
+  noteAction?: ReactNode
   onFollow(): void
   onLoad(systemName: string): void
   onPlot?: () => void
@@ -271,16 +283,7 @@ function SystemHeader({ bookmarked = false, carrierToggle, following, onBookmark
         >
           {plotResult && <RoutePlotFeedback result={plotResult} />}
           <div className="system-query__controls">
-            {carrierToggle}
-            <label className="sr-only" htmlFor="system-query-name">System name</label>
-            <TextInput
-              className="system-query__input"
-              id="system-query-name"
-              spellCheck="false"
-              value={query}
-              onChange={event => setQuery(event.target.value)}
-            />
-            <IconButton
+            <InputGroup className="system-query__input filled" label="System" htmlFor="system-query-name" action={<IconButton
               className="system-query__action"
               label="Load system"
               size="sm"
@@ -288,7 +291,14 @@ function SystemHeader({ bookmarked = false, carrierToggle, following, onBookmark
               variant="accent"
             >
               <LoadSystemIcon />
-            </IconButton>
+            </IconButton>}>
+              <TextInput
+                id="system-query-name"
+                spellCheck="false"
+                value={query}
+                onChange={event => setQuery(event.target.value)}
+              />
+            </InputGroup>
             <IconButton
               aria-pressed={following}
               className={`system-query__action system-query__toggle btn-toggle${following ? ' active' : ''}`}
@@ -299,6 +309,7 @@ function SystemHeader({ bookmarked = false, carrierToggle, following, onBookmark
             >
               <FollowSystemIcon />
             </IconButton>
+            {carrierToggle}
             <IconButton
               aria-pressed={bookmarked}
               className={`system-query__action system-query__toggle btn-toggle${bookmarked ? ' active' : ''}`}
@@ -310,6 +321,7 @@ function SystemHeader({ bookmarked = false, carrierToggle, following, onBookmark
             >
               <BookmarkIcon />
             </IconButton>
+            {noteAction}
             <IconButton
               aria-busy={plotting || undefined}
               className="system-query__action"
@@ -331,10 +343,6 @@ function SystemHeader({ bookmarked = false, carrierToggle, following, onBookmark
 
 function LoadSystemIcon () {
   return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 12h13m-5-5 5 5-5 5M20 4v16" /></svg>
-}
-
-function BookmarkIcon () {
-  return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 3h14v18l-7-5-7 5V3Z" /></svg>
 }
 
 function FollowSystemIcon () {

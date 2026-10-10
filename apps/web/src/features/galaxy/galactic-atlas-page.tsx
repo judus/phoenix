@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type SetState
 import { Breadcrumbs, Button, ControlContext, Field, IconButton, Inline, PageFrame, PageHeader, Select, Status, TextInput, ToggleButton } from '@phoenix/ui'
 import type { AtlasCatalogueResponse, AtlasDisplayLocation, CommunityGoalsResponse } from '@phoenix/contracts'
 import { PhoenixDateTime, UpdatedDateTime } from '../../components/phoenix-date-time.js'
+import { AddNoteButton } from '../../components/add-note-button.js'
+import { atlasNoteTarget } from './galactic-atlas-model.js'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
 import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js'
@@ -320,6 +322,7 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
         {selected && <>
         <header>
           <span>Selected location</span>
+          <AddNoteButton label={`Add note for ${selected.label}`} onNavigate={onNavigate} target={atlasNoteTarget(selected)} />
         </header>
         {options.length > 1 ? <Select className="form-mini" aria-label="Locations in this group" value={selectedId} onChange={event => setSelectedId(event.target.value)}>
           {options.map(marker => <option key={marker.id} value={marker.id}>{marker.kind === 'commander' ? 'You · ' : ''}{marker.label}</option>)}

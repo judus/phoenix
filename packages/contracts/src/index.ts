@@ -1,4 +1,5 @@
 export * from './actions.js'
+export * from './personal-notes.js'
 export * from './atlas.js'
 export * from './catalogue-suggestions.js'
 export * from './bookmarks.js'

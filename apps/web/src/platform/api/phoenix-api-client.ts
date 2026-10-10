@@ -1,4 +1,6 @@
 import {
+  PersonalNoteSchema, PersonalNoteWriteRequestSchema, PersonalNotesResponseSchema,
+  type PersonalNote, type PersonalNoteWriteRequest, type PersonalNotesResponse,
   GalnetAnalysisResponseSchema,
   GalnetArchiveResponseSchema, GalnetArchivedArticleSchema, type GalnetArchiveQuery,
   GalnetBackgroundStatusSchema,
@@ -430,6 +432,19 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getMissions(signal?: AbortSignal): Promise<MissionsResponse> {
     return this.#get('/api/operations/missions', MissionsResponseSchema, signal)
+  }
+
+  async getPersonalNotes(query = '', signal?: AbortSignal): Promise<PersonalNotesResponse> {
+    return this.#get(`/api/notes?${new URLSearchParams({ query })}`, PersonalNotesResponseSchema, signal)
+  }
+
+  async savePersonalNote(input: PersonalNoteWriteRequest, id?: string, signal?: AbortSignal): Promise<PersonalNote> {
+    return this.#json(id ? `/api/notes/${encodeURIComponent(id)}` : '/api/notes', id ? 'PUT' : 'POST',
+      PersonalNoteWriteRequestSchema.parse(input), PersonalNoteSchema, signal)
+  }
+
+  async deletePersonalNote(id: string, signal?: AbortSignal): Promise<void> {
+    await this.#empty(`/api/notes/${encodeURIComponent(id)}`, 'DELETE', undefined, signal)
   }
 
   async getExplorationLedger(signal?: AbortSignal): Promise<ExplorationLedgerResponse> {

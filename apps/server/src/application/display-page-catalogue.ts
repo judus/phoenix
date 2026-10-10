@@ -61,6 +61,7 @@ export const DISPLAY_PAGE_CATALOGUE = {
   macros: page('Macros'),
   journal: page('Journal', 'journal log', 'elite journal'),
   credits: page('Credits', 'data sources'),
+  notes: page('Personal notes', 'helper notes'),
   settings: page('Settings'),
   help: page('Help', 'manual'),
   'developer.overview': page('Developer tools', 'developer overview'),

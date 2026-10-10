@@ -1,4 +1,6 @@
 import type { LocalTool } from '@jdu/llm-client'
+import type { PersonalNotes } from '../domain/personal-notes.js'
+import { createPersonalNoteTools } from './mcp-tools/personal-note-tools.js'
 import type { GameCatalogue } from '@phoenix/elite'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
 import type { Commands } from '../domain/commands.js'
@@ -73,6 +75,8 @@ export interface PhoenixMcpToolDependencies {
   navigation: NavigationQuery
   markets: TradeMarketQuery
   missions: MissionDataReader
+  personalNotes: PersonalNotes
+  canReadPersonalNotes(): boolean
   runtimeState: RuntimeStateReader
   statefulActions: StatefulGameActionService
   stations: StationQuery
@@ -110,7 +114,8 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new FleetListStoredModulesTool(dependencies.fleet),
     new NavigationCanJumpToTool(dependencies.navigation),
     new NavigationGetRouteTool(dependencies.navigation),
-    new MissionsListMissionsTool(dependencies.missions),
+    new MissionsListMissionsTool(dependencies.missions, dependencies.personalNotes, dependencies.canReadPersonalNotes),
+    ...createPersonalNoteTools(dependencies.personalNotes),
     new ActivitiesListCommunityGoalsTool(dependencies.communityGoals),
     new StationsFindStationsSellingModuleTool(dependencies.stations),
     new MarketsFindBestTradeTool(dependencies.markets),

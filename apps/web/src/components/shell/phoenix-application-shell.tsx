@@ -12,6 +12,7 @@ export interface PhoenixApplicationShellProps {
   activeDesktop: PhoenixWorkspace
   controlsDestination?: PhoenixRoute
   copilotDestination?: PhoenixRoute
+  notesDestination?: PhoenixRoute
   controls: ReactNode
   controlsContextItems?: ApplicationNavigationItem[]
   controlsCurrentContext?: string
@@ -23,6 +24,7 @@ export interface PhoenixApplicationShellProps {
   informationContextLabel?: string
   informationCurrentContext?: string
   journal: ReactNode
+  notes?: ReactNode
   developer?: ReactNode
   developerContextItems?: NavigationItem[]
   developerCurrentContext?: string
@@ -42,6 +44,7 @@ export interface PhoenixApplicationShellProps {
 export function PhoenixApplicationShell({
   controlsDestination,
   copilotDestination,
+  notesDestination,
   activeDesktop,
   controls,
   controlsContextItems,
@@ -55,6 +58,7 @@ export function PhoenixApplicationShell({
   informationCurrentContext,
   informationRoute,
   journal,
+  notes,
   developer,
   developerContextItems,
   developerCurrentContext,
@@ -118,6 +122,7 @@ export function PhoenixApplicationShell({
         informationCurrentContext={informationCurrentContext}
         informationRoute={informationRoute}
         journal={journal}
+        notes={notes}
         developer={developer}
         developerContextItems={developerContextItems}
         developerCurrentContext={developerCurrentContext}
@@ -139,7 +144,7 @@ export function PhoenixApplicationShell({
           selection="subtle"
           label="Workspaces"
           current={activeDesktop}
-          items={workspaceItems(informationRoute, controlsDestination, copilotDestination)}
+          items={workspaceItems(informationRoute, controlsDestination, copilotDestination, notesDestination)}
           onItemSelect={(item) => {
             if (isPhoenixWorkspace(item.id)) onNavigateWorkspace(item.id)
           }}
