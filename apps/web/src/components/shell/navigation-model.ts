@@ -17,14 +17,19 @@ export function utilityItems(fullscreen: { active: boolean, supported: boolean }
     routeItem('journal', 'Commander log', 'LOG', { kind: 'journal', view: 'commander' }),
     routeItem('settings', 'Settings', 'STG', { kind: 'settings', view: 'general' }),
     routeItem('developer', 'Developer tools', 'DEV', { kind: 'developer', view: 'tools' }),
-    ...(!androidShell ? [{
+    androidShell ? {
+      id: 'reload',
+      kind: 'action',
+      label: 'Reload PHOENIX',
+      shortLabel: 'RLD'
+    } : {
       id: 'fullscreen',
       kind: 'action' as const,
       label: fullscreen.active ? 'Exit fullscreen' : 'Enter fullscreen',
       shortLabel: 'F11',
       pressed: fullscreen.active,
       disabled: !fullscreen.supported
-    }] : []),
+    },
     {
       id: 'focus',
       kind: 'action',

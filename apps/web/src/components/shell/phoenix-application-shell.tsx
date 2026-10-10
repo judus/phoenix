@@ -95,6 +95,10 @@ export function PhoenixApplicationShell({
             current={activeDesktop}
             items={utilityItems(fullscreen, focus.active, androidShell)}
             onItemSelect={(item) => {
+              if (item.id === 'reload') {
+                location.reload()
+                return
+              }
               if (item.id === 'fullscreen') {
                 void fullscreen.toggle()
                 return

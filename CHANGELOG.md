@@ -9,6 +9,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
   preserve your map view; system labels use the existing overlap checks to reduce clutter.
   Allow 16× closer zoom to inspect short jumps and nearby systems.
 
+- Add an APK-only RLD action in the top rail to reload PHOENIX without closing the app
+  or re-pairing. It replaces the browser-only F11 action; no APK reinstall is needed.
+
 - Fix fleet pages failing with “no such column: sequence” when the initial carrier schema
   had already been applied. A new migration preserves carrier records and unrelated data.
 
