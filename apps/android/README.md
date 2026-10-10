@@ -36,7 +36,10 @@ it will not share their pairing sessions.
 
 The interface runs fullscreen and keeps the screen awake while it is visible. Swipe inward from
 a system edge to reveal Android's navigation controls. The web rail hides F11 only in this app
-(identified by its `PhoenixAndroid/…` user-agent marker); browsers keep it. F13 focus view remains.
+(identified by its `PhoenixAndroid/…` user-agent marker); browsers keep it. The app instead shows
+**RLD** in that slot: tap it to reload the current PHOENIX page without closing the app or
+clearing pairing. This is supplied by the web app, so an existing APK needs no reinstall.
+F13 focus view remains.
 Android Back navigates page history; at the first page it returns to the connection screen,
 where you can edit the address or resume.
 Another Back from the connection screen closes the app. A failed top-level page load returns

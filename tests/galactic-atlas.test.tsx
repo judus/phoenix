@@ -70,8 +70,14 @@ test('search can locate an off-screen POI without enabling the catalogue, inspec
     expect(renderer.root.findAllByType('aside')).toHaveLength(0)
     expect(renderer.root.findAllByProps({ id: 'atlas-poi-search' })).toHaveLength(0)
     const headerButtons = () => renderer.root.findAllByType('header')[0].findAllByType('button')
-    expect(headerButtons().map(button => button.props.children)).toEqual(['Regions', 'Bookmarks', 'Landmarks', 'Finder'])
-    const finder = () => headerButtons().find(button => button.props.children === 'Finder')!
+    expect(headerButtons().map(button => button.props['aria-label'])).toEqual(['Regions', 'Bookmarks', 'Plotted route', 'Landmarks', 'Finder'])
+    for (const button of headerButtons()) {
+      expect(button.props.className).toContain('btn-icon-square')
+      expect(button.props.title).toBeTruthy()
+      expect(button.findAllByType('svg')).toHaveLength(1)
+      expect(button.findByType('svg').props['aria-hidden']).toBe('true')
+    }
+    const finder = () => headerButtons().find(button => button.props['aria-label'] === 'Finder')!
     await act(async () => finder().props.onClick())
     const reset = () => renderer.root.findAllByType('button').find(button => button.props.children === 'Clear')!
     const clearRow = renderer.root.findAllByType('div').find(node => node.props.className?.startsWith('inline ') && node.findAllByType('button').some(button => button.props.children === 'Clear'))!
@@ -94,7 +100,7 @@ test('search can locate an off-screen POI without enabling the catalogue, inspec
     await act(async () => renderer.root.findByProps({ id: 'atlas-poi-search' }).props.onChange({ target: { value: 'not present' } }))
     expect(renderer.root.findAllByProps({ 'aria-label': 'Selected atlas location' })).toHaveLength(0)
     expect(renderer.root.findAllByProps({ 'aria-label': 'Find atlas POI' })).toHaveLength(1)
-    expect(headerButtons().map(button => button.props.children)).toContain('Landmarks · filtered')
+    expect(headerButtons().map(button => button.props['aria-label'])).toContain('Landmarks · filtered')
     await act(async () => finder().props.onClick())
     expect(renderer.root.findAllByType('aside')).toHaveLength(0)
     await act(async () => finder().props.onClick())
@@ -104,7 +110,7 @@ test('search can locate an off-screen POI without enabling the catalogue, inspec
     expect(renderer.root.findByProps({ id: 'atlas-poi-search' }).props.value).toBe('')
     expect(renderer.root.findByProps({ id: 'atlas-poi-category' }).props.value).toBe('')
     expect(reset().props.disabled).toBe(true)
-    expect(headerButtons().map(button => button.props.children)).toContain('Landmarks')
+    expect(headerButtons().map(button => button.props['aria-label'])).toContain('Landmarks')
   } finally { await act(async () => renderer.unmount()) }
 })
 
@@ -113,7 +119,7 @@ test('catalogue markers are opt-in while reference landmarks stay available', as
   const renderer = await renderWithAct(<GalacticAtlas catalogue={catalogue} bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={null} showBookmarks systemName={null} />)
   try {
     const site = () => renderer.root.findAllByProps({ 'aria-label': 'Visible catalogue site' })
-    const toggle = renderer.root.findAllByType('button').find(button => button.props.children === 'Landmarks')!
+    const toggle = renderer.root.findAllByType('button').find(button => button.props['aria-label'] === 'Landmarks')!
     expect(toggle.props['aria-pressed']).toBe(false)
     expect(site()).toHaveLength(0)
     await act(async () => toggle.props.onClick())
@@ -146,7 +152,7 @@ test('zoom holds the pointer anchor fixed and clamps scale', () => {
   const after = screenPoint(point, zoomAtlas(camera, 1.5, anchor, 900, 600), 900, 600)
   expect(after.x).toBeCloseTo(anchor.x)
   expect(after.y).toBeCloseTo(anchor.y)
-  expect(zoomAtlas(camera, 10000, anchor, 900, 600).zoom).toBe(128)
+  expect(zoomAtlas(camera, 10000, anchor, 900, 600).zoom).toBe(2048)
   expect(zoomAtlas(camera, 0.001, anchor, 900, 600).zoom).toBe(1)
 })
 
@@ -173,7 +179,7 @@ test('atlas zoom controls allow the extended range and disable at its ceiling', 
   const renderer = await renderWithAct(<GalacticAtlas bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={[0, 0, 0]} showBookmarks systemName="Sol" />)
   try {
     const zoomIn = () => renderer.root.findByProps({ 'aria-label': 'Zoom in' })
-    for (let step = 0; step < 9; step++) {
+    for (let step = 0; step < 16; step++) {
       expect(zoomIn().props.disabled).toBe(false)
       await act(async () => zoomIn().props.onClick())
     }
@@ -191,7 +197,7 @@ test('atlas selection opens the correct system and supports keyboard zoom and re
   const map = () => renderer.root.findAllByType('svg').find(node => node.props.role === 'group')!
   const pageHeader = renderer.root.findAllByType('header')[0]
   expect(pageHeader.props.className).toContain('page-header-cockpit')
-  expect(pageHeader.findAllByType('button')).toHaveLength(4)
+  expect(pageHeader.findAllByType('button')).toHaveLength(5)
   const currentSystem = renderer.root.findByType('footer').findByType('a')
   expect(parsePhoenixRoute(currentSystem.props.href)).toEqual({ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Sol' })
   await act(async () => currentSystem.props.onClick({ button: 0, preventDefault() {} }))

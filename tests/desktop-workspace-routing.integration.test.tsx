@@ -26,14 +26,26 @@ vi.mock('deskplane/react', () => ({
 }))
 
 import { DesktopWorkspace } from '../apps/web/src/components/shell/desktop-workspace.js'
-import { utilityItems } from '../apps/web/src/components/shell/navigation-model.js'
+import { utilityItems, workspaceItems } from '../apps/web/src/components/shell/navigation-model.js'
 
 beforeAll(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 })
 
 describe('DesktopWorkspace routing integration', () => {
-  test('swiping to Notes recalls its editor independently of LOG and Copilot', async () => {
+  test('hidden DEV is absent from both navigation and the Deskplane row', async () => {
+    const router = new BrowserPhoenixRouter(new FakeBrowserWindow('#/settings/general') as unknown as Window)
+    deskplaneHarness.controller = createDeskplaneController(vi.fn(async () => true))
+    const renderer = await renderWithAct(<RoutedDesktopWorkspace router={router} showDeveloper={false} />)
+    try {
+      expect(deskplaneHarness.props?.rows[0].desktops.map(desktop => desktop.id)).toEqual(['telemetry'])
+      expect(workspaceItems(router.getRememberedInformationRoute()).some(item => item.id === 'developer')).toBe(false)
+      expect(workspaceItems(router.getRememberedInformationRoute()).some(item => item.id === 'telemetry')).toBe(false)
+      expect(deskplaneHarness.props?.rows[1].desktops.map(desktop => desktop.id))
+        .toEqual(['controls', 'info', 'journal', 'copilot', 'settings'])
+    } finally { await act(async () => renderer.unmount()) }
+  })
+  test('swiping to LOG recalls the Notes editor and subsequent Log pages', async () => {
     const browser = new FakeBrowserWindow('#/notes?edit=note-id')
     const router = new BrowserPhoenixRouter(browser as unknown as Window)
     const goTo = vi.fn(async () => true)
@@ -41,12 +53,15 @@ describe('DesktopWorkspace routing integration', () => {
     const renderer = await renderWithAct(<RoutedDesktopWorkspace router={router} />)
     try {
       await act(async () => router.push({ kind: 'copilot', view: 'chat' }))
-      await act(async () => deskplaneHarness.props?.onSnapshotChange?.(snapshot('notes')))
+      await act(async () => deskplaneHarness.props?.onSnapshotChange?.(snapshot('journal')))
       expect(router.getSnapshot()).toEqual({ kind: 'notes', noteId: 'note-id' })
-      expect(router.routeForWorkspace('journal')).toEqual({ kind: 'journal', view: 'commander' })
+      expect(router.routeForWorkspace('journal')).toEqual({ kind: 'notes', noteId: 'note-id' })
       await act(async () => router.push({ kind: 'information', section: 'galaxy', view: 'atlas' }))
       const restored = new BrowserPhoenixRouter(browser as unknown as Window)
-      expect(restored.routeForWorkspace('notes')).toEqual({ kind: 'notes', noteId: 'note-id' })
+      expect(restored.routeForWorkspace('journal')).toEqual({ kind: 'notes', noteId: 'note-id' })
+      restored.push({ kind: 'journal', view: 'credits' })
+      restored.push({ kind: 'copilot', view: 'chat' })
+      expect(restored.routeForWorkspace('journal')).toEqual({ kind: 'journal', view: 'credits' })
     } finally { await act(async () => renderer.unmount()) }
   })
 
@@ -61,12 +76,12 @@ describe('DesktopWorkspace routing integration', () => {
     const renderer = await renderWithAct(<RoutedDesktopWorkspace router={router} />)
     expect(deskplaneHarness.props?.rows.map(row => row.id)).toEqual(['utilities', 'workspaces'])
     expect(deskplaneHarness.props?.rows[0].desktops.map(desktop => desktop.id))
-      .toEqual(['telemetry', 'macros', 'journal', 'settings', 'developer'])
-    expect(utilityItems({ active: false, supported: true }).slice(0, 5).map(item => item.id))
-      .toEqual(['telemetry', 'macros', 'journal', 'settings', 'developer'])
+      .toEqual(['telemetry'])
+    expect(utilityItems({ active: false, supported: true }).filter(item => 'route' in item).map(item => item.id))
+      .toEqual([])
     expect(deskplaneHarness.props?.rows[1].desktops.map(desktop => desktop.id))
-      .toEqual(['controls', 'info', 'notes', 'copilot'])
-    expect(renderer.root.findAll(element => element.props['data-deskplane-swipe-zone'] === 'horizontal')).toHaveLength(9)
+      .toEqual(['controls', 'info', 'journal', 'copilot', 'settings', 'developer'])
+    expect(renderer.root.findAll(element => element.props['data-deskplane-swipe-zone'] === 'horizontal')).toHaveLength(7)
     goTo.mockClear()
 
     await act(async () => {
@@ -108,24 +123,24 @@ describe('DesktopWorkspace routing integration', () => {
       })
       expect(workspaceForRoute(router.getSnapshot())).toBe(workspace)
     }
-    expect(router.getSnapshot()).toEqual({ kind: 'journal', view: 'commander' })
+    expect(router.getSnapshot()).toEqual({ kind: 'notes' })
 
     await act(async () => renderer?.unmount())
   })
 })
 
-function RoutedDesktopWorkspace({ router }: { router: BrowserPhoenixRouter }) {
+function RoutedDesktopWorkspace({ router, showDeveloper = true }: { router: BrowserPhoenixRouter, showDeveloper?: boolean }) {
   const route = usePhoenixRoute(router)
   const informationRoute = isInformationRoute(route) ? route : router.getRememberedInformationRoute()
   return (
     <DesktopWorkspace
       activeDesktop={workspaceForRoute(route)}
+      showDeveloper={showDeveloper}
       controls={null}
       copilot={null}
       information={null}
       informationRoute={informationRoute}
       journal={null}
-      macros={null}
       onNavigateRoute={router.push}
       onNavigateWorkspace={(workspace) => router.push(router.routeForWorkspace(workspace))}
       settings={null}
@@ -151,7 +166,7 @@ function createDeskplaneController(goTo: Deskplane['goTo']): Deskplane {
 }
 
 function snapshot(activeDesktopId: string): DeskplaneSnapshot {
-  const utilities = ['telemetry', 'macros', 'journal', 'settings', 'developer'].includes(activeDesktopId)
+  const utilities = activeDesktopId === 'telemetry'
   return {
     activeDesktopId,
     activeRowId: utilities ? 'utilities' : 'workspaces',

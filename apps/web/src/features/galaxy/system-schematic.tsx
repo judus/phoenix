@@ -5,6 +5,7 @@ import type {
   CartographicSystem
 } from '@phoenix/contracts'
 import { BookmarkIcon, Button, FleetCarrierIcon, IconButton, Inline, NoteIcon } from '@phoenix/ui'
+import { useSchematicPointerGestures } from './use-schematic-pointer-gestures.js'
 import {
   buildSystemHierarchy,
   type AttachedInstallation,
@@ -21,6 +22,7 @@ export type CartographicSelection = CartographicBody | CartographicStation
 export interface SystemSchematicProps {
   actions?: ReactNode
   commanderName?: string | null
+  playerPosition?: CartographicSystem['position']
   onBookmarkBody?(name: string): void
   onBookmarkStation?(name: string): void
   onAddNote?(selection: CartographicSelection): void
@@ -30,35 +32,45 @@ export interface SystemSchematicProps {
   system: CartographicSystem
 }
 
-export function SystemSchematic ({ actions, commanderName, onBookmarkBody, onBookmarkStation, onAddNote, onSelect, selected, showFleetCarriers = true, system }: SystemSchematicProps) {
+export function SystemSchematic ({ actions, commanderName, playerPosition, onBookmarkBody, onBookmarkStation, onAddNote, onSelect, selected, showFleetCarriers = true, system }: SystemSchematicProps) {
+  const distance = playerPosition && system.position
+    ? Math.hypot(
+        system.position[0] - playerPosition[0],
+        system.position[1] - playerPosition[1],
+        system.position[2] - playerPosition[2]
+      )
+    : null
   const hierarchy = buildSystemHierarchy(showFleetCarriers ? system : {
     ...system,
     stations: system.stations.filter(station => !isFleetCarrier(station))
   })
   const layout = layoutSystemHierarchy(hierarchy.roots)
   const viewportRef = useRef<HTMLDivElement>(null)
-  const focalPointRef = useRef<{ x: number, y: number } | null>(null)
+  const focalPointRef = useRef<{ x: number, y: number, anchorX: number, anchorY: number } | null>(null)
   const [zoomPercent, setZoomPercent] = useState(100)
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current
     const focalPoint = focalPointRef.current
     if (!viewport || !focalPoint) return
-    viewport.scrollLeft = focalPoint.x * viewport.scrollWidth - viewport.clientWidth / 2
-    viewport.scrollTop = focalPoint.y * viewport.scrollHeight - viewport.clientHeight / 2
+    viewport.scrollLeft = focalPoint.x * viewport.scrollWidth - focalPoint.anchorX
+    viewport.scrollTop = focalPoint.y * viewport.scrollHeight - focalPoint.anchorY
     focalPointRef.current = null
   }, [zoomPercent])
 
-  const changeZoom = (nextZoomPercent: number) => {
+  const changeZoom = (nextZoomPercent: number | ((current: number) => number), anchor?: { x: number, y: number }) => {
     const viewport = viewportRef.current
     if (viewport) {
       focalPointRef.current = {
-        x: (viewport.scrollLeft + viewport.clientWidth / 2) / viewport.scrollWidth,
-        y: (viewport.scrollTop + viewport.clientHeight / 2) / viewport.scrollHeight
+        x: (viewport.scrollLeft + (anchor?.x ?? viewport.clientWidth / 2)) / viewport.scrollWidth,
+        y: (viewport.scrollTop + (anchor?.y ?? viewport.clientHeight / 2)) / viewport.scrollHeight,
+        anchorX: anchor?.x ?? viewport.clientWidth / 2,
+        anchorY: anchor?.y ?? viewport.clientHeight / 2
       }
     }
-    setZoomPercent(Math.max(50, Math.min(200, nextZoomPercent)))
+    setZoomPercent(current => Math.max(50, Math.min(200, typeof nextZoomPercent === 'number' ? nextZoomPercent : nextZoomPercent(current))))
   }
+  const gestures = useSchematicPointerGestures((factor, anchor) => changeZoom(current => current * factor, anchor))
 
   return (
     <div
@@ -66,9 +78,11 @@ export function SystemSchematic ({ actions, commanderName, onBookmarkBody, onBoo
       data-deskplane-no-swipe
     >
       <section className="system-schematic" aria-label={`Schematic map of ${system.name}`}>
+        <p className="schematic-distance">Distance: {distance === null ? '—' : distance.toLocaleString('en-GB', { maximumFractionDigits: 1 })} LY</p>
         <div
           className="system-schematic__viewport"
           ref={viewportRef}
+          {...gestures}
           onClick={(event: MouseEvent<HTMLDivElement>) => {
             if (!(event.target instanceof Element) || !event.target.closest('button')) onSelect()
           }}
@@ -108,27 +122,15 @@ export function SystemSchematic ({ actions, commanderName, onBookmarkBody, onBoo
           {actions}
           <div className="system-schematic__zoom" aria-label="Schematic zoom controls">
             <IconButton
-              className="system-schematic__zoom-step"
               disabled={zoomPercent === 50}
               label="Zoom out"
-              size="sm"
               type="button"
               variant="outline"
               onClick={() => changeZoom(zoomPercent - 25)}
             >−</IconButton>
-            <Button
-              aria-label="Reset zoom to 100%"
-              size="sm"
-              title="Reset zoom"
-              type="button"
-              variant="quiet"
-              onClick={() => changeZoom(100)}
-            >{zoomPercent}%</Button>
             <IconButton
-              className="system-schematic__zoom-step"
               disabled={zoomPercent === 200}
               label="Zoom in"
-              size="sm"
               type="button"
               variant="outline"
               onClick={() => changeZoom(zoomPercent + 25)}

@@ -1,5 +1,4 @@
 import {
-  Button,
   DataTableGroup,
   SortableDataTable,
   type SortableDataTableColumn
@@ -31,6 +30,49 @@ import type {
 import { formatPhoenixCredits } from '../../components/phoenix-credits.js'
 import { formatPhoenixDateTime } from '../../components/phoenix-date-time.js'
 import { SystemSchematicLink } from '../../components/system-location-link.js'
+import type { AtlasMarker, GalacticPosition } from './galactic-atlas-model.js'
+
+export interface GalaxyQueryLocation {
+  marker: Omit<AtlasMarker, 'position'> & { position?: GalacticPosition }
+  detail: ReactNode
+}
+
+/** Preserve each result identity, even when multiple records share a system. */
+export function galaxyQueryLocations(result: GalaxyQueryResult): GalaxyQueryLocation[] {
+  switch (result.id) {
+    case 'system-search': return result.value.systems.map((row, index) => location(row, index, SYSTEM_COLUMNS))
+    case 'faction-presence': return result.value.presences.map((row, index) => location(row, index, FACTION_COLUMNS, row.factionName))
+    case 'facilities': return result.value.stations.map((row, index) => location(row, index, FACILITY_COLUMNS))
+    case 'commodity-markets': return result.value.markets.map((row, index) => location(row, index, commodityColumns(result.value.intent)))
+    case 'exploration-targets': return result.value.targets.map((row, index) => location(row, index, EXPLORATION_COLUMNS))
+    case 'outfitting-stock': return result.value.matches.map((row, index) => location(row, index, OUTFITTING_COLUMNS, `${row.stationName} · ${row.moduleName}`))
+    case 'shipyards': return result.value.shipyards.map((row, index) => location(row, index, SHIPYARD_COLUMNS))
+    case 'station-lookup': return result.value.matches.map((row, index) => location(row, index, STATION_COLUMNS))
+    case 'market-signals': return result.value.signals.map((row, index) => location(row, index, MARKET_SIGNAL_COLUMNS, `${row.stationName} · ${row.commodityName}`))
+    case 'trade-opportunities': return result.value.opportunities.flatMap((row, index) => {
+      const detail = resultDetail(row, TRADE_COLUMNS)
+      return [
+        { ...location(row.buyMarket, `${index}:buy`, commodityColumns('buy'), `Buy ${row.commodityName} · ${row.buyMarket.stationName}`), detail },
+        { ...location(row.sellMarket, `${index}:sell`, commodityColumns('sell'), `Sell ${row.commodityName} · ${row.sellMarket.stationName}`), detail }
+      ]
+    })
+  }
+}
+
+function location<T extends { systemName: string, stationName?: string, bodyName?: string, position?: GalacticPosition }>(row: T, index: number | string, columns: readonly SortableDataTableColumn<T>[], label?: string): GalaxyQueryLocation {
+  const selectedName = row.stationName ?? row.bodyName
+  return {
+    marker: { id: `query:${index}`, kind: 'query-result', label: label ?? selectedName ?? row.systemName,
+      systemName: row.systemName, position: row.position, selectedName,
+      bookmarkTarget: row.stationName ? { kind: 'station', systemName: row.systemName, stationName: row.stationName }
+        : row.bodyName ? { kind: 'body', systemName: row.systemName, bodyName: row.bodyName } : { kind: 'system', systemName: row.systemName } },
+    detail: resultDetail(row, columns)
+  }
+}
+
+function resultDetail<T>(row: T, columns: readonly SortableDataTableColumn<T>[]): ReactNode {
+  return <dl>{columns.filter(column => column.id !== 'system').map(column => <div key={column.id}><dt>{column.heading}</dt><dd>{column.cell(row)}</dd></div>)}</dl>
+}
 
 export type GalaxyQueryResult =
   | { id: 'commodity-markets', value: GalaxyCommodityMarketsResponse }
@@ -44,14 +86,11 @@ export type GalaxyQueryResult =
   | { id: 'system-search', value: GalaxySystemSearchResponse }
   | { id: 'trade-opportunities', value: GalaxyTradeOpportunitiesResponse }
 
-export function GalaxyQueryResults({ actions, children, onEdit, result }: { actions?: ReactNode, children?: ReactNode, onEdit(): void, result: GalaxyQueryResult }) {
-  return (
-    <DataTableGroup className="query-results" title="Query results" meta={`${galaxyQueryResultCount(result)} results`}>
-      <GalaxyResultTable result={result} />
-      {children}
-      <div className="query-result-actions"><Button variant="outline" type="button" onClick={onEdit}>Change query</Button>{actions}</div>
-    </DataTableGroup>
-  )
+export function GalaxyQueryResults({ result, atlas }: { result: GalaxyQueryResult, atlas?: ReactNode }) {
+  const content = atlas ?? <GalaxyResultTable result={result} />
+  return atlas
+    ? <section className="query-results atlas" aria-label="Query results">{content}</section>
+    : <DataTableGroup className="query-results" title="Query results" meta={`${galaxyQueryResultCount(result)} results`}>{content}</DataTableGroup>
 }
 
 export function galaxyQueryResultCount(result: GalaxyQueryResult): number {

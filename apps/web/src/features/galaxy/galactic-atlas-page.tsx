@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type SetStateAction } from 'react'
-import { Breadcrumbs, Button, ControlContext, Field, IconButton, Inline, PageFrame, PageHeader, Select, Status, TextInput, ToggleButton } from '@phoenix/ui'
-import type { AtlasCatalogueResponse, AtlasDisplayLocation, CommunityGoalsResponse } from '@phoenix/contracts'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type SetStateAction } from 'react'
+import { BookmarkIcon, Breadcrumbs, Button, ControlContext, Field, FlagIcon, IconButton, Inline, MapPinIcon, PageFrame, PageHeader, RadarIcon, RegionsIcon, RouteIcon, SearchIcon, Select, Status, TextInput, ToggleButton } from '@phoenix/ui'
+import type { AtlasCatalogueResponse, AtlasDisplayLocation, CommunityGoalsResponse, NavigationRoute } from '@phoenix/contracts'
 import { PhoenixDateTime, UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import { AddNoteButton } from '../../components/add-note-button.js'
-import { atlasNoteTarget } from './galactic-atlas-model.js'
+import { atlasNavigationRoute, atlasNoteTarget } from './galactic-atlas-model.js'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
 import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js'
@@ -17,12 +17,36 @@ import { useAtlasCommunityGoals } from './use-atlas-community-goals.js'
 import { useAtlasGalnetLeads } from './use-atlas-galnet-leads.js'
 import { formatCommunityGoalExpiry } from '../../application/community-goals/community-goal-expiry.js'
 
-export function GalacticAtlasPage({ api, onNavigate, runtime, location, displayRequestId }: {
+export function GalacticAtlasPage({ api, onNavigate, runtime, location, displayRequestId, navigationRoute, routeStatus }: {
   api: PhoenixApi
   onNavigate(route: PhoenixRoute): void
   runtime: RuntimeStateSnapshot
   location?: AtlasDisplayLocation
   displayRequestId?: string
+  navigationRoute?: NavigationRoute
+  routeStatus?: string
+}) {
+  const system = runtime.status === 'ready' ? runtime.state.system : undefined
+  return <GalacticAtlasWorkspace api={api} onNavigate={onNavigate} position={system?.position ?? null}
+    systemName={system?.name ?? null} location={location} displayRequestId={displayRequestId}
+    navigationRoute={navigationRoute} routeStatus={routeStatus} />
+}
+
+type AtlasResults = { markers: AtlasMarker[], status: string, fitReady: boolean, initialCamera?: AtlasCamera, detail(marker: AtlasMarker): ReactNode }
+type AtlasLayout = (controls: ReactNode, instrument: ReactNode) => ReactNode
+
+/** Owns the same live layers and controls wherever the Atlas is displayed. */
+export function GalacticAtlasWorkspace({ api, onNavigate, position, systemName, location, displayRequestId, navigationRoute, routeStatus, results, renderLayout }: {
+  api: PhoenixApi
+  onNavigate(route: PhoenixRoute): void
+  position: GalacticPosition | null
+  systemName: string | null
+  location?: AtlasDisplayLocation
+  displayRequestId?: string
+  navigationRoute?: NavigationRoute
+  routeStatus?: string
+  results?: AtlasResults
+  renderLayout?: AtlasLayout
 }) {
   const [showBookmarks, setShowBookmarks] = useState(true)
   const [showCommunityGoals, setShowCommunityGoals] = useState(true)
@@ -32,8 +56,11 @@ export function GalacticAtlasPage({ api, onNavigate, runtime, location, displayR
   const investigations = useAtlasGalnetLeads(api, showInvestigations)
   const omitted = investigations.snapshot?.omitted
   const catalogue = useAtlasCatalogue(api)
-  const system = runtime.status === 'ready' ? runtime.state.system : undefined
   return <GalacticAtlas
+    results={results}
+    renderLayout={renderLayout}
+    navigationRoute={navigationRoute}
+    routeStatus={routeStatus}
     location={location}
     displayRequestId={displayRequestId}
     catalogue={catalogue.catalogue}
@@ -65,18 +92,22 @@ export function GalacticAtlasPage({ api, onNavigate, runtime, location, displayR
     onToggleBookmarks={() => setShowBookmarks(value => !value)}
     onToggleCommunityGoals={() => setShowCommunityGoals(value => !value)}
     onToggleInvestigations={() => setShowInvestigations(value => !value)}
-    position={system?.position ?? null}
+    position={position}
     showBookmarks={showBookmarks}
     showCommunityGoals={showCommunityGoals}
     showInvestigations={showInvestigations}
-    systemName={system?.name ?? null}
+    systemName={systemName}
   />
 }
 
 /** Unique cartographic instrument. SVG coordinates/transforms are runtime geometry, not layout styling. */
-export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueStatus, communityGoals, communityGoalsSnapshot, communityGoalsStatus, investigations, investigationsStatus, onNavigate, onToggleBookmarks, onToggleCommunityGoals, onToggleInvestigations, position, showBookmarks, showCommunityGoals = false, showInvestigations = false, systemName, location, displayRequestId }: {
+export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueStatus, communityGoals, communityGoalsSnapshot, communityGoalsStatus, investigations, investigationsStatus, onNavigate, onToggleBookmarks, onToggleCommunityGoals, onToggleInvestigations, position, showBookmarks, showCommunityGoals = false, showInvestigations = false, systemName, location, displayRequestId, navigationRoute, routeStatus, results, renderLayout }: {
+  results?: AtlasResults
+  renderLayout?: AtlasLayout
   location?: AtlasDisplayLocation
   displayRequestId?: string
+  navigationRoute?: NavigationRoute
+  routeStatus?: string
   bookmarks: AtlasMarker[]
   bookmarkStatus?: string
   catalogue?: AtlasCatalogueResponse
@@ -96,16 +127,20 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
   showInvestigations?: boolean
   systemName: string | null
 }) {
-  const [camera, setCamera] = useState<AtlasCamera>(() => position ? { ...projectGalacticPosition(position), zoom: 4 } : WHOLE_GALAXY)
+  const [camera, setCamera] = useState<AtlasCamera>(() => results?.initialCamera ?? (position ? { ...projectGalacticPosition(position), zoom: 4 } : WHOLE_GALAXY))
   const [view, setView] = useState(TOP_DOWN_VIEW)
   const [orbiting, setOrbiting] = useState(false)
   const initialCameraApplied = useRef(position !== null)
+  const resultsCameraApplied = useRef(results?.fitReady ?? true)
+  const cameraTouched = useRef(false)
   const updateCamera = (next: SetStateAction<AtlasCamera>) => {
+    cameraTouched.current = true
     initialCameraApplied.current = true
     setCamera(next)
   }
   const [size, setSize] = useState({ width: 900, height: 600 })
   const [showRegions, setShowRegions] = useState(true)
+  const [showRoute, setShowRoute] = useState(true)
   const [showLandmarks, setShowLandmarks] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const [search, setSearch] = useState('')
@@ -128,15 +163,18 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
     return { id: landmark?.id ?? 'display-target', kind: landmark?.kind ?? 'system',
       label: landmark?.label ?? location.systemName, systemName: location.systemName, position: location.position }
   }, [location])
+  const plotted = useMemo(() => atlasNavigationRoute(navigationRoute, systemName), [navigationRoute, systemName])
   const markers = useMemo(() => [
     ...(displayTarget ? [displayTarget] : []),
     ...(position && systemName ? [{ id: 'commander', kind: 'commander' as const, label: systemName, systemName, position }] : []),
     ...(showCommunityGoals ? communityGoals ?? [] : []),
     ...(showInvestigations ? investigations ?? [] : []),
     ...bookmarks,
+    ...(showRoute ? plotted.markers : []),
+    ...(results?.markers ?? []),
     ...ATLAS_LANDMARKS.filter(marker => marker.id !== displayTarget?.id),
     ...(showLandmarks ? landmarks.filter(marker => marker.poi) : landmarks.filter(marker => marker.poi && marker.id === selectedId))
-  ], [bookmarks, communityGoals, investigations, landmarks, position, showCommunityGoals, showInvestigations, showLandmarks, systemName, selectedId, displayTarget])
+  ], [bookmarks, communityGoals, investigations, landmarks, position, showCommunityGoals, showInvestigations, showLandmarks, systemName, selectedId, displayTarget, showRoute, plotted, results])
   const selected = markers.find(marker => marker.id === selectedId)
   const options = selection.map(id => markers.find(marker => marker.id === id)).filter((marker): marker is AtlasMarker => !!marker)
   const clusters = clusterAtlasMarkers(markers, camera, size.width, size.height, view)
@@ -165,6 +203,13 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
   }, [position])
 
   useEffect(() => {
+    if (!results?.fitReady || resultsCameraApplied.current) return
+    resultsCameraApplied.current = true
+    initialCameraApplied.current = true
+    if (!cameraTouched.current && results.initialCamera) setCamera(results.initialCamera)
+  }, [results?.fitReady, results?.initialCamera])
+
+  useEffect(() => {
     const element = viewport.current
     if (!element || typeof ResizeObserver === 'undefined') return
     const observer = new ResizeObserver(([entry]) => {
@@ -179,6 +224,7 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
     if (!element) return
     const wheel = (event: WheelEvent) => {
       event.preventDefault()
+      cameraTouched.current = true
       initialCameraApplied.current = true
       const rect = element.getBoundingClientRect()
       setCamera(value => zoomAtlas(value, Math.exp(-Math.max(-150, Math.min(150, event.deltaY)) * 0.005), { x: event.clientX - rect.left, y: event.clientY - rect.top }, size.width, size.height, view))
@@ -214,16 +260,16 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
   }
   const scaleLy = niceScale(120 / scale * LY_PER_MAP_UNIT)
 
-  return <PageFrame layout="fit" className="galactic-atlas-page">
-    <PageHeader title="Galactic atlas" variant="cockpit" context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/atlas' }, { label: 'Galactic atlas' }]} />} actions={<ControlContext context="toolbar" density="compact"><Inline gap="xs">
-        <ToggleButton className="display" pressed={showRegions} onClick={() => setShowRegions(value => !value)}>Regions</ToggleButton>
-        <ToggleButton className="display" pressed={showBookmarks} onClick={onToggleBookmarks}>Bookmarks</ToggleButton>
-        {onToggleCommunityGoals && <ToggleButton className="display" aria-label="Community Goal destinations" title="Show Community Goal destinations" pressed={showCommunityGoals} onClick={onToggleCommunityGoals}>CG</ToggleButton>}
-        {onToggleInvestigations && <ToggleButton className="display" aria-label="GalNet investigation destinations" title="Show saved GalNet investigation leads, not confirmed live activities" pressed={showInvestigations} onClick={onToggleInvestigations}>Leads</ToggleButton>}
-        <ToggleButton className="display" title="Show catalogue landmarks on the map; Finder filters apply" pressed={showLandmarks} onClick={() => setShowLandmarks(value => !value)}>{filtersActive ? 'Landmarks · filtered' : 'Landmarks'}</ToggleButton>
-        <ToggleButton className="display" title="Search locations without showing the whole catalogue" pressed={showSearch} onClick={() => setShowSearch(value => !value)}>Finder</ToggleButton>
-    </Inline></ControlContext>} />
-    <section className={`galactic-atlas${selected || showSearch ? ' has-selection' : ''}`} aria-label="Galactic atlas" data-deskplane-no-swipe>
+  const controls = <Inline gap="xs">
+        <ToggleButton className="btn-icon btn-icon-square" aria-label="Regions" title="Show galactic regions" pressed={showRegions} onClick={() => setShowRegions(value => !value)}><RegionsIcon /></ToggleButton>
+        <ToggleButton className="btn-icon btn-icon-square" aria-label="Bookmarks" title="Show bookmarks" pressed={showBookmarks} onClick={onToggleBookmarks}><BookmarkIcon /></ToggleButton>
+        <ToggleButton className="btn-icon btn-icon-square" aria-label="Plotted route" title="Show the route plotted in Elite" pressed={showRoute} onClick={() => setShowRoute(value => !value)}><RouteIcon /></ToggleButton>
+        {onToggleCommunityGoals && <ToggleButton className="btn-icon btn-icon-square" aria-label="Community Goal destinations" title="Show Community Goal destinations" pressed={showCommunityGoals} onClick={onToggleCommunityGoals}><FlagIcon /></ToggleButton>}
+        {onToggleInvestigations && <ToggleButton className="btn-icon btn-icon-square" aria-label="GalNet investigation destinations" title="Show saved GalNet investigation leads, not confirmed live activities" pressed={showInvestigations} onClick={onToggleInvestigations}><RadarIcon /></ToggleButton>}
+        <ToggleButton className="btn-icon btn-icon-square" aria-label={filtersActive ? 'Landmarks · filtered' : 'Landmarks'} title={filtersActive ? 'Show catalogue landmarks matching Finder filters' : 'Show catalogue landmarks on the map; Finder filters apply'} pressed={showLandmarks} onClick={() => setShowLandmarks(value => !value)}><MapPinIcon /></ToggleButton>
+        <ToggleButton className="btn-icon btn-icon-square" aria-label="Finder" title="Search locations without showing the whole catalogue" pressed={showSearch} onClick={() => setShowSearch(value => !value)}><SearchIcon /></ToggleButton>
+    </Inline>
+  const instrument = <section className={`galactic-atlas${selected || showSearch ? ' has-selection' : ''}`} aria-label="Galactic atlas" data-deskplane-no-swipe>
       <div className="atlas-map">
       <div className="atlas-viewport" ref={viewport} {...pointerGestures} onClick={event => {
         if ((event.target as Element).closest('[role="button"]')) return
@@ -243,17 +289,26 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
             </g>
             {showRegions && <path className="atlas-boundaries" d={atlasBoundaries} vectorEffect="non-scaling-stroke" />}
           </g>
+          {showRoute && <g className="atlas-route" aria-label="Plotted jump legs">
+            {plotted.legs.map(leg => {
+              const from = screenPoint(projectGalacticPosition(leg.from), camera, size.width, size.height, view, leg.from[1])
+              const to = screenPoint(projectGalacticPosition(leg.to), camera, size.width, size.height, view, leg.to[1])
+              return <path key={leg.index} className={leg.completed ? 'completed' : undefined} d={`M${from.x},${from.y}L${to.x},${to.y}`} />
+            })}
+          </g>}
           {clusters.map(cluster => {
-            const marker = cluster.markers[0]
+            const routeOnly = cluster.markers.every(marker => marker.kind === 'route')
+            const resultMarker = cluster.markers.find(marker => marker.kind === 'query-result')
+            const marker = resultMarker ?? (routeOnly ? cluster.markers.find(marker => marker.routeStop?.destination || marker.routeStop?.current) : undefined) ?? cluster.markers[0]
             const active = cluster.markers.some(marker => marker.id === selectedId)
-            const commander = cluster.markers.some(marker => marker.kind === 'commander')
+            const commander = !resultMarker && cluster.markers.some(marker => marker.kind === 'commander')
             const communityGoal = cluster.markers.some(marker => marker.kind === 'community-goal')
             const investigation = cluster.markers.some(marker => marker.kind === 'investigation')
             const text = `${commander ? 'YOU · ' : ''}${marker.label}${cluster.markers.length > 1 ? ` +${cluster.markers.length - 1}` : ''}`
             const point = { x: cluster.point.x + 16, y: cluster.point.y - 10 }
             const visibleLabel = labelFits(point, text)
             const choose = () => { setSelection(cluster.markers.map(marker => marker.id)); setSelectedId(marker.id) }
-            return <g key={marker.id} className={`atlas-marker ${commander ? 'commander' : communityGoal ? 'community-goal' : investigation ? 'investigation' : marker.kind}${active ? ' active' : ''}`}
+            return <g key={marker.id} className={`atlas-marker ${commander ? 'commander' : communityGoal ? 'community-goal' : investigation ? 'investigation' : marker.kind}${active ? ' active' : ''}${routeOnly && cluster.markers.every(marker => marker.routeStop?.completed) ? ' completed' : ''}`}
               transform={`translate(${cluster.point.x} ${cluster.point.y})`} role="button" tabIndex={0}
               aria-label={cluster.markers.length > 1 ? `${cluster.markers.length} locations near ${marker.label}` : `${commander ? 'Your position: ' : ''}${marker.label}`}
               onClick={choose} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose() } }}>
@@ -328,6 +383,10 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
           {options.map(marker => <option key={marker.id} value={marker.id}>{marker.kind === 'commander' ? 'You · ' : ''}{marker.label}</option>)}
         </Select> : <h2>{selected.label}</h2>}
         <dl>
+          {selected.routeStop && <>
+            <div><dt>Plotted route</dt><dd>{selected.routeStop.index === 0 ? 'Origin' : `Jump ${selected.routeStop.index}`}{selected.routeStop.destination ? ' · Destination' : ''}{selected.routeStop.current ? ' · Current system' : selected.routeStop.completed ? ' · Completed' : plotted.currentIndex >= 0 ? ' · Ahead' : ' · Progress unknown'}</dd></div>
+            <div><dt>Star class</dt><dd>{selected.routeStop.starClass ?? 'Unknown'}</dd></div>
+          </>}
           {selected.investigation && <>
             <div><dt>Activity</dt><dd>GalNet investigation · AI interpretation, not confirmed live availability</dd></div>
             <div><dt>Action</dt><dd>{selected.investigation.action}</dd></div>
@@ -357,6 +416,7 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
           {selected.poi && <div><dt>Source</dt><dd><a href={selected.poi.sourceUrl} target="_blank" rel="noreferrer">{selected.poi.source}</a></dd></div>}
           {selected.poi?.source === 'Galactic Exploration Catalog' && <div><dt>Content licence</dt><dd><a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 3.0</a></dd></div>}
         </dl>
+        {selected.kind === 'query-result' && results?.detail(selected)}
         <ControlContext context="toolbar" density="compact">
           <Inline gap="sm">
           <Button className="display" variant="outline" onClick={() => locate(selected.position, Math.min(MAX_ATLAS_ZOOM, Math.max(4, camera.zoom * 2)))}>Zoom here</Button>
@@ -371,6 +431,7 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
         </>}
       </aside>}
       <footer className="atlas-telemetry">
+        {results && <small role="status">{results.status}</small>}
         {position ? <>
           {systemName ? <AtlasSystemLink systemName={systemName} onNavigate={onNavigate} /> : <strong>Position known</strong>}
           <span>{currentRegion?.name ?? 'Outside mapped regions'}</span>
@@ -380,8 +441,13 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
         {showBookmarks && bookmarkStatus && <small role="status">{bookmarkStatus}</small>}
         {showCommunityGoals && communityGoalsStatus && <small role="status">{communityGoalsStatus}</small>}
         {showInvestigations && investigationsStatus && <small role="status">{investigationsStatus}</small>}
+        {showRoute && <small role="status">{routeStatus ?? (!navigationRoute ? 'Plotted route unavailable.' : navigationRoute.route.length === 0 ? 'No route plotted.' : `${Math.max(0, navigationRoute.route.length - 1)} plotted jumps${plotted.currentIndex < 0 ? ' · Progress unknown' : ''}${plotted.missingCoordinates ? ` · ${plotted.missingCoordinates} stops without coordinates` : ''}`)}</small>}
       </footer>
     </section>
+  if (renderLayout) return renderLayout(controls, instrument)
+  return results ? <div className="query-result-atlas">{controls}{instrument}</div> : <PageFrame layout="fit" className="galactic-atlas-page">
+    <PageHeader title="Galactic atlas" variant="cockpit" context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/atlas' }, { label: 'Galactic atlas' }]} />} actions={controls} />
+    {instrument}
   </PageFrame>
 }
 

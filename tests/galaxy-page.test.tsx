@@ -1,3 +1,4 @@
+import { BrowserDevicePreferences } from '../apps/web/src/platform/storage/browser-device-preferences.js'
 import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { StrictMode } from 'react'
@@ -12,13 +13,19 @@ import { loadPredefinedGalaxyQueries } from '../apps/server/src/infrastructure/p
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
 
+function makeDevicePreferences() {
+  const preferences = new BrowserDevicePreferences({ getItem: () => null, setItem: () => {} })
+  preferences.update({ galaxyQueryResultsView: 'table' })
+  return preferences
+}
+
 test('predefined prospecting saved query follows the current system and resets to reported-target defaults', async () => {
   const findGalaxyExplorationTargets = vi.fn().mockRejectedValue(new Error('Synthetic offline provider'))
   const state = createEmptyRuntimeState()
   state.system.name = 'Sol'
   const savedQuery = { ...loadPredefinedGalaxyQueries('resources/queries')[0]!, schemaVersion: 2, createdAt: '2026-10-06T10:00:00Z', updatedAt: '2026-10-06T10:00:00Z' }
   let renderer!: ReturnType<typeof create>
-  await act(async () => { renderer = create(<GalaxyPage
+  await act(async () => { renderer = create(<GalaxyPage devicePreferences={makeDevicePreferences()}
     api={{ findGalaxyExplorationTargets, getSavedGalaxyQueries: async () => ({ queries: [savedQuery] }) } as unknown as PhoenixApi}
     controller={{ status: 'idle' }} onNavigate={vi.fn()} querySessions={new GalaxyQuerySessionStore()}
     route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'exploration-targets', savedQueryId: savedQuery.id }}
@@ -52,7 +59,7 @@ test.each(['edit', 'reset', 'unmount'] as const)('a delayed query cannot overwri
   state.system.name = 'Sol'
   const sessions = new GalaxyQuerySessionStore()
   let renderer!: ReturnType<typeof create>
-  await act(async () => { renderer = create(<GalaxyPage
+  await act(async () => { renderer = create(<GalaxyPage devicePreferences={makeDevicePreferences()}
     api={{ findGalaxySystems } as unknown as PhoenixApi}
     controller={{ status: 'idle' }} onNavigate={vi.fn()} querySessions={sessions}
     route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'system-search' }}
@@ -84,7 +91,7 @@ test('an obsolete failure cannot finish or replace a newer query', async () => {
   state.system.name = 'Sol'
   const sessions = new GalaxyQuerySessionStore()
   let renderer!: ReturnType<typeof create>
-  await act(async () => { renderer = create(<GalaxyPage
+  await act(async () => { renderer = create(<GalaxyPage devicePreferences={makeDevicePreferences()}
     api={{ findGalaxySystems } as unknown as PhoenixApi}
     controller={{ status: 'idle' }} onNavigate={vi.fn()} querySessions={sessions}
     route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'system-search' }}
@@ -121,7 +128,7 @@ test('automatic saved queries survive StrictMode effect replay', async () => {
   const findGalaxySystems = vi.fn().mockResolvedValue(emptySystemQueryResult('Sol'))
   const sessions = new GalaxyQuerySessionStore()
   let renderer!: ReturnType<typeof create>
-  await act(async () => { renderer = create(<StrictMode><GalaxyPage
+  await act(async () => { renderer = create(<StrictMode><GalaxyPage devicePreferences={makeDevicePreferences()}
     api={{ findGalaxySystems, getSavedGalaxyQueries: async () => ({ queries: [savedQuery] }) } as unknown as PhoenixApi}
     controller={{ status: 'idle' }} onNavigate={vi.fn()} querySessions={sessions}
     route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'system-search', savedQueryId: savedQuery.id, savedQueryRunId: 'strict-mode-run' }}
@@ -142,7 +149,7 @@ test.each([undefined, 'yes', 'no'])('commodity markets restores carrier preferen
   }
   const execute = vi.fn().mockRejectedValue(new Error('Fixture'))
   const sessions = new GalaxyQuerySessionStore()
-  const renderer = await renderWithAct(<GalaxyPage
+  const renderer = await renderWithAct(<GalaxyPage devicePreferences={makeDevicePreferences()}
     api={{ findGalaxyCommodityMarkets: execute, getSavedGalaxyQueries: async () => ({ queries: [savedQuery] }) } as unknown as PhoenixApi}
     controller={{ status: 'idle' }} onNavigate={vi.fn()} querySessions={sessions}
     route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'commodity-markets', savedQueryId: savedQuery.id }}
@@ -173,7 +180,7 @@ test.each([
   }
   const execute = vi.fn().mockRejectedValue(new Error('Fixture'))
   const suggestions = vi.fn()
-  const renderer = await renderWithAct(<GalaxyPage
+  const renderer = await renderWithAct(<GalaxyPage devicePreferences={makeDevicePreferences()}
     api={{ [method]: execute, getCatalogueSuggestions: suggestions, getSavedGalaxyQueries: async () => ({ queries: [savedQuery] }) } as unknown as PhoenixApi}
     controller={{ status: 'idle' }} onNavigate={vi.fn()} querySessions={new GalaxyQuerySessionStore()}
     route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: queryId, savedQueryId: savedQuery.id }}
@@ -190,7 +197,7 @@ test('faction state search accepts multiple states without a faction name', asyn
   const findGalaxyFactionPresences = vi.fn().mockRejectedValue(new Error('Fixture'))
   const state = createEmptyRuntimeState()
   state.system.name = 'Sol'
-  const renderer = await renderWithAct(<GalaxyPage
+  const renderer = await renderWithAct(<GalaxyPage devicePreferences={makeDevicePreferences()}
     api={{ findGalaxyFactionPresences } as unknown as PhoenixApi}
     controller={{ status: 'idle' }} onNavigate={vi.fn()} querySessions={new GalaxyQuerySessionStore()}
     route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'faction-presence' }}
@@ -213,7 +220,7 @@ test('legacy saved faction state becomes a selected state in the new editor', as
     queryId: 'faction-presence', schemaVersion: 2, useOnDashboard: false
   }
   const findGalaxyFactionPresences = vi.fn().mockRejectedValue(new Error('Fixture'))
-  const renderer = await renderWithAct(<GalaxyPage
+  const renderer = await renderWithAct(<GalaxyPage devicePreferences={makeDevicePreferences()}
     api={{ findGalaxyFactionPresences, getSavedGalaxyQueries: async () => ({ queries: [savedQuery] }) } as unknown as PhoenixApi}
     controller={{ status: 'idle' }} onNavigate={vi.fn()} querySessions={new GalaxyQuerySessionStore()}
     route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'faction-presence', savedQueryId: savedQuery.id }}
@@ -233,9 +240,9 @@ test('reference toggle follows live telemetry, typing fixes it, and missing tele
   state.system.name = 'Sol'
   const sessions = new GalaxyQuerySessionStore()
   const common = { api: { findGalaxySystems } as unknown as PhoenixApi, controller: { status: 'idle' as const }, onNavigate: vi.fn(), querySessions: sessions, route: { kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'system-search' } as const }
-  const renderer = await renderWithAct(<GalaxyPage {...common} runtime={{ state, status: 'ready' }} />)
+  const renderer = await renderWithAct(<GalaxyPage devicePreferences={makeDevicePreferences()} {...common} runtime={{ state, status: 'ready' }} />)
   const submit = async () => act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
-  const updateSystem = async (name: string | null) => act(async () => renderer.update(<GalaxyPage {...common} runtime={{ state: { ...state, system: { ...state.system, name } }, status: 'ready' }} />))
+  const updateSystem = async (name: string | null) => act(async () => renderer.update(<GalaxyPage devicePreferences={makeDevicePreferences()} {...common} runtime={{ state: { ...state, system: { ...state.system, name } }, status: 'ready' }} />))
   await updateSystem('Achenar')
   expect(renderer.root.findByProps({ id: 'query-origin' }).props.placeholder).toBe('Achenar')
   await submit()
@@ -291,7 +298,7 @@ test('system search uses one query form for nearby and filtered searches', async
   const runtimeState = createEmptyRuntimeState()
   runtimeState.system.name = 'Sol'
   const querySessions = new GalaxyQuerySessionStore()
-  let renderer = await renderWithAct(<GalaxyPage
+  let renderer = await renderWithAct(<GalaxyPage devicePreferences={makeDevicePreferences()}
       api={{ findGalaxySystems } as unknown as PhoenixApi}
       controller={{ status: 'idle' }}
       onNavigate={vi.fn()}
@@ -324,7 +331,7 @@ test('system search uses one query form for nearby and filtered searches', async
   await act(async () => renderer.unmount())
 
   await act(async () => {
-    renderer = create(<GalaxyPage
+    renderer = create(<GalaxyPage devicePreferences={makeDevicePreferences()}
       api={{ findGalaxySystems } as unknown as PhoenixApi}
       controller={{ status: 'idle' }}
       onNavigate={vi.fn()}
@@ -366,7 +373,7 @@ test('saved queries run fresh with their stored parameters', async () => {
     querySessions: new GalaxyQuerySessionStore(),
     runtime: { state: createEmptyRuntimeState(), status: 'ready' as const }
   }
-  const renderer = await renderWithAct(<GalaxyPage {...common} route={{ kind: 'information', section: 'galaxy', view: 'saved-queries' }} />)
+  const renderer = await renderWithAct(<GalaxyPage devicePreferences={makeDevicePreferences()} {...common} route={{ kind: 'information', section: 'galaxy', view: 'saved-queries' }} />)
   expect(renderer.root.findAll(node => node.children.includes('Nearby inhabited systems'))).not.toHaveLength(0)
   await act(async () => renderer.root.findAllByType('button').find(button => button.props.children === 'Run')!.props.onClick())
   expect(onNavigate).toHaveBeenLastCalledWith({
@@ -379,7 +386,7 @@ test('saved queries run fresh with their stored parameters', async () => {
   })
 
   const runRoute = onNavigate.mock.calls.at(-1)![0]
-  await act(async () => renderer.update(<GalaxyPage
+  await act(async () => renderer.update(<GalaxyPage devicePreferences={makeDevicePreferences()}
     {...common}
     route={runRoute as Extract<PhoenixRoute, { kind: 'information', section: 'galaxy' }>}
   />))
@@ -387,25 +394,25 @@ test('saved queries run fresh with their stored parameters', async () => {
   expect(renderer.root.findAll(node => node.children.includes('Query results'))).not.toHaveLength(0)
   expect(renderer.root.findAllByType('form')).toHaveLength(0)
 
-  await act(async () => renderer.update(<GalaxyPage {...common} route={{ kind: 'information', section: 'galaxy', view: 'database' }} />))
-  await act(async () => renderer.update(<GalaxyPage
+  await act(async () => renderer.update(<GalaxyPage devicePreferences={makeDevicePreferences()} {...common} route={{ kind: 'information', section: 'galaxy', view: 'database' }} />))
+  await act(async () => renderer.update(<GalaxyPage devicePreferences={makeDevicePreferences()}
     {...common}
     route={runRoute as Extract<PhoenixRoute, { kind: 'information', section: 'galaxy' }>}
   />))
   expect(findGalaxySystems).toHaveBeenCalledTimes(1)
 
-  await act(async () => renderer.update(<GalaxyPage {...common} route={{ kind: 'information', section: 'galaxy', view: 'saved-queries' }} />))
+  await act(async () => renderer.update(<GalaxyPage devicePreferences={makeDevicePreferences()} {...common} route={{ kind: 'information', section: 'galaxy', view: 'saved-queries' }} />))
   await act(async () => renderer.root.findAllByType('button').find(button => button.props.children === 'Run')!.props.onClick())
   const nextRunRoute = onNavigate.mock.calls.at(-1)![0]
   expect(nextRunRoute).not.toEqual(runRoute)
-  await act(async () => renderer.update(<GalaxyPage
+  await act(async () => renderer.update(<GalaxyPage devicePreferences={makeDevicePreferences()}
     {...common}
     route={nextRunRoute as Extract<PhoenixRoute, { kind: 'information', section: 'galaxy' }>}
   />))
   expect(findGalaxySystems).toHaveBeenCalledTimes(2)
   // A deck shortcut can run again while the information workspace stays mounted.
   getSavedGalaxyQueries.mockResolvedValue({ queries: [{ ...savedQuery, parameters: { ...savedQuery.parameters, originMode: 'current', origin: '', radius: '75' } }] })
-  await act(async () => renderer.update(<GalaxyPage
+  await act(async () => renderer.update(<GalaxyPage devicePreferences={makeDevicePreferences()}
     {...common}
     runtime={{ status: 'ready', state: { ...createEmptyRuntimeState(), system: { ...createEmptyRuntimeState().system, name: 'Achenar' } } }}
     route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'system-search', savedQueryId: savedQuery.id, savedQueryRunId: 'shortcut-run-3' }}
@@ -438,7 +445,7 @@ test('a configured query can be saved as a durable definition', async () => {
   }
   const saveGalaxyQuery = vi.fn().mockResolvedValue(saved)
   const onNavigate = vi.fn<(route: PhoenixRoute) => void>()
-  const renderer = await renderWithAct(<GalaxyPage
+  const renderer = await renderWithAct(<GalaxyPage devicePreferences={makeDevicePreferences()}
       api={{ saveGalaxyQuery } as unknown as PhoenixApi}
       controller={{ status: 'idle' }}
       onNavigate={onNavigate}
@@ -446,9 +453,9 @@ test('a configured query can be saved as a durable definition', async () => {
       route={{ kind: 'information', section: 'galaxy', selectedQueryId: 'system-search', view: 'database' }}
       runtime={{ state: createEmptyRuntimeState(), status: 'ready' }}
     />)
-  await act(async () => renderer.root.findAllByType('button').find(button => button.props.children === 'Save query')!.props.onClick())
-  await act(async () => renderer.root.findByProps({ id: 'saved-query-name' }).props.onChange({ target: { value: 'Systems near Sol' } }))
   await act(async () => renderer.root.findByProps({ 'aria-label': 'Save query' }).props.onClick())
+  await act(async () => renderer.root.findByProps({ id: 'saved-query-name' }).props.onChange({ target: { value: 'Systems near Sol' } }))
+  await act(async () => renderer.root.findByProps({ className: 'save-query-panel' }).findByProps({ 'aria-label': 'Save query' }).props.onClick())
 
   expect(saveGalaxyQuery).toHaveBeenCalledWith(expect.objectContaining({
     name: 'Systems near Sol',
@@ -477,7 +484,7 @@ test('system schematic follow control pins the displayed system and resumes the 
     querySessions: new GalaxyQuerySessionStore(),
     runtime: { state: runtimeState, status: 'ready' as const }
   }
-  const renderer = await renderWithAct(<GalaxyPage {...common} route={{ kind: 'information', section: 'galaxy', view: 'system' }} />)
+  const renderer = await renderWithAct(<GalaxyPage devicePreferences={makeDevicePreferences()} {...common} route={{ kind: 'information', section: 'galaxy', view: 'system' }} />)
   const following = renderer.root.findByProps({ 'aria-label': 'Stop following current system' })
   expect(following.props['aria-pressed']).toBe(true)
   await act(async () => following.props.onClick())
@@ -486,7 +493,7 @@ test('system schematic follow control pins the displayed system and resumes the 
   })
 
   await act(async () => {
-    renderer.update(<GalaxyPage
+    renderer.update(<GalaxyPage devicePreferences={makeDevicePreferences()}
       {...common}
       route={{ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Achenar' }}
     />)
@@ -531,7 +538,7 @@ test('selecting a body does not pin a schematic that is following the current sy
   }]
   const runtimeState = createEmptyRuntimeState()
   runtimeState.system.name = 'Sol'
-  const renderer = await renderWithAct(<GalaxyPage
+  const renderer = await renderWithAct(<GalaxyPage devicePreferences={makeDevicePreferences()}
       api={galaxyApi()}
       controller={{ lookup: { cache: 'local', system }, status: 'ready' }}
       onNavigate={onNavigate}
@@ -544,7 +551,7 @@ test('selecting a body does not pin a schematic that is following the current sy
     kind: 'information', section: 'galaxy', view: 'system', selectedName: 'Sol'
   })
 
-  await act(async () => renderer.update(<GalaxyPage
+  await act(async () => renderer.update(<GalaxyPage devicePreferences={makeDevicePreferences()}
     api={galaxyApi()}
     controller={{ lookup: { cache: 'local', system }, status: 'ready' }}
     onNavigate={onNavigate}
@@ -576,7 +583,7 @@ test('system schematic submits its displayed system to Elite and shows confirmed
     message: 'Route to Achenar was confirmed.'
   })
   const onNavigate = vi.fn()
-  const renderer = await renderWithAct(<GalaxyPage
+  const renderer = await renderWithAct(<GalaxyPage devicePreferences={makeDevicePreferences()}
       api={galaxyApi({ plotEliteDestination })}
       controller={{ lookup: { cache: 'local', system: emptySystem('Achenar') }, status: 'ready' }}
       onNavigate={onNavigate}
@@ -597,7 +604,7 @@ test('system schematic submits its displayed system to Elite and shows confirmed
 
 test('system schematic keeps its navigation controls when cartography is unavailable', async () => {
   const onNavigate = vi.fn<(route: PhoenixRoute) => void>()
-  const renderer = await renderWithAct(<GalaxyPage
+  const renderer = await renderWithAct(<GalaxyPage devicePreferences={makeDevicePreferences()}
       api={galaxyApi()}
       controller={{ error: 'No cartography record found.', status: 'error' }}
       onNavigate={onNavigate}
@@ -663,7 +670,7 @@ test.each(['result', 'network'])('route plotting %s failure opens a help-linked 
       bindingWarnings: ['Missing keyboard binding: UI_Right.']
     }))
   const onNavigate = vi.fn()
-  const renderer = await renderWithAct(<GalaxyPage
+  const renderer = await renderWithAct(<GalaxyPage devicePreferences={makeDevicePreferences()}
       api={galaxyApi({ plotEliteDestination })}
       controller={{ lookup: { cache: 'local', system: emptySystem('Sol') }, status: 'ready' }}
       onNavigate={onNavigate}

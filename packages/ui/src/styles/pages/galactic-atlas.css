@@ -45,7 +45,7 @@
     inset-block-end: var(--spacing-md);
     inset-inline-end: var(--spacing-md);
     display: flex;
-    gap: var(--spacing-xxs);
+    gap: var(--spacing-xs);
   }
 
   svg text {
@@ -85,6 +85,15 @@
     &.active { fill: var(--color-information); }
   }
 
+  .atlas-route {
+    fill: none;
+    stroke: var(--color-action);
+    stroke-width: 2px;
+    stroke-linejoin: round;
+    pointer-events: none;
+    .completed { opacity: 0.3; }
+  }
+
   .atlas-marker {
     cursor: pointer;
     fill: var(--color-action);
@@ -96,9 +105,11 @@
     text { fill: var(--color-text); }
     &.commander { fill: var(--color-information); stroke: var(--color-information); }
     &.bookmark { fill: var(--color-information); stroke: var(--color-information); }
+    &.query-result { fill: var(--color-information); stroke: var(--color-information); }
     &.community-goal { fill: none; stroke: var(--color-success); }
     &.investigation { fill: none; stroke: var(--color-investigation); }
     &.nebula { fill: none; }
+    &.route.completed { opacity: 0.3; }
     &.active .hit-area, &:focus-visible .hit-area { stroke: var(--color-information); stroke-dasharray: 3 3; }
     &:focus { outline: none; }
   }

@@ -4,6 +4,99 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Keep consecutive bottom-aligned rail items together, including Controls' MNG and MCR buttons.
+
+- Move workspace navigation to the top rail and remove the bottom bar. Optional 011 appears
+  before CTR, and optional DEV follows STG. Keep Numpy in its own upper Deskplane row.
+
+- Hide the 011 rail button by default, with a per-device option to show it. Numpy remains functional.
+
+- Hide DEV by default, with a per-device setting to show it in the top rail and workspace swiping.
+
+- Put Notes first in LOG's left rail. LOG opens Notes initially and remembers its last page.
+
+- Move Macros from the top rail into the Controls left rail after Manage decks, retaining its
+  URL and remembering it as a Controls page.
+
+- Use the standard square size for Notes' add action and a light blue Edit link in each card footer.
+  Show authorship and the last-update date only in the edit form, not on cards.
+
+- Remove the unused Objectives placeholder. Move Exobiology to Activities and use Activities
+  URLs/categories in page shortcuts, including the numerical navigation menu.
+
+- Let widget titles and details span the full width beneath the label/action row instead
+  of being squeezed beside their navigation links.
+
+- Keep commander-summary labels on one line with enough space for tablet font rendering.
+
+- Reuse the dashboard's floating, dismissible attention panel for deck-manager feedback:
+  orange validation messages and red loading or saving failures no longer occupy a form row.
+
+- Replace the compact deck-manager table with stacked widgets, attached label/name inputs,
+  full-sized actions and
+  grip-based drag reordering. Focused grips also support up/down arrow keys. Changes save
+  automatically; name edits save after a short typing pause, with pending edits flushed before
+  navigating. Failed saves retain the local edits.
+  Replace the manager's Save/Cancel footer with automatic saving and a primary square + action.
+  Remove the redundant Open action from the manager.
+  Put the black reorder grip in the name input's filled attached label, replacing the redundant Name text.
+
+- Use red rather than pinkish coral for danger indicators and delete buttons in both themes.
+  Give danger action buttons a deep-red fill, subdued red border and light icon/text,
+  including the deck button editor.
+
+- Support two-finger pinch zoom on the system schematic, retaining one-finger pan and body taps.
+
+- Show distance from the player at the schematic’s top right and move its diagram down by 1rem.
+
+- Match Atlas and system schematic corner controls to the shared header button size and spacing;
+  remove the schematic zoom percentage/reset control.
+
+- Unify Atlas and schematic toolbar states: orange outlines when off, orange fill with dark
+  text while pressing, and blue outlines when toggled on.
+
+- Replace Atlas toolbar labels with square icon toggles, retaining tooltips, accessible names
+  and a uniform active color. Atlas marker symbols and source colors are unchanged.
+
+- Use the same default control height in Phoenix and Elite, center page-header toolbars,
+  and reserve smaller controls for explicitly compact contexts.
+  Keep ordinary action buttons transparent and grip-free; tactile grips belong to command tiles.
+
+- Remove the blue focus outline from form fields and dropdowns, retaining their themed borders
+  and an orange inset keyboard-focus indicator.
+
+- Move query editing and Save/Update saved query actions into square icon buttons in the
+  query header, leaving more room for table and Atlas results.
+  Show the Save/Update form above the results, with a cross-icon Cancel button.
+  Keep the saved-query name label aligned left and its required marker aligned right.
+
+- Load workspace contracts, Elite and Copilot directly from source in development, so edits
+  do not depend on a stale startup build. Production and installer builds still use `dist`.
+
+- Use a single square destination-view icon on content pages instead of the sliding view
+  switcher. First visits open the visual view; remembered choices remain unchanged. Query
+  Atlas Regions and Route controls now share the page header with the view toggle;
+  remove redundant result status and Atlas content headings.
+  Query results reuse the full Atlas controls, live Bookmarks/CG/Leads layers, Landmark
+  Finder, selection sidebar and telemetry footer.
+
+- Distinguish an unknown Ardent reference system from a search without matching results.
+  Show “Ardent has no record of your reference system.” and guide Copilot to correct the
+  reference rather than change the filters or repeat an unchanged request.
+
+- Add an embedded Galactic Atlas view to query results, with a remembered Table/Atlas
+  preference, selectable result details and the plotted route for travel context. Locate
+  station and body results through cached system cartography; unlocated records remain
+  available in the table. Trade opportunities show both buying and selling locations.
+
+- Show the in-game plotted route on the Galactic Atlas, with a Route toggle, dimmed
+  completed legs, clickable jump stops and true-height projection in 3D. Route updates
+  preserve your map view; system labels use the existing overlap checks to reduce clutter.
+  Allow 16× closer zoom to inspect short jumps and nearby systems.
+
+- Add an APK-only RLD action in the top rail to reload PHOENIX without closing the app
+  or re-pairing. It replaces the browser-only F11 action; no APK reinstall is needed.
+
 - Fix fleet pages failing with “no such column: sequence” when the initial carrier schema
   had already been applied. A new migration preserves carrier records and unrelated data.
 

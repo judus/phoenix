@@ -9,7 +9,7 @@ import { MissionTitle, splitMissionTitle } from '../apps/web/src/components/miss
 test('Activities exposes the retained information architecture through typed routes', () => {
   expect(activitiesNavigationItems.map(item => [item.label, item.href])).toEqual([
     ['Missions', '#/activities/missions'],
-    ['Objectives', '#/activities/objectives'],
+    ['Exobiology', '#/activities/exobiology'],
     ['Community goals', '#/activities/community-goals'],
     ['Powerplay', '#/activities/powerplay'],
     ['Colonisation', '#/activities/colonisation']
@@ -87,12 +87,14 @@ test('Missions distinguishes an unobserved manifest from an authoritative empty 
   expect(empty).not.toContain('Awaiting Elite mission manifest')
 })
 
-test('uncontracted activity views do not fabricate records', () => {
-  const markup = renderToStaticMarkup(<ActivitiesPage controller={{ status: 'ready' }} view="objectives" />)
-
-  expect(markup).toContain('Objective ledger')
-  expect(markup).toContain('No authoritative commander objective record')
-  expect(markup).toContain('Select a retained record to inspect its details')
+test('Activities renders the exobiology tracker instead of an Objectives placeholder', () => {
+  const markup = renderToStaticMarkup(<ActivitiesPage controller={{ status: 'ready', exploration: {
+    systems: [], totals: { biologicalSignals: 0, bodies: 0, geologicalSignals: 0, mappedBodies: 0, samplesCompleted: 0, scannedBodies: 0, systems: 0 }
+  } }} view="exobiology" />)
+  expect(markup).toContain('Exobiology')
+  expect(markup).toContain('No biological signals or organic samples')
+  expect(markup).toContain('href="#/activities/missions"')
+  expect(markup).not.toContain('Objective ledger')
 })
 
 function missionsResponse(): MissionsResponse {

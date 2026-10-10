@@ -59,6 +59,8 @@ test('cards show short notes, empty notes and readable links without opening the
       route={{ kind: 'notes' }} onNavigate={navigate} />)
     try {
       expect(renderer.root.findAllByType('article')).toHaveLength(4)
+      expect(renderer.root.findAllByType('time')).toHaveLength(0)
+      expect(JSON.stringify(renderer.toJSON())).not.toContain('Created by')
       expect(JSON.stringify(renderer.toJSON())).toContain('Bring an e-breach.')
       expect(JSON.stringify(renderer.toJSON())).toContain('Empty note')
       const links = renderer.root.findAllByType('a')
@@ -68,14 +70,32 @@ test('cards show short notes, empty notes and readable links without opening the
       expect(links.some(link => link.props.href === '#/galaxy/system?name=Sol&selected=Earth')).toBe(true)
       expect(links.some(link => link.props.href === '#/galaxy/system?name=Sol&selected=Galileo')).toBe(true)
       const header = renderer.root.findAllByType('header').find(header => header.props.className?.includes('page-header'))!
-      expect(header.findAllByType('nav').find(nav => nav.props['aria-label'] === 'Breadcrumb')!.findAllByType('li').map(item => item.findByType('span').children)).toEqual([['Notes']])
+      expect(header.findAllByType('nav').find(nav => nav.props['aria-label'] === 'Breadcrumb')!.findAllByType('li').map(item => item.findByType('span').children)).toEqual([['Log'], ['Notes']])
       expect(header.findByType('input').props.id).toBe('note-search')
       expect(header.findByType('label').props.htmlFor).toBe('note-search')
       expect(header.findAllByType('button').find(button => button.props['aria-label'] === 'New note')!.props.className).toContain('btn-primary')
+      const add = header.findAllByType('button').find(button => button.props['aria-label'] === 'New note')!
+      expect(add.props.className).toContain('btn-icon-square')
+      expect(add.props.className).not.toContain('btn-sm')
+      const editLinks = links.filter(link => link.props['aria-label']?.startsWith('Edit '))
+      expect(editLinks).toHaveLength(4)
+      expect(editLinks.every(link => link.children.join('') === 'Edit')).toBe(true)
+      const edit = editLinks[0]!
+      const noteId = parsePhoenixRoute(edit.props.href)
+      const preventDefault = vi.fn()
+      await act(async () => edit.props.onClick({ preventDefault }))
+      expect(preventDefault).toHaveBeenCalledOnce()
+      expect(navigate).toHaveBeenLastCalledWith(noteId)
+      expect(renderer.root.findAllByType('button').some(button => button.props['aria-label']?.startsWith('Edit '))).toBe(false)
       await act(async () => header.findByType('input').props.onChange({ target: { value: 'e-breach' } }))
       expect(renderer.root.findAllByType('article')).toHaveLength(1)
       await act(async () => header.findAllByType('button').find(button => button.props['aria-label'] === 'New note')!.props.onClick())
       expect(navigate).toHaveBeenCalledWith({ kind: 'notes', newNote: true })
+      if (noteId.kind !== 'notes') throw new Error('Expected note editor route')
+      await act(async () => renderer.update(<PersonalNotesPage api={phoenixApiStub({ getPersonalNotes: async () => service.search() })}
+        route={noteId} onNavigate={navigate} />))
+      expect(JSON.stringify(renderer.toJSON())).toContain('Created by ')
+      expect(renderer.root.findAllByType('time')).toHaveLength(1)
     } finally { await act(async () => renderer.unmount()) }
   } finally { database.close() }
 })

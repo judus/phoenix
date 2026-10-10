@@ -49,6 +49,7 @@
     --palette-ice: #d8ecff;
     --palette-slate: #788399;
     --palette-coral: #ff6176;
+    --palette-red: #ff6258;
 
     /* Semantic color roles. Components use these rather than raw palette values. */
     --color-canvas: var(--palette-black);
@@ -59,7 +60,7 @@
     --color-information: var(--palette-cyan);
     --color-text: var(--palette-ice);
     --color-text-muted: var(--palette-slate);
-    --color-danger: var(--palette-coral);
+    --color-danger: var(--palette-red);
     --color-danger-surface: rgb(68 20 20 / 94%);
     --color-engineered-surface: rgb(68 20 20 / 48%);
     --color-broken-surface: rgb(12 3 7 / 96%);
@@ -133,8 +134,8 @@
     --panel-background: var(--color-surface);
     --panel-title: var(--color-action);
 
-    /* Control roles: PHOENIX presentation defaults. */
-    --control-block-size: 2.75rem;
+    /* Shared control geometry; presentations only change their appearance. */
+    --control-block-size: 3rem;
     --control-padding-inline: var(--spacing-sm);
     --control-gap: var(--spacing-xs);
     --control-border-width: 1px;
@@ -142,12 +143,9 @@
     --button-primary-background: var(--color-action);
     --button-primary-border: var(--color-action);
     --button-primary-text: var(--color-canvas);
-    --button-secondary-background: var(--color-surface);
-    --button-secondary-border: var(--color-border-subtle);
-    --button-secondary-text: var(--color-text);
-    --button-accent-background: var(--color-action);
-    --button-accent-border: transparent;
-    --button-accent-text: var(--color-canvas);
+    --button-secondary-background: transparent;
+    --button-secondary-border: var(--color-action);
+    --button-secondary-text: var(--color-action);
     --button-outline-background: transparent;
     --button-outline-border: var(--color-action);
     --button-outline-text: var(--color-action);
@@ -157,8 +155,8 @@
     --button-quiet-background: transparent;
     --button-quiet-border: transparent;
     --button-quiet-text: var(--color-text-muted);
-    --button-danger-background: rgb(68 20 20 / 94%);
-    --button-danger-border: var(--color-danger);
+    --button-danger-background: var(--color-danger-surface);
+    --button-danger-border: color-mix(in srgb, var(--color-danger) 48%, transparent);
     --button-danger-text: var(--color-text);
 
     --field-background: rgb(8 8 12 / 82%);
@@ -218,7 +216,7 @@
     --color-information: var(--palette-cyan);
     --color-positive: var(--palette-cyan);
     --color-success: var(--palette-green);
-    --color-danger: var(--palette-coral);
+    --color-danger: var(--palette-red);
     --color-warning: var(--palette-amber);
     --color-border: color-mix(in srgb, var(--palette-amber) 65%, transparent);
     --color-border-subtle: color-mix(in srgb, var(--palette-amber) 18%, transparent);
@@ -237,7 +235,6 @@
     --elite-command-pressed: color-mix(in srgb, var(--color-action) 88%, white);
     --selection-background: var(--color-action);
     --selection-text: var(--color-canvas);
-    --control-block-size: 3rem;
     --control-padding-inline: var(--spacing-md);
     --control-border-width: 2px;
     --page-header-border-width: 2px;
@@ -270,13 +267,15 @@
     --button-primary-background: var(--color-action);
     --button-primary-border: var(--color-action);
     --button-primary-text: var(--color-canvas);
-    --button-secondary-background: var(--color-surface-strong);
     --button-secondary-border: var(--color-action);
     --button-secondary-text: var(--color-action);
+    --button-outline-border: var(--color-action);
+    --button-outline-text: var(--color-action);
+    --color-pressed-background: var(--color-action);
+    --color-pressed-border: var(--color-action);
+    --color-pressed-text: var(--color-canvas);
     --button-quiet-text: var(--color-text);
-    --button-danger-background: var(--color-danger);
-    --button-danger-border: var(--color-danger);
-    --button-danger-text: var(--elite-command-ink);
+    --button-danger-border: color-mix(in srgb, var(--color-danger) 48%, transparent);
 
     --command-background: var(--color-action);
     --command-border: var(--color-action);

@@ -7,7 +7,7 @@ import { NumpadPage } from '../apps/web/src/features/numpad/numpad-page.js'
 import { numpadRuntimeFixture, numpadTree } from './support/numpad-runtime-fixture.js'
 
 const devicePreferences = (variableCommandLabelSizes = true) => ({
-  getSnapshot: () => ({ version: 2 as const, audioInputId: '', audioOutputId: '', captureNumpad: true, currentShipLoadoutView: 'tiles' as const, followCopilotNavigation: true, presentation: 'phoenix' as const, shipCatalogueView: 'dossier' as const, uiScalePercent: 100, variableCommandLabelSizes }),
+  getSnapshot: () => ({ version: 2 as const, audioInputId: '', audioOutputId: '', captureNumpad: true, currentShipLoadoutView: 'tiles' as const, galaxyQueryResultsView: 'table', followCopilotNavigation: true, presentation: 'phoenix' as const, showDeveloper: true, showNumpadButton: false, shipCatalogueView: 'dossier' as const, uiScalePercent: 100, variableCommandLabelSizes }),
   subscribe: () => () => {},
   update: () => {}
 }) satisfies DevicePreferences

@@ -7,9 +7,9 @@ import {
   ItemListItem,
   Metric,
   PageFrame,
-  Panel,
   Stack,
   Status,
+  Toast,
   Widget
 } from '@phoenix/ui'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
@@ -76,24 +76,8 @@ export function DashboardPage({
     <PageFrame className="dashboard-page" layout="fit" aria-busy={controller.status === 'loading'}>
       {attention.length > 0 && attentionKey !== dismissedAttention
         ? (
-            <Panel
-              actions={(
-                <button
-                  aria-label="Dismiss dashboard alert"
-                  className="dashboard-alert-dismiss"
-                  onClick={() => setDismissedAttention(attentionKey)}
-                  type="button"
-                >Dismiss</button>
-              )}
-              className="dashboard-alerts"
-              role="alert"
-              title="Attention"
-              variant="danger"
-            >
-              <ItemList density="compact">
-                {attention.map(message => <ItemListItem key={message} title={message} />)}
-              </ItemList>
-            </Panel>
+            <Toast messages={attention} className="dashboard-alerts" dismissLabel="Dismiss dashboard alert"
+              onDismiss={() => setDismissedAttention(attentionKey)} />
           )
         : null}
       <DashboardGrid

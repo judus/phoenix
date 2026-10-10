@@ -1,8 +1,64 @@
 .manage-decks-page {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
   min-block-size: 0;
+
+  > .deck-list {
+    flex: 1;
+    min-block-size: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    overflow: auto;
+    padding: var(--spacing-xxs);
+  }
+
+  .deck-card {
+    flex: none;
+    block-size: auto;
+    overflow: visible;
+    position: relative;
+
+    &.moving { z-index: 2; pointer-events: none; opacity: 0.85; }
+    &.drop-before { border-block-start-color: var(--color-information); }
+    &.drop-after { border-block-end-color: var(--color-information); }
+  }
+
+  .deck-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--spacing-md);
+  }
+
+  .deck-grip {
+    display: grid;
+    place-items: center;
+    block-size: var(--control-block-size);
+    touch-action: none;
+    cursor: grab;
+    user-select: none;
+
+    > span {
+      display: block;
+      inline-size: 1.25rem;
+      block-size: 1.25rem;
+      background: currentColor;
+      mask: url('../../assets/tactile-grip.svg') center / contain no-repeat;
+    }
+
+    &:active { cursor: grabbing; }
+    &:focus-visible { outline: 2px solid var(--color-focus); }
+  }
+
+  .deck-confirm { margin-block-start: var(--spacing-sm); }
+
+  @container page-frame (width < 36rem) {
+    .deck-row { grid-template-columns: minmax(0, 1fr); }
+    .deck-actions { grid-column: 1; justify-self: end; }
+  }
 }
 
   .controls-page {
@@ -265,7 +321,11 @@
       }
 
       svg { display: block; inline-size: 1.25rem; block-size: 1.25rem; }
-      &.tool-delete { border-color: var(--color-danger); color: var(--color-danger); background: var(--color-danger-surface); }
+      &.tool-delete {
+        border-color: var(--button-danger-border);
+        color: var(--button-danger-text);
+        background: var(--button-danger-background);
+      }
       &.tool-confirm { border-color: var(--color-action); color: var(--color-action); background: var(--color-selected-surface); }
     }
 

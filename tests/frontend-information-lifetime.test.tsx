@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import { App } from '../apps/web/src/app.js'
+import { BrowserDevicePreferences } from '../apps/web/src/platform/storage/browser-device-preferences.js'
 import type { PhoenixApplicationServices } from '../apps/web/src/bootstrap/create-application.js'
 import type { PhoenixApplicationShellProps } from '../apps/web/src/components/shell/phoenix-application-shell.js'
 import { defaultRouteForWorkspace, type PhoenixRoute, type InformationRoute } from '../apps/web/src/application/navigation/phoenix-route.js'
@@ -40,6 +41,7 @@ test('mounted App preserves Galaxy view instances, href-keyed Fleet remounts and
   let remembered: InformationRoute = route
   const listeners = new Set<() => void>()
   const application = {
+    devicePreferences: new BrowserDevicePreferences({ getItem: () => null, setItem: () => {} }),
     router: {
       getSnapshot: () => route,
       getRememberedInformationRoute: () => remembered,

@@ -40,7 +40,8 @@ describe('PHOENIX route parsing and generation', () => {
     ['#/comms/radio', { kind: 'information', section: 'comms', view: 'radio' }, 'info'],
     ['#/copilot/profiles', { kind: 'copilot', view: 'profiles' }, 'copilot'],
     ['#/numpad', { kind: 'numpad' }, 'telemetry'],
-    ['#/macros', { kind: 'macros' }, 'macros'],
+    ['#/macros', { kind: 'macros' }, 'controls'],
+    ['#/notes', { kind: 'notes' }, 'journal'],
     ['#/log/commander', { kind: 'journal', view: 'commander' }, 'journal'],
     ['#/log/credits', { kind: 'journal', view: 'credits' }, 'journal'],
     ['#/developer/tools', { kind: 'developer', view: 'tools' }, 'developer'],
@@ -132,10 +133,14 @@ describe('PHOENIX route parsing and generation', () => {
     expect(phoenixRouteHash(parsePhoenixRoute('#/galaxy'))).toBe('#/galaxy/atlas')
   })
 
-  test('Exobiology is an owned Galaxy route', () => {
-    const route = parsePhoenixRoute('#/galaxy/exobiology')
-    expect(route).toEqual({ kind: 'information', section: 'galaxy', view: 'exobiology' })
-    expect(phoenixRouteHash(route)).toBe('#/galaxy/exobiology')
+  test('Exobiology is an owned Activities route', () => {
+    const route = parsePhoenixRoute('#/activities/exobiology')
+    expect(route).toEqual({ kind: 'information', section: 'activities', view: 'exobiology' })
+    expect(phoenixRouteHash(route)).toBe('#/activities/exobiology')
+  })
+
+  test('the removed Objectives view is no longer a selectable route', () => {
+    expect(parsePhoenixRoute('#/activities/objectives')).toEqual({ kind: 'information', section: 'activities', view: 'missions' })
   })
 
   test('Galaxy bookmark routes preserve editor and target context', () => {
@@ -195,7 +200,7 @@ describe('PHOENIX route parsing and generation', () => {
       selectedName: 'Earth'
     })
     expect(phoenixRouteHash(route)).toBe('#/galaxy/system?name=Sol&selected=Earth')
-    expect(phoenixRouteHash(parsePhoenixRoute('#/exploration/ledger'))).toBe('#/galaxy/exobiology')
+    expect(phoenixRouteHash(parsePhoenixRoute('#/exploration/ledger'))).toBe('#/activities/exobiology')
   })
 
   test.each([
@@ -218,6 +223,7 @@ describe('PHOENIX route parsing and generation', () => {
     expect(defaultRouteForWorkspace('controls')).toEqual({ kind: 'controls', deckId: 'quick' })
     expect(defaultRouteForWorkspace('info')).toEqual(DEFAULT_ROUTE)
     expect(defaultRouteForWorkspace('telemetry')).toEqual({ kind: 'numpad' })
+    expect(defaultRouteForWorkspace('journal')).toEqual({ kind: 'notes' })
   })
 
   test('every Copilot display destination maps to a canonical typed route', () => {
