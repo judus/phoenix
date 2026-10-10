@@ -4,7 +4,7 @@ import type {
   CartographicStation,
   CartographicSystem
 } from '@phoenix/contracts'
-import { Button, FleetCarrierIcon, IconButton } from '@phoenix/ui'
+import { BookmarkIcon, Button, FleetCarrierIcon, IconButton, Inline, NoteIcon } from '@phoenix/ui'
 import {
   buildSystemHierarchy,
   type AttachedInstallation,
@@ -23,13 +23,14 @@ export interface SystemSchematicProps {
   commanderName?: string | null
   onBookmarkBody?(name: string): void
   onBookmarkStation?(name: string): void
+  onAddNote?(selection: CartographicSelection): void
   onSelect(name?: string): void
   selected?: CartographicSelection | null
   showFleetCarriers?: boolean
   system: CartographicSystem
 }
 
-export function SystemSchematic ({ actions, commanderName, onBookmarkBody, onBookmarkStation, onSelect, selected, showFleetCarriers = true, system }: SystemSchematicProps) {
+export function SystemSchematic ({ actions, commanderName, onBookmarkBody, onBookmarkStation, onAddNote, onSelect, selected, showFleetCarriers = true, system }: SystemSchematicProps) {
   const hierarchy = buildSystemHierarchy(showFleetCarriers ? system : {
     ...system,
     stations: system.stations.filter(station => !isFleetCarrier(station))
@@ -137,7 +138,7 @@ export function SystemSchematic ({ actions, commanderName, onBookmarkBody, onBoo
 
       </section>
 
-      {selected && <CartographyDetail commanderName={commanderName} onBookmarkBody={onBookmarkBody} onBookmarkStation={onBookmarkStation} selection={selected} />}
+      {selected && <CartographyDetail commanderName={commanderName} onBookmarkBody={onBookmarkBody} onBookmarkStation={onBookmarkStation} onAddNote={onAddNote} selection={selected} />}
       <SystemSummary system={system} />
     </div>
   )
@@ -380,12 +381,13 @@ function StationGlyph () {
   return <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 5h22v22H5zM10 10h12v12H10zM2 16h7M23 16h7M16 2v7M16 23v7" /></svg>
 }
 
-function CartographyDetail ({ commanderName, onBookmarkBody, onBookmarkStation, selection }: { commanderName?: string | null, onBookmarkBody?(name: string): void, onBookmarkStation?(name: string): void, selection: CartographicSelection }) {
-  if (isStation(selection)) return <StationDetail station={selection} onBookmark={onBookmarkStation} />
-  return <BodyDetail body={selection} commanderName={commanderName} onBookmark={onBookmarkBody} />
+function CartographyDetail ({ commanderName, onBookmarkBody, onBookmarkStation, onAddNote, selection }: { commanderName?: string | null, onBookmarkBody?(name: string): void, onBookmarkStation?(name: string): void, onAddNote?(selection: CartographicSelection): void, selection: CartographicSelection }) {
+  const noteAction = onAddNote ? <IconButton size="sm" type="button" variant="outline" label={`Add note for ${selection.name}`} onClick={() => onAddNote(selection)}><NoteIcon /></IconButton> : undefined
+  if (isStation(selection)) return <StationDetail station={selection} onBookmark={onBookmarkStation} noteAction={noteAction} />
+  return <BodyDetail body={selection} commanderName={commanderName} onBookmark={onBookmarkBody} noteAction={noteAction} />
 }
 
-function BodyDetail ({ body, commanderName, onBookmark }: { body: CartographicBody, commanderName?: string | null, onBookmark?(name: string): void }) {
+function BodyDetail ({ body, commanderName, onBookmark, noteAction }: { body: CartographicBody, commanderName?: string | null, onBookmark?(name: string): void, noteAction?: ReactNode }) {
   const signals = body.local?.signals
   const details = body.details
   const orbit = details.orbit
@@ -394,7 +396,13 @@ function BodyDetail ({ body, commanderName, onBookmark }: { body: CartographicBo
   return (
     <aside className="cartography-detail">
       <header className="cartography-detail__body">
-        <BodyGlyph kind={bodyKind(body)} ringed={isRinged(body)} />
+        <div className="body-preview">
+          <BodyGlyph kind={bodyKind(body)} ringed={isRinged(body)} />
+          {(onBookmark || noteAction) && <Inline gap="xs" wrap={false}>
+            {onBookmark && <IconButton size="sm" type="button" variant="outline" label="Bookmark body" onClick={() => onBookmark(body.name)}><BookmarkIcon /></IconButton>}
+            {noteAction}
+          </Inline>}
+        </div>
         <div><span>Body</span><h2>{body.name}</h2><p>{bodyTypeLabel(body)}</p></div>
       </header>
       <DetailSection title="Navigation">
@@ -504,19 +512,14 @@ function BodyDetail ({ body, commanderName, onBookmark }: { body: CartographicBo
       {body.local?.biologicalGenuses.length ? (
         <DetailSection title="Biological genera"><TagList values={body.local.biologicalGenuses} /></DetailSection>
       ) : null}
-      {onBookmark && (
-        <footer className="cartography-detail__actions">
-          <Button alignment="start" type="button" variant="outline" onClick={() => onBookmark(body.name)}>Bookmark body</Button>
-        </footer>
-      )}
     </aside>
   )
 }
 
-function StationDetail ({ station, onBookmark }: { station: CartographicStation, onBookmark?(name: string): void }) {
+function StationDetail ({ station, onBookmark, noteAction }: { station: CartographicStation, onBookmark?(name: string): void, noteAction?: ReactNode }) {
   return (
     <aside className="cartography-detail">
-      <header className="cartography-detail__station"><StationGlyph /><div><span>Installation</span><h2>{station.name}</h2><p>{station.type ?? 'Station'}</p></div></header>
+      <header className="cartography-detail__station"><StationGlyph /><div><span>Installation</span><h2>{station.name}</h2><p>{station.type ?? 'Station'}</p></div>{noteAction}</header>
       <DetailSection title="Navigation"><Fact label="Arrival" value={formatDistance(station.distanceToArrival)} /><Fact label="Allegiance" value={station.allegiance} /><Fact label="Government" value={station.government} /></DetailSection>
       <DetailSection title="Economy"><Fact label="Primary" value={station.economy} /><Fact label="Secondary" value={station.secondEconomy} /><Fact label="Faction" value={station.controllingFaction} /></DetailSection>
       <DetailSection title="Facilities"><TagList values={[

@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'vitest'
 import { CommandDescriptorSchema, commandTargetKey, phoenixTargetToControlDeckTarget, type CommandDescriptor } from '@phoenix/contracts'
-import { ControlDeckConfigurationConflictError, type ControlDeckGridCommandElement } from 'control-deck/core'
+import { ControlDeckConfigurationConflictError, createControlDeckGroup, removeControlDeck, type ControlDeckGridCommandElement } from 'control-deck/core'
 import { CommandCatalogueService } from '../apps/server/src/application/command-catalogue-service.js'
 import { PHOENIX_NAVIGATION_DESTINATIONS } from '../apps/server/src/application/default-command-registry.js'
 import { NumpadTreeProjector } from '../apps/server/src/application/numpad-command-service.js'
@@ -61,6 +61,18 @@ test('only successful saves rebuild the tree; drafts and stale saves leave the r
   saved.diagnostics.push('Not persisted')
   expect(projector.getSnapshot()).not.toEqual(saved)
   expect(projector.getSnapshot().nodes[0]!.label).toBe('Controls')
+})
+
+test('custom deck creation and deletion rebuild Numpy without fixed-context restrictions', () => {
+  const { projector, repository } = fixture()
+  const created = createControlDeckGroup(repository.getConfiguration())
+  repository.saveConfiguration(created.configuration)
+  const withCustom = projector.getSnapshot()
+  expect(withCustom.nodes).toContainEqual(expect.objectContaining({ id: `phoenix:controls.${created.deck.id}`, selector: '10' }))
+  repository.saveConfiguration(removeControlDeck(repository.getConfiguration(), created.deck.id).configuration)
+  const removed = projector.getSnapshot()
+  expect(removed.revision).toBe(withCustom.revision + 1)
+  expect(removed.nodes.some(node => node.id === `phoenix:controls.${created.deck.id}`)).toBe(false)
 })
 
 test('assigned macros use their saved slot, label, geometry and confirmation, and track catalogue changes', () => {

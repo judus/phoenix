@@ -1,0 +1,16 @@
+.note-search { inline-size: min(22rem, 45vw); }
+
+.note-card {
+  .note-text {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+
+    &.collapsed {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 12;
+      overflow: hidden;
+    }
+  }
+}

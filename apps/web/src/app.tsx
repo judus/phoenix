@@ -35,7 +35,7 @@ import { useCommsController } from './features/comms/use-comms-controller.js'
 import { engineeringContextForRoute, engineeringNavigationItems } from './features/engineering/engineering-navigation.js'
 import { useEngineeringController } from './features/engineering/use-engineering-controller.js'
 import { engineeringRuntimeFingerprint } from './features/engineering/engineering-runtime-fingerprint.js'
-import { controlsContext, controlsNavigationItems, firstControlCategory } from './features/controls/controls-navigation.js'
+import { controlsContext, controlsNavigationItems, firstControlDeckId, resolveControlsDestination } from './features/controls/controls-navigation.js'
 import { useControlsController, type ControlsControllerSnapshot } from './features/controls/use-controls-controller.js'
 import { useMacroRuntime } from './features/macros/macro-runtime-provider.js'
 import { useJournalController } from './features/journal/use-journal-controller.js'
@@ -48,6 +48,7 @@ const CommanderLoadoutsPage = lazy(() => import('./features/equipment/commander-
 const CommanderPage = lazy(() => import('./features/commander/commander-page.js').then(module => ({ default: module.CommanderPage })))
 const CommsPage = lazy(() => import('./features/comms/comms-page.js').then(module => ({ default: module.CommsPage })))
 const ControlsPage = lazy(() => import('./features/controls/controls-page.js').then(module => ({ default: module.ControlsPage })))
+const ManageDecksPage = lazy(() => import('./features/controls/manage-decks-page.js').then(module => ({ default: module.ManageDecksPage })))
 const CopilotFeature = lazy(() => import('./features/copilot/copilot-feature.js').then(module => ({ default: module.CopilotFeature })))
 const CreditsPage = lazy(() => import('./features/journal/credits-page.js').then(module => ({ default: module.CreditsPage })))
 const DashboardPage = lazy(() => import('./features/dashboard/dashboard-page.js').then(module => ({ default: module.DashboardPage })))
@@ -65,6 +66,7 @@ const HelpPage = lazy(() => import('./features/settings/help-page.js').then(modu
 const CopilotSettingsPage = lazy(() => import('./features/settings/copilot-settings-page.js').then(module => ({ default: module.CopilotSettingsPage })))
 const PairingSettingsPage = lazy(() => import('./features/settings/pairing-settings-page.js').then(module => ({ default: module.PairingSettingsPage })))
 const JournalPage = lazy(() => import('./features/journal/journal-page.js').then(module => ({ default: module.JournalPage })))
+const PersonalNotesPage = lazy(() => import('./features/notes/personal-notes-page.js').then(module => ({ default: module.PersonalNotesPage })))
 const MacrosPage = lazy(() => import('./features/macros/macros-page.js').then(module => ({ default: module.MacrosPage })))
 const NumpadPage = lazy(() => import('./features/numpad/numpad-page.js').then(module => ({ default: module.NumpadPage })))
 const SettingsPage = lazy(() => import('./features/settings/settings-page.js').then(module => ({ default: module.SettingsPage })))
@@ -86,7 +88,15 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
   const route = usePhoenixRoute(router)
   const activeDesktop = workspaceForRoute(route)
   const controlsController = useControlsController(application.api, application.events)
-  const controlsDestination = router.routeForWorkspace('controls', firstControlCategory(controlsController.configuration))
+  const rememberedControls = router.routeForWorkspace('controls', firstControlDeckId(controlsController.configuration))
+  const controlsDestination = rememberedControls.kind === 'controls'
+    ? resolveControlsDestination(rememberedControls, controlsController.configuration) : rememberedControls
+  useEffect(() => {
+    if (route.kind === 'controls' && controlsController.configuration) {
+      const resolved = resolveControlsDestination(route, controlsController.configuration)
+      if (resolved.deckId !== route.deckId) router.replace(resolved)
+    }
+  }, [route, controlsController.configuration, router])
   const [pendingControlsFrom, setPendingControlsFrom] = useState<PhoenixRoute | null>(null)
   useEffect(() => {
     if (!pendingControlsFrom) return
@@ -98,18 +108,16 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
   const informationRoute = isInformationRoute(route) ? route : router.getRememberedInformationRoute()
   const controlsRoute = route.kind === 'controls' ? route : undefined
   const logRoute = route.kind === 'journal' || route.kind === 'developer' ? route : undefined
-  const [controlsEditing, setControlsEditing] = useState(false)
+  const [editingDeckId, setEditingDeckId] = useState<string>()
+  const controlsEditing = route.kind === 'controls' && route.deckId === editingDeckId
+  useEffect(() => {
+    if (route.kind !== 'controls' || route.deckId !== editingDeckId) setEditingDeckId(undefined)
+  }, [route])
   const controlsRailItems = useMemo<ApplicationNavigationItem[]>(() => [
-    ...controlsNavigationItems,
-    {
-      id: 'edit-layout',
-      kind: 'action',
-      label: controlsEditing ? 'Cancel layout editing' : 'Edit layout',
-      placement: 'end',
-      shortLabel: 'EDT',
-      pressed: controlsEditing
-    }
-  ], [controlsEditing])
+    ...controlsNavigationItems(controlsController.configuration),
+    { id: 'manage', label: 'Manage decks', shortLabel: 'MNG', placement: 'end',
+      href: '#/controls/manage', route: { kind: 'controls', deckId: 'manage' } }
+  ], [controlsController.configuration])
   const informationContext = informationContextForRoute(informationRoute)
 
   return (
@@ -117,6 +125,7 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       activeDesktop={activeDesktop}
       controlsDestination={controlsDestination}
       copilotDestination={router.routeForWorkspace('copilot')}
+      notesDestination={router.routeForWorkspace('notes')}
       informationRoute={informationRoute}
       {...informationContext}
       onNavigateRoute={router.push}
@@ -129,11 +138,12 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
         }
       }}
       controls={activeDesktop === 'controls'
-        ? <FeatureBoundary><ControlsFeature application={application} controller={controlsController} category={controlsRoute?.category ?? 'quick'} editing={controlsEditing} onEditingChange={setControlsEditing} /></FeatureBoundary>
+        ? <FeatureBoundary><ControlsFeature application={application} controller={controlsController} deckId={controlsRoute?.deckId ?? 'quick'} editing={controlsEditing}
+            onEditingChange={editing => setEditingDeckId(editing ? controlsRoute?.deckId : undefined)}
+            onEditDeck={deckId => { setEditingDeckId(deckId); router.push({ kind: 'controls', deckId }) }} /></FeatureBoundary>
         : null}
       controlsContextItems={controlsRailItems}
-      controlsCurrentContext={controlsContext(controlsRoute?.category ?? 'ship')}
-      onControlsContextAction={(item) => { if (item.id === 'edit-layout') setControlsEditing(current => !current) }}
+      controlsCurrentContext={controlsContext(controlsRoute?.deckId ?? 'ship')}
       copilot={activeDesktop === 'copilot'
         ? <FeatureBoundary><StableCopilotFeature application={application} view={route.kind === 'copilot' ? route.view : 'chat'} /></FeatureBoundary>
         : null}
@@ -141,6 +151,9 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       copilotCurrentContext={copilotContext(route)}
       information={activeDesktop === 'info'
         ? <FeatureBoundary>{renderInformationFeature(application, informationRoute)}</FeatureBoundary>
+        : null}
+      notes={route.kind === 'notes'
+        ? <FeatureBoundary><PersonalNotesPage api={application.api} onNavigate={route => router.push(route)} route={route} /></FeatureBoundary>
         : null}
       journal={activeDesktop === 'journal'
         ? <FeatureBoundary>{logRoute?.view === 'credits'
@@ -264,18 +277,23 @@ const JournalFeature = memo(function JournalFeature({ application }: { applicati
   return <JournalPage controller={useJournalController(application.api, application.events)} />
 })
 
-const ControlsFeature = memo(function ControlsFeature({ application, controller, category, editing, onEditingChange }: {
+const ControlsFeature = memo(function ControlsFeature({ application, controller, deckId, editing, onEditingChange, onEditDeck }: {
   application: PhoenixApplicationServices
   controller: ControlsControllerSnapshot
-  category: Extract<ReturnType<PhoenixRouter['getSnapshot']>, { kind: 'controls' }>['category']
+  deckId: Extract<ReturnType<PhoenixRouter['getSnapshot']>, { kind: 'controls' }>['deckId']
   editing: boolean
   onEditingChange(editing: boolean): void
+  onEditDeck(deckId: string): void
 }) {
   const runtime = useRuntimeState(application.runtime)
   const macros = useMacroRuntime()
   const devicePreferences = useSyncExternalStore(application.devicePreferences.subscribe, application.devicePreferences.getSnapshot, application.devicePreferences.getSnapshot)
+  if (deckId === 'manage') return <ManageDecksPage controller={controller}
+    onSave={configuration => application.api.saveControlDeckConfiguration(configuration)}
+    onOpen={deckId => application.router.push({ kind: 'controls', deckId })}
+    onEdit={onEditDeck} />
   return <ControlsPage
-    category={category}
+    deckId={deckId}
     controller={controller}
     editing={editing}
     macros={macros}
@@ -324,7 +342,9 @@ const ActivitiesFeature = memo(function ActivitiesFeature({ application, route }
   route: Extract<ReturnType<PhoenixRouter['getSnapshot']>, { kind: 'information', section: 'activities' }>
 }) {
   const controller = useActivitiesController(application.api, application.events, route.view)
-  return <ActivitiesPage controller={controller} view={route.view} />
+  return <ActivitiesPage controller={controller} view={route.view}
+    selectedMissionId={route.view === 'missions' ? route.selectedMissionId : undefined}
+    onAddNote={missionId => application.router.push({ kind: 'notes', newNote: true, target: { kind: 'mission', missionId } })} />
 })
 
 const GalaxyFeature = memo(function GalaxyFeature({ application, route }: {

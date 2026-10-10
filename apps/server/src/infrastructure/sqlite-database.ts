@@ -9,13 +9,13 @@ import {
   CartographicSystemSchema,
   CommunicationMessageSchema,
   GalaxyBookmarkSchema,
-  MissionSchema,
+  MissionRecordSchema,
   type ActivityLogEntry,
   type CartographicSystem,
   type CommunicationMessage,
   type DatabaseHealth,
   type GalaxyBookmark,
-  type Mission
+  type MissionRecord
 } from '@phoenix/contracts'
 import type {
   CartographyRecord,
@@ -44,6 +44,7 @@ import { SqliteFleetRepository } from './sqlite-fleet-repository.js'
 import { SqliteGalnetArticleArchive } from './sqlite-galnet-article-archive.js'
 import { SqliteGalnetAnalysisRepository } from './sqlite-galnet-analysis-repository.js'
 import { SqliteGalnetBackgroundRepository } from './sqlite-galnet-background-repository.js'
+import { SqlitePersonalNoteRepository } from './sqlite-personal-note-repository.js'
 
 export class SqliteDatabase implements Database, CartographyRepository, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository, CommunicationRepository, GalaxyBookmarkRepository {
   public readonly fleet: SqliteFleetRepository
@@ -55,6 +56,7 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
   public readonly galnetArchive: SqliteGalnetArticleArchive
   public readonly galnetAnalyses: SqliteGalnetAnalysisRepository
   public readonly galnetBackground: SqliteGalnetBackgroundRepository
+  public readonly personalNotes: SqlitePersonalNoteRepository
   private readonly connection: DatabaseSync
   private readonly path: string
 
@@ -68,6 +70,7 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     this.commanderLog = new SqliteCommanderLogRepository(this.connection)
     this.engineeringProjects = new SqliteEngineeringProjectRepository(this.connection)
     this.savedGalaxyQueries = new SqliteSavedGalaxyQueryRepository(this.connection)
+    this.personalNotes = new SqlitePersonalNoteRepository(this.connection)
     this.galnetArchive = new SqliteGalnetArticleArchive(this.connection)
     this.galnetAnalyses = new SqliteGalnetAnalysisRepository(this.connection)
     this.galnetBackground = new SqliteGalnetBackgroundRepository(this.connection)
@@ -250,11 +253,13 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     this.migrateExternalCartographyDocuments(15)
     this.migrateGalaxyBookmarks()
     this.migrateCartographyCoordinates()
+    this.migrateMissionDetails()
     const equipmentProjectionCreated = this.commanderEquipment.initialize()
     if (equipmentProjectionCreated) this.connection.exec('DELETE FROM elite_journal_checkpoints;')
     this.commanderLog.initialize()
     this.engineeringProjects.initialize()
     this.savedGalaxyQueries.initialize()
+    this.personalNotes.initialize()
     this.galnetArchive.initialize()
     this.galnetAnalyses.initialize()
     this.galnetBackground.initialize()
@@ -416,13 +421,13 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     )
   }
 
-  public getMission (id: number): Mission | null {
+  public getMission (id: number): MissionRecord | null {
     const row = this.connection.prepare(`
       SELECT document
       FROM missions
       WHERE mission_id = ?
     `).get(id) as { document: string } | undefined
-    return row ? MissionSchema.parse(JSON.parse(row.document)) : null
+    return row ? MissionRecordSchema.parse(JSON.parse(row.document)) : null
   }
 
   public getMissionProjectionTimestamp (key: string): string | null {
@@ -432,17 +437,17 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     return row?.timestamp ?? null
   }
 
-  public listMissions (): Mission[] {
+  public listMissions (): MissionRecord[] {
     const rows = this.connection.prepare(`
       SELECT document
       FROM missions
       ORDER BY CASE status WHEN 'active' THEN 0 ELSE 1 END, updated_at DESC, mission_id DESC
     `).all() as Array<{ document: string }>
-    return rows.map(row => MissionSchema.parse(JSON.parse(row.document)))
+    return rows.map(row => MissionRecordSchema.parse(JSON.parse(row.document)))
   }
 
-  public putMission (mission: Mission): void {
-    const validated = MissionSchema.parse(mission)
+  public putMission (mission: MissionRecord): void {
+    const validated = MissionRecordSchema.parse(mission)
     this.connection.prepare(`
       INSERT INTO missions (mission_id, status, status_updated_at, updated_at, document)
       VALUES (?, ?, ?, ?, ?)
@@ -467,6 +472,21 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
       ON CONFLICT(state_key) DO UPDATE SET timestamp = excluded.timestamp
       WHERE excluded.timestamp >= mission_projection_state.timestamp
     `).run(key, timestamp)
+  }
+
+  private migrateMissionDetails (): void {
+    if (this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = 30').get()) return
+    this.connection.exec(`
+      BEGIN;
+      UPDATE missions SET document = json_set(document,
+        '$.commodityId', NULL, '$.targetTypeId', NULL,
+        '$.receivedRewards', NULL,
+        '$.reward', CASE WHEN json_extract(document, '$.provenance.terminalObserved') = 1
+          THEN NULL ELSE json_extract(document, '$.reward') END);
+      DELETE FROM elite_journal_checkpoints;
+      INSERT INTO schema_migrations (version, applied_at) VALUES (30, datetime('now'));
+      COMMIT;
+    `)
   }
 
   public listCommunicationMessages (view: CommunicationQueryView, limit: number): CommunicationMessage[] {

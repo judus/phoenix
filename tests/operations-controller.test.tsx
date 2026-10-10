@@ -8,7 +8,7 @@ import { useActivitiesController, type ActivitiesControllerSnapshot, type Activi
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
 
-test('Activities loads missions only where used and refreshes only for mission journal events', async () => {
+test('Activities refreshes mission briefs for journal changes and inventory file observations', async () => {
   const response = missionsResponse()
   const events = new FakeEventHub()
   const api = { getMissions: vi.fn().mockResolvedValue(response) } as unknown as PhoenixApi
@@ -33,10 +33,16 @@ test('Activities loads missions only where used and refreshes only for mission j
   })
   expect(api.getMissions).toHaveBeenCalledTimes(2)
 
+  await act(async () => {
+    events.emit('activity-entry', { ...activity('inventory.backpack_changed'), source: 'runtime' })
+    await Promise.resolve()
+  })
+  expect(api.getMissions).toHaveBeenCalledTimes(3)
+
   view = 'objectives'
   await act(async () => renderer.update(<Probe />))
   expect(snapshot).toEqual({ status: 'ready' })
-  expect(api.getMissions).toHaveBeenCalledTimes(2)
+  expect(api.getMissions).toHaveBeenCalledTimes(3)
   await act(async () => renderer.unmount())
 })
 

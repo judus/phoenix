@@ -1,4 +1,5 @@
 import type { CatalogueSuggestion, CatalogueSuggestionKind } from '@phoenix/contracts'
+import type { PersonalNote, PersonalNoteWriteRequest, PersonalNotesResponse } from '@phoenix/contracts'
 import type {
   EddnStatus,
   EddnSubmissionLog,
@@ -216,6 +217,9 @@ export interface PhoenixApi {
   getCopilotToolDiagnostics(signal?: AbortSignal): Promise<CopilotToolDiagnosticsResponse>
   getMacros(signal?: AbortSignal): Promise<MacroLibrary>
   getMissions(signal?: AbortSignal): Promise<MissionsResponse>
+  getPersonalNotes(query?: string, signal?: AbortSignal): Promise<PersonalNotesResponse>
+  savePersonalNote(input: PersonalNoteWriteRequest, id?: string, signal?: AbortSignal): Promise<PersonalNote>
+  deletePersonalNote(id: string, signal?: AbortSignal): Promise<void>
   getModuleSettings(signal?: AbortSignal): Promise<PhoenixModules>
   getNavigationRoute(signal?: AbortSignal): Promise<NavigationRoute>
   plotEliteDestination(systemName: string, signal?: AbortSignal): Promise<PlotEliteDestinationResult>

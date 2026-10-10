@@ -4,6 +4,50 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+## 0.1.7 — 2026-10-10 (prerelease)
+
+- Add attached-label input groups: notes search moves into the header with a compact [+] action,
+  deck editing gets visible Layout/Columns/Rows/Theme labels, and the schematic system loader
+  attaches its submit button directly to the input.
+
+- Add the NTS workspace between INF and CPT in the bottom rail, with optional mission/location links, player/Copilot
+  authorship, and explicit permission-controlled Copilot search/read/write tools. Mission
+  details can open a linked note; notes remain available after the mission ends. Cards show
+  short notes directly and expand longer text; titles/text may be blank. Mission links show
+  ledger titles and select that mission; location links open the matching schematic selection.
+  Note-icon actions in schematic system tools, body/station details and Atlas POI details open
+  a new note with its location already linked.
+  Body detail places compact bookmark/note icons together below the body glyph.
+
+- Enrich on-foot mission briefs with known activity/conditions, separate targets, required items
+  and kills, and mission-tagged backpack/locker observations. Keep expected credits separate
+  from received credits/material rewards and share the same brief with Copilot.
+
+- Align deck edit-bar action buttons with the full height of the layout-settings panel.
+
+- Show a translucent button preview following your finger while relocating deck buttons,
+  including small movements before the move threshold is reached.
+
+- Use scalable square tactile grips, aligned with button text insets. In deck edit mode,
+  the same grip becomes a bright drag handle without changing its shape or touch target.
+
+- Remove tactile grips from small action buttons and align deck management actions with the
+  existing form-button styles and Save changes / Cancel labels. Use compact, bordered square
+  icons with accessible labels for deck-row actions instead of crowded text buttons.
+
+- Manage personal control decks: create, rename, reorder and delete decks; the Controls rail and
+  Numpy follow saved deck identity and order. Existing decks remain editable starting defaults.
+  Resizing refuses to discard configured buttons, and layout presets are available on every deck.
+
+- Experiment with an optional orthographic 3D Galactic Atlas: tilt/orbit the reference plane,
+  show real POI heights with connecting lines, and return to top-down without losing map selection.
+  Keep its floating controls grip-free and remove the map's browser focus outline.
+
+- Zoom twice as close on the Galactic Atlas to separate nearby Bubble locations more easily.
+
+- Keep Atlas bookmark, Community Goal and GalNet lead markers visible while their layers refresh,
+  replacing each marker set together instead of flickering when switched back on.
+
 ## 0.1.6 — 2026-10-09 (prerelease)
 
 - Keep entering Copilot chat responsive with long conversations: initially show recent messages,

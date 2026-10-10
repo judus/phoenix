@@ -1,0 +1,46 @@
+.input-group {
+  display: flex;
+  align-items: stretch;
+  min-inline-size: 0;
+
+  > label {
+    display: flex;
+    align-items: center;
+    flex: none;
+    padding-inline: var(--control-padding-inline);
+    border: var(--control-border-width) solid var(--field-border);
+    border-inline-end: 0;
+    color: var(--color-action);
+    background: var(--color-surface-subtle);
+    font-family: var(--font-family-display);
+    font-size: var(--font-size-xs);
+    letter-spacing: var(--font-tracking-display);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  &.filled > label {
+    color: var(--button-primary-text);
+    background: var(--button-primary-background);
+  }
+
+  > .form-control,
+  > .select-control {
+    flex: 1 1 0;
+    min-inline-size: 0;
+    inline-size: 0;
+  }
+
+  > .form-control,
+  > .select-control > .form-select {
+    min-block-size: var(--control-block-size);
+  }
+
+  > .form-control:not(:last-child) { border-inline-end: 0; }
+
+  > .btn {
+    flex: none;
+    block-size: auto;
+    min-block-size: var(--control-block-size);
+  }
+}

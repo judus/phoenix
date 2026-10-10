@@ -34,6 +34,7 @@ Download the pre-release installer:
 - **Control decks and shortcuts.** Arrange buttons for Elite commands, record macros, and use
   your saved keyboard bindings. Mix game controls with links to pages, saved searches, and
   bookmarks in a Quick access deck. Numpad sequences give you another way to reach them.
+  Create, reorder and resize your own decks, and drag buttons to move or swap them.
 - **Commander dashboard and log.** See your location, ship, route, material watchlist, market
   signals, and local traffic. Browse gameplay events, career progress, statistics, and missions.
 - **Ships and modules.** Check the current ship’s status, cargo, warnings, modules, and engineering.
@@ -44,6 +45,10 @@ Download the pre-release installer:
   modifications, materials, and specialists. Preview the cost of a suit or weapon upgrade plan.
 - **System schematics and galactic atlas.** Explore the current system, follow a plotted route,
   hide fleet carriers, or zoom out to see the galactic regions and your position in the galaxy.
+  Tilt the Atlas into a schematic 3D view with location heights above the galactic plane.
+- **Personal notes.** Keep short reminders in the NTS workspace, optionally linked to a mission,
+  system, station or body. Read them on cards, edit them yourself, or let Copilot save and retrieve
+  them when explicitly asked and allowed.
 - **Searches for your next stop.** Find stations, ships, modules, commodities, exploration targets,
   and faction states. Look for a raw, manufactured, or encoded Material Trader—or Vista Genomics.
   Use name suggestions, bookmark systems and stations, and save searches that follow your current

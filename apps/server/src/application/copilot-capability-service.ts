@@ -23,6 +23,7 @@ const FIXED_GROUPS: ReadonlyArray<{ id: string, label: string, prefixes: readonl
   { id: 'fleet', label: 'Fleet', prefixes: ['ship.', 'ships.', 'fleet.'] },
   { id: 'galaxy', label: 'Galaxy', prefixes: ['systems.', 'navigation.', 'exploration.', 'factions.', 'markets.', 'stations.'] },
   { id: 'activities', label: 'Activities', prefixes: ['missions.', 'activities.'] },
+  { id: 'notes', label: 'Personal notes', prefixes: ['notes.'] },
   { id: 'engineering', label: 'Engineering', prefixes: ['engineering.'] },
   { id: 'equipment', label: 'Equipment', prefixes: ['equipment.'] },
   { id: 'comms', label: 'Comms', prefixes: ['comms.'] },

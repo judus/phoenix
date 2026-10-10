@@ -16,7 +16,7 @@ function Harness({ enabled = true, version = revision }) {
   move = useButtonMove(enabled, version, onMove)
   return <div ref={move.surface} />
 }
-const pointer = (x = 0, y = 0) => ({ pointerId: 1, isPrimary: true, button: 0, clientX: x, clientY: y, currentTarget: { setPointerCapture: vi.fn() } }) as any
+const pointer = (x = 0, y = 0) => ({ pointerId: 1, isPrimary: true, button: 0, clientX: x, clientY: y, currentTarget: { setPointerCapture: vi.fn(), parentElement: { getBoundingClientRect: () => ({ left: 50, top: 60, width: 120, height: 100 }) } } }) as any
 const click = (target: Slot, detail = 0) => ({ target, detail, preventDefault: vi.fn(), stopPropagation: vi.fn() }) as any
 
 beforeEach(async () => {
@@ -26,7 +26,7 @@ beforeEach(async () => {
   vi.stubGlobal('Element', Slot)
   vi.stubGlobal('window', new EventTarget())
   vi.stubGlobal('document', { elementFromPoint: () => hit })
-  await act(async () => { renderer = create(<Harness />, { createNodeMock: () => ({ contains: (node: unknown) => node instanceof Slot }) }) })
+  await act(async () => { renderer = create(<Harness />, { createNodeMock: () => ({ contains: (node: unknown) => node instanceof Slot, getBoundingClientRect: () => ({ left: 20, top: 30 }) }) }) })
 })
 afterEach(async () => { await act(async () => renderer.unmount()); vi.unstubAllGlobals() })
 
@@ -56,8 +56,11 @@ test('tap or keyboard selection can move without dragging and same-slot cancels'
 
 test('short movements and drops outside the surface do not move a command', async () => {
   await act(async () => move.begin(pointer(), 'a', '1:1'))
+  expect(move.preview).toEqual({ id: 'a', slot: '1:1', left: 30, top: 30, width: 120, height: 100, x: 0, y: 0 })
   await act(async () => move.events.onPointerMove(pointer(2)))
+  expect(move.preview?.x).toBe(2)
   await act(async () => move.events.onPointerUp(pointer(2)))
+  expect(move.preview).toBeUndefined()
   expect(onMove).not.toHaveBeenCalled()
   await act(async () => move.begin(pointer(), 'a', '1:1'))
   await act(async () => move.events.onPointerMove(pointer(30)))
@@ -83,6 +86,7 @@ test('cancel, escape, a second touch, configuration change and edit exit cancel 
     await act(async () => cancel())
     await act(async () => move.events.onPointerUp(pointer(30)))
     expect(move.sourceSlot).toBeUndefined()
+    expect(move.preview).toBeUndefined()
   }
   expect(onMove).not.toHaveBeenCalled()
 })

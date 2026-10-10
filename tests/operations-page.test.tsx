@@ -4,7 +4,7 @@ import type { Mission, MissionsResponse } from '@phoenix/contracts'
 import { ActivitiesPage } from '../apps/web/src/features/activities/activities-page.js'
 import { activitiesNavigationItems } from '../apps/web/src/features/activities/activities-navigation.js'
 import { createMissionViewModel } from '../apps/web/src/features/activities/activities-view-model.js'
-import { MissionTitle, splitMissionTitle } from '../apps/web/src/features/activities/mission-title.js'
+import { MissionTitle, splitMissionTitle } from '../apps/web/src/components/mission-title.js'
 
 test('Activities exposes the retained information architecture through typed routes', () => {
   expect(activitiesNavigationItems.map(item => [item.label, item.href])).toEqual([
@@ -108,6 +108,13 @@ function mission(): Mission {
     acceptedAt: null,
     abandonedAt: null,
     commodity: '$BasicMedicines_Name;',
+    commodityId: '$BasicMedicines_Name;',
+    targetTypeId: null,
+    receivedRewards: null,
+    briefing: {
+      onFoot: false, activity: null, conditions: [],
+      inventory: { backpackAt: null, shipLockerAt: null, items: [] }
+    },
     commodityCount: 12,
     completedAt: null,
     destinationSettlement: null,

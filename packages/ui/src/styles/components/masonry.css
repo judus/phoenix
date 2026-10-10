@@ -1,0 +1,10 @@
+.masonry {
+  columns: 18rem;
+  column-gap: var(--spacing-sm);
+
+  > * {
+    break-inside: avoid;
+    margin-block-end: var(--spacing-sm);
+    block-size: auto;
+  }
+}

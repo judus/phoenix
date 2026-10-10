@@ -82,6 +82,19 @@ test('reading canonical settings preserves the file without rewriting it', () =>
   expect(statSync(path).mtimeMs).toBe(modifiedAt)
 })
 
+test('custom deck identity, name and order survive reload without restoring defaults', () => {
+  const path = join(temporaryDirectory(), 'settings.json')
+  const repository = new JsonSystemSettingsRepository(path)
+  const configuration = repository.getConfiguration()
+  configuration.decks.reverse()
+  const first = configuration.decks[0]!
+  first.id = 'my-exploration'
+  first.context = null
+  configuration.groups!.find(group => group.id === first.groupId)!.name = 'My exploration'
+  const saved = repository.saveConfiguration(configuration)
+  expect(new JsonSystemSettingsRepository(path).getConfiguration()).toEqual(saved)
+})
+
 test.each([false, true])('invalid customized deck configuration is preserved (legacy: %s)', legacy => {
   const path = join(temporaryDirectory(), 'settings.json')
   const settings = structuredClone(DEFAULT_PHOENIX_SETTINGS)

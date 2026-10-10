@@ -5,7 +5,9 @@ import { formatPhoenixDateTime } from '../../components/phoenix-date-time.js'
 
 export interface MissionViewModel {
   accepted: string
-  cargo: string
+  details: Array<{ label: string, value: string }>
+  receivedCredits: number | null
+  receivedMaterials: string | null
   destination: string
   destinationLocation: string | null
   destinationSystem: string | null
@@ -20,7 +22,6 @@ export interface MissionViewModel {
   rewardCredits: number | null
   status: MissionStatus
   statusTone: StatusTone
-  target: string
   title: string
 }
 
@@ -48,11 +49,36 @@ function latestTimestamp(...timestamps: Array<string | null | undefined>): strin
 }
 
 export function createMissionViewModel(mission: Mission): MissionViewModel {
+  const details: MissionViewModel['details'] = []
+  const add = (label: string, value: string | null) => {
+    if (value !== null) details.push({ label, value })
+  }
+  const { briefing } = mission
+  if (briefing.onFoot) {
+    add('Activity', briefing.activity ?? 'On foot · activity unknown')
+    add('Known conditions', briefing.conditions.join(' · ') || 'Not observed')
+  }
+  add('Target', mission.target)
+  add('Target type', mission.targetType)
+  add('Target faction', mission.targetFaction)
+  if (mission.commodity) add(briefing.onFoot ? 'Required item' : 'Cargo',
+    `${mission.commodity}${mission.commodityCount === null ? '' : ` × ${mission.commodityCount}`}`)
+  if (mission.killCount !== null) add('Required kills', String(mission.killCount))
+  if (mission.progress.required !== null) add('Delivery progress',
+    `${mission.progress.delivered ?? 'Unknown'} / ${mission.progress.required}`)
+  for (const store of ['backpack', 'shipLocker'] as const) {
+    const at = briefing.inventory[store === 'backpack' ? 'backpackAt' : 'shipLockerAt']
+    const items = briefing.inventory.items.filter(item => item.store === store)
+    if (briefing.onFoot || items.length > 0) add(store === 'backpack' ? 'Observed backpack items' : 'Observed locker items',
+      at === null ? 'Not observed' : `${items.map(item => `${item.label ?? item.id} × ${item.count}`).join(' · ') || 'No tagged items'} · ${formatPhoenixDateTime(at)}`)
+  }
   return {
+    details,
+    receivedCredits: mission.receivedRewards?.credits ?? null,
+    receivedMaterials: mission.receivedRewards?.materials === null || !mission.receivedRewards
+      ? null
+      : mission.receivedRewards.materials.map(item => `${item.label ?? item.id} × ${item.count}`).join(' · ') || 'None reported',
     accepted: mission.acceptedAt ? formatPhoenixDateTime(mission.acceptedAt) : 'Not observed',
-    cargo: mission.commodity
-      ? `${mission.commodity}${mission.commodityCount === null ? '' : ` × ${mission.commodityCount}`}`
-      : '—',
     destination: [mission.destinationSystem, mission.destinationStation ?? mission.destinationSettlement].filter(Boolean).join(' / ') || '—',
     destinationLocation: mission.destinationStation ?? mission.destinationSettlement,
     destinationSystem: mission.destinationSystem,
@@ -61,13 +87,12 @@ export function createMissionViewModel(mission: Mission): MissionViewModel {
     faction: mission.faction ?? '—',
     id: mission.id,
     incomplete: mission.provenance.details === 'partial',
-    progress: mission.progress.required === null ? '—' : `${mission.progress.delivered ?? 0} / ${mission.progress.required}`,
+    progress: mission.progress.required === null ? '—' : `${mission.progress.delivered ?? 'Unknown'} / ${mission.progress.required}`,
     provenance: mission.provenance.sources.join(' · ') || 'No source recorded',
     reward: formatPhoenixCredits(mission.reward),
     rewardCredits: mission.reward,
     status: mission.status,
     statusTone: toneForStatus(mission.status),
-    target: [mission.target, mission.targetType, mission.targetFaction].filter(Boolean).join(' / ') || '—',
     title: mission.localizedName ?? readableMissionName(mission.name) ?? `Mission ${mission.id}`
   }
 }

@@ -98,6 +98,8 @@ import type { PairingAccessController } from './pairing-access-controller.js'
 import { activeRouteIPv4Address, serverAccessUrls } from './server-access-urls.js'
 import { HttpRequestValidationError, readJsonBody, readValidatedJsonBody, writeJson } from './http-json.js'
 import { handleSettingsRequest, type SettingsHttpServices } from './settings-http.js'
+import { handlePersonalNotesRequest } from './personal-notes-http.js'
+import type { PersonalNotes } from '../domain/personal-notes.js'
 import { handleEngineeringRequest, type EngineeringHttpServices } from './engineering-http.js'
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -164,6 +166,7 @@ export interface PhoenixHttpServerOptions extends SettingsHttpServices, Engineer
   mcpServer: PhoenixMcpServer
   macros: Macros
   missions: MissionDataReader
+  personalNotes: PersonalNotes
   communications: CommunicationDataReader
   communicationUpdates: Subscribable<CommunicationMessage>
   localTraffic: LocalTrafficReader
@@ -1063,6 +1066,7 @@ export class PhoenixHttpServer {
     }
 
     if (await handleSettingsRequest(request, response, url, this.options)) return
+    if (await handlePersonalNotesRequest(request, response, url, this.options.personalNotes)) return
 
     if (request.method === 'GET' && url.pathname === '/api/macros') {
       writeJson(response, 200, this.options.macros.getLibrary())

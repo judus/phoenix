@@ -3,7 +3,7 @@ import {
   defaultRouteForWorkspace,
   isInformationRoute,
   workspaceForRoute,
-  type ControlCategory,
+  type ControlDeckId,
   type InformationRoute,
   type PhoenixRoute,
   type PhoenixWorkspace
@@ -34,12 +34,12 @@ export class BrowserPhoenixRouter implements PhoenixRouter {
       browserWindow.history.replaceState(null, '', canonicalHash)
     }
     this.#rememberedInformation = this.#readRememberedInformation(this.#route)
-    for (const workspace of ['controls', 'copilot'] as const) {
+    for (const workspace of ['controls', 'copilot', 'notes'] as const) {
       try {
         const hash = browserWindow.sessionStorage.getItem(`phoenix.desktop.${workspace}-route`)
         if (!hash) continue
         const route = parsePhoenixRoute(hash)
-        if (workspaceForRoute(route) === workspace) this.#rememberedWorkspaces.set(workspace, route)
+        if (workspaceForRoute(route) === workspace && !(route.kind === 'controls' && route.deckId === 'manage')) this.#rememberedWorkspaces.set(workspace, route)
       } catch {
         // Session preferences may be unavailable; in-memory recall still works.
       }
@@ -58,11 +58,11 @@ export class BrowserPhoenixRouter implements PhoenixRouter {
 
   replace = (route: PhoenixRoute): void => this.#navigate(route, true)
 
-  routeForWorkspace = (workspace: PhoenixWorkspace, firstControlCategory: ControlCategory = 'quick'): PhoenixRoute => {
+  routeForWorkspace = (workspace: PhoenixWorkspace, firstControlDeckId: ControlDeckId = 'quick'): PhoenixRoute => {
     if (workspaceForRoute(this.#route) === workspace) return this.#route
     const remembered = this.#rememberedWorkspaces.get(workspace)
     if (remembered) return remembered
-    if (workspace === 'controls') return { kind: 'controls', category: firstControlCategory }
+    if (workspace === 'controls') return { kind: 'controls', deckId: firstControlDeckId }
     return defaultRouteForWorkspace(workspace, this.#rememberedInformation)
   }
 
@@ -125,7 +125,8 @@ export class BrowserPhoenixRouter implements PhoenixRouter {
   }
 
   #rememberWorkspace(route: PhoenixRoute): void {
-    if (route.kind !== 'controls' && route.kind !== 'copilot') return
+    if (route.kind !== 'controls' && route.kind !== 'copilot' && route.kind !== 'notes') return
+    if (route.kind === 'controls' && route.deckId === 'manage') return
     this.#rememberedWorkspaces.set(route.kind, route)
     try {
       this.#window.sessionStorage.setItem(`phoenix.desktop.${route.kind}-route`, phoenixRouteHash(route))

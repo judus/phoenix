@@ -128,10 +128,10 @@ export class InMemorySystemSettingsRepository implements SystemSettingsRepositor
 
 function migrateControlDeckConfiguration (candidate: unknown): unknown {
   if (!isRecord(candidate) || !isRecord(candidate.controls)) return candidate
-  if (PhoenixControlDeckConfigurationSchema.safeParse(candidate.controls.deckConfiguration).success) return candidate
   const previous = candidate.controls.deckConfiguration
   const migrated = migrateLegacyDecks(previous)
   if (migrated) return { ...candidate, controls: { ...candidate.controls, deckConfiguration: migrated } }
+  if (PhoenixControlDeckConfigurationSchema.safeParse(previous).success) return candidate
   // Only the retired page/cell layout is deliberately replaced by a blank deck.
   // Invalid current configurations must survive on disk for diagnosis/recovery.
   const legacyLayout = candidate.controls.layout

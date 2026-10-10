@@ -29,7 +29,7 @@ export function numpadRuntimeFixture() {
   }
   let catalogue: (payload: { revision: number, generatedAt: string }) => void = () => {}
   const events = { subscribe: vi.fn((_name: string, listener: typeof catalogue) => { catalogue = listener; return () => { catalogue = () => {} } }) } as unknown as PhoenixEventHub
-  let route: PhoenixRoute = { kind: 'controls', category: 'ship' }
+  let route: PhoenixRoute = { kind: 'controls', deckId: 'ship' }
   const listeners = new Set<() => void>()
   const router = {
     getSnapshot: () => route,

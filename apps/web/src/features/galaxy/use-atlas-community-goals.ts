@@ -18,7 +18,7 @@ export function useAtlasCommunityGoals(api: PhoenixApi, enabled: boolean): Atlas
     const controller = new AbortController()
     const { signal } = controller
     let refreshTimer: ReturnType<typeof setTimeout> | undefined
-    setState({ markers: [], loading: true, unlocatedSystems: [] })
+    setState(current => ({ ...current, loading: true, error: undefined }))
     const load = async () => {
       try {
         const snapshot = await api.getCommunityGoals(signal)
