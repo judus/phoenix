@@ -102,9 +102,12 @@ test('Colonisation refreshes only construction events and history completion, re
   vi.mocked(api.getColonisation).mockRejectedValueOnce(new Error('Read failed'))
   await act(async () => events.emit('activity-entry', activity('ColonisationContribution')))
   expect(snapshot).toEqual({ colonisation: data, status: 'ready', error: 'Read failed' })
+  vi.mocked(api.getColonisation).mockRejectedValueOnce('offline')
+  await act(async () => events.emit('activity-entry', activity('ColonisationConstructionDepot')))
+  expect(snapshot.error).toBe('Construction records unavailable.')
   await act(async () => renderer.unmount())
   await act(async () => events.emit('journal-history-loaded', null))
-  expect(api.getColonisation).toHaveBeenCalledTimes(3)
+  expect(api.getColonisation).toHaveBeenCalledTimes(4)
   expect(api.getMissions).not.toHaveBeenCalled()
 })
 

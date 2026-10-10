@@ -59,7 +59,8 @@ export function useActivitiesController(
         if (request.isCurrent(signal)) publish({ ...data, status: 'ready' })
       }).catch(cause => {
         if (!request.isCurrent(signal)) return
-        const error = cause instanceof Error ? cause.message : view === 'community-goals' ? 'Community Goals unavailable.' : 'Mission records unavailable.'
+        const error = cause instanceof Error ? cause.message : view === 'community-goals' ? 'Community Goals unavailable.'
+          : view === 'colonisation' ? 'Construction records unavailable.' : 'Mission records unavailable.'
         setSnapshot(current => current.status === 'ready' ? { ...current, error } : { error, status: 'error' })
       }).finally(() => {
         if (view === 'community-goals' && request.isCurrent(signal)) {
