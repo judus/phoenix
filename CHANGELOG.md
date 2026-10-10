@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+## 0.1.7 — 2026-10-10 (prerelease)
+
 - Add attached-label input groups: notes search moves into the header with a compact [+] action,
   deck editing gets visible Layout/Columns/Rows/Theme labels, and the schematic system loader
   attaches its submit button directly to the input.
