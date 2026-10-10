@@ -4,6 +4,10 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Add a journal-only Colonisation WIP proposal: last-observed construction sites and
+  supply balances, separate claim/release observations and personal contribution history.
+  Contributions do not imply ownership or locally advance global construction totals.
+
 - Add a journal-backed Powerplay proposal under Activities → PWR: pledge/rank/merits
   overview, observed activity, and a player-entered module/perk target. Preserve fractional
   merits and unknown state; target progress does not assert an in-game reward unlock.

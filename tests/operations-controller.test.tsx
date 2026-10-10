@@ -87,6 +87,30 @@ function missionsResponse(): MissionsResponse {
   return { missions: [], snapshotAt: null, summary: { abandoned: 0, active: 0, completed: 0, failed: 0, partial: 0, total: 0, unknown: 0 } }
 }
 
+test('Colonisation refreshes only construction events and history completion, retaining observations on refresh failure', async () => {
+  const data = { depots: [], claims: [], contributions: [], retainedContributions: 0 }
+  const events = new FakeEventHub()
+  const api = { getColonisation: vi.fn().mockResolvedValue(data), getMissions: vi.fn() } as unknown as PhoenixApi
+  let snapshot!: ActivitiesControllerSnapshot
+  function Probe() { snapshot = useActivitiesController(api, events, 'colonisation'); return null }
+  const renderer = await renderWithAct(<Probe />)
+  expect(snapshot).toEqual({ colonisation: data, status: 'ready' })
+  await act(async () => events.emit('activity-entry', activity('MissionAccepted')))
+  expect(api.getColonisation).toHaveBeenCalledTimes(1)
+  await act(async () => events.emit('journal-history-loaded', null))
+  expect(api.getColonisation).toHaveBeenCalledTimes(2)
+  vi.mocked(api.getColonisation).mockRejectedValueOnce(new Error('Read failed'))
+  await act(async () => events.emit('activity-entry', activity('ColonisationContribution')))
+  expect(snapshot).toEqual({ colonisation: data, status: 'ready', error: 'Read failed' })
+  vi.mocked(api.getColonisation).mockRejectedValueOnce('offline')
+  await act(async () => events.emit('activity-entry', activity('ColonisationConstructionDepot')))
+  expect(snapshot.error).toBe('Construction records unavailable.')
+  await act(async () => renderer.unmount())
+  await act(async () => events.emit('journal-history-loaded', null))
+  expect(api.getColonisation).toHaveBeenCalledTimes(4)
+  expect(api.getMissions).not.toHaveBeenCalled()
+})
+
 function activity(event: string): ActivityLogEntry {
   return { actionable: false, data: {}, event, id: event, importance: 'info', ingestedAt: '2026-08-16T12:00:00.000Z', source: 'journal', timestamp: '2026-08-16T12:00:00.000Z' }
 }

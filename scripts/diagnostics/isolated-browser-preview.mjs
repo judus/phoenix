@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url'
 import { PhoenixApplication } from '../../apps/server/src/phoenix-application.ts'
 import { MissionDataService } from '../../apps/server/src/application/mission-data-service.ts'
 import { PowerplayDataService } from '../../apps/server/src/application/powerplay-data-service.ts'
+import { ColonisationDataService } from '../../apps/server/src/application/colonisation-data-service.ts'
 import { SqliteDatabase } from '../../apps/server/src/infrastructure/sqlite-database.ts'
 import { parseMicroResourceInventory } from '@phoenix/elite'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
@@ -29,6 +30,7 @@ const atlasPois = process.argv.includes('--atlas-pois')
 const communityGoals = process.argv.includes('--community-goals')
 const missionBrief = process.argv.includes('--mission-brief')
 const powerplay = process.argv.includes('--powerplay')
+const colonisation = process.argv.includes('--colonisation')
 const galnetArchive = process.argv.includes('--galnet-archive')
 // Exercise display-tool navigation during a real HTTP chat stream, without paid inference.
 const copilotNavigation = process.argv.includes('--copilot-navigation')
@@ -41,7 +43,7 @@ const continuityArticles = [
   { id: 'synthetic-missing', title: 'Synthetic ship missing', body: 'Synthetic EVE-597 is missing after departing Sol. Its current position is unknown.', publishedAt: '2026-09-17T12:00:00Z' }
 ].map(article => ({ ...article, changedAt: article.publishedAt, image: null, slug: article.id,
   sourceUrl: `https://example.com/galnet/${article.id}` }))
-const fixtureDirectory = eddnSubmissions || galnetArchive || missionBrief || powerplay ? mkdtempSync(join(tmpdir(), 'phoenix-isolated-preview-')) : undefined
+const fixtureDirectory = eddnSubmissions || galnetArchive || missionBrief || powerplay || colonisation ? mkdtempSync(join(tmpdir(), 'phoenix-isolated-preview-')) : undefined
 const databasePath = fixtureDirectory ? join(fixtureDirectory, 'preview.sqlite') : ':memory:'
 // This preview must never upload, even when launched from a test-enabled development shell.
 process.env.PHOENIX_EDDN_TEST_MODE = '0'
@@ -145,6 +147,27 @@ const application = new PhoenixApplication({
 })
 const { port } = await application.start()
 copilotOrigin = `http://127.0.0.1:${port}`
+if (colonisation) {
+  const database = new SqliteDatabase(databasePath)
+  try {
+    database.initialize()
+    const service = new ColonisationDataService(database.colonisation)
+    const state = createEmptyRuntimeState()
+    state.system.name = 'Synthetic colony'
+    state.location.place = { kind: 'station', name: 'Synthetic construction depot', type: null, marketId: 42,
+      faction: null, government: null, primaryEconomy: null, economies: [], services: [] }
+    service.ingest({ timestamp: '2026-10-10T10:00:00Z', event: 'ColonisationSystemClaim', StarSystem: 'Synthetic colony', SystemAddress: 42 }, state)
+    service.ingest({ timestamp: '2026-10-10T10:10:00Z', event: 'ColonisationConstructionDepot', MarketID: 42,
+      ConstructionProgress: 0.25, ConstructionComplete: false, ConstructionFailed: false,
+      ResourcesRequired: ['Steel', 'Aluminium', 'Building Fabricators', 'Power Generators', 'Water', 'Food Cartridges'].map((name, index) => ({
+        Name: name.toLowerCase().replaceAll(' ', ''), Name_Localised: name, RequiredAmount: 1000 + index * 200,
+        ProvidedAmount: index * 50, Payment: 1000 })) }, state)
+    service.ingest({ timestamp: '2026-10-10T10:20:00Z', event: 'ColonisationContribution', MarketID: 42,
+      Contributions: [{ Name: 'steel', Name_Localised: 'Steel', Amount: 20 }] }, state)
+    service.ingest({ timestamp: '2026-10-10T10:25:00Z', event: 'ColonisationConstructionDepot', MarketID: 99,
+      ConstructionProgress: 1, ConstructionComplete: true, ConstructionFailed: false, ResourcesRequired: [] }, state)
+  } finally { database.close() }
+}
 if (powerplay) {
   const database = new SqliteDatabase(databasePath)
   try {
