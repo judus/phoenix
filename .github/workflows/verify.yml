@@ -27,6 +27,7 @@ jobs:
         os: [ubuntu-24.04, windows-2022]
     env:
       PHOENIX_EDDN_TEST_MODE: '0'
+      PHOENIX_TEST_SQLITE_PROFILE: '1'
       PHOENIX_RELEASE_CHANNEL: ${{ inputs.release-assets && 'preview' || 'development' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
