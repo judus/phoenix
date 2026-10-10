@@ -1,5 +1,5 @@
 import { atlasRegionRows, atlasRegions } from './atlas-region-data.js'
-import type { AtlasPoi, CommunityGoal, GalnetInvestigationLead } from '@phoenix/contracts'
+import type { AtlasPoi, CommunityGoal, GalnetInvestigationLead, GalaxyBookmarkTarget } from '@phoenix/contracts'
 
 export type GalacticPosition = readonly [number, number, number]
 export interface AtlasPoint { x: number, y: number }
@@ -10,6 +10,7 @@ export interface AtlasMarker {
   position: GalacticPosition
   kind: 'landmark' | 'nebula' | 'bookmark' | 'commander' | 'community-goal' | 'investigation' | 'system'
   selectedName?: string
+  bookmarkTarget?: GalaxyBookmarkTarget
   poi?: AtlasPoi
   communityGoal?: CommunityGoal
   investigation?: GalnetInvestigationLead
@@ -21,6 +22,14 @@ export const TILTED_VIEW: AtlasView = { azimuth: -Math.PI / 12, tilt: Math.PI / 
 export const WHOLE_GALAXY: AtlasCamera = { x: 1024, y: 1024, zoom: 1 }
 export const MAX_ATLAS_ZOOM = 128
 export const LY_PER_MAP_UNIT = 4096 / 83
+
+/** Use explicit entity identities only; a POI/site label is not a station or body name. */
+export function atlasNoteTarget(marker: AtlasMarker): GalaxyBookmarkTarget {
+  if (marker.bookmarkTarget) return marker.bookmarkTarget
+  if (marker.communityGoal) return { kind: 'station', systemName: marker.systemName, stationName: marker.communityGoal.stationName }
+  if (marker.poi?.bodyName && marker.selectedName) return { kind: 'body', systemName: marker.systemName, bodyName: marker.selectedName }
+  return { kind: 'system', systemName: marker.systemName }
+}
 
 export function atlasPoiMarkers(pois: AtlasPoi[]): AtlasMarker[] {
   return pois.map(poi => ({

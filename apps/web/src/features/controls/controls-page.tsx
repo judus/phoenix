@@ -14,7 +14,7 @@ import {
   type ControlDeckDeckGroup
 } from 'control-deck/core'
 import { PHOENIX_CONTROL_LAYOUT_PRESETS, PhoenixControlDeckThemeSchema, controlDeckTargetToPhoenixTarget, phoenixControlLayoutPreset, type CommandTarget, type GameActionAvailability, type GameActionOperation, type PhoenixControlDeckConfiguration, type PhoenixControlDeckTheme, type RuntimeState } from '@phoenix/contracts'
-import { Breadcrumbs, Button, CheckIcon, compactBindingLabel, ControlContext, CrossIcon, DataTable, IconButton, Inline, Loading, NumberInput, PageFrame, PageHeader, Select, Status, TileButton, Widget } from '@phoenix/ui'
+import { Breadcrumbs, Button, CheckIcon, compactBindingLabel, ControlContext, CrossIcon, DataTable, IconButton, Inline, InputGroup, Loading, NumberInput, PageFrame, PageHeader, Select, Status, TileButton, Widget } from '@phoenix/ui'
 import { createClientId } from '../../application/identity/client-identity.js'
 import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
 import type { ControlDeckId } from '../../application/navigation/phoenix-route.js'
@@ -360,7 +360,7 @@ function DeckSettings ({ configuration, deck, group, onChange, onSave, onCancel,
   return <section aria-label="Deck settings" className="control-deck-settings widget-command-row">
     <Widget aria-label="Deck layout settings" className="control-deck-settings-form">
       <ControlContext className="control-deck-settings-controls" density="compact">
-        <Select aria-label="Deck layout" className="form-mini" value={deck.layoutPresetId ?? ''} onChange={event => {
+        <InputGroup className="filled" htmlFor="deck-layout" label="Layout"><Select id="deck-layout" aria-label="Deck layout" value={deck.layoutPresetId ?? ''} onChange={event => {
           const preset = event.target.value === '' ? null : phoenixControlLayoutPreset(event.target.value)
           if (event.target.value !== '' && !preset) return
           try {
@@ -372,27 +372,27 @@ function DeckSettings ({ configuration, deck, group, onChange, onSave, onCancel,
         }}>
           <option value="">Custom</option>
           {presets.map(preset => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
-        </Select>
-        <NumberInput aria-label="Deck columns" className="form-mini" disabled={locked} min={1} max={12} value={columns}
+        </Select></InputGroup>
+        <InputGroup className="filled" htmlFor="deck-columns" label="Columns"><NumberInput id="deck-columns" aria-label="Deck columns" disabled={locked} min={1} max={12} value={columns}
           onBlur={() => setColumns(String(deck.layout.columns))}
           onChange={event => {
             setColumns(event.target.value)
             const nextColumns = boundedInteger(event.target.value, 1, 12)
             if (nextColumns !== undefined) changeSize(nextColumns, deck.layout.rows)
-          }} />
-        <NumberInput aria-label="Deck rows" className="form-mini" disabled={locked} min={1} max={12} value={rows}
+          }} /></InputGroup>
+        <InputGroup className="filled" htmlFor="deck-rows" label="Rows"><NumberInput id="deck-rows" aria-label="Deck rows" disabled={locked} min={1} max={12} value={rows}
           onBlur={() => setRows(String(deck.layout.rows))}
           onChange={event => {
             setRows(event.target.value)
             const nextRows = boundedInteger(event.target.value, 1, 12)
             if (nextRows !== undefined) changeSize(deck.layout.columns, nextRows)
-          }} />
-        <Select aria-label="Deck theme" className="form-mini" value={controlDeckTheme(deck, group)} onChange={event => {
+          }} /></InputGroup>
+        <InputGroup className="filled" htmlFor="deck-theme" label="Theme"><Select id="deck-theme" aria-label="Deck theme" value={controlDeckTheme(deck, group)} onChange={event => {
           const theme = PhoenixControlDeckThemeSchema.parse(event.target.value)
           onChange(applyControlDeckTheme(configuration, deck, group, theme))
         }}>
           {['phoenix', 'blue', 'cyan', 'green', 'amber', 'orange', 'red', 'violet', 'magenta'].map(theme => <option key={theme} value={theme}>{themeLabel(PhoenixControlDeckThemeSchema.parse(theme))}</option>)}
-        </Select>
+        </Select></InputGroup>
       </ControlContext>
       {error && <Status tone="danger">{error}</Status>}
     </Widget>

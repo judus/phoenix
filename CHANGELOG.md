@@ -4,6 +4,19 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Add attached-label input groups: notes search moves into the header with a compact [+] action,
+  deck editing gets visible Layout/Columns/Rows/Theme labels, and the schematic system loader
+  attaches its submit button directly to the input.
+
+- Add the NTS workspace between INF and CPT in the bottom rail, with optional mission/location links, player/Copilot
+  authorship, and explicit permission-controlled Copilot search/read/write tools. Mission
+  details can open a linked note; notes remain available after the mission ends. Cards show
+  short notes directly and expand longer text; titles/text may be blank. Mission links show
+  ledger titles and select that mission; location links open the matching schematic selection.
+  Note-icon actions in schematic system tools, body/station details and Atlas POI details open
+  a new note with its location already linked.
+  Body detail places compact bookmark/note icons together below the body glyph.
+
 - Enrich on-foot mission briefs with known activity/conditions, separate targets, required items
   and kills, and mission-tagged backpack/locker observations. Keep expected credits separate
   from received credits/material rewards and share the same brief with Copilot.

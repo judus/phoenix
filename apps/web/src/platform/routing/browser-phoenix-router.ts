@@ -34,7 +34,7 @@ export class BrowserPhoenixRouter implements PhoenixRouter {
       browserWindow.history.replaceState(null, '', canonicalHash)
     }
     this.#rememberedInformation = this.#readRememberedInformation(this.#route)
-    for (const workspace of ['controls', 'copilot'] as const) {
+    for (const workspace of ['controls', 'copilot', 'notes'] as const) {
       try {
         const hash = browserWindow.sessionStorage.getItem(`phoenix.desktop.${workspace}-route`)
         if (!hash) continue
@@ -125,7 +125,7 @@ export class BrowserPhoenixRouter implements PhoenixRouter {
   }
 
   #rememberWorkspace(route: PhoenixRoute): void {
-    if (route.kind !== 'controls' && route.kind !== 'copilot') return
+    if (route.kind !== 'controls' && route.kind !== 'copilot' && route.kind !== 'notes') return
     if (route.kind === 'controls' && route.deckId === 'manage') return
     this.#rememberedWorkspaces.set(route.kind, route)
     try {

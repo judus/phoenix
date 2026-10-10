@@ -4,6 +4,7 @@ import type { CommunityGoal, CommunityGoalsResponse } from '@phoenix/contracts'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
 import { useAtlasCommunityGoals } from '../apps/web/src/features/galaxy/use-atlas-community-goals.js'
 import { GalacticAtlas } from '../apps/web/src/features/galaxy/galactic-atlas-page.js'
+import { atlasNoteTarget } from '../apps/web/src/features/galaxy/galactic-atlas-model.js'
 import { renderWithAct } from './support/render-with-act.js'
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
@@ -41,6 +42,7 @@ test('CG destinations deduplicate systems, bound lookups and retain only resolve
       { id: 'community-goal:2', kind: 'community-goal', systemName: 'SYNTHETIC', position: [18000, 20, 40000] }
     ])
     expect(state?.loading).toBe(false)
+    expect(atlasNoteTarget(state!.markers[0]!)).toEqual({ kind: 'station', systemName: 'Synthetic', stationName: 'Research Port' })
   } finally { await act(async () => renderer.unmount()) }
 })
 

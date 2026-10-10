@@ -580,11 +580,11 @@
   .cartography-detail__body,
   .cartography-detail__station {
     display: grid;
-    grid-template-columns: 5rem minmax(0, 1fr);
+    grid-template-columns: 5rem minmax(0, 1fr) auto;
     align-items: center;
     gap: var(--spacing-sm);
 
-    svg {
+    > svg {
       inline-size: 5rem;
       block-size: 5rem;
       color: var(--color-information);
@@ -593,10 +593,28 @@
     }
   }
 
-  .cartography-detail__station {
-    grid-template-columns: 3.5rem minmax(0, 1fr);
+  .cartography-detail__body {
+    grid-template-columns: max-content minmax(0, 1fr);
 
-    svg {
+    .body-preview {
+      display: grid;
+      justify-items: center;
+      gap: var(--spacing-xs);
+
+      > svg {
+        inline-size: 5rem;
+        block-size: 5rem;
+        color: var(--color-information);
+        fill: none;
+        stroke: currentColor;
+      }
+    }
+  }
+
+  .cartography-detail__station {
+    grid-template-columns: 3.5rem minmax(0, 1fr) auto;
+
+    > svg {
       inline-size: 3rem;
       block-size: 3rem;
     }

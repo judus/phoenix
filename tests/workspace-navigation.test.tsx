@@ -38,7 +38,7 @@ test('the initial Controls destination follows saved deck order', () => {
 
 test('workspace links reflect recalled Controls and Copilot pages', () => {
   const items = workspaceItems(DEFAULT_ROUTE, { kind: 'controls', deckId: 'combat' }, { kind: 'copilot', view: 'profiles' })
-  expect(items.map(item => item.href)).toEqual(['#/controls/combat', '#/commander/dashboard', '#/copilot/profiles'])
+  expect(items.map(item => item.href)).toEqual(['#/controls/combat', '#/commander/dashboard', '#/notes', '#/copilot/profiles'])
 })
 
 test.each([false, true])('deleted active or recalled decks resolve to the first saved deck; active=%s', async active => {

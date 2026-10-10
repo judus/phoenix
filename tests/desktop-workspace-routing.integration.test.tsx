@@ -33,6 +33,23 @@ beforeAll(() => {
 })
 
 describe('DesktopWorkspace routing integration', () => {
+  test('swiping to Notes recalls its editor independently of LOG and Copilot', async () => {
+    const browser = new FakeBrowserWindow('#/notes?edit=note-id')
+    const router = new BrowserPhoenixRouter(browser as unknown as Window)
+    const goTo = vi.fn(async () => true)
+    deskplaneHarness.controller = createDeskplaneController(goTo)
+    const renderer = await renderWithAct(<RoutedDesktopWorkspace router={router} />)
+    try {
+      await act(async () => router.push({ kind: 'copilot', view: 'chat' }))
+      await act(async () => deskplaneHarness.props?.onSnapshotChange?.(snapshot('notes')))
+      expect(router.getSnapshot()).toEqual({ kind: 'notes', noteId: 'note-id' })
+      expect(router.routeForWorkspace('journal')).toEqual({ kind: 'journal', view: 'commander' })
+      await act(async () => router.push({ kind: 'information', section: 'galaxy', view: 'atlas' }))
+      const restored = new BrowserPhoenixRouter(browser as unknown as Window)
+      expect(restored.routeForWorkspace('notes')).toEqual({ kind: 'notes', noteId: 'note-id' })
+    } finally { await act(async () => renderer.unmount()) }
+  })
+
   test('routes drive Deskplane and genuine Deskplane gestures drive the router once', async () => {
     const browser = new FakeBrowserWindow('#/')
     const router = new BrowserPhoenixRouter(browser as unknown as Window)
@@ -47,7 +64,9 @@ describe('DesktopWorkspace routing integration', () => {
       .toEqual(['telemetry', 'macros', 'journal', 'settings', 'developer'])
     expect(utilityItems({ active: false, supported: true }).slice(0, 5).map(item => item.id))
       .toEqual(['telemetry', 'macros', 'journal', 'settings', 'developer'])
-    expect(renderer.root.findAll(element => element.props['data-deskplane-swipe-zone'] === 'horizontal')).toHaveLength(8)
+    expect(deskplaneHarness.props?.rows[1].desktops.map(desktop => desktop.id))
+      .toEqual(['controls', 'info', 'notes', 'copilot'])
+    expect(renderer.root.findAll(element => element.props['data-deskplane-swipe-zone'] === 'horizontal')).toHaveLength(9)
     goTo.mockClear()
 
     await act(async () => {

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { PersonalNoteService } from './application/personal-note-service.js'
 import { AtlasPoiSchema } from '@phoenix/contracts'
 import { AtlasCatalogueService } from './application/atlas-catalogue-service.js'
 import { atlasPoiSources } from './infrastructure/atlas-poi-sources.js'
@@ -213,6 +214,7 @@ export class PhoenixApplication {
       )
     )
     const activityLog = new ActivityLogService(this.database)
+    const personalNotes = new PersonalNoteService(this.database.personalNotes, this.database)
     const missions = new MissionDataService(this.database, () => this.stateStore.getCurrent().inventory)
     const communications = new CommunicationDataService(this.database, communicationUpdates)
     const localTraffic = new LocalTrafficService(this.database)
@@ -515,6 +517,8 @@ export class PhoenixApplication {
       navigation,
       markets: stationMarkets,
       missions,
+      personalNotes,
+      canReadPersonalNotes: () => copilotCapabilities.isToolEnabled('notes.search_notes') || copilotCapabilities.isToolEnabled('notes.get_note'),
       communications,
       communityGoals,
       galnetAnalyses: savedGalnetAnalyses,
@@ -583,6 +587,7 @@ export class PhoenixApplication {
       mcpServer,
       macros,
       missions,
+      personalNotes,
       bookmarks,
       savedGalaxyQueries,
       communications,

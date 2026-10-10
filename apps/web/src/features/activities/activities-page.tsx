@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Loading } from '@phoenix/ui'
 import {
   Breadcrumbs,
+  Button,
   DataTable,
   DataTableGroup,
   DescriptionItem,
@@ -16,7 +17,7 @@ import {
 } from '@phoenix/ui'
 import type { ActivitiesControllerSnapshot, ActivitiesView } from './use-activities-controller.js'
 import { createActivitiesViewModel, type ActivitiesViewModel, type MissionViewModel } from './activities-view-model.js'
-import { MissionTitle } from './mission-title.js'
+import { MissionTitle } from '../../components/mission-title.js'
 import { PhoenixCredits } from '../../components/phoenix-credits.js'
 import { SystemLocationLink } from '../../components/system-location-link.js'
 import { DataSyncNotice } from '../../components/data-sync-notice.js'
@@ -43,9 +44,11 @@ const activityViews: Record<RetainedActivityView, { empty: string, ledger: strin
   }
 }
 
-export function ActivitiesPage({ controller, view }: {
+export function ActivitiesPage({ controller, view, onAddNote, selectedMissionId }: {
   controller: ActivitiesControllerSnapshot
   view: ActivitiesView
+  onAddNote?(missionId: number): void
+  selectedMissionId?: number
 }) {
   if (view === 'community-goals') return <CommunityGoalsPage controller={controller} />
   if (view !== 'missions') return <ActivityLedger view={view} />
@@ -55,7 +58,7 @@ export function ActivitiesPage({ controller, view }: {
   }
 
   const model = createActivitiesViewModel(controller.missions)
-  return <Missions model={model} />
+  return <Missions key={selectedMissionId ?? 'default'} model={model} onAddNote={onAddNote} initialMissionId={selectedMissionId} />
 }
 
 function ActivitiesState({ error, title }: { error?: string, title: string }) {
@@ -69,14 +72,15 @@ function ActivitiesState({ error, title }: { error?: string, title: string }) {
   )
 }
 
-function Missions({ model }: { model: ActivitiesViewModel }) {
-  const [selectedId, setSelectedId] = useState<number>()
-  const selected = model.all.find(mission => mission.id === selectedId) ?? model.all[0]
+function Missions({ model, onAddNote, initialMissionId }: { model: ActivitiesViewModel, onAddNote?(missionId: number): void, initialMissionId?: number }) {
+  const [selectedId, setSelectedId] = useState(initialMissionId)
+  const selected = selectedId === undefined ? model.all[0] : model.all.find(mission => mission.id === selectedId)
 
   return (
     <PageFrame layout="fit">
       <Stack fill gap="sm">
         <ActivitiesHeader status={model.updatedAt ? <UpdatedDateTime value={model.updatedAt} /> : undefined} title="Missions" />
+        {selectedId !== undefined && !selected ? <Status tone="warning">The linked mission is no longer available in the ledger. Select another mission below.</Status> : null}
         {model.all.length === 0
           ? model.snapshotAt === null
               ? <DataSyncNotice>Awaiting Elite mission manifest. Re-enter the commander session to publish current missions.</DataSyncNotice>
@@ -88,7 +92,7 @@ function Missions({ model }: { model: ActivitiesViewModel }) {
                     <MissionTable missions={model.all} onSelect={setSelectedId} selectedId={selected?.id} />
                   </DataTableGroup>
                 </div>
-                {selected ? <MissionDetail mission={selected} /> : null}
+                {selected ? <MissionDetail mission={selected} onAddNote={onAddNote} /> : null}
               </ThirdsGrid>
             )}
       </Stack>
@@ -175,11 +179,12 @@ const MISSION_COLUMNS: readonly SortableDataTableColumn<MissionViewModel>[] = [
   },
 ]
 
-function MissionDetail({ mission }: { mission: MissionViewModel }) {
+function MissionDetail({ mission, onAddNote }: { mission: MissionViewModel, onAddNote?(missionId: number): void }) {
   return (
     <DataTableGroup contentGap="sm" fill title="Mission details">
       <Stack className="table-region" gap="lg">
         <MissionTitle detail value={mission.title} />
+        {onAddNote ? <Button size="sm" variant="outline" onClick={() => onAddNote(mission.id)}>Add note</Button> : null}
         {mission.incomplete
           ? <Status tone="warning">Acceptance detail was not observed. This record is intentionally incomplete.</Status>
           : null}

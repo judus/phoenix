@@ -32,6 +32,7 @@ export function useAtlasBookmarks(api: PhoenixApi, enabled: boolean) {
           if (signal.aborted) return
           const markers: AtlasMarker[] = position ? entries.map(bookmark => ({
             id: bookmark.id, kind: 'bookmark', systemName, position: position!,
+            bookmarkTarget: bookmark.target,
             label: bookmark.target.kind === 'station' ? bookmark.target.stationName : bookmark.target.kind === 'body' ? bookmark.target.bodyName : systemName,
             ...(bookmark.target.kind === 'station' ? { selectedName: bookmark.target.stationName } : bookmark.target.kind === 'body' ? { selectedName: bookmark.target.bodyName } : {})
           })) : []

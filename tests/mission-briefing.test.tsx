@@ -7,6 +7,7 @@ import { expect, test } from 'vitest'
 import type { CommanderInventory } from '@phoenix/contracts'
 import { classifyMission, parseMicroResourceInventory } from '@phoenix/elite'
 import { MissionDataService } from '../apps/server/src/application/mission-data-service.js'
+import { PersonalNoteService } from '../apps/server/src/application/personal-note-service.js'
 import { MissionRuntimeContext } from '../apps/server/src/application/mission-runtime-context.js'
 import { MissionsListMissionsTool } from '../apps/server/src/application/mcp-tools/missions-list-missions-tool.js'
 import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
@@ -76,7 +77,7 @@ test('mission brief shares contract, mission-tagged inventory and actual rewards
     const context = new MissionRuntimeContext(service).render()
     expect(context).toContain('known contract conditions: Covert, Nonviolent')
     expect(context).toContain('possession is not objective completion')
-    const tool = await new MissionsListMissionsTool(service).execute({})
+    const tool = await new MissionsListMissionsTool(service, new PersonalNoteService(database.personalNotes, database), () => true).execute({})
     expect(JSON.stringify(tool)).toContain('Personal documents')
     expect(JSON.stringify(tool)).toContain('commodityId')
 

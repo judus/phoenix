@@ -1,3 +1,7 @@
+export function BookmarkIcon () {
+  return <svg aria-hidden="true" fill="none" viewBox="0 0 24 24"><path d="M5 3h14v18l-7-5-7 5V3Z" /></svg>
+}
+
 export function OpenIcon () {
   return <svg aria-hidden="true" fill="none" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4 10 14M11 4H4v16h16v-7" strokeWidth="1.75" /></svg>
 }
@@ -16,6 +20,13 @@ export function PencilIcon () {
       <path d="M4 20h4L19 9l-4-4L4 16v4M13.5 6.5l4 4" strokeWidth="1.75" />
     </svg>
   )
+}
+
+/** A folded note sheet with handwritten lines, distinct from edit and bookmark actions. */
+export function NoteIcon () {
+  return <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path d="M4 3h16v12l-6 6H4V3Zm10 18v-6h6M8 8h8M8 12h5M8 16h3" strokeWidth="1.75" strokeLinejoin="round" />
+  </svg>
 }
 
 export function CheckIcon () {
