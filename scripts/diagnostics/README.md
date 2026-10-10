@@ -20,6 +20,10 @@ one passing result. Run the full suite too when investigating contention between
 ## Colonisation proposal
 
 Use `--colonisation` with the isolated preview and open `#/activities/colonisation`.
+
+Use `--carrier` and open `#/fleet/carriers` for synthetic management/fuel/capacity/finance,
+service-change and scheduled-jump records. The temporary SQLite fixture is deleted on exit;
+no real journals, game input, EDDN submission, CAPI or external provider requests are used.
 Temporary synthetic claims, construction supplies and deliveries exercise the separate ledgers,
 completed-site retention and station/system links. Check selection/tabs in both themes and orientations.
 No CAPI, player journals or real income/ownership validation is involved.

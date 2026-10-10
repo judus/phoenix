@@ -47,6 +47,7 @@ import { SqliteGalnetBackgroundRepository } from './sqlite-galnet-background-rep
 import { SqlitePersonalNoteRepository } from './sqlite-personal-note-repository.js'
 import { SqlitePowerplayRepository } from './sqlite-powerplay-repository.js'
 import { SqliteColonisationRepository } from './sqlite-colonisation-repository.js'
+import { SqliteCarrierRepository } from './sqlite-carrier-repository.js'
 
 export class SqliteDatabase implements Database, CartographyRepository, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository, CommunicationRepository, GalaxyBookmarkRepository {
   public readonly fleet: SqliteFleetRepository
@@ -61,6 +62,7 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
   public readonly personalNotes: SqlitePersonalNoteRepository
   public readonly powerplay: SqlitePowerplayRepository
   public readonly colonisation: SqliteColonisationRepository
+  public readonly carriers: SqliteCarrierRepository
   private readonly connection: DatabaseSync
   private readonly path: string
 
@@ -77,6 +79,7 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     this.personalNotes = new SqlitePersonalNoteRepository(this.connection)
     this.powerplay = new SqlitePowerplayRepository(this.connection)
     this.colonisation = new SqliteColonisationRepository(this.connection)
+    this.carriers = new SqliteCarrierRepository(this.connection)
     this.galnetArchive = new SqliteGalnetArticleArchive(this.connection)
     this.galnetAnalyses = new SqliteGalnetAnalysisRepository(this.connection)
     this.galnetBackground = new SqliteGalnetBackgroundRepository(this.connection)
@@ -278,6 +281,7 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     this.galnetBackground.initialize()
     this.powerplay.initialize()
     this.colonisation.initialize()
+    this.carriers.initialize()
     return newProfile
   }
 

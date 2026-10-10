@@ -66,13 +66,17 @@ export function useFleetController(api: PhoenixApi, events: PhoenixEventHub, vie
 
     load(true)
     const unsubscribe = needsFleet
-      ? events.subscribe('activity-entry', () => load())
+      ? events.subscribe('activity-entry', entry => {
+          if (view !== 'carriers' || entry.event.startsWith('Carrier') || entry.event === 'StoredShips') load()
+        })
       : needsActions
         ? events.subscribe('command-catalogue', () => load())
         : undefined
+    const unsubscribeHistory = needsFleet ? events.subscribe('journal-history-loaded', () => load()) : undefined
     return () => {
       latest.cancel()
       unsubscribe?.()
+      unsubscribeHistory?.()
     }
   }, [api, cacheKey, events, view])
 
