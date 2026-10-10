@@ -70,7 +70,7 @@ test('search can locate an off-screen POI without enabling the catalogue, inspec
     expect(renderer.root.findAllByType('aside')).toHaveLength(0)
     expect(renderer.root.findAllByProps({ id: 'atlas-poi-search' })).toHaveLength(0)
     const headerButtons = () => renderer.root.findAllByType('header')[0].findAllByType('button')
-    expect(headerButtons().map(button => button.props.children)).toEqual(['Regions', 'Bookmarks', 'Landmarks', 'Finder'])
+    expect(headerButtons().map(button => button.props.children)).toEqual(['Regions', 'Bookmarks', 'Route', 'Landmarks', 'Finder'])
     const finder = () => headerButtons().find(button => button.props.children === 'Finder')!
     await act(async () => finder().props.onClick())
     const reset = () => renderer.root.findAllByType('button').find(button => button.props.children === 'Clear')!
@@ -146,7 +146,7 @@ test('zoom holds the pointer anchor fixed and clamps scale', () => {
   const after = screenPoint(point, zoomAtlas(camera, 1.5, anchor, 900, 600), 900, 600)
   expect(after.x).toBeCloseTo(anchor.x)
   expect(after.y).toBeCloseTo(anchor.y)
-  expect(zoomAtlas(camera, 10000, anchor, 900, 600).zoom).toBe(128)
+  expect(zoomAtlas(camera, 10000, anchor, 900, 600).zoom).toBe(2048)
   expect(zoomAtlas(camera, 0.001, anchor, 900, 600).zoom).toBe(1)
 })
 
@@ -173,7 +173,7 @@ test('atlas zoom controls allow the extended range and disable at its ceiling', 
   const renderer = await renderWithAct(<GalacticAtlas bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={[0, 0, 0]} showBookmarks systemName="Sol" />)
   try {
     const zoomIn = () => renderer.root.findByProps({ 'aria-label': 'Zoom in' })
-    for (let step = 0; step < 9; step++) {
+    for (let step = 0; step < 16; step++) {
       expect(zoomIn().props.disabled).toBe(false)
       await act(async () => zoomIn().props.onClick())
     }
@@ -191,7 +191,7 @@ test('atlas selection opens the correct system and supports keyboard zoom and re
   const map = () => renderer.root.findAllByType('svg').find(node => node.props.role === 'group')!
   const pageHeader = renderer.root.findAllByType('header')[0]
   expect(pageHeader.props.className).toContain('page-header-cockpit')
-  expect(pageHeader.findAllByType('button')).toHaveLength(4)
+  expect(pageHeader.findAllByType('button')).toHaveLength(5)
   const currentSystem = renderer.root.findByType('footer').findByType('a')
   expect(parsePhoenixRoute(currentSystem.props.href)).toEqual({ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Sol' })
   await act(async () => currentSystem.props.onClick({ button: 0, preventDefault() {} }))

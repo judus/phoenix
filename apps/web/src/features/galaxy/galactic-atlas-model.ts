@@ -1,5 +1,5 @@
 import { atlasRegionRows, atlasRegions } from './atlas-region-data.js'
-import type { AtlasPoi, CommunityGoal, GalnetInvestigationLead, GalaxyBookmarkTarget } from '@phoenix/contracts'
+import type { AtlasPoi, CommunityGoal, GalnetInvestigationLead, GalaxyBookmarkTarget, NavigationRoute } from '@phoenix/contracts'
 
 export type GalacticPosition = readonly [number, number, number]
 export interface AtlasPoint { x: number, y: number }
@@ -8,7 +8,8 @@ export interface AtlasMarker {
   label: string
   systemName: string
   position: GalacticPosition
-  kind: 'landmark' | 'nebula' | 'bookmark' | 'commander' | 'community-goal' | 'investigation' | 'system'
+  kind: 'landmark' | 'nebula' | 'bookmark' | 'commander' | 'community-goal' | 'investigation' | 'system' | 'route'
+  routeStop?: { index: number, destination: boolean, completed: boolean, current: boolean, starClass: string | null }
   selectedName?: string
   bookmarkTarget?: GalaxyBookmarkTarget
   poi?: AtlasPoi
@@ -20,8 +21,26 @@ export interface AtlasView { azimuth: number, tilt: number }
 export const TOP_DOWN_VIEW: AtlasView = { azimuth: 0, tilt: 0 }
 export const TILTED_VIEW: AtlasView = { azimuth: -Math.PI / 12, tilt: Math.PI / 3.6 }
 export const WHOLE_GALAXY: AtlasCamera = { x: 1024, y: 1024, zoom: 1 }
-export const MAX_ATLAS_ZOOM = 128
+export const MAX_ATLAS_ZOOM = 2048
 export const LY_PER_MAP_UNIT = 4096 / 83
+
+/** Keep the original sequence: missing coordinates break a leg rather than skipping a stop. */
+export function atlasNavigationRoute(route: NavigationRoute | undefined, systemName: string | null) {
+  const hops = route?.route ?? []
+  const currentIndex = systemName === null ? -1 : hops.findIndex(hop => hop.system.trim().toLowerCase() === systemName.trim().toLowerCase())
+  const markers: AtlasMarker[] = hops.flatMap((hop, index) => hop.position ? [{
+    id: `route:${index}:${hop.address ?? hop.system}`, kind: 'route' as const, label: hop.system, systemName: hop.system, position: hop.position,
+    routeStop: { index, destination: index === hops.length - 1, completed: index < currentIndex,
+      current: index === currentIndex, starClass: hop.starClass }
+  }] : [])
+  const legs = hops.flatMap((hop, index) => {
+    const previous = hops[index - 1]
+    return previous?.position && hop.position
+      ? [{ index, from: previous.position, to: hop.position, completed: index <= currentIndex }]
+      : []
+  })
+  return { markers, legs, currentIndex, missingCoordinates: hops.filter(hop => !hop.position).length }
+}
 
 /** Use explicit entity identities only; a POI/site label is not a station or body name. */
 export function atlasNoteTarget(marker: AtlasMarker): GalaxyBookmarkTarget {

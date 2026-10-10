@@ -26,7 +26,7 @@ export function useGalaxyController(
   )
 
   useEffect(() => {
-    if (view === 'database' || view === 'saved-queries' || view === 'bookmarks' || view === 'atlas') {
+    if (view === 'database' || view === 'saved-queries' || view === 'bookmarks') {
       setSnapshot({ status: 'ready' })
       return
     }
@@ -41,6 +41,8 @@ export function useGalaxyController(
         ? api.getSystemCartography(systemName, signal).then(lookup => ({ lookup }))
         : view === 'exobiology'
           ? api.getExplorationLedger(signal).then(exploration => ({ exploration }))
+          : view === 'atlas'
+            ? api.getNavigationRoute(signal).then(route => ({ route }))
           : Promise.all([api.getNavigationRoute(signal), api.getActions(signal)])
             .then(([route, actions]) => ({ actions, route }))
       void request.then(result => {
@@ -53,10 +55,10 @@ export function useGalaxyController(
     }
 
     load(true)
-    const unsubscribeRoute = view === 'route'
+    const unsubscribeRoute = view === 'route' || view === 'atlas'
       ? events.subscribe('navigation-route', route => {
           latest.cancel()
-          setSnapshot(current => storeControllerSnapshot(api, cacheKey, { ...current, route, status: 'ready' }))
+          setSnapshot(current => storeControllerSnapshot(api, cacheKey, { ...current, route, error: undefined, status: 'ready' }))
         })
       : undefined
     const unsubscribeCartography = view === 'system'

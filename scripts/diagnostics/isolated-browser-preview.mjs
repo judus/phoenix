@@ -2,8 +2,9 @@
 // In-memory browser diagnostics only: no real journals, game input, or provider requests.
 // Add --prospecting for a synthetic pre-Odyssey candidate with unknown signal counts.
 // Add --copilot-navigation for delayed synthetic chat using real MCP and history persistence.
+// Add --atlas-route for a synthetic NavRoute file, including short jumps and real heights.
 import { createRequire } from 'node:module'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -28,6 +29,7 @@ const denseCartography = process.argv.includes('--dense-cartography')
 const eddnSubmissions = process.argv.includes('--eddn-submissions')
 const prospecting = process.argv.includes('--prospecting')
 const atlasPois = process.argv.includes('--atlas-pois')
+const atlasRoute = process.argv.includes('--atlas-route')
 const communityGoals = process.argv.includes('--community-goals')
 const missionBrief = process.argv.includes('--mission-brief')
 const powerplay = process.argv.includes('--powerplay')
@@ -45,8 +47,19 @@ const continuityArticles = [
   { id: 'synthetic-missing', title: 'Synthetic ship missing', body: 'Synthetic EVE-597 is missing after departing Sol. Its current position is unknown.', publishedAt: '2026-09-17T12:00:00Z' }
 ].map(article => ({ ...article, changedAt: article.publishedAt, image: null, slug: article.id,
   sourceUrl: `https://example.com/galnet/${article.id}` }))
-const fixtureDirectory = eddnSubmissions || galnetArchive || missionBrief || powerplay || colonisation || carrier ? mkdtempSync(join(tmpdir(), 'phoenix-isolated-preview-')) : undefined
+const fixtureDirectory = eddnSubmissions || galnetArchive || missionBrief || powerplay || colonisation || carrier || atlasRoute ? mkdtempSync(join(tmpdir(), 'phoenix-isolated-preview-')) : undefined
 const databasePath = fixtureDirectory ? join(fixtureDirectory, 'preview.sqlite') : ':memory:'
+const eliteDirectory = atlasRoute ? join(fixtureDirectory, 'synthetic-elite') : null
+if (eliteDirectory) {
+  mkdirSync(eliteDirectory)
+  writeFileSync(join(eliteDirectory, 'NavRoute.json'), JSON.stringify({ timestamp: new Date().toISOString(),
+    Route: Array.from({ length: 21 }, (_, index) => {
+      const offset = index < 8 ? (index - 5) * 5 : 10 + (index - 7) * 60
+      return { StarSystem: index === 5 ? 'Sol' : `Synthetic route ${index}`,
+        SystemAddress: index + 1, StarClass: ['G', 'K', 'M'][index % 3],
+        StarPos: [offset, index < 8 ? index - 5 : Math.sin(index) * 20, offset / 5] }
+    }) }))
+}
 // This preview must never upload, even when launched from a test-enabled development shell.
 process.env.PHOENIX_EDDN_TEST_MODE = '0'
 // Fail closed if a diagnostic route accidentally reaches an external provider.
@@ -60,7 +73,7 @@ globalThis.fetch = (input, options) => {
 }
 const application = new PhoenixApplication({
   databasePath,
-  eliteDirectory: null,
+  eliteDirectory,
   eliteBindingsDirectory: null,
   host: '127.0.0.1',
   port: 0,

@@ -4,6 +4,11 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Show the in-game plotted route on the Galactic Atlas, with a Route toggle, dimmed
+  completed legs, clickable jump stops and true-height projection in 3D. Route updates
+  preserve your map view; system labels use the existing overlap checks to reduce clutter.
+  Allow 16× closer zoom to inspect short jumps and nearby systems.
+
 - Fix fleet pages failing with “no such column: sequence” when the initial carrier schema
   had already been applied. A new migration preserves carrier records and unrelated data.
 

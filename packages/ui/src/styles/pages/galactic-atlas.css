@@ -85,6 +85,15 @@
     &.active { fill: var(--color-information); }
   }
 
+  .atlas-route {
+    fill: none;
+    stroke: var(--color-action);
+    stroke-width: 2px;
+    stroke-linejoin: round;
+    pointer-events: none;
+    .completed { opacity: 0.3; }
+  }
+
   .atlas-marker {
     cursor: pointer;
     fill: var(--color-action);
@@ -99,6 +108,7 @@
     &.community-goal { fill: none; stroke: var(--color-success); }
     &.investigation { fill: none; stroke: var(--color-investigation); }
     &.nebula { fill: none; }
+    &.route.completed { opacity: 0.3; }
     &.active .hit-area, &:focus-visible .hit-area { stroke: var(--color-information); stroke-dasharray: 3 3; }
     &:focus { outline: none; }
   }
