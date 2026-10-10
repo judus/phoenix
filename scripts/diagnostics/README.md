@@ -1,5 +1,22 @@
 # Isolated diagnostics
 
+## Native SQLite test timings
+
+To investigate disk-backed integration-test timeouts, enable the opt-in profiler while running
+the affected tests with their normal 5-second limit and SQLite durability:
+
+```sh
+PHOENIX_TEST_SQLITE_PROFILE=1 npx vitest run tests/cartography-migrations.test.ts tests/eddn-offline-policy.test.ts tests/galnet-analysis-http.test.ts tests/galnet-archive-http.test.ts tests/eddn-settings-api.test.ts --reporter=verbose
+```
+
+In PowerShell, set `$env:PHOENIX_TEST_SQLITE_PROFILE = '1'` before `npx.cmd vitest run ...` and
+remove it afterwards with `Remove-Item Env:PHOENIX_TEST_SQLITE_PROFILE`. The profiler reports
+per-test wall time, cumulative synchronous SQLite time, call count and the five slowest operation
+names. It does not log SQL, bound values, stored documents or paths. Hooks include test cleanup;
+constructor/file-permission work and HTTP waits are outside SQLite time. No machine-dependent
+timing assertions are added. Profiling is off by default; compare repeated native runs, not just
+one passing result. Run the full suite too when investigating contention between test files.
+
 ## Mission briefs
 
 After building, run `node --import tsx scripts/diagnostics/isolated-browser-preview.mjs --mission-brief`
