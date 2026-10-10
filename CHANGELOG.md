@@ -4,6 +4,10 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Reduce SQLite startup disk writes by committing each base schema as a single transaction,
+  including EDDN storage. Keep later migrations independently committed and retain normal
+  durability; failed schema setup rolls back cleanly before retrying.
+
 ## 0.1.7 — 2026-10-10 (prerelease)
 
 - Add attached-label input groups: notes search moves into the header with a compact [+] action,

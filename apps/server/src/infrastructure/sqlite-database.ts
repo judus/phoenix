@@ -79,10 +79,12 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
 
   public initialize (): boolean {
     const newProfile = !this.connection.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'").get()
-    this.connection.exec(`
-      PRAGMA foreign_keys = ON;
-      PRAGMA journal_mode = WAL;
-
+    // Journal mode must change outside a transaction. Batch base DDL to avoid a durable
+    // commit per statement; later data migrations keep their own commit/rollback boundaries.
+    this.connection.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;')
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      this.connection.exec(`
       CREATE TABLE IF NOT EXISTS schema_migrations (
         version INTEGER PRIMARY KEY,
         applied_at TEXT NOT NULL
@@ -216,7 +218,12 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
       INSERT OR IGNORE INTO schema_migrations (version, applied_at)
       VALUES (6, datetime('now'));
 
-    `)
+      `)
+      this.connection.exec('COMMIT')
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
+    }
     this.restrictFiles()
     const missionMigration = this.connection.prepare(`
       INSERT OR IGNORE INTO schema_migrations (version, applied_at)
