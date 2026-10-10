@@ -4,15 +4,38 @@ import { CarrierObservationSchema, type CarrierObservation, type CarrierReposito
 export class SqliteCarrierRepository implements CarrierRepository {
   public constructor(private readonly connection: DatabaseSync) {}
   public initialize(): void {
-    if (this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = 33').get()) return
-    this.connection.exec('BEGIN IMMEDIATE')
-    try {
-      this.connection.exec(`
+    if (!this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = 33').get()) {
+      this.connection.exec('BEGIN IMMEDIATE')
+      try {
+        this.connection.exec(`
         CREATE TABLE carrier_observations (carrier_id INTEGER NOT NULL, kind TEXT NOT NULL, observed_at TEXT NOT NULL, sequence INTEGER NOT NULL, document TEXT NOT NULL, PRIMARY KEY(carrier_id, kind)) STRICT;
         CREATE TABLE carrier_history (sequence INTEGER PRIMARY KEY, entry_id TEXT NOT NULL UNIQUE, carrier_id INTEGER NOT NULL, observed_at TEXT NOT NULL, document TEXT NOT NULL) STRICT;
         CREATE INDEX carrier_history_time ON carrier_history(carrier_id, observed_at DESC);
         DELETE FROM elite_journal_checkpoints;
         INSERT INTO schema_migrations VALUES (33, datetime('now'));
+        COMMIT;
+        `)
+      } catch (cause) { this.connection.exec('ROLLBACK'); throw cause }
+    }
+    if (this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = 34').get()) return
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      // Migration 33 was briefly applied without sequence columns during development.
+      // Rebuild once for either layout; history rowids establish the original insertion order.
+      this.connection.exec(`
+        CREATE TABLE carrier_history_sequenced (sequence INTEGER PRIMARY KEY, entry_id TEXT NOT NULL UNIQUE, carrier_id INTEGER NOT NULL, observed_at TEXT NOT NULL, document TEXT NOT NULL) STRICT;
+        INSERT INTO carrier_history_sequenced SELECT rowid, entry_id, carrier_id, observed_at, document FROM carrier_history;
+        CREATE TABLE carrier_observations_sequenced (carrier_id INTEGER NOT NULL, kind TEXT NOT NULL, observed_at TEXT NOT NULL, sequence INTEGER NOT NULL, document TEXT NOT NULL, PRIMARY KEY(carrier_id, kind)) STRICT;
+        INSERT INTO carrier_observations_sequenced
+          SELECT observations.carrier_id, observations.kind, observations.observed_at, history.sequence, observations.document
+          FROM carrier_observations AS observations
+          JOIN carrier_history_sequenced AS history ON history.entry_id = json_extract(observations.document, '$.id');
+        DROP TABLE carrier_observations;
+        DROP TABLE carrier_history;
+        ALTER TABLE carrier_history_sequenced RENAME TO carrier_history;
+        ALTER TABLE carrier_observations_sequenced RENAME TO carrier_observations;
+        CREATE INDEX carrier_history_time ON carrier_history(carrier_id, observed_at DESC);
+        INSERT INTO schema_migrations VALUES (34, datetime('now'));
         COMMIT;
       `)
     } catch (cause) { this.connection.exec('ROLLBACK'); throw cause }

@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Fix fleet pages failing with “no such column: sequence” when the initial carrier schema
+  had already been applied. A new migration preserves carrier records and unrelated data.
+
 - Add a journal-only Fleet Carrier WIP proposal: management identity, observed location/jumps,
   fuel, capacity, finances, permissions, service snapshots, associated personal stored ships
   and bounded event history. Unknown data stays unknown; no CAPI or complete visitor/trade ledger.
