@@ -7,11 +7,13 @@ import {
   type StoredModule
 } from '@phoenix/contracts'
 import type { EliteJournalEvent } from '@phoenix/elite'
+import type { CarrierReader } from '../domain/carriers.js'
 import type { FleetCatalogueResolver, FleetDataReader, FleetRepository, MarketStationResolver } from '../domain/fleet.js'
 
 export class FleetDataService implements FleetDataReader {
   public constructor (
     private readonly repository: FleetRepository,
+    private readonly carriers: CarrierReader,
     private readonly catalogue: FleetCatalogueResolver,
     private readonly stationResolver: MarketStationResolver = { resolve: () => null }
   ) {}
@@ -62,9 +64,10 @@ export class FleetDataService implements FleetDataReader {
       ? 'unknown'
       : latestMutationAt !== null && latestMutationAt > snapshotAt ? 'partial' : 'complete'
     const count = (state: FleetShip['state']) => ships.filter(ship => ship.state === state).length
+    const carriers = this.carriers.getCarriers()
     return FleetResponseSchema.parse({
       activeShipId: ships.find(ship => ship.state === 'active')?.id ?? null,
-      carriers: { observed: false, items: [] },
+      carriers: { observed: carriers.length > 0, items: carriers },
       ships,
       shipsSnapshotAt: this.repository.getFleetProjectionTimestamp('stored-ships-snapshot'),
       storedModules: {

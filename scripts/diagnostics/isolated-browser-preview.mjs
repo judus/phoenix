@@ -12,6 +12,7 @@ import { PhoenixApplication } from '../../apps/server/src/phoenix-application.ts
 import { MissionDataService } from '../../apps/server/src/application/mission-data-service.ts'
 import { PowerplayDataService } from '../../apps/server/src/application/powerplay-data-service.ts'
 import { ColonisationDataService } from '../../apps/server/src/application/colonisation-data-service.ts'
+import { CarrierDataService } from '../../apps/server/src/application/carrier-data-service.ts'
 import { SqliteDatabase } from '../../apps/server/src/infrastructure/sqlite-database.ts'
 import { parseMicroResourceInventory } from '@phoenix/elite'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
@@ -31,6 +32,7 @@ const communityGoals = process.argv.includes('--community-goals')
 const missionBrief = process.argv.includes('--mission-brief')
 const powerplay = process.argv.includes('--powerplay')
 const colonisation = process.argv.includes('--colonisation')
+const carrier = process.argv.includes('--carrier')
 const galnetArchive = process.argv.includes('--galnet-archive')
 // Exercise display-tool navigation during a real HTTP chat stream, without paid inference.
 const copilotNavigation = process.argv.includes('--copilot-navigation')
@@ -43,7 +45,7 @@ const continuityArticles = [
   { id: 'synthetic-missing', title: 'Synthetic ship missing', body: 'Synthetic EVE-597 is missing after departing Sol. Its current position is unknown.', publishedAt: '2026-09-17T12:00:00Z' }
 ].map(article => ({ ...article, changedAt: article.publishedAt, image: null, slug: article.id,
   sourceUrl: `https://example.com/galnet/${article.id}` }))
-const fixtureDirectory = eddnSubmissions || galnetArchive || missionBrief || powerplay || colonisation ? mkdtempSync(join(tmpdir(), 'phoenix-isolated-preview-')) : undefined
+const fixtureDirectory = eddnSubmissions || galnetArchive || missionBrief || powerplay || colonisation || carrier ? mkdtempSync(join(tmpdir(), 'phoenix-isolated-preview-')) : undefined
 const databasePath = fixtureDirectory ? join(fixtureDirectory, 'preview.sqlite') : ':memory:'
 // This preview must never upload, even when launched from a test-enabled development shell.
 process.env.PHOENIX_EDDN_TEST_MODE = '0'
@@ -147,6 +149,22 @@ const application = new PhoenixApplication({
 })
 const { port } = await application.start()
 copilotOrigin = `http://127.0.0.1:${port}`
+if (carrier) {
+  const database = new SqliteDatabase(databasePath)
+  try {
+    database.initialize()
+    const service = new CarrierDataService(database.carriers)
+    service.ingest({ timestamp: '2026-10-10T10:00:00Z', event: 'CarrierStats', CarrierID: 42, CarrierType: 'Personal',
+      Callsign: 'SYN-001', Name: 'Synthetic carrier', DockingAccess: 'all', AllowNotorious: false, FuelLevel: 800,
+      JumpRangeCurr: 450, JumpRangeMax: 500, PendingDecommission: false,
+      SpaceUsage: { TotalCapacity: 25000, Crew: 2000, Cargo: 10000, CargoSpaceReserved: 2000, ShipPacks: 1000, ModulePacks: 1000, FreeSpace: 9000 },
+      Finance: { CarrierBalance: 1000000000, ReserveBalance: 100000000, AvailableBalance: 900000000, ReservePercent: 10 },
+      Crew: ['refuel', 'repair', 'rearm', 'outfitting', 'shipyard', 'exploration', 'pioneersupplies'].map(role => ({ CrewRole: role, CrewName: 'Synthetic crew', Activated: true, Enabled: true })) })
+    service.ingest({ timestamp: '2026-10-10T10:01:00Z', event: 'CarrierLocation', CarrierID: 42, StarSystem: 'Sol', SystemAddress: 1 })
+    service.ingest({ timestamp: '2026-10-10T10:02:00Z', event: 'CarrierJumpRequest', CarrierID: 42, SystemName: 'Colonia', SystemAddress: 2, BodyID: 1, Body: 'Colonia 1', DepartureTime: '2026-10-10T10:17:00Z' })
+    service.ingest({ timestamp: '2026-10-10T10:03:00Z', event: 'CarrierCrewServices', CarrierID: 42, CrewRole: 'repair', Operation: 'deactivate' })
+  } finally { database.close() }
+}
 if (colonisation) {
   const database = new SqliteDatabase(databasePath)
   try {

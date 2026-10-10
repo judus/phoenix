@@ -4,6 +4,10 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Add a journal-only Fleet Carrier WIP proposal: management identity, observed location/jumps,
+  fuel, capacity, finances, permissions, service snapshots, associated personal stored ships
+  and bounded event history. Unknown data stays unknown; no CAPI or complete visitor/trade ledger.
+
 - Add a journal-only Colonisation WIP proposal: last-observed construction sites and
   supply balances, separate claim/release observations and personal contribution history.
   Contributions do not imply ownership or locally advance global construction totals.

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { ModuleDefinitionSchema } from './elite-catalogue.js'
+import { FleetCarrierSchema } from './carriers.js'
 
 export const FleetShipStateSchema = z.enum([
   'active', 'stored-here', 'stored-remote', 'transfer', 'sold', 'unknown'
@@ -54,7 +55,7 @@ export const FleetResponseSchema = z.object({
   activeShipId: z.number().int().nonnegative().nullable(),
   carriers: z.object({
     observed: z.boolean(),
-    items: z.array(z.never())
+    items: z.array(FleetCarrierSchema)
   }).strict(),
   ships: z.array(FleetShipSchema),
   shipsSnapshotAt: z.string().datetime({ offset: true }).nullable(),

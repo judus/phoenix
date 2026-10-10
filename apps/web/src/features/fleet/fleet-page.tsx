@@ -27,6 +27,7 @@ import { DataSyncNotice } from '../../components/data-sync-notice.js'
 import { SystemLocationLink } from '../../components/system-location-link.js'
 import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import { CurrentShipOverview } from './current-ship-overview.js'
+import { CarrierPage } from './carrier-page.js'
 import type { FleetControllerSnapshot, FleetView } from './use-fleet-controller.js'
 import {
   createCurrentShipModel,
@@ -89,7 +90,7 @@ export function FleetPage({ controller, devicePreferences, onExecuteAction, onNa
   }
   if (!controller.fleet) return <FleetState title={titleFor(route.view)} status="error" error="Fleet records unavailable." />
   if (route.view === 'stored-modules') return <StoredModules fleet={controller.fleet} />
-  if (route.view === 'carriers') return <FleetCarriers observed={controller.fleet.carriers.observed} />
+  if (route.view === 'carriers') return <CarrierPage fleet={controller.fleet} error={controller.error} />
   return <FleetOverview fleet={controller.fleet} />
 }
 
@@ -344,12 +345,6 @@ function StoredModules({ fleet }: { fleet: NonNullable<FleetControllerSnapshot['
               </DataTableGroup>}
       </div>
     </div></PageFrame>
-  )
-}
-
-function FleetCarriers({ observed }: { observed: boolean }) {
-  return (
-    <PageFrame layout="fit"><div className="fleet-scroll-page"><PageHeader variant="cockpit" context={<Breadcrumbs items={[{ label: 'Fleet', href: '#/fleet/overview' }, { label: 'Carriers' }]} />} title="Fleet carriers" /><Stack className="fleet-scroll-content" gap="lg"><Widget heading="Carrier authority"><Status tone={observed ? 'information' : 'muted'}>{observed ? 'Carrier records observed locally.' : 'No authoritative carrier record observed.'}</Status><p>Zero observed carriers means unknown or none observed—not a claim that the commander owns no carrier.</p></Widget></Stack></div></PageFrame>
   )
 }
 
