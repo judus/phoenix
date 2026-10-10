@@ -434,6 +434,14 @@ export class PhoenixApiClient implements PhoenixApi {
     return this.#get('/api/operations/missions', MissionsResponseSchema, signal)
   }
 
+  async getPowerplay(signal?: AbortSignal): Promise<PowerplayResponse> {
+    return this.#get('/api/operations/powerplay', PowerplayResponseSchema, signal)
+  }
+
+  async savePowerplayTarget(target: PowerplayTarget | null, signal?: AbortSignal): Promise<PowerplayResponse> {
+    return this.#json('/api/operations/powerplay/target', 'PUT', PowerplayTargetSchema.nullable().parse(target), PowerplayResponseSchema, signal)
+  }
+
   async getPersonalNotes(query = '', signal?: AbortSignal): Promise<PersonalNotesResponse> {
     return this.#get(`/api/notes?${new URLSearchParams({ query })}`, PersonalNotesResponseSchema, signal)
   }
@@ -1007,3 +1015,4 @@ async function apiError(response: Response): Promise<Error> {
   }
   return new Error(`PHOENIX API returned HTTP ${response.status}.`)
 }
+import { PowerplayResponseSchema, PowerplayTargetSchema, type PowerplayResponse, type PowerplayTarget } from '@phoenix/contracts'

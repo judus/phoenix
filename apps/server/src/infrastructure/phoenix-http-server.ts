@@ -87,6 +87,8 @@ import type { CommandCatalogueSnapshots } from '../domain/commands.js'
 import type { NumpadCommands } from '../domain/numpad.js'
 import type { Macros } from '../domain/macros.js'
 import type { MissionDataReader } from '../domain/missions.js'
+import type { PowerplayReader } from '../domain/powerplay.js'
+import { PowerplayTargetSchema } from '@phoenix/contracts'
 import type { CommunicationDataReader, CommunicationQueryView, LocalTrafficReader } from '../domain/communications.js'
 import type { FleetDataReader } from '../domain/fleet.js'
 import type { GalaxyBookmarks } from '../domain/galaxy-bookmarks.js'
@@ -166,6 +168,8 @@ export interface PhoenixHttpServerOptions extends SettingsHttpServices, Engineer
   mcpServer: PhoenixMcpServer
   macros: Macros
   missions: MissionDataReader
+  powerplay: PowerplayReader
+  journalHistoryLoaded: Subscribable<null>
   personalNotes: PersonalNotes
   communications: CommunicationDataReader
   communicationUpdates: Subscribable<CommunicationMessage>
@@ -465,6 +469,16 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/operations/missions') {
       writeJson(response, 200, this.options.missions.getMissions())
+      return
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/operations/powerplay') {
+      writeJson(response, 200, this.options.powerplay.getPowerplay())
+      return
+    }
+    if (request.method === 'PUT' && url.pathname === '/api/operations/powerplay/target') {
+      const input = await readValidatedJsonBody(request, PowerplayTargetSchema.nullable())
+      writeJson(response, 200, this.options.powerplay.setTarget(input))
       return
     }
 
@@ -1336,6 +1350,7 @@ export class PhoenixHttpServer {
     this.phoenixEventStreams.add(response)
     const send = (event: string, payload: unknown): void => writeSse(response, event, payload)
     const unsubscribers = [
+      this.options.journalHistoryLoaded.subscribe(() => send('journal-history-loaded', null)),
       this.options.runtimeStateUpdates.subscribe(state => send('runtime-state', state)),
       this.options.cartographyUpdates.subscribe(update => send('cartography-updated', update)),
       this.options.activityLog.subscribe(entry => send('activity-entry', entry)),

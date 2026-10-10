@@ -11,6 +11,7 @@ import {
   DisplayCommandSchema,
   EngineeringProjectsChangedSchema,
   NavigationRouteSchema,
+  JournalHistoryLoadedSchema,
   RuntimeStateSchema
 } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
@@ -22,6 +23,7 @@ import type {
 } from '../../application/events/phoenix-event-hub.js'
 
 const EVENT_NAMES: readonly PhoenixEventName[] = [
+  'journal-history-loaded',
   'activity-entry',
   'cartography-updated',
   'command-catalogue',
@@ -38,6 +40,7 @@ const EVENT_NAMES: readonly PhoenixEventName[] = [
 ]
 
 const EVENT_SCHEMAS: Record<PhoenixEventName, { parse(value: unknown): unknown }> = {
+  'journal-history-loaded': JournalHistoryLoadedSchema,
   'activity-entry': ActivityLogEntrySchema,
   'cartography-updated': CartographyUpdateSchema,
   'command-catalogue': CommandCatalogueRevisionSchema,

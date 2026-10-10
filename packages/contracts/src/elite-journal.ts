@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+export const JournalHistoryLoadedSchema = z.null()
+
 export const EliteJournalSourceDiagnosticsSchema = z.object({
   directory: z.string().min(1).nullable(),
   filePath: z.string().min(1).nullable(),

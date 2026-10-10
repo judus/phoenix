@@ -17,6 +17,14 @@ constructor/file-permission work and HTTP waits are outside SQLite time. No mach
 timing assertions are added. Profiling is off by default; compare repeated native runs, not just
 one passing result. Run the full suite too when investigating contention between test files.
 
+## Powerplay proposal
+
+After building, run `node --import tsx scripts/diagnostics/isolated-browser-preview.mjs --powerplay`
+and open `#/activities/powerplay`. Synthetic pledge, fractional merits, collections/deliveries
+and a deliberately fictional reward target live in temporary SQLite storage, removed on shutdown.
+Check Overview/Activity/Target, save/clear, and both themes/orientations. No player journals,
+CAPI, provider requests or EDDN submissions are involved. This does not validate game reward gates.
+
 ## Mission briefs
 
 After building, run `node --import tsx scripts/diagnostics/isolated-browser-preview.mjs --mission-brief`

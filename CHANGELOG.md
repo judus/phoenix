@@ -4,6 +4,11 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Add a journal-backed Powerplay proposal under Activities → PWR: pledge/rank/merits
+  overview, observed activity, and a player-entered module/perk target. Preserve fractional
+  merits and unknown state; target progress does not assert an in-game reward unlock.
+  The header marks the feature as work in progress pending gameplay validation.
+
 - Reduce SQLite startup disk writes by committing each base schema as a single transaction,
   including EDDN storage. Keep later migrations independently committed and retain normal
   durability; failed schema setup rolls back cleanly before retrying.
