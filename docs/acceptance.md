@@ -1,38 +1,49 @@
 # PHOENIX acceptance checklist
 
-Reviewed **2026-10-09**. Tracking task: [#25](https://github.com/judus/phoenix/issues/25).
+Reviewed **2026-10-10**. Tracking task: [#25](https://github.com/judus/phoenix/issues/25).
 This records evidence and outstanding tests, not a claim that every platform/gameplay check passed.
 Refresh the build identity and results before each release.
 
 ## Build identities
 
-- Published preview: [v0.1.6](https://github.com/judus/phoenix/releases/tag/v0.1.6), source
-  `9d4f10f813ee70709e7490aab7afe4c2224c854a`. Both native installer jobs passed in
-  [release run 37865965880](https://github.com/judus/phoenix/actions/runs/37865965880).
+- Published preview: [v0.1.7](https://github.com/judus/phoenix/releases/tag/v0.1.7), source
+  `9f345526b296e9b27e387f02b25660c8460a7865`. Both native installer jobs passed in
+  [release run 38016202187](https://github.com/judus/phoenix/actions/runs/38016202187).
   Bundled Node is `v24.14.0`; Windows installer remains unsigned.
-- Promoted dev baseline: `294c7c201baaa40e0cc16539566b21ba6417a2ca` via
-  [PR #164](https://github.com/judus/phoenix/pull/164). Native installer promotion checks passed in
-  [CI run 37865573027](https://github.com/judus/phoenix/actions/runs/37865573027) on
-  Ubuntu 24.04 and Windows Server 2022. The full source gate passed 251 files / 1,569 tests,
+- Promoted dev baseline: `fb64541c816879f654f4a9d88377cafa13cdc47f` via
+  [PR #186](https://github.com/judus/phoenix/pull/186). Native installer promotion checks passed in
+  [CI run 38015941837](https://github.com/judus/phoenix/actions/runs/38015941837) on
+  Ubuntu 24.04 and Windows Server 2022. The full source gate passed 257 files / 1,622 tests,
   strict production/test typechecks and builds. Ordinary dev CI checks source/tests, **not installers**.
-- v0.1.6 consumes `deskplane@0.1.4`, embedded Control Deck runtime `0.1.13` and
+- v0.1.7 consumes `deskplane@0.1.4`, embedded Control Deck runtime `0.1.13` and
   `@jdu/llm-client@0.1.3`. Earlier preview acceptance does not prove these changes on actual devices.
 
 Both installers and manifests were downloaded and independently verified before publication:
 version, source SHA, preview channel, bundled Node, byte counts and all four original checksums.
 Public download links returned HTTP 200 after publication. Older releases were preserved.
 
-Published installer hashes from [SHA256SUMS](https://github.com/judus/phoenix/releases/download/v0.1.6/SHA256SUMS):
+Published installer hashes from [SHA256SUMS](https://github.com/judus/phoenix/releases/download/v0.1.7/SHA256SUMS):
 
 ```text
-93ca4de5ff186cbedde0e19deac59cd1cb79a00d3e85fd01c110dd6d2faeb27a  PHOENIX-linux-x64.AppImage
-791907aec31635084736e8ba8f2b8d10e512a8ddf4f3cb9593c5b18b27cc4fac  PHOENIX-windows-x64-setup.exe
+5b26b82af97cf64c0dd320fe5a8d78c8668672cd4e9e5008d91d497628e9add9  PHOENIX-linux-x64.AppImage
+990b614e5170c8945d6f6df9499cf36f3ca5bdde780f86a64b230d4c7aec0c16  PHOENIX-windows-x64-setup.exe
 ```
 
-The [Linux](https://github.com/judus/phoenix/releases/download/v0.1.6/PHOENIX-linux-x64-build.json)
-and [Windows](https://github.com/judus/phoenix/releases/download/v0.1.6/PHOENIX-windows-x64-build.json)
+The [Linux](https://github.com/judus/phoenix/releases/download/v0.1.7/PHOENIX-linux-x64-build.json)
+and [Windows](https://github.com/judus/phoenix/releases/download/v0.1.7/PHOENIX-windows-x64-build.json)
 manifests record version, source, runtime and packaged file hashes. These prove artifact identity,
 not successful input or observation inside Elite.
+
+v0.1.7 includes custom control decks, schematic 3D Atlas and personal notes. Maintainer source
+checks and isolated browser regressions cover both themes, linked mission/location navigation,
+body actions and Notes workspace recall. Actual-model Copilot note usage and this release's
+installed-device/retained-data upgrade acceptance remain pending. The body detail header needs
+later visual refinement; no sidebar redesign is claimed.
+
+One earlier Windows dev-push run timed out two existing GalNet HTTP tests at the default five
+seconds ([run 38015636326](https://github.com/judus/phoenix/actions/runs/38015636326)).
+Subsequent preparation, promotion and tagged release gates passed. This timing observation is
+not evidence of a fixed or confirmed production defect.
 
 ## Acceptance matrix
 
@@ -44,7 +55,7 @@ the matrix below retains its next-installed-build acceptance checks, not a secon
 
 | Area | Existing evidence | Next check / owner |
 | --- | --- | --- |
-| Installer lifecycle | v0.1.6 native CI passed; isolated smoke covers startup, single instance, stop, settings migration and corrupt-settings recovery. | Maintainer: exact published build on Windows/Linux, actual install/update/tray/restart/uninstall. |
+| Installer lifecycle | v0.1.7 native CI passed; isolated smoke covers startup, single instance, stop, settings migration and corrupt-settings recovery. | Maintainer: exact published build on Windows/Linux, actual install/update/tray/restart/uninstall. |
 | Retained data | Smoke preserves pairing identity, edited Copilot profile and EDDN opt-out; domain tests cover other stored objects. | Maintainer: actual update/uninstall preserves settings, decks/macros, projects, queries, bookmarks and observed state. Back up; do not reset the profile to pass. |
 | Linux desktops / input | PHOENIX AppImage launch/tray reported working on Mint; hardware/session record incomplete. Private-D-Bus and extract-and-run checks automated. | Maintainer: record distro/desktop/session/portal versions; test Mint plus KDE/Wayland and GNOME/Wayland, portal permission/revocation, input release, FUSE/extract-and-run and tray/quit. Earlier Arch/KDE and Fedora/GNOME results covered **Control Deck**, not PHOENIX. |
 | Windows / Elite input | Historical real-game success; current Windows CI uses simulated input. Current complete gameplay record pending. | Windows maintainer: Elite focused, one safe known-good and one formerly failing binding; tap/hold/release, macro stop/cancel/failure, shutdown cleanup. Record game response, not HTTP success or Notepad typing. |
@@ -82,12 +93,12 @@ pairing secrets, tokens or unredacted journals.
 
 ## Release checkpoint
 
-- [x] Verify v0.1.6 source/tag, both downloaded installer hashes and manifests.
-- [x] Repeat automated native lifecycle/retained-data smoke tests for v0.1.6.
+- [x] Verify v0.1.7 source/tag, both downloaded installer hashes and manifests.
+- [x] Repeat automated native lifecycle/retained-data smoke tests for v0.1.7.
 - [ ] Record actual installed upgrade/lifecycle/retained-data acceptance on each platform.
 - [ ] Record applicable real-game/tablet/desktop rows and explicitly list pending platforms.
 - [x] Keep EDDN production gating unchanged; #20 readiness work remains separate.
-- [x] Review signing warnings and truthful preview notes; publish v0.1.6 as prerelease, not latest.
+- [x] Review signing warnings and truthful preview notes; publish v0.1.7 as prerelease, not latest.
 
 The [release guide](releases.md), [packaging guide](../scripts/package/README.md) and
 [source setup](installation.md) own procedures; this document owns status/evidence.
