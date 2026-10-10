@@ -1,7 +1,7 @@
 import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
-import type { ActivityLogEntry, CommunityGoalsResponse, MissionsResponse } from '@phoenix/contracts'
+import type { ActivityLogEntry, CommunityGoalsResponse, ExplorationLedgerResponse, MissionsResponse } from '@phoenix/contracts'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
 import { FakeEventHub } from './support/fake-event-hub.js'
 import { useActivitiesController, type ActivitiesControllerSnapshot, type ActivitiesView } from '../apps/web/src/features/activities/use-activities-controller.js'
@@ -39,7 +39,7 @@ test('Activities refreshes mission briefs for journal changes and inventory file
   })
   expect(api.getMissions).toHaveBeenCalledTimes(3)
 
-  view = 'objectives'
+  view = 'powerplay'
   await act(async () => renderer.update(<Probe />))
   expect(snapshot).toEqual({ status: 'ready' })
   expect(api.getMissions).toHaveBeenCalledTimes(3)
@@ -70,7 +70,7 @@ test('Community Goals poll after a delayed fetch and cache expiry, canceling on 
     expect(api.getCommunityGoals).toHaveBeenCalledTimes(1)
     await act(async () => { vi.advanceTimersByTime(1000) })
     const signal = vi.mocked(api.getCommunityGoals).mock.calls[1]![0]!
-    view = 'objectives'
+    view = 'powerplay'
     await act(async () => renderer.update(<Probe />))
     expect(signal.aborted).toBe(true)
     await act(async () => finish?.(response))
@@ -114,3 +114,28 @@ test('Colonisation refreshes only construction events and history completion, re
 function activity(event: string): ActivityLogEntry {
   return { actionable: false, data: {}, event, id: event, importance: 'info', ingestedAt: '2026-08-16T12:00:00.000Z', source: 'journal', timestamp: '2026-08-16T12:00:00.000Z' }
 }
+
+test('Activities loads Exobiology and refreshes only for exploration journal events', async () => {
+  const response: ExplorationLedgerResponse = {
+    systems: [], totals: { biologicalSignals: 0, bodies: 0, geologicalSignals: 0, mappedBodies: 0, samplesCompleted: 0, scannedBodies: 0, systems: 0 }
+  }
+  const events = new FakeEventHub()
+  const api = { getExplorationLedger: vi.fn().mockResolvedValue(response), getMissions: vi.fn() } as unknown as PhoenixApi
+  let snapshot: ActivitiesControllerSnapshot | undefined
+  function Probe() { snapshot = useActivitiesController(api, events, 'exobiology'); return null }
+  const renderer = await renderWithAct(<Probe />)
+  try {
+    expect(snapshot).toEqual({ exploration: response, status: 'ready' })
+    expect(api.getExplorationLedger).toHaveBeenCalledOnce()
+    await act(async () => events.emit('activity-entry', activity('MissionCompleted')))
+    await act(async () => events.emit('activity-entry', { ...activity('ScanOrganic'), source: 'runtime' }))
+    expect(api.getExplorationLedger).toHaveBeenCalledOnce()
+    for (const event of ['ScanOrganic', 'SAASignalsFound', 'Scan']) {
+      await act(async () => events.emit('activity-entry', activity(event)))
+    }
+    expect(api.getExplorationLedger).toHaveBeenCalledTimes(4)
+    expect(api.getMissions).not.toHaveBeenCalled()
+  } finally { await act(async () => renderer.unmount()) }
+  await act(async () => events.emit('activity-entry', activity('ScanOrganic')))
+  expect(api.getExplorationLedger).toHaveBeenCalledTimes(4)
+})

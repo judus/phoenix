@@ -7,6 +7,30 @@ import { PhoenixApplicationShell } from '../apps/web/src/components/shell/phoeni
 
 afterEach(() => vi.unstubAllGlobals())
 
+test('workspace controls occupy the top rail in order, without a bottom bar', () => {
+  const markup = renderToStaticMarkup(<PhoenixApplicationShell
+    activeDesktop="info" showNumpadButton showDeveloper
+    controls={null} copilot={null} information={null} journal={null} settings={null} telemetry={null}
+    informationRoute={{ kind: 'information', section: 'commander', view: 'dashboard' }}
+    onNavigateRoute={() => undefined} onNavigateWorkspace={() => undefined}
+  />)
+  expect([...markup.matchAll(/<abbr[^>]*>([^<]+)<\/abbr>/gu)].map(match => match[1]))
+    .toEqual(['011', 'CTR', 'INF', 'LOG', 'CPT', 'STG', 'DEV', 'F11', 'F13'])
+  expect(markup).not.toContain('workspace-navigation')
+  expect(markup).toContain('aria-label="Workspaces"')
+})
+
+test('hiding 011 removes its rail button even when Numpy is active', () => {
+  const markup = renderToStaticMarkup(<PhoenixApplicationShell
+    activeDesktop="telemetry" showNumpadButton={false}
+    controls={null} copilot={null} information={null} journal={null} settings={null}
+    telemetry={<p>Numpy is active</p>}
+    informationRoute={{ kind: 'information', section: 'commander', view: 'dashboard' }}
+    onNavigateRoute={() => undefined} onNavigateWorkspace={() => undefined}
+  />)
+  expect(markup).not.toContain('href="#/numpad"')
+})
+
 test.each([
   ['Mozilla/5.0 Chrome/130.0 Safari/537.36', true],
   ['Mozilla/5.0 (Linux; Android 15; Tablet) Chrome/130.0 Safari/537.36', true],
@@ -19,7 +43,6 @@ test.each([
     copilot={null}
     information={null}
     journal={null}
-    macros={null}
     settings={null}
     telemetry={null}
     informationRoute={{ kind: 'information', section: 'commander', view: 'dashboard' }}
@@ -41,7 +64,7 @@ test('Android rail reload action reloads the current document without workspace 
   const onNavigateWorkspace = vi.fn()
   const renderer = await renderWithAct(<PhoenixApplicationShell
     activeDesktop="info" controls={null} copilot={null} information={null} journal={null}
-    macros={null} settings={null} telemetry={null}
+    settings={null} telemetry={null}
     informationRoute={{ kind: 'information', section: 'commander', view: 'dashboard' }}
     onNavigateRoute={onNavigateRoute} onNavigateWorkspace={onNavigateWorkspace}
   />)

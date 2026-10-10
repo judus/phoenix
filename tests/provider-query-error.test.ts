@@ -8,6 +8,28 @@ import { EdsmCartographySource } from '../apps/server/src/infrastructure/edsm-ca
 
 const privateUrl = new URL('https://provider.invalid/private-system?token=private-token')
 
+test('Ardent explicitly missing reference system has a distinct safe message', async () => {
+  const fetcher = vi.fn(async () => new Response(JSON.stringify({ error: 'Not Found', message: 'System not found' }), { status: 404 }))
+  const source = new ArdentStationSearchSource({ fetch: fetcher as typeof fetch, resolveCommodity: () => null })
+  await expect(source.findNearestStations({ minimumPadSize: 2, service: 'refuel', systemName: 'Private reference' }))
+    .rejects.toMatchObject({ provider: 'Ardent', kind: 'reference_system_not_found', status: 404,
+      message: 'Ardent has no record of your reference system.' })
+  expect(fetcher).toHaveBeenCalledTimes(1)
+})
+
+test.each([
+  ['Ardent', 404, JSON.stringify({ message: 'Commodity not found' }), 'not_found'],
+  ['Ardent', 404, 'private non-JSON response', 'not_found'],
+  ['Ardent', 400, JSON.stringify({ message: 'System not found' }), 'request_rejected'],
+  ['Spansh', 404, JSON.stringify({ message: 'System not found' }), 'not_found']
+] as const)('unrelated %s HTTP%i failure does not imply a missing reference system', async (provider, status, body, kind) => {
+  const fetcher = vi.fn(async () => new Response(body, { status }))
+  const request = fetchProviderJson(provider, fetcher as typeof fetch, privateUrl, {})
+  await expect(request).rejects.toMatchObject({ provider, kind, status })
+  await expect(request).rejects.not.toThrow(/private|token/)
+  expect(fetcher).toHaveBeenCalledTimes(1)
+})
+
 test.each([
   [400, 'request_rejected'], [401, 'authentication'], [403, 'authorization'],
   [409, 'request_rejected'], [422, 'request_rejected'],

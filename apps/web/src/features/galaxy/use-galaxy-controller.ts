@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { CartographyLookupResponse, ExplorationLedgerResponse, GameActionCatalogResponse, NavigationRoute } from '@phoenix/contracts'
+import type { CartographyLookupResponse, GameActionCatalogResponse, NavigationRoute } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { readControllerSnapshot, storeControllerSnapshot } from '../../application/cache/controller-snapshot-cache.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
@@ -8,7 +8,6 @@ import { LatestRequest } from '../../application/requests/latest-request.js'
 export interface GalaxyControllerSnapshot {
   actions?: GameActionCatalogResponse
   error?: string
-  exploration?: ExplorationLedgerResponse
   lookup?: CartographyLookupResponse
   route?: NavigationRoute
   status: 'idle' | 'loading' | 'ready' | 'error'
@@ -17,7 +16,7 @@ export interface GalaxyControllerSnapshot {
 export function useGalaxyController(
   api: PhoenixApi,
   events: PhoenixEventHub,
-  view: 'system' | 'atlas' | 'route' | 'database' | 'saved-queries' | 'exobiology' | 'bookmarks',
+  view: 'system' | 'atlas' | 'route' | 'database' | 'saved-queries' | 'bookmarks',
   systemName?: string
 ): GalaxyControllerSnapshot {
   const cacheKey = `galaxy:${view}:${systemName ?? ''}`
@@ -26,7 +25,7 @@ export function useGalaxyController(
   )
 
   useEffect(() => {
-    if (view === 'database' || view === 'saved-queries' || view === 'bookmarks') {
+    if (view === 'saved-queries' || view === 'bookmarks') {
       setSnapshot({ status: 'ready' })
       return
     }
@@ -39,9 +38,7 @@ export function useGalaxyController(
       if (showLoading) setSnapshot(retained ?? { status: 'loading' })
       const request = view === 'system'
         ? api.getSystemCartography(systemName, signal).then(lookup => ({ lookup }))
-        : view === 'exobiology'
-          ? api.getExplorationLedger(signal).then(exploration => ({ exploration }))
-          : view === 'atlas'
+        : view === 'atlas' || view === 'database'
             ? api.getNavigationRoute(signal).then(route => ({ route }))
           : Promise.all([api.getNavigationRoute(signal), api.getActions(signal)])
             .then(([route, actions]) => ({ actions, route }))
@@ -55,7 +52,7 @@ export function useGalaxyController(
     }
 
     load(true)
-    const unsubscribeRoute = view === 'route' || view === 'atlas'
+    const unsubscribeRoute = view === 'route' || view === 'atlas' || view === 'database'
       ? events.subscribe('navigation-route', route => {
           latest.cancel()
           setSnapshot(current => storeControllerSnapshot(api, cacheKey, { ...current, route, error: undefined, status: 'ready' }))
@@ -71,17 +68,11 @@ export function useGalaxyController(
     const unsubscribeCatalogue = view === 'route'
       ? events.subscribe('command-catalogue', () => load())
       : undefined
-    const unsubscribeExploration = view === 'exobiology'
-      ? events.subscribe('activity-entry', entry => {
-          if (entry.source === 'journal' && explorationEvents.has(entry.event)) load()
-        })
-      : undefined
     return () => {
       latest.cancel()
       unsubscribeRoute?.()
       unsubscribeCartography?.()
       unsubscribeCatalogue?.()
-      unsubscribeExploration?.()
     }
   }, [api, cacheKey, events, systemName, view])
 
@@ -91,13 +82,3 @@ export function useGalaxyController(
 function sameSystemName (left: string, right: string): boolean {
   return left.trim().toLocaleLowerCase() === right.trim().toLocaleLowerCase()
 }
-
-const explorationEvents = new Set([
-  'FSSAllBodiesFound',
-  'FSSBodySignals',
-  'FSSDiscoveryScan',
-  'SAAScanComplete',
-  'SAASignalsFound',
-  'Scan',
-  'ScanOrganic'
-])

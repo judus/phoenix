@@ -4,13 +4,25 @@ import type {
   GameActionOrigin,
   GameActionResult
 } from '@phoenix/contracts'
-import { DefaultCommandRegistry } from '../apps/server/src/application/default-command-registry.js'
+import { DefaultCommandRegistry, PHOENIX_NAVIGATION_DESTINATIONS } from '../apps/server/src/application/default-command-registry.js'
 import { DefaultCommandDispatcher } from '../apps/server/src/application/command-dispatcher.js'
 import { CopilotCommands } from '../apps/server/src/application/copilot-commands.js'
 import { MacroService } from '../apps/server/src/application/macro-service.js'
 import type { GameActions } from '../apps/server/src/application/game-action-service.js'
 import type { CopilotCapabilities } from '../apps/server/src/domain/copilot-capabilities.js'
 import { InMemoryMacroRepository } from '../apps/server/src/infrastructure/macro-repositories.js'
+
+test('Activities shortcuts retain their identities but use current URLs and exclude Objectives', () => {
+  const destinations = PHOENIX_NAVIGATION_DESTINATIONS
+  expect(destinations.some(item => item.id === 'operations.objectives')).toBe(false)
+  expect(destinations.some(item => item.href.startsWith('#/operations/'))).toBe(false)
+  expect(destinations.find(item => item.id === 'operations.missions')).toMatchObject({
+    href: '#/activities/missions', category: 'Activities'
+  })
+  expect(destinations.find(item => item.id === 'galaxy.exobiology')).toMatchObject({
+    href: '#/activities/exobiology', category: 'Activities'
+  })
+})
 
 test('command identities survive catalogue sorting and unavailable actions remain discoverable', () => {
   const actions = new StubGameActions()

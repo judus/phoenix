@@ -43,7 +43,7 @@ export function EngineeringProjectDetailPage ({ actions, onNavigate, project, wa
     <PageFrame layout="fit">
       <Stack fill gap="sm">
         <EngineeringHeader
-          actions={!editing ? <Button disabled={!actions} size="sm" variant="outline" onClick={() => setEditing(true)}>Edit project</Button> : undefined}
+          actions={!editing ? <Button disabled={!actions} variant="outline" onClick={() => setEditing(true)}>Edit project</Button> : undefined}
           title={project.name}
           trail={[{ label: 'Projects', href: '#/engineering/projects' }, { label: project.name }]}
         />

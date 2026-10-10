@@ -62,8 +62,7 @@ test('Fleet overview and current ship render live records without shell chrome',
   expect(loadout).toContain('href="#/fleet/ships/current/overview">Current ship')
   expect(loadout).toContain('aria-current="page">Loadout')
   expect(loadout).toContain('class="loadout-inventory grid"')
-  expect(loadout).toContain('aria-label="Tiles view"')
-  expect(loadout).toContain('title="Switch to table view"')
+  expect(loadout).toContain('aria-label="Show table view"')
   expect(loadout).not.toContain('Current ship views')
   expect(engineering).toContain('Applied blueprints')
   expect(engineering).not.toContain('<th>Condition</th>')
@@ -115,8 +114,7 @@ test('catalogue selection comes from the typed route', () => {
   expect(markup).toContain('Updated <time dateTime="2026-09-12T22:57:03">12 Sept 3312, 22:57</time>')
   expect(markup).not.toContain('Source: Test catalogue')
   expect(markup).toContain('aria-selected="true"')
-  expect(markup).toContain('aria-label="Dossier view"')
-  expect(markup).toContain('title="Switch to table view"')
+  expect(markup).toContain('aria-label="Show table view"')
 })
 
 test('Fleet persists loadout and catalogue view choices in device preferences', async () => {
@@ -130,10 +128,9 @@ test('Fleet persists loadout and catalogue view choices in device preferences', 
     runtime={{ status: 'ready', state }}
   />)
 
-  expect(renderer.root.findByProps({ 'aria-label': 'Tiles view' }).props.title).toBe('Switch to table view')
-  await act(async () => renderer.root.findByProps({ 'aria-label': 'Tiles view' }).props.onClick())
+  await act(async () => renderer.root.findByProps({ 'aria-label': 'Show table view' }).props.onClick())
   expect(devicePreferences.getSnapshot().currentShipLoadoutView).toBe('table')
-  expect(renderer.root.findByProps({ 'aria-label': 'Table view' }).props.title).toBe('Switch to tiles view')
+  expect(renderer.root.findByProps({ 'aria-label': 'Show tiles view' })).toBeDefined()
 
   await act(async () => renderer.update(<FleetPage
     controller={{ catalogue: [ship('adder', 'Adder')], status: 'ready' }}
@@ -142,9 +139,9 @@ test('Fleet persists loadout and catalogue view choices in device preferences', 
     route={{ kind: 'information', section: 'fleet', view: 'catalogue' }}
     runtime={{ status: 'loading' }}
   />))
-  await act(async () => renderer.root.findByProps({ 'aria-label': 'Dossier view' }).props.onClick())
+  await act(async () => renderer.root.findByProps({ 'aria-label': 'Show table view' }).props.onClick())
   expect(devicePreferences.getSnapshot().shipCatalogueView).toBe('table')
-  expect(renderer.root.findByProps({ 'aria-label': 'Table view' }).props.title).toBe('Switch to dossier view')
+  expect(renderer.root.findByProps({ 'aria-label': 'Show dossier view' })).toBeDefined()
   expect(renderer.root.findByProps({ className: 'table-region table-scroll' })).toBeDefined()
 
   await act(async () => renderer.unmount())

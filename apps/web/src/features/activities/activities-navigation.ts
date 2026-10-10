@@ -7,7 +7,7 @@ type ActivitiesNavigationItem = NavigationItem & { route: ActivitiesRoute }
 
 const routes = {
   missions: { kind: 'information', section: 'activities', view: 'missions' },
-  objectives: { kind: 'information', section: 'activities', view: 'objectives' },
+  exobiology: { kind: 'information', section: 'activities', view: 'exobiology' },
   'community-goals': { kind: 'information', section: 'activities', view: 'community-goals' },
   powerplay: { kind: 'information', section: 'activities', view: 'powerplay' },
   colonisation: { kind: 'information', section: 'activities', view: 'colonisation' }
@@ -15,7 +15,7 @@ const routes = {
 
 export const activitiesNavigationItems: ActivitiesNavigationItem[] = [
   item('missions', 'Missions', 'MIS'),
-  item('objectives', 'Objectives', 'OBJ'),
+  item('exobiology', 'Exobiology', 'EXO'),
   item('community-goals', 'Community goals', 'CMG'),
   item('powerplay', 'Powerplay', 'PWR'),
   item('colonisation', 'Colonisation', 'COL')

@@ -12,11 +12,6 @@ export type RouteNavigationItem = NavigationItem & { route: PhoenixRoute }
 
 export function utilityItems(fullscreen: { active: boolean, supported: boolean }, focusActive = false, androidShell = false): ApplicationNavigationItem[] {
   return [
-    routeItem('telemetry', 'Numpad', '011', { kind: 'numpad' }),
-    routeItem('macros', 'Macros', 'MCR', { kind: 'macros' }),
-    routeItem('journal', 'Commander log', 'LOG', { kind: 'journal', view: 'commander' }),
-    routeItem('settings', 'Settings', 'STG', { kind: 'settings', view: 'general' }),
-    routeItem('developer', 'Developer tools', 'DEV', { kind: 'developer', view: 'tools' }),
     androidShell ? {
       id: 'reload',
       kind: 'action',
@@ -52,12 +47,15 @@ export const primaryItems: RouteNavigationItem[] = [
 
 export const emptyContextItems: NavigationItem[] = []
 
-export function workspaceItems(informationRoute: InformationRoute, controlsRoute = defaultRouteForWorkspace('controls'), copilotRoute = defaultRouteForWorkspace('copilot'), notesRoute = defaultRouteForWorkspace('notes')): RouteNavigationItem[] {
+export function workspaceItems(informationRoute: InformationRoute, controlsRoute = defaultRouteForWorkspace('controls'), copilotRoute = defaultRouteForWorkspace('copilot'), journalRoute = defaultRouteForWorkspace('journal'), { showDeveloper = false, showNumpadButton = false }: { showDeveloper?: boolean, showNumpadButton?: boolean } = {}): RouteNavigationItem[] {
   return [
+    ...(showNumpadButton ? [routeItem('telemetry', 'Numpad', '011', { kind: 'numpad' })] : []),
     routeItem('controls', 'Controls', 'CTR', controlsRoute),
     routeItem('info', 'Info', 'INF', informationRoute),
-    routeItem('notes', 'Notes', 'NTS', notesRoute),
-    routeItem('copilot', 'Copilot', 'CPT', copilotRoute)
+    routeItem('journal', 'Log', 'LOG', journalRoute),
+    routeItem('copilot', 'Copilot', 'CPT', copilotRoute),
+    routeItem('settings', 'Settings', 'STG', defaultRouteForWorkspace('settings')),
+    ...(showDeveloper ? [routeItem('developer', 'Developer tools', 'DEV', { kind: 'developer', view: 'tools' })] : [])
   ]
 }
 

@@ -128,6 +128,18 @@ On Windows, keep custom state and log paths inside your user profile with privat
 Use `npm run dev` for the live development servers and `npm run check` for tests, types, and a
 production build. Start feature branches from `dev`; don’t make routine changes directly on `main`.
 
+During development, open port **3401**, including on tablets and in the Android shell. The
+development pairing QR uses that port. Port **3400** serves the API and built frontend, not
+Vite hot reload. The server's `tsx watch` and Vite use the `development` package export to
+load contracts, Elite and Copilot directly from source; production still loads `dist`.
+The initial `predev` build supplies declarations, not the running development implementation.
+Restart `npm run dev` after changing the dev runner or package export configuration; normal
+source edits do not need another package build. No APK rebuild is needed for web changes.
+
+For a data-free loader/watch check, run
+`npx tsx watch --conditions=development scripts/diagnostics/workspace-source-probe.mjs`.
+It reports the package paths and reruns on imported source changes without starting PHOENIX.
+
 Installer builds are native: build Linux AppImages on Linux x64 and Windows installers on Windows
 x64. The [packaging guide](../scripts/package/README.md) lists the tools, commands, and verification
 steps. See [the release guide](releases.md) for CI and GitHub Releases.

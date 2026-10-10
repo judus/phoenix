@@ -143,6 +143,12 @@ export function SettingsPage ({ api, devicePreferences }: { api: PhoenixApi, dev
 
         <Section description="Behavior specific to this browser or tablet." title="This device">
           <SettingsList>
+            <SettingRow description="Show 011 in the top rail. Numpy keyboard commands remain available when hidden." scope="This device" title="Numpy rail button">
+              <SettingToggle checked={preferences.showNumpadButton} label={preferences.showNumpadButton ? 'On' : 'Off'} onChange={() => devicePreferences.update({ showNumpadButton: !preferences.showNumpadButton })} />
+            </SettingRow>
+            <SettingRow description="Show DEV after STG in the top rail and include it in workspace swiping." scope="This device" title="Developer pages">
+              <SettingToggle checked={preferences.showDeveloper} label={preferences.showDeveloper ? 'On' : 'Off'} onChange={() => devicePreferences.update({ showDeveloper: !preferences.showDeveloper })} />
+            </SettingRow>
             <SettingRow description="Open pages on this screen when Copilot navigates through PHOENIX." scope="This device" title="Follow Copilot navigation">
               <SettingToggle checked={preferences.followCopilotNavigation} label={preferences.followCopilotNavigation ? 'On' : 'Off'} onChange={() => devicePreferences.update({ followCopilotNavigation: !preferences.followCopilotNavigation })} />
             </SettingRow>

@@ -14,7 +14,7 @@
 
     > div {
       align-items: center;
-      grid-template-columns: 7rem minmax(0, 1fr);
+      grid-template-columns: minmax(7.5rem, max-content) minmax(0, 1fr);
       gap: var(--spacing-sm);
       padding-block: 0;
     }
@@ -27,6 +27,7 @@
       letter-spacing: calc(0.04em + var(--font-tracking-display));
       line-height: var(--line-height-compact);
       text-transform: uppercase;
+      white-space: nowrap;
     }
 
     dd {

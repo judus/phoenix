@@ -1,7 +1,7 @@
 import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
-import type { ActivityLogEntry, CartographicSystem, ExplorationLedgerResponse } from '@phoenix/contracts'
+import type { CartographicSystem } from '@phoenix/contracts'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
 import { FakeEventHub } from './support/fake-event-hub.js'
 import { useGalaxyController, type GalaxyControllerSnapshot } from '../apps/web/src/features/galaxy/use-galaxy-controller.js'
@@ -32,7 +32,7 @@ test('Galaxy loads only the active view and accepts live plotted-route updates',
   await act(async () => renderer.unmount())
 })
 
-test.each(['route', 'atlas'] as const)('a live plotted route cancels and supersedes an older %s request', async view => {
+test.each(['route', 'atlas', 'database'] as const)('a live plotted route cancels and supersedes an older %s request', async view => {
   const updatedRoute = { timestamp: null, route: [{ system: 'Sirius', address: 2, position: [1, 0, 0] as [number, number, number], starClass: 'A' }] }
   let resolveRoute: ((route: typeof updatedRoute) => void) | undefined
   let requestSignal: AbortSignal | undefined
@@ -58,7 +58,7 @@ test.each(['route', 'atlas'] as const)('a live plotted route cancels and superse
   expect(snapshot?.route?.route[0]?.system).toBe('Sirius')
   await act(async () => events.emit('navigation-route', { timestamp: null, route: [] }))
   expect(snapshot?.route?.route).toEqual([])
-  if (view === 'atlas') expect(api.getActions).not.toHaveBeenCalled()
+  if (view !== 'route') expect(api.getActions).not.toHaveBeenCalled()
   await act(async () => renderer.unmount())
 })
 
@@ -95,43 +95,6 @@ test('Galaxy replaces the current schematic with matching live cartography updat
   expect(snapshot?.lookup?.system.name).toBe('Sol')
   await act(async () => renderer.unmount())
 })
-
-test('Galaxy loads Exobiology and refreshes it for cartography journal events', async () => {
-  const response = explorationResponse()
-  const events = new FakeEventHub()
-  const api = { getExplorationLedger: vi.fn().mockResolvedValue(response) } as unknown as PhoenixApi
-  let snapshot: GalaxyControllerSnapshot | undefined
-
-  function Probe() { snapshot = useGalaxyController(api, events, 'exobiology'); return null }
-  const renderer = await renderWithAct(<Probe />)
-
-  expect(api.getExplorationLedger).toHaveBeenCalledTimes(1)
-  expect(snapshot).toEqual({ exploration: response, status: 'ready' })
-
-  await act(async () => {
-    events.emit('activity-entry', activity('MissionCompleted'))
-    await Promise.resolve()
-  })
-  expect(api.getExplorationLedger).toHaveBeenCalledTimes(1)
-
-  await act(async () => {
-    events.emit('activity-entry', activity('ScanOrganic'))
-    await Promise.resolve()
-  })
-  expect(api.getExplorationLedger).toHaveBeenCalledTimes(2)
-  await act(async () => renderer.unmount())
-})
-
-function explorationResponse(): ExplorationLedgerResponse {
-  return {
-    systems: [],
-    totals: { biologicalSignals: 0, bodies: 0, geologicalSignals: 0, mappedBodies: 0, samplesCompleted: 0, scannedBodies: 0, systems: 0 }
-  }
-}
-
-function activity(event: string): ActivityLogEntry {
-  return { actionable: false, data: {}, event, id: event, importance: 'info', ingestedAt: '2026-08-16T12:00:00.000Z', source: 'journal', timestamp: '2026-08-16T12:00:00.000Z' }
-}
 
 function cartographicSystem(name: string, knownBodies: number): CartographicSystem {
   return {

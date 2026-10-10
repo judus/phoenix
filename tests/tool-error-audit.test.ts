@@ -107,6 +107,18 @@ test.each<ProviderQueryErrorKind>(['transport', 'timeout', 'rate_limit', 'provid
   expect(JSON.stringify(publicError)).not.toMatch(/secret-url|private diagnostics|argument and|stack/)
 })
 
+test('unknown reference-system error tells Copilot to correct the reference, not the filters', async () => {
+  const tool = withToolErrorBoundary({
+    definition: { name: 'test.provider', description: 'Audit.', inputSchema: { type: 'object' } },
+    execute: () => { throw new ProviderQueryError('Ardent', 'reference_system_not_found', { status: 404 }) }
+  })
+  await expect(tool.execute({}, context())).rejects.toMatchObject({
+    category: 'tool_validation', retryable: false,
+    message: expect.stringContaining('Ardent has no record of your reference system.')
+  })
+  await expect(tool.execute({}, context())).rejects.toThrow('do not change the search filters or repeat the unchanged call')
+})
+
 test('Realtime executes the same boundary and allows corrected usage without unchanged retries', async () => {
   const search = vi.fn(async () => ({ answer: 'Verified.', sources: [] }))
   const tools = new ToolRegistry([withToolErrorBoundary(new WebSearchTool({ search }))])

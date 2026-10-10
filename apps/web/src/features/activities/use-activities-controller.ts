@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
-import type { ColonisationResponse } from '@phoenix/contracts'
+import type { ColonisationResponse, ExplorationLedgerResponse } from '@phoenix/contracts'
 import type { CommunityGoalsResponse, MissionsResponse } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { readControllerSnapshot, storeControllerSnapshot } from '../../application/cache/controller-snapshot-cache.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
 import { LatestRequest } from '../../application/requests/latest-request.js'
 
-export type ActivitiesView = 'missions' | 'objectives' | 'community-goals' | 'powerplay' | 'colonisation'
+export type ActivitiesView = 'missions' | 'exobiology' | 'community-goals' | 'powerplay' | 'colonisation'
 
 export interface ActivitiesControllerSnapshot {
   colonisation?: ColonisationResponse
+  exploration?: ExplorationLedgerResponse
   error?: string
   missions?: MissionsResponse
   communityGoals?: CommunityGoalsResponse
@@ -39,7 +40,7 @@ export function useActivitiesController(
   )
 
   useEffect(() => {
-    if (view !== 'missions' && view !== 'community-goals' && view !== 'colonisation') {
+    if (view === 'powerplay') {
       setSnapshot({ status: 'ready' })
       return
     }
@@ -54,13 +55,14 @@ export function useActivitiesController(
       const result = view === 'community-goals'
         ? api.getCommunityGoals(signal).then(communityGoals => ({ communityGoals }))
         : view === 'colonisation' ? api.getColonisation(signal).then(colonisation => ({ colonisation }))
+          : view === 'exobiology' ? api.getExplorationLedger(signal).then(exploration => ({ exploration }))
           : api.getMissions(signal).then(missions => ({ missions }))
       void result.then(data => {
         if (request.isCurrent(signal)) publish({ ...data, status: 'ready' })
       }).catch(cause => {
         if (!request.isCurrent(signal)) return
         const error = cause instanceof Error ? cause.message : view === 'community-goals' ? 'Community Goals unavailable.'
-          : view === 'colonisation' ? 'Construction records unavailable.' : 'Mission records unavailable.'
+          : view === 'colonisation' ? 'Construction records unavailable.' : view === 'exobiology' ? 'Exobiology records unavailable.' : 'Mission records unavailable.'
         setSnapshot(current => current.status === 'ready' ? { ...current, error } : { error, status: 'error' })
       }).finally(() => {
         if (view === 'community-goals' && request.isCurrent(signal)) {
@@ -75,6 +77,8 @@ export function useActivitiesController(
       if (missionEvents.has(entry.event)) load()
     }) : view === 'colonisation' ? events.subscribe('activity-entry', entry => {
       if (entry.event.startsWith('Colonisation')) load()
+    }) : view === 'exobiology' ? events.subscribe('activity-entry', entry => {
+      if (entry.source === 'journal' && explorationEvents.has(entry.event)) load()
     }) : () => undefined
     const unsubscribeHistory = view === 'colonisation' ? events.subscribe('journal-history-loaded', () => load()) : () => undefined
     return () => {
@@ -87,3 +91,13 @@ export function useActivitiesController(
 
   return snapshot
 }
+
+const explorationEvents = new Set([
+  'FSSAllBodiesFound',
+  'FSSBodySignals',
+  'FSSDiscoveryScan',
+  'SAAScanComplete',
+  'SAASignalsFound',
+  'Scan',
+  'ScanOrganic'
+])

@@ -36,11 +36,85 @@ test('inputs and selects share their field surface rather than inheriting dropdo
   expect(source).not.toMatch(/\.form-control\s*,\s*\.select-control/u)
 })
 
-test('shared fields keep an inset keyboard focus ring separate from invalid borders', () => {
+test('shared toggles use orange idle and blue selected styling without overriding momentary press feedback', () => {
+  const buttons = read('base/buttons.css')
+  const toggle = buttons.split('.btn-toggle {')[1]!.split('.btn.inset {')[0]!
+  expect(toggle).toContain('border-color: var(--color-action)')
+  expect(toggle).toContain('color: var(--color-action)')
+  expect(toggle).toContain('&.active:not(:active)')
+  expect(buttons).toContain('background: var(--color-pressed-background)')
+  expect(buttons).toContain('color: var(--color-pressed-text)')
+  expect(buttons.match(/&:active:not\(:disabled\)\s*\{([^}]+)/u)?.[1]).toContain('transition: none')
+  expect(read('pages/system-schematic.css')).not.toContain('.system-query__toggle.btn')
+})
+
+test('ordinary buttons have no tactile grip; command tiles own the grip', () => {
+  expect(read('base/buttons.css')).not.toContain('tactile-grip.svg')
+  expect(read('patterns/control-deck-tiles.css')).toContain("mask: url('../../assets/tactile-grip.svg')")
+  const variables = read('variable.css')
+  expect(variables).toContain('--button-secondary-background: transparent')
+  expect(variables).toContain('--button-primary-background: var(--color-action)')
+})
+
+test('danger indicators use red in both themes, independently of investigation magenta', () => {
+  const variables = read('variable.css')
+  expect(variables).toContain('--palette-red: #ff6258')
+  expect([...variables.matchAll(/--color-danger: var\(--palette-red\)/gu)]).toHaveLength(2)
+  expect(variables).not.toContain('--color-danger: var(--palette-coral)')
+  expect(variables).toContain('--color-investigation: var(--palette-magenta)')
+  expect(variables).toContain('--button-danger-background: var(--color-danger-surface)')
+  expect([...variables.matchAll(/--button-danger-border: color-mix\(in srgb, var\(--color-danger\) 48%, transparent\)/gu)]).toHaveLength(2)
+  expect(variables).toContain('--button-danger-text: var(--color-text)')
+  const editorDelete = read('pages/controls.css').match(/&\.tool-delete\s*\{([^}]+)/u)?.[1]
+  expect(editorDelete).toContain('border-color: var(--button-danger-border)')
+  expect(editorDelete).toContain('color: var(--button-danger-text)')
+  expect(editorDelete).toContain('background: var(--button-danger-background)')
+})
+
+test('deck-manager grip uses the filled input label colour and height without its own button treatment', () => {
+  const grip = read('pages/controls.css').split('.deck-grip {')[1]!.split('.deck-confirm')[0]!
+  expect(grip).toContain('block-size: var(--control-block-size)')
+  expect(grip).toContain('background: currentColor')
+  expect(grip).not.toContain('background: var(--command-grip)')
+  expect(grip).not.toContain('opacity:')
+})
+
+test('header toolbars inherit shared control height without presentation or page overrides', () => {
+  const variables = read('variable.css')
+  expect([...variables.matchAll(/--control-block-size:/gu)]).toHaveLength(1)
+  const toolbar = read('main.css').match(/\.controls-toolbar\s*\{([^}]+)/u)?.[1]
+  expect(toolbar).not.toContain('--control-block-size:')
+  const tools = read('components/page-header.css').match(/> \.tools\s*\{([^}]+)/u)?.[1]
+  expect(tools).toContain('align-self: center')
+  expect(tools).toContain('justify-items: end')
+  for (const page of ['current-ship-loadout', 'ship-catalogue']) {
+    expect(read(`pages/${page}.css`)).not.toContain('.page-header > .actions')
+  }
+})
+
+test('saved-query action layout does not override the shared field wrapper', () => {
+  const panel = read('pages/galaxy-query-editor.css').split('.save-query-panel {')[1]!
+  expect(panel).toContain('> .actions {')
+  expect(panel).not.toContain('> div {')
+})
+
+test('map corner controls use the header toolbar spacing and no schematic size override', () => {
+  const header = read('components/page-header.css').match(/\.actions\s*\{([^}]+)/u)?.[1]
+  expect(header).toContain('gap: var(--spacing-xs)')
+  for (const [file, selector] of [['galactic-atlas', 'atlas-zoom'], ['system-schematic', 'system-schematic__zoom']]) {
+    const source = read(`pages/${file}.css`)
+    const controls = source.match(new RegExp(`\\.${selector}\\s*\\{([^}]+)`, 'u'))?.[1]
+    expect(controls).toContain('gap: var(--spacing-xs)')
+    expect(controls).not.toMatch(/(?:inline-size|block-size)\s*:/u)
+  }
+  expect(read('pages/system-schematic.css')).not.toContain('.system-schematic__zoom-step.btn')
+})
+
+test('shared fields suppress the focus outline while retaining themed and invalid borders', () => {
   const source = read('base/forms.css')
   const focus = source.match(/&:focus-visible\s*\{([^}]+)\}/u)?.[1]
-  expect(focus).toContain('outline: 2px solid var(--color-focus)')
-  expect(focus).toContain('outline-offset: -4px')
+  expect(focus).toContain('outline: none')
+  expect(source).toContain('border: var(--control-border-width) solid var(--field-border)')
   expect(source).toMatch(/&\.invalid :is\(\.form-control, \.form-select\)\s*\{\s*border-color: var\(--color-danger\)/u)
 })
 

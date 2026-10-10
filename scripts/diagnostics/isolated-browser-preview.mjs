@@ -3,6 +3,8 @@
 // Add --prospecting for a synthetic pre-Odyssey candidate with unknown signal counts.
 // Add --copilot-navigation for delayed synthetic chat using real MCP and history persistence.
 // Add --atlas-route for a synthetic NavRoute file, including short jumps and real heights.
+// Add --query-atlas for nearby station results with grouped and missing coordinates.
+// Add --vite to test source hot reload instead of the built frontend.
 import { createRequire } from 'node:module'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -30,6 +32,7 @@ const eddnSubmissions = process.argv.includes('--eddn-submissions')
 const prospecting = process.argv.includes('--prospecting')
 const atlasPois = process.argv.includes('--atlas-pois')
 const atlasRoute = process.argv.includes('--atlas-route')
+const queryAtlas = process.argv.includes('--query-atlas')
 const communityGoals = process.argv.includes('--community-goals')
 const missionBrief = process.argv.includes('--mission-brief')
 const powerplay = process.argv.includes('--powerplay')
@@ -148,8 +151,19 @@ const application = new PhoenixApplication({
     providerUpdatedAt: '2021-05-18T12:00:00Z', signalsUpdatedAt: null, subtype: 'High metal content world',
     surfaceTemperatureK: 180, systemAddress: 42, systemName: 'Synthetic', volcanism: null
   }] } } : {}),
+  ...(queryAtlas ? { stationSearchSource: {
+    findNearestStations: async () => ['Synthetic near', 'Synthetic ahead', 'Synthetic behind', 'Synthetic near', 'Synthetic unlocated'].map((systemName, index) => ({
+      systemName, stationName: `Synthetic station ${index + 1}`, distanceLy: 5 + index * 8,
+      distanceToArrivalLs: 50 + index * 100, marketId: index + 1, maxLandingPadSize: 3,
+      allegiance: null, controllingFaction: null, government: null, primaryEconomy: null, secondaryEconomy: null,
+      stationType: 'Coriolis Starport', updatedAt: '2026-10-10T12:00:00Z'
+    })),
+    findCommodityMarkets: async () => [], findSystemExports: async () => [], findSystemImports: async () => [], getCommodityReports: async () => []
+  } } : {}),
   cartographySource: { fetchSystem: async name => denseCartography ? mockDenseCartography(name) : ({
-    schemaVersion: 5, name, address: null, position: communityGoals && name.startsWith('Synthetic CG ')
+    schemaVersion: 5, name, address: null, position: queryAtlas && name.startsWith('Synthetic ')
+      ? ({ 'Synthetic near': [12, 8, 4], 'Synthetic ahead': [70, -10, 15], 'Synthetic behind': [-40, 5, -20] }[name] ?? null)
+      : communityGoals && name.startsWith('Synthetic CG ')
       ? [Number(name.slice('Synthetic CG '.length)) * 4000, 0, 4000] : name === 'Colonia' ? [-9530.5, -910.28125, 19808.125] : [0, 0, 0],
     permitRequired: false, permitName: null,
     information: { allegiance: null, government: null, security: null, state: null,
@@ -273,9 +287,23 @@ application.ingestGameEvent({
   gameTimestamp: null, ingestedAt: new Date().toISOString(),
   payload: { ...createEmptyRuntimeState().system, name: 'Sol', position: [0, 0, 0] }
 })
-console.log(`Isolated preview: http://127.0.0.1:${port}`)
+let vite
+let viteCache
+if (process.argv.includes('--vite')) {
+  const { createServer } = await import('vite')
+  viteCache = mkdtempSync(join(tmpdir(), 'phoenix-vite-preview-'))
+  vite = await createServer({
+    root: join(projectRoot, 'apps/web'), cacheDir: viteCache,
+    server: { host: '127.0.0.1', port: 0, strictPort: false,
+      proxy: { '/api': { target: `http://127.0.0.1:${port}` } } }
+  })
+  await vite.listen()
+  console.log(`Isolated Vite preview: ${vite.resolvedUrls.local[0]}`)
+} else console.log(`Isolated preview: http://127.0.0.1:${port}`)
 for (const signal of ['SIGTERM', 'SIGINT']) process.once(signal, async () => {
+  await vite?.close()
   await application.stop()
+  if (viteCache) rmSync(viteCache, { recursive: true, force: true })
   if (fixtureDirectory) rmSync(fixtureDirectory, { recursive: true, force: true })
   process.exit(0)
 })

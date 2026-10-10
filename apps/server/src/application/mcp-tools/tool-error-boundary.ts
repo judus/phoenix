@@ -20,6 +20,10 @@ export function withToolErrorBoundary (tool: LocalTool): LocalTool {
           throw new ToolUsageError(tool.definition.name, cause.message, cause.correction)
         }
         if (cause instanceof ProviderQueryError) {
+          if (cause.kind === 'reference_system_not_found') {
+            throw new ToolUsageError(tool.definition.name, cause.message,
+              'The provider does not know the reference system. Ask the user to choose a known reference system; do not change the search filters or repeat the unchanged call.')
+          }
           if (cause.kind === 'not_found') {
             throw new ToolUsageError(tool.definition.name, cause.message,
               'Verify the requested record using the available lookup tools or ask the user for its exact name. The provider may lack this record; do not repeat the unchanged call.')

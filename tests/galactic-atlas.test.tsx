@@ -70,8 +70,14 @@ test('search can locate an off-screen POI without enabling the catalogue, inspec
     expect(renderer.root.findAllByType('aside')).toHaveLength(0)
     expect(renderer.root.findAllByProps({ id: 'atlas-poi-search' })).toHaveLength(0)
     const headerButtons = () => renderer.root.findAllByType('header')[0].findAllByType('button')
-    expect(headerButtons().map(button => button.props.children)).toEqual(['Regions', 'Bookmarks', 'Route', 'Landmarks', 'Finder'])
-    const finder = () => headerButtons().find(button => button.props.children === 'Finder')!
+    expect(headerButtons().map(button => button.props['aria-label'])).toEqual(['Regions', 'Bookmarks', 'Plotted route', 'Landmarks', 'Finder'])
+    for (const button of headerButtons()) {
+      expect(button.props.className).toContain('btn-icon-square')
+      expect(button.props.title).toBeTruthy()
+      expect(button.findAllByType('svg')).toHaveLength(1)
+      expect(button.findByType('svg').props['aria-hidden']).toBe('true')
+    }
+    const finder = () => headerButtons().find(button => button.props['aria-label'] === 'Finder')!
     await act(async () => finder().props.onClick())
     const reset = () => renderer.root.findAllByType('button').find(button => button.props.children === 'Clear')!
     const clearRow = renderer.root.findAllByType('div').find(node => node.props.className?.startsWith('inline ') && node.findAllByType('button').some(button => button.props.children === 'Clear'))!
@@ -94,7 +100,7 @@ test('search can locate an off-screen POI without enabling the catalogue, inspec
     await act(async () => renderer.root.findByProps({ id: 'atlas-poi-search' }).props.onChange({ target: { value: 'not present' } }))
     expect(renderer.root.findAllByProps({ 'aria-label': 'Selected atlas location' })).toHaveLength(0)
     expect(renderer.root.findAllByProps({ 'aria-label': 'Find atlas POI' })).toHaveLength(1)
-    expect(headerButtons().map(button => button.props.children)).toContain('Landmarks · filtered')
+    expect(headerButtons().map(button => button.props['aria-label'])).toContain('Landmarks · filtered')
     await act(async () => finder().props.onClick())
     expect(renderer.root.findAllByType('aside')).toHaveLength(0)
     await act(async () => finder().props.onClick())
@@ -104,7 +110,7 @@ test('search can locate an off-screen POI without enabling the catalogue, inspec
     expect(renderer.root.findByProps({ id: 'atlas-poi-search' }).props.value).toBe('')
     expect(renderer.root.findByProps({ id: 'atlas-poi-category' }).props.value).toBe('')
     expect(reset().props.disabled).toBe(true)
-    expect(headerButtons().map(button => button.props.children)).toContain('Landmarks')
+    expect(headerButtons().map(button => button.props['aria-label'])).toContain('Landmarks')
   } finally { await act(async () => renderer.unmount()) }
 })
 
@@ -113,7 +119,7 @@ test('catalogue markers are opt-in while reference landmarks stay available', as
   const renderer = await renderWithAct(<GalacticAtlas catalogue={catalogue} bookmarks={[]} onNavigate={vi.fn()} onToggleBookmarks={vi.fn()} position={null} showBookmarks systemName={null} />)
   try {
     const site = () => renderer.root.findAllByProps({ 'aria-label': 'Visible catalogue site' })
-    const toggle = renderer.root.findAllByType('button').find(button => button.props.children === 'Landmarks')!
+    const toggle = renderer.root.findAllByType('button').find(button => button.props['aria-label'] === 'Landmarks')!
     expect(toggle.props['aria-pressed']).toBe(false)
     expect(site()).toHaveLength(0)
     await act(async () => toggle.props.onClick())

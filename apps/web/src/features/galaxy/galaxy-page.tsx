@@ -1,4 +1,4 @@
-import { lazy, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { lazy, useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react'
 import { Loading } from '@phoenix/ui'
 import { AddNoteButton } from '../../components/add-note-button.js'
 import { RoutePlotFeedback } from './route-plot-feedback.js'
@@ -10,6 +10,7 @@ import {
   Button,
   CheckIcon,
   ControlContext,
+  CrossIcon,
   Field,
   FleetCarrierIcon,
   Form,
@@ -18,26 +19,31 @@ import {
   FormGrid,
   IconButton,
   InputGroup,
+  Inline,
   MultiSelect,
   NumberInput,
   PageFrame,
   PageHeader,
+  PencilIcon,
+  RouteIcon,
+  SaveIcon,
   Select,
   Status,
   TextInput,
-  ToggleButton
+  ToggleButton,
+  ViewToggle
 } from '@phoenix/ui'
-import type { PlotEliteDestinationResult, SavedGalaxyQuery } from '@phoenix/contracts'
+import type { NavigationRoute, PlotEliteDestinationResult, SavedGalaxyQuery } from '@phoenix/contracts'
+import type { DevicePreferences } from '../../application/settings/device-preferences.js'
 import { galaxyQueryOriginMode, resolveGalaxyQueryOrigin } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { InformationRoute, PhoenixRoute } from '../../application/navigation/phoenix-route.js'
 import type { RuntimeStateSnapshot } from '../../application/runtime/runtime-state-store.js'
 import { GALAXY_QUERY_CATALOGUE } from './galaxy-query-catalogue.js'
 import type { GalaxyQueryDefinition, GalaxyQueryField, GalaxyQueryValue } from './galaxy-query-catalogue.js'
-import { GalaxyQueryResults, galaxyQueryResultCount, type GalaxyQueryResult } from './galaxy-query-results.js'
+import { GalaxyQueryResults, type GalaxyQueryResult } from './galaxy-query-results.js'
 import type { GalaxyQuerySessionStore } from './galaxy-query-session-store.js'
 import { PlottedRoute } from './plotted-route.js'
-import { ExobiologyPage } from './exobiology-page.js'
 import { isFleetCarrier, SystemSchematic, type CartographicSelection } from './system-schematic.js'
 import { BookmarksPage } from './bookmarks-page.js'
 import { SavedGalaxyQueriesPage } from './saved-galaxy-queries-page.js'
@@ -46,8 +52,10 @@ import type { GalaxyControllerSnapshot } from './use-galaxy-controller.js'
 
 type GalaxyRoute = Extract<InformationRoute, { section: 'galaxy' }>
 const GalacticAtlasPage = lazy(() => import('./galactic-atlas-page.js').then(module => ({ default: module.GalacticAtlasPage })))
+const GalaxyQueryAtlas = lazy(() => import('./galaxy-query-atlas.js').then(module => ({ default: module.GalaxyQueryAtlas })))
 
-export function GalaxyPage({ api, controller, onNavigate, querySessions, route, runtime }: {
+export function GalaxyPage({ api, controller, devicePreferences, onNavigate, querySessions, route, runtime }: {
+  devicePreferences: DevicePreferences
   api: PhoenixApi
   controller: GalaxyControllerSnapshot
   onNavigate(route: PhoenixRoute): void
@@ -56,9 +64,8 @@ export function GalaxyPage({ api, controller, onNavigate, querySessions, route, 
   runtime: RuntimeStateSnapshot
 }) {
   if (route.view === 'atlas') return <GalacticAtlasPage api={api} onNavigate={onNavigate} runtime={runtime} location={route.location} displayRequestId={route.displayRequestId} navigationRoute={controller.route} routeStatus={controller.error ?? (controller.status === 'loading' || controller.status === 'idle' ? 'Loading plotted route…' : undefined)} />
-  if (route.view === 'database') return <QueryConsole key={route.savedQueryRunId ?? 'editor'} api={api} onNavigate={onNavigate} querySessions={querySessions} route={route} runtime={runtime} />
+  if (route.view === 'database') return <QueryConsole key={route.savedQueryRunId ?? 'editor'} api={api} devicePreferences={devicePreferences} navigationRoute={controller.route} onNavigate={onNavigate} querySessions={querySessions} route={route} runtime={runtime} />
   if (route.view === 'saved-queries') return <SavedGalaxyQueriesPage api={api} onNavigate={onNavigate} />
-  if (route.view === 'exobiology') return <ExobiologyPage controller={controller} />
   if (route.view === 'bookmarks') return <BookmarksPage api={api} onNavigate={onNavigate} route={route} />
   if (controller.status === 'loading' || controller.status === 'idle') {
     return route.view === 'system'
@@ -79,6 +86,7 @@ export function GalaxyPage({ api, controller, onNavigate, querySessions, route, 
     ? <SystemView
         api={api}
         commanderName={runtime.status === 'ready' ? runtime.state.commander.name : null}
+        playerPosition={runtime.status === 'ready' ? runtime.state.system.position : null}
         lookup={controller.lookup}
         onNavigate={onNavigate}
         route={route}
@@ -86,9 +94,10 @@ export function GalaxyPage({ api, controller, onNavigate, querySessions, route, 
     : <SystemState api={api} error="System cartography unavailable." onNavigate={onNavigate} route={route} runtime={runtime} />
 }
 
-function SystemView({ api, commanderName, lookup, onNavigate, route }: {
+function SystemView({ api, commanderName, playerPosition, lookup, onNavigate, route }: {
   api: PhoenixApi
   commanderName: string | null
+  playerPosition: NonNullable<GalaxyControllerSnapshot['lookup']>['system']['position']
   lookup: NonNullable<GalaxyControllerSnapshot['lookup']>
   onNavigate(route: PhoenixRoute): void
   route: Extract<GalaxyRoute, { view: 'system' }>
@@ -158,7 +167,6 @@ function SystemView({ api, commanderName, lookup, onNavigate, route }: {
           aria-pressed={showFleetCarriers}
           className={`system-query__action system-query__toggle btn-toggle${showFleetCarriers ? ' active' : ''}`}
           label={showFleetCarriers ? 'Hide fleet carriers' : 'Show fleet carriers'}
-          size="sm"
           type="button"
           onClick={() => {
             if (showFleetCarriers && selected && 'services' in selected && isFleetCarrier(selected)) {
@@ -188,6 +196,7 @@ function SystemView({ api, commanderName, lookup, onNavigate, route }: {
       />
       <SystemSchematic
         commanderName={commanderName}
+        playerPosition={playerPosition}
         onBookmarkBody={bodyName => onNavigate({ kind: 'information', section: 'galaxy', view: 'bookmarks', systemName: lookup.system.name, bodyName })}
         onBookmarkStation={stationName => onNavigate({ kind: 'information', section: 'galaxy', view: 'bookmarks', systemName: lookup.system.name, stationName })}
         onAddNote={selection => onNavigate({ kind: 'notes', newNote: true,
@@ -286,7 +295,6 @@ function SystemHeader({ bookmarked = false, carrierToggle, following, onBookmark
             <InputGroup className="system-query__input filled" label="System" htmlFor="system-query-name" action={<IconButton
               className="system-query__action"
               label="Load system"
-              size="sm"
               type="submit"
               variant="accent"
             >
@@ -303,7 +311,6 @@ function SystemHeader({ bookmarked = false, carrierToggle, following, onBookmark
               aria-pressed={following}
               className={`system-query__action system-query__toggle btn-toggle${following ? ' active' : ''}`}
               label={following ? 'Stop following current system' : 'Follow current system'}
-              size="sm"
               type="button"
               onClick={onFollow}
             >
@@ -315,7 +322,6 @@ function SystemHeader({ bookmarked = false, carrierToggle, following, onBookmark
               className={`system-query__action system-query__toggle btn-toggle${bookmarked ? ' active' : ''}`}
               disabled={!onBookmark}
               label={bookmarked ? `Edit bookmark for ${systemName}` : `Bookmark ${systemName}`}
-              size="sm"
               type="button"
               onClick={onBookmark}
             >
@@ -327,12 +333,11 @@ function SystemHeader({ bookmarked = false, carrierToggle, following, onBookmark
               className="system-query__action"
               disabled={!onPlot || plotting}
               label={plotting ? 'Plotting route…' : 'Plot route'}
-              size="sm"
               type="button"
               variant="accent"
               onClick={onPlot}
             >
-              <PlotRouteIcon />
+              <RouteIcon />
             </IconButton>
           </div>
         </form>
@@ -349,11 +354,9 @@ function FollowSystemIcon () {
   return <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" /><path d="M12 2v4m0 12v4M2 12h4m12 0h4" /><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" /></svg>
 }
 
-function PlotRouteIcon () {
-  return <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="5" cy="18" r="2" /><circle cx="19" cy="6" r="2" /><path d="M7 18h4a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h8" /></svg>
-}
-
-function QueryConsole({ api, onNavigate, querySessions, route, runtime }: {
+function QueryConsole({ api, devicePreferences, navigationRoute, onNavigate, querySessions, route, runtime }: {
+  devicePreferences: DevicePreferences
+  navigationRoute?: NavigationRoute
   api: PhoenixApi
   onNavigate(route: PhoenixRoute): void
   querySessions: GalaxyQuerySessionStore
@@ -386,6 +389,10 @@ function QueryConsole({ api, onNavigate, querySessions, route, runtime }: {
     }
     return <GalaxyQueryEditor
       api={api}
+      devicePreferences={devicePreferences}
+      navigationRoute={navigationRoute}
+      onNavigate={onNavigate}
+      runtime={runtime}
       defaultOrigin={runtime.status === 'ready' ? runtime.state.system.name ?? '' : ''}
       definition={selected}
       executionId={route.savedQueryRunId}
@@ -419,7 +426,11 @@ function QueryConsole({ api, onNavigate, querySessions, route, runtime }: {
   )
 }
 
-function GalaxyQueryEditor({ api, defaultOrigin, definition, executionId, onBack, onSaved, querySessions, savedQuery }: {
+function GalaxyQueryEditor({ api, defaultOrigin, definition, devicePreferences, executionId, navigationRoute, onBack, onNavigate, onSaved, querySessions, runtime, savedQuery }: {
+  devicePreferences: DevicePreferences
+  navigationRoute?: NavigationRoute
+  onNavigate(route: PhoenixRoute): void
+  runtime: RuntimeStateSnapshot
   api: PhoenixApi
   defaultOrigin: string
   definition: GalaxyQueryDefinition
@@ -429,6 +440,8 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, executionId, onBack
   querySessions: GalaxyQuerySessionStore
   savedQuery?: SavedGalaxyQuery
 }) {
+  const preferences = useSyncExternalStore(devicePreferences.subscribe, devicePreferences.getSnapshot, devicePreferences.getSnapshot)
+  const system = runtime.status === 'ready' ? runtime.state.system : undefined
   const sessionId = savedQuery?.id ?? definition.id
   const retained = querySessions.get(sessionId)
   const executeOnMount = executionId !== undefined && retained?.executionId !== executionId
@@ -510,23 +523,38 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, executionId, onBack
       setSaving(false)
     }
   }
-  return (
-    <PageFrame layout="fit">
-      <div className="galaxy-query-editor">
-        <PageHeader
+  const header = (atlasControls?: ReactNode) => <><PageHeader
           variant="cockpit"
           context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Query console', href: '#/galaxy/database' }]} />}
-          status={result ? resultStatus(result) : 'Community reports may be incomplete or stale'}
+          status={result ? undefined : 'Community reports may be incomplete or stale'}
           title={definition.title}
-        />
-        {result
-          ? <GalaxyQueryResults actions={<Button variant="outline" type="button" onClick={() => setSaveOpen(true)}>{savedQuery ? 'Update saved query' : 'Save query'}</Button>} onEdit={() => {
+          actions={<Inline gap="xs">
+            {result && <>
+            {atlasControls}
+            <ViewToggle startLabel="Table" endLabel="Atlas"
+              startIcon={<svg aria-hidden="true" viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="11" /><path d="M1.5 6h13M1.5 9.75h13M6 2.5v11" /></svg>}
+              endIcon={<svg aria-hidden="true" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" /><path d="M2 8h12M8 2v12M4 4l8 8" /></svg>}
+              position={preferences.galaxyQueryResultsView === 'table' ? 'start' : 'end'}
+              onPositionChange={position => devicePreferences.update({ galaxyQueryResultsView: position === 'start' ? 'table' : 'atlas' })} />
+            <IconButton label="Change query" title="Change query parameters" variant="outline" onClick={() => {
               querySessions.set(sessionId, { values })
               setResult(undefined)
-            }} result={result}>
-              {saveOpen && <SaveQueryPanel dashboardEligible={definition.id === 'market-signals'} error={error} name={savedName} saving={saving} useOnDashboard={useOnDashboard} onCancel={() => setSaveOpen(false)} onChange={setSavedName} onDashboardChange={setUseOnDashboard} onSave={() => void save()} />}
-            </GalaxyQueryResults>
-          : <ControlContext context="panel" density="compact">
+            }}><PencilIcon /></IconButton>
+            </>}
+            <IconButton label={savedQuery ? 'Update saved query' : 'Save query'} variant="outline" aria-expanded={saveOpen} onClick={() => setSaveOpen(true)}><SaveIcon /></IconButton>
+          </Inline>}
+        />
+        {result && saveOpen && <SaveQueryPanel dashboardEligible={definition.id === 'market-signals'} error={error} name={savedName} saving={saving} useOnDashboard={useOnDashboard} onCancel={() => setSaveOpen(false)} onChange={setSavedName} onDashboardChange={setUseOnDashboard} onSave={() => void save()} />}
+        </>
+  const queryResults = (currentResult: GalaxyQueryResult, atlas?: ReactNode) => <GalaxyQueryResults result={currentResult} atlas={atlas} />
+  return (
+    <PageFrame layout="fit">
+      <div className={`galaxy-query-editor${result && saveOpen ? ' save-open' : ''}`}>
+        {result && preferences.galaxyQueryResultsView === 'atlas'
+          ? <GalaxyQueryAtlas api={api} result={result} position={system?.position ?? null} systemName={system?.name ?? null}
+              navigationRoute={navigationRoute} onNavigate={onNavigate}
+              renderLayout={(controls, instrument) => <>{header(controls)}{queryResults(result, <div className="query-result-atlas">{instrument}</div>)}</>} />
+          : <>{header()}{result ? queryResults(result) : <ControlContext context="panel" density="compact">
               <Form onSubmit={execute}>
                 <div className="query-workspace">
                   <aside className="query-envelope" aria-label="Current query">
@@ -554,12 +582,12 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, executionId, onBack
                     {saveOpen && <SaveQueryPanel dashboardEligible={definition.id === 'market-signals'} name={savedName} saving={saving} useOnDashboard={useOnDashboard} onCancel={() => setSaveOpen(false)} onChange={setSavedName} onDashboardChange={setUseOnDashboard} onSave={() => void save()} />}
                     <FormActions className="query-actions" layout="columns" message={error ? <Status tone="danger" wrap>{error}</Status> : undefined}>
                       <FormActionGroup columns="two"><Button alignment="start" variant="outline" size="lg" type="button" onClick={onBack}>Back</Button><Button alignment="start" variant="outline" size="lg" type="button" onClick={() => changeValues(() => queryValues(definition, undefined))}>Reset query</Button></FormActionGroup>
-                      <FormActionGroup columns="two"><Button alignment="start" variant="outline" size="lg" type="button" onClick={() => setSaveOpen(true)}>{savedQuery ? 'Update saved query' : 'Save query'}</Button><Button alignment="start" variant="accent" size="lg" type="submit" disabled={loading}>{loading ? 'Executing…' : 'Execute query'}</Button></FormActionGroup>
+                      <FormActionGroup><Button alignment="start" variant="accent" size="lg" type="submit" disabled={loading}>{loading ? 'Executing…' : 'Execute query'}</Button></FormActionGroup>
                     </FormActions>
                   </div>
                 </div>
               </Form>
-            </ControlContext>}
+            </ControlContext>}</>}
       </div>
     </PageFrame>
   )
@@ -580,7 +608,7 @@ function SaveQueryPanel ({ dashboardEligible, error, name, onCancel, onChange, o
     <Field htmlFor="saved-query-name" label="Saved query name" required>
       <TextInput autoFocus id="saved-query-name" maxLength={80} value={name} onChange={event => onChange(event.target.value)} />
     </Field>
-    <div>{dashboardEligible && <ToggleButton pressed={useOnDashboard} type="button" onClick={() => onDashboardChange(!useOnDashboard)}>Use on dashboard</ToggleButton>}<Button type="button" variant="outline" onClick={onCancel}>Cancel</Button><IconButton busy={saving} disabled={!name.trim()} label="Save query" type="button" variant="primary" onClick={onSave}><CheckIcon /></IconButton></div>
+    <div className="actions">{dashboardEligible && <ToggleButton pressed={useOnDashboard} type="button" onClick={() => onDashboardChange(!useOnDashboard)}>Use on dashboard</ToggleButton>}<IconButton label="Cancel" type="button" variant="outline" onClick={onCancel}><CrossIcon /></IconButton><IconButton busy={saving} disabled={!name.trim()} label="Save query" type="button" variant="primary" onClick={onSave}><CheckIcon /></IconButton></div>
     {error && <Status tone="danger" wrap>{error}</Status>}
   </section>
 }
@@ -649,7 +677,6 @@ async function executeGalaxyQuery(api: PhoenixApi, id: GalaxyQueryDefinition['id
   }
 }
 
-function resultStatus(result: GalaxyQueryResult): string { return `${result.value.cache} · ${galaxyQueryResultCount(result)} results` }
 function scalar(value?: GalaxyQueryValue): string { return typeof value === 'string' ? value : '' }
 function multiple(value?: GalaxyQueryValue): string[] { return Array.isArray(value) ? value : [] }
 function signalSides(value?: GalaxyQueryValue): Array<'buy' | 'sell'> { return multiple(value).filter((side): side is 'buy' | 'sell' => side === 'buy' || side === 'sell') }

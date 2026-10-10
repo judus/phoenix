@@ -48,11 +48,13 @@ export function PageHeader({
         {description && <p>{description}</p>}
         {metadata && <small>{metadata}</small>}
       </div>
-      {status && <small className="page-status">{status}</small>}
-      {actions && (
-        <ControlContext className="actions" context="toolbar" density="compact">
-          {actions}
-        </ControlContext>
+      {(status || actions) && (
+        <div className="tools">
+          {status && <small className="page-status">{status}</small>}
+          {actions && <ControlContext className="actions" context="toolbar">
+            {actions}
+          </ControlContext>}
+        </div>
       )}
       {navigation && <div className="navigation">{navigation}</div>}
     </header>

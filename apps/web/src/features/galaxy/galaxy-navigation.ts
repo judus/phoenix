@@ -10,15 +10,13 @@ const routes = {
   route: { kind: 'information', section: 'galaxy', view: 'route' },
   database: { kind: 'information', section: 'galaxy', view: 'database' },
   'saved-queries': { kind: 'information', section: 'galaxy', view: 'saved-queries' },
-  bookmarks: { kind: 'information', section: 'galaxy', view: 'bookmarks' },
-  exobiology: { kind: 'information', section: 'galaxy', view: 'exobiology' }
+  bookmarks: { kind: 'information', section: 'galaxy', view: 'bookmarks' }
 } as const satisfies Record<string, InformationRoute>
 
 export const galaxyNavigationItems: GalaxyNavigationItem[] = [
   item('atlas', 'Galactic atlas', 'ATL'),
   item('system', 'Current system', 'SYS'),
   item('route', 'Plotted route', 'RTE'),
-  item('exobiology', 'Exobiology', 'EXO'),
   item('database', 'Galaxy database', 'DBS'),
   item('bookmarks', 'Bookmarks', 'BMK'),
   item('saved-queries', 'Saved queries', 'SVQ')

@@ -8,7 +8,7 @@ export interface AtlasMarker {
   label: string
   systemName: string
   position: GalacticPosition
-  kind: 'landmark' | 'nebula' | 'bookmark' | 'commander' | 'community-goal' | 'investigation' | 'system' | 'route'
+  kind: 'landmark' | 'nebula' | 'bookmark' | 'commander' | 'community-goal' | 'investigation' | 'system' | 'route' | 'query-result'
   routeStop?: { index: number, destination: boolean, completed: boolean, current: boolean, starClass: string | null }
   selectedName?: string
   bookmarkTarget?: GalaxyBookmarkTarget

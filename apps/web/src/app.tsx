@@ -88,7 +88,11 @@ export function App({ application }: { application: PhoenixApplicationServices }
 function PhoenixApplication({ application }: { application: PhoenixApplicationServices }) {
   const { router } = application
   const route = usePhoenixRoute(router)
-  const activeDesktop = workspaceForRoute(route)
+  const preferences = useSyncExternalStore(application.devicePreferences.subscribe, application.devicePreferences.getSnapshot, application.devicePreferences.getSnapshot)
+  const activeDesktop = !preferences.showDeveloper && route.kind === 'developer' ? 'settings' : workspaceForRoute(route)
+  useEffect(() => {
+    if (!preferences.showDeveloper && route.kind === 'developer') router.replace({ kind: 'settings', view: 'general' })
+  }, [preferences.showDeveloper, route, router])
   const controlsController = useControlsController(application.api, application.events)
   const rememberedControls = router.routeForWorkspace('controls', firstControlDeckId(controlsController.configuration))
   const controlsDestination = rememberedControls.kind === 'controls'
@@ -118,16 +122,20 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
   const controlsRailItems = useMemo<ApplicationNavigationItem[]>(() => [
     ...controlsNavigationItems(controlsController.configuration),
     { id: 'manage', label: 'Manage decks', shortLabel: 'MNG', placement: 'end',
-      href: '#/controls/manage', route: { kind: 'controls', deckId: 'manage' } }
+      href: '#/controls/manage', route: { kind: 'controls', deckId: 'manage' } },
+    { id: 'macros', label: 'Macros', shortLabel: 'MCR', placement: 'end',
+      href: '#/macros', route: { kind: 'macros' } }
   ], [controlsController.configuration])
   const informationContext = informationContextForRoute(informationRoute)
 
   return (
     <PhoenixApplicationShell
       activeDesktop={activeDesktop}
+      showDeveloper={preferences.showDeveloper}
+      showNumpadButton={preferences.showNumpadButton}
       controlsDestination={controlsDestination}
       copilotDestination={router.routeForWorkspace('copilot')}
-      notesDestination={router.routeForWorkspace('notes')}
+      journalDestination={router.routeForWorkspace('journal')}
       informationRoute={informationRoute}
       {...informationContext}
       onNavigateRoute={router.push}
@@ -140,12 +148,12 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
         }
       }}
       controls={activeDesktop === 'controls'
-        ? <FeatureBoundary><ControlsFeature application={application} controller={controlsController} deckId={controlsRoute?.deckId ?? 'quick'} editing={controlsEditing}
+        ? <FeatureBoundary>{route.kind === 'macros' ? <MacrosFeature /> : <ControlsFeature application={application} controller={controlsController} deckId={controlsRoute?.deckId ?? 'quick'} editing={controlsEditing}
             onEditingChange={editing => setEditingDeckId(editing ? controlsRoute?.deckId : undefined)}
-            onEditDeck={deckId => { setEditingDeckId(deckId); router.push({ kind: 'controls', deckId }) }} /></FeatureBoundary>
+            onEditDeck={deckId => { setEditingDeckId(deckId); router.push({ kind: 'controls', deckId }) }} />}</FeatureBoundary>
         : null}
       controlsContextItems={controlsRailItems}
-      controlsCurrentContext={controlsContext(controlsRoute?.deckId ?? 'ship')}
+      controlsCurrentContext={route.kind === 'macros' ? 'macros' : controlsContext(controlsRoute?.deckId ?? 'ship')}
       copilot={activeDesktop === 'copilot'
         ? <FeatureBoundary><StableCopilotFeature application={application} view={route.kind === 'copilot' ? route.view : 'chat'} /></FeatureBoundary>
         : null}
@@ -154,11 +162,10 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       information={activeDesktop === 'info'
         ? <FeatureBoundary>{renderInformationFeature(application, informationRoute)}</FeatureBoundary>
         : null}
-      notes={route.kind === 'notes'
-        ? <FeatureBoundary><PersonalNotesPage api={application.api} onNavigate={route => router.push(route)} route={route} /></FeatureBoundary>
-        : null}
       journal={activeDesktop === 'journal'
-        ? <FeatureBoundary>{logRoute?.view === 'credits'
+        ? <FeatureBoundary>{route.kind === 'notes'
+              ? <PersonalNotesPage api={application.api} onNavigate={route => router.push(route)} route={route} />
+              : logRoute?.view === 'credits'
               ? <CreditsPage />
               : <CommanderLogPage api={application.api} events={application.events} />}</FeatureBoundary>
         : null}
@@ -169,7 +176,6 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
       developerCurrentContext={journalContext(route)}
       journalContextItems={journalNavigationItems}
       journalCurrentContext={journalContext(route)}
-      macros={activeDesktop === 'macros' ? <FeatureBoundary><MacrosFeature /></FeatureBoundary> : null}
       settings={activeDesktop === 'settings'
         ? <FeatureBoundary><SettingsFeature application={application} topic={route.kind === 'settings' ? route.topic : undefined} view={route.kind === 'settings' ? route.view : 'general'} /></FeatureBoundary>
         : null}
@@ -292,7 +298,6 @@ const ControlsFeature = memo(function ControlsFeature({ application, controller,
   const devicePreferences = useSyncExternalStore(application.devicePreferences.subscribe, application.devicePreferences.getSnapshot, application.devicePreferences.getSnapshot)
   if (deckId === 'manage') return <ManageDecksPage controller={controller}
     onSave={configuration => application.api.saveControlDeckConfiguration(configuration)}
-    onOpen={deckId => application.router.push({ kind: 'controls', deckId })}
     onEdit={onEditDeck} />
   return <ControlsPage
     deckId={deckId}
@@ -374,6 +379,7 @@ const GalaxyFeature = memo(function GalaxyFeature({ application, route }: {
   const controller = useGalaxyController(application.api, application.events, route.view, systemName)
   return <GalaxyPage
     api={application.api}
+    devicePreferences={application.devicePreferences}
     controller={controller}
     onNavigate={application.router.push}
     querySessions={application.galaxyQueries}
