@@ -74,7 +74,7 @@ release. Installers do not self-update: users download and run the newer install
 ## README download links
 
 The README links directly to the Windows installer and Linux AppImage in the published
-v0.1.6 prerelease. Preview links must include the tag (`releases/download/v0.1.6/...`), because
+v0.1.7 prerelease. Preview links must include the tag (`releases/download/v0.1.7/...`), because
 prereleases are excluded from GitHub's `latest` release redirect. Update both links and the
 release-notes link when publishing the next preview. Draft assets are not public downloads.
 
