@@ -88,10 +88,10 @@ test('Missions distinguishes an unobserved manifest from an authoritative empty 
 })
 
 test('uncontracted activity views do not fabricate records', () => {
-  const markup = renderToStaticMarkup(<ActivitiesPage controller={{ status: 'ready' }} view="colonisation" />)
+  const markup = renderToStaticMarkup(<ActivitiesPage controller={{ status: 'ready' }} view="objectives" />)
 
-  expect(markup).toContain('Colonisation ledger')
-  expect(markup).toContain('No authoritative colonisation construction record')
+  expect(markup).toContain('Objective ledger')
+  expect(markup).toContain('No authoritative commander objective record')
   expect(markup).toContain('Select a retained record to inspect its details')
 })
 

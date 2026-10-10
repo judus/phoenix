@@ -1,4 +1,5 @@
 import {
+  ColonisationResponseSchema, type ColonisationResponse,
   PersonalNoteSchema, PersonalNoteWriteRequestSchema, PersonalNotesResponseSchema,
   type PersonalNote, type PersonalNoteWriteRequest, type PersonalNotesResponse,
   GalnetAnalysisResponseSchema,
@@ -436,6 +437,9 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getPowerplay(signal?: AbortSignal): Promise<PowerplayResponse> {
     return this.#get('/api/operations/powerplay', PowerplayResponseSchema, signal)
+  }
+  async getColonisation(signal?: AbortSignal): Promise<ColonisationResponse> {
+    return this.#get('/api/operations/colonisation', ColonisationResponseSchema, signal)
   }
 
   async savePowerplayTarget(target: PowerplayTarget | null, signal?: AbortSignal): Promise<PowerplayResponse> {

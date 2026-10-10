@@ -17,6 +17,13 @@ constructor/file-permission work and HTTP waits are outside SQLite time. No mach
 timing assertions are added. Profiling is off by default; compare repeated native runs, not just
 one passing result. Run the full suite too when investigating contention between test files.
 
+## Colonisation proposal
+
+Use `--colonisation` with the isolated preview and open `#/activities/colonisation`.
+Temporary synthetic claims, construction supplies and deliveries exercise the separate ledgers,
+completed-site retention and station/system links. Check selection/tabs in both themes and orientations.
+No CAPI, player journals or real income/ownership validation is involved.
+
 ## Powerplay proposal
 
 After building, run `node --import tsx scripts/diagnostics/isolated-browser-preview.mjs --powerplay`

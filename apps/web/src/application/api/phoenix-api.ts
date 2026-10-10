@@ -1,6 +1,7 @@
 import type { CatalogueSuggestion, CatalogueSuggestionKind } from '@phoenix/contracts'
 import type { PersonalNote, PersonalNoteWriteRequest, PersonalNotesResponse } from '@phoenix/contracts'
 import type { PowerplayResponse, PowerplayTarget } from '@phoenix/contracts'
+import type { ColonisationResponse } from '@phoenix/contracts'
 import type {
   EddnStatus,
   EddnSubmissionLog,
@@ -219,6 +220,7 @@ export interface PhoenixApi {
   getMacros(signal?: AbortSignal): Promise<MacroLibrary>
   getMissions(signal?: AbortSignal): Promise<MissionsResponse>
   getPowerplay(signal?: AbortSignal): Promise<PowerplayResponse>
+  getColonisation(signal?: AbortSignal): Promise<ColonisationResponse>
   savePowerplayTarget(target: PowerplayTarget | null, signal?: AbortSignal): Promise<PowerplayResponse>
   getPersonalNotes(query?: string, signal?: AbortSignal): Promise<PersonalNotesResponse>
   savePersonalNote(input: PersonalNoteWriteRequest, id?: string, signal?: AbortSignal): Promise<PersonalNote>

@@ -88,6 +88,7 @@ import type { NumpadCommands } from '../domain/numpad.js'
 import type { Macros } from '../domain/macros.js'
 import type { MissionDataReader } from '../domain/missions.js'
 import type { PowerplayReader } from '../domain/powerplay.js'
+import type { ColonisationReader } from '../domain/colonisation.js'
 import { PowerplayTargetSchema } from '@phoenix/contracts'
 import type { CommunicationDataReader, CommunicationQueryView, LocalTrafficReader } from '../domain/communications.js'
 import type { FleetDataReader } from '../domain/fleet.js'
@@ -169,6 +170,7 @@ export interface PhoenixHttpServerOptions extends SettingsHttpServices, Engineer
   macros: Macros
   missions: MissionDataReader
   powerplay: PowerplayReader
+  colonisation: ColonisationReader
   journalHistoryLoaded: Subscribable<null>
   personalNotes: PersonalNotes
   communications: CommunicationDataReader
@@ -474,6 +476,10 @@ export class PhoenixHttpServer {
 
     if (request.method === 'GET' && url.pathname === '/api/operations/powerplay') {
       writeJson(response, 200, this.options.powerplay.getPowerplay())
+      return
+    }
+    if (request.method === 'GET' && url.pathname === '/api/operations/colonisation') {
+      writeJson(response, 200, this.options.colonisation.getColonisation())
       return
     }
     if (request.method === 'PUT' && url.pathname === '/api/operations/powerplay/target') {

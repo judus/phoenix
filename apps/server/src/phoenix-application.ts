@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { PersonalNoteService } from './application/personal-note-service.js'
+import { ColonisationDataService } from './application/colonisation-data-service.js'
 import { AtlasPoiSchema } from '@phoenix/contracts'
 import { AtlasCatalogueService } from './application/atlas-catalogue-service.js'
 import { atlasPoiSources } from './infrastructure/atlas-poi-sources.js'
@@ -218,6 +219,7 @@ export class PhoenixApplication {
     const activityLog = new ActivityLogService(this.database)
     const personalNotes = new PersonalNoteService(this.database.personalNotes, this.database)
     const missions = new MissionDataService(this.database, () => this.stateStore.getCurrent().inventory)
+    const colonisation = new ColonisationDataService(this.database.colonisation)
     const powerplay = new PowerplayDataService(this.database.powerplay)
     const communications = new CommunicationDataService(this.database, communicationUpdates)
     const localTraffic = new LocalTrafficService(this.database)
@@ -327,6 +329,7 @@ export class PhoenixApplication {
       event => cartographyObservationIngestion.ingest(event),
       event => missions.ingest(event, 'live-journal'),
       event => powerplay.ingest(event),
+      event => colonisation.ingest(event, this.stateStore.getCurrent()),
       event => communications.ingest(event),
       event => fleet.ingest(event),
       event => commanderEquipment.ingest(event),
@@ -345,6 +348,7 @@ export class PhoenixApplication {
         historicalCartographyIngestion.ingest(event)
         missions.ingest(event, 'historical-journal')
         powerplay.ingest(event)
+        colonisation.ingest(event, historicalState.getCurrent())
         communications.ingest(event, 'historical')
         fleet.ingest(event)
         commanderEquipment.ingest(event)
@@ -565,6 +569,7 @@ export class PhoenixApplication {
       cartographyUpdates,
       commandCatalogue,
       journalHistoryLoaded: this.journalHistoryLoaded,
+      colonisation,
       communicationUpdates,
       commanderEquipment,
       commanderLog,

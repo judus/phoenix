@@ -23,8 +23,9 @@ import { SystemLocationLink } from '../../components/system-location-link.js'
 import { DataSyncNotice } from '../../components/data-sync-notice.js'
 import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import { CommunityGoalsPage } from './community-goals-page.js'
+import { ColonisationPage } from './colonisation-page.js'
 
-type RetainedActivityView = Exclude<ActivitiesView, 'missions' | 'community-goals' | 'powerplay'>
+type RetainedActivityView = Exclude<ActivitiesView, 'missions' | 'community-goals' | 'powerplay' | 'colonisation'>
 
 const activityViews: Record<RetainedActivityView, { empty: string, ledger: string, title: string }> = {
   objectives: {
@@ -32,11 +33,6 @@ const activityViews: Record<RetainedActivityView, { empty: string, ledger: strin
     ledger: 'Objective ledger',
     title: 'Objectives'
   },
-  colonisation: {
-    empty: 'No authoritative colonisation construction record is currently available.',
-    ledger: 'Colonisation ledger',
-    title: 'Colonisation'
-  }
 }
 
 export function ActivitiesPage({ controller, view, onAddNote, selectedMissionId }: {
@@ -46,6 +42,7 @@ export function ActivitiesPage({ controller, view, onAddNote, selectedMissionId 
   selectedMissionId?: number
 }) {
   if (view === 'community-goals') return <CommunityGoalsPage controller={controller} />
+  if (view === 'colonisation') return <ColonisationPage controller={controller} />
   if (view !== 'missions') return <ActivityLedger view={view} />
   if (controller.status === 'idle' || controller.status === 'loading') return <ActivitiesState title="Missions" />
   if (controller.status === 'error' || !controller.missions) {
