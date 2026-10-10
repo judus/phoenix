@@ -186,6 +186,7 @@ export class PhoenixApplication {
   private readonly eventIngestion: GameEventIngestionService
   private readonly journalSource: EliteJournalFileSource
   private readonly journalBackfill: EliteJournalHistoryBackfill
+  private readonly journalHistoryLoaded = new InProcessPublisher<null>()
   private readonly inventorySource: EliteInventoryFileSource
   private readonly navigationRouteSource: EliteNavigationRouteFileSource
   private readonly gameActions: GameActions
@@ -563,6 +564,7 @@ export class PhoenixApplication {
       catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
       cartographyUpdates,
       commandCatalogue,
+      journalHistoryLoaded: this.journalHistoryLoaded,
       communicationUpdates,
       commanderEquipment,
       commanderLog,
@@ -644,7 +646,9 @@ export class PhoenixApplication {
       await this.navigationRouteSource.start()
       const address = await this.server.start()
       this.galnetBackground.start()
-      void this.journalBackfill.start()
+      void this.journalBackfill.start().then(() => {
+        if (this.journalBackfill.getDiagnostics().status === 'complete') this.journalHistoryLoaded.publish(null)
+      })
       return address
     } catch (cause) {
       try {

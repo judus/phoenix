@@ -29,7 +29,8 @@ export function usePowerplayController(api: PhoenixApi, events: PhoenixEventHub)
     }
     load()
     const unsubscribe = events.subscribe('activity-entry', entry => { if (entry.event.startsWith('Powerplay')) load() })
-    return () => { requests.read.cancel(); requests.write.cancel(); unsubscribe() }
+    const unsubscribeHistory = events.subscribe('journal-history-loaded', load)
+    return () => { requests.read.cancel(); requests.write.cancel(); unsubscribe(); unsubscribeHistory() }
   }, [api, events, requests])
 
   const saveTarget = useCallback(async (target: PowerplayTarget | null) => {

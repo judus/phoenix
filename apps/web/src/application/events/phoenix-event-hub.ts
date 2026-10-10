@@ -15,6 +15,7 @@ import type {
 } from '@phoenix/contracts'
 
 export interface PhoenixEventMap {
+  'journal-history-loaded': null
   'activity-entry': ActivityLogEntry
   'cartography-updated': CartographyUpdate
   'command-catalogue': CommandCatalogueRevision

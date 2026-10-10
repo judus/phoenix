@@ -93,6 +93,7 @@ function TargetSummary({ data }: { data: PowerplayResponse }) {
     </DescriptionList>
     <Status wrap tone={data.targetProgress?.status === 'requirements-met' ? 'positive' : 'muted'}>
       {data.targetProgress?.status === 'requirements-met' ? 'Recorded requirements met. Confirm the unlock in game.'
+        : data.targetProgress?.status === 'unpledged' ? 'No current pledge recorded. Pledge to this Power to track progress.'
         : data.targetProgress?.status === 'different-power' ? 'This target belongs to another Power; progress is not compared.'
           : data.targetProgress?.status === 'unknown' ? 'Awaiting the required journal observations.' : 'Working toward your target.'}
     </Status>
@@ -122,7 +123,7 @@ function Target({ data, saving, onSave }: { data: PowerplayResponse, saving: boo
       <Field htmlFor="powerplay-target-merits" label="Required merits"><NumberInput value={merits} min={0} step="any" disabled={saving} onChange={event => setMerits(event.target.value)} /></Field>
     </FormGrid>
     <small>Copy requirements from your in-game loyalty screen. Automatic reward catalogue suggestions come after verification.</small>
-    <FormActions message={error}><Button type="submit" disabled={saving}>Pin target</Button>
+    <FormActions message={error ? <Status wrap tone="danger">{error}</Status> : undefined}><Button type="submit" disabled={saving}>Pin target</Button>
       {data.target ? <Button type="button" variant="outline" disabled={saving} onClick={() => void save(null)}>Clear target</Button> : null}
     </FormActions>
   </Form></div><DataTableGroup title="Target progress" contentGap="sm"><TargetSummary data={data} /></DataTableGroup></ThirdsGrid>

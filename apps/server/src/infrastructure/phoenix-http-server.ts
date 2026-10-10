@@ -169,6 +169,7 @@ export interface PhoenixHttpServerOptions extends SettingsHttpServices, Engineer
   macros: Macros
   missions: MissionDataReader
   powerplay: PowerplayReader
+  journalHistoryLoaded: Subscribable<null>
   personalNotes: PersonalNotes
   communications: CommunicationDataReader
   communicationUpdates: Subscribable<CommunicationMessage>
@@ -1349,6 +1350,7 @@ export class PhoenixHttpServer {
     this.phoenixEventStreams.add(response)
     const send = (event: string, payload: unknown): void => writeSse(response, event, payload)
     const unsubscribers = [
+      this.options.journalHistoryLoaded.subscribe(() => send('journal-history-loaded', null)),
       this.options.runtimeStateUpdates.subscribe(state => send('runtime-state', state)),
       this.options.cartographyUpdates.subscribe(update => send('cartography-updated', update)),
       this.options.activityLog.subscribe(entry => send('activity-entry', entry)),

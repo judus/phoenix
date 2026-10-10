@@ -37,7 +37,7 @@ export const PowerplayResponseSchema = z.object({
   entries: z.array(PowerplayEntrySchema), retained: z.number().int().nonnegative(),
   target: PowerplayTargetSchema.nullable(),
   targetProgress: z.object({
-    status: z.enum(['unknown', 'different-power', 'tracking', 'requirements-met']),
+    status: z.enum(['unknown', 'unpledged', 'different-power', 'tracking', 'requirements-met']),
     remainingMerits: z.number().nonnegative().nullable()
   }).strict().nullable()
 }).strict()

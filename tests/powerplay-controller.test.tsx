@@ -23,10 +23,12 @@ test('Powerplay refreshes relevant events, cancels stale reads after target writ
     importance: 'info', ingestedAt: '2026-10-10T10:00:00Z', source: 'journal', timestamp: '2026-10-10T10:00:00Z' })
   await act(async () => events.emit('activity-entry', activity('MissionAccepted')))
   expect(api.getPowerplay).toHaveBeenCalledTimes(1)
+  await act(async () => events.emit('journal-history-loaded', null))
+  expect(api.getPowerplay).toHaveBeenCalledTimes(2)
   let finish!: (data: PowerplayResponse) => void
   vi.mocked(api.getPowerplay).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
   await act(async () => events.emit('activity-entry', activity('PowerplayMerits')))
-  const signal = vi.mocked(api.getPowerplay).mock.calls[1]![0]!
+  const signal = vi.mocked(api.getPowerplay).mock.calls[2]![0]!
   const saved: PowerplayResponse = { ...response, target: { name: 'Target', power: 'Aisling Duval', rank: 4, merits: null },
     targetProgress: { status: 'unknown', remainingMerits: null } }
   vi.mocked(api.savePowerplayTarget).mockResolvedValue(saved)
@@ -43,7 +45,7 @@ test('Powerplay refreshes relevant events, cancels stale reads after target writ
   vi.mocked(api.getPowerplay).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
   renderer = await renderWithAct(<Probe />)
   expect(snapshot.data).toEqual(saved)
-  const remountSignal = vi.mocked(api.getPowerplay).mock.calls[2]![0]!
+  const remountSignal = vi.mocked(api.getPowerplay).mock.calls[3]![0]!
   await act(async () => renderer.unmount())
   expect(remountSignal.aborted).toBe(true)
   await act(async () => finish(response))

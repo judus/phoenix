@@ -70,7 +70,7 @@ export class PowerplayDataService implements PowerplayReader {
       const known = samePower && (target.rank === null || pledge.rank !== null) && (target.merits === null || pledge.merits !== null)
       const met = known && (target.rank === null || pledge.rank! >= target.rank) && (target.merits === null || pledge.merits! >= target.merits)
       targetProgress = {
-        status: pledge.status === 'unknown' ? 'unknown' : !samePower ? 'different-power' : !known ? 'unknown' : met ? 'requirements-met' : 'tracking',
+        status: pledge.status === 'unknown' ? 'unknown' : pledge.status === 'left' ? 'unpledged' : !samePower ? 'different-power' : !known ? 'unknown' : met ? 'requirements-met' : 'tracking',
         remainingMerits: samePower && target.merits !== null && pledge.merits !== null ? Math.max(0, target.merits - pledge.merits) : null
       }
     }

@@ -35,9 +35,9 @@ export class SqlitePowerplayRepository implements PowerplayRepository {
       .get() as { occurred_at: string, sequence: number } | undefined
     const rows = anchor
       ? this.connection.prepare(`SELECT document FROM powerplay_entries
-          WHERE occurred_at > ? OR (occurred_at = ? AND rowid >= ?)
+          WHERE kind NOT IN ('collect', 'deliver') AND (occurred_at > ? OR (occurred_at = ? AND rowid >= ?))
           ORDER BY occurred_at, rowid`).all(anchor.occurred_at, anchor.occurred_at, anchor.sequence)
-      : this.connection.prepare('SELECT document FROM powerplay_entries ORDER BY occurred_at, rowid').all()
+      : this.connection.prepare("SELECT document FROM powerplay_entries WHERE kind NOT IN ('collect', 'deliver') ORDER BY occurred_at, rowid").all()
     return (rows as Array<{ document: string }>).map(row => PowerplayEntrySchema.parse(JSON.parse(row.document)))
   }
 
