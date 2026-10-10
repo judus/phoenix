@@ -12,13 +12,13 @@ const optionalText = text.optional().nullable().transform(value => value ?? null
 const finance = z.object({ CarrierBalance: amount, ReserveBalance: optionalAmount, AvailableBalance: optionalAmount, ReservePercent: optionalAmount })
 const space = z.object({ TotalCapacity: amount, Crew: amount, Cargo: amount, CargoSpaceReserved: amount, ShipPacks: amount, ModulePacks: amount, FreeSpace: amount })
 const crew = z.array(z.object({ CrewRole: text, CrewName: optionalText, Activated: z.boolean(), Enabled: z.boolean() }))
-const location = z.object({ StarSystem: text, SystemAddress: id, Body: optionalText })
+const location = z.object({ StarSystem: text, SystemAddress: id, Body: optionalText, BodyID: id.optional().nullable().transform(value => value ?? null) })
 const payloads = {
   CarrierStats: z.object({ Callsign: text, Name: text, DockingAccess: text, AllowNotorious: z.boolean(), FuelLevel: amount, JumpRangeCurr: optionalAmount, JumpRangeMax: optionalAmount, PendingDecommission: z.boolean(), SpaceUsage: space.optional(), Finance: finance.optional(), Crew: crew.optional() }),
   CarrierBuy: z.object({ Callsign: text, Location: text, SystemAddress: id, Price: amount }),
   CarrierLocation: location,
   CarrierJump: location,
-  CarrierJumpRequest: z.object({ SystemName: text, Body: optionalText, DepartureTime: z.string().datetime({ offset: true }).optional() }),
+  CarrierJumpRequest: z.object({ SystemName: text, SystemAddress: id, BodyID: id, Body: optionalText, DepartureTime: z.string().datetime({ offset: true }).optional() }),
   CarrierJumpCancelled: z.object({}),
   CarrierFinance: finance,
   CarrierBankTransfer: z.object({ CarrierBalance: amount, Deposit: amount.optional(), Withdraw: amount.optional() }),
@@ -57,15 +57,15 @@ export class CarrierDataService implements CarrierReader {
       description = 'Management snapshot'
     } else if (kind === 'CarrierBuy') {
       const buy = payloads.CarrierBuy.parse(value)
-      Object.assign(patch, { callsign: buy.Callsign, type: base.data.type, pendingDecommission: false, location: { system: buy.Location, systemAddress: buy.SystemAddress, body: null, observedAt: timestamp } })
+      Object.assign(patch, { callsign: buy.Callsign, type: base.data.type, pendingDecommission: false, location: { system: buy.Location, systemAddress: buy.SystemAddress, body: null, bodyId: null, observedAt: timestamp } })
       description = `Purchased · ${buy.Price.toLocaleString()} CR`
     } else if (kind === 'CarrierLocation' || kind === 'CarrierJump') {
       const place = location.parse(value)
-      patch.location = { system: place.StarSystem, systemAddress: place.SystemAddress, body: place.Body, observedAt: timestamp }
+      patch.location = { system: place.StarSystem, systemAddress: place.SystemAddress, body: place.Body, bodyId: place.BodyID, observedAt: timestamp }
       description = `${kind === 'CarrierJump' ? 'Arrival' : 'Location'} · ${place.StarSystem}`
     } else if (kind === 'CarrierJumpRequest') {
       const request = payloads.CarrierJumpRequest.parse(value)
-      patch.jump = { system: request.SystemName, body: request.Body, departureAt: request.DepartureTime ?? null, observedAt: timestamp, status: 'scheduled' }
+      patch.jump = { system: request.SystemName, systemAddress: request.SystemAddress, body: request.Body, bodyId: request.BodyID, departureAt: request.DepartureTime ?? null, observedAt: timestamp, status: 'scheduled' }
       description = `Jump scheduled · ${request.SystemName}`
     } else if (kind === 'CarrierFinance') patch.finance = normalizeFinance(finance.parse(value), timestamp)
     else if (kind === 'CarrierBankTransfer') {
@@ -120,7 +120,8 @@ function emptyCarrier(id: number): CarrierSnapshot {
 function applyObservation(current: CarrierSnapshot, entry: CarrierObservation): void {
   Object.assign(current, entry.patch)
   if (entry.kind === 'CarrierJumpCancelled' && current.jump) current.jump = { ...current.jump, observedAt: entry.timestamp, status: 'cancelled' }
-  if ((entry.kind === 'CarrierLocation' || entry.kind === 'CarrierJump') && current.jump?.status === 'scheduled' && current.jump.system === current.location?.system) {
+  if ((entry.kind === 'CarrierLocation' || entry.kind === 'CarrierJump') && current.jump?.status === 'scheduled'
+    && current.jump.systemAddress === current.location?.systemAddress && current.jump.bodyId === current.location.bodyId) {
     current.jump = { ...current.jump, observedAt: entry.timestamp, status: 'arrival-observed' }
   }
   if (entry.kind === 'CarrierJump' && current.fuel) current.fuel = null // Arrival supplies no remaining tank level.

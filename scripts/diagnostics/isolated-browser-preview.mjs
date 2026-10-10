@@ -161,7 +161,7 @@ if (carrier) {
       Finance: { CarrierBalance: 1000000000, ReserveBalance: 100000000, AvailableBalance: 900000000, ReservePercent: 10 },
       Crew: ['refuel', 'repair', 'rearm', 'outfitting', 'shipyard', 'exploration', 'pioneersupplies'].map(role => ({ CrewRole: role, CrewName: 'Synthetic crew', Activated: true, Enabled: true })) })
     service.ingest({ timestamp: '2026-10-10T10:01:00Z', event: 'CarrierLocation', CarrierID: 42, StarSystem: 'Sol', SystemAddress: 1 })
-    service.ingest({ timestamp: '2026-10-10T10:02:00Z', event: 'CarrierJumpRequest', CarrierID: 42, SystemName: 'Colonia', Body: 'Colonia 1', DepartureTime: '2026-10-10T10:17:00Z' })
+    service.ingest({ timestamp: '2026-10-10T10:02:00Z', event: 'CarrierJumpRequest', CarrierID: 42, SystemName: 'Colonia', SystemAddress: 2, BodyID: 1, Body: 'Colonia 1', DepartureTime: '2026-10-10T10:17:00Z' })
     service.ingest({ timestamp: '2026-10-10T10:03:00Z', event: 'CarrierCrewServices', CarrierID: 42, CrewRole: 'repair', Operation: 'deactivate' })
   } finally { database.close() }
 }

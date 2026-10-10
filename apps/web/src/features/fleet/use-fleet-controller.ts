@@ -6,6 +6,7 @@ import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub
 import { LatestRequest } from '../../application/requests/latest-request.js'
 
 export type FleetView = 'overview' | 'current-overview' | 'current-loadout' | 'current-cargo' | 'current-engineering' | 'carriers' | 'stored-modules' | 'catalogue'
+const storedShipEvents = new Set(['StoredShips', 'Loadout', 'ShipyardNew', 'ShipyardSell', 'ShipyardSwap', 'ShipyardTransfer'])
 
 export interface FleetControllerSnapshot {
   actions?: GameActionCatalogResponse
@@ -67,7 +68,7 @@ export function useFleetController(api: PhoenixApi, events: PhoenixEventHub, vie
     load(true)
     const unsubscribe = needsFleet
       ? events.subscribe('activity-entry', entry => {
-          if (view !== 'carriers' || entry.event.startsWith('Carrier') || entry.event === 'StoredShips') load()
+          if (view !== 'carriers' || entry.event.startsWith('Carrier') || storedShipEvents.has(entry.event)) load()
         })
       : needsActions
         ? events.subscribe('command-catalogue', () => load())

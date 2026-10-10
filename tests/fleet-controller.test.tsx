@@ -59,7 +59,11 @@ test('carrier page refreshes relevant management events and completed history, n
   expect(api.getFleet).toHaveBeenCalledTimes(3)
   await act(async () => { events.emit('activity-entry', { ...activity(), event: 'StoredShips' }) })
   expect(api.getFleet).toHaveBeenCalledTimes(4)
+  for (const event of ['Loadout', 'ShipyardNew', 'ShipyardSell', 'ShipyardSwap', 'ShipyardTransfer']) {
+    await act(async () => { events.emit('activity-entry', { ...activity(), event }) })
+  }
+  expect(api.getFleet).toHaveBeenCalledTimes(9)
   await act(async () => renderer.unmount())
   await act(async () => { events.emit('journal-history-loaded', null) })
-  expect(api.getFleet).toHaveBeenCalledTimes(4)
+  expect(api.getFleet).toHaveBeenCalledTimes(9)
 })

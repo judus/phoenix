@@ -38,7 +38,7 @@ test('jump schedule/cancellation/location are observed facts, not deadline infer
   try {
     const service = new CarrierDataService(database.carriers)
     service.ingest(carrierStats)
-    const request = { timestamp: '2026-10-10T10:10:00Z', event: 'CarrierJumpRequest', CarrierID: 42, SystemName: 'Colonia', Body: 'Colonia 1', DepartureTime: '2026-10-10T10:25:00Z' }
+    const request = { timestamp: '2026-10-10T10:10:00Z', event: 'CarrierJumpRequest', CarrierID: 42, SystemName: 'Colonia', SystemAddress: 2, BodyID: 1, Body: 'Colonia 1', DepartureTime: '2026-10-10T10:25:00Z' }
     service.ingest(request)
     service.ingest({ timestamp: '2026-10-10T10:30:00Z', event: 'CarrierJump', MarketID: 99, StarSystem: 'Colonia', SystemAddress: 2 })
     service.ingest({ timestamp: '2026-10-10T10:30:00Z', event: 'FSDJump', StarSystem: 'Colonia', SystemAddress: 2 })
@@ -46,7 +46,9 @@ test('jump schedule/cancellation/location are observed facts, not deadline infer
     service.ingest({ timestamp: '2026-10-10T10:40:00Z', event: 'CarrierJumpCancelled', CarrierID: 42 })
     expect(service.getCarriers()[0]?.jump?.status).toBe('cancelled')
     service.ingest({ ...request, timestamp: '2026-10-10T11:00:00Z' })
-    service.ingest({ timestamp: '2026-10-10T11:30:00Z', event: 'CarrierJump', MarketID: 42, StarSystem: 'Colonia', SystemAddress: 2 })
+    service.ingest({ timestamp: '2026-10-10T11:10:00Z', event: 'CarrierLocation', CarrierID: 42, StarSystem: 'Colonia', SystemAddress: 2, BodyID: 2 })
+    expect(service.getCarriers()[0]?.jump?.status).toBe('scheduled')
+    service.ingest({ timestamp: '2026-10-10T11:30:00Z', event: 'CarrierJump', MarketID: 42, StarSystem: 'Colonia', SystemAddress: 2, BodyID: 1 })
     expect(service.getCarriers()[0]).toMatchObject({ jump: { status: 'arrival-observed' }, fuel: null, location: { system: 'Colonia' } })
     service.ingest({ timestamp: '2026-10-10T11:40:00Z', event: 'CarrierDepositFuel', CarrierID: 42, Amount: 10, Total: 300 })
     expect(service.getCarriers()[0]?.fuel).toMatchObject({ tonnes: 300, currentRange: null })
@@ -65,5 +67,21 @@ test('purchase-only records preserve unknown fields and carrier history is bound
     }
     expect(service.getCarriers()[0]?.history).toHaveLength(100)
     expect(service.getCarriers()[0]?.capacity).toBeNull()
+  } finally { database.close() }
+})
+
+test('updated observation kinds preserve same-second ingestion order and duplicate replay cannot change it', () => {
+  const database = new SqliteDatabase(':memory:'); database.initialize()
+  try {
+    const service = new CarrierDataService(database.carriers)
+    const oldService = { timestamp: '2026-10-10T09:00:00Z', event: 'CarrierCrewServices', CarrierID: 42, CrewRole: 'repair', Operation: 'activate' }
+    const newService = { ...oldService, timestamp: carrierStats.timestamp, Operation: 'deactivate' }
+    service.ingest(oldService)
+    service.ingest(carrierStats)
+    service.ingest(newService)
+    expect(service.getCarriers()[0]?.services?.changedAt).toBe('2026-10-10T10:00:00.000Z')
+    service.ingest(carrierStats); service.ingest(oldService)
+    expect(service.getCarriers()[0]?.services?.changedAt).toBe('2026-10-10T10:00:00.000Z')
+    expect(service.getCarriers()[0]?.history[0]?.kind).toBe('CarrierCrewServices')
   } finally { database.close() }
 })

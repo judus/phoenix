@@ -15,7 +15,7 @@ test('carrier tabs distinguish stale services, observed history and personally s
   const fleet = fleetFixture()
   const observedAt = '2026-10-10T10:00:00Z'
   fleet.carriers = { observed: true, items: [{ id: 42, name: 'Synthetic carrier', callsign: 'SYN-001', type: 'Personal', snapshotAt: observedAt, pendingDecommission: null,
-    location: { system: 'Sol', systemAddress: 1, body: null, observedAt }, fuel: null, capacity: null, finance: null, access: null, jump: null,
+    location: { system: 'Sol', systemAddress: 1, body: null, bodyId: null, observedAt }, fuel: null, capacity: null, finance: null, access: null, jump: null,
     services: { observedAt, changedAt: '2026-10-10T11:00:00Z', items: [{ role: 'repair', name: 'Synthetic crew', active: true, enabled: false }] },
     history: [{ id: 'synthetic', kind: 'CarrierCrewServices', timestamp: observedAt, description: 'repair · deactivate' }] }] }
   fleet.ships = [{ ...fleet.ships[0]!, id: 3, marketId: 42, name: 'Personal ship', state: 'stored-remote' }, { ...fleet.ships[0]!, id: 4, marketId: 99, name: 'Elsewhere ship', state: 'stored-remote' }]
