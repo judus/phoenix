@@ -30,6 +30,7 @@ import { galaxyContextForRoute, galaxyNavigationItems } from './features/galaxy/
 import { useGalaxyController } from './features/galaxy/use-galaxy-controller.js'
 import { activitiesContextForRoute, activitiesNavigationItems } from './features/activities/activities-navigation.js'
 import { useActivitiesController } from './features/activities/use-activities-controller.js'
+import { usePowerplayController } from './features/activities/use-powerplay-controller.js'
 import { commsContextForRoute, commsNavigationItems } from './features/comms/comms-navigation.js'
 import { useCommsController } from './features/comms/use-comms-controller.js'
 import { engineeringContextForRoute, engineeringNavigationItems } from './features/engineering/engineering-navigation.js'
@@ -44,6 +45,7 @@ import { CommanderLogPage } from './features/journal/commander-log-page.js'
 import { settingsContext, settingsNavigationItems } from './features/settings/settings-navigation.js'
 
 const ActivitiesPage = lazy(() => import('./features/activities/activities-page.js').then(module => ({ default: module.ActivitiesPage })))
+const PowerplayPage = lazy(() => import('./features/activities/powerplay-page.js').then(module => ({ default: module.PowerplayPage })))
 const CommanderLoadoutsPage = lazy(() => import('./features/equipment/commander-loadouts-page.js').then(module => ({ default: module.CommanderLoadoutsPage })))
 const CommanderPage = lazy(() => import('./features/commander/commander-page.js').then(module => ({ default: module.CommanderPage })))
 const CommsPage = lazy(() => import('./features/comms/comms-page.js').then(module => ({ default: module.CommsPage })))
@@ -341,11 +343,25 @@ const ActivitiesFeature = memo(function ActivitiesFeature({ application, route }
   application: PhoenixApplicationServices
   route: Extract<ReturnType<PhoenixRouter['getSnapshot']>, { kind: 'information', section: 'activities' }>
 }) {
-  const controller = useActivitiesController(application.api, application.events, route.view)
-  return <ActivitiesPage controller={controller} view={route.view}
-    selectedMissionId={route.view === 'missions' ? route.selectedMissionId : undefined}
-    onAddNote={missionId => application.router.push({ kind: 'notes', newNote: true, target: { kind: 'mission', missionId } })} />
+  return route.view === 'powerplay' ? <PowerplayFeature application={application} />
+    : <ActivityLedgerFeature application={application} view={route.view}
+        selectedMissionId={route.view === 'missions' ? route.selectedMissionId : undefined} />
 })
+
+function PowerplayFeature({ application }: { application: PhoenixApplicationServices }) {
+  const controller = usePowerplayController(application.api, application.events)
+  return <PowerplayPage controller={controller} />
+}
+
+function ActivityLedgerFeature({ application, view, selectedMissionId }: {
+  application: PhoenixApplicationServices
+  view: Exclude<Extract<ReturnType<PhoenixRouter['getSnapshot']>, { kind: 'information', section: 'activities' }>['view'], 'powerplay'>
+  selectedMissionId?: number
+}) {
+  const controller = useActivitiesController(application.api, application.events, view)
+  return <ActivitiesPage controller={controller} view={view} selectedMissionId={selectedMissionId}
+    onAddNote={missionId => application.router.push({ kind: 'notes', newNote: true, target: { kind: 'mission', missionId } })} />
+}
 
 const GalaxyFeature = memo(function GalaxyFeature({ application, route }: {
   application: PhoenixApplicationServices

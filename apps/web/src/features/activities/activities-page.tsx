@@ -24,18 +24,13 @@ import { DataSyncNotice } from '../../components/data-sync-notice.js'
 import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import { CommunityGoalsPage } from './community-goals-page.js'
 
-type RetainedActivityView = Exclude<ActivitiesView, 'missions' | 'community-goals'>
+type RetainedActivityView = Exclude<ActivitiesView, 'missions' | 'community-goals' | 'powerplay'>
 
 const activityViews: Record<RetainedActivityView, { empty: string, ledger: string, title: string }> = {
   objectives: {
     empty: 'No authoritative commander objective record is currently available.',
     ledger: 'Objective ledger',
     title: 'Objectives'
-  },
-  powerplay: {
-    empty: 'No authoritative commander Powerplay record is currently available.',
-    ledger: 'Powerplay ledger',
-    title: 'Powerplay'
   },
   colonisation: {
     empty: 'No authoritative colonisation construction record is currently available.',
@@ -46,7 +41,7 @@ const activityViews: Record<RetainedActivityView, { empty: string, ledger: strin
 
 export function ActivitiesPage({ controller, view, onAddNote, selectedMissionId }: {
   controller: ActivitiesControllerSnapshot
-  view: ActivitiesView
+  view: Exclude<ActivitiesView, 'powerplay'>
   onAddNote?(missionId: number): void
   selectedMissionId?: number
 }) {

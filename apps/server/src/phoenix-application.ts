@@ -97,6 +97,7 @@ import { CommunityGoalsService } from './application/community-goals-service.js'
 import type { CommunityGoalsSource } from './domain/community-goals.js'
 import { FrontierCommunityGoalsSource } from './infrastructure/frontier-community-goals-source.js'
 import { MissionDataService } from './application/mission-data-service.js'
+import { PowerplayDataService } from './application/powerplay-data-service.js'
 import { CommunicationDataService } from './application/communication-data-service.js'
 import { LocalTrafficService } from './application/local-traffic-service.js'
 import { FleetDataService } from './application/fleet-data-service.js'
@@ -216,6 +217,7 @@ export class PhoenixApplication {
     const activityLog = new ActivityLogService(this.database)
     const personalNotes = new PersonalNoteService(this.database.personalNotes, this.database)
     const missions = new MissionDataService(this.database, () => this.stateStore.getCurrent().inventory)
+    const powerplay = new PowerplayDataService(this.database.powerplay)
     const communications = new CommunicationDataService(this.database, communicationUpdates)
     const localTraffic = new LocalTrafficService(this.database)
     const shortcutsChanged = () => commandCatalogueChanges.publish({ source: 'shortcuts' })
@@ -323,6 +325,7 @@ export class PhoenixApplication {
       event => journalIngestion.ingest(event),
       event => cartographyObservationIngestion.ingest(event),
       event => missions.ingest(event, 'live-journal'),
+      event => powerplay.ingest(event),
       event => communications.ingest(event),
       event => fleet.ingest(event),
       event => commanderEquipment.ingest(event),
@@ -340,6 +343,7 @@ export class PhoenixApplication {
         historicalJournalIngestion.ingest(event)
         historicalCartographyIngestion.ingest(event)
         missions.ingest(event, 'historical-journal')
+        powerplay.ingest(event)
         communications.ingest(event, 'historical')
         fleet.ingest(event)
         commanderEquipment.ingest(event)
@@ -587,6 +591,7 @@ export class PhoenixApplication {
       mcpServer,
       macros,
       missions,
+      powerplay,
       personalNotes,
       bookmarks,
       savedGalaxyQueries,

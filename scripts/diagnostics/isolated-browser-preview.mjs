@@ -10,6 +10,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { fileURLToPath } from 'node:url'
 import { PhoenixApplication } from '../../apps/server/src/phoenix-application.ts'
 import { MissionDataService } from '../../apps/server/src/application/mission-data-service.ts'
+import { PowerplayDataService } from '../../apps/server/src/application/powerplay-data-service.ts'
 import { SqliteDatabase } from '../../apps/server/src/infrastructure/sqlite-database.ts'
 import { parseMicroResourceInventory } from '@phoenix/elite'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
@@ -27,6 +28,7 @@ const prospecting = process.argv.includes('--prospecting')
 const atlasPois = process.argv.includes('--atlas-pois')
 const communityGoals = process.argv.includes('--community-goals')
 const missionBrief = process.argv.includes('--mission-brief')
+const powerplay = process.argv.includes('--powerplay')
 const galnetArchive = process.argv.includes('--galnet-archive')
 // Exercise display-tool navigation during a real HTTP chat stream, without paid inference.
 const copilotNavigation = process.argv.includes('--copilot-navigation')
@@ -39,7 +41,7 @@ const continuityArticles = [
   { id: 'synthetic-missing', title: 'Synthetic ship missing', body: 'Synthetic EVE-597 is missing after departing Sol. Its current position is unknown.', publishedAt: '2026-09-17T12:00:00Z' }
 ].map(article => ({ ...article, changedAt: article.publishedAt, image: null, slug: article.id,
   sourceUrl: `https://example.com/galnet/${article.id}` }))
-const fixtureDirectory = eddnSubmissions || galnetArchive || missionBrief ? mkdtempSync(join(tmpdir(), 'phoenix-isolated-preview-')) : undefined
+const fixtureDirectory = eddnSubmissions || galnetArchive || missionBrief || powerplay ? mkdtempSync(join(tmpdir(), 'phoenix-isolated-preview-')) : undefined
 const databasePath = fixtureDirectory ? join(fixtureDirectory, 'preview.sqlite') : ':memory:'
 // This preview must never upload, even when launched from a test-enabled development shell.
 process.env.PHOENIX_EDDN_TEST_MODE = '0'
@@ -143,6 +145,18 @@ const application = new PhoenixApplication({
 })
 const { port } = await application.start()
 copilotOrigin = `http://127.0.0.1:${port}`
+if (powerplay) {
+  const database = new SqliteDatabase(databasePath)
+  try {
+    database.initialize()
+    const service = new PowerplayDataService(database.powerplay)
+    service.ingest({ timestamp: '2026-10-10T10:00:00Z', event: 'Powerplay', Power: 'Aisling Duval', Rank: 3, Merits: 5200, TimePledged: 7 * 86400 })
+    service.ingest({ timestamp: '2026-10-10T10:10:00Z', event: 'PowerplayCollect', Power: 'Aisling Duval', Type: 'powerplay', Type_Localised: 'Preparation materials', Count: 20 })
+    service.ingest({ timestamp: '2026-10-10T10:20:00Z', event: 'PowerplayDeliver', Power: 'Aisling Duval', Type: 'powerplay', Type_Localised: 'Preparation materials', Count: 20 })
+    service.ingest({ timestamp: '2026-10-10T10:25:00Z', event: 'PowerplayMerits', Power: 'Aisling Duval', MeritsGained: 1425.5, TotalMerits: 6625.5 })
+    service.setTarget({ power: 'Aisling Duval', name: 'Synthetic reward target', rank: 4, merits: 9000 })
+  } finally { database.close() }
+}
 if (missionBrief) {
   const database = new SqliteDatabase(databasePath)
   try {
