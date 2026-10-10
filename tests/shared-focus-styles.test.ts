@@ -110,10 +110,11 @@ test('map corner controls use the header toolbar spacing and no schematic size o
   expect(read('pages/system-schematic.css')).not.toContain('.system-schematic__zoom-step.btn')
 })
 
-test('shared fields suppress the focus outline while retaining themed and invalid borders', () => {
+test('shared fields replace the blue outline with themed inset keyboard focus and retain invalid borders', () => {
   const source = read('base/forms.css')
   const focus = source.match(/&:focus-visible\s*\{([^}]+)\}/u)?.[1]
   expect(focus).toContain('outline: none')
+  expect(focus).toContain('box-shadow: inset 0 0 0 var(--control-border-width) var(--color-action)')
   expect(source).toContain('border: var(--control-border-width) solid var(--field-border)')
   expect(source).toMatch(/&\.invalid :is\(\.form-control, \.form-select\)\s*\{\s*border-color: var\(--color-danger\)/u)
 })

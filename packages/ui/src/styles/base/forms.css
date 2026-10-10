@@ -231,6 +231,7 @@
 
     &:focus-visible {
       outline: none;
+      box-shadow: inset 0 0 0 var(--control-border-width) var(--color-action);
     }
 
     &:disabled {

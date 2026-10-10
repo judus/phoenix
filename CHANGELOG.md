@@ -62,7 +62,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
   and reserve smaller controls for explicitly compact contexts.
   Keep ordinary action buttons transparent and grip-free; tactile grips belong to command tiles.
 
-- Remove the blue focus outline from form fields and dropdowns, retaining their themed borders.
+- Remove the blue focus outline from form fields and dropdowns, retaining their themed borders
+  and an orange inset keyboard-focus indicator.
 
 - Move query editing and Save/Update saved query actions into square icon buttons in the
   query header, leaving more room for table and Atlas results.
