@@ -54,12 +54,13 @@ export function useDeckSwipe(options: Options) {
         if (gesture) settle(true, event.timeStamp)
         return
       }
+      // A new deliberate tap is not the synthetic click following the previous drag.
+      if (event.button === 0) suppressClickUntil = 0
       if (settling || event.button !== 0 || !viewport.contains(event.target as Node)) return
       const target = event.target as Element
       if (target.closest('input, select, textarea, a[href], [contenteditable="true"], [data-deskplane-no-swipe]')) return
       const button = target.closest('button')
       if (button && !button.hasAttribute('data-deskplane-swipe-through')) return
-      suppressClickUntil = 0
       gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, started: event.timeStamp, delta: 0 }
     }
     const move = (event: PointerEvent) => {

@@ -153,3 +153,21 @@ test('first-deck overscroll resists and never wraps; pointer clicks after a swip
     expect(f.strip.style.transform).toBe('translateY(0px)')
   } finally { await act(async () => f.renderer.unmount()) }
 })
+
+test.each(['rail', 'protected control'])('a fresh tap on %s after snap-back is not swallowed', async origin => {
+  const f = await gestureFixture()
+  try {
+    await f.dispatch('pointerdown')
+    await f.dispatch('pointermove', { clientY: 280, timeStamp: 1400 })
+    await f.dispatch('pointerup', { clientY: 280, timeStamp: 1600 })
+    await act(async () => { vi.advanceTimersByTime(320) })
+    expect(f.input.onSelectDeck).not.toHaveBeenCalled()
+    const target = { closest: (selector: string) => origin === 'rail'
+      ? selector === 'button' ? null : { hasAttribute: () => false }
+      : selector === 'button' ? { hasAttribute: () => false } : null }
+    await f.dispatch('pointerdown', {}, target)
+    const click = new Pointer('click', { detail: 1 })
+    f.view.dispatchEvent(click)
+    expect(click.defaultPrevented).toBe(false)
+  } finally { await act(async () => f.renderer.unmount()) }
+})
