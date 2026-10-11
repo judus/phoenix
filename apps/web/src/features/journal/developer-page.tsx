@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { CopilotInjectedTool, CopilotToolDiagnosticsResponse } from '@phoenix/contracts'
-import {
+import { Notification,
   Breadcrumbs,
   DataTable,
   DataTableGroup,
@@ -35,7 +35,7 @@ export function DeveloperPage ({ api }: { api: PhoenixApi }) {
       variant="cockpit"
     />
     {error
-      ? <Status tone="danger">{error}</Status>
+      ? <Notification message={error} />
       : !diagnostics
           ? <Status tone="muted">Loading Copilot tool injection…</Status>
           : <div className="developer-tools-workspace">

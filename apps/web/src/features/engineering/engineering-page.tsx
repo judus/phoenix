@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Loading } from '@phoenix/ui'
+import { Notification, Loading } from '@phoenix/ui'
 import type {
   EngineeringBlueprintDetail,
   EngineeringBlueprintSummary,
@@ -71,7 +71,7 @@ function EngineeringState({ error, title }: { error?: string, title: string }) {
     <PageFrame layout="fit">
       <Stack fill gap="sm">
         <EngineeringHeader title={title} trail={[{ label: title }]} />
-        {error ? <Status tone="danger">{error}</Status> : <Loading>Loading engineering records…</Loading>}
+        {error ? <Notification message={error} /> : <Loading>Loading engineering records…</Loading>}
       </Stack>
     </PageFrame>
   )

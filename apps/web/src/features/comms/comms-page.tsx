@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Loading } from '@phoenix/ui'
+import { Notification, Loading } from '@phoenix/ui'
 import type {
   CommunicationContact,
   CommunicationMessage,
@@ -55,7 +55,7 @@ function CommsState({ error, title }: { error?: string, title: string }) {
     <PageFrame layout="fit">
       <Stack fill gap="xl">
         <CommsHeader title={title} />
-        {error ? <Status tone="danger">{error}</Status> : <Loading>Reading retained communications…</Loading>}
+        {error ? <Notification message={error} /> : <Loading>Reading retained communications…</Loading>}
       </Stack>
     </PageFrame>
   )
@@ -229,7 +229,7 @@ function Galnet({ news, api, error }: { news?: CommsControllerSnapshot['galnet']
                   />
                 ))}
               </ItemList>
-              {error && <Status tone="warning" wrap>{error}</Status>}
+              <Notification message={error} />
               {!news && !error && <Status tone="muted">Reading latest news…</Status>}
             </div>
           </DataTableGroup>

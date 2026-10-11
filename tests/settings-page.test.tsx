@@ -1,3 +1,4 @@
+import { notificationText } from './support/notifications.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
@@ -67,7 +68,7 @@ test('saved OpenAI configuration clearly reports that PHOENIX must restart', asy
   const markup = JSON.stringify(renderer.toJSON())
 
   expect(markup).toContain('Restart required')
-  expect(markup).toContain('OpenAI configuration changed. Restart PHOENIX to apply it.')
+  expect(notificationText()).toContain('OpenAI configuration changed. Restart PHOENIX to apply it.')
   expect(markup).toContain('AI provider')
   expect(markup).toContain('Only OpenAI is integrated currently.')
   expect(markup).toContain('Installation-wide permission ceiling')

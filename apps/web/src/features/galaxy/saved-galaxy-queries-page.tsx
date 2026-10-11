@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import {
+import { Notification,
   Breadcrumbs,
   Button,
   DataTableGroup,
@@ -123,7 +123,7 @@ export function SavedGalaxyQueriesPage({ api, onNavigate }: {
           </Field>
         </FormGrid>
         <DataTableGroup fill meta={queries ? `${shown.length} of ${queries.length} saved` : undefined} title="Query library">
-          {error && <Status tone="danger" wrap>{error}</Status>}
+          {error && <Notification message={error} />}
           {queries
             ? <SortableDataTable
                 columns={columns}

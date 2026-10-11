@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { GalnetArchiveQuery, GalnetArchiveResponse, GalnetArchivedArticle } from '@phoenix/contracts'
-import { Button, DataTableGroup, Field, Form, Inline, ItemList, ItemListItem, Stack, Status, TextInput } from '@phoenix/ui'
+import { Notification, Button, DataTableGroup, Field, Form, Inline, ItemList, ItemListItem, Stack, Status, TextInput } from '@phoenix/ui'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { PhoenixDateTime } from '../../components/phoenix-date-time.js'
 import { GalnetArticleReader, type GalnetReaderApi } from './galnet-article-reader.js'
@@ -44,7 +44,7 @@ function ArchivePage({ api, query, selectedId, onSelect, onPage, search }: {
       <div className="galnet-index-scroll"><Stack gap="md">
         {search}
         <Status tone="muted" wrap>Articles observed by PHOENIX, not a complete historical feed. Search titles and text.</Status>
-        {error ? <Status tone="danger" wrap role="alert">{error}</Status> : !page ? <Status tone="muted">Reading archive…</Status>
+        {error ? <Notification message={error} /> : !page ? <Status tone="muted">Reading archive…</Status>
           : page.articles.length === 0 ? <Status tone="muted">No retained articles match.</Status>
             : <ItemList className="surface" density="compact" aria-label="Archived GalNet articles">{page.articles.map(article =>
               <ItemListItem key={article.id} title={article.title} selected={selected === article.id}
@@ -74,7 +74,7 @@ function ArchivedReader({ api, articleId, onOpen }: { api: ArchiveApi, articleId
   }, [api, articleId])
   return <DataTableGroup className="galnet-reader-group" title="Retained article"
     meta={retained ? <PhoenixDateTime value={retained.article.publishedAt} precision="date" /> : undefined}>
-    {error ? <Status tone="danger" wrap role="alert">{error}</Status> : retained
+    {error ? <Notification message={error} /> : retained
       ? <GalnetArticleReader article={retained.article} api={api} onOpen={onOpen} sourceUrl={retained.sourceUrl} />
       : <Status tone="muted">Reading retained article…</Status>}
   </DataTableGroup>

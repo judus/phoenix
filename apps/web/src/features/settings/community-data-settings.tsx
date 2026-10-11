@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Section, SettingsList, SettingRow, SettingToggle, Status } from '@phoenix/ui'
+import { Notification, Section, SettingsList, SettingRow, SettingToggle } from '@phoenix/ui'
 import type { EddnStatus } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { EddnLossSummary } from '../../components/eddn-loss-summary.js'
@@ -62,7 +62,7 @@ export function CommunityDataSettings ({ api }: { api: PhoenixApi }) {
         <span>{status.queued} queued · {status.lastSuccessAt ? `Last sent ${new Date(status.lastSuccessAt).toLocaleString()}` : 'Nothing sent yet'}</span>
       </SettingRow>}
     </SettingsList>
-    {(error || status?.error) && <Status tone="warning">{error ?? status?.error}</Status>}
+    <Notification message={error ?? status?.error} />
     {status && <EddnLossSummary losses={status.losses} />}
   </Section>
 }

@@ -9,6 +9,7 @@ import {
   DescriptionList,
   Inline,
   Metric,
+  Notification,
   PageFrame,
   PageHeader,
   Stack,
@@ -164,10 +165,10 @@ export function PlottedRoute({ actions, api, route, runtimeState }: PlottedRoute
                             </>}
                           </DescriptionList>
                           {preview.status === 'loading' && <Status tone="muted">Loading system cartography…</Status>}
-                          {preview.status === 'error' && <Status tone="warning" wrap>{preview.error}</Status>}
+                          {preview.status === 'error' && <Notification message={preview.error} />}
                         </>
                       : <Status tone="muted">Destination reached.</Status>}
-                    {actionState && <Status tone={actionState.tone} wrap>{actionState.message}</Status>}
+                    <Notification message={actionState?.message} tone={actionState?.tone === 'danger' ? 'danger' : 'warning'} />
                     {!progressKnown && runtimeState?.system.name && (
                       <Status tone="muted">Current system is not present in this route; progress is unknown.</Status>
                     )}

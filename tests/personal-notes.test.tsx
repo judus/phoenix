@@ -21,6 +21,7 @@ import { ActivitiesPage } from '../apps/web/src/features/activities/activities-p
 import { PersonalNoteWriteRequestSchema } from '@phoenix/contracts'
 import { phoenixApiStub } from './support/phoenix-api-stub.js'
 import { renderWithAct } from './support/render-with-act.js'
+import { notificationText } from './support/notifications.js'
 import { parsePhoenixRoute, phoenixRouteHash } from '../apps/web/src/application/navigation/phoenix-router.js'
 
 const context = { callId: 'notes', runId: 'notes', deadline: '2026-10-10T12:00:00Z', signal: new AbortController().signal }
@@ -250,6 +251,27 @@ test('pairing blocks notes before validation and writes; storage faults remain H
     const valid = await fetch(`${origin}/api/notes`, { method: 'POST', headers: { cookie }, body: JSON.stringify(input) })
     expect(valid.status).toBe(201)
   } finally { create.mockRestore(); await application.stop(); rmSync(directory, { recursive: true, force: true }) }
+})
+
+test.each(['mission', 'station', 'body'] as const)('notes %s link validation remains associated with its fields', async kind => {
+  const save = vi.fn()
+  const api = phoenixApiStub({ getPersonalNotes: async () => ({ notes: [] }), savePersonalNote: save })
+  const renderer = await renderWithAct(<PersonalNotesPage api={api} onNavigate={vi.fn()}
+    route={{ kind: 'notes', newNote: true }} />)
+  try {
+    await act(async () => renderer.root.findByType('select').props.onChange({ target: { value: kind } }))
+    if (kind === 'mission') await act(async () => renderer.root.findByProps({ id: 'note-mission' }).props.onChange({ target: { value: '-1' } }))
+    await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+    const id = kind === 'mission' ? 'note-mission' : 'note-system'
+    const field = renderer.root.findAllByType('input').find(input => input.props.id === id)!
+    expect(field.props['aria-invalid']).toBe(true)
+    expect(field.props['aria-describedby']).toBe(`${id}-message`)
+    if (kind !== 'mission') expect(renderer.root.findAllByType('input').find(input => input.props.id === 'note-location')!.props['aria-invalid']).toBe(true)
+    expect(notificationText()).toBe('')
+    expect(save).not.toHaveBeenCalled()
+    await act(async () => renderer.root.findByProps({ id }).props.onChange({ target: { value: kind === 'mission' ? '42' : 'Sol' } }))
+    expect(renderer.root.findAllByType('input').find(input => input.props.id === id)!.props['aria-invalid']).not.toBe(true)
+  } finally { await act(async () => renderer.unmount()) }
 })
 
 test('notes editor saves the mission link and returns to the list without losing authored text', async () => {

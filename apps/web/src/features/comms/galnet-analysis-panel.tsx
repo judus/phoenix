@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { GalnetAnalysis, GalnetAnalysisResponse } from '@phoenix/contracts'
-import { Button, DataTableGroup, DescriptionItem, DescriptionList, Inline, ItemList, ItemListItem, Stack, Status } from '@phoenix/ui'
+import { Notification, Button, DataTableGroup, DescriptionItem, DescriptionList, Inline, ItemList, ItemListItem, Stack, Status } from '@phoenix/ui'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { PhoenixDateTime } from '../../components/phoenix-date-time.js'
 
@@ -62,7 +62,7 @@ export function GalnetAnalysisPanel({ api, articleId }: { api: GalnetAnalysisApi
       {snapshot?.articleChanged && <Status wrap tone="warning">The article has changed since this report. Update analysis to use the latest archived revision.</Status>}
       {snapshot?.contextChanged && <Status wrap tone="warning">Earlier evidence or its analysis has changed since this story update. Its earlier lead decisions are not applied to the Atlas.</Status>}
       {snapshot?.analysis?.schemaVersion === 1 && <Status wrap tone="muted">This saved report predates investigation destinations. Update analysis explicitly to extract them for the Atlas; this may use API credit.</Status>}
-      {error && <Status wrap tone="danger" role="alert">{error}</Status>}
+      {error && <Notification message={error} />}
       {snapshot?.analysis && <GalnetAnalysisReport analysis={snapshot.analysis} />}
     </Stack>
   </DataTableGroup>

@@ -1,3 +1,4 @@
+import { notificationText } from './support/notifications.js'
 import { act } from 'react-test-renderer'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeAll, expect, test, vi } from 'vitest'
@@ -25,7 +26,8 @@ test('opening is read-only, explicit action updates the panel and failures retai
     api.analyseGalnetArticle.mockRejectedValueOnce(new Error('Synthetic provider failure'))
     await act(async () => { renderer.root.findByType('button').props.onClick() })
     const markup = JSON.stringify(renderer.toJSON())
-    expect(markup).toContain('Synthetic provider failure')
+    expect(notificationText()).toContain('Synthetic provider failure')
+    expect(markup).not.toContain('Synthetic provider failure')
     expect(markup).toContain('Related Community Goals')
   } finally { await act(async () => renderer.unmount()) }
 })

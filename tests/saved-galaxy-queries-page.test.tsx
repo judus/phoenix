@@ -1,3 +1,4 @@
+import { notificationText } from './support/notifications.js'
 import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
@@ -18,7 +19,7 @@ test.each([false, true])('explicit predefined import updates the list or exposes
     expect(button.props.disabled).toBe(false)
     await act(async () => button.props.onClick())
     expect(importPredefinedGalaxyQueries).toHaveBeenCalledTimes(1)
-    expect(JSON.stringify(renderer.toJSON())).toContain(fail ? 'Import unavailable' : query.name)
+    expect(fail ? notificationText() : JSON.stringify(renderer.toJSON())).toContain(fail ? 'Import unavailable' : query.name)
     expect(JSON.stringify(renderer.toJSON())).toContain(fail ? 'No saved queries.' : 'Current system (dynamic)')
   } finally { await act(async () => renderer.unmount()) }
 })

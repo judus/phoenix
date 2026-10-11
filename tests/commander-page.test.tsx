@@ -1,3 +1,5 @@
+import { renderWithAct } from './support/render-with-act.js'
+import { notificationMarkup, notificationText } from './support/notifications.js'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test } from 'vitest'
@@ -162,12 +164,16 @@ test('commander inventory renders accepted personal-store structure from runtime
   expect(markup).toContain('healthpack · Stored')
 })
 
-test('commander page renders loading and error states without fabricated telemetry', () => {
+test('commander page renders loading and error states without fabricated telemetry', async () => {
   const loading = renderToStaticMarkup(<CommanderPage runtime={{ status: 'loading' }} view="career" />)
   const failed = renderToStaticMarkup(<CommanderPage runtime={{ status: 'error', error: 'Runtime unavailable.' }} view="statistics" />)
 
   expect(loading).toContain('Waiting for commander telemetry')
   expect(loading).not.toContain('Unknown commander')
-  expect(failed).toContain('Runtime unavailable.')
-  expect(failed).toContain('status-danger')
+  expect(failed).not.toContain('Runtime unavailable.')
+  const renderer = await renderWithAct(<CommanderPage runtime={{ status: 'error', error: 'Runtime unavailable.' }} view="statistics" />)
+  expect(notificationText()).toContain('Runtime unavailable.')
+  expect(notificationMarkup()).toContain('toast danger notification')
+  await act(async () => renderer.unmount())
 })
+import { act } from 'react-test-renderer'

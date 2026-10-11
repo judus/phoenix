@@ -1,3 +1,4 @@
+import { notificationMarkup, notificationText } from './support/notifications.js'
 import { act } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { GalnetBackgroundStatus } from '@phoenix/contracts'
@@ -28,6 +29,22 @@ test('opening work panel is read-only; catch-up needs an explicit press and show
   } finally { await act(async () => renderer.unmount()) }
 })
 
+test('retained source advisories are orange while independent action failures remain red', async () => {
+  const client = api()
+  client.getGalnetBackground.mockResolvedValue({ ...initial, sourceError: 'The queue is full.' })
+  client.catchUpGalnet.mockRejectedValue(new Error('Storage failed.'))
+  const renderer = await renderWithAct(<GalnetBackgroundPanel api={client} />)
+  try {
+    expect(notificationText()).toBe('The queue is full.')
+    expect(notificationMarkup()).toContain('toast warning notification')
+    expect(notificationMarkup()).not.toContain('role="alert"')
+    await act(async () => renderer.root.findByType('button').props.onClick())
+    expect(notificationText()).toContain('The queue is full.')
+    expect(notificationText()).toContain('Storage failed.')
+    expect(notificationMarkup()).toContain('toast danger notification')
+  } finally { await act(async () => renderer.unmount()) }
+})
+
 test('background setting explicitly enables the worker without invoking catch-up', async () => {
   const client = api()
   const renderer = await renderWithAct(<GalnetAnalysisSettings api={client} />)
@@ -46,7 +63,7 @@ test('failed catch-up keeps the queue visible, does not retry and aborts polling
   client.catchUpGalnet.mockRejectedValueOnce(new Error('Synthetic storage failure'))
   const renderer = await renderWithAct(<GalnetBackgroundPanel api={client} />)
   await act(async () => { renderer.root.findByType('button').props.onClick() })
-  expect(JSON.stringify(renderer.toJSON())).toContain('Synthetic storage failure')
+  expect(notificationText()).toContain('Synthetic storage failure')
   expect(client.catchUpGalnet).toHaveBeenCalledTimes(1)
   const signal = client.getGalnetBackground.mock.calls[0]![0]
   await act(async () => renderer.unmount())

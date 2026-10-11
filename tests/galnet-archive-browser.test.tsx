@@ -1,3 +1,4 @@
+import { notificationMarkup, notificationText } from './support/notifications.js'
 import { act, type ReactTestRenderer } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { GalnetArchivedArticle, GalnetArchiveResponse, GalnetCoverageResponse } from '@phoenix/contracts'
@@ -66,8 +67,9 @@ test('archive remains reachable when the feed failed; lookup errors do not show 
     analysisApi={phoenixApiStub(methods)} onExecuteAction={async () => { throw Error('No command') }} />)
   try {
     await act(async () => { button(renderer, 'Archive').props.onClick() })
-    expect(JSON.stringify(renderer.toJSON())).toContain('Retained article not found')
-    expect(renderer.root.findAll(node => typeof node.type === 'string' && node.props.role === 'alert')).toHaveLength(1)
+    expect(notificationText()).toContain('Retained article not found')
+    expect(notificationMarkup()).toContain('role="alert"')
+    expect(renderer.root.findAll(node => typeof node.type === 'string' && node.props.role === 'alert')).toHaveLength(0)
     expect(renderer.root.findAllByType('article')).toHaveLength(0)
     expect(methods.analyseGalnetArticle).not.toHaveBeenCalled()
   } finally { await act(async () => renderer.unmount()) }
@@ -93,9 +95,9 @@ test('a failed search can be retried without keeping its error or triggering ana
   methods.getGalnetArchive.mockRejectedValueOnce(new Error('Archive temporarily unavailable'))
   const renderer = await renderWithAct(<GalnetArchiveBrowser api={methods} />)
   try {
-    expect(JSON.stringify(renderer.toJSON())).toContain('Archive temporarily unavailable')
+    expect(notificationText()).toContain('Archive temporarily unavailable')
     await act(async () => { renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }) })
-    expect(JSON.stringify(renderer.toJSON())).not.toContain('Archive temporarily unavailable')
+    expect(notificationText()).not.toContain('Archive temporarily unavailable')
     expect(methods.getGalnetArchivedArticle).toHaveBeenCalledWith(analysisArticle.id, expect.any(AbortSignal))
     expect(methods.analyseGalnetArticle).not.toHaveBeenCalled()
   } finally { await act(async () => renderer.unmount()) }

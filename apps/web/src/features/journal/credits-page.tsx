@@ -105,6 +105,10 @@ export function CreditsPage() {
               value="Workspace navigation and touch gestures."
             />
             <DescriptionItem
+              label={<SourceLink href="https://github.com/emilkowalski/sonner">Sonner · Emil Kowalski</SourceLink>}
+              value="Shared notification queue and toast interactions, under the MIT licence."
+            />
+            <DescriptionItem
               label={<SourceLink href="https://github.com/IBM/plex">IBM Plex Sans · IBM</SourceLink>}
               value="Body typeface, under the SIL Open Font License 1.1."
             />

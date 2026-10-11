@@ -1,7 +1,8 @@
+import { dismissNotification, notificationMarkup, notificationText } from './support/notifications.js'
 import { act, create } from 'react-test-renderer'
 import { expect, test, vi } from 'vitest'
 import { createControlDeckGroup, removeControlDeck } from 'control-deck/core'
-import { InputGroup, Status, Toast, Widget } from '@phoenix/ui'
+import { InputGroup, Status, Widget } from '@phoenix/ui'
 import { PhoenixControlDeckConfigurationSchema, PHOENIX_SHIP_LAYOUT_PRESET, type PhoenixControlDeckConfiguration } from '@phoenix/contracts'
 import { ManageDecksPage, reorderDeck } from '../apps/web/src/features/controls/manage-decks-page.js'
 import { applyDeckPreset, resizeDeck } from '../apps/web/src/features/controls/controls-page.js'
@@ -155,11 +156,11 @@ test('Edit saves pending manager changes before navigating and preserves drafts 
     await act(async () => rejectSave(new Error('Synthetic save failure')))
     expect(edit).not.toHaveBeenCalled()
     expect(renderer.root.findByProps({ 'aria-label': 'Deck name 1' }).props.value).toBe('Renamed')
-    expect(JSON.stringify(renderer.toJSON())).toContain('Synthetic save failure')
-    expect(renderer.root.findByType(Toast).props.tone).toBe('danger')
+    expect(notificationText()).toContain('Synthetic save failure')
+    expect(notificationMarkup()).toContain('toast danger notification')
     expect(renderer.root.findAllByType(Status)).toHaveLength(0)
-    await act(async () => renderer.root.findByType(Toast).props.onDismiss())
-    expect(renderer.root.findAllByType(Toast)).toHaveLength(0)
+    await act(async () => dismissNotification('Synthetic save failure'))
+    expect(notificationText()).not.toContain('Synthetic save failure')
     await act(async () => button().props.onClick())
     await act(async () => resolveSave(save.mock.calls[1]![0]!))
     expect(edit).toHaveBeenCalledExactlyOnceWith('quick')
@@ -218,16 +219,17 @@ test('leaving the manager flushes pending names and an invalid empty name is nev
     await act(async () => { await vi.advanceTimersByTimeAsync(400) })
     expect(save).toHaveBeenCalledOnce()
     expect(renderer.root.findByProps({ 'aria-label': 'Deck name 1' }).props.value).toBe('')
-    expect(renderer.root.findByType(Toast).props.tone).toBe('warning')
+    expect(notificationMarkup()).toContain('toast warning notification')
     expect(renderer.root.findAllByType(Status)).toHaveLength(0)
-    await act(async () => renderer.root.findByType(Toast).props.onDismiss())
-    expect(renderer.root.findAllByType(Toast)).toHaveLength(0)
+    const warning = notificationText()
+    await act(async () => dismissNotification(warning))
+    expect(notificationText()).toBe('')
     await act(async () => renderer.root.findByProps({ 'aria-label': 'Deck name 1' }).props.onChange({ target: { value: 'Valid again' } }))
     await act(async () => { await vi.advanceTimersByTimeAsync(400) })
     expect(save).toHaveBeenCalledTimes(2)
     await act(async () => renderer.root.findByProps({ 'aria-label': 'Deck name 1' }).props.onChange({ target: { value: '' } }))
     await act(async () => { await vi.advanceTimersByTimeAsync(400) })
-    expect(renderer.root.findByType(Toast).props.tone).toBe('warning')
+    expect(notificationMarkup()).toContain('toast warning notification')
   } finally {
     await act(async () => renderer.unmount())
     vi.useRealTimers()

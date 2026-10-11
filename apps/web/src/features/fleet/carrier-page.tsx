@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FleetCarrier, FleetResponse } from '@phoenix/contracts'
-import { Breadcrumbs, DataTable, DataTableGroup, DescriptionItem, DescriptionList, Inline, PageFrame, PageHeader, Stack, Status, Tabs, ThirdsGrid } from '@phoenix/ui'
+import { Notification, Breadcrumbs, DataTable, DataTableGroup, DescriptionItem, DescriptionList, Inline, PageFrame, PageHeader, Stack, Status, Tabs, ThirdsGrid } from '@phoenix/ui'
 import { PhoenixDateTime } from '../../components/phoenix-date-time.js'
 import { SystemLocationLink } from '../../components/system-location-link.js'
 
@@ -12,7 +12,7 @@ export function CarrierPage({ fleet, error }: { fleet: FleetResponse, error?: st
   return <PageFrame layout="fit"><Stack fill gap="sm">
     <PageHeader variant="cockpit" title="Fleet carriers" context={<Breadcrumbs items={[{ label: 'Fleet', href: '#/fleet/overview' }, { label: 'Carriers' }]} />}
       status={<Inline justify="end"><Status tone="danger">Work in progress</Status><span>Journal observations</span></Inline>} />
-    {error ? <Status tone="danger" wrap>{error}</Status> : null}
+    {error ? <Notification message={error} /> : null}
     {!carrier ? <Status tone="muted" wrap>No managed carrier observed. Open Carrier Management in Elite to publish a snapshot. This does not mean you own no carrier.</Status> : <>
       <Tabs current={tab} items={tabs} label="Carrier views" onSelect={setTab} />
       <ThirdsGrid fill gap="lg"><DataTableGroup fill title="Managed carriers" meta={`${fleet.carriers.items.length} observed`}>

@@ -4,6 +4,11 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Use one shared, dismissible notification stack for page/API failures and system messages:
+  red for failures, orange for advisories. Keep loading, empty results, data-quality indicators
+  and field-specific validation in place. Repeated background failures do not reopen dismissed
+  notifications; query errors and route-plot diagnostics no longer occupy form/header rows.
+
 ## 0.1.8 — 2026-10-11 (prerelease)
 
 - Swipe vertically between control decks, pre-rendering immediate neighbours

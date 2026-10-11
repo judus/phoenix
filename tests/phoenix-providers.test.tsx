@@ -16,6 +16,9 @@ import { BrowserPhoenixRouter } from '../apps/web/src/platform/routing/browser-p
 import { BrowserDevicePreferences } from '../apps/web/src/platform/storage/browser-device-preferences.js'
 import { numpadRuntimeFixture } from './support/numpad-runtime-fixture.js'
 
+// Host layout/focus uses the browser DOM; the real notification queue is tested separately.
+vi.mock('sonner', async importOriginal => ({ ...await importOriginal<typeof import('sonner')>(), Toaster: () => null }))
+
 beforeAll(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 })

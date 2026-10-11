@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect } from 'react'
 import type { ReactNode } from 'react'
+import { NotificationHost } from '@phoenix/ui'
 import { CopilotVoiceProvider } from '../features/copilot/copilot-voice-provider.js'
 import { CopilotTextProvider } from '../features/copilot/copilot-text-provider.js'
 import { MacroRuntimeProvider } from '../features/macros/macro-runtime-provider.js'
@@ -49,6 +50,7 @@ export function PhoenixProviders({
             router={application.router}
           >
             {children}
+            <NotificationHost />
           </MacroRuntimeProvider>
         </CopilotTextProvider>
       </CopilotVoiceProvider>

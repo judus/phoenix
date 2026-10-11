@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Loading } from '@phoenix/ui'
+import { Notification, Loading } from '@phoenix/ui'
 import {
   Breadcrumbs,
   DataTable,
@@ -79,7 +79,7 @@ function ExobiologyState({ error }: { error?: string }) {
     <PageFrame layout="fit">
       <Stack fill gap="xl">
         <ExobiologyHeader />
-        {error ? <Status tone="danger">{error}</Status> : <Loading>Reconstructing journal-backed exobiology records…</Loading>}
+        {error ? <Notification message={error} /> : <Loading>Reconstructing journal-backed exobiology records…</Loading>}
       </Stack>
     </PageFrame>
   )
