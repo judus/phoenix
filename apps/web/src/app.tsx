@@ -318,6 +318,7 @@ const ControlsFeature = memo(function ControlsFeature({ application, controller,
     onEditingChange={onEditingChange}
     runtime={runtime.status === 'ready' ? runtime.state : undefined}
     variableFontSizes={devicePreferences.variableCommandLabelSizes}
+    showEmptySlots={devicePreferences.showEmptyDeckSlots}
     {...deckActions}
   />
 })

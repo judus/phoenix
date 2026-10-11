@@ -156,7 +156,7 @@
     .pip-controls {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: var(--spacing-xs);
+      gap: var(--spacing-sm);
 
       > .tile.btn { min-block-size: 4.5rem; }
     }

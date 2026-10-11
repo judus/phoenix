@@ -5,6 +5,10 @@ import { expect, test } from 'vitest'
 const styles = resolve(import.meta.dirname, '../packages/ui/src/styles')
 const read = (path: string) => readFileSync(resolve(styles, path), 'utf8')
 
+test('inline meter values can grow beyond their minimum width without overflowing', () => {
+  expect(read('components/data-display.css')).toContain('minmax(var(--meter-value-size), max-content)')
+})
+
 test('tiles share their border width and custom-colour text roles independently of form buttons', () => {
   const tiles = read('patterns/control-deck-tiles.css')
   expect(tiles).toContain('border-width: var(--command-border-width)')

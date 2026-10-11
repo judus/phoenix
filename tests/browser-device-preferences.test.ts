@@ -15,15 +15,17 @@ test('browser device preferences default to following Copilot and capturing the 
     followCopilotNavigation: true,
     presentation: 'phoenix',
     showDeveloper: false,
+    showEmptyDeckSlots: false,
     showNumpadButton: false,
     shipCatalogueView: 'dossier',
     uiScalePercent: 100,
     variableCommandLabelSizes: true
   })
-  preferences.update({ showNumpadButton: true, showDeveloper: true, variableCommandLabelSizes: false, audioInputId: 'mic-1', captureNumpad: false, currentShipLoadoutView: 'table', presentation: 'elite', shipCatalogueView: 'table', uiScalePercent: 115 })
+  preferences.update({ showEmptyDeckSlots: true, showNumpadButton: true, showDeveloper: true, variableCommandLabelSizes: false, audioInputId: 'mic-1', captureNumpad: false, currentShipLoadoutView: 'table', presentation: 'elite', shipCatalogueView: 'table', uiScalePercent: 115 })
   expect(new BrowserDevicePreferences(storage).getSnapshot()).toMatchObject({
     audioInputId: 'mic-1',
     showDeveloper: true,
+    showEmptyDeckSlots: true,
     showNumpadButton: true,
     captureNumpad: false,
     currentShipLoadoutView: 'table',
@@ -32,6 +34,13 @@ test('browser device preferences default to following Copilot and capturing the 
     uiScalePercent: 115,
     variableCommandLabelSizes: false
   })
+})
+
+test('empty-slot setting defaults off without resetting saved device preferences', () => {
+  const storage = new MemoryStorage()
+  const { showEmptyDeckSlots, ...existing } = new BrowserDevicePreferences(storage).getSnapshot()
+  storage.setItem('phoenix.device.preferences', JSON.stringify({ ...existing, presentation: 'elite', uiScalePercent: 115 }))
+  expect(new BrowserDevicePreferences(storage).getSnapshot()).toMatchObject({ showEmptyDeckSlots: false, presentation: 'elite', uiScalePercent: 115 })
 })
 
 test('browser device preferences migrate the Numpy-only label setting', () => {

@@ -253,7 +253,18 @@
       --command-grip: var(--control-deck-accent);
     }
 
-    .control-deck-empty { background: var(--color-canvas); }
+    .control-deck-empty {
+      background: transparent;
+
+      &.outlined {
+        display: grid;
+        place-content: center;
+        color: color-mix(in srgb, var(--color-text-muted) 48%, transparent);
+        border: var(--command-border-width) dashed currentColor;
+        font-family: var(--font-family-display);
+        font-size: var(--font-size-sm);
+      }
+    }
 
     button.control-deck-empty {
       display: grid;

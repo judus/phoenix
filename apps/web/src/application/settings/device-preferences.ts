@@ -8,6 +8,7 @@ export interface PhoenixDevicePreferencesSnapshot {
   followCopilotNavigation: boolean
   presentation: 'phoenix' | 'elite'
   showDeveloper: boolean
+  showEmptyDeckSlots: boolean
   showNumpadButton: boolean
   shipCatalogueView: 'dossier' | 'table'
   uiScalePercent: number

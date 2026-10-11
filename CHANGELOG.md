@@ -4,6 +4,14 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Let inline meter values fit their text, preventing cargo capacity values from
+  creating a horizontal scrollbar on the current-ship dashboard.
+
+- Match the current-ship SYS/ENG/WEP/RST button spacing to the wider dashboard gaps.
+
+- Add a per-device “Empty deck slots” setting for muted dashed outlines and slot numbers
+  outside edit mode; use transparent empty slots and keep existing edit controls.
+
 - Restore light titles and muted interaction labels on custom-coloured control tiles
   in Elite. Use 1px borders for all shared tiles while keeping form buttons at 2px.
 
