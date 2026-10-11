@@ -387,6 +387,13 @@ test.each(['tap', 'hold'] as const)('game-action buttons opt into swipes only fo
   else expect(props.onExecuteAction).not.toHaveBeenCalled()
   await act(async () => button().props.onPointerUp({ pointerId: 1 }))
   if (inputMode === 'hold') expect(props.onExecuteAction).toHaveBeenCalledWith('elite.ShipSpotLightToggle', 'release', expect.any(String))
+  if (inputMode === 'hold') {
+    await act(async () => button().props.onPointerDown({ pointerId: 2, currentTarget: { setPointerCapture: vi.fn() } }))
+    await act(async () => renderer.update(<ControlsPage {...props} preview />))
+    expect(props.onExecuteAction).toHaveBeenLastCalledWith('elite.ShipSpotLightToggle', 'release', expect.any(String))
+    expect(button().props.onPointerDown).toBeUndefined()
+    expect(button().props.onClick).toBeUndefined()
+  }
   await act(async () => renderer.update(<ControlsPage {...props} editing />))
   expect(button().props['data-deskplane-swipe-through']).toBeUndefined()
   await act(async () => renderer.unmount())

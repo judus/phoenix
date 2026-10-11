@@ -1,5 +1,6 @@
 import { lazy, memo, Suspense, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
 import type { ApplicationNavigationItem } from '@phoenix/ui'
+import type { CommandTarget, GameActionOperation, PhoenixControlDeckConfiguration } from '@phoenix/contracts'
 import { Loading, PageFrame } from '@phoenix/ui'
 import { PhoenixApplicationShell } from './components/shell/phoenix-application-shell.js'
 import { isInformationRoute, workspaceForRoute, type InformationRoute, type PhoenixRoute } from './application/navigation/phoenix-route.js'
@@ -49,7 +50,7 @@ const PowerplayPage = lazy(() => import('./features/activities/powerplay-page.js
 const CommanderLoadoutsPage = lazy(() => import('./features/equipment/commander-loadouts-page.js').then(module => ({ default: module.CommanderLoadoutsPage })))
 const CommanderPage = lazy(() => import('./features/commander/commander-page.js').then(module => ({ default: module.CommanderPage })))
 const CommsPage = lazy(() => import('./features/comms/comms-page.js').then(module => ({ default: module.CommsPage })))
-const ControlsPage = lazy(() => import('./features/controls/controls-page.js').then(module => ({ default: module.ControlsPage })))
+const ControlsDeckCarousel = lazy(() => import('./features/controls/controls-deck-carousel.js').then(module => ({ default: module.ControlsDeckCarousel })))
 const ManageDecksPage = lazy(() => import('./features/controls/manage-decks-page.js').then(module => ({ default: module.ManageDecksPage })))
 const CopilotFeature = lazy(() => import('./features/copilot/copilot-feature.js').then(module => ({ default: module.CopilotFeature })))
 const CreditsPage = lazy(() => import('./features/journal/credits-page.js').then(module => ({ default: module.CreditsPage })))
@@ -296,10 +297,20 @@ const ControlsFeature = memo(function ControlsFeature({ application, controller,
   const runtime = useRuntimeState(application.runtime)
   const macros = useMacroRuntime()
   const devicePreferences = useSyncExternalStore(application.devicePreferences.subscribe, application.devicePreferences.getSnapshot, application.devicePreferences.getSnapshot)
+  const deckActions = useMemo(() => ({
+    onExecuteAction: (actionId: string, operation: GameActionOperation, leaseId?: string) => application.api.executeAction(actionId, operation, { leaseId }),
+    onExecuteNavigation: async (target: Extract<CommandTarget, { type: 'navigation' }>) => {
+      const result = await application.api.executeCommand(target)
+      if (result.status !== 'accepted' || !result.navigationHref) throw new Error(result.message)
+      application.router.push(parsePhoenixRoute(result.navigationHref))
+    },
+    onSaveConfiguration: (configuration: PhoenixControlDeckConfiguration) => application.api.saveControlDeckConfiguration(configuration)
+  }), [application])
   if (deckId === 'manage') return <ManageDecksPage controller={controller}
     onSave={configuration => application.api.saveControlDeckConfiguration(configuration)}
     onEdit={onEditDeck} />
-  return <ControlsPage
+  return <ControlsDeckCarousel
+    onSelectDeck={id => application.router.push({ kind: 'controls', deckId: id })}
     deckId={deckId}
     controller={controller}
     editing={editing}
@@ -307,13 +318,7 @@ const ControlsFeature = memo(function ControlsFeature({ application, controller,
     onEditingChange={onEditingChange}
     runtime={runtime.status === 'ready' ? runtime.state : undefined}
     variableFontSizes={devicePreferences.variableCommandLabelSizes}
-    onExecuteAction={(actionId, operation, leaseId) => application.api.executeAction(actionId, operation, { leaseId })}
-    onExecuteNavigation={async target => {
-      const result = await application.api.executeCommand(target)
-      if (result.status !== 'accepted' || !result.navigationHref) throw new Error(result.message)
-      application.router.push(parsePhoenixRoute(result.navigationHref))
-    }}
-    onSaveConfiguration={configuration => application.api.saveControlDeckConfiguration(configuration)}
+    {...deckActions}
   />
 })
 

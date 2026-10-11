@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type ButtonHTMLAttributes, type CSSProperties } from 'react'
+import { createContext, memo, useContext, useEffect, useRef, useState, useSyncExternalStore, type ButtonHTMLAttributes, type CSSProperties } from 'react'
 import {
   applyControlDeckLayoutPreset,
   moveControlDeckGridElement,
@@ -25,13 +25,16 @@ import { ArmingController } from './arming-controller.js'
 import { ButtonEditor } from './button-editor.js'
 import { ControlSurface } from './control-surface.js'
 
-export function ControlsPage({ deckId, controller, editing, macros, runtime, variableFontSizes, onEditingChange, onExecuteAction, onExecuteNavigation, onSaveConfiguration }: {
+const DeckPreview = createContext(false)
+
+export const ControlsPage = memo(function ControlsPage({ deckId, controller, editing, macros, runtime, variableFontSizes, preview = false, onEditingChange, onExecuteAction, onExecuteNavigation, onSaveConfiguration }: {
   deckId: ControlDeckId
   controller: ControlsControllerSnapshot
   editing: boolean
   macros: MacroRuntime
   runtime?: RuntimeState
   variableFontSizes: boolean
+  preview?: boolean
   onEditingChange(editing: boolean): void
   onExecuteAction(actionId: string, operation: GameActionOperation, leaseId?: string): Promise<unknown>
   onExecuteNavigation?(target: Extract<CommandTarget, { type: 'navigation' }>): Promise<void>
@@ -56,7 +59,7 @@ export function ControlsPage({ deckId, controller, editing, macros, runtime, var
     for (const timer of armingTimers.current.values()) globalThis.clearTimeout(timer)
     armingTimers.current.clear()
     arming.cancel()
-  }, [arming, deckId])
+  }, [arming, deckId, preview])
   const activeConfiguration = draft ?? controller.configuration
   const deck = activeConfiguration?.decks.find(candidate => candidate.id === deckId)
   const group = deck?.groupId ? activeConfiguration?.groups?.find(candidate => candidate.id === deck.groupId) : undefined
@@ -103,7 +106,7 @@ export function ControlsPage({ deckId, controller, editing, macros, runtime, var
   }
 
   return (
-    <PageFrame className={`controls-page theme-${controlDeckTheme(deck, group)}${editing ? ' editing' : ''}${editingPosition !== undefined ? ' button-editing' : ''}${macros.recording ? ' recording' : ''}`} layout="fit">
+    <DeckPreview.Provider value={preview}><PageFrame inert={preview || undefined} className={`controls-page theme-${controlDeckTheme(deck, group)}${editing ? ' editing' : ''}${editingPosition !== undefined ? ' button-editing' : ''}${macros.recording ? ' recording' : ''}`} layout="fit">
       {macros.recording && <section className="control-recording-toolbar">
         <span className="recording-status">Recording · {macros.recording.entries.length} commands</span>
         <Button variant="quiet" onClick={() => void macros.cancelRecording()}>Cancel</Button>
@@ -331,9 +334,9 @@ export function ControlsPage({ deckId, controller, editing, macros, runtime, var
                 />
               }}
             />}
-    </PageFrame>
+    </PageFrame></DeckPreview.Provider>
   )
-}
+})
 
 function DeckSettings ({ configuration, deck, group, onChange, onSave, onCancel, saving }: {
   configuration: PhoenixControlDeckConfiguration
@@ -496,6 +499,7 @@ function ControlDeckCommandTile({ appearance, binding, interaction, kind = 'acti
   unavailable?: boolean
   variableFontSizes: boolean
 }) {
+  const preview = useContext(DeckPreview)
   const displayedBinding = binding === undefined ? undefined : compactBindingLabel(binding)
   const dangerAppearance = appearance.foregroundColor === '#ff6258' && appearance.backgroundColor === '#3a1717'
   const customStyle = {
@@ -519,7 +523,7 @@ function ControlDeckCommandTile({ appearance, binding, interaction, kind = 'acti
     note={interaction}
     style={customStyle}
     variableFontSizes={variableFontSizes}
-    {...props}
+    {...(preview ? {} : props)}
   />
 }
 
