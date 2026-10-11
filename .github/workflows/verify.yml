@@ -26,6 +26,8 @@ jobs:
       matrix:
         os: [ubuntu-24.04, windows-2022]
     env:
+      # Temporary #189 baseline; removed before the final merge gate.
+      PHOENIX_TEST_SQLITE_PROFILE: '1'
       PHOENIX_EDDN_TEST_MODE: '0'
       PHOENIX_RELEASE_CHANNEL: ${{ inputs.release-assets && 'preview' || 'development' }}
     steps:
