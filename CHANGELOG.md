@@ -4,6 +4,15 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Match the Credits page-header/card gap to Query Console and remove the
+  Credits-specific override of shared panel content spacing. Rename its page title
+  to “Sources & Credits”.
+
+- Credit Ardent's API directly, rather than naming its Insight frontend as the data source.
+
+- Increase spacing between dashboard widgets, dashboard buttons, Copilot panels,
+  control-deck buttons, query-console cards and Credits panels to match the Personal Notes cards.
+
 - Use uniform 1px borders on shared panels in both themes, removing Elite's thick left edge.
 
 - Use a quieter, theme-aware surface for descriptive action tiles, retaining the tactile

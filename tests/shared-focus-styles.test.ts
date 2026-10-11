@@ -11,6 +11,14 @@ test('shared panels use their uniform border token without a theme-specific thic
   expect(panels).not.toContain('border-inline-start-width:')
 })
 
+test('Credits matches the query console page header gap without overriding shared panel spacing', () => {
+  const credits = read('pages/credits.css').split('.credits-sources {')[0]!
+  const console = read('pages/query-console.css').split('.query-grid {')[0]!
+  expect(credits).toContain('gap: var(--spacing-sm)')
+  expect(console).toContain('gap: var(--spacing-sm)')
+  expect(read('pages/credits.css')).not.toContain('.panel {')
+})
+
 test('descriptive tiles retain command title and footer colours and resolve their description by theme', () => {
   const described = read('patterns/control-deck-tiles.css').split('&:has(.body) {')[1]!.split('&.theme-macro')[0]!
   expect(described).toContain('color: var(--command-description)')
