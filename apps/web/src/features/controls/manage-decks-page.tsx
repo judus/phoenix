@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { createControlDeckGroup, removeControlDeck, replaceControlDeckGroup } from 'control-deck/core'
 import { PhoenixControlDeckConfigurationSchema, type PhoenixControlDeckConfiguration } from '@phoenix/contracts'
-import { Breadcrumbs, Button, IconButton, Inline, InputGroup, Loading, PageFrame, PageHeader, PencilIcon, TextInput, Toast, TrashIcon, Widget } from '@phoenix/ui'
+import { Breadcrumbs, Button, IconButton, Inline, InputGroup, Loading, Notification, PageFrame, PageHeader, PencilIcon, TextInput, TrashIcon, Widget } from '@phoenix/ui'
 import type { ControlsControllerSnapshot } from './use-controls-controller.js'
 import { useDeckReorder } from './use-deck-reorder.js'
 import { useDeckAutosave } from './use-deck-autosave.js'
@@ -13,10 +13,6 @@ export function ManageDecksPage({ controller, onSave, onEdit }: {
 }) {
   const { draft, saving, error, setError, change: update, flush } = useDeckAutosave(controller.configuration, onSave)
   const [deleting, setDeleting] = useState<string>()
-  const messages = [...(error ? [error.message] : []), ...(controller.status === 'error' && controller.error ? [controller.error] : [])]
-  const messageKey = messages.join('\u0000')
-  const [dismissed, setDismissed] = useState<string>()
-  useEffect(() => { if (!messageKey) setDismissed(undefined) }, [messageKey])
   const change = (configuration: PhoenixControlDeckConfiguration, typing = false) => {
     update(configuration, typing); setDeleting(undefined)
   }
@@ -41,9 +37,9 @@ export function ManageDecksPage({ controller, onSave, onEdit }: {
   return <PageFrame layout="fit" className="manage-decks-page">
     <PageHeader context={<Breadcrumbs items={[{ label: 'Controls' }, { label: 'Manage decks' }]} />}
       title="Manage decks" variant="cockpit" actions={<IconButton variant="primary" label="New deck" disabled={!draft || saving || draft.decks.length >= 256} onClick={create}>+</IconButton>} />
-    {messages.length > 0 && messageKey !== dismissed && <Toast messages={messages}
-      tone={controller.status === 'error' ? 'danger' : error!.tone} onDismiss={() => setDismissed(messageKey)} />}
-    {!draft ? <Loading>Loading decks…</Loading> : <>
+    <Notification message={controller.status === 'error' ? controller.error : undefined} />
+    <Notification message={error?.message} tone={error?.tone} />
+    {!draft ? controller.status !== 'error' && <Loading>Loading decks…</Loading> : <>
       <div className="deck-list" aria-label="Control decks" ref={move.list} {...move.events} data-deskplane-no-swipe>
           {draft.decks.map((deck, index) => {
             const group = draft.groups?.find(group => group.id === deck.groupId)

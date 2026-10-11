@@ -1,3 +1,4 @@
+import { notificationMarkup, notificationText } from './support/notifications.js'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { PhoenixApi } from '../apps/web/src/application/api/phoenix-api.js'
@@ -114,13 +115,13 @@ test('permission changes save immediately with pending/error feedback, independe
     expect(JSON.stringify(renderer.toJSON())).toContain('Saving permissions…')
     await act(async () => saved.reject(new Error('Permission save failed')))
     expect(renderer.root.findByType(CopilotPermissionEditor).props.disabled).toBe(false)
-    expect(renderer.root.findByProps({ id: 'permissions-panel', role: 'tabpanel' }).findAllByType('span').some(node => node.children.includes('Permission save failed'))).toBe(true)
+    expect(notificationText()).toContain('Permission save failed')
     expect(renderer.root.findByType(CopilotPermissionEditor).props.permissions.enabledCapabilityIds).toEqual(['Alpha'])
     const retry = deferred<ReturnType<typeof capabilities>>()
     vi.mocked(api.updateCopilotProfileCapabilities).mockReturnValueOnce(retry.promise)
     act(() => renderer.root.findByType(CopilotPermissionEditor).props.onChange({ version: 2, enabledCapabilityIds: [] }))
     expect(JSON.stringify(renderer.toJSON())).toContain('Saving permissions…')
-    expect(JSON.stringify(renderer.toJSON())).not.toContain('Permission save failed')
+    expect(notificationText()).not.toContain('Permission save failed')
     await act(async () => retry.resolve({ ...capabilities('Alpha'), permissions: { version: 2, enabledCapabilityIds: [] } }))
     expect(renderer.root.findByType(CopilotPermissionEditor).props.permissions.enabledCapabilityIds).toEqual([])
     await act(async () => click(renderer, 'Profile'))
@@ -160,24 +161,24 @@ test('profile and permission failures stay with their respective actions and do 
   const panelText = (id: string) => renderer.root.findByProps({ id, role: 'tabpanel' }).findAllByType('span').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ')
   try {
     await act(async () => history.reject(new Error('Unrelated history failure')))
-    expect(renderer.root.findByProps({ className: 'page-status' }).children.join('')).toContain('Unrelated history failure')
+    expect(notificationText()).toContain('Unrelated history failure')
     await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
     const formText = () => panelText('profile-panel')
-    expect(formText()).toContain('Character save failed')
-    expect(renderer.root.findAllByType('span').find(node => node.props.role === 'alert')!.props.className).toContain('status-danger')
-    expect(renderer.root.findByProps({ className: 'page-status' }).children.join('')).toContain('Unrelated history failure')
+    expect(notificationText()).toContain('Character save failed')
+    expect(notificationMarkup()).toContain('role="alert"')
+    expect(notificationText()).toContain('Unrelated history failure')
     await act(async () => click(renderer, 'Permissions'))
     expect(panelText('permissions-panel')).not.toContain('Character save failed')
     expect(panelText('permissions-panel')).not.toContain('Unrelated history failure')
     await act(async () => renderer.root.findByType(CopilotPermissionEditor).props.onChange({ version: 2, enabledCapabilityIds: [] }))
-    expect(panelText('permissions-panel')).toContain('Permission save failed')
+    expect(notificationText()).toContain('Permission save failed')
     expect(formText()).not.toContain('Permission save failed')
     vi.mocked(api.updateCopilotProfileCapabilities).mockResolvedValueOnce(capabilities('Alpha'))
     await act(async () => renderer.root.findByType(CopilotPermissionEditor).props.onChange({ version: 2, enabledCapabilityIds: [] }))
-    expect(panelText('permissions-panel')).not.toContain('Permission save failed')
-    expect(formText()).toContain('Character save failed')
+    expect(notificationText()).not.toContain('Permission save failed')
+    expect(notificationText()).toContain('Character save failed')
     await act(async () => click(renderer, 'Beta'))
-    expect(formText()).not.toContain('Character save failed')
+    expect(notificationText()).not.toContain('Character save failed')
   } finally { await act(async () => renderer.unmount()) }
 })
 
@@ -396,7 +397,7 @@ test('a background turn failure is shown when returning to chat', async () => {
     await act(async () => renderer.update(page(api, 'away')))
     await act(async () => completed.reject(new Error('Provider unavailable')))
     await act(async () => renderer.update(page(api, 'chat')))
-    expect(JSON.stringify(renderer.toJSON())).toContain('Provider unavailable')
+    expect(notificationText()).toContain('Provider unavailable')
     act(() => renderer.root.findByType('textarea').props.onChange({ target: { value: 'Try again' } }))
     expect(renderer.root.findByProps({ 'aria-label': 'Send, ENTER' }).props.disabled).toBe(false)
   } finally { await act(async () => renderer.unmount()) }
@@ -423,12 +424,12 @@ test('a remote completion deferred by a local turn is refreshed even when the lo
     await act(async () => completed.reject(new Error('Local provider failed')))
     expect(history).toHaveBeenCalledTimes(2)
     expect(JSON.stringify(renderer.toJSON())).toContain('Saved remote response')
-    expect(JSON.stringify(renderer.toJSON())).toContain('Local provider failed')
+    expect(notificationText()).toContain('Local provider failed')
     await act(async () => listener({ type: 'tool.status', clientId: 'other-device', conversationId: 'phoenix-copilot', turnId: 'remote-2', name: 'remote_tool', status: 'calling' }))
     expect(JSON.stringify(renderer.toJSON())).toContain('remote_tool: calling')
     await act(async () => listener({ type: 'turn.failed', clientId: 'other-device', conversationId: 'phoenix-copilot', turnId: 'remote-2', message: 'Remote provider failed' }))
     expect(JSON.stringify(renderer.toJSON())).not.toContain('remote_tool: calling')
-    expect(JSON.stringify(renderer.toJSON())).toContain('Remote provider failed')
+    expect(notificationText()).toContain('Remote provider failed')
   } finally { await act(async () => renderer.unmount()) }
 })
 

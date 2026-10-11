@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import {
+import { Notification,
   Breadcrumbs,
   Button,
   CheckIcon,
@@ -211,13 +211,12 @@ function BookmarkEditor ({ bookmark, onCancel, onDelete, onSave, target }: {
             <Field htmlFor="bookmark-editor-tags" label="Tags" hint="Separate tags with commas.">
               <TextInput id="bookmark-editor-tags" placeholder="exploration, return later" value={tags} onChange={event => setTags(event.target.value)} />
             </Field>
-            <FormActions
-              message={error ? <Status tone="danger" wrap>{error}</Status> : undefined}
+            <><Notification message={error} /><FormActions
               navigation={<Button type="button" variant="outline" onClick={onCancel}>Back</Button>}
             >
               {bookmark && <IconButton disabled={saving} label="Remove bookmark" type="button" variant="danger" onClick={() => void remove()}><CrossIcon /></IconButton>}
               <IconButton busy={saving} label="Save bookmark" type="submit" variant="primary"><CheckIcon /></IconButton>
-            </FormActions>
+            </FormActions></>
           </Form>
         </ControlContext>
       </Stack>
@@ -230,7 +229,7 @@ function BookmarksState ({ error }: { error?: string }) {
     <PageFrame aria-busy={!error}>
       <Stack gap="xl">
         <PageHeader variant="cockpit" context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Bookmarks' }]} />} title="Bookmarks" />
-        <Status tone={error ? 'danger' : 'muted'}>{error ?? 'Loading bookmarks…'}</Status>
+        {error ? <Notification message={error} /> : <Status tone="muted">Loading bookmarks…</Status>}
       </Stack>
     </PageFrame>
   )

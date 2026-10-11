@@ -1,3 +1,4 @@
+import { notificationText } from './support/notifications.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { EddnSubmissionDetail, EddnSubmissionLog } from '@phoenix/contracts'
@@ -60,10 +61,10 @@ test('empty and failed log reads are visible and recover on the next poll', asyn
   let renderer!: ReturnType<typeof create>
   try {
     await act(async () => { renderer = create(<EddnPage api={api} />) })
-    expect(JSON.stringify(renderer.toJSON())).toContain('Log unavailable')
+    expect(notificationText()).toContain('Log unavailable')
     await act(async () => { vi.advanceTimersByTime(5000) })
     expect(JSON.stringify(renderer.toJSON())).toContain('No submission attempts yet')
-    expect(JSON.stringify(renderer.toJSON())).not.toContain('Log unavailable')
+    expect(notificationText()).not.toContain('Log unavailable')
   } finally {
     if (renderer) await act(async () => renderer.unmount())
     vi.useRealTimers()

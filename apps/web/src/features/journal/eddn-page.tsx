@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { EddnSubmission, EddnSubmissionDetail, EddnSubmissionLog } from '@phoenix/contracts'
-import { Breadcrumbs, Button, DataTable, DataTableGroup, PageFrame, PageHeader, Status } from '@phoenix/ui'
+import { Notification, Breadcrumbs, Button, DataTable, DataTableGroup, PageFrame, PageHeader, Status } from '@phoenix/ui'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { EddnLossSummary } from '../../components/eddn-loss-summary.js'
 
@@ -53,8 +53,8 @@ export function EddnPage ({ api }: { api: PhoenixApi }) {
       description={log ? `${log.status.enabled ? 'Enabled' : 'Disabled'} · ${log.status.mode === 'test' ? 'Test stream' : 'Uploads gated'} · ${log.status.queued} queued` : undefined} />
     <div className="developer-tools-workspace">
       <DataTableGroup className="developer-tool-list" fill title="Recent attempts" meta="Up to 100 · 7 days · 16 MiB">
-        {error && <Status tone="danger">{error}</Status>}
-        {log?.status.error && <Status tone="warning">{log.status.error}</Status>}
+        {error && <Notification message={error} />}
+        <Notification message={log?.status.error} />
         {log && <EddnLossSummary losses={log.status.losses} />}
         {!log ? <Status tone="muted">Loading submissions…</Status>
           : log.entries.length === 0 ? <Status tone="muted">No submission attempts yet. {log.status.detail}</Status>
@@ -76,7 +76,7 @@ export function EddnPage ({ api }: { api: PhoenixApi }) {
               {selected?.retryAt && <p>Retry scheduled at {new Date(selected.retryAt).toLocaleString()} (while contribution remains enabled).</p>}
               {selected?.outcome === 'interrupted' && <p>Request interrupted; remote delivery is uncertain.</p>}
             </header>
-            {detailError ? <Status tone="danger">{detailError}</Status>
+            {detailError ? <Notification message={detailError} />
               : <pre>{detail ? JSON.stringify(detail.payload, null, 2) : selected ? 'Loading payload…' : 'No payload selected.'}</pre>}
           </section>
         </div>

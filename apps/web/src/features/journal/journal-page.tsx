@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ActivityLogEntry } from '@phoenix/contracts'
-import { Breadcrumbs, Button, ControlContext, DataTable, DataTableGroup, Field, PageFrame, PageHeader, Select, Status, TextInput } from '@phoenix/ui'
+import { Notification, Breadcrumbs, Button, ControlContext, DataTable, DataTableGroup, Field, PageFrame, PageHeader, Select, Status, TextInput } from '@phoenix/ui'
 import { PhoenixDateTime } from '../../components/phoenix-date-time.js'
 import type { JournalControllerSnapshot } from './use-journal-controller.js'
 
@@ -46,7 +46,7 @@ export function JournalPage({ controller }: { controller: JournalControllerSnaps
       title="Raw journal"
     />
     {controller.status === 'error'
-      ? <Status tone="danger">{controller.error}</Status>
+      ? <Notification message={controller.error} />
       : controller.status === 'loading'
         ? <Status tone="muted">Loading journal…</Status>
         : <>

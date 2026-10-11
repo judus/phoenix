@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import {
+import { Notification,
   Breadcrumbs,
   Button,
   PageFrame,
@@ -121,7 +121,7 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
       <div className="settings-sections">
         <Section description="Select the AI service used by Copilot. Provider credentials are stored on the PHOENIX computer." title="AI provider">
           {!settings
-            ? <Status tone={error ? 'danger' : 'muted'}>{error ?? 'Loading Copilot settings…'}</Status>
+            ? !error && <Status tone="muted">Loading Copilot settings…</Status>
             : <SettingsList>
                 <SettingRow description="Only OpenAI is integrated currently." scope="Installation" title="Provider">
                   <Select
@@ -147,7 +147,7 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
                   </div>
                 </SettingRow>
               </SettingsList>}
-          {settings?.openAi.restartRequired && <Status tone="warning" wrap>OpenAI configuration changed. Restart PHOENIX to apply it.</Status>}
+          <Notification tone="warning" message={settings?.openAi.restartRequired ? 'OpenAI configuration changed. Restart PHOENIX to apply it.' : undefined} />
         </Section>
 
         <GalnetAnalysisSettings api={api} />
@@ -179,7 +179,7 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
                 onChange={permissions => void savePermissions(permissions)}
               />}
         </Section>
-        {error && settings && <Status tone="danger">{error}</Status>}
+        <Notification message={error} />
       </div>
     </PageFrame>
   )

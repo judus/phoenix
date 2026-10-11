@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { CommunityGoal } from '@phoenix/contracts'
-import {
+import { Notification,
   Breadcrumbs, DataTableGroup, DescriptionItem, DescriptionList, ItemList, ItemListItem,
   Loading, Meter, PageFrame, PageHeader, Stack, Status, ThirdsGrid
 } from '@phoenix/ui'
@@ -21,7 +21,7 @@ export function CommunityGoalsPage({ controller }: { controller: ActivitiesContr
         title="Community goals"
         variant="cockpit"
       />
-      {controller.error ? <Status tone="danger" wrap>{controller.error}</Status> : null}
+      {controller.error ? <Notification message={controller.error} /> : null}
       {response?.cache === 'stale'
         ? <Status tone="warning" wrap>Frontier refresh failed. Showing the last saved goals; availability and progress may have changed.</Status>
         : null}

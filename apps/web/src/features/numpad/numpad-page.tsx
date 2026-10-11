@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { controlDeckNumpadChildren, displayedControlDeckNumpadAddress } from 'control-deck/core'
-import { PageFrame, Status } from '@phoenix/ui'
+import { Notification, PageFrame, Status } from '@phoenix/ui'
 import type { DevicePreferences } from '../../application/settings/device-preferences.js'
 import { NumpadTileGrid } from './numpad-tile-grid.js'
 import type { NumpadRuntime } from './numpad-runtime.js'
@@ -17,7 +17,7 @@ export function NumpadPage({ runtime, devicePreferences }: { runtime: NumpadRunt
     : session.message ?? (session.active ? session.status : 'Press Numpad 0')
 
   return <PageFrame className="numpad-page" layout="fit">
-    {map.error ? <Status tone="danger">{map.error}</Status> : map.status === 'loading' || !tree ? <Status tone="muted">Loading command map…</Status> : <div className="numpad-console"><header>
+    {map.error ? <Notification message={map.error} /> : map.status === 'loading' || !tree ? <Status tone="muted">Loading command map…</Status> : <div className="numpad-console"><header>
       <div><small>Address</small><strong>{displayedControlDeckNumpadAddress(tree, session)}</strong></div>
       <div><small>Context</small><strong>{parent?.label ?? 'Command root'}</strong></div>
       <div><small>Status</small><strong>{statusLabel}</strong></div>

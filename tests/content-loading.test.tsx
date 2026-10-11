@@ -1,3 +1,4 @@
+import { notificationText } from './support/notifications.js'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { act } from 'react-test-renderer'
 import { beforeAll, expect, test } from 'vitest'
@@ -25,7 +26,7 @@ test('content replaces loading immediately and errors never show the animation',
   expect(renderer.root.findByType('p').children).toEqual(['Equipment ready'])
   await act(async () => renderer.update(<EquipmentPageLayout title="Gear" error="Equipment unavailable" loadingMessage="Loading equipment…" />))
   expect(renderer.root.findAllByType(Loading)).toHaveLength(0)
-  expect(JSON.stringify(renderer.toJSON())).toContain('Equipment unavailable')
+  expect(notificationText()).toContain('Equipment unavailable')
   await act(async () => renderer.unmount())
 })
 

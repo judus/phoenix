@@ -1,3 +1,4 @@
+import { notificationMarkup, notificationText } from './support/notifications.js'
 import { BrowserDevicePreferences } from '../apps/web/src/platform/storage/browser-device-preferences.js'
 import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
@@ -137,6 +138,7 @@ test('automatic saved queries survive StrictMode effect replay', async () => {
   expect(findGalaxySystems).toHaveBeenCalledTimes(1)
   expect(sessions.get(savedQuery.id)?.result?.value.originSystem).toBe('Sol')
   expect(renderer.root.findAllByType('form')).toHaveLength(0)
+  expect(notificationText()).toBe('')
   await act(async () => renderer.unmount())
 })
 
@@ -259,7 +261,8 @@ test('reference toggle follows live telemetry, typing fixes it, and missing tele
   await updateSystem(null)
   await submit()
   expect(findGalaxySystems).toHaveBeenCalledTimes(3)
-  expect(JSON.stringify(renderer.toJSON())).toContain('Current system is unavailable')
+  expect(notificationText()).toContain('Current system is unavailable')
+  expect(notificationMarkup()).toContain('toast warning notification')
   await act(async () => renderer.unmount())
 })
 
@@ -598,7 +601,8 @@ test('system schematic submits its displayed system to Elite and shows confirmed
 
   expect(plotEliteDestination).toHaveBeenCalledWith('Achenar', expect.any(AbortSignal))
   expect(onNavigate).toHaveBeenCalledWith({ kind: 'information', section: 'galaxy', view: 'route' })
-  expect(renderer.root.findAll(node => node.children.includes('Route to Achenar was confirmed.'))).not.toHaveLength(0)
+  expect(notificationText()).toContain('Route to Achenar was confirmed.')
+  expect(notificationMarkup()).toContain('toast warning notification')
   await act(async () => renderer.unmount())
 })
 
@@ -623,7 +627,7 @@ test('system schematic keeps its navigation controls when cartography is unavail
   expect(onNavigate).toHaveBeenLastCalledWith({
     kind: 'information', section: 'galaxy', view: 'bookmarks', systemName: 'Unreported System'
   })
-  expect(renderer.root.findAll(node => node.children.includes('No cartography record found.'))).not.toHaveLength(0)
+  expect(notificationText()).toContain('No cartography record found.')
   await act(async () => renderer.root.findAllByType('button').find(button => button.props['aria-label'] === 'Add note for Unreported System')!.props.onClick())
   expect(onNavigate).toHaveBeenLastCalledWith({ kind: 'notes', newNote: true,
     target: { kind: 'system', systemName: 'Unreported System' } })
@@ -660,8 +664,7 @@ function galaxyApi(overrides: Partial<PhoenixApi> = {}): PhoenixApi {
   } as unknown as PhoenixApi
 }
 
-test.each(['result', 'network'])('route plotting %s failure opens a help-linked popover instead of inline error text', async kind => {
-  const showPopover = vi.fn()
+test.each(['result', 'network'])('route plotting %s failure opens a help-linked notification instead of inline error text', async kind => {
   const plotEliteDestination = kind === 'network'
     ? vi.fn().mockRejectedValue(new Error('Connection lost.'))
     : vi.fn().mockImplementation(async () => ({
@@ -677,18 +680,16 @@ test.each(['result', 'network'])('route plotting %s failure opens a help-linked 
       querySessions={new GalaxyQuerySessionStore()}
       route={{ kind: 'information', section: 'galaxy', view: 'system', systemName: 'Sol' }}
       runtime={{ state: createEmptyRuntimeState(), status: 'ready' }}
-    />, { createNodeMock: element => typeof element.props === 'object' && element.props !== null && 'popover' in element.props && element.props.popover ? { showPopover } : null })
+    />)
   const plot = () => renderer.root.findAllByType('button').find(button => button.props['aria-label'] === 'Plot route')!
   await act(async () => plot().props.onClick())
-  expect(showPopover).toHaveBeenCalledTimes(1)
   expect(onNavigate).not.toHaveBeenCalled()
-  const popover = renderer.root.findByProps({ role: 'dialog' })
-  expect(popover.props.popover).toBe('auto')
-  expect(popover.findByType('a').props.href).toBe('#/settings/help?topic=route-plotting')
-  expect(popover.findByProps({ 'aria-label': 'Close route plotting error' }).props.popoverTargetAction).toBe('hide')
-  expect(popover.findAllByType('li').map(item => item.children.join(''))).toEqual(kind === 'network' ? [] : ['Missing keyboard binding: UI_Right.'])
+  expect(notificationMarkup()).toContain('href="#/settings/help?topic=route-plotting"')
+  expect(notificationMarkup()).toContain('toast danger notification')
+  expect(notificationText()).toContain(kind === 'network' ? 'Connection lost.' : 'Missing keyboard binding: UI_Right.')
+  expect(renderer.root.findAllByProps({ role: 'dialog' })).toHaveLength(0)
   expect(renderer.root.findAllByProps({ className: 'system-query__status' })).toHaveLength(0)
   await act(async () => plot().props.onClick())
-  expect(showPopover).toHaveBeenCalledTimes(2)
+  expect(notificationText()).toContain('Route plotting to Sol failed.')
   await act(async () => renderer.unmount())
 })

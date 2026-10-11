@@ -9,10 +9,10 @@ import {
   PageFrame,
   Stack,
   Status,
-  Toast,
+  Notification,
   Widget
 } from '@phoenix/ui'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import { CommanderSummaryWidget } from '../../components/commander-summary-widget.js'
 import { formatPhoenixCredits } from '../../components/phoenix-credits.js'
 import type { GameActionCatalogResponse, GameActionResult } from '@phoenix/contracts'
@@ -49,7 +49,6 @@ export function DashboardPage({
   voice: DashboardVoiceModel
 }) {
   const commanderLogBodyRef = useRef<HTMLDivElement>(null)
-  const [dismissedAttention, setDismissedAttention] = useState<string | null>(null)
   const latestCommanderLogId = model.commanderLog[0]?.id
 
   useLayoutEffect(() => {
@@ -60,26 +59,16 @@ export function DashboardPage({
   }, [latestCommanderLogId])
 
   const attention = [
-    ...model.warnings,
     ...(runtime.status === 'error' ? [runtime.error] : []),
     ...(controller.error ? [controller.error] : []),
     ...(voice.error ? [voice.error] : []),
     ...(eventConnection.state === 'error' ? [eventConnection.error ?? 'Live event connection unavailable.'] : [])
   ]
-  const attentionKey = attention.join('\u0000')
-
-  useEffect(() => {
-    if (attention.length === 0) setDismissedAttention(null)
-  }, [attention.length])
 
   return (
     <PageFrame className="dashboard-page" layout="fit" aria-busy={controller.status === 'loading'}>
-      {attention.length > 0 && attentionKey !== dismissedAttention
-        ? (
-            <Toast messages={attention} className="dashboard-alerts" dismissLabel="Dismiss dashboard alert"
-              onDismiss={() => setDismissedAttention(attentionKey)} />
-          )
-        : null}
+      <Notification messages={attention} />
+      <Notification messages={model.warnings} tone="warning" />
       <DashboardGrid
         gap="xs"
         lastRow={(

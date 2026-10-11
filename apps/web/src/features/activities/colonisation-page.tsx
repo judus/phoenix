@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Breadcrumbs, DataTable, DataTableGroup, DescriptionItem, DescriptionList, Inline, Loading, PageFrame, PageHeader, Stack, Status, Tabs, ThirdsGrid } from '@phoenix/ui'
+import { Notification, Breadcrumbs, DataTable, DataTableGroup, DescriptionItem, DescriptionList, Inline, Loading, PageFrame, PageHeader, Stack, Status, Tabs, ThirdsGrid } from '@phoenix/ui'
 import type { ColonisationDepot, ColonisationResponse } from '@phoenix/contracts'
 import type { ActivitiesControllerSnapshot } from './use-activities-controller.js'
 import { PhoenixDateTime } from '../../components/phoenix-date-time.js'
@@ -13,7 +13,7 @@ export function ColonisationPage({ controller }: { controller: ActivitiesControl
   return <PageFrame layout="fit"><Stack fill gap="sm">
     <PageHeader variant="cockpit" title="Colonisation" context={<Breadcrumbs items={[{ label: 'Activities', href: '#/activities/missions' }, { label: 'Colonisation' }]} />}
       status={<Inline justify="end"><Status tone="danger">Work in progress</Status><span>Journal observations</span></Inline>} />
-    {controller.error ? <Status wrap tone="danger">{controller.error}</Status> : null}
+    {controller.error ? <Notification message={controller.error} /> : null}
     {!data ? controller.status === 'error' ? null : <Loading>Loading construction records…</Loading> : <>
       <Tabs current={tab} items={tabs} label="Colonisation views" onSelect={setTab} />
       <Stack fill gap="lg" id="colonisation-panel" role="tabpanel" aria-labelledby={tab}>

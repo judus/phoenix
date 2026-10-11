@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import type { CopilotProfileCapabilitySettings, CopilotProfileDocument, CopilotPermissionPolicy } from '@phoenix/contracts'
-import { Breadcrumbs, Button, CommandTile, DataTable, DescriptionItem, DescriptionList, Field, Form, FormActions, FormGrid, Identity, PageFrame, PageHeader, Select, Status, Tabs, Textarea, TextInput, Widget } from '@phoenix/ui'
+import { Notification, Breadcrumbs, Button, CommandTile, DataTable, DescriptionItem, DescriptionList, Field, Form, FormActions, FormGrid, Identity, PageFrame, PageHeader, Select, Status, Tabs, Textarea, TextInput, Widget } from '@phoenix/ui'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { LatestRequest } from '../../application/requests/latest-request.js'
 import { CopilotMessages } from './copilot-messages.js'
@@ -148,8 +148,9 @@ export function CopilotPage({ api, view }: { api: PhoenixApi, view: CopilotView 
   }
 
   return <PageFrame className={`copilot-page copilot-page-${view}`} layout="fit">
+    <Notification message={error ?? chat.error ?? voice.error} />
     {view === 'profiles'
-      ? <PageHeader context={<Breadcrumbs items={[{ label: 'Copilot' }, { label: 'Profiles' }]} />} title="Profiles" variant="cockpit" status={error ?? chat.error ?? voice.error} actions={<Button variant="outline" onClick={() => void create()}>New profile</Button>} />
+      ? <PageHeader context={<Breadcrumbs items={[{ label: 'Copilot' }, { label: 'Profiles' }]} />} title="Profiles" variant="cockpit" actions={<Button variant="outline" onClick={() => void create()}>New profile</Button>} />
       : null}
     {view === 'chat'
       ? <div className="copilot-workspace">
@@ -179,7 +180,6 @@ export function CopilotPage({ api, view }: { api: PhoenixApi, view: CopilotView 
               <section className="copilot-chat" aria-label="Copilot conversation">
                 <CopilotMessages messages={messages} remoteTurns={remoteTurns} activeTurn={voice.activeTurn} pending={pending} profileName={voice.activeProfile.name} />
                 {toolStatus || voice.toolStatus ? <Status tone="muted">{toolStatus ?? voice.toolStatus}</Status> : null}
-                {error || chat.error || voice.error ? <Status tone="danger">{error ?? chat.error ?? voice.error}</Status> : null}
               </section>
             </Widget>
             <div className="copilot-composer-row">
@@ -278,7 +278,7 @@ function ProfileEditor({ capabilities, draft, profileError, permissionsError, on
         <Field htmlFor="profile-text" label="Text character prompt" required><Textarea value={draft.characterText} required rows={7} onChange={update('characterText')} /></Field>
         <Field htmlFor="profile-speech" label="Speech character prompt" required><Textarea value={draft.characterSpeech} required rows={7} onChange={update('characterSpeech')} /></Field>
       </div>
-      <FormActions message={profileError && <Status role="alert" tone="danger" wrap>{profileError}</Status>}><Button variant="primary" busy={saving}>{draft.templateProfileId ? 'Create profile' : 'Save profile'}</Button></FormActions>
+      <><Notification message={profileError} /><FormActions><Button variant="primary" busy={saving}>{draft.templateProfileId ? 'Create profile' : 'Save profile'}</Button></FormActions></>
     </Form>
     <section className="copilot-profile-panel" id="permissions-panel" role="tabpanel" aria-labelledby="permissions-tab" hidden={tab !== 'permissions-tab'}>
       {capabilities && <CopilotPermissionEditor
@@ -290,10 +290,11 @@ function ProfileEditor({ capabilities, draft, profileError, permissionsError, on
         visibleCapabilityIds={capabilities.installationPermissions.enabledCapabilityIds}
         onChange={permissions => void onSavePermissions(permissions)}
       />}
-      <Status role="status" tone={permissionsError ? 'danger' : 'muted'} wrap>
-        {permissionsError ?? (permissionsPending ? 'Saving permissions…' : draft.templateProfileId
+      <Notification message={permissionsError} />
+      <Status tone="muted" wrap>
+        {permissionsPending ? 'Saving permissions…' : draft.templateProfileId
           ? 'Template permissions are inherited. Create the profile before changing them.'
-          : 'Permission changes save immediately.')}
+          : 'Permission changes save immediately.'}
       </Status>
     </section>
   </div>

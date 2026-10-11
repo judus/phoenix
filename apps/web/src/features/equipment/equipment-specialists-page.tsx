@@ -27,7 +27,7 @@ export function EquipmentSpecialistsPage({ controller, selectedSpecialistId }: {
   if (selectedSpecialistId && !selected) {
     return (
       <EquipmentPageLayout title="Specialist not found" trail={[{ label: 'Specialists', href: '#/equipment/specialists' }, { label: 'Not found' }]}>
-        <Status tone="danger">The selected personal-equipment specialist does not exist in this catalogue.</Status>
+        <Status tone="muted">The selected personal-equipment specialist does not exist in this catalogue.</Status>
       </EquipmentPageLayout>
     )
   }

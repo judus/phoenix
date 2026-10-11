@@ -1,3 +1,4 @@
+import { notificationText } from './support/notifications.js'
 import { act } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import { GalaxyQueryAtlas, queryAtlasCamera } from '../apps/web/src/features/galaxy/galaxy-query-atlas.js'
@@ -48,7 +49,7 @@ test('coordinates are deduplicated, unlocated results are reported and selected 
   const text = JSON.stringify(renderer.toJSON())
   expect(text).toContain('2 / 4 result locations')
   expect(text).toContain('1 system without coordinates')
-  expect(text).toContain('1 coordinate lookup failed')
+  expect(notificationText()).toContain('1 query coordinate lookup failed')
   expect(renderer.root.findAllByType('h1')).toHaveLength(0)
   const group = renderer.root.findAllByProps({ role: 'button' }).find(node => String(node.props['aria-label']).includes('First'))!
   await act(async () => group.props.onClick())

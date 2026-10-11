@@ -1,4 +1,4 @@
-import { Button, DataTableGroup, ItemList, ItemListItem, Stack, Status } from '@phoenix/ui'
+import { Button, DataTableGroup, ItemList, ItemListItem, Notification, Stack, Status } from '@phoenix/ui'
 import { PhoenixDateTime } from '../../components/phoenix-date-time.js'
 import { useGalnetBackground, type GalnetBackgroundApi } from '../../components/use-galnet-background.js'
 
@@ -15,7 +15,7 @@ export function GalnetBackgroundPanel({ api }: { api: GalnetBackgroundApi }) {
         Analyse older articles{batch.length > 0 ? ` (${batch.length})` : ''}
       </Button>
       <Status wrap tone="muted">Manual catch-up uses API credit. Checks the latest 100 archived articles, newest uncovered first, up to 20 per batch; the daily queue limit still applies.</Status>
-      {(error || status?.sourceError) && <Status tone="warning" wrap>{error ?? status?.sourceError}</Status>}
+      <Notification message={error ?? status?.sourceError} />
       {status && !status.configured && <Status tone="muted" wrap>Configure an API key and restart PHOENIX to analyse.</Status>}
       {status && status.jobs.length > 0 && <details><summary>Recent analysis work</summary>
         <ItemList density="compact">{status.jobs.map(job => <ItemListItem key={job.id} title={job.title}

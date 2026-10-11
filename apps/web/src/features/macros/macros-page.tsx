@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { MacroDefinition, MacroStep } from '@phoenix/contracts'
-import {
+import { Notification,
   Breadcrumbs,
   Button,
   ControlContext,
@@ -41,7 +41,7 @@ export function MacrosPage({ runtime }: { runtime: MacroRuntime }) {
 
   return <PageFrame className="macros-page" layout="fit">
     <PageHeader context={<Breadcrumbs items={[{ label: 'Controls' }, { label: 'Macros' }]} />} title="Macros" variant="cockpit" />
-    {runtime.error && <Status tone="danger">{runtime.error}</Status>}
+    {runtime.error && <Notification message={runtime.error} />}
     {runtime.playback && <PlaybackStatus runtime={runtime} />}
     <div className="macro-workspace">
       <DataTableGroup

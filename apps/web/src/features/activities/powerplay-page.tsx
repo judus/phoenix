@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { PowerplayEntry, PowerplayResponse, PowerplayTarget } from '@phoenix/contracts'
-import {
+import { Notification,
   Breadcrumbs, Button, DataTable, DataTableGroup, DescriptionItem, DescriptionList, Field,
   Form, FormActions, FormGrid, Inline, Loading, NumberInput, PageFrame, PageHeader, Stack, Status,
   Tabs, TextInput, ThirdsGrid
@@ -18,7 +18,7 @@ export function PowerplayPage({ controller }: { controller: PowerplayController 
       context={<Breadcrumbs items={[{ label: 'Activities', href: '#/activities/missions' }, { label: 'Powerplay' }]} />}
       status={<Inline gap="sm" justify="end"><Status tone="danger">Work in progress</Status>
         {controller.data?.pledge.updatedAt ? <UpdatedDateTime value={controller.data.pledge.updatedAt} /> : 'Journal observations'}</Inline>} />
-    {controller.error ? <Status wrap tone="danger">{controller.error}</Status> : null}
+    {controller.error ? <Notification message={controller.error} /> : null}
     {!controller.data ? controller.status === 'loading' ? <Loading>Loading Powerplay…</Loading> : null : <>
       <Tabs current={tab} items={tabs} label="Powerplay views" onSelect={setTab} />
       <Stack fill gap="lg" id="powerplay-panel" role="tabpanel" aria-labelledby={tab}>
@@ -123,8 +123,8 @@ function Target({ data, saving, onSave }: { data: PowerplayResponse, saving: boo
       <Field htmlFor="powerplay-target-merits" label="Required merits"><NumberInput value={merits} min={0} step="any" disabled={saving} onChange={event => setMerits(event.target.value)} /></Field>
     </FormGrid>
     <small>Copy requirements from your in-game loyalty screen. Automatic reward catalogue suggestions come after verification.</small>
-    <FormActions message={error ? <Status wrap tone="danger">{error}</Status> : undefined}><Button type="submit" disabled={saving}>Pin target</Button>
+    <><Notification message={error} /><FormActions><Button type="submit" disabled={saving}>Pin target</Button>
       {data.target ? <Button type="button" variant="outline" disabled={saving} onClick={() => void save(null)}>Clear target</Button> : null}
-    </FormActions>
+    </FormActions></>
   </Form></div><DataTableGroup title="Target progress" contentGap="sm"><TargetSummary data={data} /></DataTableGroup></ThirdsGrid>
 }

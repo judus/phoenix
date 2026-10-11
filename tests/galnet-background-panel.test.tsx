@@ -1,3 +1,4 @@
+import { notificationText } from './support/notifications.js'
 import { act } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { GalnetBackgroundStatus } from '@phoenix/contracts'
@@ -46,7 +47,7 @@ test('failed catch-up keeps the queue visible, does not retry and aborts polling
   client.catchUpGalnet.mockRejectedValueOnce(new Error('Synthetic storage failure'))
   const renderer = await renderWithAct(<GalnetBackgroundPanel api={client} />)
   await act(async () => { renderer.root.findByType('button').props.onClick() })
-  expect(JSON.stringify(renderer.toJSON())).toContain('Synthetic storage failure')
+  expect(notificationText()).toContain('Synthetic storage failure')
   expect(client.catchUpGalnet).toHaveBeenCalledTimes(1)
   const signal = client.getGalnetBackground.mock.calls[0]![0]
   await act(async () => renderer.unmount())

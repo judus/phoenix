@@ -1,3 +1,4 @@
+import { notificationText } from './support/notifications.js'
 import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
@@ -371,8 +372,8 @@ test('bookmarks deduplicate system lookups, preserve station/body targets and re
   const onNavigate = vi.fn()
   const renderer = await renderWithAct(<GalacticAtlasPage api={api} onNavigate={onNavigate} runtime={{ status: 'ready', state: createEmptyRuntimeState() }} />)
   expect(api.getSystemCartography).toHaveBeenCalledTimes(3)
-  expect(JSON.stringify(renderer.toJSON())).toContain('Bookmark lookup failed')
-  expect(JSON.stringify(renderer.toJSON())).toContain('Unresolved: Offline')
+  expect(notificationText()).toContain('Unresolved: Offline')
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('Unresolved: Offline')
   expect(JSON.stringify(renderer.toJSON())).toContain('1 bookmark without coordinates: Unknown coordinates')
   await act(async () => renderer.root.findAllByProps({ role: 'button' }).find(node => node.props['aria-label'] === '2 locations near Test Port')!.props.onClick())
   const groupSelect = renderer.root.findByProps({ 'aria-label': 'Locations in this group' })

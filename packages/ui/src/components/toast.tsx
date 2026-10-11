@@ -1,13 +1,15 @@
+import type { ReactNode } from 'react'
 import { ItemList, ItemListItem } from './item-list'
 import { Panel } from './page'
 
 /** The floating, dismissible attention panel used by PHOENIX pages. */
-export function Toast({ messages, tone = 'danger', onDismiss, dismissLabel = 'Dismiss message', className }: {
+export function Toast({ messages, tone = 'danger', onDismiss, dismissLabel = 'Dismiss message', className, children }: {
   messages: string[]
   tone?: 'warning' | 'danger'
   onDismiss(): void
   dismissLabel?: string
   className?: string
+  children?: ReactNode
 }) {
   return <Panel className={['toast', tone, className].filter(Boolean).join(' ')}
     title="Attention" variant={tone === 'danger' ? 'danger' : 'standard'}
@@ -16,5 +18,6 @@ export function Toast({ messages, tone = 'danger', onDismiss, dismissLabel = 'Di
     <ItemList density="compact">
       {messages.map(message => <ItemListItem key={message} title={message} />)}
     </ItemList>
+    {children}
   </Panel>
 }

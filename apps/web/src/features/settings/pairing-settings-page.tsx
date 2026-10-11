@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import {
+import { Notification,
   Breadcrumbs,
   Button,
   IconButton,
@@ -96,7 +96,7 @@ export function PairingSettingsPage ({ api }: { api: PhoenixApi }) {
       />
       <div className="settings-sections">
         {!status
-          ? <Status tone={error ? 'danger' : 'muted'}>{error ?? 'Loading pairing status…'}</Status>
+          ? !error && <Status tone="muted">Loading pairing status…</Status>
           : <Section description="The installation identity is shared by every paired device." title="Connection">
               <SettingsList>
                 <SettingRow description="Unique identity of this PHOENIX installation." scope="Installation" title="Installation ID">
@@ -160,7 +160,7 @@ export function PairingSettingsPage ({ api }: { api: PhoenixApi }) {
             </SettingRow>
           </SettingsList>
         </Section>}
-        {error && status && <Status tone="danger">{error}</Status>}
+        <Notification message={error} />
       </div>
     </PageFrame>
   )

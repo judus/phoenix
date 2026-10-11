@@ -29,7 +29,7 @@ export function EquipmentUpgradesPage({ controller, selectedUpgradeId }: {
   if (selectedUpgradeId && !selectedPath && !selectedModification) {
     return (
       <EquipmentPageLayout title="Upgrade not found" trail={[{ label: 'Upgrades', href: '#/equipment/upgrades' }, { label: 'Not found' }]}>
-        <Status tone="danger">The selected personal-equipment upgrade does not exist in this catalogue.</Status>
+        <Status tone="muted">The selected personal-equipment upgrade does not exist in this catalogue.</Status>
       </EquipmentPageLayout>
     )
   }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type SetStateAction } from 'react'
-import { BookmarkIcon, Breadcrumbs, Button, ControlContext, Field, FlagIcon, IconButton, Inline, MapPinIcon, PageFrame, PageHeader, RadarIcon, RegionsIcon, RouteIcon, SearchIcon, Select, Status, TextInput, ToggleButton } from '@phoenix/ui'
+import { BookmarkIcon, Breadcrumbs, Button, ControlContext, Field, FlagIcon, IconButton, Inline, MapPinIcon, Notification, PageFrame, PageHeader, RadarIcon, RegionsIcon, RouteIcon, SearchIcon, Select, Status, TextInput, ToggleButton } from '@phoenix/ui'
 import type { AtlasCatalogueResponse, AtlasDisplayLocation, CommunityGoalsResponse, NavigationRoute } from '@phoenix/contracts'
 import { PhoenixDateTime, UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import { AddNoteButton } from '../../components/add-note-button.js'
@@ -56,7 +56,14 @@ export function GalacticAtlasWorkspace({ api, onNavigate, position, systemName, 
   const investigations = useAtlasGalnetLeads(api, showInvestigations)
   const omitted = investigations.snapshot?.omitted
   const catalogue = useAtlasCatalogue(api)
-  return <GalacticAtlas
+  return <><Notification messages={[
+    catalogue.error,
+    showBookmarks ? bookmarks.error : undefined,
+    ...(showBookmarks ? bookmarks.failures : []),
+    showCommunityGoals ? communityGoals.error : undefined,
+    showInvestigations ? investigations.error : undefined
+  ].filter((message): message is string => Boolean(message))} />
+  <GalacticAtlas
     results={results}
     renderLayout={renderLayout}
     navigationRoute={navigationRoute}
@@ -64,13 +71,12 @@ export function GalacticAtlasWorkspace({ api, onNavigate, position, systemName, 
     location={location}
     displayRequestId={displayRequestId}
     catalogue={catalogue.catalogue}
-    catalogueStatus={catalogue.error ?? (catalogue.loading ? 'Loading POI catalogue…' : undefined)}
+    catalogueStatus={catalogue.loading ? 'Loading POI catalogue…' : undefined}
     communityGoals={showCommunityGoals ? communityGoals.markers : []}
     communityGoalsSnapshot={communityGoals.snapshot}
     investigations={investigations.markers}
     investigationsStatus={[
       investigations.loading ? 'Loading saved GalNet leads…' : '',
-      investigations.error,
       omitted?.changedReports ? `${omitted.changedReports} changed-article report${omitted.changedReports === 1 ? '' : 's'} hidden` : '',
       omitted?.endedLeads ? `${omitted.endedLeads} ended lead${omitted.endedLeads === 1 ? '' : 's'} hidden` : '',
       omitted?.withoutDestination ? `${omitted.withoutDestination} lead${omitted.withoutDestination === 1 ? ' has' : 's have'} no known destination` : '',
@@ -78,16 +84,15 @@ export function GalacticAtlasWorkspace({ api, onNavigate, position, systemName, 
     ].filter(Boolean).join(' · ') || undefined}
     communityGoalsStatus={[
       communityGoals.loading ? 'Loading Community Goals…' : '',
-      communityGoals.error ? `CG refresh failed: ${communityGoals.error}${communityGoals.snapshot ? ' Showing the previous snapshot.' : ''}` : '',
+      communityGoals.error && communityGoals.snapshot ? 'Showing the previous CG snapshot.' : '',
       communityGoals.snapshot?.cache === 'stale' ? 'CG data is stale; availability and progress may have changed.' : '',
       communityGoals.snapshot?.goals.length === 0 && communityGoals.snapshot.cache !== 'stale' && !communityGoals.error ? 'No Community Goals currently listed.' : '',
       communityGoals.unlocatedSystems.length ? `CG destinations not located: ${communityGoals.unlocatedSystems.join(', ')}` : ''
     ].filter(Boolean).join(' · ') || undefined}
     bookmarks={showBookmarks ? bookmarks.markers : []}
-    bookmarkStatus={bookmarks.error ?? (bookmarks.pending ? `Locating ${bookmarks.pending} bookmark${bookmarks.pending === 1 ? '' : 's'}…` : [
+    bookmarkStatus={bookmarks.pending ? `Locating ${bookmarks.pending} bookmark${bookmarks.pending === 1 ? '' : 's'}…` : [
       bookmarks.unresolved ? `${bookmarks.unresolved} bookmark${bookmarks.unresolved === 1 ? '' : 's'} without coordinates: ${bookmarks.missingSystems.join(', ')}` : '',
-      bookmarks.failures.length ? `Bookmark lookup failed — ${bookmarks.failures.join('; ')}` : ''
-    ].filter(Boolean).join(' · ') || undefined)}
+    ].filter(Boolean).join(' · ') || undefined}
     onNavigate={onNavigate}
     onToggleBookmarks={() => setShowBookmarks(value => !value)}
     onToggleCommunityGoals={() => setShowCommunityGoals(value => !value)}
@@ -97,7 +102,7 @@ export function GalacticAtlasWorkspace({ api, onNavigate, position, systemName, 
     showCommunityGoals={showCommunityGoals}
     showInvestigations={showInvestigations}
     systemName={systemName}
-  />
+  /></>
 }
 
 /** Unique cartographic instrument. SVG coordinates/transforms are runtime geometry, not layout styling. */

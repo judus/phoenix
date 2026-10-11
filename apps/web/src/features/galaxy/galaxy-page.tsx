@@ -1,5 +1,5 @@
 import { lazy, useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react'
-import { Loading } from '@phoenix/ui'
+import { Notification, Loading } from '@phoenix/ui'
 import { AddNoteButton } from '../../components/add-note-button.js'
 import { RoutePlotFeedback } from './route-plot-feedback.js'
 import { CatalogueSuggestionInput } from './catalogue-suggestion-input.js'
@@ -63,7 +63,7 @@ export function GalaxyPage({ api, controller, devicePreferences, onNavigate, que
   route: GalaxyRoute
   runtime: RuntimeStateSnapshot
 }) {
-  if (route.view === 'atlas') return <GalacticAtlasPage api={api} onNavigate={onNavigate} runtime={runtime} location={route.location} displayRequestId={route.displayRequestId} navigationRoute={controller.route} routeStatus={controller.error ?? (controller.status === 'loading' || controller.status === 'idle' ? 'Loading plotted route…' : undefined)} />
+  if (route.view === 'atlas') return <><Notification message={controller.error} /><GalacticAtlasPage api={api} onNavigate={onNavigate} runtime={runtime} location={route.location} displayRequestId={route.displayRequestId} navigationRoute={controller.route} routeStatus={controller.status === 'loading' || controller.status === 'idle' ? 'Loading plotted route…' : undefined} /></>
   if (route.view === 'database') return <QueryConsole key={route.savedQueryRunId ?? 'editor'} api={api} devicePreferences={devicePreferences} navigationRoute={controller.route} onNavigate={onNavigate} querySessions={querySessions} route={route} runtime={runtime} />
   if (route.view === 'saved-queries') return <SavedGalaxyQueriesPage api={api} onNavigate={onNavigate} />
   if (route.view === 'bookmarks') return <BookmarksPage api={api} onNavigate={onNavigate} route={route} />
@@ -255,7 +255,7 @@ function SystemState({ api, error, onNavigate, route, runtime }: {
         systemName={systemName ?? 'System schematic'}
       />
       <div className="system-schematic__state">
-        {error ? <Status tone="muted">{error}</Status> : <Loading>Loading system schematic…</Loading>}
+        {error ? <Notification message={error} /> : <Loading>Loading system schematic…</Loading>}
       </div>
     </PageFrame>
   )
@@ -454,6 +454,7 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, devicePreferences, 
   const [result, setResult] = useState<GalaxyQueryResult | undefined>(executeOnMount ? undefined : retained?.result)
   const [error, setError] = useState<string>()
   const [loading, setLoading] = useState(false)
+  const [errorTone, setErrorTone] = useState<'danger' | 'warning'>('danger')
   const [saveOpen, setSaveOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savedName, setSavedName] = useState(savedQuery?.name ?? '')
@@ -481,12 +482,15 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, devicePreferences, 
     const isCurrent = () => mounted.current && requestRevision.current === revision
     setLoading(true)
     setError(undefined)
+    setErrorTone('danger')
     try {
       const origin = resolveGalaxyQueryOrigin(nextValues, defaultOrigin)
       if (!origin && (definition.id !== 'station-lookup' || scalar(nextValues.radius).trim())) {
-        throw new Error(galaxyQueryOriginMode(nextValues) === 'current'
+        setErrorTone('warning')
+        setError(galaxyQueryOriginMode(nextValues) === 'current'
           ? 'Current system is unavailable. Enter a fixed reference system or wait for telemetry.'
           : 'Enter a reference system or select Follow current system.')
+        return
       }
       const nextResult = await executeGalaxyQuery(api, definition.id, { ...nextValues, origin })
       if (!isCurrent()) return
@@ -512,6 +516,7 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, devicePreferences, 
     if (!name) return
     setSaving(true)
     setError(undefined)
+    setErrorTone('danger')
     try {
       const saved = await api.saveGalaxyQuery({ name, parameters: values, queryId: definition.id, useOnDashboard }, savedQuery?.id)
       querySessions.set(saved.id, { ...(result ? { result } : {}), values })
@@ -544,12 +549,13 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, devicePreferences, 
             <IconButton label={savedQuery ? 'Update saved query' : 'Save query'} variant="outline" aria-expanded={saveOpen} onClick={() => setSaveOpen(true)}><SaveIcon /></IconButton>
           </Inline>}
         />
-        {result && saveOpen && <SaveQueryPanel dashboardEligible={definition.id === 'market-signals'} error={error} name={savedName} saving={saving} useOnDashboard={useOnDashboard} onCancel={() => setSaveOpen(false)} onChange={setSavedName} onDashboardChange={setUseOnDashboard} onSave={() => void save()} />}
+        {result && saveOpen && <SaveQueryPanel dashboardEligible={definition.id === 'market-signals'} name={savedName} saving={saving} useOnDashboard={useOnDashboard} onCancel={() => setSaveOpen(false)} onChange={setSavedName} onDashboardChange={setUseOnDashboard} onSave={() => void save()} />}
         </>
   const queryResults = (currentResult: GalaxyQueryResult, atlas?: ReactNode) => <GalaxyQueryResults result={currentResult} atlas={atlas} />
   return (
     <PageFrame layout="fit">
       <div className={`galaxy-query-editor${result && saveOpen ? ' save-open' : ''}`}>
+        <Notification message={error} tone={errorTone} />
         {result && preferences.galaxyQueryResultsView === 'atlas'
           ? <GalaxyQueryAtlas api={api} result={result} position={system?.position ?? null} systemName={system?.name ?? null}
               navigationRoute={navigationRoute} onNavigate={onNavigate}
@@ -580,7 +586,7 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, devicePreferences, 
                       />)}</FormGrid>
                     </div>
                     {saveOpen && <SaveQueryPanel dashboardEligible={definition.id === 'market-signals'} name={savedName} saving={saving} useOnDashboard={useOnDashboard} onCancel={() => setSaveOpen(false)} onChange={setSavedName} onDashboardChange={setUseOnDashboard} onSave={() => void save()} />}
-                    <FormActions className="query-actions" layout="columns" message={error ? <Status tone="danger" wrap>{error}</Status> : undefined}>
+                    <FormActions className="query-actions" layout="columns">
                       <FormActionGroup columns="two"><Button alignment="start" variant="outline" size="lg" type="button" onClick={onBack}>Back</Button><Button alignment="start" variant="outline" size="lg" type="button" onClick={() => changeValues(() => queryValues(definition, undefined))}>Reset query</Button></FormActionGroup>
                       <FormActionGroup><Button alignment="start" variant="accent" size="lg" type="submit" disabled={loading}>{loading ? 'Executing…' : 'Execute query'}</Button></FormActionGroup>
                     </FormActions>
@@ -593,9 +599,8 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, devicePreferences, 
   )
 }
 
-function SaveQueryPanel ({ dashboardEligible, error, name, onCancel, onChange, onDashboardChange, onSave, saving, useOnDashboard }: {
+function SaveQueryPanel ({ dashboardEligible, name, onCancel, onChange, onDashboardChange, onSave, saving, useOnDashboard }: {
   dashboardEligible: boolean
-  error?: string
   name: string
   onCancel(): void
   onChange(value: string): void
@@ -609,12 +614,11 @@ function SaveQueryPanel ({ dashboardEligible, error, name, onCancel, onChange, o
       <TextInput autoFocus id="saved-query-name" maxLength={80} value={name} onChange={event => onChange(event.target.value)} />
     </Field>
     <div className="actions">{dashboardEligible && <ToggleButton pressed={useOnDashboard} type="button" onClick={() => onDashboardChange(!useOnDashboard)}>Use on dashboard</ToggleButton>}<IconButton label="Cancel" type="button" variant="outline" onClick={onCancel}><CrossIcon /></IconButton><IconButton busy={saving} disabled={!name.trim()} label="Save query" type="button" variant="primary" onClick={onSave}><CheckIcon /></IconButton></div>
-    {error && <Status tone="danger" wrap>{error}</Status>}
   </section>
 }
 
 function QueryConsoleState ({ error }: { error?: string }) {
-  return <PageFrame layout="fit"><PageHeader variant="cockpit" context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Query console' }]} />} title="Query console" />{error ? <Status tone="danger">{error}</Status> : <Loading>Loading saved query…</Loading>}</PageFrame>
+  return <PageFrame layout="fit"><PageHeader variant="cockpit" context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Query console' }]} />} title="Query console" />{error ? <Notification message={error} /> : <Loading>Loading saved query…</Loading>}</PageFrame>
 }
 
 function queryValues (definition: GalaxyQueryDefinition, parameters: SavedGalaxyQuery['parameters'] | undefined): Record<string, GalaxyQueryValue> {
@@ -698,7 +702,7 @@ function GalaxyState({ error, title }: { error?: string, title: string }) {
         context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: title }]} />}
         title={title}
       />
-      {error ? <Status tone="danger">{error}</Status> : <Loading>{`Loading ${title.toLocaleLowerCase()}…`}</Loading>}
+      {error ? <Notification message={error} /> : <Loading>{`Loading ${title.toLocaleLowerCase()}…`}</Loading>}
     </PageFrame>
   )
 }

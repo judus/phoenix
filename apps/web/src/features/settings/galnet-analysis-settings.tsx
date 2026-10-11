@@ -1,4 +1,4 @@
-import { Section, SettingsList, SettingRow, SettingToggle, Select, Status } from '@phoenix/ui'
+import { Notification, Section, SettingsList, SettingRow, SettingToggle, Select, Status } from '@phoenix/ui'
 import { useGalnetBackground, type GalnetBackgroundApi } from '../../components/use-galnet-background.js'
 
 export function GalnetAnalysisSettings({ api }: { api: GalnetBackgroundApi }) {
@@ -19,6 +19,6 @@ export function GalnetAnalysisSettings({ api }: { api: GalnetBackgroundApi }) {
       </SettingRow>
     </SettingsList>
     {status && <Status wrap tone="muted">{status.requestsToday} / {status.dailyLimit} attempts today · {status.pending} queued{!status.configured ? ' · Configure an API key and restart PHOENIX to analyse.' : ''}</Status>}
-    {error && <Status tone="danger" wrap>{error}</Status>}
+    {error && <Notification message={error} />}
   </Section>
 }

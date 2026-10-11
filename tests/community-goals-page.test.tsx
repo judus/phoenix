@@ -4,6 +4,7 @@ import { beforeAll, expect, test } from 'vitest'
 import type { CommunityGoalsResponse } from '@phoenix/contracts'
 import { ActivitiesPage } from '../apps/web/src/features/activities/activities-page.js'
 import { renderWithAct } from './support/render-with-act.js'
+import { notificationText } from './support/notifications.js'
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
 
@@ -48,11 +49,14 @@ test('native selection buttons expose pressed state and removed selection falls 
   await act(async () => renderer.unmount())
 })
 
-test('loading, cold failure, authoritative empty and stale empty are different states', () => {
+test('loading, cold failure, authoritative empty and stale empty are different states', async () => {
   const markup = (controller: Parameters<typeof ActivitiesPage>[0]['controller']) =>
     renderToStaticMarkup(<ActivitiesPage view="community-goals" controller={controller} />)
   expect(markup({ status: 'loading' })).toContain('Loading Community Goals')
-  expect(markup({ status: 'error', error: 'Frontier unavailable' })).toContain('Frontier unavailable')
+  const renderer = await renderWithAct(<ActivitiesPage view="community-goals" controller={{ status: 'error', error: 'Frontier unavailable' }} />)
+  expect(notificationText()).toContain('Frontier unavailable')
+  await act(async () => renderer.unmount())
+  expect(markup({ status: 'error', error: 'Frontier unavailable' })).not.toContain('Frontier unavailable')
   expect(markup({ status: 'error', error: 'Frontier unavailable' })).not.toContain('lists no Community Goals')
   expect(markup({ status: 'ready', communityGoals: { ...response, goals: [] } })).toContain('Frontier currently lists no Community Goals')
   const stale = markup({ status: 'ready', communityGoals: { ...response, cache: 'stale', goals: [] } })

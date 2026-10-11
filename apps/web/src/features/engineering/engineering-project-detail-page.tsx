@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import type { EngineeringMaterialWatchlistResponse, EngineeringProject } from '@phoenix/contracts'
-import {
+import { Notification,
   Button,
   CheckIcon,
   CrossIcon,
@@ -127,13 +127,12 @@ function ProjectSettings ({ actions, onClose, onNavigate, project }: {
         <Field htmlFor="engineering-project-note" label="Note">
           <Textarea id="engineering-project-note" maxLength={1000} rows={3} value={note} onChange={event => setNote(event.target.value)} />
         </Field>
-        <FormActions
-          message={error ? <Status tone="danger" wrap>{error}</Status> : undefined}
+        <><Notification message={error} /><FormActions
           navigation={<Button disabled={working !== undefined} type="button" variant="outline" onClick={onClose}>Cancel</Button>}
         >
           <IconButton busy={working === 'delete'} disabled={!actions || working === 'save'} label={`Delete ${project.name}`} type="button" variant="danger" onClick={remove}><TrashIcon /></IconButton>
           <IconButton busy={working === 'save'} disabled={!actions || !name.trim() || working === 'delete'} label="Save project" type="submit" variant="primary"><CheckIcon /></IconButton>
-        </FormActions>
+        </FormActions></>
       </Form>
     </Section>
   )
@@ -144,7 +143,7 @@ function ProjectSteps ({ actions, project }: { actions?: EngineeringControllerAc
   const [error, setError] = useState<string>()
   return (
     <DataTableGroup contentGap="sm" meta={`${project.steps.length} ${project.steps.length === 1 ? 'step' : 'steps'}`} title="Planned engineering">
-      {error ? <Status tone="danger" wrap>{error}</Status> : null}
+      {error ? <Notification message={error} /> : null}
       {project.steps.length > 0
         ? (
             <DataTable density="compact" label={`${project.name} planned engineering`} minimum="wide" narrow="priority" scheme="surface">
