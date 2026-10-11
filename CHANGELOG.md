@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+## 0.1.8 — 2026-10-11 (prerelease)
+
 - Swipe vertically between control decks, pre-rendering immediate neighbours
   while keeping the rail stationary and horizontal workspace swipes unchanged.
 

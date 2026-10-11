@@ -1,10 +1,10 @@
 # PHOENIX acceptance checklist
 
-Reviewed **2026-10-10**. Tracking task: [#25](https://github.com/judus/phoenix/issues/25).
+Reviewed **2026-10-11**. Tracking task: [#25](https://github.com/judus/phoenix/issues/25).
 This records evidence and outstanding tests, not a claim that every platform/gameplay check passed.
 Refresh the build identity and results before each release.
 
-## 0.1.8 preparation
+## Current build: 0.1.8
 
 The candidate starts from dev `b8407780471cb0ec3c4f347ffc0472e2538aea1d`, including
 [PR #202](https://github.com/judus/phoenix/pull/202) and
@@ -15,14 +15,31 @@ isolated browsers in both themes/orientations. The maintainer reviewed the verti
 prototype; measured animation timing/easing matched horizontal Deskplane navigation. Copilot's
 fresh-tap-after-snap-back finding was fixed and covered by tests and a browser regression.
 
-The package version is being prepared as 0.1.8, not published yet. Installer promotion and tagged
-release checks, downloaded artifact identities/checksums and public links are pending. Exact
-release SHA and workflow evidence will be recorded after verification. Real installed-device
-upgrade, retained-data, Windows/Elite and desktop-portal acceptance remain pending. Powerplay,
+Published preview: [v0.1.8](https://github.com/judus/phoenix/releases/tag/v0.1.8), source
+`5c95243cd6040b106e995484a5b136a54e503924`. Promotion [PR #206](https://github.com/judus/phoenix/pull/206)
+passed native Linux/Windows installer checks in
+[CI run 38098783645](https://github.com/judus/phoenix/actions/runs/38098783645).
+Both tagged native installer jobs and draft assembly passed in
+[release run 38099024938](https://github.com/judus/phoenix/actions/runs/38099024938).
+Downloaded installers/manifests matched all four original checksums, version, exact source,
+preview channel and byte counts. Both manifests identify bundled Node `v24.14.0`.
+Both public installer links returned HTTP 200 after publication; the release is not draft,
+is a prerelease and was deliberately not marked latest. Older releases were preserved.
+Dependencies remain `deskplane@0.1.4`, embedded Control Deck runtime `0.1.13` and
+`@jdu/llm-client@0.1.3`; the Windows installer remains unsigned.
+
+Installer hashes from [SHA256SUMS](https://github.com/judus/phoenix/releases/download/v0.1.8/SHA256SUMS):
+
+```text
+d90f4d9f15d311132bcc94f998ca45d8d57244942f2eae0c25bd2300a7ab672c  PHOENIX-linux-x64.AppImage
+9f9e1bedb470c6bce55581206e1b01380c7e0fdaa0614a5f12f1474ff4669797  PHOENIX-windows-x64-setup.exe
+```
+
+Real installed-device upgrade, retained-data, Windows/Elite and desktop-portal acceptance remain pending. Powerplay,
 colonisation and Fleet Carrier pages are explicitly work-in-progress proposals needing gameplay
 data; no CAPI integration or verified gameplay completion is claimed. EDDN gating is unchanged.
 
-## Build identities
+## Previous preview evidence: 0.1.7
 
 - Published preview: [v0.1.7](https://github.com/judus/phoenix/releases/tag/v0.1.7), source
   `9f345526b296e9b27e387f02b25660c8460a7865`. Both native installer jobs passed in
@@ -73,7 +90,7 @@ the matrix below retains its next-installed-build acceptance checks, not a secon
 
 | Area | Existing evidence | Next check / owner |
 | --- | --- | --- |
-| Installer lifecycle | v0.1.7 native CI passed; isolated smoke covers startup, single instance, stop, settings migration and corrupt-settings recovery. | Maintainer: exact published build on Windows/Linux, actual install/update/tray/restart/uninstall. |
+| Installer lifecycle | v0.1.8 native CI passed; isolated smoke covers startup, single instance, stop, settings migration and corrupt-settings recovery. | Maintainer: exact published build on Windows/Linux, actual install/update/tray/restart/uninstall. |
 | Retained data | Smoke preserves pairing identity, edited Copilot profile and EDDN opt-out; domain tests cover other stored objects. | Maintainer: actual update/uninstall preserves settings, decks/macros, projects, queries, bookmarks and observed state. Back up; do not reset the profile to pass. |
 | Linux desktops / input | PHOENIX AppImage launch/tray reported working on Mint; hardware/session record incomplete. Private-D-Bus and extract-and-run checks automated. | Maintainer: record distro/desktop/session/portal versions; test Mint plus KDE/Wayland and GNOME/Wayland, portal permission/revocation, input release, FUSE/extract-and-run and tray/quit. Earlier Arch/KDE and Fedora/GNOME results covered **Control Deck**, not PHOENIX. |
 | Windows / Elite input | Historical real-game success; current Windows CI uses simulated input. Current complete gameplay record pending. | Windows maintainer: Elite focused, one safe known-good and one formerly failing binding; tap/hold/release, macro stop/cancel/failure, shutdown cleanup. Record game response, not HTTP success or Notepad typing. |
