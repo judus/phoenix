@@ -26,8 +26,6 @@ jobs:
       matrix:
         os: [ubuntu-24.04, windows-2022]
     env:
-      # Temporary #189 baseline; removed before the final merge gate.
-      PHOENIX_TEST_SQLITE_PROFILE: '1'
       PHOENIX_EDDN_TEST_MODE: '0'
       PHOENIX_RELEASE_CHANNEL: ${{ inputs.release-assets && 'preview' || 'development' }}
     steps:
@@ -43,18 +41,6 @@ jobs:
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install --yes dbus-daemon
       - run: npm run check
-      - if: runner.os == 'Windows'
-        name: Temporary SQLite worker comparison for issue 189
-        shell: pwsh
-        run: |
-          node --input-type=module -e "import { availableParallelism } from 'node:os'; console.log('SQLITE_RUNNER', JSON.stringify({cpu:availableParallelism()}))"
-          $failed = $false
-          foreach ($workers in @(1, 2, 3, 3, 2, 1)) {
-            Write-Output "SQLITE_WORKERS=$workers"
-            npx.cmd vitest run tests/cartography-migrations.test.ts tests/eddn-offline-policy.test.ts tests/eddn-settings-api.test.ts --maxWorkers=$workers --reporter=verbose
-            if ($LASTEXITCODE -ne 0) { $failed = $true }
-          }
-          if ($failed) { exit 1 }
       # check already built the application; stage that exact output without rebuilding it.
       - if: inputs.installers
         run: node scripts/package/build-payload.mjs

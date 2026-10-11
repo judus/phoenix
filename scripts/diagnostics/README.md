@@ -17,6 +17,14 @@ constructor/file-permission work and HTTP waits are outside SQLite time. No mach
 timing assertions are added. Profiling is off by default; compare repeated native runs, not just
 one passing result. Run the full suite too when investigating contention between test files.
 
+For a same-machine contention comparison, repeat the affected command with
+`--maxWorkers=1`, `--maxWorkers=2` and `--maxWorkers=3`, then reverse that order.
+Keep profiling and the same test selection enabled for every sample. Compare both per-test
+SQLite time and overall elapsed time; concurrent disk traffic can increase commit latency
+even when test databases are independent. Windows CI now uses one worker; an explicit
+`--maxWorkers` override is for this diagnostic comparison, not the normal required gate.
+It does not reproduce every possible hosted-runner stall or establish a production defect.
+
 ## Colonisation proposal
 
 Use `--colonisation` with the isolated preview and open `#/activities/colonisation`.

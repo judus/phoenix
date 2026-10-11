@@ -4,6 +4,10 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Reduce Windows CI disk contention by running test files with one worker, retaining
+  real SQLite persistence/reopen checks, normal durability and the five-second test timeout.
+  Production behavior and local/Linux test parallelism are unchanged.
+
 - Use one shared, dismissible notification stack for page/API failures and system messages:
   red for failures, orange for advisories. Keep loading, empty results, data-quality indicators
   and field-specific validation in place. Repeated background failures do not reopen dismissed
