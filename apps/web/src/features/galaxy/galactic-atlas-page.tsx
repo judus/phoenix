@@ -56,13 +56,11 @@ export function GalacticAtlasWorkspace({ api, onNavigate, position, systemName, 
   const investigations = useAtlasGalnetLeads(api, showInvestigations)
   const omitted = investigations.snapshot?.omitted
   const catalogue = useAtlasCatalogue(api)
-  return <><Notification messages={[
-    catalogue.error,
-    showBookmarks ? bookmarks.error : undefined,
-    ...(showBookmarks ? bookmarks.failures : []),
-    showCommunityGoals ? communityGoals.error : undefined,
-    showInvestigations ? investigations.error : undefined
-  ].filter((message): message is string => Boolean(message))} />
+  return <>
+  <Notification message={catalogue.error} />
+  <Notification messages={showBookmarks ? [bookmarks.error, ...bookmarks.failures].filter((message): message is string => Boolean(message)) : []} />
+  <Notification message={showCommunityGoals ? communityGoals.error : undefined} />
+  <Notification message={showInvestigations ? investigations.error : undefined} />
   <GalacticAtlas
     results={results}
     renderLayout={renderLayout}

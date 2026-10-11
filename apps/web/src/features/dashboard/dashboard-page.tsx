@@ -58,16 +58,12 @@ export function DashboardPage({
     body.scrollTop = 0
   }, [latestCommanderLogId])
 
-  const attention = [
-    ...(runtime.status === 'error' ? [runtime.error] : []),
-    ...(controller.error ? [controller.error] : []),
-    ...(voice.error ? [voice.error] : []),
-    ...(eventConnection.state === 'error' ? [eventConnection.error ?? 'Live event connection unavailable.'] : [])
-  ]
-
   return (
     <PageFrame className="dashboard-page" layout="fit" aria-busy={controller.status === 'loading'}>
-      <Notification messages={attention} />
+      <Notification message={runtime.status === 'error' ? runtime.error : undefined} />
+      <Notification message={controller.error} />
+      <Notification message={voice.error} />
+      <Notification message={eventConnection.state === 'error' ? eventConnection.error ?? 'Live event connection unavailable.' : undefined} />
       <Notification messages={model.warnings} tone="warning" />
       <DashboardGrid
         gap="xs"

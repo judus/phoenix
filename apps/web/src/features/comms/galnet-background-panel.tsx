@@ -15,7 +15,8 @@ export function GalnetBackgroundPanel({ api }: { api: GalnetBackgroundApi }) {
         Analyse older articles{batch.length > 0 ? ` (${batch.length})` : ''}
       </Button>
       <Status wrap tone="muted">Manual catch-up uses API credit. Checks the latest 100 archived articles, newest uncovered first, up to 20 per batch; the daily queue limit still applies.</Status>
-      <Notification message={error ?? status?.sourceError} />
+      <Notification message={error} />
+      <Notification message={status?.sourceError} tone="warning" />
       {status && !status.configured && <Status tone="muted" wrap>Configure an API key and restart PHOENIX to analyse.</Status>}
       {status && status.jobs.length > 0 && <details><summary>Recent analysis work</summary>
         <ItemList density="compact">{status.jobs.map(job => <ItemListItem key={job.id} title={job.title}

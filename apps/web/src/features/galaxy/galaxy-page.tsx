@@ -454,6 +454,7 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, devicePreferences, 
   const [result, setResult] = useState<GalaxyQueryResult | undefined>(executeOnMount ? undefined : retained?.result)
   const [error, setError] = useState<string>()
   const [loading, setLoading] = useState(false)
+  const [originError, setOriginError] = useState<string>()
   const [errorTone, setErrorTone] = useState<'danger' | 'warning'>('danger')
   const [saveOpen, setSaveOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -476,20 +477,22 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, devicePreferences, 
     setValues(next)
     setLoading(false)
     setError(undefined)
+    setOriginError(undefined)
   }
   const runQuery = async (nextValues: Record<string, GalaxyQueryValue>) => {
     const revision = ++requestRevision.current
     const isCurrent = () => mounted.current && requestRevision.current === revision
     setLoading(true)
     setError(undefined)
+    setOriginError(undefined)
     setErrorTone('danger')
     try {
       const origin = resolveGalaxyQueryOrigin(nextValues, defaultOrigin)
       if (!origin && (definition.id !== 'station-lookup' || scalar(nextValues.radius).trim())) {
-        setErrorTone('warning')
-        setError(galaxyQueryOriginMode(nextValues) === 'current'
-          ? 'Current system is unavailable. Enter a fixed reference system or wait for telemetry.'
-          : 'Enter a reference system or select Follow current system.')
+        if (galaxyQueryOriginMode(nextValues) === 'current') {
+          setErrorTone('warning')
+          setError('Current system is unavailable. Enter a fixed reference system or wait for telemetry.')
+        } else setOriginError('Enter a reference system or select Follow current system.')
         return
       }
       const nextResult = await executeGalaxyQuery(api, definition.id, { ...nextValues, origin })
@@ -573,6 +576,7 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, devicePreferences, 
                       <FormGrid>{definition.fields.map(field => <CatalogueField
                         api={api}
                         field={field}
+                        error={field.id === 'origin' ? originError : undefined}
                         key={field.id}
                         currentSystem={defaultOrigin}
                         following={galaxyQueryOriginMode(values) === 'current'}
@@ -640,10 +644,10 @@ function queryValues (definition: GalaxyQueryDefinition, parameters: SavedGalaxy
   return values
 }
 
-function CatalogueField({ api, field, onChange, value, currentSystem, following, onFollow }: { api: PhoenixApi, field: GalaxyQueryField, onChange(value: GalaxyQueryValue): void, value: GalaxyQueryValue, currentSystem: string, following: boolean, onFollow(): void }) {
+function CatalogueField({ api, error, field, onChange, value, currentSystem, following, onFollow }: { api: PhoenixApi, error?: string, field: GalaxyQueryField, onChange(value: GalaxyQueryValue): void, value: GalaxyQueryValue, currentSystem: string, following: boolean, onFollow(): void }) {
   const id = `query-${field.id}`
   if (field.id === 'module' || field.id === 'hull' || field.id === 'commodity') return <CatalogueSuggestionInput key={field.id} api={api} kind={field.id === 'hull' ? 'ship' : field.id} label={field.label} value={scalar(value)} onChange={onChange} />
-  if (field.id === 'origin') return <Field htmlFor={id} label={field.label} hint={following ? `Following current system: ${currentSystem || 'unavailable'}` : 'Fixed reference. Select the location icon to follow your current system.'}>
+  if (field.id === 'origin') return <Field htmlFor={id} error={error} label={field.label} hint={following ? `Following current system: ${currentSystem || 'unavailable'}` : 'Fixed reference. Select the location icon to follow your current system.'}>
     <TextInput id={id} placeholder={following ? currentSystem || 'Current system unavailable' : 'System name'} value={following ? '' : scalar(value)} required={!following && field.required} onChange={event => onChange(event.target.value)} action={<IconButton type="button" label="Follow current system" aria-pressed={following} className={`btn-toggle inset${following ? ' active' : ''}`} onClick={onFollow}><FollowSystemIcon /></IconButton>} />
   </Field>
   const control = field.type === 'multi-select'

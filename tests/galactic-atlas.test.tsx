@@ -1,4 +1,4 @@
-import { notificationText } from './support/notifications.js'
+import { dismissNotification, notificationText } from './support/notifications.js'
 import { renderWithAct } from './support/render-with-act.js'
 import { act, create } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
@@ -9,8 +9,26 @@ import { GalacticAtlas, GalacticAtlasPage } from '../apps/web/src/features/galax
 import { ATLAS_LANDMARKS, WHOLE_GALAXY, atlasPoiMarkers, filterAtlasPois, atlasScale, clusterAtlasMarkers, distanceLy, galacticRegion, projectGalacticPosition, screenPoint, zoomAtlas } from '../apps/web/src/features/galaxy/galactic-atlas-model.js'
 import { atlasRegions } from '../apps/web/src/features/galaxy/atlas-region-data.js'
 import { atlasNoteTarget, type AtlasMarker } from '../apps/web/src/features/galaxy/galactic-atlas-model.js'
+import { phoenixApiStub } from './support/phoenix-api-stub.js'
 
 beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }) })
+
+test('toggling one Atlas layer does not reopen a dismissed catalogue failure', async () => {
+  const api = phoenixApiStub({ getAtlasCatalogue: vi.fn().mockRejectedValue(new Error('Catalogue offline.')),
+    getGalaxyBookmarks: vi.fn().mockRejectedValue(new Error('Bookmarks offline.')),
+    getCommunityGoals: vi.fn().mockRejectedValue(new Error('CG offline.')),
+    getGalnetInvestigationLeads: vi.fn().mockRejectedValue(new Error('Leads offline.')) })
+  const renderer = await renderWithAct(<GalacticAtlasPage api={api} onNavigate={vi.fn()} runtime={{ state: createEmptyRuntimeState(), status: 'ready' }} />)
+  try {
+    expect(notificationText()).toContain('Catalogue offline.')
+    expect(notificationText()).toContain('Bookmarks offline.')
+    await act(async () => {
+      for (const message of ['Catalogue offline.', 'Bookmarks offline.', 'CG offline.', 'Leads offline.']) dismissNotification(message)
+    })
+    await act(async () => renderer.root.findByProps({ 'aria-label': 'Bookmarks' }).props.onClick())
+    expect(notificationText()).toBe('')
+  } finally { await act(async () => renderer.unmount()) }
+})
 
 test('Atlas note targets use known entities, never infer a station from a site label', () => {
   const base: AtlasMarker = { id: 'site', label: 'Crash site', systemName: 'Sol', position: [0, 0, 0], kind: 'landmark' }

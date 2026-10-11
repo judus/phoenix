@@ -1,4 +1,4 @@
-import { notificationText } from './support/notifications.js'
+import { notificationMarkup, notificationText } from './support/notifications.js'
 import { act } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { GalnetBackgroundStatus } from '@phoenix/contracts'
@@ -26,6 +26,22 @@ test('opening work panel is read-only; catch-up needs an explicit press and show
     await act(async () => { renderer.root.findByType('button').props.onClick() })
     expect(client.catchUpGalnet).toHaveBeenCalledWith(['old-article'], expect.any(AbortSignal))
     expect(renderer.root.findByType('button').props.disabled).toBe(true)
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('retained source advisories are orange while independent action failures remain red', async () => {
+  const client = api()
+  client.getGalnetBackground.mockResolvedValue({ ...initial, sourceError: 'The queue is full.' })
+  client.catchUpGalnet.mockRejectedValue(new Error('Storage failed.'))
+  const renderer = await renderWithAct(<GalnetBackgroundPanel api={client} />)
+  try {
+    expect(notificationText()).toBe('The queue is full.')
+    expect(notificationMarkup()).toContain('toast warning notification')
+    expect(notificationMarkup()).not.toContain('role="alert"')
+    await act(async () => renderer.root.findByType('button').props.onClick())
+    expect(notificationText()).toContain('The queue is full.')
+    expect(notificationText()).toContain('Storage failed.')
+    expect(notificationMarkup()).toContain('toast danger notification')
   } finally { await act(async () => renderer.unmount()) }
 })
 

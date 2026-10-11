@@ -1,5 +1,5 @@
 import { renderWithAct } from './support/render-with-act.js'
-import { notificationMarkup, notificationText } from './support/notifications.js'
+import { dismissNotification, notificationMarkup, notificationText } from './support/notifications.js'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { act, create } from 'react-test-renderer'
 import { expect, test, vi } from 'vitest'
@@ -74,6 +74,23 @@ test('dashboard exposes degraded evidence and preserves radio control order', as
   expect(markup).not.toContain('<span>GalNet radio</span>')
   expect(markup).not.toContain('aria-label="Copilot"')
   await act(async () => renderer.unmount())
+})
+
+test('dashboard recovery does not reopen a dismissed failure from another owner', async () => {
+  const props = {
+    controller: { commanderLog: [], status: 'ready' as const },
+    eventConnection: { state: 'open' as const }, hrefFor: () => '#/typed',
+    model: { ...model(), warnings: [] }, onExecuteAction: vi.fn(), onNavigate: vi.fn(),
+    voice: { connected: false, connect: vi.fn(), disconnect: vi.fn(), error: 'Voice offline.', transitioning: false }
+  }
+  const renderer = await renderWithAct(<DashboardPage {...props} runtime={{ status: 'error', error: 'Runtime offline.' }} />)
+  try {
+    await act(async () => { dismissNotification('Runtime offline.'); dismissNotification('Voice offline.') })
+    await act(async () => renderer.update(<DashboardPage {...props} runtime={{ status: 'ready', state: createEmptyRuntimeState() }} />))
+    expect(notificationText()).toBe('')
+    await act(async () => renderer.update(<DashboardPage {...props} voice={{ ...props.voice, error: 'New voice failure.' }} runtime={{ status: 'ready', state: createEmptyRuntimeState() }} />))
+    expect(notificationText()).toBe('New voice failure.')
+  } finally { await act(async () => renderer.unmount()) }
 })
 
 test('dashboard identifies its loading state without replacing the shell', () => {

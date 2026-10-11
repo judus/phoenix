@@ -53,6 +53,26 @@ test('predefined prospecting saved query follows the current system and resets t
   } finally { await act(async () => renderer.unmount()) }
 })
 
+test('a blank fixed origin has associated field validation, not a global notification', async () => {
+  const execute = vi.fn()
+  const renderer = await renderWithAct(<GalaxyPage devicePreferences={makeDevicePreferences()}
+    api={{ findGalaxySystems: execute } as unknown as PhoenixApi} controller={{ status: 'idle' }} onNavigate={vi.fn()}
+    querySessions={new GalaxyQuerySessionStore()} route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'system-search' }}
+    runtime={{ state: createEmptyRuntimeState(), status: 'ready' }} />)
+  try {
+    await act(async () => renderer.root.findByProps({ id: 'query-origin' }).props.onChange({ target: { value: ' ' } }))
+    await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
+    const field = renderer.root.findAllByType('input').find(input => input.props.id === 'query-origin')!
+    expect(field.props['aria-invalid']).toBe(true)
+    expect(field.props['aria-describedby']).toBe('query-origin-message')
+    expect(JSON.stringify(renderer.toJSON())).toContain('Enter a reference system')
+    expect(notificationText()).toBe('')
+    expect(execute).not.toHaveBeenCalled()
+    await act(async () => renderer.root.findByProps({ id: 'query-origin' }).props.onChange({ target: { value: 'Sol' } }))
+    expect(renderer.root.findAllByType('input').find(input => input.props.id === 'query-origin')!.props['aria-invalid']).not.toBe(true)
+  } finally { await act(async () => renderer.unmount()) }
+})
+
 test.each(['edit', 'reset', 'unmount'] as const)('a delayed query cannot overwrite a later %s', async action => {
   let resolve!: (value: Awaited<ReturnType<PhoenixApi['findGalaxySystems']>>) => void
   const findGalaxySystems = vi.fn(() => new Promise<Awaited<ReturnType<PhoenixApi['findGalaxySystems']>>>(done => { resolve = done }))
