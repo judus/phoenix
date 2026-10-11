@@ -5,6 +5,28 @@ import { expect, test } from 'vitest'
 const styles = resolve(import.meta.dirname, '../packages/ui/src/styles')
 const read = (path: string) => readFileSync(resolve(styles, path), 'utf8')
 
+test('shared panels use their uniform border token without a theme-specific thick edge', () => {
+  const panels = read('patterns/panels.css')
+  expect(panels).toContain('border: var(--panel-border-width) solid var(--panel-border)')
+  expect(panels).not.toContain('border-inline-start-width:')
+})
+
+test('descriptive tiles retain command title and footer colours and resolve their description by theme', () => {
+  const described = read('patterns/control-deck-tiles.css').split('&:has(.body) {')[1]!.split('&.theme-macro')[0]!
+  expect(described).toContain('color: var(--command-description)')
+  expect(described).not.toMatch(/color: var\(--color-(?:text|action)\)/u)
+  const variables = read('variable.css')
+  expect(variables).toContain('--command-description: var(--color-text-muted)')
+  expect(variables).toContain('--command-description: var(--elite-command-ink)')
+})
+
+test('informational tiles keep their roomier padding and matching grip inset across themes', () => {
+  const informational = read('patterns/control-deck-tiles.css').split('&.informational {')[1]!.split('&.active {')[0]!
+  expect(informational).toContain('--command-padding: var(--spacing-sm)')
+  expect(informational).toContain('inset-inline-end: var(--command-padding)')
+  expect(informational).toContain('inset-block-end: var(--command-padding)')
+})
+
 test('workspace touch policy reaches nested scrolling surfaces without overriding map/edit owners', () => {
   const source = read('app-shell.css')
   expect(source).toContain(':where(.deskplane-swipe-zone *) { touch-action: inherit; }')
@@ -59,16 +81,26 @@ test('ordinary buttons have no tactile grip; command tiles own the grip', () => 
 test('danger indicators use red in both themes, independently of investigation magenta', () => {
   const variables = read('variable.css')
   expect(variables).toContain('--palette-red: #ff6258')
-  expect([...variables.matchAll(/--color-danger: var\(--palette-red\)/gu)]).toHaveLength(2)
+  expect(variables).toContain('--color-danger: var(--palette-red)')
   expect(variables).not.toContain('--color-danger: var(--palette-coral)')
   expect(variables).toContain('--color-investigation: var(--palette-magenta)')
   expect(variables).toContain('--button-danger-background: var(--color-danger-surface)')
-  expect([...variables.matchAll(/--button-danger-border: color-mix\(in srgb, var\(--color-danger\) 48%, transparent\)/gu)]).toHaveLength(2)
+  expect(variables).toContain('--button-danger-border: color-mix(in srgb, var(--color-danger) 48%, transparent)')
   expect(variables).toContain('--button-danger-text: var(--color-text)')
   const editorDelete = read('pages/controls.css').match(/&\.tool-delete\s*\{([^}]+)/u)?.[1]
   expect(editorDelete).toContain('border-color: var(--button-danger-border)')
   expect(editorDelete).toContain('color: var(--button-danger-text)')
   expect(editorDelete).toContain('background: var(--button-danger-background)')
+})
+
+test('presentation boundaries resolve semantic aliases without resetting device font scaling', () => {
+  const variables = read('variable.css')
+  const presentation = variables.match(/:root,\s*\.phoenix-presentation\s*\{([^}]+)/u)?.[1]
+  expect(presentation).toContain('--color-action: var(--palette-amber)')
+  expect(presentation).toContain('--button-action-text: var(--color-action)')
+  expect(presentation).toContain('--field-border: var(--color-border)')
+  expect(presentation).toContain('--panel-background: var(--color-surface)')
+  expect(presentation).not.toMatch(/(?:^|\n)\s*(?:font-size|--ui-font[\w-]*):/u)
 })
 
 test('deck-manager grip uses the filled input label colour and height without its own button treatment', () => {

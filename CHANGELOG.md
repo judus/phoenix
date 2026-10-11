@@ -4,6 +4,21 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Use uniform 1px borders on shared panels in both themes, removing Elite's thick left edge.
+
+- Use a quieter, theme-aware surface for descriptive action tiles, retaining the tactile
+  grip and Phoenix's text treatment without changing control-deck command tiles.
+
+- Simplify query-console summaries: explain raw queries without repeating the page title,
+  identify saved queries by their own name, and retain reference-system and source details.
+
+- Remove the query console's community-data disclaimer; the Help page retains
+  the explanation without interrupting the cockpit experience.
+
+- Resolve shared colour and surface tokens within the selected presentation, so Elite
+  buttons, fields and panels no longer retain Phoenix palette values. Preserve intentional
+  pressed/selected states and device UI scaling.
+
 - Reduce Windows CI disk contention by running test files with one worker, retaining
   real SQLite persistence/reopen checks, normal durability and the five-second test timeout.
   Production behavior and local/Linux test parallelism are unchanged.

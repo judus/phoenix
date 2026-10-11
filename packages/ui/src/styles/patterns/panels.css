@@ -315,7 +315,6 @@
       letter-spacing: var(--font-tracking-display);
       text-transform: uppercase;
     }
-    .panel { border-inline-start-width: var(--spacing-xxs); }
   }
 
   @container page-frame (width < 42rem) {

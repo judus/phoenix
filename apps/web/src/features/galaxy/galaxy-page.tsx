@@ -534,7 +534,6 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, devicePreferences, 
   const header = (atlasControls?: ReactNode) => <><PageHeader
           variant="cockpit"
           context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Query console', href: '#/galaxy/database' }]} />}
-          status={result ? undefined : 'Community reports may be incomplete or stale'}
           title={definition.title}
           actions={<Inline gap="xs">
             {result && <>
@@ -567,9 +566,15 @@ function GalaxyQueryEditor({ api, defaultOrigin, definition, devicePreferences, 
               <Form onSubmit={execute}>
                 <div className="query-workspace">
                   <aside className="query-envelope" aria-label="Current query">
-                    <header><small>{definition.domain}</small><strong>{savedQuery?.name ?? definition.title}</strong><p>{savedQuery ? `${definition.title} · ` : ''}from {galaxyQueryOriginMode(values) === 'current' ? `current system (${defaultOrigin || 'unavailable'})` : scalar(values.origin) || 'an unresolved system'}</p></header>
-                    <dl><div><dt>Parameters</dt><dd>{definition.fields.length}</dd></div><div><dt>Data source</dt><dd>Community intelligence</dd></div></dl>
-                    <p>{definition.purpose}</p>
+                    <header>
+                      <small>{savedQuery ? 'Saved query' : 'About this query'}</small>
+                      {savedQuery && <strong>{savedQuery.name}</strong>}
+                      <p>{definition.purpose}</p>
+                    </header>
+                    <dl>
+                      <div><dt>Reference system</dt><dd>{galaxyQueryOriginMode(values) === 'current' ? `Current system (${defaultOrigin || 'unavailable'})` : scalar(values.origin) || 'Not specified'}</dd></div>
+                      <div><dt>Data source</dt><dd>Community intelligence</dd></div>
+                    </dl>
                   </aside>
                   <div className="query-parameters">
                     <div className="query-fields">

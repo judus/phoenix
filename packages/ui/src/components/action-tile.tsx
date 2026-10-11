@@ -11,7 +11,7 @@ export function ActionTile({ className, description, label, status, ...props }: 
   return (
     <TileButton
       body={description && <p>{description}</p>}
-      className={className}
+      className={['informational', className].filter(Boolean).join(' ')}
       label={label}
       meta={status}
       type="button"
