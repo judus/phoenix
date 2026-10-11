@@ -16,7 +16,7 @@ import {
   SortableDataTable,
   Stack,
   Status,
-  ViewSwitcher,
+  ViewToggle,
   Widget,
   type SortableDataTableColumn
 } from '@phoenix/ui'
@@ -27,6 +27,7 @@ import { DataSyncNotice } from '../../components/data-sync-notice.js'
 import { SystemLocationLink } from '../../components/system-location-link.js'
 import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import { CurrentShipOverview } from './current-ship-overview.js'
+import { CarrierPage } from './carrier-page.js'
 import type { FleetControllerSnapshot, FleetView } from './use-fleet-controller.js'
 import {
   createCurrentShipModel,
@@ -89,7 +90,7 @@ export function FleetPage({ controller, devicePreferences, onExecuteAction, onNa
   }
   if (!controller.fleet) return <FleetState title={titleFor(route.view)} status="error" error="Fleet records unavailable." />
   if (route.view === 'stored-modules') return <StoredModules fleet={controller.fleet} />
-  if (route.view === 'carriers') return <FleetCarriers observed={controller.fleet.carriers.observed} />
+  if (route.view === 'carriers') return <CarrierPage fleet={controller.fleet} error={controller.error} />
   return <FleetOverview fleet={controller.fleet} />
 }
 
@@ -196,7 +197,7 @@ function CurrentLoadout({ layout, model, onLayoutChange }: {
     <PageFrame layout="fit">
       <div className="current-ship-loadout">
         <CurrentShipHeader
-          actions={<ViewSwitcher startLabel="Table" startIcon={<TableIcon />} endLabel="Tiles" endIcon={<TilesIcon />} position={layout === 'table' ? 'start' : 'end'} onPositionChange={position => onLayoutChange(position === 'start' ? 'table' : 'tiles')} />}
+          actions={<ViewToggle startLabel="Table" startIcon={<TableIcon />} endLabel="Tiles" endIcon={<TilesIcon />} position={layout === 'table' ? 'start' : 'end'} onPositionChange={position => onLayoutChange(position === 'start' ? 'table' : 'tiles')} />}
           current="Loadout"
           model={model}
         />
@@ -347,12 +348,6 @@ function StoredModules({ fleet }: { fleet: NonNullable<FleetControllerSnapshot['
   )
 }
 
-function FleetCarriers({ observed }: { observed: boolean }) {
-  return (
-    <PageFrame layout="fit"><div className="fleet-scroll-page"><PageHeader variant="cockpit" context={<Breadcrumbs items={[{ label: 'Fleet', href: '#/fleet/overview' }, { label: 'Carriers' }]} />} title="Fleet carriers" /><Stack className="fleet-scroll-content" gap="lg"><Widget heading="Carrier authority"><Status tone={observed ? 'information' : 'muted'}>{observed ? 'Carrier records observed locally.' : 'No authoritative carrier record observed.'}</Status><p>Zero observed carriers means unknown or none observed—not a claim that the commander owns no carrier.</p></Widget></Stack></div></PageFrame>
-  )
-}
-
 function ShipCatalogue({ onNavigate, onViewChange, route, ships, updatedAt, view }: {
   onNavigate(route: PhoenixRoute): void
   onViewChange(view: 'dossier' | 'table'): void
@@ -366,7 +361,7 @@ function ShipCatalogue({ onNavigate, onViewChange, route, ships, updatedAt, view
   const select = (ship: ShipDefinition) => onNavigate({ kind: 'information', section: 'fleet', view: 'catalogue', selectedShipId: ship.id })
   return (
     <PageFrame layout="fit"><div className="ship-catalogue schematic">
-      <PageHeader actions={<ViewSwitcher startLabel="Dossier" startIcon={<DossierIcon />} endLabel="Table" endIcon={<TableIcon />} position={view === 'dossier' ? 'start' : 'end'} onPositionChange={position => onViewChange(position === 'start' ? 'dossier' : 'table')} />} variant="cockpit" context={<Breadcrumbs items={[{ label: 'Fleet', href: '#/fleet/overview' }, { label: 'Ship catalogue' }]} />} status={updatedAt ? <UpdatedDateTime value={updatedAt} /> : undefined} title="Ship catalogue" />
+      <PageHeader actions={<ViewToggle startLabel="Dossier" startIcon={<DossierIcon />} endLabel="Table" endIcon={<TableIcon />} position={view === 'dossier' ? 'start' : 'end'} onPositionChange={position => onViewChange(position === 'start' ? 'dossier' : 'table')} />} variant="cockpit" context={<Breadcrumbs items={[{ label: 'Fleet', href: '#/fleet/overview' }, { label: 'Ship catalogue' }]} />} status={updatedAt ? <UpdatedDateTime value={updatedAt} /> : undefined} title="Ship catalogue" />
       {sorted.length === 0 ? <Status tone="muted">No ship catalogue records are available.</Status> : view === 'dossier' ? <div className="catalogue-deck"><HullRoster current={selected?.id} ships={sorted} onSelect={select} />{selected && <HullSchematic ship={selected} />}</div> : <CatalogueTable current={selected?.id} ships={sorted} onSelect={ship => { select(ship); onViewChange('dossier') }} />}
     </div></PageFrame>
   )

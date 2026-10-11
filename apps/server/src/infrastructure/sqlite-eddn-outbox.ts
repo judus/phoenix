@@ -9,7 +9,11 @@ export class SqliteEddnOutbox implements EddnOutbox {
   public constructor (private readonly connection: DatabaseSync) {}
 
   public initialize (): void {
-    this.connection.exec(`
+    // One durable schema commit, rather than one per table/index. Signal recovery below
+    // owns separate transactions and must run after schema initialization commits.
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      this.connection.exec(`
       CREATE TABLE IF NOT EXISTS eddn_receipts (id TEXT PRIMARY KEY, created_at INTEGER NOT NULL) STRICT;
       CREATE INDEX IF NOT EXISTS eddn_receipts_age ON eddn_receipts(created_at);
       CREATE TABLE IF NOT EXISTS eddn_outbox (
@@ -35,11 +39,16 @@ export class SqliteEddnOutbox implements EddnOutbox {
         attempt INTEGER NOT NULL, outcome TEXT NOT NULL, http_status INTEGER, retry_at TEXT
       ) STRICT;
       UPDATE eddn_submissions SET outcome = 'interrupted' WHERE outcome = 'sending';
-    `)
-    // Retained outboxes predate signal checkpoints; ordinary pending messages remain ready.
-    const columns = this.connection.prepare('PRAGMA table_info(eddn_outbox)').all() as Array<{ name: string }>
-    if (!columns.some(column => column.name === 'ready')) this.connection.exec('ALTER TABLE eddn_outbox ADD COLUMN ready INTEGER NOT NULL DEFAULT 1 CHECK(ready IN (0, 1))')
-    if (!columns.some(column => column.name === 'signal_bytes')) this.connection.exec('ALTER TABLE eddn_outbox ADD COLUMN signal_bytes INTEGER NOT NULL DEFAULT 0')
+      `)
+      // Retained outboxes predate signal checkpoints; ordinary pending messages remain ready.
+      const columns = this.connection.prepare('PRAGMA table_info(eddn_outbox)').all() as Array<{ name: string }>
+      if (!columns.some(column => column.name === 'ready')) this.connection.exec('ALTER TABLE eddn_outbox ADD COLUMN ready INTEGER NOT NULL DEFAULT 1 CHECK(ready IN (0, 1))')
+      if (!columns.some(column => column.name === 'signal_bytes')) this.connection.exec('ALTER TABLE eddn_outbox ADD COLUMN signal_bytes INTEGER NOT NULL DEFAULT 0')
+      this.connection.exec('COMMIT')
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
+    }
     // Rebuild each durable run once, not once per signal; null markers have no usable context.
     for (const row of this.connection.prepare('SELECT id FROM eddn_outbox WHERE ready = 0').all() as Array<{ id: string }>) {
       let message: EddnMessage | null = null

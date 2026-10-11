@@ -138,7 +138,7 @@ test('CG marker selection shows source/freshness and navigation while permanent 
     expect(inspector.findAllByType('dd').map(node => node.children).flat()).toContain('Research Port')
     expect(inspector.findAllByType('dd').map(node => node.children).flat()).toContain('3312-10-08 10:00')
     expect(inspector.findAllByType('a').find(node => node.props.href === 'https://www.elitedangerous.com/community/goals/')).toBeDefined()
-    const finder = renderer.root.findAllByType('button').find(node => node.props.children === 'Finder')!
+    const finder = renderer.root.findAllByType('button').find(node => node.props['aria-label'] === 'Finder')!
     await act(async () => finder.props.onClick())
     await act(async () => renderer.root.findByProps({ id: 'atlas-poi-search' }).props.onChange({ target: { value: 'No matching permanent POIs' } }))
     expect(renderer.root.findAllByProps({ 'aria-label': 'Selected atlas location' })).toHaveLength(1)

@@ -2,14 +2,20 @@
 // In-memory browser diagnostics only: no real journals, game input, or provider requests.
 // Add --prospecting for a synthetic pre-Odyssey candidate with unknown signal counts.
 // Add --copilot-navigation for delayed synthetic chat using real MCP and history persistence.
+// Add --atlas-route for a synthetic NavRoute file, including short jumps and real heights.
+// Add --query-atlas for nearby station results with grouped and missing coordinates.
+// Add --vite to test source hot reload instead of the built frontend.
 import { createRequire } from 'node:module'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { fileURLToPath } from 'node:url'
 import { PhoenixApplication } from '../../apps/server/src/phoenix-application.ts'
 import { MissionDataService } from '../../apps/server/src/application/mission-data-service.ts'
+import { PowerplayDataService } from '../../apps/server/src/application/powerplay-data-service.ts'
+import { ColonisationDataService } from '../../apps/server/src/application/colonisation-data-service.ts'
+import { CarrierDataService } from '../../apps/server/src/application/carrier-data-service.ts'
 import { SqliteDatabase } from '../../apps/server/src/infrastructure/sqlite-database.ts'
 import { parseMicroResourceInventory } from '@phoenix/elite'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
@@ -25,8 +31,13 @@ const denseCartography = process.argv.includes('--dense-cartography')
 const eddnSubmissions = process.argv.includes('--eddn-submissions')
 const prospecting = process.argv.includes('--prospecting')
 const atlasPois = process.argv.includes('--atlas-pois')
+const atlasRoute = process.argv.includes('--atlas-route')
+const queryAtlas = process.argv.includes('--query-atlas')
 const communityGoals = process.argv.includes('--community-goals')
 const missionBrief = process.argv.includes('--mission-brief')
+const powerplay = process.argv.includes('--powerplay')
+const colonisation = process.argv.includes('--colonisation')
+const carrier = process.argv.includes('--carrier')
 const galnetArchive = process.argv.includes('--galnet-archive')
 // Exercise display-tool navigation during a real HTTP chat stream, without paid inference.
 const copilotNavigation = process.argv.includes('--copilot-navigation')
@@ -39,8 +50,19 @@ const continuityArticles = [
   { id: 'synthetic-missing', title: 'Synthetic ship missing', body: 'Synthetic EVE-597 is missing after departing Sol. Its current position is unknown.', publishedAt: '2026-09-17T12:00:00Z' }
 ].map(article => ({ ...article, changedAt: article.publishedAt, image: null, slug: article.id,
   sourceUrl: `https://example.com/galnet/${article.id}` }))
-const fixtureDirectory = eddnSubmissions || galnetArchive || missionBrief ? mkdtempSync(join(tmpdir(), 'phoenix-isolated-preview-')) : undefined
+const fixtureDirectory = eddnSubmissions || galnetArchive || missionBrief || powerplay || colonisation || carrier || atlasRoute ? mkdtempSync(join(tmpdir(), 'phoenix-isolated-preview-')) : undefined
 const databasePath = fixtureDirectory ? join(fixtureDirectory, 'preview.sqlite') : ':memory:'
+const eliteDirectory = atlasRoute ? join(fixtureDirectory, 'synthetic-elite') : null
+if (eliteDirectory) {
+  mkdirSync(eliteDirectory)
+  writeFileSync(join(eliteDirectory, 'NavRoute.json'), JSON.stringify({ timestamp: new Date().toISOString(),
+    Route: Array.from({ length: 21 }, (_, index) => {
+      const offset = index < 8 ? (index - 5) * 5 : 10 + (index - 7) * 60
+      return { StarSystem: index === 5 ? 'Sol' : `Synthetic route ${index}`,
+        SystemAddress: index + 1, StarClass: ['G', 'K', 'M'][index % 3],
+        StarPos: [offset, index < 8 ? index - 5 : Math.sin(index) * 20, offset / 5] }
+    }) }))
+}
 // This preview must never upload, even when launched from a test-enabled development shell.
 process.env.PHOENIX_EDDN_TEST_MODE = '0'
 // Fail closed if a diagnostic route accidentally reaches an external provider.
@@ -54,7 +76,7 @@ globalThis.fetch = (input, options) => {
 }
 const application = new PhoenixApplication({
   databasePath,
-  eliteDirectory: null,
+  eliteDirectory,
   eliteBindingsDirectory: null,
   host: '127.0.0.1',
   port: 0,
@@ -129,8 +151,19 @@ const application = new PhoenixApplication({
     providerUpdatedAt: '2021-05-18T12:00:00Z', signalsUpdatedAt: null, subtype: 'High metal content world',
     surfaceTemperatureK: 180, systemAddress: 42, systemName: 'Synthetic', volcanism: null
   }] } } : {}),
+  ...(queryAtlas ? { stationSearchSource: {
+    findNearestStations: async () => ['Synthetic near', 'Synthetic ahead', 'Synthetic behind', 'Synthetic near', 'Synthetic unlocated'].map((systemName, index) => ({
+      systemName, stationName: `Synthetic station ${index + 1}`, distanceLy: 5 + index * 8,
+      distanceToArrivalLs: 50 + index * 100, marketId: index + 1, maxLandingPadSize: 3,
+      allegiance: null, controllingFaction: null, government: null, primaryEconomy: null, secondaryEconomy: null,
+      stationType: 'Coriolis Starport', updatedAt: '2026-10-10T12:00:00Z'
+    })),
+    findCommodityMarkets: async () => [], findSystemExports: async () => [], findSystemImports: async () => [], getCommodityReports: async () => []
+  } } : {}),
   cartographySource: { fetchSystem: async name => denseCartography ? mockDenseCartography(name) : ({
-    schemaVersion: 5, name, address: null, position: communityGoals && name.startsWith('Synthetic CG ')
+    schemaVersion: 5, name, address: null, position: queryAtlas && name.startsWith('Synthetic ')
+      ? ({ 'Synthetic near': [12, 8, 4], 'Synthetic ahead': [70, -10, 15], 'Synthetic behind': [-40, 5, -20] }[name] ?? null)
+      : communityGoals && name.startsWith('Synthetic CG ')
       ? [Number(name.slice('Synthetic CG '.length)) * 4000, 0, 4000] : name === 'Colonia' ? [-9530.5, -910.28125, 19808.125] : [0, 0, 0],
     permitRequired: false, permitName: null,
     information: { allegiance: null, government: null, security: null, state: null,
@@ -143,6 +176,55 @@ const application = new PhoenixApplication({
 })
 const { port } = await application.start()
 copilotOrigin = `http://127.0.0.1:${port}`
+if (carrier) {
+  const database = new SqliteDatabase(databasePath)
+  try {
+    database.initialize()
+    const service = new CarrierDataService(database.carriers)
+    service.ingest({ timestamp: '2026-10-10T10:00:00Z', event: 'CarrierStats', CarrierID: 42, CarrierType: 'Personal',
+      Callsign: 'SYN-001', Name: 'Synthetic carrier', DockingAccess: 'all', AllowNotorious: false, FuelLevel: 800,
+      JumpRangeCurr: 450, JumpRangeMax: 500, PendingDecommission: false,
+      SpaceUsage: { TotalCapacity: 25000, Crew: 2000, Cargo: 10000, CargoSpaceReserved: 2000, ShipPacks: 1000, ModulePacks: 1000, FreeSpace: 9000 },
+      Finance: { CarrierBalance: 1000000000, ReserveBalance: 100000000, AvailableBalance: 900000000, ReservePercent: 10 },
+      Crew: ['refuel', 'repair', 'rearm', 'outfitting', 'shipyard', 'exploration', 'pioneersupplies'].map(role => ({ CrewRole: role, CrewName: 'Synthetic crew', Activated: true, Enabled: true })) })
+    service.ingest({ timestamp: '2026-10-10T10:01:00Z', event: 'CarrierLocation', CarrierID: 42, StarSystem: 'Sol', SystemAddress: 1 })
+    service.ingest({ timestamp: '2026-10-10T10:02:00Z', event: 'CarrierJumpRequest', CarrierID: 42, SystemName: 'Colonia', SystemAddress: 2, BodyID: 1, Body: 'Colonia 1', DepartureTime: '2026-10-10T10:17:00Z' })
+    service.ingest({ timestamp: '2026-10-10T10:03:00Z', event: 'CarrierCrewServices', CarrierID: 42, CrewRole: 'repair', Operation: 'deactivate' })
+  } finally { database.close() }
+}
+if (colonisation) {
+  const database = new SqliteDatabase(databasePath)
+  try {
+    database.initialize()
+    const service = new ColonisationDataService(database.colonisation)
+    const state = createEmptyRuntimeState()
+    state.system.name = 'Synthetic colony'
+    state.location.place = { kind: 'station', name: 'Synthetic construction depot', type: null, marketId: 42,
+      faction: null, government: null, primaryEconomy: null, economies: [], services: [] }
+    service.ingest({ timestamp: '2026-10-10T10:00:00Z', event: 'ColonisationSystemClaim', StarSystem: 'Synthetic colony', SystemAddress: 42 }, state)
+    service.ingest({ timestamp: '2026-10-10T10:10:00Z', event: 'ColonisationConstructionDepot', MarketID: 42,
+      ConstructionProgress: 0.25, ConstructionComplete: false, ConstructionFailed: false,
+      ResourcesRequired: ['Steel', 'Aluminium', 'Building Fabricators', 'Power Generators', 'Water', 'Food Cartridges'].map((name, index) => ({
+        Name: name.toLowerCase().replaceAll(' ', ''), Name_Localised: name, RequiredAmount: 1000 + index * 200,
+        ProvidedAmount: index * 50, Payment: 1000 })) }, state)
+    service.ingest({ timestamp: '2026-10-10T10:20:00Z', event: 'ColonisationContribution', MarketID: 42,
+      Contributions: [{ Name: 'steel', Name_Localised: 'Steel', Amount: 20 }] }, state)
+    service.ingest({ timestamp: '2026-10-10T10:25:00Z', event: 'ColonisationConstructionDepot', MarketID: 99,
+      ConstructionProgress: 1, ConstructionComplete: true, ConstructionFailed: false, ResourcesRequired: [] }, state)
+  } finally { database.close() }
+}
+if (powerplay) {
+  const database = new SqliteDatabase(databasePath)
+  try {
+    database.initialize()
+    const service = new PowerplayDataService(database.powerplay)
+    service.ingest({ timestamp: '2026-10-10T10:00:00Z', event: 'Powerplay', Power: 'Aisling Duval', Rank: 3, Merits: 5200, TimePledged: 7 * 86400 })
+    service.ingest({ timestamp: '2026-10-10T10:10:00Z', event: 'PowerplayCollect', Power: 'Aisling Duval', Type: 'powerplay', Type_Localised: 'Preparation materials', Count: 20 })
+    service.ingest({ timestamp: '2026-10-10T10:20:00Z', event: 'PowerplayDeliver', Power: 'Aisling Duval', Type: 'powerplay', Type_Localised: 'Preparation materials', Count: 20 })
+    service.ingest({ timestamp: '2026-10-10T10:25:00Z', event: 'PowerplayMerits', Power: 'Aisling Duval', MeritsGained: 1425.5, TotalMerits: 6625.5 })
+    service.setTarget({ power: 'Aisling Duval', name: 'Synthetic reward target', rank: 4, merits: 9000 })
+  } finally { database.close() }
+}
 if (missionBrief) {
   const database = new SqliteDatabase(databasePath)
   try {
@@ -205,9 +287,23 @@ application.ingestGameEvent({
   gameTimestamp: null, ingestedAt: new Date().toISOString(),
   payload: { ...createEmptyRuntimeState().system, name: 'Sol', position: [0, 0, 0] }
 })
-console.log(`Isolated preview: http://127.0.0.1:${port}`)
+let vite
+let viteCache
+if (process.argv.includes('--vite')) {
+  const { createServer } = await import('vite')
+  viteCache = mkdtempSync(join(tmpdir(), 'phoenix-vite-preview-'))
+  vite = await createServer({
+    root: join(projectRoot, 'apps/web'), cacheDir: viteCache,
+    server: { host: '127.0.0.1', port: 0, strictPort: false,
+      proxy: { '/api': { target: `http://127.0.0.1:${port}` } } }
+  })
+  await vite.listen()
+  console.log(`Isolated Vite preview: ${vite.resolvedUrls.local[0]}`)
+} else console.log(`Isolated preview: http://127.0.0.1:${port}`)
 for (const signal of ['SIGTERM', 'SIGINT']) process.once(signal, async () => {
+  await vite?.close()
   await application.stop()
+  if (viteCache) rmSync(viteCache, { recursive: true, force: true })
   if (fixtureDirectory) rmSync(fixtureDirectory, { recursive: true, force: true })
   process.exit(0)
 })

@@ -3,6 +3,7 @@ import { act, create } from 'react-test-renderer'
 import type { ReactTestRenderer } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import { App } from '../apps/web/src/app.js'
+import { BrowserDevicePreferences } from '../apps/web/src/platform/storage/browser-device-preferences.js'
 import type { PhoenixApplicationServices } from '../apps/web/src/bootstrap/create-application.js'
 import type { PhoenixApplicationShellProps } from '../apps/web/src/components/shell/phoenix-application-shell.js'
 import type { ControlsControllerSnapshot } from '../apps/web/src/features/controls/use-controls-controller.js'
@@ -36,9 +37,32 @@ test('the initial Controls destination follows saved deck order', () => {
   expect(firstControlDeckId()).toBe('quick')
 })
 
+test('hiding an active DEV workspace returns to Settings without targeting an absent desktop', async () => {
+  state.controls = { status: 'ready', configuration }
+  const preferences = new BrowserDevicePreferences({ getItem: () => null, setItem: () => {} })
+  preferences.update({ showDeveloper: true })
+  const replace = vi.fn()
+  const developerRoute = { kind: 'developer', view: 'tools' } as const
+  const router: PhoenixRouter = {
+    getSnapshot: () => developerRoute,
+    getRememberedInformationRoute: () => DEFAULT_ROUTE,
+    subscribe: () => () => {}, href: phoenixRouteHash, push: vi.fn(), replace,
+    routeForWorkspace: workspace => defaultRouteForWorkspace(workspace)
+  }
+  const { renderWithAct } = await import('./support/render-with-act.js')
+  const renderer = await renderWithAct(<App application={{ router, devicePreferences: preferences } as unknown as PhoenixApplicationServices} />)
+  try {
+    expect(state.shell!.activeDesktop).toBe('developer')
+    await act(async () => preferences.update({ showDeveloper: false }))
+    expect(state.shell!.showDeveloper).toBe(false)
+    expect(state.shell!.activeDesktop).toBe('settings')
+    expect(replace).toHaveBeenCalledExactlyOnceWith({ kind: 'settings', view: 'general' })
+  } finally { await act(async () => renderer.unmount()) }
+})
+
 test('workspace links reflect recalled Controls and Copilot pages', () => {
   const items = workspaceItems(DEFAULT_ROUTE, { kind: 'controls', deckId: 'combat' }, { kind: 'copilot', view: 'profiles' })
-  expect(items.map(item => item.href)).toEqual(['#/controls/combat', '#/commander/dashboard', '#/notes', '#/copilot/profiles'])
+  expect(items.map(item => item.href)).toEqual(['#/controls/combat', '#/commander/dashboard', '#/notes', '#/copilot/profiles', '#/settings/general'])
 })
 
 test.each([false, true])('deleted active or recalled decks resolve to the first saved deck; active=%s', async active => {
@@ -52,7 +76,7 @@ test.each([false, true])('deleted active or recalled decks resolve to the first 
     routeForWorkspace: workspace => workspace === 'controls' ? missing : defaultRouteForWorkspace(workspace)
   }
   const renderer = await import('./support/render-with-act.js').then(({ renderWithAct }) =>
-    renderWithAct(<App application={{ router } as unknown as PhoenixApplicationServices} />))
+    renderWithAct(<App application={{ router, devicePreferences: new BrowserDevicePreferences({ getItem: () => null, setItem: () => {} }) } as unknown as PhoenixApplicationServices} />))
   try {
     const resolved = { kind: 'controls', deckId: configuration.decks[0]!.id }
     expect(state.shell!.controlsDestination).toEqual(resolved)
@@ -75,7 +99,7 @@ test.each([false, true])('CTR waits for initial deck settings; cancelled=%s', as
       push,
       replace: vi.fn()
   }
-  const application = { router } as unknown as PhoenixApplicationServices
+  const application = { router, devicePreferences: new BrowserDevicePreferences({ getItem: () => null, setItem: () => {} }) } as unknown as PhoenixApplicationServices
   let renderer!: ReactTestRenderer
   await act(async () => { renderer = create(<App application={application} />) })
   await act(async () => state.shell!.onNavigateWorkspace('controls'))

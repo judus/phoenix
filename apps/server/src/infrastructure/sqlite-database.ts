@@ -45,6 +45,9 @@ import { SqliteGalnetArticleArchive } from './sqlite-galnet-article-archive.js'
 import { SqliteGalnetAnalysisRepository } from './sqlite-galnet-analysis-repository.js'
 import { SqliteGalnetBackgroundRepository } from './sqlite-galnet-background-repository.js'
 import { SqlitePersonalNoteRepository } from './sqlite-personal-note-repository.js'
+import { SqlitePowerplayRepository } from './sqlite-powerplay-repository.js'
+import { SqliteColonisationRepository } from './sqlite-colonisation-repository.js'
+import { SqliteCarrierRepository } from './sqlite-carrier-repository.js'
 
 export class SqliteDatabase implements Database, CartographyRepository, ActivityLogRepository, ProviderResponseCache, BiologicalCompletionOverrideRepository, EliteJournalCheckpointStore, MissionRepository, CommunicationRepository, GalaxyBookmarkRepository {
   public readonly fleet: SqliteFleetRepository
@@ -57,6 +60,9 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
   public readonly galnetAnalyses: SqliteGalnetAnalysisRepository
   public readonly galnetBackground: SqliteGalnetBackgroundRepository
   public readonly personalNotes: SqlitePersonalNoteRepository
+  public readonly powerplay: SqlitePowerplayRepository
+  public readonly colonisation: SqliteColonisationRepository
+  public readonly carriers: SqliteCarrierRepository
   private readonly connection: DatabaseSync
   private readonly path: string
 
@@ -71,6 +77,9 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     this.engineeringProjects = new SqliteEngineeringProjectRepository(this.connection)
     this.savedGalaxyQueries = new SqliteSavedGalaxyQueryRepository(this.connection)
     this.personalNotes = new SqlitePersonalNoteRepository(this.connection)
+    this.powerplay = new SqlitePowerplayRepository(this.connection)
+    this.colonisation = new SqliteColonisationRepository(this.connection)
+    this.carriers = new SqliteCarrierRepository(this.connection)
     this.galnetArchive = new SqliteGalnetArticleArchive(this.connection)
     this.galnetAnalyses = new SqliteGalnetAnalysisRepository(this.connection)
     this.galnetBackground = new SqliteGalnetBackgroundRepository(this.connection)
@@ -79,10 +88,12 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
 
   public initialize (): boolean {
     const newProfile = !this.connection.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'").get()
-    this.connection.exec(`
-      PRAGMA foreign_keys = ON;
-      PRAGMA journal_mode = WAL;
-
+    // Journal mode must change outside a transaction. Batch base DDL to avoid a durable
+    // commit per statement; later data migrations keep their own commit/rollback boundaries.
+    this.connection.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;')
+    this.connection.exec('BEGIN IMMEDIATE')
+    try {
+      this.connection.exec(`
       CREATE TABLE IF NOT EXISTS schema_migrations (
         version INTEGER PRIMARY KEY,
         applied_at TEXT NOT NULL
@@ -216,7 +227,12 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
       INSERT OR IGNORE INTO schema_migrations (version, applied_at)
       VALUES (6, datetime('now'));
 
-    `)
+      `)
+      this.connection.exec('COMMIT')
+    } catch (cause) {
+      this.connection.exec('ROLLBACK')
+      throw cause
+    }
     this.restrictFiles()
     const missionMigration = this.connection.prepare(`
       INSERT OR IGNORE INTO schema_migrations (version, applied_at)
@@ -263,6 +279,9 @@ export class SqliteDatabase implements Database, CartographyRepository, Activity
     this.galnetArchive.initialize()
     this.galnetAnalyses.initialize()
     this.galnetBackground.initialize()
+    this.powerplay.initialize()
+    this.colonisation.initialize()
+    this.carriers.initialize()
     return newProfile
   }
 

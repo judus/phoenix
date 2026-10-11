@@ -6,6 +6,21 @@ import { expect, test } from 'vitest'
 import { SqliteEddnOutbox } from '../apps/server/src/infrastructure/sqlite-eddn-outbox.js'
 import { EDDN_MAX_AGE_MS, EddnQueueCapacityError, type EddnMessage } from '../apps/server/src/domain/eddn.js'
 
+test('outbox schema initialization rolls back on failure and can be retried on the same connection', () => {
+  const connection = new DatabaseSync(':memory:')
+  const outbox = new SqliteEddnOutbox(connection)
+  try {
+    connection.exec('CREATE TABLE eddn_outbox (unexpected TEXT) STRICT')
+    expect(() => outbox.initialize()).toThrow('no such column')
+    expect(connection.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all())
+      .toEqual([{ name: 'eddn_outbox' }])
+    connection.exec('DROP TABLE eddn_outbox')
+    outbox.initialize()
+    outbox.initialize()
+    expect(outbox.status()).toEqual({ queued: 0, lastSuccessAt: null, losses: [] })
+  } finally { connection.close() }
+})
+
 test('pending data, retry reservations, receipts and acknowledgement survive database reopen', () => {
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-eddn-db-'))
   const path = join(directory, 'outbox.sqlite')

@@ -102,7 +102,7 @@ export function SavedGalaxyQueriesPage({ api, onNavigate }: {
           variant="cockpit"
           context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Query console', href: '#/galaxy/database' }, { label: 'Saved queries' }]} />}
           title="Saved queries"
-          actions={<Button size="sm" variant="outline" busy={importing} disabled={!queries || !!deleting} onClick={() => {
+          actions={<Button variant="outline" busy={importing} disabled={!queries || !!deleting} onClick={() => {
             setImporting(true)
             setError(undefined)
             void api.importPredefinedGalaxyQueries()

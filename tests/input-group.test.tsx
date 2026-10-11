@@ -22,3 +22,16 @@ test('input groups attach an explicit label and preserve native input and submit
     expect(renderer.root.findByType('select').props.disabled).toBe(true)
   } finally { await act(async () => renderer.unmount()) }
 })
+
+test('input groups accept icon content in the existing label slot', async () => {
+  const pointerDown = vi.fn()
+  const renderer = await renderWithAct(<InputGroup className="filled" htmlFor="deck-name" label={<span role="button" tabIndex={0} aria-label="Reorder deck" onPointerDown={pointerDown}>Grip</span>}>
+    <TextInput id="deck-name" aria-label="Deck name" defaultValue="Ship" />
+  </InputGroup>)
+  try {
+    expect(renderer.root.findByType('label').props.htmlFor).toBe('deck-name')
+    expect(renderer.root.findByType('input').props['aria-label']).toBe('Deck name')
+    await act(async () => renderer.root.findByProps({ role: 'button' }).props.onPointerDown({ pointerId: 1 }))
+    expect(pointerDown).toHaveBeenCalledWith({ pointerId: 1 })
+  } finally { await act(async () => renderer.unmount()) }
+})

@@ -17,6 +17,7 @@
 @import './components/data-display.css';
 @import './components/loading.css';
 @import './components/input-group.css';
+@import './components/toast.css';
 @import './components/masonry.css';
 @import './components/page-header.css';
 @import './components/navigation.css';
@@ -127,7 +128,6 @@
   }
 
   .controls-toolbar {
-    --control-block-size: 2.25rem;
     --control-padding-inline: var(--spacing-xs);
   }
 

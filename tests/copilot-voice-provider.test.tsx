@@ -361,12 +361,14 @@ class FakeDevicePreferences implements DevicePreferences {
     audioInputId: '',
     audioOutputId: '',
     captureNumpad: true,
-    currentShipLoadoutView: 'tiles',
+    currentShipLoadoutView: 'tiles', galaxyQueryResultsView: 'table',
     followCopilotNavigation: true,
     shipCatalogueView: 'dossier',
     presentation: 'phoenix',
     uiScalePercent: 100,
     variableCommandLabelSizes: true,
+    showDeveloper: true,
+    showNumpadButton: false,
     version: 2
   }
 

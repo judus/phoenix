@@ -1,6 +1,7 @@
 import type { ModuleDefinition } from '@phoenix/contracts'
 import { expect, test } from 'vitest'
 import { FleetDataService } from '../apps/server/src/application/fleet-data-service.js'
+import { CarrierDataService } from '../apps/server/src/application/carrier-data-service.js'
 import type { FleetCatalogueResolver } from '../apps/server/src/domain/fleet.js'
 import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
 
@@ -10,6 +11,7 @@ test('fleet projection combines the active loadout with authoritative stored shi
   try {
     const fleet = new FleetDataService(
       database.fleet,
+      new CarrierDataService(database.carriers),
       catalogue({ resolveShipDisplayName: identifier => identifier === 'lakonminer' ? 'Type-11 Prospector' : null }),
       { resolve: (systemName, marketId) => systemName === 'Atata' && marketId === 200 ? 'Shajn Market' : null }
     )
@@ -53,7 +55,7 @@ test('newer fleet snapshots are not regressed by historical backfill', () => {
   const database = new SqliteDatabase(':memory:')
   database.initialize()
   try {
-    const fleet = new FleetDataService(database.fleet, catalogue())
+    const fleet = new FleetDataService(database.fleet, new CarrierDataService(database.carriers), catalogue())
     fleet.ingest({
       timestamp: '2026-08-15T08:00:00Z', event: 'StoredShips', StationName: 'New', MarketID: 100,
       StarSystem: 'New System', ShipsHere: [{ ShipID: 3, ShipType: 'SideWinder', Value: 30000, Hot: false }], ShipsRemote: []
@@ -74,6 +76,7 @@ test('stored module snapshot reports later mutations as partial without guessing
   try {
     const fleet = new FleetDataService(
       database.fleet,
+      new CarrierDataService(database.carriers),
       catalogue({
         resolveBlueprintDisplayName: symbol => symbol === 'Weapon_Efficient' ? 'Efficient Weapon' : null,
         resolveModule: identifier => moduleDefinition(identifier, {

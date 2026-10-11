@@ -45,3 +45,25 @@ test('Fleet queries only the active family data and refreshes retained records o
 function activity(): ActivityLogEntry {
   return { actionable: false, data: {}, event: 'shipyard', id: 'activity', importance: 'notable', ingestedAt: '2026-08-16T12:00:00.000Z', source: 'journal', timestamp: '2026-08-16T12:00:00.000Z' }
 }
+
+test('carrier page refreshes relevant management events and completed history, not unrelated activity; unsubscribes on departure', async () => {
+  const events = new FakeEventHub()
+  const api = { getFleet: vi.fn().mockResolvedValue(fleetFixture()) } as unknown as PhoenixApi
+  function Probe() { useFleetController(api, events, 'carriers'); return null }
+  const renderer = await renderWithAct(<Probe />)
+  await act(async () => { events.emit('activity-entry', activity()) })
+  expect(api.getFleet).toHaveBeenCalledTimes(1)
+  await act(async () => { events.emit('activity-entry', { ...activity(), event: 'CarrierStats' }) })
+  expect(api.getFleet).toHaveBeenCalledTimes(2)
+  await act(async () => { events.emit('journal-history-loaded', null) })
+  expect(api.getFleet).toHaveBeenCalledTimes(3)
+  await act(async () => { events.emit('activity-entry', { ...activity(), event: 'StoredShips' }) })
+  expect(api.getFleet).toHaveBeenCalledTimes(4)
+  for (const event of ['Loadout', 'ShipyardNew', 'ShipyardSell', 'ShipyardSwap', 'ShipyardTransfer']) {
+    await act(async () => { events.emit('activity-entry', { ...activity(), event }) })
+  }
+  expect(api.getFleet).toHaveBeenCalledTimes(9)
+  await act(async () => renderer.unmount())
+  await act(async () => { events.emit('journal-history-loaded', null) })
+  expect(api.getFleet).toHaveBeenCalledTimes(9)
+})

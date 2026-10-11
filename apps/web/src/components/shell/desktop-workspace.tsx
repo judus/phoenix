@@ -23,13 +23,12 @@ export interface DesktopWorkspaceProps {
   informationContextLabel?: string
   informationCurrentContext?: string
   journal: ReactNode
-  notes?: ReactNode
   developer?: ReactNode
+  showDeveloper?: boolean
   developerContextItems?: NavigationItem[]
   developerCurrentContext?: string
   journalContextItems?: NavigationItem[]
   journalCurrentContext?: string
-  macros: ReactNode
   informationRoute: InformationRoute
   onNavigateRoute: (route: PhoenixRoute) => void
   onNavigateWorkspace: (desktop: PhoenixWorkspace) => void
@@ -53,13 +52,12 @@ export function DesktopWorkspace({
   informationCurrentContext = '',
   informationRoute,
   journal,
-  notes,
   developer,
+  showDeveloper = true,
   developerContextItems = emptyContextItems,
   developerCurrentContext = '',
   journalContextItems = emptyContextItems,
   journalCurrentContext = '',
-  macros,
   onControlsContextAction,
   onNavigateRoute,
   onNavigateWorkspace,
@@ -106,43 +104,7 @@ export function DesktopWorkspace({
           id: 'utilities',
           initialDesktopId: 'telemetry',
           desktops: [
-            utilityDesktop('telemetry', 'Numpad workspace', telemetry),
-            utilityDesktop('macros', 'Macros workspace', macros),
-            {
-              id: 'journal',
-              ariaLabel: 'Log workspace',
-              children: (
-                <WorkspacePage
-                  contextItems={journalContextItems}
-                  contextLabel="Log views"
-                  currentContext={journalCurrentContext}
-                  onNavigate={onNavigateRoute}
-                  swipeZone
-                >
-                  {journal}
-                </WorkspacePage>
-              )
-            },
-            {
-              id: 'settings',
-              ariaLabel: 'Settings workspace',
-              children: (
-                <WorkspacePage
-                  contextItems={settingsContextItems}
-                  contextLabel="Settings views"
-                  currentContext={settingsCurrentContext}
-                  onNavigate={onNavigateRoute}
-                  swipeZone
-                >
-                  {settings}
-                </WorkspacePage>
-              )
-            },
-            {
-              id: 'developer',
-              ariaLabel: 'Developer workspace',
-              children: <WorkspacePage contextItems={developerContextItems} contextLabel="Developer views" currentContext={developerCurrentContext} onNavigate={onNavigateRoute} swipeZone>{developer}</WorkspacePage>
-            }
+            utilityDesktop('telemetry', 'Numpad workspace', telemetry)
           ]
         },
         {
@@ -183,9 +145,12 @@ export function DesktopWorkspace({
               )
             },
             {
-              id: 'notes',
-              ariaLabel: 'Notes workspace',
-              children: <UtilityWorkspacePage swipeZone>{notes}</UtilityWorkspacePage>
+              id: 'journal',
+              ariaLabel: 'Log workspace',
+              children: <WorkspacePage contextItems={journalContextItems} contextLabel="Log views"
+                currentContext={journalCurrentContext} onNavigate={onNavigateRoute} swipeZone>
+                {journal}
+              </WorkspacePage>
             },
             {
               id: 'copilot',
@@ -201,7 +166,20 @@ export function DesktopWorkspace({
                   {copilot}
                 </WorkspacePage>
               )
-            }
+            },
+            {
+              id: 'settings',
+              ariaLabel: 'Settings workspace',
+              children: <WorkspacePage contextItems={settingsContextItems} contextLabel="Settings views"
+                currentContext={settingsCurrentContext} onNavigate={onNavigateRoute} swipeZone>
+                {settings}
+              </WorkspacePage>
+            },
+            ...(showDeveloper ? [{
+              id: 'developer',
+              ariaLabel: 'Developer workspace',
+              children: <WorkspacePage contextItems={developerContextItems} contextLabel="Developer views" currentContext={developerCurrentContext} onNavigate={onNavigateRoute} swipeZone>{developer}</WorkspacePage>
+            }] : [])
           ]
         }
       ]}

@@ -4,8 +4,11 @@ export interface PhoenixDevicePreferencesSnapshot {
   audioOutputId: string
   captureNumpad: boolean
   currentShipLoadoutView: 'table' | 'tiles'
+  galaxyQueryResultsView: 'table' | 'atlas'
   followCopilotNavigation: boolean
   presentation: 'phoenix' | 'elite'
+  showDeveloper: boolean
+  showNumpadButton: boolean
   shipCatalogueView: 'dossier' | 'table'
   uiScalePercent: number
   variableCommandLabelSizes: boolean

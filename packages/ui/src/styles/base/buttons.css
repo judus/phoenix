@@ -1,25 +1,5 @@
-.btn {
-  position: relative;
-
-  &.btn-no-grip::after,
-  &.btn-sm::after { content: none; }
-
-  &::after {
-    position: absolute;
-    inset-inline-end: var(--spacing-sm);
-    inset-block-end: var(--spacing-sm);
-    /* Cropped grid, scaled down 25% without changing the square/gap ratio. */
-    inline-size: calc(clamp(0.9rem, 12%, 1.4rem) * 32 / 27 * 0.75);
-    aspect-ratio: 1;
-    background: var(--command-grip);
-    mask: url('../../assets/tactile-grip.svg') center / contain no-repeat;
-    opacity: var(--command-grip-opacity);
-    content: '';
-    pointer-events: none;
-  }
-}
-
   .btn {
+    position: relative;
     min-block-size: var(--control-block-size);
     border: var(--control-border-width) solid;
     border-radius: 0;
@@ -72,7 +52,8 @@
       flex-shrink: 0;
     }
 
-    &.btn-primary {
+    &.btn-primary,
+    &.btn-accent {
       border-color: var(--button-primary-border);
       color: var(--button-primary-text);
       background: var(--button-primary-background);
@@ -82,12 +63,6 @@
       border-color: var(--button-secondary-border);
       color: var(--button-secondary-text);
       background: var(--button-secondary-background);
-    }
-
-    &.btn-accent {
-      border-color: var(--button-accent-border);
-      color: var(--button-accent-text);
-      background: var(--button-accent-background);
     }
 
     &.btn-outline {
@@ -136,10 +111,11 @@
     }
 
     &:active:not(:disabled) {
+      transition: none;
       border-color: var(--color-pressed-border);
       color: var(--color-pressed-text);
       background: var(--color-pressed-background);
-      filter: brightness(1.16);
+      filter: none;
       transform: translateY(1px);
     }
 
@@ -162,8 +138,8 @@
   .btn-toggle {
     --toggle-active-color: var(--color-information);
 
-    border-color: var(--color-border-subtle);
-    color: var(--color-text-muted);
+    border-color: var(--color-action);
+    color: var(--color-action);
     background: transparent;
     font-size: var(--font-size-xs);
 
@@ -171,10 +147,9 @@
       --toggle-active-color: var(--color-warning);
     }
 
-    &.active {
+    &.active:not(:active) {
       border-color: var(--toggle-active-color);
       color: var(--toggle-active-color);
-      background: var(--color-selected-surface);
     }
 
     &:focus-visible {
@@ -191,15 +166,13 @@
 
     &::after { content: none; }
 
-    &.active {
+    &.active:not(:active) {
       border-color: transparent;
       background: transparent;
       color: var(--toggle-active-color, var(--color-information));
     }
 
     &:active:not(:disabled) {
-      border-color: transparent;
-      background: transparent;
       transform: none;
     }
 

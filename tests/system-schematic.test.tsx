@@ -367,7 +367,19 @@ test('schematic cartography uses the full map workspace until an object is selec
   expect(markup).not.toContain('cartography-detail')
 })
 
-test('schematic zoom changes the orbital canvas scale and resets to 100 percent', async () => {
+test('schematic distance uses player and viewed-system coordinates, including zero and unknown positions', () => {
+  const system = fixtureSystem()
+  const distanceLabel = (playerPosition: CartographicSystem['position']) => renderToStaticMarkup(
+    <SystemSchematic onSelect={vi.fn()} playerPosition={playerPosition} system={system} />
+  )
+  expect(distanceLabel([3, 4, 12])).toContain('Distance: 13 LY')
+  expect(distanceLabel([0, 0, 0])).toContain('Distance: 0 LY')
+  expect(distanceLabel(null)).toContain('Distance: — LY')
+  system.position = null
+  expect(distanceLabel([3, 4, 12])).toContain('Distance: — LY')
+})
+
+test('schematic zoom uses standard square controls and preserves scale when selecting a body', async () => {
   const renderer = await renderWithAct(<SystemSchematic onSelect={vi.fn()} system={fixtureSystem()} />)
 
   const orbitalViewport = () => renderer.root.findByProps({ className: 'system-orbital-layout' })
@@ -375,17 +387,21 @@ test('schematic zoom changes the orbital canvas scale and resets to 100 percent'
   const originalInlineSize = orbitalViewport().props.style.inlineSize
 
   await act(async () => renderer.root.findByProps({ 'aria-label': 'Zoom in' }).props.onClick())
-  expect(renderer.root.findByProps({ 'aria-label': 'Reset zoom to 100%' }).props.children.join('')).toBe('125%')
+  const zoomControls = renderer.root.findByProps({ 'aria-label': 'Schematic zoom controls' })
+  expect(zoomControls.findAllByType('button').map(button => button.props['aria-label'])).toEqual(['Zoom out', 'Zoom in'])
+  for (const button of zoomControls.findAllByType('button')) {
+    expect(button.props.className).toContain('btn-icon-square')
+    expect(button.props.className).not.toContain('btn-sm')
+  }
   expect(orbitalViewport().props.style.inlineSize).not.toBe(originalInlineSize)
   expect(orbitalCanvas().props.style.transform).toBe('scale(1.25)')
 
   await act(async () => renderer.update(
     <SystemSchematic onSelect={vi.fn()} selected={fixtureSystem().bodies[1]} system={fixtureSystem()} />
   ))
-  expect(renderer.root.findByProps({ 'aria-label': 'Reset zoom to 100%' }).props.children.join('')).toBe('125%')
+  expect(orbitalCanvas().props.style.transform).toBe('scale(1.25)')
 
-  await act(async () => renderer.root.findByProps({ 'aria-label': 'Reset zoom to 100%' }).props.onClick())
-  expect(renderer.root.findByProps({ 'aria-label': 'Reset zoom to 100%' }).props.children.join('')).toBe('100%')
+  await act(async () => renderer.root.findByProps({ 'aria-label': 'Zoom out' }).props.onClick())
   expect(orbitalViewport().props.style.inlineSize).toBe(originalInlineSize)
   expect(orbitalCanvas().props.style.transform).toBe('scale(1)')
 
@@ -413,6 +429,62 @@ test('fleet carrier visibility removes attached and unresolved carriers, preserv
   expect(renderer.root.findByProps({ className: 'system-unassigned-installations' }).props.children).toHaveLength(3)
   expect(system.stations).toHaveLength(3)
   await act(async () => renderer.unmount())
+})
+
+test('touch pinch zooms about its midpoint, clamps, and leaves one-finger pan and taps usable', async () => {
+  const onSelect = vi.fn()
+  let renderer!: ReturnType<typeof create>
+  const scale = () => Number(renderer.root.findByProps({ className: 'system-orbital-layout__canvas' }).props.style.transform.slice(6, -1))
+  const element = {
+    clientWidth: 400, clientHeight: 300, scrollLeft: 200, scrollTop: 100,
+    get scrollWidth() { return 1000 * scale() },
+    get scrollHeight() { return 1000 * scale() },
+    getBoundingClientRect: () => ({ left: 20, top: 10 }),
+    setPointerCapture: vi.fn()
+  }
+  await act(async () => { renderer = create(<SystemSchematic onSelect={onSelect} system={fixtureSystem()} />, {
+    createNodeMock: node => (node.props as { className?: string }).className === 'system-schematic__viewport' ? element : null
+  }) })
+  const viewport = () => renderer.root.findByProps({ className: 'system-schematic__viewport' })
+  const event = (id: number, x: number, pointerType = 'touch') => ({ pointerId: id, pointerType, clientX: x + 20, clientY: 110, currentTarget: element, target: {} })
+  const send = async (handler: string, id: number, x: number) => { await act(async () => viewport().props[handler](event(id, x))) }
+  try {
+    await send('onPointerDown', 1, 100)
+    await send('onPointerDown', 2, 200)
+    expect(element.setPointerCapture.mock.calls).toEqual([[1], [2]])
+    await send('onPointerMove', 2, 250)
+    expect(scale()).toBe(1.5)
+    expect(element.scrollLeft).toBe(375) // (200 + 150) * 1.5 - 150
+    expect(element.scrollTop).toBe(200)
+    await send('onLostPointerCapture', 2, 250) // Child capture transfer must not cancel pinch.
+    await send('onPointerMove', 2, 500)
+    expect(scale()).toBe(2)
+    await send('onPointerMove', 2, 105)
+    expect(scale()).toBe(0.5)
+    await send('onPointerUp', 2, 105)
+    const scrollBefore = element.scrollLeft
+    await send('onPointerMove', 1, 90)
+    expect(element.scrollLeft).toBe(scrollBefore + 10)
+    const click = { detail: 1, preventDefault: vi.fn(), stopPropagation: vi.fn() }
+    viewport().props.onClickCapture(click)
+    expect(click.stopPropagation).toHaveBeenCalledOnce()
+    const keyboardClick = { ...click, detail: 0, stopPropagation: vi.fn() }
+    viewport().props.onClickCapture(keyboardClick)
+    expect(keyboardClick.stopPropagation).not.toHaveBeenCalled()
+    await send('onPointerCancel', 1, 90)
+    await act(async () => viewport().props.onPointerDown(event(4, 100, 'mouse')))
+    const mouseClick = { ...click, stopPropagation: vi.fn() }
+    viewport().props.onClickCapture(mouseClick)
+    expect(mouseClick.stopPropagation).not.toHaveBeenCalled()
+    await send('onPointerDown', 3, 100)
+    await send('onPointerMove', 3, 102)
+    const tap = { ...click, stopPropagation: vi.fn() }
+    viewport().props.onClickCapture(tap)
+    expect(tap.stopPropagation).not.toHaveBeenCalled()
+    await send('onPointerUp', 3, 102)
+    await send('onPointerMove', 3, 300)
+    expect(scale()).toBe(0.5)
+  } finally { await act(async () => renderer.unmount()) }
 })
 
 function fixtureSystem (): CartographicSystem {

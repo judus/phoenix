@@ -3,6 +3,18 @@ import { BrowserPhoenixRouter } from '../apps/web/src/platform/routing/browser-p
 import { parsePhoenixRoute, phoenixRouteHash } from '../apps/web/src/application/navigation/phoenix-router.js'
 
 describe('BrowserPhoenixRouter', () => {
+  test('Macros is recalled as a Controls page across workspace changes and reloads', () => {
+    const browser = new FakeBrowserWindow('#/controls/quick')
+    const router = new BrowserPhoenixRouter(browser as unknown as Window)
+    router.push({ kind: 'macros' })
+    router.push({ kind: 'information', section: 'commander', view: 'dashboard' })
+    expect(router.routeForWorkspace('controls')).toEqual({ kind: 'macros' })
+    expect(browser.sessionStorage.getItem('phoenix.desktop.controls-route')).toBe('#/macros')
+    const restored = new BrowserPhoenixRouter(browser as unknown as Window)
+    expect(restored.routeForWorkspace('controls')).toEqual({ kind: 'macros' })
+    restored.push({ kind: 'controls', deckId: 'ship' })
+    expect(restored.routeForWorkspace('controls')).toEqual({ kind: 'controls', deckId: 'ship' })
+  })
   test('deck manager stays active without replacing deck recall across workspace switches and reloads', () => {
     const browser = new FakeBrowserWindow('#/controls/combat')
     const router = new BrowserPhoenixRouter(browser as unknown as Window)

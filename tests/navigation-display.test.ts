@@ -65,6 +65,8 @@ test('display commands resolve current context and publish a browser-neutral ins
 test.each([
   ['galactic atlas', 'galaxy.atlas'],
   ['atlas', 'galaxy.atlas'],
+  ['exobiology', 'activities.exobiology'],
+  ['exo', 'activities.exobiology'],
   ['plotted route', 'galaxy.route'],
   ['current route', 'galaxy.route'],
   ['show me the current route', 'galaxy.route'],

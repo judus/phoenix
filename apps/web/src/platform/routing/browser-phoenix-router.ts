@@ -34,7 +34,7 @@ export class BrowserPhoenixRouter implements PhoenixRouter {
       browserWindow.history.replaceState(null, '', canonicalHash)
     }
     this.#rememberedInformation = this.#readRememberedInformation(this.#route)
-    for (const workspace of ['controls', 'copilot', 'notes'] as const) {
+    for (const workspace of ['controls', 'copilot', 'journal'] as const) {
       try {
         const hash = browserWindow.sessionStorage.getItem(`phoenix.desktop.${workspace}-route`)
         if (!hash) continue
@@ -125,11 +125,12 @@ export class BrowserPhoenixRouter implements PhoenixRouter {
   }
 
   #rememberWorkspace(route: PhoenixRoute): void {
-    if (route.kind !== 'controls' && route.kind !== 'copilot' && route.kind !== 'notes') return
+    const workspace = workspaceForRoute(route)
+    if (workspace !== 'controls' && workspace !== 'copilot' && workspace !== 'journal') return
     if (route.kind === 'controls' && route.deckId === 'manage') return
-    this.#rememberedWorkspaces.set(route.kind, route)
+    this.#rememberedWorkspaces.set(workspace, route)
     try {
-      this.#window.sessionStorage.setItem(`phoenix.desktop.${route.kind}-route`, phoenixRouteHash(route))
+      this.#window.sessionStorage.setItem(`phoenix.desktop.${workspace}-route`, phoenixRouteHash(route))
     } catch {
       // Browser storage is optional; retain this session's in-memory destination.
     }

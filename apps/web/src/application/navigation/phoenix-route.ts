@@ -22,12 +22,11 @@ export type InformationRoute =
   | { kind: 'information', section: 'galaxy', view: 'system', systemName?: string, selectedName?: string }
   | { kind: 'information', section: 'galaxy', view: 'route' }
   | { kind: 'information', section: 'galaxy', view: 'atlas', location?: AtlasDisplayLocation, displayRequestId?: string }
-  | { kind: 'information', section: 'galaxy', view: 'exobiology' }
   | { kind: 'information', section: 'galaxy', view: 'bookmarks', bookmarkId?: string, systemName?: string, bodyName?: string, stationName?: string }
   | { kind: 'information', section: 'galaxy', view: 'database', savedQueryId?: string, savedQueryRunId?: string, selectedQueryId?: GalaxyQueryId }
   | { kind: 'information', section: 'galaxy', view: 'saved-queries' }
   | { kind: 'information', section: 'activities', view: 'missions', selectedMissionId?: number }
-  | { kind: 'information', section: 'activities', view: 'objectives' | 'community-goals' | 'powerplay' | 'colonisation' }
+  | { kind: 'information', section: 'activities', view: 'exobiology' | 'community-goals' | 'powerplay' | 'colonisation' }
   | { kind: 'information', section: 'engineering', view: 'blueprints', selectedBlueprintSymbol?: string }
   | { kind: 'information', section: 'engineering', view: 'experimental-effects', selectedEffectSymbol?: string }
   | { kind: 'information', section: 'engineering', view: 'projects' | 'engineers' | 'materials-raw' | 'materials-manufactured' | 'materials-encoded' | 'materials-xeno' }
@@ -53,10 +52,8 @@ export type PhoenixRoute =
 export type PhoenixWorkspace =
   | 'controls'
   | 'info'
-  | 'notes'
   | 'copilot'
   | 'telemetry'
-  | 'macros'
   | 'journal'
   | 'developer'
   | 'settings'
@@ -75,10 +72,8 @@ export function isPhoenixWorkspace(value: string): value is PhoenixWorkspace {
   return [
     'controls',
     'info',
-    'notes',
     'copilot',
     'telemetry',
-    'macros',
     'journal',
     'developer',
     'settings'
@@ -86,6 +81,8 @@ export function isPhoenixWorkspace(value: string): value is PhoenixWorkspace {
 }
 
 export function workspaceForRoute(route: PhoenixRoute): PhoenixWorkspace {
+  if (route.kind === 'notes') return 'journal'
+  if (route.kind === 'macros') return 'controls'
   if (route.kind === 'information') return 'info'
   if (route.kind === 'numpad') return 'telemetry'
   return route.kind
@@ -111,10 +108,8 @@ export function defaultRouteForWorkspace(
     case 'controls': return { kind: 'controls', deckId: 'quick' }
     case 'info': return rememberedInformation
     case 'copilot': return { kind: 'copilot', view: 'chat' }
-    case 'notes': return { kind: 'notes' }
     case 'telemetry': return { kind: 'numpad' }
-    case 'macros': return { kind: 'macros' }
-    case 'journal': return { kind: 'journal', view: 'commander' }
+    case 'journal': return { kind: 'notes' }
     case 'developer': return { kind: 'developer', view: 'tools' }
     case 'settings': return { kind: 'settings', view: 'general' }
   }

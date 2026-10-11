@@ -23,35 +23,19 @@ import { SystemLocationLink } from '../../components/system-location-link.js'
 import { DataSyncNotice } from '../../components/data-sync-notice.js'
 import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import { CommunityGoalsPage } from './community-goals-page.js'
+import { ColonisationPage } from './colonisation-page.js'
 
-type RetainedActivityView = Exclude<ActivitiesView, 'missions' | 'community-goals'>
-
-const activityViews: Record<RetainedActivityView, { empty: string, ledger: string, title: string }> = {
-  objectives: {
-    empty: 'No authoritative commander objective record is currently available.',
-    ledger: 'Objective ledger',
-    title: 'Objectives'
-  },
-  powerplay: {
-    empty: 'No authoritative commander Powerplay record is currently available.',
-    ledger: 'Powerplay ledger',
-    title: 'Powerplay'
-  },
-  colonisation: {
-    empty: 'No authoritative colonisation construction record is currently available.',
-    ledger: 'Colonisation ledger',
-    title: 'Colonisation'
-  }
-}
+import { ExobiologyPage } from './exobiology-page.js'
 
 export function ActivitiesPage({ controller, view, onAddNote, selectedMissionId }: {
   controller: ActivitiesControllerSnapshot
-  view: ActivitiesView
+  view: Exclude<ActivitiesView, 'powerplay'>
   onAddNote?(missionId: number): void
   selectedMissionId?: number
 }) {
   if (view === 'community-goals') return <CommunityGoalsPage controller={controller} />
-  if (view !== 'missions') return <ActivityLedger view={view} />
+  if (view === 'colonisation') return <ColonisationPage controller={controller} />
+  if (view === 'exobiology') return <ExobiologyPage controller={controller} />
   if (controller.status === 'idle' || controller.status === 'loading') return <ActivitiesState title="Missions" />
   if (controller.status === 'error' || !controller.missions) {
     return <ActivitiesState error={controller.error ?? 'Mission records unavailable.'} title="Missions" />
@@ -202,28 +186,6 @@ function MissionDetail({ mission, onAddNote }: { mission: MissionViewModel, onAd
         <small>Only observed contract details are shown. Item possession is not objective completion.</small>
       </Stack>
     </DataTableGroup>
-  )
-}
-
-function ActivityLedger({ view }: { view: RetainedActivityView }) {
-  const content = activityViews[view]
-
-  return (
-    <PageFrame layout="fit">
-      <Stack fill gap="sm">
-        <ActivitiesHeader title={content.title} />
-        <ThirdsGrid fill gap="lg">
-          <div className="span-two">
-            <DataTableGroup contentGap="sm" fill meta="0 retained" title={content.ledger}>
-              <div><Status tone="muted">{content.empty}</Status></div>
-            </DataTableGroup>
-          </div>
-          <DataTableGroup contentGap="sm" title={`${content.title} details`}>
-            <Status tone="muted">Select a retained record to inspect its details.</Status>
-          </DataTableGroup>
-        </ThirdsGrid>
-      </Stack>
-    </PageFrame>
   )
 }
 

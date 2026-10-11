@@ -1,7 +1,7 @@
 export type QueryProvider = 'Spansh' | 'Ardent' | 'EDSM'
 export type ProviderQueryErrorKind =
   | 'transport' | 'timeout' | 'rate_limit' | 'provider_unavailable'
-  | 'authentication' | 'authorization' | 'malformed_response' | 'not_found' | 'request_rejected'
+  | 'authentication' | 'authorization' | 'malformed_response' | 'not_found' | 'reference_system_not_found' | 'request_rejected'
 
 const PUBLIC_MESSAGES: Record<ProviderQueryErrorKind, string> = {
   transport: 'request could not be completed.',
@@ -12,6 +12,7 @@ const PUBLIC_MESSAGES: Record<ProviderQueryErrorKind, string> = {
   authorization: 'request was denied.',
   malformed_response: 'returned an invalid response.',
   not_found: 'has no matching record.',
+  reference_system_not_found: 'has no record of your reference system.',
   request_rejected: 'rejected the provider request.'
 }
 

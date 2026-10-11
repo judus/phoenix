@@ -30,6 +30,8 @@ export * from './galnet-coverage.js'
 export * from './community-goals.js'
 export * from './macros.js'
 export * from './missions.js'
+export * from './powerplay.js'
+export * from './colonisation.js'
 export * from './numpad.js'
 export * from './pairing.js'
 export * from './personal-materials.js'
@@ -56,3 +58,4 @@ export interface HealthResponse {
   status: 'ok'
   timestamp: string
 }
+export * from './carriers.js'

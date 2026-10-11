@@ -2,8 +2,8 @@ import { expect, test } from 'vitest'
 import type { ExplorationLedgerResponse } from '@phoenix/contracts'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { ExobiologyPage } from '../apps/web/src/features/galaxy/exobiology-page.js'
-import { createExobiologyViewModel } from '../apps/web/src/features/galaxy/exobiology-view-model.js'
+import { ExobiologyPage } from '../apps/web/src/features/activities/exobiology-page.js'
+import { createExobiologyViewModel } from '../apps/web/src/features/activities/exobiology-view-model.js'
 
 test('builds journal-backed biological progress and excludes unrelated bodies', () => {
   const model = createExobiologyViewModel(fixture())

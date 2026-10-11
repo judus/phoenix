@@ -211,8 +211,8 @@ function Galnet({ news, api, error }: { news?: CommsControllerSnapshot['galnet']
     <PageFrame layout="fit">
       <div className="galnet-page">
         <CommsHeader title="GalNet"
-          actions={<><Button size="sm" className={`btn-toggle${!archive ? ' active' : ''}`} aria-pressed={!archive} onClick={() => setArchive(false)}>Latest news</Button>
-            <Button size="sm" className={`btn-toggle${archive ? ' active' : ''}`} aria-pressed={archive} onClick={() => { setArchivedId(undefined); setArchive(true) }}>Archive</Button></>} />
+          actions={<><Button className={`btn-toggle${!archive ? ' active' : ''}`} aria-pressed={!archive} onClick={() => setArchive(false)}>Latest news</Button>
+            <Button className={`btn-toggle${archive ? ' active' : ''}`} aria-pressed={archive} onClick={() => { setArchivedId(undefined); setArchive(true) }}>Archive</Button></>} />
         {archive ? <GalnetArchiveBrowser api={api} initialArticleId={archivedId} /> : <div className="galnet-layout">
           <DataTableGroup className="galnet-index" meta={news ? `${news.articles.length} articles` : undefined} title="Latest news">
             <div className="galnet-index-scroll" tabIndex={0}>

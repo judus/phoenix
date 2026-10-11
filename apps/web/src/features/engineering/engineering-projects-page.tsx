@@ -15,7 +15,7 @@ export function EngineeringProjectsPage ({ onNavigate, projects, watchlist }: {
     <PageFrame layout="fit">
       <Stack fill gap="sm">
         <EngineeringHeader
-          actions={<Button size="sm" variant="outline" onClick={() => onNavigate(engineeringProjectRoutes.new())}>New project</Button>}
+          actions={<Button variant="outline" onClick={() => onNavigate(engineeringProjectRoutes.new())}>New project</Button>}
           title="Engineering projects"
           trail={[{ label: 'Projects' }]}
         />

@@ -12,7 +12,7 @@ beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
 
 const identity = { forScope: () => 'profile-test' }
 const events = { subscribe: () => () => undefined } as unknown as PhoenixEventHub
-const snapshot = { version: 2, audioInputId: '', audioOutputId: '', captureNumpad: true, currentShipLoadoutView: 'tiles', followCopilotNavigation: true, presentation: 'phoenix', shipCatalogueView: 'dossier', uiScalePercent: 100, variableCommandLabelSizes: true } as const
+const snapshot = { version: 2, audioInputId: '', audioOutputId: '', captureNumpad: true, currentShipLoadoutView: 'tiles', galaxyQueryResultsView: 'table', followCopilotNavigation: true, presentation: 'phoenix', showDeveloper: true, showNumpadButton: false, shipCatalogueView: 'dossier', uiScalePercent: 100, variableCommandLabelSizes: true } as const
 const preferences = { getSnapshot: () => snapshot, subscribe: () => () => undefined, update: () => undefined } as DevicePreferences
 
 function document(id: string) {

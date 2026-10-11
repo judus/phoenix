@@ -1,4 +1,5 @@
 import {
+  ColonisationResponseSchema, type ColonisationResponse,
   PersonalNoteSchema, PersonalNoteWriteRequestSchema, PersonalNotesResponseSchema,
   type PersonalNote, type PersonalNoteWriteRequest, type PersonalNotesResponse,
   GalnetAnalysisResponseSchema,
@@ -432,6 +433,17 @@ export class PhoenixApiClient implements PhoenixApi {
 
   async getMissions(signal?: AbortSignal): Promise<MissionsResponse> {
     return this.#get('/api/operations/missions', MissionsResponseSchema, signal)
+  }
+
+  async getPowerplay(signal?: AbortSignal): Promise<PowerplayResponse> {
+    return this.#get('/api/operations/powerplay', PowerplayResponseSchema, signal)
+  }
+  async getColonisation(signal?: AbortSignal): Promise<ColonisationResponse> {
+    return this.#get('/api/operations/colonisation', ColonisationResponseSchema, signal)
+  }
+
+  async savePowerplayTarget(target: PowerplayTarget | null, signal?: AbortSignal): Promise<PowerplayResponse> {
+    return this.#json('/api/operations/powerplay/target', 'PUT', PowerplayTargetSchema.nullable().parse(target), PowerplayResponseSchema, signal)
   }
 
   async getPersonalNotes(query = '', signal?: AbortSignal): Promise<PersonalNotesResponse> {
@@ -1007,3 +1019,4 @@ async function apiError(response: Response): Promise<Error> {
   }
   return new Error(`PHOENIX API returned HTTP ${response.status}.`)
 }
+import { PowerplayResponseSchema, PowerplayTargetSchema, type PowerplayResponse, type PowerplayTarget } from '@phoenix/contracts'

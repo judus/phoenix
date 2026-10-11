@@ -63,37 +63,35 @@
       text-align: end;
     }
 
-    .system-query__action.btn {
-      inline-size: 2.25rem;
-      block-size: 2.25rem;
-      aspect-ratio: 1 / 1;
-    }
-
-    .system-query__toggle.btn {
-      border-color: var(--color-action);
-      color: var(--color-action);
-      background: transparent;
-
-      &.active {
-        border-color: var(--color-information);
-        color: var(--color-information);
-        background: var(--color-selected-surface);
-      }
-    }
   }
 
   .system-schematic__viewport {
+    touch-action: none;
     position: relative;
     z-index: 0;
     grid-area: 1 / 1;
     min-block-size: 0;
     padding: var(--spacing-md);
+    padding-block-start: calc(var(--spacing-md) * 2);
     overflow: auto;
     scrollbar-width: none;
 
     &::-webkit-scrollbar {
       display: none;
     }
+  }
+
+  .system-schematic > .schematic-distance {
+    position: absolute;
+    inset-block-start: var(--spacing-md);
+    inset-inline-end: var(--spacing-md);
+    z-index: 10;
+    margin: 0;
+    color: var(--color-text-muted);
+    font-family: var(--font-family-display);
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    pointer-events: none;
   }
 
   .system-schematic__controls {
@@ -104,20 +102,13 @@
     z-index: 10;
     display: flex;
     align-items: flex-end;
-    gap: var(--spacing-xxs);
+    gap: var(--spacing-xs);
     margin: var(--spacing-md);
   }
 
   .system-schematic__zoom {
     display: flex;
-    gap: var(--spacing-xxs);
-  }
-
-  .system-schematic__zoom-step.btn {
-    inline-size: 1.75rem;
-    block-size: 1.75rem;
-    min-block-size: 1.75rem;
-    aspect-ratio: 1 / 1;
+    gap: var(--spacing-xs);
   }
 
   .system-schematic__empty {

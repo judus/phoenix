@@ -2,6 +2,7 @@ import type { ReactElement, ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test, vi } from 'vitest'
 import { App } from '../apps/web/src/app.js'
+import { BrowserDevicePreferences } from '../apps/web/src/platform/storage/browser-device-preferences.js'
 import type { PhoenixApplicationServices } from '../apps/web/src/bootstrap/create-application.js'
 import type { PhoenixApplicationShellProps } from '../apps/web/src/components/shell/phoenix-application-shell.js'
 import type { DesktopWorkspaceProps } from '../apps/web/src/components/shell/desktop-workspace.js'
@@ -29,6 +30,7 @@ vi.mock('../apps/web/src/components/shell/desktop-workspace.js', () => ({
 }))
 
 const application = {
+  devicePreferences: new BrowserDevicePreferences({ getItem: () => null, setItem: () => {} }),
   router: { href: phoenixRouteHash, getRememberedInformationRoute: () => DEFAULT_ROUTE, routeForWorkspace: defaultRouteForWorkspace }
 } as unknown as PhoenixApplicationServices
 
@@ -88,7 +90,7 @@ test.each([undefined, '', 'Custom views'])('shell retains omitted/empty context-
   const items: NonNullable<PhoenixApplicationShellProps['informationContextItems']> = []
   const markup = renderToStaticMarkup(<PhoenixApplicationShell
     activeDesktop="info" controls={null} copilot={null} information={null} journal={null}
-    macros={null} settings={null} telemetry={null} informationRoute={DEFAULT_ROUTE}
+    settings={null} telemetry={null} informationRoute={DEFAULT_ROUTE}
     informationContextItems={items} informationContextLabel={label} informationCurrentContext=""
     onNavigateRoute={() => {}} onNavigateWorkspace={() => {}}
   />)

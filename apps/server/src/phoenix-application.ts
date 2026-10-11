@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { PersonalNoteService } from './application/personal-note-service.js'
+import { ColonisationDataService } from './application/colonisation-data-service.js'
+import { CarrierDataService } from './application/carrier-data-service.js'
 import { AtlasPoiSchema } from '@phoenix/contracts'
 import { AtlasCatalogueService } from './application/atlas-catalogue-service.js'
 import { atlasPoiSources } from './infrastructure/atlas-poi-sources.js'
@@ -97,6 +99,7 @@ import { CommunityGoalsService } from './application/community-goals-service.js'
 import type { CommunityGoalsSource } from './domain/community-goals.js'
 import { FrontierCommunityGoalsSource } from './infrastructure/frontier-community-goals-source.js'
 import { MissionDataService } from './application/mission-data-service.js'
+import { PowerplayDataService } from './application/powerplay-data-service.js'
 import { CommunicationDataService } from './application/communication-data-service.js'
 import { LocalTrafficService } from './application/local-traffic-service.js'
 import { FleetDataService } from './application/fleet-data-service.js'
@@ -185,6 +188,7 @@ export class PhoenixApplication {
   private readonly eventIngestion: GameEventIngestionService
   private readonly journalSource: EliteJournalFileSource
   private readonly journalBackfill: EliteJournalHistoryBackfill
+  private readonly journalHistoryLoaded = new InProcessPublisher<null>()
   private readonly inventorySource: EliteInventoryFileSource
   private readonly navigationRouteSource: EliteNavigationRouteFileSource
   private readonly gameActions: GameActions
@@ -216,6 +220,9 @@ export class PhoenixApplication {
     const activityLog = new ActivityLogService(this.database)
     const personalNotes = new PersonalNoteService(this.database.personalNotes, this.database)
     const missions = new MissionDataService(this.database, () => this.stateStore.getCurrent().inventory)
+    const colonisation = new ColonisationDataService(this.database.colonisation)
+    const carriers = new CarrierDataService(this.database.carriers)
+    const powerplay = new PowerplayDataService(this.database.powerplay)
     const communications = new CommunicationDataService(this.database, communicationUpdates)
     const localTraffic = new LocalTrafficService(this.database)
     const shortcutsChanged = () => commandCatalogueChanges.publish({ source: 'shortcuts' })
@@ -249,6 +256,7 @@ export class PhoenixApplication {
     )
     const fleet = new FleetDataService(
       this.database.fleet,
+      carriers,
       {
         resolveBlueprintDisplayName: symbol => engineeringCatalogue.getBlueprint(symbol)?.displayName ?? null,
         resolveModule: identifier => gameCatalogue.resolveModule(identifier),
@@ -323,6 +331,9 @@ export class PhoenixApplication {
       event => journalIngestion.ingest(event),
       event => cartographyObservationIngestion.ingest(event),
       event => missions.ingest(event, 'live-journal'),
+      event => powerplay.ingest(event),
+      event => carriers.ingest(event),
+      event => colonisation.ingest(event, this.stateStore.getCurrent()),
       event => communications.ingest(event),
       event => fleet.ingest(event),
       event => commanderEquipment.ingest(event),
@@ -340,6 +351,9 @@ export class PhoenixApplication {
         historicalJournalIngestion.ingest(event)
         historicalCartographyIngestion.ingest(event)
         missions.ingest(event, 'historical-journal')
+        powerplay.ingest(event)
+        carriers.ingest(event)
+        colonisation.ingest(event, historicalState.getCurrent())
         communications.ingest(event, 'historical')
         fleet.ingest(event)
         commanderEquipment.ingest(event)
@@ -559,6 +573,8 @@ export class PhoenixApplication {
       catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
       cartographyUpdates,
       commandCatalogue,
+      journalHistoryLoaded: this.journalHistoryLoaded,
+      colonisation,
       communicationUpdates,
       commanderEquipment,
       commanderLog,
@@ -587,6 +603,7 @@ export class PhoenixApplication {
       mcpServer,
       macros,
       missions,
+      powerplay,
       personalNotes,
       bookmarks,
       savedGalaxyQueries,
@@ -639,7 +656,9 @@ export class PhoenixApplication {
       await this.navigationRouteSource.start()
       const address = await this.server.start()
       this.galnetBackground.start()
-      void this.journalBackfill.start()
+      void this.journalBackfill.start().then(() => {
+        if (this.journalBackfill.getDiagnostics().status === 'complete') this.journalHistoryLoaded.publish(null)
+      })
       return address
     } catch (cause) {
       try {

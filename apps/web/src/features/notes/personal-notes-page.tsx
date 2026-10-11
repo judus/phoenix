@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { Breadcrumbs, Button, ControlContext, Field, Form, FormActions, IconButton, Inline, InputGroup, Masonry, PencilIcon, Widget,
+import { Breadcrumbs, Button, ControlContext, Field, Form, FormActions, IconButton, Inline, InputGroup, Masonry, Widget,
   FormGrid, Loading, PageFrame, PageHeader, Select, Stack, Status, Textarea, TextInput } from '@phoenix/ui'
 import { PersonalNoteTargetSchema, type PersonalNote, type PersonalNoteTarget, type PersonalNoteWriteRequest } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
@@ -46,7 +46,7 @@ export function PersonalNotesPage({ api, onNavigate, route }: {
       <InputGroup className="note-search filled" htmlFor="note-search" label="Search">
         <TextInput id="note-search" type="search" value={query} onChange={event => setQuery(event.target.value)} />
       </InputGroup>
-      <IconButton size="sm" variant="primary" label="New note" onClick={() => onNavigate({ ...listRoute, newNote: true })}>+</IconButton>
+      <IconButton variant="primary" label="New note" onClick={() => onNavigate({ ...listRoute, newNote: true })}>+</IconButton>
     </Inline>} />
     {error ? <Status tone="danger">{error}</Status> : null}
     {route.noteId && notes && !existing ? <Status tone="warning">That note no longer exists. Other notes are still available below.</Status> : null}
@@ -77,9 +77,9 @@ function NoteCard({ note, onEdit }: { note: PersonalNote, onEdit(): void }) {
         : !note.title ? <Status tone="muted">Empty note</Status> : null}
       {overflowing ? <Button size="sm" variant="quiet" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? 'Show less' : 'Read more'}</Button> : null}
       <NoteLink note={note} />
-      <Inline justify="space-between" gap="xs">
-        <small>{note.createdBy === 'copilot' ? 'Copilot' : 'Player'} · <UpdatedDateTime value={note.updatedAt} /></small>
-        <IconButton size="sm" variant="outline" label={`Edit ${note.title || 'note'}`} onClick={onEdit}><PencilIcon /></IconButton>
+      <Inline justify="end" gap="xs" wrap={false}>
+        <a className="text-xs" href={phoenixRouteHash({ ...listRoute, noteId: note.id })}
+          aria-label={`Edit ${note.title || 'note'}`} onClick={event => { event.preventDefault(); onEdit() }}>Edit</a>
       </Inline>
     </Stack>
   </Widget>
@@ -138,7 +138,7 @@ function NoteEditor({ note, target, onCancel, onSave, onDelete }: {
         {kind !== 'general' && kind !== 'mission' ? <Field label="System" htmlFor="note-system" required><TextInput id="note-system" required value={system} onChange={event => setSystem(event.target.value)} /></Field> : null}
         {kind === 'station' || kind === 'body' ? <Field label={kind === 'station' ? 'Station' : 'Body'} htmlFor="note-location" required><TextInput id="note-location" required value={location} onChange={event => setLocation(event.target.value)} /></Field> : null}
       </FormGrid>
-      <small>{note ? `Created by ${note.createdBy}; last edited by ${note.updatedBy}. ` : ''}Personal context, not verified game facts. Linked notes remain available after the mission ends.</small>
+      <small>{note ? <>Created by {note.createdBy}; last edited by {note.updatedBy}. <UpdatedDateTime value={note.updatedAt} />. </> : null}Personal context, not verified game facts. Linked notes remain available after the mission ends.</small>
       {note ? <NoteLink note={note} /> : null}
       {error ? <Status tone="danger">{error}</Status> : null}
       <FormActions navigation={<Button type="button" size="sm" disabled={busy} onClick={onCancel}>Cancel</Button>}>
@@ -150,7 +150,7 @@ function NoteEditor({ note, target, onCancel, onSave, onDelete }: {
 }
 
 function NotesHeader({ title, actions }: { title: string, actions?: ReactNode }) {
-  return <PageHeader variant="cockpit" context={<Breadcrumbs items={[{ label: 'Notes' }]} />} title={title} actions={actions} />
+  return <PageHeader variant="cockpit" context={<Breadcrumbs items={[{ label: 'Log' }, { label: 'Notes' }]} />} title={title} actions={actions} />
 }
 function targetLabel(target: PersonalNoteTarget | null): string {
   if (!target) return 'General'

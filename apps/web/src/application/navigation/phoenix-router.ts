@@ -65,7 +65,7 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
     }
     const legacyView = section === 'records' ? rest[1] : rest[0]
     if (legacyView === 'biology' || legacyView === 'ledger') {
-      return { kind: 'information', section: 'galaxy', view: 'exobiology' }
+      return { kind: 'information', section: 'activities', view: 'exobiology' }
     }
     return { kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'exploration-targets' }
   }
@@ -100,7 +100,7 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
   if (section === 'galaxy') return parseGalaxyRoute(rest, query)
 
   if (section === 'activities' || section === 'operations') {
-    const view = oneOf(rest[0], ['missions', 'objectives', 'community-goals', 'powerplay', 'colonisation'] as const) ?? 'missions'
+    const view = oneOf(rest[0], ['missions', 'exobiology', 'community-goals', 'powerplay', 'colonisation'] as const) ?? 'missions'
     if (view === 'missions') {
       const id = query.mission?.trim() ? Number(query.mission) : NaN
       return { kind: 'information', section: 'activities', view,
@@ -244,7 +244,7 @@ function parseFleetRoute(rest: string[], query: RawRouteQuery): InformationRoute
 }
 
 function parseGalaxyRoute(rest: string[], query: RawRouteQuery): InformationRoute {
-  const view = oneOf(rest[0], ['system', 'atlas', 'route', 'database', 'saved-queries', 'exobiology', 'bookmarks'] as const) ?? (rest[0] ? 'system' : 'atlas')
+  const view = oneOf(rest[0], ['system', 'atlas', 'route', 'database', 'saved-queries', 'bookmarks'] as const) ?? (rest[0] ? 'system' : 'atlas')
   if (view === 'atlas') {
     const coordinates = query.position?.split(',')
     const parsed = AtlasDisplayLocationSchema.safeParse({

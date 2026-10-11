@@ -13,6 +13,14 @@ export async function fetchProviderJson (
     throw new ProviderQueryError(provider, requestFailureKind(cause, init.signal), { cause })
   }
   if (!response.ok) {
+    if (provider === 'Ardent' && response.status === 404) {
+      // Only this explicit provider message identifies the missing reference system.
+      // Unreadable or unrelated 404 bodies keep their generic missing-record classification.
+      const body: unknown = await response.json().catch(() => null)
+      if (body !== null && typeof body === 'object' && 'message' in body && body.message === 'System not found') {
+        throw new ProviderQueryError(provider, 'reference_system_not_found', { status: response.status })
+      }
+    }
     throw new ProviderQueryError(provider, statusFailureKind(response.status), { status: response.status })
   }
   try {

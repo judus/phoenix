@@ -10,7 +10,7 @@ import {
   Status,
   ThirdsGrid
 } from '@phoenix/ui'
-import type { GalaxyControllerSnapshot } from './use-galaxy-controller.js'
+import type { ActivitiesControllerSnapshot } from './use-activities-controller.js'
 import {
   createExobiologyViewModel,
   type ExobiologyBodyViewModel,
@@ -20,7 +20,7 @@ import {
 import { SystemSchematicLink } from '../../components/system-location-link.js'
 import { PhoenixDateTime, UpdatedDateTime } from '../../components/phoenix-date-time.js'
 
-export function ExobiologyPage({ controller }: { controller: GalaxyControllerSnapshot }) {
+export function ExobiologyPage({ controller }: { controller: ActivitiesControllerSnapshot }) {
   const [selectedSystemId, setSelectedSystemId] = useState<string>()
   const [selectedBodyId, setSelectedBodyId] = useState<string>()
   const [selectedSampleId, setSelectedSampleId] = useState<string>()
@@ -88,7 +88,7 @@ function ExobiologyState({ error }: { error?: string }) {
 function ExobiologyHeader({ updatedAt }: { updatedAt?: string | null }) {
   return <PageHeader
     variant="cockpit"
-    context={<Breadcrumbs items={[{ label: 'Galaxy', href: '#/galaxy/system' }, { label: 'Exobiology' }]} />}
+    context={<Breadcrumbs items={[{ label: 'Activities', href: '#/activities/missions' }, { label: 'Exobiology' }]} />}
     status={updatedAt ? <UpdatedDateTime value={updatedAt} /> : undefined}
     title="Exobiology"
   />

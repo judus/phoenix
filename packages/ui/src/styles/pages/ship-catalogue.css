@@ -19,8 +19,6 @@
   }
 
   .ship-catalogue.schematic {
-    .page-header > .actions { align-self: end; }
-
     .catalogue-deck {
       display: grid;
       grid-template-columns: minmax(13rem, 0.45fr) minmax(0, 1.55fr);

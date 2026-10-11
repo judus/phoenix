@@ -149,7 +149,7 @@ export function CopilotPage({ api, view }: { api: PhoenixApi, view: CopilotView 
 
   return <PageFrame className={`copilot-page copilot-page-${view}`} layout="fit">
     {view === 'profiles'
-      ? <PageHeader context={<Breadcrumbs items={[{ label: 'Copilot' }, { label: 'Profiles' }]} />} title="Profiles" variant="cockpit" status={error ?? chat.error ?? voice.error} actions={<Button size="sm" variant="outline" onClick={() => void create()}>New profile</Button>} />
+      ? <PageHeader context={<Breadcrumbs items={[{ label: 'Copilot' }, { label: 'Profiles' }]} />} title="Profiles" variant="cockpit" status={error ?? chat.error ?? voice.error} actions={<Button variant="outline" onClick={() => void create()}>New profile</Button>} />
       : null}
     {view === 'chat'
       ? <div className="copilot-workspace">

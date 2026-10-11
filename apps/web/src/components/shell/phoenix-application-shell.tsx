@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
-import { ApplicationShell, BottomBar, Navigation, TopBar } from '@phoenix/ui'
+import { ApplicationShell, Navigation, TopBar } from '@phoenix/ui'
 import type { ApplicationNavigationItem, NavigationItem } from '@phoenix/ui'
 import { DesktopWorkspace } from './desktop-workspace.js'
 import { PhoenixBrand } from './phoenix-brand.js'
-import { isRouteNavigationItem, utilityItems, workspaceItems } from './navigation-model.js'
+import { utilityItems, workspaceItems } from './navigation-model.js'
 import { useWorkspaceFocus } from './use-workspace-focus.js'
 import { useFullscreen } from '../../platform/fullscreen/use-fullscreen.js'
 import { isPhoenixWorkspace, type InformationRoute, type PhoenixRoute, type PhoenixWorkspace } from '../../application/navigation/phoenix-route.js'
@@ -12,7 +12,7 @@ export interface PhoenixApplicationShellProps {
   activeDesktop: PhoenixWorkspace
   controlsDestination?: PhoenixRoute
   copilotDestination?: PhoenixRoute
-  notesDestination?: PhoenixRoute
+  journalDestination?: PhoenixRoute
   controls: ReactNode
   controlsContextItems?: ApplicationNavigationItem[]
   controlsCurrentContext?: string
@@ -24,13 +24,13 @@ export interface PhoenixApplicationShellProps {
   informationContextLabel?: string
   informationCurrentContext?: string
   journal: ReactNode
-  notes?: ReactNode
   developer?: ReactNode
+  showDeveloper?: boolean
+  showNumpadButton?: boolean
   developerContextItems?: NavigationItem[]
   developerCurrentContext?: string
   journalContextItems?: NavigationItem[]
   journalCurrentContext?: string
-  macros: ReactNode
   informationRoute: InformationRoute
   onNavigateRoute: (route: PhoenixRoute) => void
   onControlsContextAction?: (item: ApplicationNavigationItem) => void
@@ -44,7 +44,7 @@ export interface PhoenixApplicationShellProps {
 export function PhoenixApplicationShell({
   controlsDestination,
   copilotDestination,
-  notesDestination,
+  journalDestination,
   activeDesktop,
   controls,
   controlsContextItems,
@@ -58,13 +58,13 @@ export function PhoenixApplicationShell({
   informationCurrentContext,
   informationRoute,
   journal,
-  notes,
   developer,
+  showDeveloper = false,
+  showNumpadButton = false,
   developerContextItems,
   developerCurrentContext,
   journalContextItems,
   journalCurrentContext,
-  macros,
   onControlsContextAction,
   onNavigateRoute,
   onNavigateWorkspace,
@@ -91,10 +91,17 @@ export function PhoenixApplicationShell({
         utilities={
           <Navigation
             variant="compact"
-            label="Utilities"
+            label="Workspaces"
             current={activeDesktop}
-            items={utilityItems(fullscreen, focus.active, androidShell)}
+            items={[
+              ...workspaceItems(informationRoute, controlsDestination, copilotDestination, journalDestination, { showDeveloper, showNumpadButton }),
+              ...utilityItems(fullscreen, focus.active, androidShell)
+            ]}
             onItemSelect={(item) => {
+              if (item.id === 'reload') {
+                location.reload()
+                return
+              }
               if (item.id === 'fullscreen') {
                 void fullscreen.toggle()
                 return
@@ -103,7 +110,7 @@ export function PhoenixApplicationShell({
                 focus.toggle()
                 return
               }
-              if (isRouteNavigationItem(item)) onNavigateRoute(item.route)
+              if (isPhoenixWorkspace(item.id)) onNavigateWorkspace(item.id)
             }}
           />
         }
@@ -122,13 +129,12 @@ export function PhoenixApplicationShell({
         informationCurrentContext={informationCurrentContext}
         informationRoute={informationRoute}
         journal={journal}
-        notes={notes}
         developer={developer}
+        showDeveloper={showDeveloper}
         developerContextItems={developerContextItems}
         developerCurrentContext={developerCurrentContext}
         journalContextItems={journalContextItems}
         journalCurrentContext={journalCurrentContext}
-        macros={macros}
         onControlsContextAction={onControlsContextAction}
         onNavigateRoute={onNavigateRoute}
         onNavigateWorkspace={onNavigateWorkspace}
@@ -137,19 +143,6 @@ export function PhoenixApplicationShell({
         settingsCurrentContext={settingsCurrentContext}
         telemetry={telemetry}
       />
-      <BottomBar>
-        <Navigation
-          className="workspace-switcher"
-          variant="compact"
-          selection="subtle"
-          label="Workspaces"
-          current={activeDesktop}
-          items={workspaceItems(informationRoute, controlsDestination, copilotDestination, notesDestination)}
-          onItemSelect={(item) => {
-            if (isPhoenixWorkspace(item.id)) onNavigateWorkspace(item.id)
-          }}
-        />
-      </BottomBar>
     </ApplicationShell>
   )
 }

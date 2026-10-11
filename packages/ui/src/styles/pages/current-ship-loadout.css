@@ -9,10 +9,6 @@
     min-block-size: 0;
     overflow: hidden;
 
-    .page-header > .actions {
-      align-self: end;
-    }
-
   }
 
   .loadout-inventory {

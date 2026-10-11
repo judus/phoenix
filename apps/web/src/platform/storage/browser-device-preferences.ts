@@ -11,8 +11,11 @@ const defaults: PhoenixDevicePreferencesSnapshot = {
   audioOutputId: '',
   captureNumpad: true,
   currentShipLoadoutView: 'tiles',
+  galaxyQueryResultsView: 'atlas',
   followCopilotNavigation: true,
   presentation: 'phoenix',
+  showDeveloper: false,
+  showNumpadButton: false,
   shipCatalogueView: 'dossier',
   uiScalePercent: 100,
   variableCommandLabelSizes: true
@@ -49,7 +52,8 @@ export class BrowserDevicePreferences implements DevicePreferences {
     try {
       const raw = this.storage.getItem(DEVICE_PREFERENCES_KEY)
       if (raw) {
-        const candidate: unknown = JSON.parse(raw)
+        const parsed: unknown = JSON.parse(raw)
+        const candidate = parsed && typeof parsed === 'object' ? { galaxyQueryResultsView: defaults.galaxyQueryResultsView, showDeveloper: defaults.showDeveloper, showNumpadButton: defaults.showNumpadButton, ...parsed } : parsed
         if (isDevicePreferences(candidate)) return candidate
         const migrated = migrateDevicePreferences(candidate)
         if (migrated) {
@@ -72,8 +76,11 @@ function isDevicePreferences (value: unknown): value is PhoenixDevicePreferences
     typeof candidate.audioOutputId === 'string' &&
     typeof candidate.captureNumpad === 'boolean' &&
     ['table', 'tiles'].includes(candidate.currentShipLoadoutView as string) &&
+    ['table', 'atlas'].includes(candidate.galaxyQueryResultsView as string) &&
     typeof candidate.followCopilotNavigation === 'boolean' &&
     ['phoenix', 'elite'].includes(candidate.presentation as string) &&
+    typeof candidate.showDeveloper === 'boolean' &&
+    typeof candidate.showNumpadButton === 'boolean' &&
     ['dossier', 'table'].includes(candidate.shipCatalogueView as string) &&
     typeof candidate.uiScalePercent === 'number' &&
     Number.isInteger(candidate.uiScalePercent) &&
