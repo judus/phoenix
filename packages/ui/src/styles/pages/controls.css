@@ -1,3 +1,32 @@
+.deck-carousel {
+  position: relative;
+  block-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 0;
+  overflow: hidden;
+  touch-action: none;
+
+  > .deck-strip {
+    position: absolute;
+    inset: 0;
+    will-change: transform;
+
+    &.settling { transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1); }
+  }
+
+  .deck-slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+
+    > .controls-page { flex: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    > .deck-strip.settling { transition-duration: 0ms; }
+  }
+}
+
 .manage-decks-page {
   position: relative;
   display: flex;
