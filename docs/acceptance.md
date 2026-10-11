@@ -4,6 +4,24 @@ Reviewed **2026-10-10**. Tracking task: [#25](https://github.com/judus/phoenix/i
 This records evidence and outstanding tests, not a claim that every platform/gameplay check passed.
 Refresh the build identity and results before each release.
 
+## 0.1.8 preparation
+
+The candidate starts from dev `b8407780471cb0ec3c4f347ffc0472e2538aea1d`, including
+[PR #202](https://github.com/judus/phoenix/pull/202) and
+[PR #204](https://github.com/judus/phoenix/pull/204). Both native source gates passed;
+the final local gate passed 274 files / 1,707 tests, strict production/test typechecks and builds.
+Query-result Atlas reuse, toolbar consistency, navigation and deck management were checked in
+isolated browsers in both themes/orientations. The maintainer reviewed the vertical deck swipe
+prototype; measured animation timing/easing matched horizontal Deskplane navigation. Copilot's
+fresh-tap-after-snap-back finding was fixed and covered by tests and a browser regression.
+
+The package version is being prepared as 0.1.8, not published yet. Installer promotion and tagged
+release checks, downloaded artifact identities/checksums and public links are pending. Exact
+release SHA and workflow evidence will be recorded after verification. Real installed-device
+upgrade, retained-data, Windows/Elite and desktop-portal acceptance remain pending. Powerplay,
+colonisation and Fleet Carrier pages are explicitly work-in-progress proposals needing gameplay
+data; no CAPI integration or verified gameplay completion is claimed. EDDN gating is unchanged.
+
 ## Build identities
 
 - Published preview: [v0.1.7](https://github.com/judus/phoenix/releases/tag/v0.1.7), source

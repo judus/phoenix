@@ -4,7 +4,7 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
-- Experiment with vertical swipes between control decks, pre-rendering immediate neighbours
+- Swipe vertically between control decks, pre-rendering immediate neighbours
   while keeping the rail stationary and horizontal workspace swipes unchanged.
 
 - Keep consecutive bottom-aligned rail items together, including Controls' MNG and MCR buttons.
