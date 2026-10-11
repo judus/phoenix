@@ -4,6 +4,12 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Restore light titles and muted interaction labels on custom-coloured control tiles
+  in Elite. Use 1px borders for all shared tiles while keeping form buttons at 2px.
+
+- Use the shared deep-red danger surface and readable text for dangerous control-deck
+  commands in Elite, retaining red rather than orange press feedback.
+
 - Match the Credits page-header/card gap to Query Console and remove the
   Credits-specific override of shared panel content spacing. Rename its page title
   to “Sources & Credits”.

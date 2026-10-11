@@ -108,7 +108,10 @@ test('a button label override replaces the command catalogue label', () => {
   expect(markup).not.toContain('variable-font-sizes')
 })
 
-test('a button color override is applied to the command tile', () => {
+test.each([
+  ['danger', '#ff6258', '#3a1717', 'theme-danger'],
+  ['custom', '#62d88d', '#143522', 'theme-custom']
+] as const)('a %s button color override selects the matching shared tile treatment', (kind, foregroundColor, backgroundColor, theme) => {
   const configuration = {
     ...DEFAULT_CONTROL_DECK_CONFIGURATION,
     decks: DEFAULT_CONTROL_DECK_CONFIGURATION.decks.map(deck => deck.context !== 'phoenix:ship'
@@ -121,8 +124,8 @@ test('a button color override is applied to the command tile', () => {
                 ...element,
                 appearance: {
                   ...element.appearance,
-                  foregroundColor: '#ff6258' as const,
-                  backgroundColor: '#3a1717' as const
+                  foregroundColor,
+                  backgroundColor
                 }
               })
         })
@@ -153,8 +156,9 @@ test('a button color override is applied to the command tile', () => {
   )
 
   const shipButton = markup.match(/<button aria-label="Ship Lights, L"[^>]*>/)?.[0]
-  expect(shipButton).toContain('--command-border:var(--command-danger-border)')
-  expect(shipButton).toContain('--command-background:var(--command-danger-background)')
+  expect(shipButton).toContain(theme)
+  expect(shipButton).toContain(`--command-border:${kind === 'danger' ? 'var(--command-danger-border)' : foregroundColor}`)
+  expect(shipButton).toContain(`--command-background:${kind === 'danger' ? 'var(--command-danger-background)' : backgroundColor}`)
   expect(shipButton).not.toContain('--command-meta:')
   expect(shipButton).not.toContain('--command-text:')
 })

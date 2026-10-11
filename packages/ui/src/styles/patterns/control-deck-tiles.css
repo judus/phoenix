@@ -79,6 +79,7 @@
     display: block;
     min-block-size: 8rem;
     padding: var(--command-padding);
+    border-width: var(--command-border-width);
     border-color: var(--command-border);
     color: var(--command-text);
     background: var(--command-background);
@@ -177,7 +178,6 @@
 
     /* Descriptive launchers use a quieter surface than immediate cockpit commands. */
     &.informational {
-      border-width: 1px;
       --command-padding: var(--spacing-sm);
       --command-background: var(--color-surface);
       --command-border: var(--color-border-subtle);
@@ -200,6 +200,14 @@
       }
     }
 
+    &.theme-custom {
+      --command-text: var(--color-text);
+      --command-meta: var(--color-action);
+      --command-note: var(--color-text-muted);
+      --command-grip: var(--color-action);
+      --command-grip-opacity: 0.12;
+    }
+
     &.active {
       --command-meta: var(--command-selected-text);
 
@@ -209,6 +217,11 @@
     }
 
     &.theme-danger {
+      --command-text: var(--button-danger-text);
+      --command-meta: var(--button-danger-text);
+      --command-note: var(--color-text-muted);
+      --command-grip: var(--color-danger);
+
       border-color: var(--command-danger-border);
       background: var(--command-danger-background);
 

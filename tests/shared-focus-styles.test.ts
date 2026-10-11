@@ -5,6 +5,24 @@ import { expect, test } from 'vitest'
 const styles = resolve(import.meta.dirname, '../packages/ui/src/styles')
 const read = (path: string) => readFileSync(resolve(styles, path), 'utf8')
 
+test('tiles share their border width and custom-colour text roles independently of form buttons', () => {
+  const tiles = read('patterns/control-deck-tiles.css')
+  expect(tiles).toContain('border-width: var(--command-border-width)')
+  const custom = tiles.split('&.theme-custom {')[1]!.split('&.active {')[0]!
+  expect(custom).toContain('--command-text: var(--color-text)')
+  expect(custom).toContain('--command-note: var(--color-text-muted)')
+  expect(read('base/buttons.css')).toContain('border: var(--control-border-width) solid')
+  expect(read('pages/controls.css')).toContain('calc(var(--command-padding) + var(--command-border-width))')
+})
+
+test('danger tiles use the shared deep-red surface and readable text without Elite orange press feedback', () => {
+  const variables = read('variable.css')
+  expect(variables).toContain('--command-danger-background: var(--color-danger-surface)')
+  expect(variables).not.toContain('--command-danger-background: var(--color-danger);')
+  expect(read('patterns/control-deck-tiles.css')).toContain('--command-text: var(--button-danger-text)')
+  expect(read('patterns/tile-groups.css')).toContain('&:active:not(:disabled, .theme-danger)')
+})
+
 test('shared panels use their uniform border token without a theme-specific thick edge', () => {
   const panels = read('patterns/panels.css')
   expect(panels).toContain('border: var(--panel-border-width) solid var(--panel-border)')

@@ -512,6 +512,7 @@ function ControlDeckCommandTile({ appearance, binding, interaction, kind = 'acti
     aria-pressed={selected || undefined}
     className={[
       kind === 'macro' && 'theme-macro',
+      dangerAppearance ? 'theme-danger' : (appearance.foregroundColor || appearance.backgroundColor) && 'theme-custom',
       selected && 'active',
       unavailable && 'unavailable',
       className
