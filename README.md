@@ -14,8 +14,10 @@ browser on that computer, or pair a tablet over your local network.
 
 Download the pre-release installer:
 
-- Windows installer: [PHOENIX-windows-x64-setup.exe](https://github.com/judus/phoenix/releases/download/v0.1.7/PHOENIX-windows-x64-setup.exe)
-- AppImage for Linux: [PHOENIX-linux-x64.AppImage](https://github.com/judus/phoenix/releases/download/v0.1.7/PHOENIX-linux-x64.AppImage)
+- Windows installer: [PHOENIX-windows-x64-setup.exe](https://github.com/judus/phoenix/releases/download/v0.1.8/PHOENIX-windows-x64-setup.exe)
+- AppImage for Linux: [PHOENIX-linux-x64.AppImage](https://github.com/judus/phoenix/releases/download/v0.1.8/PHOENIX-linux-x64.AppImage)
+
+[0.1.8 preview release notes](https://github.com/judus/phoenix/releases/tag/v0.1.8)
 
 ![PHOENIX commander dashboard](docs/screens/img.webp)
 
@@ -46,7 +48,7 @@ Download the pre-release installer:
 - **System schematics and galactic atlas.** Explore the current system, follow a plotted route,
   hide fleet carriers, or zoom out to see the galactic regions and your position in the galaxy.
   Tilt the Atlas into a schematic 3D view with location heights above the galactic plane.
-- **Personal notes.** Keep short reminders in the NTS workspace, optionally linked to a mission,
+- **Personal notes.** Keep short reminders under LOG → Notes, optionally linked to a mission,
   system, station or body. Read them on cards, edit them yourself, or let Copilot save and retrieve
   them when explicitly asked and allowed.
 - **Searches for your next stop.** Find stations, ships, modules, commodities, exploration targets,
