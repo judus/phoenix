@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+## 0.1.9 — 2026-10-12 (prerelease)
+
 - Consolidate GalNet into a searchable, automatically extending news browser. Scroll article titles
   with their text, remove the repeated eyebrow, and move AI reports, related coverage
   and background work to a dedicated analysis view. Preserve reading position when returning.
