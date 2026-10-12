@@ -14,10 +14,29 @@ incremental news loading, reader/analysis navigation and preserved selection/scr
 the independent queue page and expanded long diagnostics. Maintainer source-checkout
 visual feedback shaped the final layouts.
 
-Native promotion/tagged installer verification and downloaded-asset identity checks
-are pending publication. Actual installed upgrade, retained-data, Windows/Elite and
-desktop-portal acceptance remain pending; source/browser tests do not replace them.
-The Windows installer remains unsigned, and EDDN production gating is unchanged.
+Published preview: [v0.1.9](https://github.com/judus/phoenix/releases/tag/v0.1.9), exact source
+`5e25e7f34de9399b96b2f51a543fb1c87e8f6a1a`. Development [PR #213](https://github.com/judus/phoenix/pull/213)
+passed both native source gates in [run 38188317671](https://github.com/judus/phoenix/actions/runs/38188317671).
+Promotion [PR #214](https://github.com/judus/phoenix/pull/214) passed native Linux/Windows installer checks
+in [run 38188710961](https://github.com/judus/phoenix/actions/runs/38188710961).
+Both exact-tag native builds and draft assembly passed in
+[release run 38189033507](https://github.com/judus/phoenix/actions/runs/38189033507).
+
+Downloaded installers/manifests matched all four original SHA-256 checksums, version,
+exact source, preview channel and byte counts; both identify Node `v24.14.0`.
+Both public installer links returned HTTP 200 after publication. The release is not draft,
+is a prerelease and was deliberately not marked latest. Older releases were preserved.
+
+Installer hashes from [SHA256SUMS](https://github.com/judus/phoenix/releases/download/v0.1.9/SHA256SUMS):
+
+```text
+cee9be22088d8e3444ce424c1ca6d5b4faeaeed702c21f4908f0a931a7224982  PHOENIX-linux-x64.AppImage
+8bce42c2be96f600b5d2b383e9f222cc81322e521bed8fbfc9b883c3ddaa58e5  PHOENIX-windows-x64-setup.exe
+```
+
+Actual installed upgrade, retained-data, Windows/Elite and desktop-portal acceptance
+remain pending; source/browser tests do not replace them. The Windows installer remains
+unsigned, and EDDN production gating is unchanged.
 
 ## Previous preview evidence: 0.1.8
 
@@ -105,7 +124,7 @@ the matrix below retains its next-installed-build acceptance checks, not a secon
 
 | Area | Existing evidence | Next check / owner |
 | --- | --- | --- |
-| Installer lifecycle | v0.1.8 native CI passed; isolated smoke covers startup, single instance, stop, settings migration and corrupt-settings recovery. | Maintainer: exact published build on Windows/Linux, actual install/update/tray/restart/uninstall. |
+| Installer lifecycle | v0.1.9 native CI passed; isolated smoke covers startup, single instance, stop, settings migration and corrupt-settings recovery. | Maintainer: exact published build on Windows/Linux, actual install/update/tray/restart/uninstall. |
 | Retained data | Smoke preserves pairing identity, edited Copilot profile and EDDN opt-out; domain tests cover other stored objects. | Maintainer: actual update/uninstall preserves settings, decks/macros, projects, queries, bookmarks and observed state. Back up; do not reset the profile to pass. |
 | Linux desktops / input | PHOENIX AppImage launch/tray reported working on Mint; hardware/session record incomplete. Private-D-Bus and extract-and-run checks automated. | Maintainer: record distro/desktop/session/portal versions; test Mint plus KDE/Wayland and GNOME/Wayland, portal permission/revocation, input release, FUSE/extract-and-run and tray/quit. Earlier Arch/KDE and Fedora/GNOME results covered **Control Deck**, not PHOENIX. |
 | Windows / Elite input | Historical real-game success; current Windows CI uses simulated input. Current complete gameplay record pending. | Windows maintainer: Elite focused, one safe known-good and one formerly failing binding; tap/hold/release, macro stop/cancel/failure, shutdown cleanup. Record game response, not HTTP success or Notepad typing. |
@@ -143,12 +162,12 @@ pairing secrets, tokens or unredacted journals.
 
 ## Release checkpoint
 
-- [x] Verify v0.1.7 source/tag, both downloaded installer hashes and manifests.
-- [x] Repeat automated native lifecycle/retained-data smoke tests for v0.1.7.
+- [x] Verify v0.1.9 source/tag, both downloaded installer hashes and manifests.
+- [x] Repeat automated native lifecycle/retained-data smoke tests for v0.1.9.
 - [ ] Record actual installed upgrade/lifecycle/retained-data acceptance on each platform.
 - [ ] Record applicable real-game/tablet/desktop rows and explicitly list pending platforms.
 - [x] Keep EDDN production gating unchanged; #20 readiness work remains separate.
-- [x] Review signing warnings and truthful preview notes; publish v0.1.7 as prerelease, not latest.
+- [x] Review signing warnings and truthful preview notes; publish v0.1.9 as prerelease, not latest.
 
 The [release guide](releases.md), [packaging guide](../scripts/package/README.md) and
 [source setup](installation.md) own procedures; this document owns status/evidence.

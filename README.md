@@ -14,10 +14,10 @@ browser on that computer, or pair a tablet over your local network.
 
 Download the pre-release installer:
 
-- Windows installer: [PHOENIX-windows-x64-setup.exe](https://github.com/judus/phoenix/releases/download/v0.1.8/PHOENIX-windows-x64-setup.exe)
-- AppImage for Linux: [PHOENIX-linux-x64.AppImage](https://github.com/judus/phoenix/releases/download/v0.1.8/PHOENIX-linux-x64.AppImage)
+- Windows installer: [PHOENIX-windows-x64-setup.exe](https://github.com/judus/phoenix/releases/download/v0.1.9/PHOENIX-windows-x64-setup.exe)
+- AppImage for Linux: [PHOENIX-linux-x64.AppImage](https://github.com/judus/phoenix/releases/download/v0.1.9/PHOENIX-linux-x64.AppImage)
 
-[0.1.8 preview release notes](https://github.com/judus/phoenix/releases/tag/v0.1.8)
+[0.1.9 preview release notes](https://github.com/judus/phoenix/releases/tag/v0.1.9)
 
 ![PHOENIX commander dashboard](docs/screens/img.webp)
 
