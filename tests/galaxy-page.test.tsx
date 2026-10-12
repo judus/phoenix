@@ -20,6 +20,24 @@ function makeDevicePreferences() {
   return preferences
 }
 
+test('raw query summary explains the query without repeating its title or counting parameters', async () => {
+  const state = createEmptyRuntimeState()
+  state.system.name = 'Sol'
+  const renderer = await renderWithAct(<GalaxyPage devicePreferences={makeDevicePreferences()}
+    api={{} as PhoenixApi} controller={{ status: 'idle' }} onNavigate={vi.fn()}
+    querySessions={new GalaxyQuerySessionStore()}
+    route={{ kind: 'information', section: 'galaxy', view: 'database', selectedQueryId: 'facilities' }}
+    runtime={{ state, status: 'ready' }} />)
+  try {
+    const summary = renderer.root.findByProps({ className: 'query-envelope' })
+    expect(summary.findByType('small').props.children).toBe('About this query')
+    expect(summary.findAllByType('strong')).toHaveLength(0)
+    expect(summary.findByType('p').props.children).toBe('Find the nearest station providing an operational service.')
+    expect(summary.findAllByType('dt').map(node => node.props.children)).toEqual(['Reference system', 'Data source'])
+    expect(summary.findAllByType('dd').map(node => node.props.children)).toEqual(['Current system (Sol)', 'Community intelligence'])
+  } finally { await act(async () => renderer.unmount()) }
+})
+
 test('predefined prospecting saved query follows the current system and resets to reported-target defaults', async () => {
   const findGalaxyExplorationTargets = vi.fn().mockRejectedValue(new Error('Synthetic offline provider'))
   const state = createEmptyRuntimeState()

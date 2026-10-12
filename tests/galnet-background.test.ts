@@ -39,6 +39,29 @@ function fixture() {
   }
 }
 
+test.each([true, false])('status includes all active jobs and 20 recent results; active work is newer: %s', async activeNewer => {
+  const f = fixture()
+  try {
+    for (let index = 0; index < 25; index++) f.db.galnetBackground.enqueue({
+      id: `waiting-${index}`, articleId: `article-${index}`, articleRevisionId: 'revision', title: `Article ${index}`,
+      reason: 'catch-up', state: 'pending', queuedAt: activeNewer ? '2026-10-08T12:00:00Z' : '2026-10-06T12:00:00Z', startedAt: null, finishedAt: null, error: null
+    })
+    f.db.galnetBackground.enqueue({ id: 'running', articleId: 'running', articleRevisionId: 'revision', title: 'Running article',
+      reason: 'article', state: 'running', queuedAt: '2026-10-06T12:00:00Z', startedAt: activeNewer ? '2026-10-08T12:00:00Z' : '2026-10-07T12:00:00Z', finishedAt: null, error: null })
+    for (let index = 0; index < 25; index++) f.db.galnetBackground.enqueue({
+      id: `done-${index}`, articleId: `done-${index}`, articleRevisionId: 'revision', title: `Done ${index}`,
+      reason: 'catch-up', state: 'succeeded', queuedAt: '2026-10-06T12:00:00Z', startedAt: '2026-10-07T12:00:00Z', finishedAt: '2026-10-07T12:01:00Z', error: null
+    })
+    const status = f.worker.status()
+    expect(status.pending).toBe(25)
+    expect(status.jobs.filter(job => job.state === 'pending')).toHaveLength(25)
+    expect(status.jobs.filter(job => job.state === 'running')).toHaveLength(1)
+    expect(status.jobs.filter(job => job.state === 'succeeded')).toHaveLength(20)
+    expect(new Set(status.jobs.map(job => job.id)).size).toBe(status.jobs.length)
+    expect(f.analyser.analyse).not.toHaveBeenCalled()
+  } finally { await f.close() }
+})
+
 function storyFixture() {
   const f = fixture()
   const articles = ['earlier', 'middle', 'later'].map((id, index) => ({ ...analysisArticle, id,

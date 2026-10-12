@@ -27,13 +27,14 @@ import { ControlSurface } from './control-surface.js'
 
 const DeckPreview = createContext(false)
 
-export const ControlsPage = memo(function ControlsPage({ deckId, controller, editing, macros, runtime, variableFontSizes, preview = false, onEditingChange, onExecuteAction, onExecuteNavigation, onSaveConfiguration }: {
+export const ControlsPage = memo(function ControlsPage({ deckId, controller, editing, macros, runtime, variableFontSizes, showEmptySlots = false, preview = false, onEditingChange, onExecuteAction, onExecuteNavigation, onSaveConfiguration }: {
   deckId: ControlDeckId
   controller: ControlsControllerSnapshot
   editing: boolean
   macros: MacroRuntime
   runtime?: RuntimeState
   variableFontSizes: boolean
+  showEmptySlots?: boolean
   preview?: boolean
   onEditingChange(editing: boolean): void
   onExecuteAction(actionId: string, operation: GameActionOperation, leaseId?: string): Promise<unknown>
@@ -199,7 +200,7 @@ export const ControlsPage = memo(function ControlsPage({ deckId, controller, edi
                 const position = (row - 1) * deck.layout.columns + column
                 return editing
                   ? <Button aria-label={`Cell ${position}`} className="control-deck-empty" variant="quiet" onClick={() => setEditingPosition(position)}>{position}</Button>
-                  : <div className="control-deck-empty" />
+                  : <div aria-hidden="true" className={`control-deck-empty${showEmptySlots ? ' outlined' : ''}`}>{showEmptySlots ? position : undefined}</div>
               }}
               renderCommand={element => {
                 const position = (element.placement.row - 1) * deck.layout.columns + element.placement.column
@@ -512,6 +513,7 @@ function ControlDeckCommandTile({ appearance, binding, interaction, kind = 'acti
     aria-pressed={selected || undefined}
     className={[
       kind === 'macro' && 'theme-macro',
+      dangerAppearance ? 'theme-danger' : (appearance.foregroundColor || appearance.backgroundColor) && 'theme-custom',
       selected && 'active',
       unavailable && 'unavailable',
       className

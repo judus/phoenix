@@ -21,6 +21,8 @@ describe('PHOENIX route parsing and generation', () => {
   })
 
   test.each([
+    ['#/comms/galnet/analysis?article=article-1&search=beacon', { kind: 'information', section: 'comms', view: 'galnet', page: 'analysis', selectedArticleId: 'article-1', search: 'beacon' }, 'info'],
+    ['#/comms/galnet/background?search=beacon', { kind: 'information', section: 'comms', view: 'galnet', page: 'background', search: 'beacon' }, 'info'],
     ['#/commander/dashboard', { kind: 'information', section: 'commander', view: 'dashboard' }, 'info'],
     ['#/controls/navigation', { kind: 'controls', deckId: 'navigation' }, 'controls'],
     ['#/commander/inventory', { kind: 'information', section: 'commander', view: 'inventory' }, 'info'],
@@ -114,10 +116,10 @@ describe('PHOENIX route parsing and generation', () => {
     expect(phoenixRouteHash(parsePhoenixRoute('#/operations/overview'))).toBe('#/activities/missions')
   })
 
-  test('Comms lands on Inbox and normalizes the retired overview route', () => {
-    expect(defaultRouteForInformationSection('comms')).toEqual({ kind: 'information', section: 'comms', view: 'inbox' })
-    expect(phoenixRouteHash(parsePhoenixRoute('#/comms'))).toBe('#/comms/inbox')
-    expect(phoenixRouteHash(parsePhoenixRoute('#/comms/overview'))).toBe('#/comms/inbox')
+  test('Comms lands on GalNet and normalizes the retired overview route', () => {
+    expect(defaultRouteForInformationSection('comms')).toEqual({ kind: 'information', section: 'comms', view: 'galnet' })
+    expect(phoenixRouteHash(parsePhoenixRoute('#/comms'))).toBe('#/comms/galnet')
+    expect(phoenixRouteHash(parsePhoenixRoute('#/comms/overview'))).toBe('#/comms/galnet')
   })
 
   test('Fleet lands on the current ship dashboard', () => {

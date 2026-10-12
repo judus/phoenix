@@ -48,3 +48,10 @@ test.each(['“pilots report activity.”', '“Pilots report discoveries.”', 
 test('does not repair a period substituted for the source comma', () => {
   expect(createGalnetQuoteResolver('Title', 'The ship was found,” the pilot said.')('“The ship was found.”')).toBeUndefined()
 })
+
+test('does not expand the subject inside a verbatim evidence quote', () => {
+  const resolve = createGalnetQuoteResolver('Title', 'We recognise the Accords it helped establish as a framework for peace in the enclave conflict.')
+  expect(resolve('the October Accords it helped establish as a framework for peace in the enclave conflict')).toBeUndefined()
+  expect(resolve('the Accords it helped establish as a framework for peace in the enclave conflict'))
+    .toBe('the Accords it helped establish as a framework for peace in the enclave conflict')
+})

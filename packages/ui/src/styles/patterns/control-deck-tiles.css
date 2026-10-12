@@ -79,6 +79,7 @@
     display: block;
     min-block-size: 8rem;
     padding: var(--command-padding);
+    border-width: var(--command-border-width);
     border-color: var(--command-border);
     color: var(--command-text);
     background: var(--command-background);
@@ -147,7 +148,6 @@
       }
 
       .label {
-        color: var(--color-text);
         font-size: var(--font-size-lg);
       }
 
@@ -157,7 +157,7 @@
         p {
           max-inline-size: 42ch;
           margin: 0;
-          color: var(--color-text-muted);
+          color: var(--command-description);
           font-size: var(--font-size-sm);
           line-height: var(--line-height-normal);
         }
@@ -165,7 +165,6 @@
 
       .meta {
         grid-row: 3;
-        color: var(--color-action);
         font-size: var(--font-size-xs);
         line-height: var(--line-height-compact);
       }
@@ -177,6 +176,38 @@
       --command-meta: var(--color-information);
     }
 
+    /* Descriptive launchers use a quieter surface than immediate cockpit commands. */
+    &.informational {
+      --command-padding: var(--spacing-sm);
+      --command-background: var(--color-surface);
+      --command-border: var(--color-border-subtle);
+      --command-text: var(--color-text);
+      --command-description: var(--color-text-muted);
+      --command-meta: var(--color-action);
+      --command-note: var(--color-text-muted);
+      --command-grip: var(--color-action);
+      --command-grip-opacity: 0.12;
+
+      &::after {
+        inset-inline-end: var(--command-padding);
+        inset-block-end: var(--command-padding);
+      }
+
+      .body {
+        font-family: var(--font-family-sans);
+        letter-spacing: normal;
+        text-transform: none;
+      }
+    }
+
+    &.theme-custom {
+      --command-text: var(--color-text);
+      --command-meta: var(--color-action);
+      --command-note: var(--color-text-muted);
+      --command-grip: var(--color-action);
+      --command-grip-opacity: 0.12;
+    }
+
     &.active {
       --command-meta: var(--command-selected-text);
 
@@ -186,6 +217,11 @@
     }
 
     &.theme-danger {
+      --command-text: var(--button-danger-text);
+      --command-meta: var(--button-danger-text);
+      --command-note: var(--color-text-muted);
+      --command-grip: var(--color-danger);
+
       border-color: var(--command-danger-border);
       background: var(--command-danger-background);
 

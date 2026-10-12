@@ -66,7 +66,7 @@ export function DashboardPage({
       <Notification message={eventConnection.state === 'error' ? eventConnection.error ?? 'Live event connection unavailable.' : undefined} />
       <Notification messages={model.warnings} tone="warning" />
       <DashboardGrid
-        gap="xs"
+        gap="sm"
         lastRow={(
           <>
             <Widget

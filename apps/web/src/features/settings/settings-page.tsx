@@ -138,6 +138,9 @@ export function SettingsPage ({ api, devicePreferences }: { api: PhoenixApi, dev
                 onChange={() => devicePreferences.update({ variableCommandLabelSizes: !preferences.variableCommandLabelSizes })}
               />
             </SettingRow>
+            <SettingRow description="Show muted dashed outlines and slot numbers for empty Control Deck slots." scope="This device" title="Empty deck slots">
+              <SettingToggle checked={preferences.showEmptyDeckSlots} label={preferences.showEmptyDeckSlots ? 'On' : 'Off'} onChange={() => devicePreferences.update({ showEmptyDeckSlots: !preferences.showEmptyDeckSlots })} />
+            </SettingRow>
           </SettingsList>
         </Section>
 

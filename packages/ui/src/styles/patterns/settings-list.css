@@ -113,6 +113,18 @@
     }
   }
 
+  .theme-elite {
+    .settings-list {
+      border-block-start: 0;
+      gap: var(--elite-row-gap);
+    }
+
+    .setting-row {
+      border-block-end: 0;
+      background: var(--elite-row-background);
+    }
+  }
+
   @container page-frame (width < 36rem) {
     .setting-row {
       grid-template-columns: minmax(0, 1fr);

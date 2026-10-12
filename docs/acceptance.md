@@ -1,10 +1,25 @@
 # PHOENIX acceptance checklist
 
-Reviewed **2026-10-11**. Tracking task: [#25](https://github.com/judus/phoenix/issues/25).
+Reviewed **2026-10-12**. Tracking task: [#25](https://github.com/judus/phoenix/issues/25).
 This records evidence and outstanding tests, not a claim that every platform/gameplay check passed.
 Refresh the build identity and results before each release.
 
-## Current build: 0.1.8
+## Current build: 0.1.9
+
+The candidate includes the shared CSS/theme polish and GalNet workspace work from
+[#210](https://github.com/judus/phoenix/issues/210), through source commit `5b1a61c`.
+The local source gate passed 275 files / 1,744 tests, strict production/test typechecks
+and builds. Isolated browser checks covered both themes and tablet orientations,
+incremental news loading, reader/analysis navigation and preserved selection/scroll,
+the independent queue page and expanded long diagnostics. Maintainer source-checkout
+visual feedback shaped the final layouts.
+
+Native promotion/tagged installer verification and downloaded-asset identity checks
+are pending publication. Actual installed upgrade, retained-data, Windows/Elite and
+desktop-portal acceptance remain pending; source/browser tests do not replace them.
+The Windows installer remains unsigned, and EDDN production gating is unchanged.
+
+## Previous preview evidence: 0.1.8
 
 The candidate starts from dev `b8407780471cb0ec3c4f347ffc0472e2538aea1d`, including
 [PR #202](https://github.com/judus/phoenix/pull/202) and

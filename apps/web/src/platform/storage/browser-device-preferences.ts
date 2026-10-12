@@ -15,6 +15,7 @@ const defaults: PhoenixDevicePreferencesSnapshot = {
   followCopilotNavigation: true,
   presentation: 'phoenix',
   showDeveloper: false,
+  showEmptyDeckSlots: false,
   showNumpadButton: false,
   shipCatalogueView: 'dossier',
   uiScalePercent: 100,
@@ -53,7 +54,7 @@ export class BrowserDevicePreferences implements DevicePreferences {
       const raw = this.storage.getItem(DEVICE_PREFERENCES_KEY)
       if (raw) {
         const parsed: unknown = JSON.parse(raw)
-        const candidate = parsed && typeof parsed === 'object' ? { galaxyQueryResultsView: defaults.galaxyQueryResultsView, showDeveloper: defaults.showDeveloper, showNumpadButton: defaults.showNumpadButton, ...parsed } : parsed
+        const candidate = parsed && typeof parsed === 'object' ? { galaxyQueryResultsView: defaults.galaxyQueryResultsView, showDeveloper: defaults.showDeveloper, showEmptyDeckSlots: defaults.showEmptyDeckSlots, showNumpadButton: defaults.showNumpadButton, ...parsed } : parsed
         if (isDevicePreferences(candidate)) return candidate
         const migrated = migrateDevicePreferences(candidate)
         if (migrated) {
@@ -80,6 +81,7 @@ function isDevicePreferences (value: unknown): value is PhoenixDevicePreferences
     typeof candidate.followCopilotNavigation === 'boolean' &&
     ['phoenix', 'elite'].includes(candidate.presentation as string) &&
     typeof candidate.showDeveloper === 'boolean' &&
+    typeof candidate.showEmptyDeckSlots === 'boolean' &&
     typeof candidate.showNumpadButton === 'boolean' &&
     ['dossier', 'table'].includes(candidate.shipCatalogueView as string) &&
     typeof candidate.uiScalePercent === 'number' &&

@@ -165,7 +165,7 @@
       grid-template-columns:
         var(--meter-label-size)
         minmax(0, 1fr)
-        var(--meter-value-size);
+        minmax(var(--meter-value-size), max-content);
       align-items: center;
       gap: var(--spacing-sm);
 
