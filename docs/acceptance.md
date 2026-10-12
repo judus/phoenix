@@ -7,8 +7,8 @@ Refresh the build identity and results before each release.
 ## Current build: 0.1.9
 
 The candidate includes the shared CSS/theme polish and GalNet workspace work from
-[#210](https://github.com/judus/phoenix/issues/210), through source commit `e812c79`.
-The local source gate passed 275 files / 1,743 tests, strict production/test typechecks
+[#210](https://github.com/judus/phoenix/issues/210), through source commit `5b1a61c`.
+The local source gate passed 275 files / 1,744 tests, strict production/test typechecks
 and builds. Isolated browser checks covered both themes and tablet orientations,
 incremental news loading, reader/analysis navigation and preserved selection/scroll,
 the independent queue page and expanded long diagnostics. Maintainer source-checkout
