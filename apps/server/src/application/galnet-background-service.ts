@@ -43,6 +43,9 @@ export class GalnetBackgroundService {
 
   public status(): GalnetBackgroundStatus {
     const { goals: _goals, ...state } = this.repository.load()
+    const active = [...this.repository.list('running'), ...this.repository.list('pending')]
+    const recent = this.repository.list(undefined, active.length + 20)
+      .filter(job => job.state !== 'pending' && job.state !== 'running').slice(0, 20)
     const queued = new Set(this.repository.activeArticleIds())
     const changedContext = new Set(this.analysis.contextWork().refreshes.map(refresh => refresh.articleId))
     const backlog = this.archive.recent(100).filter(({ article }) => {
@@ -50,10 +53,7 @@ export class GalnetBackgroundService {
       return !queued.has(article.id) && (!saved || saved.articleChanged || saved.contextChanged || changedContext.has(article.id))
     }).map(({ article }) => ({ articleId: article.id, title: article.title, publishedAt: article.publishedAt }))
     return { ...state, sourceError: this.runtimeError ?? state.sourceError, configured: this.configured(), requestsToday: this.requestsToday(),
-      pending: this.repository.pending(), jobs: [
-        ...this.repository.list('running'), ...this.repository.list('pending'),
-        ...this.repository.list(undefined, 20).filter(job => job.state !== 'pending' && job.state !== 'running')
-      ], backlog }
+      pending: this.repository.pending(), jobs: [...active, ...recent], backlog }
   }
 
   public setSettings(settings: GalnetBackgroundSettings): GalnetBackgroundStatus {

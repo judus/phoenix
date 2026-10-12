@@ -39,15 +39,15 @@ function fixture() {
   }
 }
 
-test('status includes every active job even when newer finished work fills the recent window', async () => {
+test.each([true, false])('status includes all active jobs and 20 recent results; active work is newer: %s', async activeNewer => {
   const f = fixture()
   try {
     for (let index = 0; index < 25; index++) f.db.galnetBackground.enqueue({
       id: `waiting-${index}`, articleId: `article-${index}`, articleRevisionId: 'revision', title: `Article ${index}`,
-      reason: 'catch-up', state: 'pending', queuedAt: '2026-10-06T12:00:00Z', startedAt: null, finishedAt: null, error: null
+      reason: 'catch-up', state: 'pending', queuedAt: activeNewer ? '2026-10-08T12:00:00Z' : '2026-10-06T12:00:00Z', startedAt: null, finishedAt: null, error: null
     })
     f.db.galnetBackground.enqueue({ id: 'running', articleId: 'running', articleRevisionId: 'revision', title: 'Running article',
-      reason: 'article', state: 'running', queuedAt: '2026-10-06T12:00:00Z', startedAt: '2026-10-07T12:00:00Z', finishedAt: null, error: null })
+      reason: 'article', state: 'running', queuedAt: '2026-10-06T12:00:00Z', startedAt: activeNewer ? '2026-10-08T12:00:00Z' : '2026-10-07T12:00:00Z', finishedAt: null, error: null })
     for (let index = 0; index < 25; index++) f.db.galnetBackground.enqueue({
       id: `done-${index}`, articleId: `done-${index}`, articleRevisionId: 'revision', title: `Done ${index}`,
       reason: 'catch-up', state: 'succeeded', queuedAt: '2026-10-06T12:00:00Z', startedAt: '2026-10-07T12:00:00Z', finishedAt: '2026-10-07T12:01:00Z', error: null
