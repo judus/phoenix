@@ -36,7 +36,10 @@ export type InformationRoute =
   | { kind: 'information', section: 'equipment', view: 'gear' | 'materials' | 'planner' }
   | { kind: 'information', section: 'equipment', view: 'upgrades', selectedUpgradeId?: string }
   | { kind: 'information', section: 'equipment', view: 'specialists', selectedSpecialistId?: string }
-  | { kind: 'information', section: 'comms', view: 'inbox' | 'traffic' | 'contacts' | 'galnet' | 'radio' }
+  | { kind: 'information', section: 'comms', view: 'inbox' | 'traffic' | 'contacts' | 'radio' }
+  | GalnetRoute
+
+export type GalnetRoute = { kind: 'information', section: 'comms', view: 'galnet', selectedArticleId?: string, search?: string, page?: 'analysis' | 'background' }
 
 export type PhoenixRoute =
   | InformationRoute
@@ -96,7 +99,7 @@ export function defaultRouteForInformationSection(section: InformationPrimarySec
     case 'activities': return { kind: 'information', section, view: 'missions' }
     case 'engineering': return { kind: 'information', section, view: 'blueprints' }
     case 'equipment': return { kind: 'information', section, view: 'gear' }
-    case 'comms': return { kind: 'information', section, view: 'inbox' }
+    case 'comms': return { kind: 'information', section, view: 'galnet' }
   }
 }
 

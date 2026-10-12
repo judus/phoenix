@@ -231,6 +231,11 @@
 
     .col-fill { width: 100%; }
 
+    td.wrap {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
     .col-fit {
       width: 1%;
       white-space: nowrap;

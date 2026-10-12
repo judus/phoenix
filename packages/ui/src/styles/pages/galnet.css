@@ -16,6 +16,8 @@
       min-inline-size: 0;
       min-block-size: 0;
       overflow: hidden;
+
+      &[hidden] { display: none; }
     }
 
     .galnet-index,
@@ -26,7 +28,26 @@
       overflow: hidden;
     }
 
+    .galnet-index-content {
+      display: grid;
+      grid-template-rows: minmax(0, 1fr);
+      gap: var(--spacing-sm);
+      min-inline-size: 0;
+      min-block-size: 0;
+
+    }
+
+    .galnet-search {
+      display: flex;
+      gap: var(--spacing-xs);
+      inline-size: min(22rem, 45vw);
+      min-inline-size: 0;
+
+      > .input-group { flex: 1; min-inline-size: 0; }
+    }
+
     .galnet-index-scroll {
+      overflow-anchor: none;
       min-inline-size: 0;
       min-block-size: 0;
       padding-inline-end: var(--spacing-xs);
@@ -47,26 +68,18 @@
     }
 
     .galnet-reader {
-      display: grid;
-      grid-template-rows: auto minmax(0, 1fr);
+      overflow-anchor: none;
+      display: block;
       min-inline-size: 0;
       min-block-size: 0;
-      padding-block-start: var(--spacing-sm);
-      overflow: hidden;
+      padding: var(--spacing-md);
+      overflow: auto;
+      overscroll-behavior: contain;
 
       > header {
         display: grid;
         gap: var(--spacing-xs);
-        padding: 0 var(--spacing-md) var(--spacing-md);
-        border-block-end: 1px solid var(--color-border);
-
-        small {
-          color: var(--color-action);
-          font-size: var(--font-size-xs);
-          font-family: var(--font-family-display);
-          letter-spacing: var(--font-tracking-display);
-          text-transform: uppercase;
-        }
+        padding-block-end: var(--spacing-md);
 
         h2 {
           max-inline-size: 40ch;
@@ -79,16 +92,6 @@
       }
 
       .article-body {
-        min-inline-size: 0;
-        min-block-size: 0;
-        padding: var(--spacing-md);
-        overflow: auto;
-        overscroll-behavior: contain;
-
-        &:focus-visible {
-          outline: 2px solid var(--color-focus);
-          outline-offset: -2px;
-        }
 
         .article-text p {
           max-inline-size: 76ch;
@@ -102,9 +105,51 @@
       }
 
     }
+
+    .galnet-analysis-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--spacing-lg);
+      min-inline-size: 0;
+      min-block-size: 0;
+      overflow: hidden;
+    }
+
+    .galnet-background-page {
+      min-inline-size: 0;
+      min-block-size: 0;
+      overflow: auto;
+      overscroll-behavior: contain;
+      padding-inline-end: var(--spacing-xs);
+    }
+
+    .galnet-background-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+      align-items: start;
+      gap: var(--spacing-lg);
+    }
+
+    .galnet-analysis-scroll {
+      min-inline-size: 0;
+      min-block-size: 0;
+      overflow: auto;
+      overscroll-behavior: contain;
+      padding-inline-end: var(--spacing-xs);
+
+      h2 { margin: 0; }
+    }
   }
 
   @container galnet-page (width < 52rem) {
+    .galnet-page .galnet-background-layout { grid-template-columns: minmax(0, 1fr); }
+    .galnet-page .galnet-analysis-layout {
+      grid-template-columns: minmax(0, 1fr);
+      align-content: start;
+      overflow: auto;
+
+      .galnet-analysis-scroll { overflow: visible; }
+    }
     .galnet-page .galnet-layout {
       grid-template-columns: minmax(0, 1fr);
       grid-template-rows: minmax(14rem, 0.7fr) minmax(18rem, 1.3fr);

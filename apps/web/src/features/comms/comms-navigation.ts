@@ -14,15 +14,15 @@ const routes = {
 } as const satisfies Record<string, CommsRoute>
 
 export const commsNavigationItems: CommsNavigationItem[] = [
+  item('galnet', 'GalNet', 'GLN'),
   item('inbox', 'Inbox', 'IBX'),
   item('traffic', 'Traffic', 'TRF'),
   item('contacts', 'Correspondents', 'COR'),
-  item('galnet', 'GalNet', 'GLN'),
   item('radio', 'Radio', 'RAD')
 ]
 
 export function commsContextForRoute(route: InformationRoute): string {
-  return route.section === 'comms' ? route.view : 'inbox'
+  return route.section === 'comms' ? route.view : 'galnet'
 }
 
 function item(id: keyof typeof routes, label: string, shortLabel: string): CommsNavigationItem {

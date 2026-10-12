@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test } from 'vitest'
 import type { CommunicationsResponse, GalnetNewsResponse, GameActionResult } from '@phoenix/contracts'
 import { CommsPage } from '../apps/web/src/features/comms/comms-page.js'
+import { GalnetArticleReader } from '../apps/web/src/features/comms/galnet-article-reader.js'
 import { commsNavigationItems } from '../apps/web/src/features/comms/comms-navigation.js'
 import { phoenixApiStub } from './support/phoenix-api-stub.js'
 
@@ -11,13 +12,14 @@ const execute = async (): Promise<GameActionResult> => ({ actionId: 'test', mess
 
 test('Comms exposes its typed section navigation', () => {
   expect(commsNavigationItems.map(item => [item.label, item.href])).toEqual([
+    ['GalNet', '#/comms/galnet'],
     ['Inbox', '#/comms/inbox'], ['Traffic', '#/comms/traffic'],
-    ['Correspondents', '#/comms/contacts'], ['GalNet', '#/comms/galnet'], ['Radio', '#/comms/radio']
+    ['Correspondents', '#/comms/contacts'], ['Radio', '#/comms/radio']
   ])
 })
 
 test('Traffic renders retained provenance and selected message detail', () => {
-  const markup = renderToStaticMarkup(<CommsPage analysisApi={analysisApi} controller={{ communications: communications(), status: 'ready' }} onExecuteAction={execute} view="traffic" />)
+  const markup = renderToStaticMarkup(<CommsPage onNavigate={() => undefined} analysisApi={analysisApi} controller={{ communications: communications(), status: 'ready' }} onExecuteAction={execute} view="traffic" />)
   expect(markup).toContain('Public and local traffic')
   expect(markup).toContain('Locke Terminal')
   expect(markup).toContain('Docking request granted')
@@ -26,31 +28,38 @@ test('Traffic renders retained provenance and selected message detail', () => {
 })
 
 test('Correspondents explicitly describe observation rather than presence', () => {
-  const markup = renderToStaticMarkup(<CommsPage analysisApi={analysisApi} controller={{ communications: communications(), status: 'ready' }} onExecuteAction={execute} view="contacts" />)
+  const markup = renderToStaticMarkup(<CommsPage onNavigate={() => undefined} analysisApi={analysisApi} controller={{ communications: communications(), status: 'ready' }} onExecuteAction={execute} view="contacts" />)
   expect(markup).toContain('Correspondents')
   expect(markup).toContain('Message history, not online presence')
   expect(markup).toContain('Observed correspondent')
   expect(markup).toContain('<dt>Presence</dt><dd>Unknown</dd>')
 })
 
-test('GalNet composes the cached article index and reader', () => {
+test('GalNet uses one news browser and the reader contains its title but no AI controls or repeated eyebrow', () => {
   const news: GalnetNewsResponse = {
     articles: [{ body: 'First paragraph.\nSecond paragraph.', id: 'article-1', image: null, publishedAt: '2026-08-16T12:00:00.000Z', title: 'Pilots gather at Colonia' }],
     cache: 'stale', fetchedAt: '2026-08-16T13:00:00.000Z'
   }
-  const markup = renderToStaticMarkup(<CommsPage analysisApi={analysisApi} controller={{ galnet: news, status: 'ready' }} onExecuteAction={execute} view="galnet" />)
-  expect(markup).toContain('stale feed')
-  expect(markup).toContain('Pilots gather at Colonia')
-  expect(markup).toContain('First paragraph')
-  expect(markup).toContain('Second paragraph')
+  const markup = renderToStaticMarkup(<CommsPage onNavigate={() => undefined} analysisApi={analysisApi} controller={{ galnet: news, status: 'ready' }} onExecuteAction={execute} view="galnet" />)
+  expect(markup).toContain('Search news')
+  expect(markup).not.toContain('Latest news')
+  expect(markup).not.toContain('Intelligence')
+  const reader = renderToStaticMarkup(<GalnetArticleReader article={news.articles[0]!} />)
+  expect(reader).toContain('Pilots gather at Colonia')
+  expect(reader).toContain('First paragraph')
+  expect(reader).toContain('Second paragraph')
+  expect(reader).not.toContain('<small>GalNet')
+  expect(reader).not.toContain('AI analysis')
+  expect(reader).not.toContain('<a ')
 })
 
-test('GalNet Radio preserves the accepted previous, stop, play, next control order', () => {
-  const markup = renderToStaticMarkup(<CommsPage analysisApi={analysisApi} controller={{ actions: { actions: [], backend: { id: 'test', available: true, simulated: true, detail: 'Fixture' }, bindingSource: { directory: null, filePath: null, presetNames: [], available: false, bindingCount: 0, keyboardBindingCount: 0, loadedAt: null, error: null } }, status: 'ready' }} onExecuteAction={execute} view="radio" />)
+test('GalNet Radio groups playback controls before clearing the queue and labels their real actions', () => {
+  const markup = renderToStaticMarkup(<CommsPage onNavigate={() => undefined} analysisApi={analysisApi} controller={{ actions: { actions: [], backend: { id: 'test', available: true, simulated: true, detail: 'Fixture' }, bindingSource: { directory: null, filePath: null, presetNames: [], available: false, bindingCount: 0, keyboardBindingCount: 0, loadedAt: null, error: null } }, status: 'ready' }} onExecuteAction={execute} view="radio" />)
   expect(markup).toContain('GalNet Radio')
-  const labels = ['Previous', 'Stop', 'Play', 'Next'].map(label => markup.indexOf(`aria-label="${label}"`))
+  const labels = ['Previous', 'Play / pause', 'Next', 'Clear queue'].map(label => markup.indexOf(`aria-label="${label}"`))
   expect(labels.every(index => index >= 0)).toBe(true)
   expect(labels).toEqual([...labels].sort((left, right) => left - right))
+  expect(markup).not.toContain('aria-label="Stop"')
 })
 
 function communications(): CommunicationsResponse {

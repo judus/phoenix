@@ -50,7 +50,10 @@ export class GalnetBackgroundService {
       return !queued.has(article.id) && (!saved || saved.articleChanged || saved.contextChanged || changedContext.has(article.id))
     }).map(({ article }) => ({ articleId: article.id, title: article.title, publishedAt: article.publishedAt }))
     return { ...state, sourceError: this.runtimeError ?? state.sourceError, configured: this.configured(), requestsToday: this.requestsToday(),
-      pending: this.repository.pending(), jobs: this.repository.list(undefined, 20), backlog }
+      pending: this.repository.pending(), jobs: [
+        ...this.repository.list('running'), ...this.repository.list('pending'),
+        ...this.repository.list(undefined, 20).filter(job => job.state !== 'pending' && job.state !== 'running')
+      ], backlog }
   }
 
   public setSettings(settings: GalnetBackgroundSettings): GalnetBackgroundStatus {

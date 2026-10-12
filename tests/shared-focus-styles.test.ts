@@ -5,6 +5,30 @@ import { expect, test } from 'vitest'
 const styles = resolve(import.meta.dirname, '../packages/ui/src/styles')
 const read = (path: string) => readFileSync(resolve(styles, path), 'utf8')
 
+test('GalNet scrolls the whole reader and retains browser position without scroll anchoring', () => {
+  const galnet = read('pages/galnet.css')
+  const reader = galnet.split('    .galnet-reader {')[1]!.split('    .galnet-analysis-layout')[0]!
+  expect(reader).toContain('overflow: auto')
+  expect(reader).toContain('overflow-anchor: none')
+  const body = reader.split('      .article-body {')[1]!
+  expect(body).not.toContain('overflow: auto')
+  expect(galnet).toContain('&[hidden] { display: none; }')
+})
+
+test('Elite settings lists use spaced textured rows without separator borders', () => {
+  const elite = read('patterns/settings-list.css').split('  .theme-elite {')[1]!.split('  @container')[0]!
+  expect(elite).toContain('gap: var(--elite-row-gap)')
+  expect(elite).toContain('background: var(--elite-row-background)')
+  expect(elite).toContain('border-block-start: 0')
+  expect(elite).toContain('border-block-end: 0')
+})
+
+test('Elite panels and widgets retain shared borders and reuse the cockpit texture', () => {
+  const elite = read('variable.css').split('  .theme-elite {')[1]!
+  expect(elite).not.toContain('--panel-border-width: 0px')
+  expect(read('patterns/panels.css')).toContain('background-image: var(--elite-texture-horizontal), var(--elite-texture-vertical)')
+})
+
 test('inline meter values can grow beyond their minimum width without overflowing', () => {
   expect(read('components/data-display.css')).toContain('minmax(var(--meter-value-size), max-content)')
 })

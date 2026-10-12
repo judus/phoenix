@@ -238,7 +238,7 @@ function renderInformationFeature(application: PhoenixApplicationServices, route
     case 'fleet': return <FleetFeature key={application.router.href(route)} application={application} route={route} />
     case 'galaxy': return <GalaxyFeature key={route.view} application={application} route={route} />
     case 'activities': return <ActivitiesFeature key={application.router.href(route)} application={application} route={route} />
-    case 'comms': return <CommsFeature key={application.router.href(route)} application={application} route={route} />
+    case 'comms': return <CommsFeature key={route.view} application={application} route={route} />
     case 'engineering': return <EngineeringFeature key={application.router.href(route)} application={application} route={route} />
     case 'equipment': return <PersonalEquipmentFeature
       application={application}
@@ -344,6 +344,8 @@ const CommsFeature = memo(function CommsFeature({ application, route }: {
   const controller = useCommsController(application.api, application.events, route.view)
   return <CommsPage
     analysisApi={application.api}
+    galnetRoute={route.view === 'galnet' ? route : undefined}
+    onNavigate={application.router.push}
     controller={controller}
     onExecuteAction={actionId => application.api.executeAction(actionId, 'tap')}
     view={route.view}

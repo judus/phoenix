@@ -4,6 +4,27 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Consolidate GalNet into a searchable, automatically extending news browser. Scroll article titles
+  with their text, remove the repeated eyebrow, and move AI reports, related coverage
+  and background work to a dedicated analysis view. Preserve reading position when returning.
+  Keep full-size, filled search and a selected-article analysis icon in the page header,
+  load more news while scrolling, and omit the external source link from the reader.
+  Give background analysis its own page with the full active queue, recent results,
+  worker metrics and an older-article catch-up list, independent of article reports.
+  Keep long job diagnostics in expandable, wrapping rows without distorting article
+  columns, and explicitly prohibit name expansion inside AI evidence quotes.
+
+- Label GalNet Radio actions accurately: Previous, Play / pause, Next, then Clear
+  queue, with combined playback and clear-queue icons instead of a misleading Stop.
+
+- Open Comms on GalNet and place GLN first in its left navigation rail.
+
+- Match Elite settings lists to the shared textured-row presentation, using gaps
+  instead of separator borders.
+
+- Add the cockpit texture to panels and widgets in the Elite presentation, retaining
+  their shared 1px borders.
+
 - Let inline meter values fit their text, preventing cargo capacity values from
   creating a horizontal scrollbar on the current-ship dashboard.
 

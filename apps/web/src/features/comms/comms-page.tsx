@@ -13,8 +13,6 @@ import {
   DataTableGroup,
   DescriptionItem,
   DescriptionList,
-  ItemList,
-  ItemListItem,
   MetricStrip,
   MetricStripItem,
   PageFrame,
@@ -25,24 +23,26 @@ import {
   Widget
 } from '@phoenix/ui'
 import { GalnetRadioControls } from '../../components/galnet-radio-controls.js'
-import { PhoenixDateTime, UpdatedDateTime } from '../../components/phoenix-date-time.js'
+import { PhoenixDateTime } from '../../components/phoenix-date-time.js'
 import type { CommsControllerSnapshot, CommsView } from './use-comms-controller.js'
 import type { GalnetAnalysisApi } from './galnet-analysis-panel.js'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
-import { GalnetBackgroundPanel } from './galnet-background-panel.js'
-import { GalnetArticleReader } from './galnet-article-reader.js'
 import { GalnetArchiveBrowser } from './galnet-archive-browser.js'
+import type { GalnetRoute, PhoenixRoute } from '../../application/navigation/phoenix-route.js'
+import { phoenixRouteHash } from '../../application/navigation/phoenix-router.js'
 
 type GalnetApi = GalnetAnalysisApi & Pick<PhoenixApi, 'getGalnetBackground' | 'saveGalnetBackground' | 'catchUpGalnet' | 'getGalnetCoverage' | 'getGalnetArchive' | 'getGalnetArchivedArticle'>
 
-export function CommsPage({ controller, onExecuteAction, view, analysisApi }: {
+export function CommsPage({ controller, onExecuteAction, view, analysisApi, galnetRoute, onNavigate }: {
+  galnetRoute?: GalnetRoute
+  onNavigate(route: PhoenixRoute): void
   analysisApi: GalnetApi
   controller: CommsControllerSnapshot
   onExecuteAction(actionId: string): Promise<GameActionResult>
   view: CommsView
 }) {
   if (controller.status === 'idle' || controller.status === 'loading') return <CommsState title={titleFor(view)} />
-  if (view === 'galnet') return <Galnet news={controller.galnet} error={controller.error} api={analysisApi} />
+  if (view === 'galnet') return <Galnet route={galnetRoute ?? { kind: 'information', section: 'comms', view: 'galnet' }} api={analysisApi} onNavigate={onNavigate} error={controller.error} />
   if (controller.status === 'error') return <CommsState error={controller.error ?? 'Communications unavailable.'} title={titleFor(view)} />
   if (view === 'radio') return <Radio actions={controller.actions} onExecuteAction={onExecuteAction} />
   if (!controller.communications) return <CommsState error="Retained communications unavailable." title={titleFor(view)} />
@@ -201,42 +201,15 @@ function CorrespondentDetail({ contact }: { contact: CommunicationContact }) {
   )
 }
 
-function Galnet({ news, api, error }: { news?: CommsControllerSnapshot['galnet'], api: GalnetApi, error?: string }) {
-  const [selectedId, setSelectedId] = useState<string>()
-  const [archive, setArchive] = useState(false)
-  const [archivedId, setArchivedId] = useState<string>()
-  const openArchived = (id: string) => { setArchivedId(id); setArchive(true) }
-  const selected = news?.articles.find(article => article.id === selectedId) ?? news?.articles[0]
+function Galnet({ route, api, onNavigate, error }: { route: GalnetRoute, api: GalnetApi, onNavigate(route: PhoenixRoute): void, error?: string }) {
+  const reading = { ...route, page: undefined }
   return (
     <PageFrame layout="fit">
       <div className="galnet-page">
-        <CommsHeader title="GalNet"
-          actions={<><Button className={`btn-toggle${!archive ? ' active' : ''}`} aria-pressed={!archive} onClick={() => setArchive(false)}>Latest news</Button>
-            <Button className={`btn-toggle${archive ? ' active' : ''}`} aria-pressed={archive} onClick={() => { setArchivedId(undefined); setArchive(true) }}>Archive</Button></>} />
-        {archive ? <GalnetArchiveBrowser api={api} initialArticleId={archivedId} /> : <div className="galnet-layout">
-          <DataTableGroup className="galnet-index" meta={news ? `${news.articles.length} articles` : undefined} title="Latest news">
-            <div className="galnet-index-scroll" tabIndex={0}>
-              {news && <Status tone="muted" wrap>{news.cache} feed · <UpdatedDateTime value={news.fetchedAt} /></Status>}
-              <GalnetBackgroundPanel api={api} />
-              <ItemList className="surface" density="compact" aria-label="GalNet articles">
-                {news?.articles.map(article => (
-                  <ItemListItem
-                    eyebrow={<PhoenixDateTime precision="date" value={article.publishedAt} />}
-                    key={article.id}
-                    onActivate={() => setSelectedId(article.id)}
-                    selected={article.id === selected?.id}
-                    title={article.title}
-                  />
-                ))}
-              </ItemList>
-              <Notification message={error} />
-              {!news && !error && <Status tone="muted">Reading latest news…</Status>}
-            </div>
-          </DataTableGroup>
-          <DataTableGroup className="galnet-reader-group" meta={selected ? <PhoenixDateTime precision="date" value={selected.publishedAt} /> : undefined} title="GalNet article">
-            {selected ? <GalnetArticleReader key={selected.id} article={selected} api={api} onOpen={openArchived} /> : <Status tone="muted">{news ? 'Frontier returned no GalNet articles.' : 'Select Archive to browse retained articles.'}</Status>}
-          </DataTableGroup>
-        </div>}
+        <Notification message={error} />
+        <GalnetArchiveBrowser api={api} route={route} onNavigate={onNavigate} header={actions => route.page ? <PageHeader variant="cockpit" title={route.page === 'background' ? 'Background analysis' : 'GalNet analysis'}
+          context={<Breadcrumbs items={[{ label: 'Comms', href: '#/comms/galnet' }, { label: 'GalNet', href: phoenixRouteHash(reading) }, { label: route.page === 'background' ? 'Background analysis' : 'Analysis' }]} />}
+          actions={<Button onClick={() => onNavigate(reading)}>{route.page === 'background' ? 'Back to news' : 'Back to article'}</Button>} /> : <CommsHeader title="GalNet" actions={actions} />} />
       </div>
     </PageFrame>
   )
@@ -252,9 +225,9 @@ function Radio({ actions, onExecuteAction }: { actions?: CommsControllerSnapshot
 }
 
 function CommsHeader({ status, title, actions }: { status?: ReactNode, title: string, actions?: ReactNode }) {
-  const items = title === 'Inbox'
+  const items = title === 'GalNet'
     ? [{ label: 'Comms' }, { label: title }]
-    : [{ label: 'Comms', href: '#/comms/inbox' }, { label: title }]
+    : [{ label: 'Comms', href: '#/comms/galnet' }, { label: title }]
   return <PageHeader variant="cockpit" context={<Breadcrumbs items={items} />} status={status} title={title} actions={actions} />
 }
 
