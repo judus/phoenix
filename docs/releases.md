@@ -19,7 +19,15 @@ Only PHOENIX is covered here; Control Deck has its own independent repository/re
 
 `ci.yml` runs on pushes and pull requests to `dev`/`main`, and manual dispatch. It calls the same
 native verification workflow on Ubuntu 24.04 x64 and Windows Server 2022 x64 with Node 24.14.0.
-Every run executes `npm ci` and `npm run check`. Pull requests into `main` and manual
+Every run executes `npm ci` and `npm run check`.
+On Windows CI, Vitest uses one worker: concurrent test files amplify durable SQLite disk
+latency on hosted runners. The five-second test limit, real disk/reopen fixtures and normal
+SQLite durability remain unchanged; local runs and Linux CI retain default parallelism.
+This trades Windows job throughput for repeatable disk-backed integration checks, rather than
+relaxing assertions or extending timeouts. See the opt-in measurements in
+`scripts/diagnostics/README.md`.
+
+Pull requests into `main` and manual
 CI runs additionally verify the native packages: Linux verifies the pinned AppImage runtime,
 helpers and file hashes, then smoke-tests AppRun and the image's extract-and-run lifecycle;
 Windows installs, smoke-tests its native launcher, then uninstalls. Ordinary

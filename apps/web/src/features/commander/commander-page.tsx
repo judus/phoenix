@@ -1,4 +1,4 @@
-import {
+import { Notification,
   AutoGrid,
   Breadcrumbs,
   DataTable,
@@ -25,7 +25,7 @@ export function CommanderPage({ model, runtime, view }: {
       <PageFrame className="record-page" layout="fit">
         <div className="record-page-layout">
           <CommanderHeader view={view} />
-          {runtime.status === 'error' ? <Status tone="danger">{runtime.error}</Status>
+          {runtime.status === 'error' ? <Notification message={runtime.error} />
             : <Loading>Waiting for commander telemetry…</Loading>}
         </div>
       </PageFrame>

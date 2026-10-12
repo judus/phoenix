@@ -4,9 +4,9 @@ import type { GameActionAvailability, GameActionCatalogResponse, GameActionResul
 
 const RADIO_COMMANDS = [
   { actionId: 'elite.GalnetAudio_SkipBackward', label: 'Previous', icon: <PreviousIcon /> },
-  { actionId: 'elite.GalnetAudio_ClearQueue', label: 'Stop', icon: <StopIcon /> },
-  { actionId: 'elite.GalnetAudio_Play_Pause', label: 'Play', icon: <PlayIcon /> },
-  { actionId: 'elite.GalnetAudio_SkipForward', label: 'Next', icon: <NextIcon /> }
+  { actionId: 'elite.GalnetAudio_Play_Pause', label: 'Play / pause', icon: <PlayPauseIcon /> },
+  { actionId: 'elite.GalnetAudio_SkipForward', label: 'Next', icon: <NextIcon /> },
+  { actionId: 'elite.GalnetAudio_ClearQueue', label: 'Clear queue', icon: <ClearQueueIcon /> }
 ] as const
 
 export function GalnetRadioControls({ actionCatalog, className, onExecute }: {
@@ -66,6 +66,6 @@ export function GalnetRadioControls({ actionCatalog, className, onExecute }: {
 }
 
 function PreviousIcon() { return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 5v14M19 5 8 12l11 7V5Z" /></svg> }
-function StopIcon() { return <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" /></svg> }
-function PlayIcon() { return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7V5Z" /></svg> }
+function ClearQueueIcon() { return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h10M3 18h10m3-5 6 6m0-6-6 6" stroke="currentColor" strokeWidth="1.75" /></svg> }
+function PlayPauseIcon() { return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 5 10 7L3 19V5Zm12 0h3v14h-3zm5 0h3v14h-3z" /></svg> }
 function NextIcon() { return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M18 5v14M5 5l11 7-11 7V5Z" /></svg> }

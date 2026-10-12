@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import {
+import { Notification,
   Breadcrumbs,
   Button,
   NumberInput,
@@ -138,6 +138,9 @@ export function SettingsPage ({ api, devicePreferences }: { api: PhoenixApi, dev
                 onChange={() => devicePreferences.update({ variableCommandLabelSizes: !preferences.variableCommandLabelSizes })}
               />
             </SettingRow>
+            <SettingRow description="Show muted dashed outlines and slot numbers for empty Control Deck slots." scope="This device" title="Empty deck slots">
+              <SettingToggle checked={preferences.showEmptyDeckSlots} label={preferences.showEmptyDeckSlots ? 'On' : 'Off'} onChange={() => devicePreferences.update({ showEmptyDeckSlots: !preferences.showEmptyDeckSlots })} />
+            </SettingRow>
           </SettingsList>
         </Section>
 
@@ -160,7 +163,7 @@ export function SettingsPage ({ api, devicePreferences }: { api: PhoenixApi, dev
 
         <Section description="Shared by every paired device." title="Game integration">
           {!settings || !modules
-            ? <Status tone={error ? 'danger' : 'muted'}>{error ?? 'Loading installation settings…'}</Status>
+            ? !error && <Status tone="muted">Loading installation settings…</Status>
             : <SettingsList>
                 <SettingRow description="Allow PHOENIX to send configured inputs to Elite. A restart may be required." scope="Installation" title="Game controls">
                   <SettingToggle checked={settings.controlsEnabled} disabled={pending} label={settings.controlsEnabled ? 'On' : 'Off'} onChange={() => void saveControls(!settings.controlsEnabled)} />
@@ -173,7 +176,7 @@ export function SettingsPage ({ api, devicePreferences }: { api: PhoenixApi, dev
                   </div>
                 </SettingRow>
               </SettingsList>}
-          {error && settings && modules && <Status tone="danger">{error}</Status>}
+          <Notification message={error} />
         </Section>
         <CommunityDataSettings api={api} />
       </div>

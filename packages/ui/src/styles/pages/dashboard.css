@@ -72,7 +72,7 @@
     .dashboard-command-slots {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: var(--spacing-xs);
+      gap: var(--spacing-sm);
       min-inline-size: 0;
       min-block-size: 0;
 

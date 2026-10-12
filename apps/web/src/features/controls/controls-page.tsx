@@ -14,7 +14,7 @@ import {
   type ControlDeckDeckGroup
 } from 'control-deck/core'
 import { PHOENIX_CONTROL_LAYOUT_PRESETS, PhoenixControlDeckThemeSchema, controlDeckTargetToPhoenixTarget, phoenixControlLayoutPreset, type CommandTarget, type GameActionAvailability, type GameActionOperation, type PhoenixControlDeckConfiguration, type PhoenixControlDeckTheme, type RuntimeState } from '@phoenix/contracts'
-import { Breadcrumbs, Button, CheckIcon, compactBindingLabel, ControlContext, CrossIcon, DataTable, IconButton, Inline, InputGroup, Loading, NumberInput, PageFrame, PageHeader, Select, Status, TileButton, Widget } from '@phoenix/ui'
+import { Notification, Breadcrumbs, Button, CheckIcon, compactBindingLabel, ControlContext, CrossIcon, DataTable, IconButton, Inline, InputGroup, Loading, NumberInput, PageFrame, PageHeader, Select, Status, TileButton, Widget } from '@phoenix/ui'
 import { createClientId } from '../../application/identity/client-identity.js'
 import type { MacroRuntime } from '../../application/macros/macro-runtime.js'
 import type { ControlDeckId } from '../../application/navigation/phoenix-route.js'
@@ -27,13 +27,14 @@ import { ControlSurface } from './control-surface.js'
 
 const DeckPreview = createContext(false)
 
-export const ControlsPage = memo(function ControlsPage({ deckId, controller, editing, macros, runtime, variableFontSizes, preview = false, onEditingChange, onExecuteAction, onExecuteNavigation, onSaveConfiguration }: {
+export const ControlsPage = memo(function ControlsPage({ deckId, controller, editing, macros, runtime, variableFontSizes, showEmptySlots = false, preview = false, onEditingChange, onExecuteAction, onExecuteNavigation, onSaveConfiguration }: {
   deckId: ControlDeckId
   controller: ControlsControllerSnapshot
   editing: boolean
   macros: MacroRuntime
   runtime?: RuntimeState
   variableFontSizes: boolean
+  showEmptySlots?: boolean
   preview?: boolean
   onEditingChange(editing: boolean): void
   onExecuteAction(actionId: string, operation: GameActionOperation, leaseId?: string): Promise<unknown>
@@ -131,11 +132,11 @@ export const ControlsPage = memo(function ControlsPage({ deckId, controller, edi
         variant="cockpit"
       />}
       {controller.status === 'error' || error || macros.error
-        ? <Status tone="danger">{error ?? macros.error ?? controller.error}</Status>
+        ? <Notification message={error ?? macros.error ?? controller.error} />
         : controller.status === 'loading'
           ? <Loading>Loading command grid…</Loading>
           : !deck || !activeConfiguration
-            ? <Status tone="danger">The PHOENIX Control Deck configuration is incomplete.</Status>
+            ? <Notification message="The PHOENIX Control Deck configuration is incomplete." />
           : editing && editingPosition !== undefined && editorColumn !== undefined && editorRow !== undefined
             ? <div className="phoenix-control-deck">
                 <ButtonEditor
@@ -199,7 +200,7 @@ export const ControlsPage = memo(function ControlsPage({ deckId, controller, edi
                 const position = (row - 1) * deck.layout.columns + column
                 return editing
                   ? <Button aria-label={`Cell ${position}`} className="control-deck-empty" variant="quiet" onClick={() => setEditingPosition(position)}>{position}</Button>
-                  : <div className="control-deck-empty" />
+                  : <div aria-hidden="true" className={`control-deck-empty${showEmptySlots ? ' outlined' : ''}`}>{showEmptySlots ? position : undefined}</div>
               }}
               renderCommand={element => {
                 const position = (element.placement.row - 1) * deck.layout.columns + element.placement.column
@@ -397,7 +398,7 @@ function DeckSettings ({ configuration, deck, group, onChange, onSave, onCancel,
           {['phoenix', 'blue', 'cyan', 'green', 'amber', 'orange', 'red', 'violet', 'magenta'].map(theme => <option key={theme} value={theme}>{themeLabel(PhoenixControlDeckThemeSchema.parse(theme))}</option>)}
         </Select></InputGroup>
       </ControlContext>
-      {error && <Status tone="danger">{error}</Status>}
+      {error && <Notification message={error} />}
     </Widget>
     <Inline align="stretch" gap="xs" wrap={false}>
       <IconButton className="btn-no-grip" variant="outline" label="Cancel editing" disabled={saving} onClick={onCancel}><CrossIcon /></IconButton>
@@ -512,6 +513,7 @@ function ControlDeckCommandTile({ appearance, binding, interaction, kind = 'acti
     aria-pressed={selected || undefined}
     className={[
       kind === 'macro' && 'theme-macro',
+      dangerAppearance ? 'theme-danger' : (appearance.foregroundColor || appearance.backgroundColor) && 'theme-custom',
       selected && 'active',
       unavailable && 'unavailable',
       className

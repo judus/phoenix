@@ -85,6 +85,14 @@ export function CrossIcon () {
   )
 }
 
+export function AnalysisIcon () {
+  return <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 3H4v18h16v-7M7 7h4M7 11h2M7 17h5" strokeWidth="1.75" /><circle cx="16" cy="7" r="4" /><path d="m19 10 3 3" strokeWidth="1.75" /></svg>
+}
+
+export function QueueIcon () {
+  return <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5h12M9 12h12M9 19h12M3 3h3v4H3ZM3 10h3v4H3ZM3 17h3v4H3Z" strokeWidth="1.75" /></svg>
+}
+
 export function ChevronRightIcon () {
   return (
     <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">

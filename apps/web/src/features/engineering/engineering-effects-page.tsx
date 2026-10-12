@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import type { EngineeringExperimentalEffect, EngineeringProject } from '@phoenix/contracts'
-import { Button, DataTable, DataTableGroup, Field, Form, FormActions, FormGrid, PageFrame, Section, Select, Stack, Status, TextInput } from '@phoenix/ui'
+import { Notification, Button, DataTable, DataTableGroup, Field, Form, FormActions, FormGrid, PageFrame, Section, Select, Stack, Status, TextInput } from '@phoenix/ui'
 import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
 import type { EngineeringControllerActions } from './use-engineering-controller.js'
 import { EngineeringHeader } from './engineering-header.js'
@@ -44,17 +44,19 @@ function EffectDetail({ effect, projects, actions, onNavigate }: {
   const [moduleId, setModuleId] = useState(effect.modules[0]?.id ?? '')
   const [count, setCount] = useState('1')
   const [error, setError] = useState<string>()
+  const [countError, setCountError] = useState<string>()
   const [saving, setSaving] = useState(false)
   const selectedProject = active.some(project => project.id === projectId) ? projectId : active[0]?.id ?? ''
   const submit = (event: FormEvent) => {
     event.preventDefault()
     const applications = Number(count)
     if (!count.trim() || !Number.isInteger(applications) || applications < 1 || applications > 100) {
-      setError('Applications must be a whole number between 1 and 100.')
+      setCountError('Applications must be a whole number between 1 and 100.')
       return
     }
     if (!actions || !selectedProject || saving) return
     setSaving(true); setError(undefined)
+    setCountError(undefined)
     void actions.addStep(selectedProject, { kind: 'experimental', effectSymbol: effect.symbol, moduleId, applications, note: null })
       .then(() => onNavigate(engineeringProjectRoutes.detail(selectedProject)))
       .catch(cause => { setError(cause instanceof Error ? cause.message : 'Effect could not be added.'); setSaving(false) })
@@ -72,11 +74,11 @@ function EffectDetail({ effect, projects, actions, onNavigate }: {
       <FormGrid>
         <Field label="Project" htmlFor="effect-project"><Select id="effect-project" value={selectedProject} onChange={event => setProjectId(event.target.value)}>{active.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}</Select></Field>
         <Field label="Module type" htmlFor="effect-module"><Select id="effect-module" value={moduleId} onChange={event => setModuleId(event.target.value)}>{effect.modules.map(module => <option key={module.id} value={module.id}>{module.name}</option>)}</Select></Field>
-        <Field label="Applications" htmlFor="effect-count" hint="One application per module." required><TextInput id="effect-count" inputMode="numeric" type="number" required min={1} max={100} step={1} value={count} onChange={event => setCount(event.target.value)} /></Field>
+        <Field label="Applications" htmlFor="effect-count" hint="One application per module." error={countError} required><TextInput id="effect-count" inputMode="numeric" type="number" required min={1} max={100} step={1} value={count} onChange={event => { setCount(event.target.value); setCountError(undefined) }} /></Field>
       </FormGrid>
-      <FormActions message={error ? <Status tone="danger" wrap>{error}</Status> : undefined}>
+      <><Notification message={error} /><FormActions>
         <Button variant="primary" disabled={!actions || !selectedProject} busy={saving}>Add effect</Button>
-      </FormActions>
+      </FormActions></>
     </Form></Section> : <Section title="Project required"><Stack gap="sm">
       <Status tone="muted">Create an active project to plan this effect.</Status>
       <div><Button onClick={() => onNavigate(engineeringProjectRoutes.new())}>New project</Button></div>

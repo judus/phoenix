@@ -1,5 +1,10 @@
 # Third-party notices
 
+## Sonner
+
+[Sonner](https://github.com/emilkowalski/sonner) provides the shared notification stack,
+under the MIT licence. Its complete notice is included in `licenses/Sonner-MIT.txt`.
+
 ## Android shell
 
 The optional Android wrapper uses [AndroidX](https://developer.android.com/jetpack/androidx),

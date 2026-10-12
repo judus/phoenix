@@ -2,10 +2,10 @@ import { AutoGrid, Breadcrumbs, DescriptionItem, DescriptionList, PageFrame, Pag
 
 export function CreditsPage() {
   return <PageFrame className="credits-page" layout="fit">
-    <PageHeader context={<Breadcrumbs items={[{ label: 'Log' }, { label: 'Credits' }]} />} title="Credits" variant="cockpit" />
+    <PageHeader context={<Breadcrumbs items={[{ label: 'Log' }, { label: 'Credits' }]} />} title="Sources & Credits" variant="cockpit" />
     <AutoGrid
       className="credits-sources"
-      gap="xs"
+      gap="sm"
       minimum="xl"
     >
         <Panel title="Elite Dangerous · Frontier Developments">
@@ -68,7 +68,7 @@ export function CreditsPage() {
               value="System, station, shipyard, outfitting, faction and exploration searches."
             />
             <DescriptionItem
-              label={<SourceLink href="https://ardent-insight.com/">Ardent Insight</SourceLink>}
+              label={<SourceLink href="https://github.com/iaincollins/ardent-api">Ardent</SourceLink>}
               value="Nearest facilities, commodity markets, trade opportunities and market signals."
             />
           </DescriptionList>
@@ -103,6 +103,10 @@ export function CreditsPage() {
             <DescriptionItem
               label={<SourceLink href="https://github.com/judus/deskplane">Deskplane</SourceLink>}
               value="Workspace navigation and touch gestures."
+            />
+            <DescriptionItem
+              label={<SourceLink href="https://github.com/emilkowalski/sonner">Sonner · Emil Kowalski</SourceLink>}
+              value="Shared notification queue and toast interactions, under the MIT licence."
             />
             <DescriptionItem
               label={<SourceLink href="https://github.com/IBM/plex">IBM Plex Sans · IBM</SourceLink>}

@@ -13,6 +13,24 @@ import { ControlSurface } from '../apps/web/src/features/controls/control-surfac
 beforeAll(() => Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }))
 afterEach(() => vi.useRealTimers())
 
+test.each([false, true])('empty slot outlines and numbers follow the device setting (%s)', showEmptySlots => {
+  const configuration = { ...DEFAULT_CONTROL_DECK_CONFIGURATION, decks: [...DEFAULT_CONTROL_DECK_CONFIGURATION.decks, { id: 'utility', name: 'Utility', description: '', context: null, layout: { kind: 'grid' as const, columns: 3, rows: 2 }, elements: [] }] }
+  const props = {
+    deckId: 'utility', macros: emptyMacroRuntime(), variableFontSizes: true, showEmptySlots,
+    controller: { status: 'ready' as const, configuration },
+    onEditingChange: vi.fn(), onExecuteAction: vi.fn(), onSaveConfiguration: vi.fn()
+  }
+  const markup = renderToStaticMarkup(<ControlsPage {...props} editing={false} />)
+  const slots = [...markup.matchAll(/<div aria-hidden="true" class="control-deck-empty( outlined)?">(.*?)<\/div>/g)]
+  expect(slots).toHaveLength(6)
+  expect(slots.map(slot => slot[2])).toEqual(showEmptySlots ? ['1', '2', '3', '4', '5', '6'] : ['', '', '', '', '', ''])
+  expect(slots.every(slot => Boolean(slot[1]) === showEmptySlots)).toBe(true)
+  const editing = renderToStaticMarkup(<ControlsPage {...props} editing />)
+  expect(editing).not.toContain('control-deck-empty outlined')
+  expect(editing).toContain('aria-label="Cell 1">1</button>')
+  expect(editing).toContain('aria-label="Cell 6">6</button>')
+})
+
 test('the controls page renders bound and unbound discovered commands', () => {
   const markup = renderToStaticMarkup(
     <ControlsPage
@@ -108,7 +126,10 @@ test('a button label override replaces the command catalogue label', () => {
   expect(markup).not.toContain('variable-font-sizes')
 })
 
-test('a button color override is applied to the command tile', () => {
+test.each([
+  ['danger', '#ff6258', '#3a1717', 'theme-danger'],
+  ['custom', '#62d88d', '#143522', 'theme-custom']
+] as const)('a %s button color override selects the matching shared tile treatment', (kind, foregroundColor, backgroundColor, theme) => {
   const configuration = {
     ...DEFAULT_CONTROL_DECK_CONFIGURATION,
     decks: DEFAULT_CONTROL_DECK_CONFIGURATION.decks.map(deck => deck.context !== 'phoenix:ship'
@@ -121,8 +142,8 @@ test('a button color override is applied to the command tile', () => {
                 ...element,
                 appearance: {
                   ...element.appearance,
-                  foregroundColor: '#ff6258' as const,
-                  backgroundColor: '#3a1717' as const
+                  foregroundColor,
+                  backgroundColor
                 }
               })
         })
@@ -153,8 +174,9 @@ test('a button color override is applied to the command tile', () => {
   )
 
   const shipButton = markup.match(/<button aria-label="Ship Lights, L"[^>]*>/)?.[0]
-  expect(shipButton).toContain('--command-border:var(--command-danger-border)')
-  expect(shipButton).toContain('--command-background:var(--command-danger-background)')
+  expect(shipButton).toContain(theme)
+  expect(shipButton).toContain(`--command-border:${kind === 'danger' ? 'var(--command-danger-border)' : foregroundColor}`)
+  expect(shipButton).toContain(`--command-background:${kind === 'danger' ? 'var(--command-danger-background)' : backgroundColor}`)
   expect(shipButton).not.toContain('--command-meta:')
   expect(shipButton).not.toContain('--command-text:')
 })

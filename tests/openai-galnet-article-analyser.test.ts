@@ -32,6 +32,7 @@ test('existing low-level client requests bounded strict structured output withou
   expect(messages).toContain('destination null unless the article explicitly identifies its actionable destination system')
   expect(messages).toContain('must not invent coordinates')
   expect(messages).toContain('without adding quotation marks, ellipses or terminal punctuation')
+  expect(messages).toContain('Never expand names, resolve pronouns, correct grammar or paraphrase inside evidence quotes')
   expect(messages).toContain('cg-research')
 })
 

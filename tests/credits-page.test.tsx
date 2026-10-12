@@ -7,6 +7,7 @@ import { CreditsPage } from '../apps/web/src/features/journal/credits-page.js'
 test('uses the shared page header and breadcrumb navigation', () => {
   const markup = renderToStaticMarkup(<CreditsPage />)
   expect(markup).toContain('class="page-header page-header-cockpit"')
+  expect(markup).toContain('Sources &amp; Credits</h1>')
   expect(markup).toContain('aria-label="Breadcrumb"')
   expect(markup).toContain('class="breadcrumb-separator"')
   expect(markup).toContain('<span>Log</span>')
@@ -29,7 +30,8 @@ test('credits the local, bundled, live and optional data sources', () => {
   expect(markup).toContain('EDCD · Coriolis Data')
   expect(markup).toContain('EDSM')
   expect(markup).toContain('Spansh')
-  expect(markup).toContain('Ardent Insight')
+  expect(markup).toContain('href="https://github.com/iaincollins/ardent-api"')
+  expect(markup).toContain('Ardent</a>')
   expect(markup).toContain('OpenAI')
 })
 

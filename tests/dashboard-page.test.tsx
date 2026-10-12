@@ -1,4 +1,5 @@
 import { renderWithAct } from './support/render-with-act.js'
+import { dismissNotification, notificationMarkup, notificationText } from './support/notifications.js'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { act, create } from 'react-test-renderer'
 import { expect, test, vi } from 'vitest'
@@ -6,8 +7,8 @@ import { createEmptyRuntimeState } from '@phoenix/contracts'
 import { DashboardPage } from '../apps/web/src/features/dashboard/dashboard-page.js'
 import type { DashboardViewModel } from '../apps/web/src/features/dashboard/dashboard-view-model.js'
 
-test('dashboard exposes degraded evidence and preserves radio control order', () => {
-  const markup = renderToStaticMarkup(
+test('dashboard exposes degraded evidence and preserves radio control order', async () => {
+  const element = (
     <DashboardPage
       controller={{ commanderLog: [], error: 'Dashboard query unavailable.', localTraffic: localTraffic(), materialWatchlist: materialWatchlist(), status: 'error' }}
       eventConnection={{ state: 'error', error: 'Live events disconnected.' }}
@@ -25,11 +26,14 @@ test('dashboard exposes degraded evidence and preserves radio control order', ()
       }}
     />
   )
+  const renderer = await renderWithAct(element)
+  const markup = renderToStaticMarkup(element)
 
-  expect(markup).toContain('Dashboard query unavailable.')
-  expect(markup).toContain('Live events disconnected.')
-  expect(markup).toContain('Runtime unavailable.')
-  expect(markup).toContain('Voice unavailable.')
+  expect(notificationText()).toContain('Dashboard query unavailable.')
+  expect(notificationText()).toContain('Live events disconnected.')
+  expect(notificationText()).toContain('Runtime unavailable.')
+  expect(notificationText()).toContain('Voice unavailable.')
+  expect(markup).not.toContain('Dashboard query unavailable.')
   expect(markup).toContain('No notable commander events retained.')
   expect(markup).toContain('<dt>Commander</dt><dd><strong>IDENTITY PENDING</strong></dd>')
   expect(markup).toMatch(/<span>Current location<\/span><h3[^>]*>UNKNOWN SYSTEM<\/h3>/)
@@ -54,11 +58,11 @@ test('dashboard exposes degraded evidence and preserves radio control order', ()
   expect(markup).not.toContain('1 missing')
   expect(markup).not.toContain('raw · G2')
   expect(markup).toContain('No recent local communications observed.')
-  expect(markup).toContain('panel panel-danger toast danger dashboard-alerts')
-  expect(markup).toContain('role="alert"')
-  expect(markup).toContain('aria-label="Dismiss dashboard alert"')
+  expect(notificationMarkup()).toContain('panel panel-danger toast danger notification')
+  expect(notificationMarkup()).toContain('role="alert"')
+  expect(notificationMarkup()).toContain('aria-label="Dismiss message"')
   expect(markup).not.toContain('<h3>Commander log</h3>')
-  expect(markup).toContain('Attention</h3>')
+  expect(notificationMarkup()).toContain('Attention</h3>')
   expect(markup).toContain('<div class="label-action"><dt>Credits</dt><dd><span class="currency">—</span></dd></div>')
   expect(markup).toContain('<dt>Legal status</dt><dd>—</dd>')
   expect(markup).toContain('aria-label="Connect Copilot voice"')
@@ -69,6 +73,24 @@ test('dashboard exposes degraded evidence and preserves radio control order', ()
   expect(markup).not.toContain('>Unbound<')
   expect(markup).not.toContain('<span>GalNet radio</span>')
   expect(markup).not.toContain('aria-label="Copilot"')
+  await act(async () => renderer.unmount())
+})
+
+test('dashboard recovery does not reopen a dismissed failure from another owner', async () => {
+  const props = {
+    controller: { commanderLog: [], status: 'ready' as const },
+    eventConnection: { state: 'open' as const }, hrefFor: () => '#/typed',
+    model: { ...model(), warnings: [] }, onExecuteAction: vi.fn(), onNavigate: vi.fn(),
+    voice: { connected: false, connect: vi.fn(), disconnect: vi.fn(), error: 'Voice offline.', transitioning: false }
+  }
+  const renderer = await renderWithAct(<DashboardPage {...props} runtime={{ status: 'error', error: 'Runtime offline.' }} />)
+  try {
+    await act(async () => { dismissNotification('Runtime offline.'); dismissNotification('Voice offline.') })
+    await act(async () => renderer.update(<DashboardPage {...props} runtime={{ status: 'ready', state: createEmptyRuntimeState() }} />))
+    expect(notificationText()).toBe('')
+    await act(async () => renderer.update(<DashboardPage {...props} voice={{ ...props.voice, error: 'New voice failure.' }} runtime={{ status: 'ready', state: createEmptyRuntimeState() }} />))
+    expect(notificationText()).toBe('New voice failure.')
+  } finally { await act(async () => renderer.unmount()) }
 })
 
 test('dashboard identifies its loading state without replacing the shell', () => {

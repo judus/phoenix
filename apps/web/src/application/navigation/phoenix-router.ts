@@ -120,8 +120,15 @@ export function parsePhoenixRoute(input: string): PhoenixRoute {
 
   if (section === 'comms') {
     const view = rest[0] === 'overview'
-      ? 'inbox'
-      : oneOf(rest[0], ['inbox', 'traffic', 'contacts', 'galnet', 'radio'] as const) ?? 'inbox'
+      ? 'galnet'
+      : oneOf(rest[0], ['inbox', 'traffic', 'contacts', 'galnet', 'radio'] as const) ?? 'galnet'
+    if (view === 'galnet') {
+      const page = oneOf(rest[1], ['analysis', 'background'] as const)
+      return { kind: 'information', section, view,
+        ...(query.article?.trim() ? { selectedArticleId: query.article.trim() } : {}),
+        ...(query.search?.trim() ? { search: query.search.trim().slice(0, 200) } : {}),
+        ...(page ? { page } : {}) }
+    }
     return { kind: 'information', section, view }
   }
 
@@ -142,6 +149,10 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
     case 'settings': path = `/settings/${route.view}`; break
   }
   const parameters = new URLSearchParams()
+  if (route.kind === 'information' && route.section === 'comms' && route.view === 'galnet') {
+    if (route.selectedArticleId) parameters.set('article', route.selectedArticleId)
+    if (route.search) parameters.set('search', route.search)
+  }
   if (route.kind === 'information' && route.section === 'activities' && route.view === 'missions' && route.selectedMissionId !== undefined) {
     parameters.set('mission', String(route.selectedMissionId))
   }
@@ -204,6 +215,7 @@ export function phoenixRouteHash(route: PhoenixRoute): string {
 }
 
 function informationPath(route: InformationRoute): string {
+  if (route.section === 'comms' && route.view === 'galnet' && route.page) return `/comms/galnet/${route.page}`
   if (route.section === 'fleet') {
     if (route.view === 'current-overview') return '/fleet/ships/current/overview'
     if (route.view === 'current-loadout') return '/fleet/ships/current/loadout'

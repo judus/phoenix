@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { EngineeringBlueprintDetail, EngineeringProject } from '@phoenix/contracts'
-import { Button, Field, Form, FormActions, FormGrid, PageFrame, Section, Select, Stack, Status, Textarea, TextInput } from '@phoenix/ui'
+import { Notification, Button, Field, Form, FormActions, FormGrid, PageFrame, Section, Select, Stack, Status, Textarea, TextInput } from '@phoenix/ui'
 import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
 import { EngineeringHeader } from './engineering-header.js'
 import { engineeringProjectRoutes } from './engineering-navigation.js'
@@ -20,6 +20,7 @@ export function EngineeringAddBlueprintPage ({ actions, blueprint, onNavigate, p
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string>()
+  const [rollsError, setRollsError] = useState<string>()
   useEffect(() => {
     if (!active.some(project => project.id === projectId)) setProjectId(active[0]?.id ?? '')
   }, [active, projectId])
@@ -28,10 +29,11 @@ export function EngineeringAddBlueprintPage ({ actions, blueprint, onNavigate, p
     if (!actions || !projectId) return
     const plannedRolls = Number(rolls)
     if (!rolls.trim() || !Number.isInteger(plannedRolls) || plannedRolls < 1 || plannedRolls > 100) {
-      setError('Planned rolls must be a whole number between 1 and 100.')
+      setRollsError('Planned rolls must be a whole number between 1 and 100.')
       return
     }
     setSaving(true)
+    setRollsError(undefined)
     setError(undefined)
     void actions.addStep(projectId, { blueprintSymbol: blueprint.symbol, targetGrade: grade, plannedRolls, note: note.trim() || null })
       .then(() => onNavigate(engineeringProjectRoutes.detail(projectId)))
@@ -60,19 +62,18 @@ export function EngineeringAddBlueprintPage ({ actions, blueprint, onNavigate, p
                         {blueprint.grades.map(candidate => <option key={candidate.grade} value={candidate.grade}>Grade {candidate.grade}</option>)}
                       </Select>
                     </Field>
-                    <Field htmlFor="blueprint-rolls" label="Planned rolls">
-                      <TextInput id="blueprint-rolls" inputMode="numeric" min={1} max={100} step={1} required type="number" value={rolls} onChange={event => setRolls(event.target.value)} />
+                    <Field htmlFor="blueprint-rolls" label="Planned rolls" error={rollsError}>
+                      <TextInput id="blueprint-rolls" inputMode="numeric" min={1} max={100} step={1} required type="number" value={rolls} onChange={event => { setRolls(event.target.value); setRollsError(undefined) }} />
                     </Field>
                   </FormGrid>
                   <Field htmlFor="blueprint-project-note" label="Step note">
                     <Textarea id="blueprint-project-note" maxLength={500} rows={3} value={note} onChange={event => setNote(event.target.value)} />
                   </Field>
-                  <FormActions
-                    message={error ? <Status tone="danger" wrap>{error}</Status> : undefined}
+                  <><Notification message={error} /><FormActions
                     navigation={<Button type="button" variant="outline" onClick={() => onNavigate(blueprintRoute)}>Cancel</Button>}
                   >
                     <Button busy={saving} disabled={!actions || !projectId} variant="primary">Add blueprint</Button>
-                  </FormActions>
+                  </FormActions></>
                 </Form>
               </Section>
             )

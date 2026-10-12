@@ -45,7 +45,7 @@ test.each([
   ['fleet', 'current-overview', 'Fleet views', '#/fleet/ships/current/overview'],
   ['galaxy', 'system', 'Galaxy views', 'system'],
   ['activities', 'missions', 'Activity views', '#/activities/missions'],
-  ['comms', 'inbox', 'Comms views', '#/comms/inbox'],
+  ['comms', 'inbox', 'Comms views', 'inbox'],
   ['engineering', 'projects', 'Engineering views', '#/engineering/projects'],
   ['equipment', 'gear', 'Equipment views', null]
 ] as const)('information composition preserves %s context and feature key', (section, view, label, key) => {
@@ -63,6 +63,18 @@ test('Galaxy selection changes preserve the view-only key and pass the full rout
     const route: InformationRoute = { kind: 'information', section: 'galaxy', view: 'system', systemName }
     const boundary = composition(route).information as ReactElement<{ children: ReactElement<{ route: InformationRoute }> }>
     expect(boundary.props.children.key).toBe('system')
+    expect(boundary.props.children.props.route).toBe(route)
+  }
+})
+
+test('GalNet reader and analysis navigation preserve the feature key and pass the full route', () => {
+  for (const page of [undefined, 'analysis', 'background'] as const) {
+    const route: InformationRoute = {
+      kind: 'information', section: 'comms', view: 'galnet',
+      selectedArticleId: 'article-40', search: 'ship', page
+    }
+    const boundary = composition(route).information as ReactElement<{ children: ReactElement<{ route: InformationRoute }> }>
+    expect(boundary.props.children.key).toBe('galnet')
     expect(boundary.props.children.props.route).toBe(route)
   }
 })

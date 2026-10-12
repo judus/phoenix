@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { GalnetCoverageResponse } from '@phoenix/contracts'
-import { Button, DataTableGroup, ItemList, ItemListItem, Stack, Status } from '@phoenix/ui'
+import { Button, DataTableGroup, ItemList, ItemListItem, Notification, Stack, Status } from '@phoenix/ui'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import { PhoenixDateTime } from '../../components/phoenix-date-time.js'
 
@@ -24,7 +24,7 @@ export function GalnetCoveragePanel({ api, articleId, onOpen }: { api: Pick<Phoe
   }, [api, articleId])
   if (!error && (!coverage || coverage.reports.length < 2)) return null
   return <DataTableGroup title="Related coverage" contentGap="sm"><Stack gap="sm">
-    {error && <Status wrap tone="warning">{error}</Status>}
+    <Notification message={error} />
     {coverage && <>
       <Status tone="muted" wrap>Shared subjects: {coverage.subjects.join(' · ')}. Related reports, not confirmed same activities or live availability.</Status>
       <ItemList density="compact">{coverage.reports.map(({ analysis, currentArticleTitle, articleChanged }) => <ItemListItem key={analysis.cacheKey}

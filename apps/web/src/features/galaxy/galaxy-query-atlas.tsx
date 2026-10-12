@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Loading } from '@phoenix/ui'
+import { Loading, Notification } from '@phoenix/ui'
 import type { NavigationRoute } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
@@ -63,17 +63,17 @@ export function GalaxyQueryAtlas({ api, result, position, systemName, navigation
     const loading = <Loading>Locating query results…</Loading>
     return renderLayout ? renderLayout(null, loading) : <div className="query-result-atlas">{loading}</div>
   }
-  return <GalacticAtlasWorkspace api={api} renderLayout={renderLayout}
+  return <><Notification message={resolved.pending === 0 && resolved.failures ? `${resolved.failures} query coordinate lookup${resolved.failures === 1 ? '' : 's'} failed. Those results remain available in Table view.` : undefined} />
+  <GalacticAtlasWorkspace api={api} renderLayout={renderLayout}
     onNavigate={onNavigate} position={position} systemName={systemName} navigationRoute={navigationRoute}
     results={{ markers: resolved.markers, initialCamera, fitReady: resolved.pending === 0,
       status: locations.length === 0 ? 'No matching results.' : [
         `${resolved.markers.length} / ${locations.length} result locations`,
         resolved.pending ? `Locating ${resolved.pending} system${resolved.pending === 1 ? '' : 's'}…` : '',
         resolved.unavailable ? `${resolved.unavailable} system${resolved.unavailable === 1 ? '' : 's'} without coordinates — see Table` : '',
-        resolved.failures ? `${resolved.failures} coordinate lookup${resolved.failures === 1 ? '' : 's'} failed — see Table` : ''
       ].filter(Boolean).join(' · '),
       detail: marker => locations.find(location => location.marker.id === marker.id)?.detail
-    }} />
+    }} /></>
 }
 
 function key(system: string): string { return system.trim().toLowerCase() }

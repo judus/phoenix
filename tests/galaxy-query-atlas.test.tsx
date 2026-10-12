@@ -1,3 +1,4 @@
+import { notificationText } from './support/notifications.js'
 import { act } from 'react-test-renderer'
 import { beforeAll, expect, test, vi } from 'vitest'
 import { GalaxyQueryAtlas, queryAtlasCamera } from '../apps/web/src/features/galaxy/galaxy-query-atlas.js'
@@ -48,7 +49,7 @@ test('coordinates are deduplicated, unlocated results are reported and selected 
   const text = JSON.stringify(renderer.toJSON())
   expect(text).toContain('2 / 4 result locations')
   expect(text).toContain('1 system without coordinates')
-  expect(text).toContain('1 coordinate lookup failed')
+  expect(notificationText()).toContain('1 query coordinate lookup failed')
   expect(renderer.root.findAllByType('h1')).toHaveLength(0)
   const group = renderer.root.findAllByProps({ role: 'button' }).find(node => String(node.props['aria-label']).includes('First'))!
   await act(async () => group.props.onClick())
@@ -147,6 +148,13 @@ test('saved-query execution respects the persisted Atlas view; toggling does not
   expect(renderer.root.findAllByProps({ className: 'save-query-panel' })).toHaveLength(0)
   await act(async () => renderer.root.findByType(PageHeader).findByProps({ 'aria-label': 'Change query' }).props.onClick())
   expect(renderer.root.findAllByType('form')).toHaveLength(1)
+  const summary = renderer.root.findByProps({ className: 'query-envelope' })
+  expect(summary.findByType('small').props.children).toBe('Saved query')
+  expect(summary.findByType('strong').props.children).toBe('Next refuel')
+  expect(summary.findAllByType('dt').map(node => node.props.children)).toEqual(['Reference system', 'Data source'])
+  expect(renderer.root.findByType(PageHeader).props.status).toBeUndefined()
+  expect(renderer.root.findByType(PageHeader).findAllByType('p')).toHaveLength(0)
+  expect(renderer.root.findAllByType('p').some(node => /Community reports may be incomplete or stale/.test(String(node.props.children)))).toBe(false)
   expect(renderer.root.findAllByType('select').some(select => select.props.value === 'refuel')).toBe(true)
   expect(renderer.root.findAllByType('select').some(select => select.props.value === 'large')).toBe(true)
   expect(api.findGalaxyNearestStations).toHaveBeenCalledTimes(1)

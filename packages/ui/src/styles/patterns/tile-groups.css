@@ -85,13 +85,13 @@
     }
 
     .tile.btn {
-      --command-padding: var(--spacing-xs);
+      &:not(.informational) { --command-padding: var(--spacing-xs); }
       padding: var(--command-padding);
       font-weight: var(--font-weight-normal);
 
       &::after {
-        inset-inline-end: var(--spacing-xs);
-        inset-block-end: var(--spacing-xs);
+        inset-inline-end: var(--command-padding);
+        inset-block-end: var(--command-padding);
       }
 
       &:not(.active, .unavailable, :disabled) {
@@ -134,7 +134,7 @@
       }
       &:hover:not(:disabled) { filter: none; }
 
-      &:active:not(:disabled) {
+      &:active:not(:disabled, .theme-danger) {
         --command-meta: var(--elite-command-ink);
 
         border-color: var(--elite-command-pressed);

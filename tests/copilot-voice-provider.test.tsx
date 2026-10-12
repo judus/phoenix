@@ -368,6 +368,7 @@ class FakeDevicePreferences implements DevicePreferences {
     uiScalePercent: 100,
     variableCommandLabelSizes: true,
     showDeveloper: true,
+    showEmptyDeckSlots: false,
     showNumpadButton: false,
     version: 2
   }

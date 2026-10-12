@@ -6,7 +6,12 @@
     --ui-font-fluid-vmin: 2vmin;
     --ui-font-max: 28px;
     font-size: clamp(var(--ui-font-min), min(var(--ui-font-fluid-vw), var(--ui-font-fluid-vmin)), var(--ui-font-max));
+  }
 
+  /* Resolve aliases where the presentation overrides its palette. Inheriting an
+     alias computed on :root would retain the default palette/surface values. */
+  :root,
+  .phoenix-presentation {
     /* Typography */
     --font-family-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     --font-family-display: 'Euro Caps', var(--font-family-sans);
@@ -166,7 +171,9 @@
 
     --command-background: var(--color-surface);
     --command-border: var(--color-border-subtle);
+    --command-border-width: 1px;
     --command-text: var(--color-text);
+    --command-description: var(--color-text-muted);
     --command-meta: var(--color-action);
     --command-note: var(--color-text-muted);
     --command-grip: var(--color-action);
@@ -176,8 +183,8 @@
     --command-selected-text: var(--color-text);
     --command-unavailable-background: rgb(10 7 12 / 82%);
     --command-unavailable-text: var(--color-text-muted);
-    --command-danger-background: rgb(68 20 20 / 94%);
-    --command-danger-border: rgb(255 97 118 / 48%);
+    --command-danger-background: var(--color-danger-surface);
+    --command-danger-border: var(--button-danger-border);
 
     /* Shared responsive scale. CSS queries repeat these values as literals because
        custom properties cannot be evaluated in media or container conditions. */
@@ -206,25 +213,11 @@
 
   .theme-elite {
     --palette-amber: #ff7100;
-    --palette-cyan: #00b3f7;
     --palette-green: #029e4c;
     --palette-coral: #ff0000;
     --color-surface: rgb(27 11 14 / 90%);
     --color-surface-strong: rgb(34 10 14 / 96%);
     --color-surface-subtle: rgb(47 12 15 / 38%);
-    --color-action: var(--palette-amber);
-    --color-information: var(--palette-cyan);
-    --color-positive: var(--palette-cyan);
-    --color-success: var(--palette-green);
-    --color-danger: var(--palette-red);
-    --color-warning: var(--palette-amber);
-    --color-border: color-mix(in srgb, var(--palette-amber) 65%, transparent);
-    --color-border-subtle: color-mix(in srgb, var(--palette-amber) 18%, transparent);
-    --color-focus: var(--palette-cyan);
-    --meter-track: color-mix(in srgb, var(--palette-amber) 4%, var(--color-surface-subtle));
-    --scrollbar-thumb: var(--color-border);
-    --scrollbar-thumb-hover: var(--color-action);
-    --panel-title: var(--color-action);
     --elite-command-active: #ffb000;
     --elite-command-embedded: color-mix(in srgb, var(--color-action) 78%, black);
     --elite-command-ink: #000;
@@ -264,22 +257,12 @@
     --shell-navigation-active-background: var(--color-action);
     --shell-navigation-active-text: var(--color-canvas);
 
-    --button-primary-background: var(--color-action);
-    --button-primary-border: var(--color-action);
-    --button-primary-text: var(--color-canvas);
-    --button-secondary-border: var(--color-action);
-    --button-secondary-text: var(--color-action);
-    --button-outline-border: var(--color-action);
-    --button-outline-text: var(--color-action);
-    --color-pressed-background: var(--color-action);
-    --color-pressed-border: var(--color-action);
-    --color-pressed-text: var(--color-canvas);
     --button-quiet-text: var(--color-text);
-    --button-danger-border: color-mix(in srgb, var(--color-danger) 48%, transparent);
 
     --command-background: var(--color-action);
     --command-border: var(--color-action);
     --command-text: var(--elite-command-ink);
+    --command-description: var(--elite-command-ink);
     --command-meta: var(--elite-command-ink);
     --command-note: var(--palette-wine-strong);
     --command-grip: var(--palette-wine-strong);
@@ -289,9 +272,6 @@
     --command-selected-text: var(--command-active-emissive);
     --command-unavailable-background: rgb(16 9 16 / 96%);
     --command-unavailable-text: var(--color-text-muted);
-    --command-danger-background: var(--color-danger);
-    --command-danger-border: var(--color-danger);
-    --color-pressed-danger-background: var(--color-danger);
 
     &,
     & :where(*) {

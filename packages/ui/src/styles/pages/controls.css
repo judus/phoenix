@@ -151,7 +151,7 @@
 
     .control-deck {
       display: grid;
-      gap: var(--spacing-xs);
+      gap: var(--spacing-sm);
       min-inline-size: 0;
       min-block-size: 0;
       overflow: hidden;
@@ -199,9 +199,9 @@
       }
 
       > .tile.btn::after {
-        inset-inline-end: calc(var(--command-padding) + var(--control-border-width));
+        inset-inline-end: calc(var(--command-padding) + var(--command-border-width));
         inset-block-start: auto;
-        inset-block-end: calc(var(--command-padding) + var(--control-border-width));
+        inset-block-end: calc(var(--command-padding) + var(--command-border-width));
         transform: none;
       }
 
@@ -236,6 +236,8 @@
     }
 
     &:not(.theme-phoenix) .control-deck .control-deck-slot > .tile.btn:not(.theme-danger, .unavailable) {
+      --command-text: var(--color-text);
+      --command-note: var(--color-text-muted);
       --command-background: var(--control-deck-panel);
       --command-border: var(--control-deck-accent);
       --command-meta: var(--control-deck-accent);
@@ -251,7 +253,18 @@
       --command-grip: var(--control-deck-accent);
     }
 
-    .control-deck-empty { background: var(--color-canvas); }
+    .control-deck-empty {
+      background: transparent;
+
+      &.outlined {
+        display: grid;
+        place-content: center;
+        color: color-mix(in srgb, var(--color-text-muted) 48%, transparent);
+        border: var(--command-border-width) dashed currentColor;
+        font-family: var(--font-family-display);
+        font-size: var(--font-size-sm);
+      }
+    }
 
     button.control-deck-empty {
       display: grid;

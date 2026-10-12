@@ -1,3 +1,4 @@
+import { notificationText } from './support/notifications.js'
 import { renderWithAct } from './support/render-with-act.js'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeAll, expect, test, vi } from 'vitest'
@@ -170,7 +171,7 @@ test('project header editing cancels drafts, retains errors and closes only afte
     await act(async () => submit())
     expect(renderer.root.findAllByType('form')).toHaveLength(1)
     expect(name().props.value).toBe('New name')
-    expect(renderer.root.findAllByType('span').some(span => span.children.includes('Save failed'))).toBe(true)
+    expect(notificationText()).toContain('Save failed')
     await act(async () => submit())
     expect(updateProject).toHaveBeenLastCalledWith(project.id, { name: 'New name', note: null, priority: 'high', status: 'active' })
     expect(renderer.root.findAllByType('form')).toHaveLength(0)

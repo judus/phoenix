@@ -5,7 +5,7 @@ import type {
   PersonalEquipmentPlanPreviewResponse,
   PersonalEquipmentPlannerSource
 } from '@phoenix/contracts'
-import {
+import { Notification,
   Button,
   DataTable,
   DataTableGroup,
@@ -101,9 +101,9 @@ function Planner ({ controller, options }: {
                     />
                   </Field>
                 </FormGrid>
-                <FormActions message={controller.error ? <Status tone="danger" wrap>{controller.error}</Status> : undefined}>
+                <><Notification message={controller.error} /><FormActions>
                   <Button busy={controller.previewing} variant="primary">Preview plan</Button>
-                </FormActions>
+                </FormActions></>
               </Form>}
         </Section>
         {controller.preview && <PlanPreview preview={controller.preview} />}

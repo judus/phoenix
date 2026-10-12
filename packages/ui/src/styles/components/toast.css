@@ -30,3 +30,20 @@
 
   &.danger > header button { color: var(--color-danger); }
 }
+
+.notification-layer {
+  .notification-toaster {
+    inline-size: min(30rem, calc(100vw - 2 * var(--spacing-sm)));
+    font-family: var(--font-family-sans);
+  }
+
+  .notification-item { inline-size: 100%; }
+
+  .toast.notification {
+    position: static;
+    inline-size: 100%;
+    max-block-size: min(50dvh, 30rem);
+
+    &.warning { background: var(--color-surface-strong); }
+  }
+}

@@ -1,3 +1,4 @@
+import { notificationText } from './support/notifications.js'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { act, create } from 'react-test-renderer'
 import { createEmptyRuntimeState, type CartographyLookupResponse, type GameActionCatalogResponse, type NavigationRoute } from '@phoenix/contracts'
@@ -150,7 +151,7 @@ test('plotted route previews past, current and forward systems without changing 
   const targetButton = renderer!.root.findAllByType('button').find(button => button.findAllByType('strong').some(label => label.children.includes('Target next')))
   await act(async () => targetButton!.props.onClick())
   expect(api.executeAction).toHaveBeenCalledWith('elite.TargetNextRouteSystem', 'tap')
-  expect(JSON.stringify(renderer!.toJSON())).toContain('Next Route System input accepted.')
+  expect(notificationText()).toContain('Next Route System input accepted.')
 
   const hyperspaceButton = renderer!.root.findAllByType('button').find(button => button.findAllByType('strong').some(label => label.children.includes('Hyperspace')))
   await act(async () => hyperspaceButton!.props.onClick())

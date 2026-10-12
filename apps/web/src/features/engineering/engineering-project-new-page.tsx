@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import type { EngineeringProjectCreateRequest } from '@phoenix/contracts'
-import { Button, Field, Form, FormActions, FormGrid, PageFrame, Section, Select, Stack, Status, Textarea, TextInput } from '@phoenix/ui'
+import { Notification, Button, Field, Form, FormActions, FormGrid, PageFrame, Section, Select, Stack, Textarea, TextInput } from '@phoenix/ui'
 import type { PhoenixRoute } from '../../application/navigation/phoenix-route.js'
 import { EngineeringHeader } from './engineering-header.js'
 import { engineeringProjectRoutes } from './engineering-navigation.js'
@@ -49,12 +49,11 @@ export function EngineeringProjectNewPage ({ actions, onNavigate, selectedBluepr
             <Field htmlFor="engineering-project-note" label="Note">
               <Textarea id="engineering-project-note" maxLength={1000} rows={4} value={note} onChange={event => setNote(event.target.value)} />
             </Field>
-            <FormActions
-              message={error ? <Status tone="danger" wrap>{error}</Status> : undefined}
+            <><Notification message={error} /><FormActions
               navigation={<Button type="button" variant="outline" onClick={() => onNavigate(engineeringProjectRoutes.index)}>Cancel</Button>}
             >
               <Button busy={saving} disabled={!actions || !name.trim()} variant="primary">Create project</Button>
-            </FormActions>
+            </FormActions></>
           </Form>
         </Section>
       </Stack>

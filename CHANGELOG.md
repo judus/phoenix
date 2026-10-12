@@ -4,6 +4,76 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+## 0.1.9 — 2026-10-12 (prerelease)
+
+- Consolidate GalNet into a searchable, automatically extending news browser. Scroll article titles
+  with their text, remove the repeated eyebrow, and move AI reports, related coverage
+  and background work to a dedicated analysis view. Preserve reading position when returning.
+  Keep full-size, filled search and a selected-article analysis icon in the page header,
+  load more news while scrolling, and omit the external source link from the reader.
+  Give background analysis its own page with the full active queue, recent results,
+  worker metrics and an older-article catch-up list, independent of article reports.
+  Keep long job diagnostics in expandable, wrapping rows without distorting article
+  columns, and explicitly prohibit name expansion inside AI evidence quotes.
+
+- Label GalNet Radio actions accurately: Previous, Play / pause, Next, then Clear
+  queue, with combined playback and clear-queue icons instead of a misleading Stop.
+
+- Open Comms on GalNet and place GLN first in its left navigation rail.
+
+- Match Elite settings lists to the shared textured-row presentation, using gaps
+  instead of separator borders.
+
+- Add the cockpit texture to panels and widgets in the Elite presentation, retaining
+  their shared 1px borders.
+
+- Let inline meter values fit their text, preventing cargo capacity values from
+  creating a horizontal scrollbar on the current-ship dashboard.
+
+- Match the current-ship SYS/ENG/WEP/RST button spacing to the wider dashboard gaps.
+
+- Add a per-device “Empty deck slots” setting for muted dashed outlines and slot numbers
+  outside edit mode; use transparent empty slots and keep existing edit controls.
+
+- Restore light titles and muted interaction labels on custom-coloured control tiles
+  in Elite. Use 1px borders for all shared tiles while keeping form buttons at 2px.
+
+- Use the shared deep-red danger surface and readable text for dangerous control-deck
+  commands in Elite, retaining red rather than orange press feedback.
+
+- Match the Credits page-header/card gap to Query Console and remove the
+  Credits-specific override of shared panel content spacing. Rename its page title
+  to “Sources & Credits”.
+
+- Credit Ardent's API directly, rather than naming its Insight frontend as the data source.
+
+- Increase spacing between dashboard widgets, dashboard buttons, Copilot panels,
+  control-deck buttons, query-console cards and Credits panels to match the Personal Notes cards.
+
+- Use uniform 1px borders on shared panels in both themes, removing Elite's thick left edge.
+
+- Use a quieter, theme-aware surface for descriptive action tiles, retaining the tactile
+  grip and Phoenix's text treatment without changing control-deck command tiles.
+
+- Simplify query-console summaries: explain raw queries without repeating the page title,
+  identify saved queries by their own name, and retain reference-system and source details.
+
+- Remove the query console's community-data disclaimer; the Help page retains
+  the explanation without interrupting the cockpit experience.
+
+- Resolve shared colour and surface tokens within the selected presentation, so Elite
+  buttons, fields and panels no longer retain Phoenix palette values. Preserve intentional
+  pressed/selected states and device UI scaling.
+
+- Reduce Windows CI disk contention by running test files with one worker, retaining
+  real SQLite persistence/reopen checks, normal durability and the five-second test timeout.
+  Production behavior and local/Linux test parallelism are unchanged.
+
+- Use one shared, dismissible notification stack for page/API failures and system messages:
+  red for failures, orange for advisories. Keep loading, empty results, data-quality indicators
+  and field-specific validation in place. Repeated background failures do not reopen dismissed
+  notifications; query errors and route-plot diagnostics no longer occupy form/header rows.
+
 ## 0.1.8 — 2026-10-11 (prerelease)
 
 - Swipe vertically between control decks, pre-rendering immediate neighbours

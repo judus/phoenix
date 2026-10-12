@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { Breadcrumbs, Button, ControlContext, Field, Form, FormActions, IconButton, Inline, InputGroup, Masonry, Widget,
+import { Notification, Breadcrumbs, Button, ControlContext, Field, Form, FormActions, IconButton, Inline, InputGroup, Masonry, Widget,
   FormGrid, Loading, PageFrame, PageHeader, Select, Stack, Status, Textarea, TextInput } from '@phoenix/ui'
 import { PersonalNoteTargetSchema, type PersonalNote, type PersonalNoteTarget, type PersonalNoteWriteRequest } from '@phoenix/contracts'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
@@ -48,8 +48,8 @@ export function PersonalNotesPage({ api, onNavigate, route }: {
       </InputGroup>
       <IconButton variant="primary" label="New note" onClick={() => onNavigate({ ...listRoute, newNote: true })}>+</IconButton>
     </Inline>} />
-    {error ? <Status tone="danger">{error}</Status> : null}
-    {route.noteId && notes && !existing ? <Status tone="warning">That note no longer exists. Other notes are still available below.</Status> : null}
+    {error ? <Notification message={error} /> : null}
+    <Notification tone="warning" message={route.noteId && notes && !existing ? 'That note no longer exists. Other notes are still available below.' : undefined} />
     {!notes ? error ? null : <Loading>Loading personal notes…</Loading> : <>
       {visible.length === 0 ? <Status tone="muted">{notes.length ? 'No matching notes.' : 'No personal notes yet.'}</Status>
         : <Masonry aria-label="Personal notes">{visible.map(note => <NoteCard key={note.id} note={note}
@@ -107,14 +107,19 @@ function NoteEditor({ note, target, onCancel, onSave, onDelete }: {
   const [location, setLocation] = useState(target?.kind === 'station' ? target.stationName : target?.kind === 'body' ? target.bodyName : '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
+  const [validation, setValidation] = useState<Record<string, string>>({})
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     const candidate = kind === 'general' ? null : kind === 'mission' ? { kind, missionId: missionId.trim() ? Number(missionId) : NaN }
       : kind === 'station' ? { kind, systemName: system, stationName: location }
         : kind === 'body' ? { kind, systemName: system, bodyName: location } : { kind, systemName: system }
     const parsed = PersonalNoteTargetSchema.nullable().safeParse(candidate)
-    if (!parsed.success) { setError('Enter the complete linked location or a nonnegative whole mission ID.'); return }
+    if (!parsed.success) {
+      setValidation(Object.fromEntries(parsed.error.issues.map(issue => [String(issue.path[0]), issue.message])))
+      return
+    }
     setBusy(true)
+    setValidation({})
     setError(undefined)
     try { await onSave({ title, text, target: parsed.data }) }
     catch (cause) { setError(message(cause)); setBusy(false) }
@@ -131,16 +136,16 @@ function NoteEditor({ note, target, onCancel, onSave, onDelete }: {
       <Field label="Title" htmlFor="note-title"><TextInput id="note-title" maxLength={200} value={title} onChange={event => setTitle(event.target.value)} /></Field>
       <Field label="Note" htmlFor="note-text"><Textarea id="note-text" rows={7} maxLength={16000} value={text} onChange={event => setText(event.target.value)} /></Field>
       <FormGrid>
-        <Field label="Link" htmlFor="note-kind"><Select id="note-kind" value={kind} onChange={event => setKind(event.target.value as typeof kind)}>
+        <Field label="Link" htmlFor="note-kind"><Select id="note-kind" value={kind} onChange={event => { setKind(event.target.value as typeof kind); setValidation({}) }}>
           <option value="general">General note</option><option value="mission">Mission</option><option value="system">System</option><option value="station">Station</option><option value="body">Body</option>
         </Select></Field>
-        {kind === 'mission' ? <Field label="Mission ID" htmlFor="note-mission" required><TextInput id="note-mission" type="number" min={0} step={1} required value={missionId} onChange={event => setMissionId(event.target.value)} /></Field> : null}
-        {kind !== 'general' && kind !== 'mission' ? <Field label="System" htmlFor="note-system" required><TextInput id="note-system" required value={system} onChange={event => setSystem(event.target.value)} /></Field> : null}
-        {kind === 'station' || kind === 'body' ? <Field label={kind === 'station' ? 'Station' : 'Body'} htmlFor="note-location" required><TextInput id="note-location" required value={location} onChange={event => setLocation(event.target.value)} /></Field> : null}
+        {kind === 'mission' ? <Field label="Mission ID" htmlFor="note-mission" error={validation.missionId} required><TextInput id="note-mission" type="number" min={0} step={1} required value={missionId} onChange={event => { setMissionId(event.target.value); setValidation({}) }} /></Field> : null}
+        {kind !== 'general' && kind !== 'mission' ? <Field label="System" htmlFor="note-system" error={validation.systemName} required><TextInput id="note-system" required value={system} onChange={event => { setSystem(event.target.value); setValidation({}) }} /></Field> : null}
+        {kind === 'station' || kind === 'body' ? <Field label={kind === 'station' ? 'Station' : 'Body'} htmlFor="note-location" error={validation.stationName ?? validation.bodyName} required><TextInput id="note-location" required value={location} onChange={event => { setLocation(event.target.value); setValidation({}) }} /></Field> : null}
       </FormGrid>
       <small>{note ? <>Created by {note.createdBy}; last edited by {note.updatedBy}. <UpdatedDateTime value={note.updatedAt} />. </> : null}Personal context, not verified game facts. Linked notes remain available after the mission ends.</small>
       {note ? <NoteLink note={note} /> : null}
-      {error ? <Status tone="danger">{error}</Status> : null}
+      <Notification message={error} />
       <FormActions navigation={<Button type="button" size="sm" disabled={busy} onClick={onCancel}>Cancel</Button>}>
         {onDelete ? <Button type="button" size="sm" variant="danger" disabled={busy} onClick={() => { void remove() }}>Delete note</Button> : null}
         <Button type="submit" size="sm" variant="primary" busy={busy}>Save note</Button>

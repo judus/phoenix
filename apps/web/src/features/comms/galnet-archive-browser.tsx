@@ -1,81 +1,97 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import type { GalnetArchiveQuery, GalnetArchiveResponse, GalnetArchivedArticle } from '@phoenix/contracts'
-import { Button, DataTableGroup, Field, Form, Inline, ItemList, ItemListItem, Stack, Status, TextInput } from '@phoenix/ui'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import type { GalnetArchiveQuery, GalnetArchiveResponse } from '@phoenix/contracts'
+import { Notification, Button, ControlContext, DataTableGroup, Form, IconButton, InputGroup, CrossIcon, SearchIcon, AnalysisIcon, QueueIcon, ItemList, ItemListItem, Status, TextInput } from '@phoenix/ui'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
+import type { GalnetRoute } from '../../application/navigation/phoenix-route.js'
 import { PhoenixDateTime } from '../../components/phoenix-date-time.js'
-import { GalnetArticleReader, type GalnetReaderApi } from './galnet-article-reader.js'
+import { GalnetArticleReader } from './galnet-article-reader.js'
+import { GalnetAnalysisPage } from './galnet-analysis-page.js'
+import { GalnetBackgroundPanel } from './galnet-background-panel.js'
+import { useGalnetArticle } from './use-galnet-article.js'
 
-type ArchiveApi = GalnetReaderApi & Pick<PhoenixApi, 'getGalnetArchive' | 'getGalnetArchivedArticle'>
+export type GalnetBrowserApi = Pick<PhoenixApi, 'getGalnetArchive' | 'getGalnetArchivedArticle' | 'getGalnetAnalysis' | 'analyseGalnetArticle' | 'getGalnetCoverage' | 'getGalnetBackground' | 'saveGalnetBackground' | 'catchUpGalnet'>
 
-export function GalnetArchiveBrowser({ api, initialArticleId }: { api: ArchiveApi, initialArticleId?: string }) {
-  const [text, setText] = useState('')
-  const [query, setQuery] = useState<GalnetArchiveQuery>({ query: '', offset: 0, limit: 40 })
-  const [selectedId, setSelectedId] = useState(initialArticleId)
-  return <ArchivePage key={`${query.query}:${query.offset}`} api={api} query={query} selectedId={selectedId} onSelect={setSelectedId}
-    onPage={offset => { setSelectedId(undefined); setQuery(current => ({ ...current, offset })) }}
-    search={<Form onSubmit={event => { event.preventDefault(); setSelectedId(undefined); setQuery(current => ({ ...current, query: text.trim(), offset: 0 })) }}>
-      <Field label="Search retained news" htmlFor="galnet-archive-search"><TextInput className="form-mini"
-        type="search" maxLength={200} value={text} onChange={event => setText(event.target.value)} /></Field>
-      <Inline><Button size="sm" type="submit">Search</Button><Button size="sm" type="button" onClick={() => {
-        setText(''); setSelectedId(undefined); setQuery(current => ({ ...current, query: '', offset: 0 }))
-      }}>Clear</Button></Inline>
-    </Form>} />
+export function GalnetArchiveBrowser({ api, route, onNavigate, header }: { api: GalnetBrowserApi, route: GalnetRoute, onNavigate(route: GalnetRoute): void, header(actions: ReactNode): ReactNode }) {
+  const [text, setText] = useState(route.search ?? '')
+  useEffect(() => setText(route.search ?? ''), [route.search])
+  const query = useMemo<GalnetArchiveQuery>(() => ({ query: route.search ?? '', offset: 0, limit: 40 }), [route.search])
+  const search = (value: string) => {
+    const { selectedArticleId: _article, search: _search, page: _page, ...base } = route
+    onNavigate({ ...base, ...(value ? { search: value } : {}) })
+  }
+  return <ArchivePage key={query.query} api={api} query={query} route={route} onNavigate={onNavigate} header={header}
+    search={<ControlContext context="toolbar" density="regular"><Form className="galnet-search" onSubmit={event => { event.preventDefault(); search(text.trim()) }}>
+      <InputGroup className="filled" htmlFor="galnet-news-search" label="Search" action={<IconButton variant="primary" label="Search news" type="submit"><SearchIcon /></IconButton>}>
+        <TextInput id="galnet-news-search" type="search" maxLength={200} value={text} onChange={event => setText(event.target.value)} />
+      </InputGroup>
+      {(text || route.search) && <IconButton label="Clear search" onClick={() => { setText(''); search('') }}><CrossIcon /></IconButton>}
+    </Form></ControlContext>} />
 }
 
-function ArchivePage({ api, query, selectedId, onSelect, onPage, search }: {
-  api: ArchiveApi, query: GalnetArchiveQuery, selectedId?: string, onSelect(articleId: string): void,
-  onPage(offset: number): void, search: ReactNode
+function ArchivePage({ api, query, route, onNavigate, search, header }: {
+  api: GalnetBrowserApi, query: GalnetArchiveQuery, route: GalnetRoute, onNavigate(route: GalnetRoute): void, search: ReactNode, header(actions: ReactNode): ReactNode
 }) {
   const [page, setPage] = useState<GalnetArchiveResponse>()
   const [error, setError] = useState<string>()
-  // This keyed page owns one search/pagination request; late responses cannot populate another page.
+  const [request, setRequest] = useState(0)
+  const [offset, setOffset] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const pending = useRef(true)
+  const scroll = useRef<HTMLDivElement>(null)
+  // One keyed search owns its requests. Reading DOM stays mounted during analysis.
   useEffect(() => {
     const controller = new AbortController()
-    setPage(undefined)
+    pending.current = true
+    setLoading(true)
     setError(undefined)
-    void api.getGalnetArchive(query, controller.signal).then(result => {
-      if (!controller.signal.aborted) setPage(result)
-    }).catch(cause => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Archive unavailable.') })
+    void api.getGalnetArchive({ ...query, offset }, controller.signal).then(result => {
+      if (!controller.signal.aborted) setPage(previous => offset === 0 ? result : { ...result, articles: [...previous!.articles, ...result.articles] })
+    }).catch(cause => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'News unavailable.') })
+      .finally(() => { if (!controller.signal.aborted) { pending.current = false; setLoading(false) } })
     return () => controller.abort()
-  }, [api, query])
-  const selected = selectedId ?? page?.articles[0]?.id
-  return <div className="galnet-layout">
-    <DataTableGroup className="galnet-index" title="Retained archive" meta={page ? `${page.total} articles` : undefined}>
-      <div className="galnet-index-scroll"><Stack gap="md">
-        {search}
-        <Status tone="muted" wrap>Articles observed by PHOENIX, not a complete historical feed. Search titles and text.</Status>
-        {error ? <Status tone="danger" wrap role="alert">{error}</Status> : !page ? <Status tone="muted">Reading archive…</Status>
-          : page.articles.length === 0 ? <Status tone="muted">No retained articles match.</Status>
-            : <ItemList className="surface" density="compact" aria-label="Archived GalNet articles">{page.articles.map(article =>
-              <ItemListItem key={article.id} title={article.title} selected={selected === article.id}
-                eyebrow={<PhoenixDateTime value={article.publishedAt} precision="date" />}
-                onActivate={() => onSelect(article.id)} />)}</ItemList>}
-        {page && <Inline justify="space-between">
-          <Button size="sm" disabled={query.offset === 0} onClick={() => onPage(Math.max(0, query.offset - query.limit))}>Previous</Button>
-          <Status tone="muted">{page.total === 0 ? '0' : `${Math.min(query.offset + 1, page.total)}–${Math.min(query.offset + query.limit, page.total)}`} / {page.total}</Status>
-          <Button size="sm" disabled={query.offset + query.limit >= page.total} onClick={() => onPage(query.offset + query.limit)}>Next</Button>
-        </Inline>}
-      </Stack></div>
-    </DataTableGroup>
-    {selected ? <ArchivedReader key={selected} api={api} articleId={selected} onOpen={onSelect} />
-      : <DataTableGroup className="galnet-reader-group" title="GalNet article"><Status tone="muted">Select a retained article.</Status></DataTableGroup>}
-  </div>
+  }, [api, query, offset, request])
+  const loadMore = useCallback((element: Pick<HTMLDivElement, 'scrollTop' | 'scrollHeight' | 'clientHeight'>) => {
+    if (pending.current || error || route.page || !page || page.articles.length >= page.total) return
+    if (element.scrollHeight - element.scrollTop - element.clientHeight > element.clientHeight / 2) return
+    pending.current = true
+    setOffset(page.articles.length)
+  }, [page, error, route.page])
+  useEffect(() => { if (!loading && scroll.current) loadMore(scroll.current) }, [loading, loadMore])
+  const selected = route.selectedArticleId ?? page?.articles[0]?.id
+  const open = (id: string, page?: GalnetRoute['page']) => onNavigate({ ...route, selectedArticleId: id, page })
+  return <>
+    {header(<>{search}<IconButton label="Analysis" disabled={!selected} onClick={() => selected && open(selected, 'analysis')}><AnalysisIcon /></IconButton>
+      <IconButton label="Background analysis" onClick={() => onNavigate({ ...route, page: 'background' })}><QueueIcon /></IconButton></>)}
+    <div className="galnet-layout" hidden={Boolean(route.page)}>
+      <DataTableGroup className="galnet-index" title="News" meta={page ? `${page.total} articles` : undefined}>
+        <div className="galnet-index-content">
+          <div className="galnet-index-scroll" ref={scroll} tabIndex={0} onScroll={event => loadMore(event.currentTarget)}>
+            <Notification message={error} />
+            {!page ? !error && <Status tone="muted">Reading news…</Status>
+              : page.articles.length === 0 ? <Status tone="muted">No retained articles match.</Status>
+                : <ItemList className="surface" density="compact" aria-label="GalNet articles">{page.articles.map(article =>
+                  <ItemListItem key={article.id} title={article.title} selected={selected === article.id}
+                    eyebrow={<PhoenixDateTime value={article.publishedAt} precision="date" />}
+                    onActivate={() => open(article.id)} />)}</ItemList>}
+            {page && loading && <Status tone="muted">Reading more news…</Status>}
+            {error && <Button onClick={() => setRequest(value => value + 1)}>Retry</Button>}
+          </div>
+        </div>
+      </DataTableGroup>
+      {selected ? <ArchivedReader key={selected} api={api} articleId={selected} />
+        : <DataTableGroup className="galnet-reader-group" title="GalNet article"><Status tone="muted">Select an article.</Status></DataTableGroup>}
+    </div>
+    {route.page === 'analysis' && <GalnetAnalysisPage key={selected} api={api} articleId={selected} onOpen={id => open(id)} />}
+    {route.page === 'background' && <GalnetBackgroundPanel api={api} readingRoute={{ ...route, page: undefined }} />}
+  </>
 }
 
-function ArchivedReader({ api, articleId, onOpen }: { api: ArchiveApi, articleId: string, onOpen(articleId: string): void }) {
-  const [retained, setRetained] = useState<GalnetArchivedArticle>()
-  const [error, setError] = useState<string>()
-  useEffect(() => {
-    const controller = new AbortController()
-    void api.getGalnetArchivedArticle(articleId, controller.signal).then(result => {
-      if (!controller.signal.aborted) setRetained(result)
-    }).catch(cause => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Retained article unavailable.') })
-    return () => controller.abort()
-  }, [api, articleId])
-  return <DataTableGroup className="galnet-reader-group" title="Retained article"
+function ArchivedReader({ api, articleId }: { api: GalnetBrowserApi, articleId: string }) {
+  const { article: retained, error } = useGalnetArticle(api, articleId)
+  return <DataTableGroup className="galnet-reader-group" title="GalNet article"
     meta={retained ? <PhoenixDateTime value={retained.article.publishedAt} precision="date" /> : undefined}>
-    {error ? <Status tone="danger" wrap role="alert">{error}</Status> : retained
-      ? <GalnetArticleReader article={retained.article} api={api} onOpen={onOpen} sourceUrl={retained.sourceUrl} />
-      : <Status tone="muted">Reading retained article…</Status>}
+    {error ? <Notification message={error} /> : retained
+      ? <GalnetArticleReader article={retained.article} />
+      : <Status tone="muted">Reading article…</Status>}
   </DataTableGroup>
 }

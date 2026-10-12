@@ -1,5 +1,5 @@
 import type { CommanderEquipmentResponse } from '@phoenix/contracts'
-import { Breadcrumbs, PageFrame, PageHeader, Stack, Status } from '@phoenix/ui'
+import { Breadcrumbs, Notification, PageFrame, PageHeader, Stack, Status } from '@phoenix/ui'
 import type { ReactNode } from 'react'
 import { UpdatedDateTime } from '../../components/phoenix-date-time.js'
 import { SuitLoadoutsTable } from './personal-equipment-tables.js'
@@ -35,9 +35,8 @@ function LoadoutsFrame({ children, controller, equipment }: {
           status={equipment?.updatedAt ? <UpdatedDateTime value={equipment.updatedAt} /> : undefined}
         />
         {controller
-          ? <Status tone={controller.status === 'error' ? 'danger' : 'muted'}>
-              {controller.status === 'error' ? controller.error : 'Reconstructing commander loadouts…'}
-            </Status>
+          ? controller.status === 'error' ? <Notification message={controller.error} />
+            : <Status tone="muted">Reconstructing commander loadouts…</Status>
           : children}
       </div>
     </PageFrame>

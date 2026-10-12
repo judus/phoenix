@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { CommanderLogEntry } from '@phoenix/contracts'
-import { Breadcrumbs, Button, Field, FormGrid, ItemList, ItemListItem, PageFrame, PageHeader, Section, Select, Stack, Status, TextInput } from '@phoenix/ui'
+import { Notification, Breadcrumbs, Button, Field, FormGrid, ItemList, ItemListItem, PageFrame, PageHeader, Section, Select, Stack, Status, TextInput } from '@phoenix/ui'
 import type { PhoenixApi } from '../../application/api/phoenix-api.js'
 import type { PhoenixEventHub } from '../../application/events/phoenix-event-hub.js'
 import { formatPhoenixDate, formatPhoenixTime } from '../../components/phoenix-date-time.js'
@@ -45,7 +45,7 @@ export function CommanderLogPage ({ api, events }: { api: PhoenixApi, events: Ph
         <option value="">All categories</option>{categories.map(value => <option key={value} value={value}>{value[0]!.toUpperCase() + value.slice(1)}</option>)}
       </Select></Field>
     </FormGrid>
-    {error && <Status tone="danger" wrap>{error}</Status>}
+    {error && <Notification message={error} />}
     {!ready && !error && <Status tone="muted">Loading commander log…</Status>}
     {ready && filtered.length === 0 && <Status tone="muted">No matching log entries.</Status>}
     {[...days].map(([day, rows]) => <Section title={day} key={day}><ItemList>{rows.map(entry => <ItemListItem key={entry.id}
