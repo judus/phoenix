@@ -20,6 +20,8 @@ import { DisplayShowGalacticAtlasTool } from './mcp-tools/display-show-galactic-
 import type { DisplayAtlasService } from './display-atlas-service.js'
 import { NavigationCanJumpToTool } from './mcp-tools/navigation-can-jump-to-tool.js'
 import { NavigationGetRouteTool } from './mcp-tools/navigation-get-route-tool.js'
+import { NavigationPlotRouteTool } from './mcp-tools/navigation-plot-route-tool.js'
+import type { EliteDestinations } from '../domain/elite-destination.js'
 import { ShipGetCargoTool } from './mcp-tools/ship-get-cargo-tool.js'
 import { ShipGetStatusTool } from './mcp-tools/ship-get-status-tool.js'
 import { ShipListModulesTool } from './mcp-tools/ship-list-modules-tool.js'
@@ -73,6 +75,7 @@ export interface PhoenixMcpToolDependencies {
   fleet: FleetDataReader
   factions: FactionPresenceQuery
   navigation: NavigationQuery
+  eliteDestinations: EliteDestinations
   markets: TradeMarketQuery
   missions: MissionDataReader
   personalNotes: PersonalNotes
@@ -114,6 +117,7 @@ export function createPhoenixMcpTools (dependencies: PhoenixMcpToolDependencies)
     new FleetListStoredModulesTool(dependencies.fleet),
     new NavigationCanJumpToTool(dependencies.navigation),
     new NavigationGetRouteTool(dependencies.navigation),
+    new NavigationPlotRouteTool(dependencies.eliteDestinations),
     new MissionsListMissionsTool(dependencies.missions, dependencies.personalNotes, dependencies.canReadPersonalNotes),
     ...createPersonalNoteTools(dependencies.personalNotes),
     new ActivitiesListCommunityGoalsTool(dependencies.communityGoals),

@@ -257,6 +257,7 @@ function controlContext (descriptor: CommandDescriptor): ControlContextId {
 }
 
 function fixedAccess (definition: ToolDefinition): CopilotCapability['access'] {
+  if (definition.name === 'navigation.plot_route') return 'control'
   if (definition.name.startsWith('display.')) return 'display'
   if (definition.name.startsWith('web.') || definition.annotations?.openWorld === true) return 'external'
   return 'read'

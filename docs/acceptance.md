@@ -1,10 +1,24 @@
 # PHOENIX acceptance checklist
 
-Reviewed **2026-10-12**. Tracking task: [#25](https://github.com/judus/phoenix/issues/25).
+Reviewed **2026-10-22**. Tracking task: [#25](https://github.com/judus/phoenix/issues/25).
 This records evidence and outstanding tests, not a claim that every platform/gameplay check passed.
 Refresh the build identity and results before each release.
 
-## Current build: 0.1.9
+## Current candidate: 0.1.10
+
+[#223](https://github.com/judus/phoenix/issues/223) exposes the existing Galaxy Map routine to
+Copilot through an explicit installation/profile permission. Automated tests cover all four
+route outcomes, binding diagnostics, validation, cancellation, permission revocation, real MCP
+dispatch with recorded/no game input, and voice execution beyond the previous 30-second limit.
+The new permission is off by default. This candidate excludes the separate Android TLS experiment.
+Local `npm run check` passed 277 files / 1,757 tests, strict production/test typechecks and builds.
+The isolated built browser shell shows **Plot Route** as **Game control**, initially off.
+
+Native installer verification and exact-tag artifact identity will be recorded after release
+assembly. Actual-model route selection, installed-device upgrade and real Elite route plotting
+from text/voice remain pending; simulated input and CI are not gameplay acceptance.
+
+## Previous preview evidence: 0.1.9
 
 The candidate includes the shared CSS/theme polish and GalNet workspace work from
 [#210](https://github.com/judus/phoenix/issues/210), through source commit `5b1a61c`.

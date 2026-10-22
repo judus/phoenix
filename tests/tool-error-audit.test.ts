@@ -22,6 +22,7 @@ const requiredArguments: Record<string, JsonObject> = {
   'display.open_page': { page: 'ship' },
   'display.show_body_details': { bodyName: 'Sol A 1' },
   'navigation.check_jump_reachability': { systemName: 'Sol' },
+  'navigation.plot_route': { systemName: 'Sol' },
   'stations.find_stations_selling_module': { query: '6A Power Plant' },
   'markets.find_commodity_markets': { commodity: 'Gold', intent: 'buy' },
   'ships.compare_ship_definitions': { identifiers: ['Adder', 'Cobra Mk III'] },
