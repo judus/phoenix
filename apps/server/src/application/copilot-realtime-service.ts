@@ -17,6 +17,7 @@ import type {
 } from '@phoenix/contracts'
 import { AgentPromptComposer, RuntimeContextRenderer } from '@phoenix/copilot'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
+import { COPILOT_TOOL_TIMEOUT_MS } from './copilot-tool-registry.js'
 
 export interface RealtimeClientSecretGateway {
   create(session: JsonObject): Promise<{ value: string, expiresAt?: number }>
@@ -51,6 +52,7 @@ const TOOL_INSTRUCTIONS = [
   'Distinguish the full-screen Elite Galaxy/System Maps from PHOENIX system schematics and body details; ask which interface when a map request is ambiguous.',
   'For observable on/off controls, use phoenix_controls_set_control_state and answer from its result.',
   'Use phoenix_web_search_web for current public-web information that PHOENIX telemetry and structured galaxy tools cannot answer. Preserve its source URLs in typed answers and identify important sources briefly in speech.',
+  'Use phoenix_navigation_plot_route only for an explicit request to plot a route in Elite. Display tools only navigate PHOENIX. Report route success only when the tool returns confirmed; never retry game input automatically.',
   'After a routine action is confirmed, say only "Done." Never invent confirmation.'
 ].join(' ')
 
@@ -126,7 +128,7 @@ export class CopilotRealtimeService implements CopilotRealtime {
 
   public executeTool (
     request: CopilotRealtimeToolRequest,
-    signal: AbortSignal = AbortSignal.timeout(30_000)
+    signal: AbortSignal = AbortSignal.timeout(COPILOT_TOOL_TIMEOUT_MS)
   ): Promise<ToolExecutionOutput> {
     const name = this.options.tools.definitions
       .find(definition => realtimeToolName(definition.name) === request.name)?.name
@@ -137,7 +139,7 @@ export class CopilotRealtimeService implements CopilotRealtime {
       { arguments: request.arguments as JsonObject, id: randomUUID(), name },
       {
         callId: randomUUID(),
-        deadline: new Date(Date.now() + 30_000).toISOString(),
+        deadline: new Date(Date.now() + COPILOT_TOOL_TIMEOUT_MS).toISOString(),
         runId: randomUUID(),
         signal
       }

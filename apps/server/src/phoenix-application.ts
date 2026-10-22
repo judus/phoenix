@@ -529,6 +529,7 @@ export class PhoenixApplication {
       fleet,
       gameCatalogue,
       navigation,
+      eliteDestinations,
       markets: stationMarkets,
       missions,
       personalNotes,

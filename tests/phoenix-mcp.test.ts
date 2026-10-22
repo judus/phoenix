@@ -21,6 +21,36 @@ import { PhoenixApiClient } from '../apps/web/src/platform/api/phoenix-api-clien
 import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
 import { analysisArticle, savedGalnetAnalysis } from './support/galnet-analysis-fixtures.js'
 
+test('Copilot can request the real route-plotting service over MCP only with explicit permission', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-plot-tool-'))
+  const settings = new InMemorySystemSettingsRepository()
+  const current = settings.loadOrCreate()
+  const permissions = { version: 2 as const, enabledCapabilityIds: ['tool:navigation.plot_route'] }
+  settings.save({ ...current, copilot: { ...current.copilot, permissions,
+    profilePermissions: { [current.copilot.activeProfileId]: permissions } } })
+  const keyboard = new RecordingKeyboardOutput()
+  const application = new PhoenixApplication({ databasePath: join(directory, 'state.sqlite'), eliteDirectory: null,
+    host: '127.0.0.1', port: 0, copilot: null, copilotRealtime: null, systemSettingsRepository: settings,
+    openAiEnvironmentKey: null, keyboardOutput: keyboard })
+  try {
+    const address = await application.start()
+    const provider = configuredProvider([
+      response('plot', [{ arguments: { systemName: 'Sol' }, callId: 'plot-1', name: 'phoenix__navigation_plot_route', type: 'tool_call' }], 'tool_calls'),
+      response('done', [{ source: 'generated', text: 'Elite is not available.', type: 'text' }], 'stop')
+    ])
+    const client = createAiClient({ mcp: [{ name: 'phoenix', url: `http://${address.host}:${address.port}/mcp` }], provider })
+    await client.user('Plot a route to Sol.').run()
+    expect(provider.requests[0]?.tools?.map(tool => tool.name)).toEqual(['phoenix__navigation_plot_route'])
+    expect(provider.requests[1]?.messages.at(-1)?.content).toMatchObject([{ type: 'tool_result', structuredContent: {
+      requestedSystem: 'Sol', confirmedSystem: null, status: 'rejected', phase: 'preflight'
+    } }])
+    expect(keyboard.getRecordedInputs()).toEqual([])
+  } finally {
+    await application.stop()
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
+
 test('GalNet tools reconcile persisted reports over MCP without inference or source refresh and expose both Comms permissions', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-galnet-tools-'))
   const databasePath = join(directory, 'state.sqlite')

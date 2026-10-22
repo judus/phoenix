@@ -197,6 +197,7 @@ function loadMessage (level: CopilotCapabilityCatalogue['load']['level']): strin
 function capabilityScope (kind: CopilotCapability['kind'], access: CopilotCapability['access']): string {
   if (kind === 'game-action') return 'Control Deck command'
   if (kind === 'macro') return 'Macro'
+  if (access === 'control') return 'Game control'
   if (access === 'display') return 'Display navigation'
   if (access === 'external') return 'External data'
   return 'Read only'
