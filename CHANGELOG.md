@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+## 0.1.10 — 2026-10-22 (prerelease)
+
 - Let Copilot plot a route in Elite through the existing Galaxy Map routine, with an explicit
   Galaxy tool permission for the installation and active profile. Preserve confirmed, rejected,
   failed and timed-out outcomes, cancellation and binding diagnostics. Allow the text/MCP and
