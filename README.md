@@ -4,6 +4,8 @@ An Elite Dangerous companion for your desktop, tablet, or spare screen. Check yo
 materials, plan engineering, find your next stop, and build a panel of buttons for the things
 you actually use while playing. There’s an optional AI Copilot, too.
 
+[Explore PHOENIX](https://phoenix.maduser.net/) — features, screenshots and setup information.
+
 PHOENIX runs on your gaming computer and reads Elite’s journals and status files. Open it in a
 browser on that computer, or pair a tablet over your local network.
 

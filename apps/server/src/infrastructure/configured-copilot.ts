@@ -17,6 +17,7 @@ import type { MissionDataReader } from '../domain/missions.js'
 import { MissionRuntimeContext } from '../application/mission-runtime-context.js'
 import { readCopilotAudioProcessing } from './copilot-audio-config.js'
 import { JsonConversationStore } from './json-conversation-store.js'
+import { COPILOT_TOOL_TIMEOUT_MS } from '../application/copilot-tool-registry.js'
 import { OpenAiRealtimeClient } from './openai-realtime-client.js'
 import { RotatingWireLogger } from './rotating-wire-logger.js'
 import type { ApplicationPaths } from './application-paths.js'
@@ -108,9 +109,11 @@ export function createConfiguredCopilot (
         repository: conversations
       },
       instructions,
+      toolTimeoutMs: COPILOT_TOOL_TIMEOUT_MS,
       ...(options.mcpUrl === undefined ? {} : {
         mcp: [{
           name: 'phoenix',
+          timeoutMs: COPILOT_TOOL_TIMEOUT_MS,
           url: options.mcpUrl,
           ...(options.mcpToken === undefined ? {} : {
             headers: { authorization: `Bearer ${options.mcpToken}` }

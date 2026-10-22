@@ -30,3 +30,21 @@ The new capability appears in the **Display** permission group. Fresh installati
 in the default installation policy. Existing installation/profile allowlists are not expanded:
 enable **Show Galactic Atlas** in the installation's AI tools settings and in the Copilot
 profile's permissions before asking the profile to use it.
+
+## Plotting a route in Elite
+
+`navigation.plot_route({ "systemName": "Colonia" })` runs the same game-input routine as
+the system schematic's **Plot route** button. Unlike the Display tools above, it operates
+Elite's Galaxy Map; Elite calculates the route. The game must be running and focused, with
+the required keyboard bindings. Invoke it only on an explicit request to plot a route.
+
+Enable **Plot route** under the installation's **Galaxy** AI tools and in the active Copilot
+profile. It is intentionally not enabled by default, and existing allowlists are not expanded.
+Text, MCP and realtime voice share this permission check and the existing destination service.
+
+The result retains `status`, `phase`, `requestedSystem`, `confirmedSystem`, `message` and any
+`bindingWarnings`. Only `confirmed` establishes that Elite reported a new route ending at the
+requested system. A `rejected`, `failed` or `timed_out` result must not be presented as success
+or retried automatically: some game input may already have been sent. Cancellation propagates
+to the existing routine. Copilot tool execution/transport allow 60 seconds so the routine can
+finish its bounded map and route acknowledgements instead of being cut off after 30 seconds.

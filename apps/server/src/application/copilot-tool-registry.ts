@@ -7,6 +7,9 @@ import {
 } from '@jdu/llm-client'
 import type { CopilotCapabilities } from '../domain/copilot-capabilities.js'
 
+// The Galaxy Map routine plus map/route acknowledgement can take about 50 seconds.
+export const COPILOT_TOOL_TIMEOUT_MS = 60_000
+
 export class CopilotToolRegistry extends ToolRegistry {
   public constructor (
     tools: readonly LocalTool[],

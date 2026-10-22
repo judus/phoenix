@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { COPILOT_TOOL_TIMEOUT_MS } from '../application/copilot-tool-registry.js'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import {
   AiError,
@@ -110,7 +111,7 @@ export class PhoenixMcpServer {
         { arguments: arguments_ as JsonObject, id: randomUUID(), name },
         {
           callId: randomUUID(),
-          deadline: new Date(Date.now() + 30_000).toISOString(),
+          deadline: new Date(Date.now() + COPILOT_TOOL_TIMEOUT_MS).toISOString(),
           runId: randomUUID(),
           signal: controller.signal
         }
