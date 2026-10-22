@@ -81,6 +81,11 @@ test('Galaxy control permission is opt-in, and installation/profile policies gat
 
 test('voice dispatch uses the same tool and allows a route confirmation beyond 30 seconds', async () => {
   vi.useFakeTimers()
+  const timeout = vi.spyOn(AbortSignal, 'timeout').mockImplementation(milliseconds => {
+    const controller = new AbortController()
+    setTimeout(() => controller.abort(new DOMException('The operation timed out', 'TimeoutError')), milliseconds)
+    return controller.signal
+  })
   try {
     const plot = vi.fn(async (_system: string, signal?: AbortSignal) => {
       await new Promise(resolve => setTimeout(resolve, 40_000))
@@ -94,5 +99,5 @@ test('voice dispatch uses the same tool and allows a route confirmation beyond 3
     await vi.advanceTimersByTimeAsync(40_000)
     await expect(pending).resolves.toMatchObject({ structuredContent: { status: 'confirmed' } })
     expect(plot).toHaveBeenCalledTimes(1)
-  } finally { vi.useRealTimers() }
+  } finally { timeout.mockRestore(); vi.useRealTimers() }
 })
