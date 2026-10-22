@@ -4,19 +4,43 @@ Reviewed **2026-10-22**. Tracking task: [#25](https://github.com/judus/phoenix/i
 This records evidence and outstanding tests, not a claim that every platform/gameplay check passed.
 Refresh the build identity and results before each release.
 
-## Current candidate: 0.1.10
+## Current preview evidence: 0.1.10
 
 [#223](https://github.com/judus/phoenix/issues/223) exposes the existing Galaxy Map routine to
 Copilot through an explicit installation/profile permission. Automated tests cover all four
 route outcomes, binding diagnostics, validation, cancellation, permission revocation, real MCP
 dispatch with recorded/no game input, and voice execution beyond the previous 30-second limit.
 The new permission is off by default. This candidate excludes the separate Android TLS experiment.
-Local `npm run check` passed 277 files / 1,757 tests, strict production/test typechecks and builds.
+Final local `npm run check` passed 277 files / 1,758 tests, strict production/test typechecks and builds.
 The isolated built browser shell shows **Plot Route** as **Game control**, initially off.
 
-Native installer verification and exact-tag artifact identity will be recorded after release
-assembly. Actual-model route selection, installed-device upgrade and real Elite route plotting
-from text/voice remain pending; simulated input and CI are not gameplay acceptance.
+Published preview: [v0.1.10](https://github.com/judus/phoenix/releases/tag/v0.1.10), exact source
+`dcbde3f03d0a2f3349b7f01141c624f9bcae8fe5`. Route implementation [PR #224](https://github.com/judus/phoenix/pull/224)
+passed native source CI. Release test fixes [PR #227](https://github.com/judus/phoenix/pull/227)
+passed both native source gates in [run 39741662425](https://github.com/judus/phoenix/actions/runs/39741662425).
+The fixes separate Powerplay fixture startup from independent validation/persistence cases,
+retaining real SQLite reopen assertions and unchanged timeouts, and make route cancellation
+advance on the test's fake clock as requested by Copilot review.
+
+Promotion [PR #225](https://github.com/judus/phoenix/pull/225) passed native installer verification
+in [run 39742309334](https://github.com/judus/phoenix/actions/runs/39742309334).
+Exact-tag native builds and draft assembly passed in
+[release run 39743113795](https://github.com/judus/phoenix/actions/runs/39743113795).
+Downloaded both installers and manifests, verified all four original SHA-256 checksums,
+exact source, version, preview channel and byte counts before publication.
+Both public installer downloads returned HTTP 200. The release is public, prerelease and
+deliberately not marked latest; older releases were preserved.
+
+Installer hashes from [SHA256SUMS](https://github.com/judus/phoenix/releases/download/v0.1.10/SHA256SUMS):
+
+```text
+a70ee2f121de997301b53c9fea6bb79abc26014ee04be9f45e8cbbf9fa7de0ea  PHOENIX-linux-x64.AppImage
+9a5387851dab9a654453270b76680681a3992ea001554cd1b78c0b71a21d17a9  PHOENIX-windows-x64-setup.exe
+```
+
+Actual-model route selection, installed-device upgrade and real Elite route plotting from
+text/voice remain pending; simulated input and CI are not gameplay acceptance.
+The Windows installer remains unsigned. EDDN production gating is unchanged.
 
 ## Previous preview evidence: 0.1.9
 
