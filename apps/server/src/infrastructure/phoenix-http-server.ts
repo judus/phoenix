@@ -1,5 +1,6 @@
 import { createReadStream, existsSync, statSync } from 'node:fs'
-import { randomUUID } from 'node:crypto'
+import { randomUUID, X509Certificate } from 'node:crypto'
+import { createServer as createHttpsServer } from 'node:https'
 import type { EddnContributionService } from '../application/eddn-contribution-service.js'
 import { CatalogueSuggestionKindSchema } from '@phoenix/contracts'
 import { GalnetBackgroundSettingsSchema, GalnetCatchUpRequestSchema } from '@phoenix/contracts'
@@ -121,6 +122,7 @@ type CopilotConversationEventPayload = CopilotConversationEvent extends infer Ev
   : never
 
 export interface PhoenixHttpServerOptions extends SettingsHttpServices, EngineeringHttpServices {
+  experimentalTls?: { port: number, cert: Buffer, key: Buffer }
   accessControl?: PairingAccessController
   catalogueDiagnostics: CatalogueDiagnosticsReader
   cartographyUpdates: Subscribable<CartographyUpdate>
@@ -195,9 +197,10 @@ export class PhoenixHttpServer {
   private readonly copilotVoiceHostStreams = new Set<ServerResponse>()
   private readonly displayStreams = new Set<ServerResponse>()
   private readonly server: Server
+  private readonly tlsServer?: Server
 
   public constructor (private readonly options: PhoenixHttpServerOptions) {
-    this.server = createServer((request, response) => {
+    const handle = (request: IncomingMessage, response: ServerResponse): void => {
       void this.handle(request, response).catch(cause => {
         if (cause instanceof HttpRequestValidationError) {
           writeJson(response, 400, {
@@ -210,7 +213,12 @@ export class PhoenixHttpServer {
           error: { code: 'internal_error', message }
         })
       })
-    })
+    }
+    this.server = createServer(handle)
+    if (options.experimentalTls) {
+      if (!options.accessControl) throw new Error('Experimental TLS requires device pairing.')
+      this.tlsServer = createHttpsServer({ ...options.experimentalTls, minVersion: 'TLSv1.2' }, handle)
+    }
   }
 
   public async start (): Promise<{ host: string, port: number }> {
@@ -221,6 +229,21 @@ export class PhoenixHttpServer {
         resolvePromise()
       })
     })
+
+    if (this.tlsServer) {
+      try {
+        await new Promise<void>((resolvePromise, reject) => {
+          this.tlsServer!.once('error', reject)
+          this.tlsServer!.listen(this.options.experimentalTls!.port, this.options.host, () => {
+            this.tlsServer!.off('error', reject)
+            resolvePromise()
+          })
+        })
+      } catch (cause) {
+        await new Promise<void>(resolvePromise => this.server.close(() => resolvePromise()))
+        throw cause
+      }
+    }
 
     const address = this.server.address()
     if (!address || typeof address === 'string') throw new Error('PHOENIX server has no TCP address.')
@@ -241,9 +264,11 @@ export class PhoenixHttpServer {
     this.copilotVoiceHostStreams.clear()
     for (const stream of this.displayStreams) stream.end()
     this.displayStreams.clear()
-    await new Promise<void>((resolvePromise, reject) => {
-      this.server.close(error => error ? reject(error) : resolvePromise())
-    })
+    await Promise.all([this.server, this.tlsServer].filter(server => server?.listening).map(server =>
+      new Promise<void>((resolvePromise, reject) => {
+        server!.close(error => error ? reject(error) : resolvePromise())
+      })
+    ))
   }
 
   private async handle (request: IncomingMessage, response: ServerResponse): Promise<void> {
@@ -279,6 +304,26 @@ export class PhoenixHttpServer {
         return
       }
       writeJson(response, 200, await this.pairingInfo())
+      return
+    }
+
+    if (this.options.experimentalTls && request.method === 'GET' && url.pathname === '/api/pairing/gateway-info') {
+      if (!this.options.accessControl!.isServerRequest(request)) {
+        writeJson(response, 403, { error: { code: 'server_device_required', message: 'Display the gateway QR on the PHOENIX computer.' } })
+        return
+      }
+      const address = this.tlsServer!.address()
+      if (!address || typeof address === 'string') throw new Error('Experimental TLS is not listening.')
+      const pin = new X509Certificate(this.options.experimentalTls.cert).fingerprint256.replaceAll(':', '').toLowerCase()
+      const urls = serverAccessUrls({ host: this.options.host, port: address.port }, undefined, await activeRouteIPv4Address())
+      const access = await Promise.all([urls.local, ...urls.network].map(async url => {
+        const origin = url.replace(/^http:/, 'https:') + '/'
+        const pairingUrl = 'phoenix-gateway://connect?' + new URLSearchParams({ origin, pin, code: this.options.accessControl!.pairingCode })
+        const svg = await QRCode.toString(pairingUrl, { type: 'svg', errorCorrectionLevel: 'M', margin: 1, width: 320 })
+        return { origin, pairingUrl, qrDataUrl: `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}` }
+      }))
+      response.setHeader('cache-control', 'no-store')
+      writeJson(response, 200, { experimental: true, access })
       return
     }
 

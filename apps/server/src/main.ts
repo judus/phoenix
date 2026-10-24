@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { loadEnvFile } from 'node:process'
 import { fileURLToPath } from 'node:url'
@@ -41,6 +41,7 @@ try {
   const catalogueDirectory = await ensureCatalogueSnapshot(paths)
 
   application = new PhoenixApplication({
+    experimentalTls: experimentalTls(),
     accessControl,
     applicationPaths: paths,
     controlDeckConfigurationRepository: settingsRepository,
@@ -87,6 +88,17 @@ async function shutdown (): Promise<void> {
   await application?.stop()
   removeRuntimeStatus()
   process.exit(0)
+}
+
+function experimentalTls () {
+  const cert = process.env.PHOENIX_EXPERIMENTAL_TLS_CERT
+  const key = process.env.PHOENIX_EXPERIMENTAL_TLS_KEY
+  const port = process.env.PHOENIX_EXPERIMENTAL_TLS_PORT
+  if (!cert && !key && !port) return undefined
+  if (!cert || !key || !port || !/^\d+$/.test(port) || Number(port) < 1 || Number(port) > 65535) {
+    throw new Error('Experimental TLS requires certificate, private key and a valid separate port.')
+  }
+  return { cert: readFileSync(cert), key: readFileSync(key), port: Number(port) }
 }
 
 function removeRuntimeStatus (): void {

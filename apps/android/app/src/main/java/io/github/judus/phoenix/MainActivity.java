@@ -53,6 +53,8 @@ public final class MainActivity extends ComponentActivity {
     private boolean clearHistoryOnLoad;
     private String persistedCookies;
     private EditText pairingCode;
+    private EditText gatewayPin;
+    private volatile LoopbackGateway gateway;
     private boolean manualMode;
     private boolean connecting;
     private final ExecutorService pairingWorker = Executors.newSingleThreadExecutor();
@@ -65,10 +67,13 @@ public final class MainActivity extends ComponentActivity {
             new ScanContract(), result -> {
                 if (result.getContents() == null) return; // Cancel returns to the card, not an error.
                 try {
-                    ServerAddress scanned = ServerAddress.parse(result.getContents());
-                    if (scanned.pairingCode().isBlank()) throw new IllegalArgumentException("Missing pairing code");
+                    GatewayIdentity identity = BuildConfig.GATEWAY_EXPERIMENT ? GatewayIdentity.parse(result.getContents()) : null;
+                    ServerAddress scanned = identity == null ? ServerAddress.parse(result.getContents()) : identity.server;
+                    String code = identity == null ? scanned.pairingCode() : identity.code;
+                    if (code.isBlank()) throw new IllegalArgumentException("Missing pairing code");
                     address.setText(scanned.origin());
-                    pairingCode.setText(scanned.pairingCode());
+                    pairingCode.setText(code);
+                    if (identity != null) gatewayPin.setText(identity.pin);
                     ((TextView) connection.findViewById(R.id.scanned_server))
                             .setText(getString(R.string.scanned_server, scanned.origin()));
                     connection.findViewById(R.id.scanned_server).setVisibility(View.VISIBLE);
@@ -77,6 +82,7 @@ public final class MainActivity extends ComponentActivity {
                 } catch (IllegalArgumentException invalid) {
                     address.setText("");
                     pairingCode.setText("");
+                    gatewayPin.setText("");
                     connection.findViewById(R.id.scanned_server).setVisibility(View.GONE);
                     setMode(false);
                     showError(getString(R.string.invalid_qr));
@@ -114,6 +120,8 @@ public final class MainActivity extends ComponentActivity {
         });
         address = connection.findViewById(R.id.server_address);
         pairingCode = connection.findViewById(R.id.pairing_code);
+        gatewayPin = connection.findViewById(R.id.gateway_pin);
+        if (BuildConfig.GATEWAY_EXPERIMENT) connection.findViewById(R.id.gateway_identity).setVisibility(View.VISIBLE);
         error = connection.findViewById(R.id.connection_error);
         resume = connection.findViewById(R.id.resume);
         connection.findViewById(R.id.connect).setOnClickListener(view -> connect());
@@ -133,9 +141,16 @@ public final class MainActivity extends ComponentActivity {
         setMode(!getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY));
         String savedOrigin = preferences.getString("server", "");
         address.setText(savedOrigin);
+        gatewayPin.setText(preferences.getString("gatewayPin", ""));
         if (!savedOrigin.isEmpty()) {
             try {
-                server = ServerAddress.parse(savedOrigin);
+                ServerAddress saved = ServerAddress.parse(savedOrigin);
+                if (BuildConfig.GATEWAY_EXPERIMENT) {
+                    String route = state == null ? null : state.getString("route");
+                    authorizeGateway(new GatewayIdentity(saved.origin(), gatewayPin.getText().toString(), ""), route);
+                    return;
+                }
+                server = saved;
             } catch (IllegalArgumentException invalid) {
                 showConnection(R.string.invalid_address);
                 setMode(true);
@@ -205,14 +220,14 @@ public final class MainActivity extends ComponentActivity {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 String url = request.getUrl().toString();
-                if (server.contains(url)) persistChangedCookies(url);
+                if (server != null && server.contains(url)) persistChangedCookies(url);
                 return null; // WebView still owns networking, response bodies and cookie acceptance.
             }
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 String url = request.getUrl().toString();
-                if (server.contains(url)) {
+                if (server != null && server.contains(url)) {
                     if (request.isForMainFrame() && "/pairing".equals(request.getUrl().getPath())) {
                         returnToPairing();
                         return true;
@@ -235,7 +250,7 @@ public final class MainActivity extends ComponentActivity {
 
             @Override
             public void onPageFinished(WebView view, String url) {
-                if (clearHistoryOnLoad && server.contains(url)) {
+                if (clearHistoryOnLoad && server != null && server.contains(url)) {
                     view.clearHistory();
                     clearHistoryOnLoad = false;
                 }
@@ -276,6 +291,16 @@ public final class MainActivity extends ComponentActivity {
 
     private void connect() {
         if (connecting) return;
+        if (BuildConfig.GATEWAY_EXPERIMENT) {
+            try {
+                GatewayIdentity identity = address.getText().toString().startsWith("phoenix-gateway:")
+                        ? GatewayIdentity.parse(address.getText().toString())
+                        : new GatewayIdentity(address.getText().toString(), gatewayPin.getText().toString().trim(), pairingCode.getText().toString().trim().toUpperCase(Locale.ROOT));
+                getSystemService(InputMethodManager.class).hideSoftInputFromWindow(address.getWindowToken(), 0);
+                authorizeGateway(identity, null);
+            } catch (IllegalArgumentException invalid) { showError(getString(R.string.invalid_address)); }
+            return;
+        }
         ServerAddress next;
         try {
             next = ServerAddress.parse(address.getText().toString());
@@ -292,7 +317,7 @@ public final class MainActivity extends ComponentActivity {
     private void setConnecting(boolean busy) {
         connecting = busy;
         for (int id : new int[] { R.id.connect, R.id.scan, R.id.scan_mode, R.id.manual_mode,
-                R.id.server_address, R.id.pairing_code, R.id.resume }) {
+                R.id.server_address, R.id.pairing_code, R.id.gateway_pin, R.id.resume }) {
             connection.findViewById(id).setEnabled(!busy);
         }
         ((Button) connection.findViewById(R.id.connect)).setText(busy ? R.string.connecting : R.string.connect);
@@ -324,6 +349,51 @@ public final class MainActivity extends ComponentActivity {
         });
     }
 
+    private void authorizeGateway(GatewayIdentity identity, String route) {
+        setConnecting(true);
+        error.setVisibility(View.GONE);
+        webView.stopLoading();
+        webView.loadUrl("about:blank");
+        if (gateway != null) { gateway.close(); gateway = null; }
+        pairingWorker.execute(() -> {
+            LoopbackGateway prepared = null;
+            try {
+                GatewayTls tls = new GatewayTls(identity.pin);
+                String previous = identity.key().equals(preferences.getString("gatewayIdentity", ""))
+                        ? preferences.getString("gatewaySession", "") : "";
+                String issued = new PairingClient(tls::open).authorize(identity.server, identity.code, previous);
+                String session = issued == null ? previous : issued.split(";", 2)[0];
+                // Persist only after TLS and pairing both succeed. Never send a saved cookie to a different identity.
+                preferences.edit().putString("gatewayIdentity", identity.key()).putString("gatewaySession", session)
+                        .putString("server", identity.server.origin()).putString("gatewayPin", identity.pin).commit();
+                prepared = new LoopbackGateway(identity, tls, session, cookie ->
+                        { if (identity.key().equals(preferences.getString("gatewayIdentity", "")))
+                            preferences.edit().putString("gatewaySession", cookie).commit(); });
+                prepared.start(10000, true); // Stable origin; fail closed if another process occupies the port.
+                LoopbackGateway connected = prepared;
+                runOnUiThread(() -> {
+                    if (isDestroyed()) { connected.close(); return; }
+                    gateway = connected;
+                    ServerAddress local = ServerAddress.parse(connected.origin());
+                    server = local;
+                    CookieManager.getInstance().setCookie(local.origin(), connected.capabilityCookie(), accepted -> {
+                        if (isDestroyed()) { connected.close(); return; }
+                        if (!accepted) { connected.close(); gateway = null; connectionFailed(getString(R.string.cookie_rejected)); return; }
+                        CookieManager.getInstance().flush();
+                        finishConnection(local, route != null && local.contains(route) ? route : local.origin());
+                        address.setText(identity.server.origin());
+                        gatewayPin.setText(identity.pin);
+                    });
+                });
+            } catch (IOException failure) {
+                if (prepared != null) prepared.close();
+                String message = failure instanceof PairingClient.Rejected ? failure.getMessage()
+                        : "Encrypted connection failed. Check the computer, address and certificate fingerprint; rescan if its certificate changed.";
+                runOnUiThread(() -> { if (!isDestroyed()) connectionFailed(message); });
+            }
+        });
+    }
+
     private void connectionFailed(String message) {
         setConnecting(false);
         showConnection(0);
@@ -347,7 +417,7 @@ public final class MainActivity extends ComponentActivity {
     private void finishConnection(ServerAddress target, String route) {
         setConnecting(false);
         server = target;
-        preferences.edit().putString("server", server.origin()).apply();
+        if (!BuildConfig.GATEWAY_EXPERIMENT) preferences.edit().putString("server", server.origin()).apply();
         address.setText(server.origin());
         pairingCode.setText("");
         connection.findViewById(R.id.scanned_server).setVisibility(View.GONE);
@@ -440,6 +510,7 @@ public final class MainActivity extends ComponentActivity {
     @Override
     protected void onDestroy() {
         pairingWorker.shutdownNow();
+        if (gateway != null) gateway.close();
         ((FrameLayout) webView.getParent()).removeView(webView);
         webView.destroy();
         super.onDestroy();

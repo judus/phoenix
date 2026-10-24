@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Experimental, opt-in Android loopback-to-TLS gateway with a separate test APK and installation-specific QR certificate identity; normal HTTP access remains unchanged.
+
 ## 0.1.10 — 2026-10-22 (prerelease)
 
 - Let Copilot plot a route in Elite through the existing Galaxy Map routine, with an explicit
