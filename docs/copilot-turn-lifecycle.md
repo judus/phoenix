@@ -4,6 +4,8 @@ JSON and SSE callers own the same application turn. Closing the response before 
 finishes cancels remaining model generation and tool dispatch. A normal completed
 response is not cancellation. HTTP owns the response listener and removes it when
 the request settles; `CopilotTurnLifecycle` owns the shared semantic events.
+Server shutdown explicitly cancels and drains active text turns before ending
+event streams or closing persistence. New chat requests during shutdown are rejected.
 
 Cancellation does not undo a completed action. Its saved successful tool result
 remains successful even when the final answer is lost. An interrupted action whose

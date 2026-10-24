@@ -187,6 +187,8 @@ export interface PhoenixHttpServerOptions extends SettingsHttpServices, Engineer
 
 export class PhoenixHttpServer {
   private readonly eventStreams = new Set<ServerResponse>()
+  private readonly copilotRequests = new Map<ReturnType<typeof watchCopilotDisconnect>, Promise<void>>()
+  private stopping = false
   private readonly phoenixEventStreams = new Set<ServerResponse>()
   private readonly activityStreams = new Set<ServerResponse>()
   private readonly copilotConversationStreams = new Set<ServerResponse>()
@@ -218,6 +220,7 @@ export class PhoenixHttpServer {
   }
 
   public async start (): Promise<{ host: string, port: number }> {
+    this.stopping = false
     await new Promise<void>((resolvePromise, reject) => {
       this.server.once('error', reject)
       this.server.listen(this.options.port, this.options.host, () => {
@@ -248,6 +251,9 @@ export class PhoenixHttpServer {
 
   public async stop (): Promise<void> {
     if (!this.server.listening) return
+    this.stopping = true
+    for (const connection of this.copilotRequests.keys()) connection.cancel('PHOENIX server is stopping.')
+    await Promise.all(this.copilotRequests.values())
     for (const stream of this.eventStreams) stream.end()
     this.eventStreams.clear()
     for (const stream of this.phoenixEventStreams) stream.end()
@@ -1592,7 +1598,14 @@ export class PhoenixHttpServer {
     }
 
     const connection = watchCopilotDisconnect(response)
+    let resolveSettled!: () => void
+    const settled = new Promise<void>(resolve => { resolveSettled = resolve })
+    this.copilotRequests.set(connection, settled)
     try {
+      if (this.stopping) {
+        writeJson(response, 503, { error: { code: 'server_stopping', message: 'PHOENIX server is stopping.' } })
+        return
+      }
       if (request.headers.accept?.includes('text/event-stream') === true) {
         await this.streamCopilotChat(input, response, connection.signal)
         return
@@ -1610,6 +1623,8 @@ export class PhoenixHttpServer {
       })
     } finally {
       connection.dispose()
+      this.copilotRequests.delete(connection)
+      resolveSettled()
     }
   }
 

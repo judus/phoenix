@@ -76,6 +76,15 @@ test('disposing disconnect detection removes its listener before a later close',
   expect(response.listenerCount('close')).toBe(0)
 })
 
+test('explicit shutdown cancellation aborts even before a normally ended response closes', () => {
+  const response = Object.assign(new EventEmitter(), { writableFinished: true, destroyed: false })
+  const connection = watchCopilotDisconnect(response)
+  connection.cancel('PHOENIX server is stopping.')
+  expect(connection.signal.aborted).toBe(true)
+  expect(connection.signal.reason.message).toContain('server is stopping')
+  connection.dispose()
+})
+
 test('a response already disconnected before listener installation starts cancelled', () => {
   const response = Object.assign(new EventEmitter(), { writableFinished: false, destroyed: true })
   const connection = watchCopilotDisconnect(response)

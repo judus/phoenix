@@ -28,7 +28,8 @@ test.each([
   { mode: 'json', phase: 'before-dispatch' }, { mode: 'sse', phase: 'before-dispatch' },
   { mode: 'json', phase: 'after-effect-start' }, { mode: 'sse', phase: 'after-effect-start' },
   { mode: 'json', phase: 'after-effect-complete' }, { mode: 'sse', phase: 'after-effect-complete' },
-  { mode: 'json', phase: 'normal' }, { mode: 'sse', phase: 'normal' }
+  { mode: 'json', phase: 'normal' }, { mode: 'sse', phase: 'normal' },
+  { mode: 'json', phase: 'shutdown' }, { mode: 'sse', phase: 'shutdown' }
 ] as const)('$mode turn lifetime at $phase with actual SDK history', async ({ mode, phase }) => {
   const directory = await mkdtemp(join(tmpdir(), 'phoenix-turn-lifetime-'))
   const conversations = new JsonConversationStore(directory)
@@ -61,7 +62,7 @@ test.each([
         closed = true
         controller.close()
       }
-      if (first && phase !== 'before-dispatch') emitTool()
+      if (first && phase !== 'before-dispatch' && phase !== 'shutdown') emitTool()
       if (first) providerEntered.resolve()
       else finalProviderEntered.resolve()
     } }) }
@@ -82,12 +83,20 @@ test.each([
   const events: CopilotConversationEvent[] = []
   let stopSubscription: Promise<void> | undefined
   let client: ReturnType<typeof httpRequest> | undefined
+  let shutdown: Promise<void> | undefined
   try {
     const address = await application.start()
     const origin = `http://${address.host}:${address.port}`
     const subscription = await fetch(`${origin}/api/copilot/conversations/characterization/stream`, { signal: subscriptionAbort.signal })
     stopSubscription = (async () => {
-      try { for await (const event of readSseEvents(subscription)) if (event.event === 'conversation-event') events.push(JSON.parse(event.data)) }
+      try {
+        for await (const event of readSseEvents(subscription)) {
+          if (event.event !== 'conversation-event') continue
+          const received: CopilotConversationEvent = JSON.parse(event.data)
+          events.push(received)
+          if (['turn.completed', 'turn.cancelled', 'turn.failed'].includes(received.type)) break
+        }
+      }
       catch (cause) { if (!subscriptionAbort.signal.aborted) throw cause }
     })()
     client = httpRequest(`${origin}/api/copilot/chat`, { method: 'POST', headers: {
@@ -107,8 +116,9 @@ test.each([
       if (mode === 'json') expect(JSON.parse(response.body)).toMatchObject({ conversationId: 'characterization', text: 'Done.', finishReason: 'stop' })
       else expect(response.body).toContain('Done.')
     } else {
-      await (phase === 'before-dispatch' ? providerEntered.promise : phase === 'after-effect-start' ? effectEntered.promise : finalProviderEntered.promise)
-      client.destroy()
+      await (phase === 'before-dispatch' || phase === 'shutdown' ? providerEntered.promise : phase === 'after-effect-start' ? effectEntered.promise : finalProviderEntered.promise)
+      if (phase === 'shutdown') shutdown = application.stop()
+      else client.destroy()
       await providerAborted.promise
     }
     const abortedAtDisconnect = forwardSignal?.aborted ?? false
@@ -120,7 +130,7 @@ test.each([
     const result = saved?.messages.flatMap(message => message.content).find(part => part.type === 'tool_result')
     const expectedCancellation = phase !== 'normal'
     expect(abortedAtDisconnect).toBe(expectedCancellation)
-    expect(effects).toBe(expectedCancellation && phase === 'before-dispatch' ? 0 : 1)
+    expect(effects).toBe(phase === 'before-dispatch' || phase === 'shutdown' ? 0 : 1)
     if (phase === 'after-effect-start' && expectedCancellation) expect(result).toMatchObject({ status: 'cancelled', structuredContent: { outcome: 'unknown' } })
     else if (!expectedCancellation || phase === 'after-effect-complete') expect(result).toMatchObject({ status: 'success' })
     expect(events.filter(event => event.type === 'turn.started')).toHaveLength(1)
@@ -133,7 +143,7 @@ test.each([
     stopProviderObserver()
     subscriptionAbort.abort()
     await stopSubscription
-    await application.stop()
+    await (shutdown ?? application.stop())
     await rm(directory, { recursive: true, force: true })
   }
 }, 15_000)

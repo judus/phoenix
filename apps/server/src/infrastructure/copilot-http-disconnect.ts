@@ -6,12 +6,16 @@ interface ResponseConnection {
 }
 
 /** A premature close cancels caller-owned work; a normal response finish does not. */
-export function watchCopilotDisconnect (response: ResponseConnection): { signal: AbortSignal, dispose(): void } {
+export function watchCopilotDisconnect (response: ResponseConnection): { signal: AbortSignal, cancel(reason: string): void, dispose(): void } {
   const controller = new AbortController()
   const abort = () => {
     if (!response.writableFinished) controller.abort(new DOMException('Client disconnected.', 'AbortError'))
   }
   response.once('close', abort)
   if (response.destroyed) abort()
-  return { signal: controller.signal, dispose: () => { response.off('close', abort) } }
+  return {
+    signal: controller.signal,
+    cancel: reason => controller.abort(new DOMException(reason, 'AbortError')),
+    dispose: () => { response.off('close', abort) }
+  }
 }
