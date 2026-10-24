@@ -8,6 +8,7 @@ import {
 } from '@phoenix/contracts'
 import type { NavigationRouteReader } from '../domain/navigation.js'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
+import { GameInputBusyError, InputOperationCoordinator } from './input-operation-coordinator.js'
 import {
   EliteDestinationOperationError,
   type EliteDestinationInput,
@@ -29,19 +30,26 @@ const DEFAULT_TIMING: EliteDestinationTiming = {
 }
 
 export class EliteDestinationService implements EliteDestinations {
-  private active = false
-
   public constructor (
     private readonly input: EliteDestinationInput,
     private readonly runtimeState: RuntimeStateReader,
     private readonly navigationRoutes: NavigationRouteReader,
-    private readonly timing: EliteDestinationTiming = DEFAULT_TIMING
+    private readonly timing: EliteDestinationTiming = DEFAULT_TIMING,
+    private readonly operations = new InputOperationCoordinator()
   ) {}
 
   public async plot (systemNameCandidate: string, signal?: AbortSignal): Promise<PlotEliteDestinationResult> {
     const { systemName } = PlotEliteDestinationRequestSchema.parse({ systemName: systemNameCandidate })
-    if (this.active) return result(systemName, 'rejected', 'preflight', 'Another Galaxy Map operation is already running.')
+    if (signal?.aborted) return this.failure(systemName, 'failed', 'preflight', errorMessage(signal.reason))
+    try {
+      return await this.operations.exclusive('Galaxy Map route plotting', operationSignal => this.plotOwned(systemName, operationSignal), signal)
+    } catch (cause) {
+      if (!(cause instanceof GameInputBusyError)) throw cause
+      return result(systemName, 'rejected', 'preflight', cause.message)
+    }
+  }
 
+  private async plotOwned (systemName: string, signal: AbortSignal): Promise<PlotEliteDestinationResult> {
     const status = this.input.getStatus()
     if (!status.available) return this.failure(systemName, 'rejected', 'preflight', status.detail)
     const gameStatus = this.runtimeState.getCurrent().gameStatus
@@ -49,7 +57,6 @@ export class EliteDestinationService implements EliteDestinations {
       return this.failure(systemName, 'rejected', 'preflight', 'Elite is not reporting live status.')
     }
 
-    this.active = true
     const baselineRoute = this.navigationRoutes.getCurrent()
     let openedMap = false
     try {
@@ -125,15 +132,14 @@ export class EliteDestinationService implements EliteDestinations {
       }
       return result(systemName, 'confirmed', 'confirm_route', `Route to ${confirmedSystem} was confirmed.`, confirmedSystem)
     } catch (cause) {
+      let cleanupFailure = ''
       if (openedMap && this.runtimeState.getCurrent().gameStatus?.guiFocus?.id === 6) {
-        try { await this.closeMap() } catch { /* Preserve the primary failure. */ }
+        try { await this.closeMap() } catch (cleanup) { cleanupFailure = ` Galaxy Map cleanup failed: ${errorMessage(cleanup)}` }
       }
       if (cause instanceof EliteDestinationOperationError) {
-        return await this.failure(systemName, cause.timedOut ? 'timed_out' : 'failed', cause.phase, cause.message)
+        return await this.failure(systemName, cause.timedOut ? 'timed_out' : 'failed', cause.phase, cause.message + cleanupFailure)
       }
-      return await this.failure(systemName, 'failed', 'preflight', errorMessage(cause))
-    } finally {
-      this.active = false
+      return await this.failure(systemName, 'failed', 'preflight', errorMessage(cause) + cleanupFailure)
     }
   }
 

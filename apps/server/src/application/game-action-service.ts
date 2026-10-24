@@ -16,6 +16,7 @@ import {
   type GameActionResult
 } from '@phoenix/contracts'
 import type { GameActionGateway } from '../domain/game-actions.js'
+import { GameInputBusyError, InputOperationCoordinator } from './input-operation-coordinator.js'
 
 export interface GameActions {
   execute(candidate: unknown, origin: GameActionOrigin, signal?: AbortSignal): Promise<GameActionResult>
@@ -28,9 +29,10 @@ export class GameActionService implements GameActions {
 
   public constructor (
     private readonly gateway: GameActionGateway,
-    maximumHoldMs = 15_000
+    maximumHoldMs = 15_000,
+    private readonly operations = new InputOperationCoordinator()
   ) {
-    this.runtime = new CommandExecutionRuntime(new PhoenixGameActionAdapter(gateway), maximumHoldMs)
+    this.runtime = new CommandExecutionRuntime(new PhoenixGameActionAdapter(gateway, operations), maximumHoldMs)
   }
 
   public getCatalog (): GameActionCatalogResponse {
@@ -47,7 +49,7 @@ export class GameActionService implements GameActions {
       correlationId: request.correlationId ?? requestId,
       origin
     })
-    return this.runtime.execute({
+    return this.operations.input(command.operation, () => this.runtime.execute({
       correlationId: command.correlationId!,
       ...(command.idempotencyKey ? { idempotencyKey: command.idempotencyKey } : {}),
       ...(command.leaseId ? { leaseId: command.leaseId } : {}),
@@ -57,7 +59,7 @@ export class GameActionService implements GameActions {
       requestId: command.requestId!,
       targetKey: command.actionId,
       ...(command.timeoutMs ? { timeoutMs: command.timeoutMs } : {})
-    }, signal)
+    }, signal))
   }
 
   public stop (): Promise<void> {
@@ -66,7 +68,7 @@ export class GameActionService implements GameActions {
 }
 
 class PhoenixGameActionAdapter implements CommandExecutionAdapter<GameActionCommand, GameActionResult> {
-  public constructor (private readonly gateway: GameActionGateway) {}
+  public constructor (private readonly gateway: GameActionGateway, private readonly operations: InputOperationCoordinator) {}
 
   public createExpiredRelease (
     request: CommandRuntimeRequest<GameActionCommand>
@@ -104,6 +106,12 @@ class PhoenixGameActionAdapter implements CommandExecutionAdapter<GameActionComm
     request: CommandRuntimeRequest<GameActionCommand>,
     signal: AbortSignal
   ): Promise<GameActionResult> {
-    return GameActionResultSchema.parse(await this.gateway.execute(request.payload, signal))
+    try { this.operations.assertDispatch(request.operation) } catch (cause) {
+      if (!(cause instanceof GameInputBusyError)) throw cause
+      return this.createResult(request, 'rejected', cause.message)
+    }
+    const result = GameActionResultSchema.parse(await this.gateway.execute(request.payload, signal))
+    this.operations.dispatched(request.payload, result)
+    return result
   }
 }

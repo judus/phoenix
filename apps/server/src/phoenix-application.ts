@@ -54,6 +54,7 @@ import { createPhoenixControlDeckCommandIntegration } from './application/create
 import { DefaultNumpadCommands, NumpadTreeProjector } from './application/numpad-command-service.js'
 import { DefaultRuntimeStateProjector } from './application/default-runtime-state-projector.js'
 import { GameActionService, type GameActions } from './application/game-action-service.js'
+import { InputOperationCoordinator } from './application/input-operation-coordinator.js'
 import { createPhoenixMcpTools } from './application/phoenix-mcp-tools.js'
 import { DefaultCopilotCapabilityService } from './application/copilot-capability-service.js'
 import { CopilotCommands } from './application/copilot-commands.js'
@@ -181,6 +182,7 @@ export interface PhoenixApplicationOptions extends GalaxyQuerySources {
 }
 
 export class PhoenixApplication {
+  private readonly inputOperations = new InputOperationCoordinator()
   private readonly eddn: EddnContributionService
   private readonly controlDeck: ControlDeckIntegration
   private readonly eliteControls: ControlDeckCommandService
@@ -397,7 +399,7 @@ export class PhoenixApplication {
     })
     this.eliteControls = new ControlDeckCommandService([eliteAdapter], { createId: randomUUID })
     const actionGateway = new ControlDeckEliteGameActionGateway(eliteAdapter, this.eliteControls)
-    const gameActions = new LoggedGameActions(new GameActionService(actionGateway), activityLog)
+    const gameActions = new LoggedGameActions(new GameActionService(actionGateway, undefined, this.inputOperations), activityLog)
     this.gameActions = gameActions
     const systemSettings = new NotifyingSystemSettingsRepository(
       options.systemSettingsRepository ?? new InMemorySystemSettingsRepository(),
@@ -437,7 +439,10 @@ export class PhoenixApplication {
     )
     const macros = new MacroService(
       macroRepository,
-      gameActions
+      gameActions,
+      undefined,
+      undefined,
+      this.inputOperations
     )
     const commandRegistry = new DefaultCommandRegistry(
       gameActions,
@@ -501,7 +506,9 @@ export class PhoenixApplication {
     const eliteDestinations = new EliteDestinationService(
       new ControlDeckEliteDestinationInput(eliteBindings, keyboardOutput),
       this.stateStore,
-      navigationRoutes
+      navigationRoutes,
+      undefined,
+      this.inputOperations
     )
     const display = new DisplayCommandService(displayCommandUpdates, this.stateStore)
     const routeCompletionDisplay = new RouteCompletionDisplay(this.stateStore.getCurrent(), display)
@@ -688,6 +695,7 @@ export class PhoenixApplication {
     // Keep dependencies alive until their consumers finish: journal before EDDN,
     // game actions before the Elite adapter, and all persistence users before SQLite.
     for (const cleanup of [
+      () => this.inputOperations.stop(),
       () => this.journalSource.stop(),
       () => this.eddn.stop(),
       () => this.statusSource.stop(),
