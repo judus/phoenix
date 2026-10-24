@@ -4,6 +4,10 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Move Copilot text and local tool conversations to AI SDK, preserving saved chats, profile
+  instructions and current tool permissions. Keep existing realtime voice working independently.
+  Save completed and interrupted tool outcomes without automatically replaying actions.
+
 ## 0.1.10 — 2026-10-22 (prerelease)
 
 - Let Copilot plot a route in Elite through the existing Galaxy Map routine, with an explicit

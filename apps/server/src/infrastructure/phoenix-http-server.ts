@@ -45,7 +45,8 @@ import {
   type NavigationRoute,
   type RuntimeState
 } from '@phoenix/contracts'
-import { AiError, serializeAiError, type AiStreamEvent, type ToolRegistry } from '@jdu/llm-client'
+import { AiError, serializeAiError, type ToolRegistry } from '@jdu/llm-client'
+import type { CopilotStreamEvent } from '@phoenix/copilot'
 import type { ControlDeckHttpHandler } from 'control-deck/host'
 import type { CopilotText, CopilotTextRequest } from '../application/copilot-text-service.js'
 import type { CopilotConversationEvents } from '../application/copilot-conversation-event-service.js'
@@ -1739,7 +1740,7 @@ function completedConversationEvent (input: {
 }
 
 
-function writeCopilotStreamEvent (response: ServerResponse, event: AiStreamEvent): void {
+function writeCopilotStreamEvent (response: ServerResponse, event: CopilotStreamEvent): void {
   switch (event.type) {
     case 'run.started':
       writeSse(response, 'started', { conversationId: event.chatId })

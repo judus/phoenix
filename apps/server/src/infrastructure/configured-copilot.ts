@@ -1,12 +1,11 @@
 import { resolve } from 'node:path'
-import { createAiClient, type AiClient, type ToolRegistry } from '@jdu/llm-client'
-import { openAI } from '@jdu/llm-client/providers/openai'
+import type { ToolRegistry } from '@jdu/llm-client'
+import { createOpenAI } from '@ai-sdk/openai'
 import {
   AgentPromptComposer,
   FileAgentProfileRepository,
   RuntimeContextRenderer,
-  TextCopilotPipeline,
-  type CopilotAiClientFactory
+  TextCopilotPipeline
 } from '@phoenix/copilot'
 import { CopilotTextService, type CopilotText } from '../application/copilot-text-service.js'
 import { CopilotProfileService, type CopilotProfiles } from '../application/copilot-profile-service.js'
@@ -17,7 +16,7 @@ import type { MissionDataReader } from '../domain/missions.js'
 import { MissionRuntimeContext } from '../application/mission-runtime-context.js'
 import { readCopilotAudioProcessing } from './copilot-audio-config.js'
 import { JsonConversationStore } from './json-conversation-store.js'
-import { COPILOT_TOOL_TIMEOUT_MS } from '../application/copilot-tool-registry.js'
+import { AiSdkCopilotClientFactory } from './ai-sdk-copilot-client.js'
 import { OpenAiRealtimeClient } from './openai-realtime-client.js'
 import { RotatingWireLogger } from './rotating-wire-logger.js'
 import type { ApplicationPaths } from './application-paths.js'
@@ -83,46 +82,16 @@ export function createConfiguredCopilot (
         )
       }).write
     : undefined
-  const provider = openAI({
-    apiKey,
-    maxRetries: options.maxRetries ?? environmentInteger(
-      process.env.PHOENIX_OPENAI_MAX_RETRIES,
-      1,
-      true
-    ),
-    model: options.model ?? process.env.PHOENIX_OPENAI_MODEL ?? 'gpt-5.6-terra',
-    timeoutMs: options.timeoutMs ?? environmentInteger(
-      process.env.PHOENIX_OPENAI_TIMEOUT_MS,
-      180_000,
-      false
-    ),
-    ...(wireLogger === undefined ? {} : { wireLogger })
-  })
   const profiles = new FileAgentProfileRepository(profilesDirectory)
   const prompts = new AgentPromptComposer(profiles)
   const profileService = new CopilotProfileService(profiles, options.systemSettings)
   const runtimeContext = new RuntimeContextRenderer([new MissionRuntimeContext(options.missions)])
-  const clients: CopilotAiClientFactory = {
-    create: (instructions: string): AiClient => createAiClient({
-      history: {
-        maxContextTokens: 100_000,
-        repository: conversations
-      },
-      instructions,
-      toolTimeoutMs: COPILOT_TOOL_TIMEOUT_MS,
-      ...(options.mcpUrl === undefined ? {} : {
-        mcp: [{
-          name: 'phoenix',
-          timeoutMs: COPILOT_TOOL_TIMEOUT_MS,
-          url: options.mcpUrl,
-          ...(options.mcpToken === undefined ? {} : {
-            headers: { authorization: `Bearer ${options.mcpToken}` }
-          })
-        }]
-      }),
-      provider
-    })
-  }
+  const clients = new AiSdkCopilotClientFactory({
+    model: createOpenAI({ apiKey }).responses(options.model ?? process.env.PHOENIX_OPENAI_MODEL ?? 'gpt-5.6-terra'),
+    conversations,
+    tools: options.tools,
+    timeoutMs: options.timeoutMs ?? environmentInteger(process.env.PHOENIX_OPENAI_TIMEOUT_MS, 180_000, false)
+  })
   const pipeline = new TextCopilotPipeline(
     clients,
     prompts,
