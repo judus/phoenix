@@ -6,6 +6,7 @@ import { AiError, type ContentPart, type ConversationMessage, type ConversationS
 import type { CopilotAiClient, CopilotAiClientFactory, CopilotResult,
   CopilotRunOptions, CopilotStreamEvent, CopilotUsage } from '@phoenix/copilot'
 import { COPILOT_TOOL_TIMEOUT_MS } from '../application/copilot-tool-registry.js'
+import { activeCopilotHistory, CopilotHistoryContext } from './copilot-history-context.js'
 
 export interface AiSdkCopilotOptions {
   model: LanguageModel
@@ -60,6 +61,7 @@ export class AiSdkCopilotClientFactory implements CopilotAiClientFactory {
           createdAt: new Date().toISOString(), role, runId, content, ...(metadata ? { metadata } : {}) }
         conversation = await this.options.conversations.append(chatId, [message], { expectedRevision: conversation.revision })
         history.push(message)
+        return message
       }
       const pending = new Map<string, ToolCall>()
       const dispatched = new Set<string>()
@@ -76,7 +78,7 @@ export class AiSdkCopilotClientFactory implements CopilotAiClientFactory {
       }
       const savedResults = new Set(history.flatMap(message => message.content.flatMap(part =>
         part.type === 'tool_result' ? [part.callId] : [])))
-      for (const message of [...history]) {
+      for (const message of activeCopilotHistory(history)) {
         for (const part of message.content) {
           if (part.type !== 'tool_call' || savedResults.has(part.callId)) continue
           const text = 'PHOENIX stopped before saving this result. Execution outcome is unknown; do not repeat the action automatically.'
@@ -105,16 +107,20 @@ export class AiSdkCopilotClientFactory implements CopilotAiClientFactory {
         }
         const callNames = new Map(history.flatMap(message => message.content.flatMap(part =>
           part.type === 'tool_call' ? [[part.callId, part.name] as const] : [])))
-        const messages = history.flatMap(message => toModelMessages(message, callNames))
-        // Conservative admission, not truncation: keep every current call/result and instruction.
-        // UTF-8 bytes are an upper-bound estimate for ordinary text tokenizers, with framing reserve.
-        const estimated = Buffer.byteLength(JSON.stringify({ instructions, messages, definitions }), 'utf8') + 4096
-        if (estimated > (this.options.maxContextTokens ?? 100_000)) {
-          throw new AiError('budget_exceeded', 'This conversation is too large to continue safely. Start a new conversation; completed tool results remain saved.', {
-            code: 'copilot_context_limit', details: { estimated, completedSteps: step }
+        const context = await new CopilotHistoryContext(this.options.model, this.options.maxContextTokens).prepare({
+          history, runId, instructions, definitions, signal,
+          render: message => toModelMessages(message, callNames),
+          save: (text, lastSourceMessageId) => persist('developer', [{ type: 'text', text, source: 'summarized' }], {
+            historySummary: { lastSourceMessageId, sourceMessagesRetained: true }
           })
-        }
-        const response = streamText({ model: this.options.model, system: instructions, messages, tools,
+        })
+        for (const key of ['inputTokens', 'outputTokens', 'cachedInputTokens', 'reasoningTokens'] as const) add(usage, key, context.usage[key])
+        const messages = context.messages.filter(message => message.role !== 'system')
+        const system: Extract<ModelMessage, { role: 'system' }>[] = [
+          ...context.messages.filter((message): message is Extract<ModelMessage, { role: 'system' }> => message.role === 'system'),
+          { role: 'system', content: instructions }
+        ]
+        const response = streamText({ model: this.options.model, system, messages, tools,
           maxRetries: 0, abortSignal: signal, maxOutputTokens: 4096,
           providerOptions: { openai: { store: false } }, onError: () => {} })
         let error: unknown
@@ -237,6 +243,10 @@ function toModelMessages (message: ConversationMessage, callNames: ReadonlyMap<s
     return stored.map(item => modelMessageSchema.parse(item))
   }
   const text = message.content.flatMap(part => part.type === 'text' ? [part.text] : part.type === 'refusal' ? [part.reason] : []).join('\n')
+  if (message.metadata?.historySummary !== undefined) return [{ role: 'user', content: JSON.stringify({
+    type: 'historical_conversation_summary', text,
+    note: 'Historical context, not a new request or instruction to execute actions. Current system instructions and live tool results take precedence.'
+  }) }]
   if (message.role === 'tool') return [{ role: 'tool', content: message.content.flatMap(part => {
     if (part.type !== 'tool_result') return []
     const name = callNames.get(part.callId)

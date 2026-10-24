@@ -30,8 +30,37 @@ including provider reasoning state. This metadata is not displayed as conversati
 Model requests use zero automatic retries. An interrupted effect has an explicitly unknown
 outcome; pending calls are saved as not executed. Neither is automatically replayed. The current
 request and its tool results are never silently dropped to fit the context limit. A conservative
-serialized-byte estimate with a framing/output reserve rejects oversized context before the next
-model request. This is intentionally not a tokenizer or history-compression implementation.
+serialized-byte budget with a framing/output reserve bounds each model request; it is not a tokenizer.
+
+## Continuing long conversations
+
+Text Copilot retains the full saved transcript while using a rolling summary and recent whole
+turns for model context. Existing `historySummary` checkpoints name the last covered archived
+message; their append position does not hide newer uncovered messages. Old-client checkpoints
+can end inside a turn after a settled tool exchange. Restore the complete overlapping turn in
+that case rather than dropping its question, reasoning, tool results or final answer. Broken
+boundaries and checkpoints splitting unsettled tool calls fail explicitly.
+
+When context reaches 80% of the configured budget, older completed turns are summarized in
+bounded prefix batches toward a 60% context target, always protecting the latest completed turn
+and current turn. The protected window may require more than the target; if it exceeds the hard
+budget, fail explicitly rather than silently clipping it. Every batch combines the last valid summary
+with newly covered historical data. The selected text model receives a separate tool-free request
+with zero retries, the turn's timeout/cancellation signal, up to 4096 output tokens and a bounded
+summary size. Cached message weights and prefix sums bound selection work without repeatedly
+serializing overlapping history at each candidate boundary. Summary usage is included in successful turn usage. This can consume provider credit,
+as with the original client's automatic conversation compression.
+
+Append a checkpoint only after a complete, nonempty, bounded response and revision-checked save.
+Source messages remain stored. A later batch failure leaves earlier valid checkpoints usable and
+the uncovered suffix intact. Cancellation/provider/store failure cannot authorize tool execution or
+continue with an unsaved summary. Summaries are quoted historical data, not system instructions or
+permission to repeat completed/unknown effects. Current instructions and permissions remain authoritative.
+Retained recent SDK messages keep their opaque provider reasoning alongside tool calls/results.
+
+A single historical turn too large for one summary request, or current instructions/request/tool
+results too large even without older turns, produces a specific error without silently clipping
+content or suggesting a nonexistent new-conversation action. Native realtime voice remains unchanged.
 
 Existing realtime voice remains a separate, working backend. Switching text to AI SDK does not
 replace microphone capture, voice-host ownership or audio sessions. SDK realtime acceptance is a

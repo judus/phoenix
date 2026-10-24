@@ -57,12 +57,17 @@ test.each(['openai', 'anthropic', 'google'] as const)('direct %s SDK adapter sen
     return new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } })
   })
   const result = await generateText({ model: createCopilotModel({ provider, apiKey: 'synthetic-fixture-key-12345', model: 'fixture' }),
-    prompt: 'Hello', maxRetries: 0 })
+    system: [{ role: 'system', content: 'Saved genuine instructions.' }, { role: 'system', content: 'Current authoritative instructions.' }],
+    messages: [{ role: 'user', content: JSON.stringify({ type: 'historical_conversation_summary', text: 'Historical facts only.' }) },
+      { role: 'user', content: 'Hello' }], maxRetries: 0 })
   expect(result.text).toBe('Ready')
   expect(requests).toHaveLength(1)
   expect(requests[0].url).toContain(provider === 'openai' ? 'api.openai.com/v1/responses' : provider === 'anthropic'
     ? 'api.anthropic.com/v1/messages' : 'generativelanguage.googleapis.com')
   expect(requests[0].url).not.toContain('vercel')
+  expect(JSON.stringify(requests[0].body)).toContain('Current authoritative instructions.')
+  expect(JSON.stringify(requests[0].body)).toContain('Historical facts only.')
+  expect(requests[0].body.tools ?? []).toHaveLength(0)
 })
 
 test('provider key HTTP settings persist without exposing keys and reject an unknown provider', async () => {
