@@ -2,10 +2,9 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { expect, test } from 'vitest'
 import { ControlDeckCommandService } from 'control-deck/core'
-import { EliteDangerousCommandAdapter } from 'control-deck/integration-elite-dangerous'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
 import { parseEliteStatus } from '@phoenix/elite'
-import { ControlDeckEliteGameActionGateway } from '../apps/server/src/application/control-deck-elite-game-action-gateway.js'
+import { ControlDeckEliteGameActionGateway, PhoenixEliteGameActionAdapter } from '../apps/server/src/application/control-deck-elite-game-action-gateway.js'
 import { GameActionService } from '../apps/server/src/application/game-action-service.js'
 import { StatefulGameActionService } from '../apps/server/src/application/stateful-game-action-service.js'
 import { InMemoryRuntimeStateStore } from '../apps/server/src/infrastructure/in-memory-runtime-state-store.js'
@@ -58,7 +57,7 @@ test('a stateful action distinguishes telemetry confirmation from accepted input
 function fixture () {
   const backend = new RecordingKeyboardOutput()
   const bindings = new StaticEliteDangerousBindings()
-  const adapter = new EliteDangerousCommandAdapter({ bindings, output: backend, outputId: 'recording' })
+  const adapter = new PhoenixEliteGameActionAdapter({ bindings, output: backend, outputId: 'recording' })
   let id = 0
   const commands = new ControlDeckCommandService([adapter], { createId: () => `stateful-${++id}` })
   const actions = new GameActionService(new ControlDeckEliteGameActionGateway(adapter, commands))

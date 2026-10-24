@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Reject conflicting game controls while a route or macro owns input. Respect existing holds,
+  keep release/cancellation/shutdown cleanup usable, and report Galaxy Map cleanup failures.
 - Move Copilot text and local tool conversations to AI SDK, preserving saved chats, profile
   instructions and current tool permissions. Keep existing realtime voice working independently.
   Save completed and interrupted tool outcomes without automatically replaying actions.

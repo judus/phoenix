@@ -11,6 +11,7 @@ import {
 import type { GameActions } from './game-action-service.js'
 import type { MacroRepository, Macros } from '../domain/macros.js'
 import { withEffectiveMacroRisk } from './macro-risk.js'
+import { GameInputBusyError, InputOperationCoordinator } from './input-operation-coordinator.js'
 
 interface HeldAction {
   leaseId: string
@@ -30,7 +31,8 @@ export class MacroService implements Macros {
     private readonly repository: MacroRepository,
     private readonly gameActions: GameActions,
     private readonly now: () => Date = () => new Date(),
-    private readonly holdLeaseRenewalMs = 5_000
+    private readonly holdLeaseRenewalMs = 5_000,
+    private readonly operations = new InputOperationCoordinator()
   ) {}
 
   public getLibrary () { return this.repository.getLibrary() }
@@ -113,7 +115,7 @@ export class MacroService implements Macros {
     if (!macro?.enabled) throw new Error(`Macro ${macroId} is unavailable.`)
     const controller = new AbortController()
     const timeout = AbortSignal.timeout(60_000)
-    const signal = callerSignal ? AbortSignal.any([controller.signal, callerSignal, timeout]) : AbortSignal.any([controller.signal, timeout])
+    const playbackSignal = callerSignal ? AbortSignal.any([controller.signal, callerSignal, timeout]) : AbortSignal.any([controller.signal, timeout])
     const state: MacroPlayback = MacroPlaybackSchema.parse({
       completedSteps: 0,
       macroId,
@@ -124,57 +126,70 @@ export class MacroService implements Macros {
       totalSteps: macro.steps.length
     })
     this.activeRun = { controller, state }
-    const held = new Map<string, HeldAction>()
-    try {
-      for (const step of macro.steps) {
-        if (signal.aborted) throw signal.reason
-        if (step.type === 'wait') {
-          await abortableWait(step.durationMs, signal)
-        } else {
-          const action = held.get(step.actionId)
-          const leaseId = step.operation === 'press'
-            ? action?.leaseId ?? randomUUID()
-            : step.operation === 'release' ? action?.leaseId : undefined
-          // Input may succeed before result logging throws. Reserve its safety release first.
-          if (step.operation === 'press' && !action) held.set(step.actionId, { leaseId: leaseId! })
-          if (step.operation === 'release' && action) {
-            clearInterval(action.renewal)
-            held.delete(step.actionId)
-          }
-          const result = await this.gameActions.execute({
-            actionId: step.actionId,
-            operation: step.operation,
-            ...(leaseId ? { leaseId } : {})
-          }, origin, signal)
-          if (!['accepted', 'confirmed', 'unconfirmed', 'already_satisfied'].includes(result.status)) {
-            throw new Error(result.message)
-          }
-          if (step.operation === 'press' && !action) {
-            held.set(step.actionId, this.holdAction(step.actionId, leaseId!, origin))
-          }
-        }
-        state.completedSteps += 1
-      }
-      state.status = 'completed'
-      state.message = 'Macro sequence completed; game outcome is not confirmed.'
-    } catch (cause) {
-      const timedOut = signal.reason instanceof DOMException && signal.reason.name === 'TimeoutError'
-      state.status = timedOut ? 'timed_out' : signal.aborted ? 'aborted' : 'failed'
-      state.message = timedOut
-        ? 'Macro playback timed out.'
-        : signal.aborted ? 'Macro playback aborted.' : cause instanceof Error ? cause.message : 'Macro playback failed.'
-    } finally {
+    let acquired = false
+    return this.operations.exclusive(`macro ${macroId}`, async signal => {
+      acquired = true
+      const held = new Map<string, HeldAction>()
       try {
-        await this.releaseHeldActions(held, origin)
+        for (const step of macro.steps) {
+          if (signal.aborted) throw signal.reason
+          if (step.type === 'wait') {
+            await abortableWait(step.durationMs, signal)
+          } else {
+            const action = held.get(step.actionId)
+            const leaseId = step.operation === 'press'
+              ? action?.leaseId ?? randomUUID()
+              : step.operation === 'release' ? action?.leaseId : undefined
+            // Input may succeed before result logging throws. Reserve its safety release first.
+            if (step.operation === 'press' && !action) held.set(step.actionId, { leaseId: leaseId! })
+            if (step.operation === 'release' && action) {
+              clearInterval(action.renewal)
+              held.delete(step.actionId)
+            }
+            const result = await this.gameActions.execute({
+              actionId: step.actionId,
+              operation: step.operation,
+              ...(leaseId ? { leaseId } : {})
+            }, origin, signal)
+            if (!['accepted', 'confirmed', 'unconfirmed', 'already_satisfied'].includes(result.status)) {
+              throw new Error(result.message)
+            }
+            if (step.operation === 'press' && !action) {
+              held.set(step.actionId, this.holdAction(step.actionId, leaseId!, origin))
+            }
+          }
+          state.completedSteps += 1
+        }
+        state.status = 'completed'
+        state.message = 'Macro sequence completed; game outcome is not confirmed.'
       } catch (cause) {
-        if (state.status === 'completed') throw cause
-        const message = cause instanceof Error ? cause.message : 'Unknown cleanup failure.'
-        state.message += ` Held-action cleanup failed: ${message}`
+        const timedOut = signal.reason instanceof DOMException && signal.reason.name === 'TimeoutError'
+        state.status = timedOut ? 'timed_out' : signal.aborted ? 'aborted' : 'failed'
+        state.message = timedOut
+          ? 'Macro playback timed out.'
+          : signal.aborted ? 'Macro playback aborted.' : cause instanceof Error ? cause.message : 'Macro playback failed.'
       } finally {
-        this.activeRun = undefined
+        try {
+          await this.releaseHeldActions(held, origin)
+        } catch (cause) {
+          if (state.status === 'completed') throw cause
+          const message = cause instanceof Error ? cause.message : 'Unknown cleanup failure.'
+          state.message += ` Held-action cleanup failed: ${message}`
+        }
       }
-    }
-    return MacroPlaybackSchema.parse(state)
+      return MacroPlaybackSchema.parse(state)
+    }, playbackSignal).catch(cause => {
+      if (acquired) throw cause
+      if (playbackSignal.aborted) {
+        const timedOut = playbackSignal.reason instanceof DOMException && playbackSignal.reason.name === 'TimeoutError'
+        return MacroPlaybackSchema.parse({ ...state, status: timedOut ? 'timed_out' : 'aborted',
+          message: timedOut ? 'Macro playback timed out.' : 'Macro playback aborted.' })
+      }
+      if (!(cause instanceof GameInputBusyError)) throw cause
+      return MacroPlaybackSchema.parse({ ...state, status: 'failed', message: cause.message })
+    }).finally(() => {
+      if (this.activeRun?.state === state) this.activeRun = undefined
+    })
   }
 
   public abortPlayback (): MacroPlayback | null {

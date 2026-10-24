@@ -1,10 +1,11 @@
 import {
   ControlDeckCommandService,
+  type ControlDeckAdapterDescriptor,
   type ControlDeckCommandExecutionResult
 } from 'control-deck/core'
 import {
   ELITE_DANGEROUS_ADAPTER_ID,
-  type EliteDangerousCommandAdapter
+  EliteDangerousCommandAdapter
 } from 'control-deck/integration-elite-dangerous'
 import {
   GameActionCatalogResponseSchema,
@@ -16,11 +17,22 @@ import {
 } from '@phoenix/contracts'
 import type { GameActionGateway } from '../domain/game-actions.js'
 
+/** GameActionService's Control Deck runtime is the single owner of Elite holds. */
+export class PhoenixEliteGameActionAdapter extends EliteDangerousCommandAdapter {
+  public override describe (): ControlDeckAdapterDescriptor {
+    return { ...super.describe(), holdOwner: 'adapter' }
+  }
+}
+
 export class ControlDeckEliteGameActionGateway implements GameActionGateway {
   public constructor (
     private readonly adapter: EliteDangerousCommandAdapter,
     private readonly commands: ControlDeckCommandService
-  ) {}
+  ) {
+    if (adapter.describe().holdOwner !== 'adapter') {
+      throw new Error('PHOENIX game actions require delegated hold ownership; use PhoenixEliteGameActionAdapter.')
+    }
+  }
 
   public getCatalog (): GameActionCatalogResponse {
     const snapshot = this.adapter.getSnapshot()

@@ -2,12 +2,12 @@ import { expect, test } from 'vitest'
 import { RecordingKeyboardOutput } from 'control-deck/adapter-keyboard'
 import { ControlDeckCommandService } from 'control-deck/core'
 import { EliteDangerousCommandAdapter } from 'control-deck/integration-elite-dangerous'
-import { ControlDeckEliteGameActionGateway } from '../apps/server/src/application/control-deck-elite-game-action-gateway.js'
+import { ControlDeckEliteGameActionGateway, PhoenixEliteGameActionAdapter } from '../apps/server/src/application/control-deck-elite-game-action-gateway.js'
 import { StaticEliteDangerousBindings } from './support/static-elite-dangerous-bindings.js'
 
 test('the PHOENIX gateway executes Elite actions through the Control Deck integration', async () => {
   const backend = new RecordingKeyboardOutput()
-  const adapter = new EliteDangerousCommandAdapter({ bindings: new StaticEliteDangerousBindings(), output: backend, outputId: 'recording' })
+  const adapter = new PhoenixEliteGameActionAdapter({ bindings: new StaticEliteDangerousBindings(), output: backend, outputId: 'recording' })
   const gateway = new ControlDeckEliteGameActionGateway(adapter, commandService(adapter))
 
   const result = await gateway.execute({
@@ -31,7 +31,7 @@ test('the PHOENIX gateway executes Elite actions through the Control Deck integr
 
 test('the action gateway rejects unknown actions without touching the backend', async () => {
   const backend = new RecordingKeyboardOutput()
-  const adapter = new EliteDangerousCommandAdapter({ bindings: new StaticEliteDangerousBindings(), output: backend, outputId: 'recording' })
+  const adapter = new PhoenixEliteGameActionAdapter({ bindings: new StaticEliteDangerousBindings(), output: backend, outputId: 'recording' })
   const gateway = new ControlDeckEliteGameActionGateway(adapter, commandService(adapter))
 
   const result = await gateway.execute({
@@ -48,3 +48,11 @@ function commandService (adapter: EliteDangerousCommandAdapter): ControlDeckComm
   let id = 0
   return new ControlDeckCommandService([adapter], { createId: () => `test-${++id}` })
 }
+
+test('the integrated gateway rejects a competing inner lease owner before input', () => {
+  const output = new RecordingKeyboardOutput()
+  const standalone = new EliteDangerousCommandAdapter({ bindings: new StaticEliteDangerousBindings(), output })
+  expect(() => new ControlDeckEliteGameActionGateway(standalone, commandService(standalone)))
+    .toThrow('delegated hold ownership')
+  expect(output.getRecordedInputs()).toEqual([])
+})
