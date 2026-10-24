@@ -10,7 +10,8 @@
   Reconcile issue checklists and closures at merge checkpoints, not after local implementation.
   An idea in the backlog is not authorization to implement it. Record player-visible changes in
   [CHANGELOG.md](CHANGELOG.md), under Unreleased until a release is actually published.
-- Work sequentially, one accepted ticket per cycle: ticket → implementation → changelog → commit
+- Work sequentially, one accepted ticket per cycle: ticket → implementation → focused local
+  checks → changelog → commit
   and PR → wait for all required CI to pass (fix failures) → merge into `dev` and verify issue
   completion → next ticket. Do not start the next implementation while the current PR awaits CI
   or merge; start its branch from the updated `dev` to avoid overlapping work and merge conflicts.
@@ -28,7 +29,15 @@
   release/CI work read [.agents/skills/phoenix-release/SKILL.md](.agents/skills/phoenix-release/SKILL.md).
   Read actual installed versions and the relevant owner before using version-sensitive APIs.
   For React APIs and upgrades, use the source and compatibility checks in [docs/react.md](docs/react.md).
-- Run focused regression tests and `npm run check` for code changes. Report unverified behavior;
-  production typechecks do not typecheck every test, and CI is not proof of real Elite input.
+- During implementation, run relevant regression tests and affected type checks. Make the locally
+  checked change available for Julien's testing immediately; do not make him wait for remote CI.
+  `npm run check` remains the complete quality gate, run once by Linux CI on PRs into `dev`;
+  a full local rerun is warranted for broad changes, unresolved failures or integration concerns,
+  not every edit. There are no duplicate CI runs on `dev`/`main` pushes.
+- PRs into `main` and tagged releases require Linux + Windows checks and installer verification.
+  For Windows input, packaging, filesystem or other platform-sensitive work, explicitly run manual
+  CI on the feature branch with `windows=true` before merging into `dev`; enable `installers=true`
+  when packaging is affected. See [docs/releases.md](docs/releases.md). Do not claim Windows or
+  Elite acceptance from Linux checks; report the actual validation boundary.
 - If available, `.context/index.md` and `.context/codex-handoff.md` provide local working context.
   Keep `.context` ignored; never force-add it or put player data and credentials in tracked files.

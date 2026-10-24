@@ -17,27 +17,50 @@ Only PHOENIX is covered here; Control Deck has its own independent repository/re
 
 ## Automation
 
-`ci.yml` runs on pushes and pull requests to `dev`/`main`, and manual dispatch. It calls the same
-native verification workflow on Ubuntu 24.04 x64 and Windows Server 2022 x64 with Node 24.14.0.
-Every run executes `npm ci` and `npm run check`.
-On Windows CI, Vitest uses one worker: concurrent test files amplify durable SQLite disk
-latency on hosted runners. The five-second test limit, real disk/reopen fixtures and normal
-SQLite durability remain unchanged; local runs and Linux CI retain default parallelism.
-This trades Windows job throughput for repeatable disk-backed integration checks, rather than
-relaxing assertions or extending timeouts. See the opt-in measurements in
-`scripts/diagnostics/README.md`.
+The development loop is **feature → dev → main**, with verification matched to the stage:
 
-Pull requests into `main` and manual
-CI runs additionally verify the native packages: Linux verifies the pinned AppImage runtime,
-helpers and file hashes, then smoke-tests AppRun and the image's extract-and-run lifecycle;
-Windows installs, smoke-tests its native launcher, then uninstalls. Ordinary
-CI retains no installer artifacts or dependency caches. Superseded CI runs are cancelled.
-Pushes to either branch skip packaging, avoiding a duplicate installer build after promotion.
-The final gate is named `Installers passed` only for PRs into `main` and manual CI runs;
-all ordinary runs report `CI passed`. It accepts only a successful aggregate native result:
-failed, skipped or cancelled verification cannot pass. A cancelled gate also cannot authorize merge.
-Version tags still build and verify release installers from the exact tagged commit, rather than
-reusing development packages.
+| Stage | Verification |
+| --- | --- |
+| Local implementation | Relevant regression tests and affected type checks, then immediate maintainer testing. Do not wait for remote CI. |
+| PR into `dev` | Full `npm run check` on Ubuntu 24.04 x64, once per PR revision. No installers. |
+| PR into `main` | Full `npm run check` on Ubuntu 24.04 x64 and Windows Server 2022 x64, plus both installer verifications. |
+| Version tag | Rebuild, check and verify release installers on both native platforms from the exact tagged commit. |
+
+`npm run check` remains the single complete quality gate. A full local run is appropriate for
+broad changes, unresolved failures or integration concerns; it is not required after each edit
+or before opening every PR. Record which checks ran, and distinguish local readiness for testing
+from the required CI acceptance before merging. Keep the existing sequential issue/PR workflow.
+
+`ci.yml` runs on PRs targeting `dev`/`main` and explicit manual dispatch, **not branch pushes**.
+Merging or synchronizing these branches therefore does not start a second identical run.
+Each selected native runner uses Node 24.14.0 and runs `npm ci` and `npm run check`.
+The required gate names stay `CI passed` for `dev` and `Installers passed` for `main`;
+branch protections and the complete quality gate remain enforced.
+
+### Earlier platform verification
+
+For Windows input, filesystem behaviour, packaging or other platform-sensitive changes, run
+**CI → Run workflow** on the feature branch before merging into `dev`:
+
+- `windows=true` (manual default): include Windows alongside Linux source checks.
+- `installers=true` (default false): also build and verify both installers. Use this for packaging changes.
+
+For example, `gh workflow run ci.yml --ref <feature-branch> -f windows=true -f installers=false`.
+Wait for the selected manual run as well as the required PR gate before merging a platform-sensitive
+change. Manual source-only runs report `CI passed`; manual installer runs report `Installers passed`.
+PRs into `main` always verify both platforms and installers regardless of manual defaults.
+Installer and release-asset callers of the shared verification workflow always include Windows.
+
+On Windows CI, Vitest uses one worker: concurrent files amplify durable SQLite disk latency on
+hosted runners. The five-second test limit, real disk/reopen fixtures and normal SQLite durability
+remain unchanged. Local runs and Linux CI retain default parallelism. See the opt-in measurements
+in `scripts/diagnostics/README.md`.
+
+Installer verification checks the pinned Linux AppImage runtime, helpers, hashes and relocatable
+launch lifecycle; Windows installs, smoke-tests the native launcher, then uninstalls. Ordinary CI
+retains no installer artifacts or dependency caches. Superseded revisions' CI runs are cancelled.
+The aggregate gate accepts only a successful verification result; failed, skipped or cancelled
+verification cannot authorize merging. Linux checks alone do not establish Windows/Elite acceptance.
 
 `release.yml` runs for `v*` version tags or a manual retry specifying an existing tag. It:
 
