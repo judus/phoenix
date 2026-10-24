@@ -1,5 +1,8 @@
+import { createHash } from 'node:crypto'
 import { expect, test, vi } from 'vitest'
 import { GalnetAnalysisSchema } from '@phoenix/contracts'
+import { SavedGalnetAnalysisService } from '../apps/server/src/application/saved-galnet-analysis-service.js'
+import { GalnetInvestigationLeadsService } from '../apps/server/src/application/galnet-investigation-leads-service.js'
 import { GalnetAnalysisService } from '../apps/server/src/application/galnet-analysis-service.js'
 import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
 import type { GalnetArticleAnalyser } from '../apps/server/src/domain/galnet-analysis.js'
@@ -228,4 +231,57 @@ test.each(['SMOJE TO-Z d13-40', 'BD+05 1295'])('accepts a fully quoted system na
     fixture.analyser.analyse.mockResolvedValue({ content, continuity: null, usage: analysisUsage })
     expect((await fixture.service.analyse(analysisArticle.id)).analysis?.content.activities[1]).toMatchObject({ destination: { systemName: name } })
   } finally { await fixture.close() }
+})
+
+test('a multi-system appeal persists and plots one separately evidenced activity per destination', async () => {
+  const fixture = setup()
+  try {
+    const systems = ['Sol', 'Colonia', 'Achenar', 'Lave']
+    const quote = 'Pilots should register in Sol, Colonia, Achenar and Lave for field trials.'
+    fixture.db.galnetArchive.observe([{ ...analysisArticle, body: quote }], '2026-10-08T12:00:00Z')
+    const content = { summary: 'Four field trial destinations.', facts: [], interpretations: [],
+      entities: systems.map(name => ({ name, kind: 'system' as const, role: 'Field trial destination', evidence: quote })),
+      activities: systems.map(systemName => ({ title: `Field trials in ${systemName}`, action: 'Register for the trials.',
+        evidence: quote, status: 'ongoing' as const, communityGoalId: null, relationship: 'none' as const,
+        destination: { systemName, evidence: quote } })) }
+    fixture.analyser.analyse.mockResolvedValue({ content, continuity: null, usage: analysisUsage })
+    const result = await fixture.service.analyse(analysisArticle.id)
+    expect(result.analysis?.content.activities).toEqual(content.activities)
+    const saved = new SavedGalnetAnalysisService(fixture.db.galnetAnalyses, fixture.db.galnetArchive)
+    const leads = new GalnetInvestigationLeadsService(saved).get().leads
+    expect(leads.map(lead => lead.systemName)).toEqual(systems)
+    expect(new Set(leads.map(lead => lead.id)).size).toBe(4)
+    expect(leads.every(lead => lead.destinationEvidence === quote)).toBe(true)
+  } finally { await fixture.close() }
+})
+
+test('revised extraction bypasses an old prompt cache without deleting the old successful report', async () => {
+  const f = setup()
+  try {
+    const revision = f.db.galnetArchive.getArticle(analysisArticle.id)!.revisionId
+    const cacheKey = createHash('sha256').update(JSON.stringify({ revision, model: f.analyser.model,
+      extractor: 'galnet-analysis-v3', goals: analysisGoals.goals })).digest('hex')
+    const old = GalnetAnalysisSchema.parse({ ...savedGalnetAnalysis({ cacheKey, articleRevisionId: revision }),
+      schemaVersion: 3, extractorVersion: 'galnet-analysis-v3', context: [], continuity: null })
+    f.db.galnetAnalyses.put(old)
+    const updated = (await f.service.analyse(analysisArticle.id)).analysis!
+    expect(updated.cacheKey).not.toBe(old.cacheKey)
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(1)
+    expect(f.db.galnetAnalyses.get(old.cacheKey)).toEqual(old)
+  } finally { await f.close() }
+})
+
+test('automatic requests cannot repeat failed evidence; changed input and explicit retries remain eligible', async () => {
+  const f = setup()
+  try {
+    f.analyser.analyse.mockRejectedValueOnce(new Error('Synthetic outage'))
+    await expect(f.service.analyse(analysisArticle.id, { retryFailed: false })).rejects.toThrow('Synthetic outage')
+    await expect(f.service.analyse(analysisArticle.id, { retryFailed: false })).rejects.toMatchObject({ code: 'galnet_analysis_already_attempted' })
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(1)
+    await f.service.analyse(analysisArticle.id) // explicit Update analysis
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(2)
+    f.db.galnetArchive.observe([{ ...analysisArticle, title: 'Revised source' }], '2026-10-08T12:00:00Z')
+    await f.service.analyse(analysisArticle.id, { retryFailed: false })
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(3)
+  } finally { await f.close() }
 })

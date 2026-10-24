@@ -403,7 +403,7 @@ export function GalacticAtlas({ bookmarks, bookmarkStatus, catalogue, catalogueS
           {selected.communityGoal && <>
             <div><dt>Activity</dt><dd>Community Goal</dd></div>
             <div><dt>Destination</dt><dd>{selected.communityGoal.stationName}</dd></div>
-            <div><dt>Objective</dt><dd>{selected.communityGoal.objective}</dd></div>
+            <div><dt>Objective</dt><dd>{selected.communityGoal.objective || 'Not provided'}</dd></div>
             <div><dt>Global progress</dt><dd>{selected.communityGoal.contributed.toLocaleString('en-GB')} / {selected.communityGoal.target.toLocaleString('en-GB')}</dd></div>
             <div><dt>Expiry · Frontier time</dt><dd>{formatCommunityGoalExpiry(selected.communityGoal.expiry)}</dd></div>
             {communityGoalsSnapshot && <div><dt>Source snapshot</dt><dd><UpdatedDateTime value={communityGoalsSnapshot.fetchedAt} />{communityGoalsSnapshot.cache === 'stale' ? ' · Stale' : ''}</dd></div>}

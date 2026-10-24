@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
+import { GalnetInvestigationLeadsService } from '../apps/server/src/application/galnet-investigation-leads-service.js'
 import { GalnetBackgroundService } from '../apps/server/src/application/galnet-background-service.js'
 import { GalnetAnalysisService } from '../apps/server/src/application/galnet-analysis-service.js'
 import { SavedGalnetAnalysisService } from '../apps/server/src/application/saved-galnet-analysis-service.js'
@@ -537,4 +538,62 @@ test.each(['before-admission', 'after-admission'] as const)('failure %s never lo
     f.configured(true); await f.worker.tick()
     expect(f.analyser.analyse).toHaveBeenCalledTimes(1)
   } finally { vi.restoreAllMocks(); await f.close() }
+})
+
+test('enabled worker discovers unanalysed later system coverage and retires only its evidenced completed lead', async () => {
+  const f = fixture()
+  try {
+    f.db.galnetArchive.observe([analysisArticle], '2026-10-07T12:00:00Z')
+    const prior = (await f.analysis.analyse(analysisArticle.id)).analysis!
+    const quote = 'The beacon investigation in Colonia has concluded successfully.'
+    const completion = { ...analysisArticle, id: 'completion', title: 'Colonia investigation completed',
+      body: quote, publishedAt: '2026-10-05T12:00:00Z' }
+    const unrelated = { ...completion, id: 'unrelated', title: 'Independent news', body: 'Trade in Regulus is unchanged.' }
+    f.db.galnetArchive.observe([completion, unrelated], '2026-10-07T12:00:00Z')
+    expect(f.analysis.contextWork().refreshes.map(work => work.articleId)).toEqual(['completion'])
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(1)
+    await f.worker.tick()
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(1) // automation remains opt-in
+    f.analyser.analyse.mockImplementation(async (_article, _goals, _signal, context) => ({
+      content: { summary: 'The investigation concluded.', facts: [{ text: 'Completed.', evidence: quote }],
+        interpretations: [], entities: [], activities: [] },
+      continuity: { summary: 'This concludes the earlier beacon investigation.', relatedArticleIds: [analysisArticle.id],
+        developments: [{ text: 'The investigation concluded.', evidence: { articleId: completion.id, quote } }],
+        updates: [{ leadId: context[0]!.activities[0]!.leadId, disposition: 'resolved', explanation: 'Explicit completion.',
+          evidence: { articleId: completion.id, quote }, replacementActivityIndex: null, communityGoalId: null }] },
+      usage: analysisUsage
+    }))
+    f.worker.setSettings({ enabled: true, dailyLimit: 1 })
+    await f.worker.tick()
+    const job = f.worker.status().jobs.find(job => job.articleId === completion.id)
+    expect(job).toMatchObject({ reason: 'story-context', state: 'succeeded' })
+    expect(f.worker.status().requestsToday).toBe(1)
+    const atlas = new GalnetInvestigationLeadsService(new SavedGalnetAnalysisService(f.db.galnetAnalyses, f.db.galnetArchive))
+    expect(atlas.get().leads).toEqual([])
+    expect(f.db.galnetAnalyses.latest(analysisArticle.id)).toEqual(prior)
+    expect(f.db.galnetAnalyses.latest(unrelated.id)).toBeNull()
+    await f.worker.tick()
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(2)
+  } finally { await f.close() }
+})
+
+test('changing queue reasons cannot repeat a failed model request, but explicit catch-up can retry', async () => {
+  const f = fixture()
+  try {
+    f.db.galnetArchive.observe([analysisArticle], '2026-10-07T12:00:00Z')
+    await f.analysis.analyse(analysisArticle.id)
+    f.add()
+    f.analyser.analyse.mockRejectedValue(new Error('Synthetic outage'))
+    f.enable()
+    await f.worker.tick()
+    await f.worker.tick()
+    expect(f.worker.status().jobs.filter(job => job.articleId === 'new-article').map(job => job.reason).sort())
+      .toEqual(['article', 'story-context'])
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(2) // successful setup + one failed inference
+    f.analyser.analyse.mockResolvedValue({ content: structuredClone(analysisContent), continuity: null, usage: analysisUsage })
+    f.worker.catchUp(['new-article'])
+    await f.worker.tick()
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(3)
+    expect(f.db.galnetAnalyses.latest('new-article')).not.toBeNull()
+  } finally { await f.close() }
 })

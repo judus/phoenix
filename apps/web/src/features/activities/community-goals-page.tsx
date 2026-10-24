@@ -57,7 +57,7 @@ function GoalDetails({ goal }: { goal: CommunityGoal }) {
     <Stack gap="lg">
       <DescriptionList columns="one" density="compact">
         <DescriptionItem label="Destination" value={<SystemLocationLink systemName={goal.systemName} locationName={goal.stationName} />} />
-        <DescriptionItem label="Objective" value={goal.objective} />
+        <DescriptionItem label="Objective" value={goal.objective || 'Not provided'} />
         {goal.targetCommodities && goal.targetCommodities !== goal.objective
           ? <DescriptionItem label="Requested" value={goal.targetCommodities} /> : null}
         <DescriptionItem label="Expiry (Frontier time)" value={<time dateTime={goal.expiry.replace(' ', 'T')} title="Frontier does not supply a timezone for this time.">{formatCommunityGoalExpiry(goal.expiry)}</time>} />

@@ -5,11 +5,14 @@ import type { GalnetArticleArchive } from '../domain/galnet.js'
 import type { CommunityGoalsReader } from '../domain/community-goals.js'
 import type { GalnetAnalysisReader, GalnetAnalysisRepository, GalnetArticleAnalyser } from '../domain/galnet-analysis.js'
 import { createGalnetQuoteResolver } from './galnet-quote-resolver.js'
+import { GalnetInvestigationLeadsService } from './galnet-investigation-leads-service.js'
 import { galnetStoryContext } from './galnet-story-context.js'
 import { validateGalnetContinuity } from './galnet-continuity-validation.js'
 import { galnetContextChanged } from './galnet-lead-reconciliation.js'
 
 const EXTRACTOR_VERSION = 'galnet-analysis-v3'
+// Bump when extraction instructions change without a saved-report schema change.
+const PROMPT_REVISION = 2
 const EvidenceSchema = GalnetAnalysisContentSchema.shape.facts.element.shape.evidence
 
 export class GalnetAnalysisService implements GalnetAnalysisReader {
@@ -17,7 +20,7 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
   private readonly shutdown = new AbortController()
 
   public constructor (
-    private readonly articles: Pick<GalnetArticleArchive, 'getArticle'>,
+    private readonly articles: Pick<GalnetArticleArchive, 'getArticle' | 'recent'>,
     private readonly goals: CommunityGoalsReader,
     private readonly repository: GalnetAnalysisRepository,
     private readonly analyser: GalnetArticleAnalyser,
@@ -41,36 +44,58 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
     const reports = this.repository.recent(100)
     const byId = new Map(reports.map(report => [report.articleId, report]))
     const reader = { recent: () => reports, latest: (id: string) => byId.get(id) ?? this.repository.latest(id) }
+    const saved = reports.map(analysis => ({ analysis,
+      articleChanged: this.articles.getArticle(analysis.articleId)?.revisionId !== analysis.articleRevisionId,
+      contextChanged: galnetContextChanged(analysis, this.articles, reader), currentArticleTitle: null }))
+    const visibleLeads = new Set(new GalnetInvestigationLeadsService({ recent: () => saved }).get().leads.map(lead => lead.id))
+    const hasOpenLead = (context: ReturnType<typeof galnetStoryContext>) => context.some(entry =>
+      entry.activities.some(({ leadId }) => visibleLeads.has(leadId)))
     const blockedArticleIds: string[] = []
-    const refreshes = reports.sort((a, b) => Date.parse(a.publishedAt) - Date.parse(b.publishedAt)).flatMap(report => {
+    const refreshes = [...reports].sort((a, b) => Date.parse(a.publishedAt) - Date.parse(b.publishedAt)).flatMap(report => {
       const article = this.articles.getArticle(report.articleId)
-      if (!article || report.schemaVersion !== 3 || report.articleRevisionId !== article.revisionId) return []
+      if (!article || report.articleRevisionId !== article.revisionId) return []
+      const previousContext = report.schemaVersion === 3 ? report.context : []
       // Wait for corrected earlier articles, rather than removing their context temporarily
       // and spending another request when their corrected report arrives.
       const context = galnetStoryContext(article, this.articles, reader)
-      if (report.context.some(source => this.articles.getArticle(source.articleId)?.revisionId !==
+      if (report.schemaVersion !== 3 && !hasOpenLead(context)) return []
+      if (previousContext.some(source => this.articles.getArticle(source.articleId)?.revisionId !==
         reader.latest(source.articleId)?.articleRevisionId) ||
         context.some(entry => galnetContextChanged(byId.get(entry.source.articleId)!, this.articles, reader))) {
         blockedArticleIds.push(report.articleId)
         return []
       }
       const keys = context.map(entry => entry.source.analysisCacheKey)
-      if (JSON.stringify(keys) === JSON.stringify(report.context.map(source => source.analysisCacheKey))) return []
+      if (JSON.stringify(keys) === JSON.stringify(previousContext.map(source => source.analysisCacheKey))) return []
       // Include the replaced report: returning to an earlier cached context must select it
       // again, but failed unchanged evidence must never retry itself.
       return [{ articleId: report.articleId,
         evidenceKey: createHash('sha256').update(JSON.stringify([report.cacheKey, keys])).digest('hex') }]
     })
+    // Later coverage can conclude an old appeal even when it was never analysed. Only
+    // inspect the bounded retained archive, and only queue candidates linked to existing
+    // independent leads. The analyser still has to prove each individual outcome.
+    for (const article of this.articles.recent(100)) {
+      if (byId.has(article.article.id)) continue
+      const context = galnetStoryContext(article, this.articles, reader)
+      if (!hasOpenLead(context)) continue
+      if (context.some(entry => galnetContextChanged(byId.get(entry.source.articleId)!, this.articles, reader))) {
+        blockedArticleIds.push(article.article.id)
+        continue
+      }
+      refreshes.push({ articleId: article.article.id, evidenceKey: createHash('sha256')
+        .update(JSON.stringify([article.revisionId, context.map(entry => entry.source.analysisCacheKey)])).digest('hex') })
+    }
     return { refreshes, blockedArticleIds }
   }
 
-  public analyse (articleId: string): Promise<GalnetAnalysisResponse> {
+  public analyse (articleId: string, options = { retryFailed: true }): Promise<GalnetAnalysisResponse> {
     if (this.shutdown.signal.aborted) return Promise.reject(new AiError('cancelled', 'GalNet analysis is stopping.', { code: 'galnet_analysis_stopped' }))
     if (this.running) {
       if (this.running.articleId === articleId) return this.running.result
       return Promise.reject(new AiError('rate_limit', 'Another GalNet article is being analysed. Wait for it to finish.', { code: 'galnet_analysis_busy' }))
     }
-    const result = this.run(articleId).finally(() => { this.running = undefined })
+    const result = this.run(articleId, options.retryFailed).finally(() => { this.running = undefined })
     this.running = { articleId, result }
     return result
   }
@@ -80,7 +105,7 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
     await this.running?.result.catch(() => undefined)
   }
 
-  private async run (articleId: string): Promise<GalnetAnalysisResponse> {
+  private async run (articleId: string, retryFailed: boolean): Promise<GalnetAnalysisResponse> {
     if (!this.analyser.configured()) throw new AiError('authentication', 'Configure an OpenAI API key in Settings before analysing GalNet.', { code: 'galnet_analysis_not_configured' })
     const article = this.articles.getArticle(articleId)
     if (!article) throw new AiError('invalid_request', 'This article has not been archived yet. Refresh the GalNet feed after its cache expires.', { code: 'galnet_article_unavailable' })
@@ -90,7 +115,7 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
     const goalEvidence = [...goals.goals].sort((left, right) => left.id.localeCompare(right.id))
     const context = galnetStoryContext(article, this.articles, this.repository)
     const cacheKey = createHash('sha256').update(JSON.stringify({ revision: article.revisionId,
-      model: this.analyser.model, extractor: EXTRACTOR_VERSION, goals: goalEvidence,
+      model: this.analyser.model, extractor: EXTRACTOR_VERSION, promptRevision: PROMPT_REVISION, goals: goalEvidence,
       context: context.map(entry => entry.source.analysisCacheKey) })).digest('hex')
     const cached = this.repository.get(cacheKey)
     if (cached) {
@@ -100,6 +125,10 @@ export class GalnetAnalysisService implements GalnetAnalysisReader {
     if (JSON.stringify({ article: article.article, communityGoals: goals, ...(context.length > 0 ? { context } : {}) }).length > 60_000) {
       throw new AiError('invalid_request', 'The article, related coverage and Community Goals exceed the analysis input limit. No AI request was made.', { code: 'galnet_analysis_input_limit' })
     }
+    const firstAttempt = this.repository.beginAttempt(cacheKey)
+    if (!firstAttempt && !retryFailed) throw new AiError('invalid_request',
+      'This exact GalNet analysis previously failed or was interrupted. Use explicit catch-up or Update analysis to retry.',
+      { code: 'galnet_analysis_already_attempted' })
     const signal = AbortSignal.any([this.shutdown.signal, AbortSignal.timeout(90_000)])
     const result = await this.analyser.analyse(article, goals, signal, context)
     signal.throwIfAborted()

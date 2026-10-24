@@ -115,7 +115,7 @@ export class GalnetBackgroundService {
       const started = { ...job, state: 'running' as const, startedAt: this.now().toISOString() }
       this.repository.put(started)
       try {
-        await this.analysis.analyse(job.articleId)
+        await this.analysis.analyse(job.articleId, { retryFailed: job.reason === 'catch-up' })
         this.repository.put({ ...started, state: 'succeeded', finishedAt: this.now().toISOString() })
       } catch (cause) {
         this.repository.put({ ...started, state: 'failed', finishedAt: this.now().toISOString(), error: message(cause) })

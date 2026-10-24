@@ -36,6 +36,19 @@ test('Frontier adapter requests the public English listing and validates/normali
     expect.objectContaining({ headers: { accept: 'application/json' }, signal: expect.any(AbortSignal) }))
 })
 
+test('a blank provider objective does not discard the other active initiatives or invent objective text', async () => {
+  const source = new FrontierCommunityGoalsSource(async () => Response.json({ activeInitiatives: [
+    { ...initiative, id: 'exploration', objective: '' }, initiative,
+    { ...initiative, id: 'mining' }, { ...initiative, id: 'combat', objective: '' }
+  ] }))
+  const goals = await source.getCurrent()
+  expect(goals).toHaveLength(4)
+  expect(goals[0]).toMatchObject({ id: 'exploration', objective: '' })
+  const db = database()
+  const service = new CommunityGoalsService({ getCurrent: async () => goals }, db)
+  expect(await service.getCurrent()).toMatchObject({ cache: 'refreshed', goals })
+})
+
 test.each([
   { activeInitiatives: [{ ...initiative, qty: '12 rubbish' }] },
   { activeInitiatives: [{ ...initiative, qty: '-1' }] },
@@ -43,6 +56,8 @@ test.each([
   { activeInitiatives: [{ ...initiative, target_qty: '0' }] },
   { activeInitiatives: [{ ...initiative, starsystem_name: '' }] },
   { activeInitiatives: [{ ...initiative, bulletin: undefined }] },
+  { activeInitiatives: [{ ...initiative, objective: undefined }] },
+  { activeInitiatives: [{ ...initiative, objective: 12 }] },
   { other: [] }
 ])('malformed provider data is an error, never an authoritative empty list: %j', async document => {
   const source = new FrontierCommunityGoalsSource(async () => Response.json(document))

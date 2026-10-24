@@ -2,6 +2,8 @@ import type { CommunityGoalsResponse, GalnetAnalysis, GalnetAnalysisContent, Gal
 import type { GalnetArticleRevision } from './galnet.js'
 
 export interface GalnetAnalysisRepository {
+  /** Persist before inference; false means this exact request was already attempted. */
+  beginAttempt(cacheKey: string): boolean
   get(cacheKey: string): GalnetAnalysis | null
   latest(articleId: string): GalnetAnalysis | null
   recent(limit: number): GalnetAnalysis[]
@@ -41,5 +43,5 @@ export interface GalnetStoryContext {
 
 export interface GalnetAnalysisReader {
   get(articleId: string): GalnetAnalysisResponse
-  analyse(articleId: string): Promise<GalnetAnalysisResponse>
+  analyse(articleId: string, options?: { retryFailed: boolean }): Promise<GalnetAnalysisResponse>
 }

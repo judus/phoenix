@@ -59,3 +59,25 @@ test('a selection write failure rolls back the new report and preserves the prev
     expect(repository.latest(original.articleId)?.cacheKey).toBe('new-report')
   } finally { connection.close() }
 })
+
+test('attempt guard survives reopening and clears atomically with a successful report', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-galnet-attempts-'))
+  const path = join(directory, 'attempts.sqlite')
+  let connection = new DatabaseSync(path)
+  try {
+    connection.exec('CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL) STRICT;')
+    let repository = new SqliteGalnetAnalysisRepository(connection)
+    repository.initialize()
+    expect(repository.beginAttempt('interrupted')).toBe(true)
+    expect(repository.beginAttempt('interrupted')).toBe(false)
+    connection.close()
+    connection = new DatabaseSync(path)
+    repository = new SqliteGalnetAnalysisRepository(connection)
+    repository.initialize()
+    expect(repository.beginAttempt('interrupted')).toBe(false)
+    const report = savedGalnetAnalysis({ cacheKey: 'interrupted' })
+    repository.put(report)
+    expect(repository.get(report.cacheKey)).toEqual(report)
+    expect(repository.beginAttempt('interrupted')).toBe(true)
+  } finally { connection.close(); rmSync(directory, { recursive: true, force: true }) }
+})
