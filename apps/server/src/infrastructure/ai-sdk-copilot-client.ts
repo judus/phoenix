@@ -50,6 +50,7 @@ export class AiSdkCopilotClientFactory implements CopilotAiClientFactory {
     this.active.add(chatId)
     const runId = randomUUID()
     let settlePending: (() => Promise<void>) | undefined
+    let settleProviderStep: (() => Promise<void>) | undefined
     try {
       const snapshot = await this.options.conversations.snapshot(chatId)
       let conversation = snapshot?.conversation ?? await this.options.conversations.create({ id: chatId })
@@ -71,6 +72,18 @@ export class AiSdkCopilotClientFactory implements CopilotAiClientFactory {
               code: unknown ? 'copilot_tool_outcome_unknown' : 'copilot_tool_not_executed', message, retryable: false
             } }], { toolName: call.name })
           pending.delete(call.id)
+        }
+      }
+      const savedResults = new Set(history.flatMap(message => message.content.flatMap(part =>
+        part.type === 'tool_result' ? [part.callId] : [])))
+      for (const message of [...history]) {
+        for (const part of message.content) {
+          if (part.type !== 'tool_call' || savedResults.has(part.callId)) continue
+          const text = 'PHOENIX stopped before saving this result. Execution outcome is unknown; do not repeat the action automatically.'
+          await persist('tool', [{ type: 'tool_result', callId: part.callId, status: 'error',
+            content: [{ type: 'text', text }], structuredContent: { outcome: 'unknown' },
+            error: { code: 'copilot_tool_outcome_unknown', message: text, retryable: false } }], { toolName: part.name })
+          savedResults.add(part.callId)
         }
       }
       signal.throwIfAborted()
@@ -108,7 +121,20 @@ export class AiSdkCopilotClientFactory implements CopilotAiClientFactory {
         let aborted = false
         let stepText = ''
         const calls: ToolCall[] = []
-        for await (const event of response.fullStream) {
+        const invalidInputs = new Set<string>()
+        let savedStep = false
+        const saveStep = async (metadata: JsonObject) => {
+          if (savedStep) return
+          const content: ContentPart[] = [
+            ...(stepText ? [{ type: 'text' as const, text: stepText, source: 'generated' as const }] : []),
+            ...calls.map(call => ({ type: 'tool_call' as const, callId: call.id, name: call.name, arguments: call.arguments }))
+          ]
+          await persist('assistant', content, metadata)
+          savedStep = true
+          for (const call of calls) pending.set(call.id, call)
+        }
+        settleProviderStep = async () => { if (stepText || calls.length) await saveStep({ incomplete: true }) }
+        try { for await (const event of response.fullStream) {
           if (event.type === 'text-delta') {
             stepText += event.text
             finalText += event.text
@@ -116,25 +142,29 @@ export class AiSdkCopilotClientFactory implements CopilotAiClientFactory {
           } else if (event.type === 'tool-call') {
             const name = names.get(event.toolName)
             if (!name) throw new Error('Provider requested an unknown tool.')
-            calls.push({ id: event.toolCallId, name, arguments: objectArguments(event.input) })
+            const arguments_ = objectArguments(event.input)
+            if (!arguments_) invalidInputs.add(event.toolCallId)
+            calls.push({ id: event.toolCallId, name, arguments: arguments_ ?? {} })
           } else if (event.type === 'error') error = event.error
           else if (event.type === 'abort') aborted = true
-        }
+        } } catch (cause) { error = cause }
         if (error !== undefined || aborted || signal.aborted) {
-          if (stepText) await persist('assistant', [{ type: 'text', text: stepText, source: 'generated' }], { incomplete: true })
+          await settleProviderStep()
           signal.throwIfAborted()
           if (aborted) throw new AiError('cancelled', 'Copilot was cancelled.', { code: 'copilot_cancelled' })
           throw providerFailure(error)
         }
         const finish = await response.finishReason
-        if (finish === 'error' || finish === 'other' || finish === 'interrupted') throw providerFailure(undefined)
-        const sdkMessages = (await response.response).messages
-        const content: ContentPart[] = [
-          ...(stepText ? [{ type: 'text' as const, text: stepText, source: 'generated' as const }] : []),
-          ...calls.map(call => ({ type: 'tool_call' as const, callId: call.id, name: call.name, arguments: call.arguments }))
-        ]
-        await persist('assistant', content, { sdkMessages: JSON.parse(JSON.stringify(sdkMessages)) })
-        for (const call of calls) pending.set(call.id, call)
+        // SDK may synthesize tool-error messages for invalid JSON. PHOENIX saves its own
+        // validated results below, so retain only provider assistant/reasoning messages here.
+        const sdkMessages = (await response.response).messages.filter(message => message.role === 'assistant')
+        await saveStep({ sdkMessages: JSON.parse(JSON.stringify(sdkMessages)),
+          ...(invalidInputs.size ? { invalidToolInputIds: [...invalidInputs] } : {}) })
+        if (finish !== 'stop' && finish !== 'tool-calls') {
+          throw new AiError('malformed_response', 'The AI response was incomplete or filtered. Its tool calls were not executed.', {
+            code: 'copilot_incomplete_response', details: { finishReason: finish }
+          })
+        }
         const stepUsage = await response.totalUsage
         add(usage, 'inputTokens', stepUsage.inputTokens)
         add(usage, 'outputTokens', stepUsage.outputTokens)
@@ -146,7 +176,12 @@ export class AiSdkCopilotClientFactory implements CopilotAiClientFactory {
           const toolTimeoutMs = this.options.toolTimeoutMs ?? COPILOT_TOOL_TIMEOUT_MS
           const toolSignal = AbortSignal.any([signal, AbortSignal.timeout(toolTimeoutMs)])
           let part: ToolResultPart
+          let unknownOutcome = false
           try {
+            if (invalidInputs.has(call.id)) throw new AiError('tool_validation',
+              'Tool arguments must be a JSON object matching the schema; this call was not executed. Supply corrected arguments.', {
+                code: 'invalid_tool_arguments'
+              })
             this.options.tools.validate(call)
             toolSignal.throwIfAborted()
             dispatched.add(call.id)
@@ -155,11 +190,12 @@ export class AiSdkCopilotClientFactory implements CopilotAiClientFactory {
             part = { type: 'tool_result', callId: call.id, status: 'success', content: output.content ?? [],
               ...(output.structuredContent === undefined ? {} : { structuredContent: output.structuredContent }) }
           } catch (cause) {
-            const safe = cause instanceof AiError && (cause.category === 'authorization' ||
-              (cause.category === 'tool_validation' && cause.code !== 'tool_output_validation_failed') ||
-              (!dispatched.has(call.id) && cause.category === 'invalid_request'))
-            const message = safe ? cause.message : 'Tool execution did not complete normally. Its outcome may be unknown; do not repeat the action without checking.'
+            const safe = cause instanceof AiError
+            unknownOutcome = dispatched.has(call.id) && (!safe || ['cancelled', 'timeout', 'tool_execution'].includes(cause.category) || cause.code === 'tool_output_validation_failed')
+            const detail = safe ? cause.message : 'Tool execution did not complete normally.'
+            const message = unknownOutcome ? `${detail} Its outcome may be unknown; do not repeat the action without checking.` : detail
             part = { type: 'tool_result', callId: call.id, status: toolSignal.aborted ? 'cancelled' : 'error',
+              ...(unknownOutcome ? { structuredContent: { outcome: 'unknown' } } : {}),
               content: [{ type: 'text', text: message }], error: {
                 code: safe ? cause.code : 'copilot_tool_outcome_unknown', message, retryable: false
               } }
@@ -168,12 +204,12 @@ export class AiSdkCopilotClientFactory implements CopilotAiClientFactory {
           pending.delete(call.id)
           yield { type: 'tool.result', callId: call.id, status: part.status }
           signal.throwIfAborted()
-          if (part.error?.code === 'copilot_tool_outcome_unknown') throw new AiError('tool_execution', part.error.message, {
-            code: part.error.code, details: { callId: call.id, outcome: 'unknown' }
+          if (unknownOutcome) throw new AiError('tool_execution', part.error!.message, {
+            code: 'copilot_tool_outcome_unknown', details: { callId: call.id, outcome: 'unknown' }
           })
         }
         if (calls.length === 0) {
-          const finishReason = finish === 'tool-calls' ? 'tool_calls' : finish === 'content-filter' ? 'content_filter' : finish
+          const finishReason = finish === 'tool-calls' ? 'tool_calls' : finish
           yield { type: 'run.completed', result: { chatId, text: finalText, finishReason, usage } }
           return
         }
@@ -182,17 +218,15 @@ export class AiSdkCopilotClientFactory implements CopilotAiClientFactory {
         code: 'copilot_step_limit'
       })
     } finally {
-      try { await settlePending?.() } finally { this.active.delete(chatId) }
+      try { await settleProviderStep?.(); await settlePending?.() } finally { this.active.delete(chatId) }
     }
   }
 }
 
 function sdkToolName (name: string): string { return `phoenix_${name.replaceAll('.', '_')}` }
 
-function objectArguments (input: unknown): JsonObject {
-  if (input === null || typeof input !== 'object' || Array.isArray(input)) {
-    throw new AiError('tool_validation', 'Tool arguments must be an object.', { code: 'invalid_tool_arguments' })
-  }
+function objectArguments (input: unknown): JsonObject | undefined {
+  if (input === null || typeof input !== 'object' || Array.isArray(input)) return undefined
   return input as JsonObject
 }
 

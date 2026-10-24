@@ -301,6 +301,25 @@ test.each(['permissions-first', 'key-first'] as const)('overlapping permission/k
   } finally { await act(async () => renderer.unmount()) }
 })
 
+test('provider change disables credential submission until the selected provider is confirmed', async () => {
+  const selection = deferred<Awaited<ReturnType<PhoenixApi['saveCopilotSettings']>>>()
+  const api = { ...settingsApi(), saveCopilotSettings: vi.fn().mockReturnValue(selection.promise),
+    saveOpenAiApiKey: vi.fn(), saveCopilotProviderKey: vi.fn() }
+  const audio = { devices: { inputs: [], outputs: [] }, inputId: '', outputId: '', setInputId() {}, setOutputId() {} }
+  let renderer!: ReturnType<typeof create>
+  await act(async () => { renderer = create(<CopilotSettingsPage api={api} audio={audio} />) })
+  try {
+    act(() => renderer.root.findByProps({ 'aria-label': 'OpenAI API key' }).props.onChange({ target: { value: 'synthetic-key-1234567890123456' } }))
+    act(() => renderer.root.findByProps({ 'aria-label': 'AI provider' }).props.onChange({ target: { value: 'google' } }))
+    const save = renderer.root.findAllByType('button').find(button => button.children.join('') === 'Save')!
+    expect(save.props.disabled).toBe(true)
+    expect(api.saveOpenAiApiKey).not.toHaveBeenCalled()
+    expect(api.saveCopilotProviderKey).not.toHaveBeenCalled()
+    await act(async () => selection.resolve({ ...await api.getCopilotSettings(), provider: 'google', model: '', restartRequired: true }))
+    expect(renderer.root.findByProps({ 'aria-label': 'Google API key' }).props.value).toBe('')
+  } finally { await act(async () => renderer.unmount()) }
+})
+
 test.each(['unpair', 'revoke-all'] as const)('completed %s retains its authorization reload after the settings view unmounts', async action => {
   const completed = deferred<unknown>()
   const reload = vi.fn()

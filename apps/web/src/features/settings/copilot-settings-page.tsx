@@ -168,7 +168,7 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
                 >
                   <div className="setting-key-action">
                     <TextInput aria-label={`${settings.providerKey.stored ? 'Replacement ' : ''}${settings.provider === 'openai' ? 'OpenAI' : settings.provider === 'anthropic' ? 'Anthropic' : 'Google'} API key`} autoComplete="off" placeholder={settings.providerKey.stored ? 'Enter replacement key' : 'Enter API key'} type="password" value={apiKey} onChange={event => setApiKey(event.target.value)} />
-                    <Button busy={keyPending} disabled={apiKey.trim().length < 20} size="sm" variant="primary" onClick={() => void saveKey()}>{settings.providerKey.stored ? 'Replace' : 'Save'}</Button>
+                    <Button busy={keyPending} disabled={pending || apiKey.trim().length < 20} size="sm" variant="primary" onClick={() => void saveKey()}>{settings.providerKey.stored ? 'Replace' : 'Save'}</Button>
                     {settings.providerKey.stored && <Button disabled={pending} size="sm" variant="danger" onClick={() => void removeKey()}>Remove</Button>}
                   </div>
                 </SettingRow>

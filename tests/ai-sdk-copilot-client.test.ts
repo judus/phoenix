@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { MockLanguageModelV3 } from 'ai/test'
 import type { LanguageModelV3StreamPart } from '@ai-sdk/provider'
-import { InMemoryConversationStore, ToolRegistry } from '@jdu/llm-client'
+import { AiError, InMemoryConversationStore, ToolRegistry } from '@jdu/llm-client'
 import { AiSdkCopilotClientFactory } from '../apps/server/src/infrastructure/ai-sdk-copilot-client.js'
 import { CopilotToolRegistry } from '../apps/server/src/application/copilot-tool-registry.js'
 import { JsonConversationStore } from '../apps/server/src/infrastructure/json-conversation-store.js'
@@ -98,7 +98,7 @@ test('effect followed by cancellation is saved as unknown and never automaticall
   expect(effects).toBe(1)
   expect(model.doStreamCalls).toHaveLength(1)
   const result = (await conversations.snapshot('cancel'))?.messages.at(-1)?.content[0]
-  expect(result).toMatchObject({ status: 'cancelled', error: { code: 'copilot_tool_outcome_unknown', retryable: false } })
+  expect(result).toMatchObject({ status: 'cancelled', structuredContent: { outcome: 'unknown' }, error: { retryable: false } })
 })
 
 test.each(['abort', 'return'] as const)('consumer %s at tool.call closes all pending calls and disk history reopens', async mode => {
@@ -156,4 +156,81 @@ test('existing user-owned MCP conversation calls/results keep their original nam
     .chat('old').user('Continue').run()
   const toolMessages = model.doStreamCalls[0].prompt.flatMap(m => m.role === 'tool' ? m.content : [])
   expect(toolMessages[0]).toMatchObject({ toolName: 'phoenix__ship_status', toolCallId: 'old-id' })
+})
+
+test.each(['length', 'content-filter'] as const)('finish %s does not dispatch collected calls', async reason => {
+  let effects = 0
+  const parts = call()
+  parts[parts.length - 1] = { type: 'finish', finishReason: { unified: reason, raw: reason }, usage }
+  const conversations = new InMemoryConversationStore()
+  const model = modelFor([parts])
+  const tools = new ToolRegistry([{ definition, execute: () => { effects++; return {} } }])
+  await expect(new AiSdkCopilotClientFactory({ model, conversations, tools }).create('').chat('truncated').user('Status').run())
+    .rejects.toMatchObject({ code: 'copilot_incomplete_response' })
+  expect(effects).toBe(0)
+  expect(model.doStreamCalls).toHaveLength(1)
+  expect((await conversations.snapshot('truncated'))?.messages.at(-1)?.content[0]).toMatchObject({
+    error: { code: 'copilot_tool_not_executed' }
+  })
+})
+
+test.each(['null', '[]', '"string"', '{broken'])('invalid tool input %s is saved with a correction without executing', async input => {
+  let effects = 0
+  const conversations = new InMemoryConversationStore()
+  const model = modelFor([call(input), done()])
+  const tools = new ToolRegistry([{ definition, execute: () => { effects++; return {} } }])
+  await new AiSdkCopilotClientFactory({ model, conversations, tools }).create('').chat('invalid-input').user('Status').run()
+  expect(effects).toBe(0)
+  expect((await conversations.snapshot('invalid-input'))?.messages.find(m => m.role === 'tool')?.content[0]).toMatchObject({
+    error: { code: 'invalid_tool_arguments' }
+  })
+  expect(model.doStreamCalls).toHaveLength(2)
+  expect(model.doStreamCalls[1].prompt.flatMap(message => message.role === 'tool' ? message.content : [])).toHaveLength(1)
+})
+
+test('complete call followed by a stream error is retained as not executed', async () => {
+  let effects = 0
+  const conversations = new InMemoryConversationStore()
+  const model = modelFor([[call()[0], { type: 'error', error: new Error('stream failed') }, ...done()]])
+  const tools = new ToolRegistry([{ definition, execute: () => { effects++; return {} } }])
+  await expect(new AiSdkCopilotClientFactory({ model, conversations, tools }).create('').chat('interrupted').user('Status').run())
+    .rejects.toMatchObject({ code: 'copilot_provider_failed' })
+  expect(effects).toBe(0)
+  expect((await conversations.snapshot('interrupted'))?.messages.at(-1)?.content[0]).toMatchObject({
+    callId: 'call', error: { code: 'copilot_tool_not_executed' }
+  })
+})
+
+test('reopening after a process stopped reconciles unmatched calls as unknown without replay', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'phoenix-sdk-crash-test-'))
+  directories.push(directory)
+  const conversations = new JsonConversationStore(directory)
+  await conversations.create({ id: 'crash' })
+  await conversations.append('crash', [{ id: 'saved-call', conversationId: 'crash', createdAt: new Date().toISOString(), role: 'assistant',
+    content: [{ type: 'tool_call', callId: 'unmatched', name: 'ship.status', arguments: {} }] }], { expectedRevision: 0 })
+  let effects = 0
+  const tools = new ToolRegistry([{ definition, execute: () => { effects++; return {} } }])
+  const model = modelFor([done()])
+  const reopened = new JsonConversationStore(directory)
+  await new AiSdkCopilotClientFactory({ model, conversations: reopened, tools }).create('').chat('crash').user('Continue').run()
+  expect(effects).toBe(0)
+  const messages = (await reopened.snapshot('crash'))!.messages
+  expect(messages.map(m => m.role)).toEqual(['assistant', 'tool', 'user', 'assistant'])
+  expect(messages[1].content[0]).toMatchObject({ structuredContent: { outcome: 'unknown' }, error: { retryable: false } })
+})
+
+test('known public provider errors retain safe code and correction instead of becoming unknown', async () => {
+  const conversations = new InMemoryConversationStore()
+  const tools = new ToolRegistry([{ definition, execute: () => {
+    throw new AiError('invalid_request', 'Provider rejected the query. Do not repeat unchanged.', {
+      code: 'provider_request_rejected', cause: new Error('private-key-must-not-leak')
+    })
+  } }])
+  const model = modelFor([call(), done()])
+  await new AiSdkCopilotClientFactory({ model, conversations, tools }).create('').chat('public-error').user('Status').run()
+  const saved = await conversations.snapshot('public-error')
+  expect(saved?.messages.find(m => m.role === 'tool')?.content[0]).toMatchObject({
+    error: { code: 'provider_request_rejected', message: 'Provider rejected the query. Do not repeat unchanged.', retryable: false }
+  })
+  expect(JSON.stringify(saved)).not.toContain('private-key-must-not-leak')
 })
