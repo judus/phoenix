@@ -130,6 +130,83 @@ public class GatewayTest {
         assertEquals(3, remote.getRequestCount());
     }
 
+    @Test public void returns503WithoutFollowingRetryAfterForGet() throws Exception { assertSingle503("GET"); }
+    @Test public void returns503WithoutFollowingRetryAfterForPost() throws Exception { assertSingle503("POST"); }
+
+    private void assertSingle503(String method) throws Exception {
+            int before = remote.getRequestCount();
+            remote.enqueue(new MockResponse().setResponseCode(503).setHeader("Retry-After", "0")
+                    .setHeader("X-Original", "preserved").setBody("unavailable"));
+            remote.enqueue(new MockResponse().setBody("unexpected replay"));
+            // Raw HTTP caller: a browser-like OkHttp test client would itself replay
+            // the returned 503/Retry-After:0, obscuring which side replayed it.
+            try (Socket socket = new Socket("127.0.0.1", LoopbackGateway.PORT)) {
+                socket.setSoTimeout(3000);
+                String body = method.equals("POST") ? "effect" : "";
+                socket.getOutputStream().write((method + " /api/test HTTP/1.1\r\nHost: 127.0.0.1:" + LoopbackGateway.PORT
+                        + "\r\nCookie: " + gateway.capabilityCookie().split(";", 2)[0]
+                        + "\r\nContent-Length: " + body.length() + "\r\n\r\n" + body).getBytes(StandardCharsets.US_ASCII));
+                String wire = new String(socket.getInputStream().readAllBytes(), StandardCharsets.US_ASCII);
+                assertTrue(wire, wire.startsWith("HTTP/1.1 503"));
+                assertTrue(wire, wire.toLowerCase(java.util.Locale.ROOT).contains("retry-after: 0"));
+                assertTrue(wire, wire.toLowerCase(java.util.Locale.ROOT).contains("x-original: preserved"));
+                assertTrue(wire, wire.endsWith("unavailable"));
+            }
+            assertEquals(before + 1, remote.getRequestCount());
+            try (var response = browser.newCall(local("/sentinel").build()).execute()) {
+                assertEquals("unexpected replay", response.body().string());
+            }
+    }
+
+    @Test public void responsePolicyRestoresOnlyRetryAfterAndPreservesGzipDecoding() throws Exception {
+        okio.Buffer zipped = new okio.Buffer();
+        try (okio.BufferedSink gzip = okio.Okio.buffer(new okio.GzipSink(zipped))) { gzip.writeUtf8("decoded error"); }
+        remote.enqueue(new MockResponse().setResponseCode(503).setHeader("Content-Encoding", "gzip")
+                .addHeader("Retry-After", "0").addHeader("Retry-After", "2").setBody(zipped));
+        remote.enqueue(new MockResponse().setResponseCode(503).setBody("no retry header"));
+        OkHttpClient client = tls.client();
+        try {
+            try (var response = client.newCall(new Request.Builder().url(remote.url("/gzip")).build()).execute()) {
+                assertEquals(503, response.code());
+                assertEquals(java.util.List.of("0", "2"), response.headers("Retry-After"));
+                assertNull(response.header("Content-Encoding"));
+                assertNull(response.header("Content-Length"));
+                assertEquals("decoded error", response.body().string());
+            }
+            try (var response = client.newCall(new Request.Builder().url(remote.url("/no-retry")).build()).execute()) {
+                assertEquals(503, response.code());
+                assertNull(response.header("Retry-After"));
+                assertEquals("no retry header", response.body().string());
+            }
+            assertEquals(2, remote.getRequestCount());
+        } finally {
+            client.connectionPool().evictAll(); client.dispatcher().executorService().shutdownNow();
+        }
+    }
+
+    @Test public void headPreservesRepresentationLengthOrAbsenceWithoutBodyBytes() throws Exception {
+        for (boolean hasLength : java.util.List.of(true, false)) {
+            MockResponse response = new MockResponse().setHeader("X-Original", "head");
+            if (hasLength) response.setHeader("Content-Length", "12345");
+            else response.removeHeader("Content-Length");
+            remote.enqueue(response);
+            try (Socket socket = new Socket("127.0.0.1", LoopbackGateway.PORT)) {
+                socket.setSoTimeout(3000);
+                socket.getOutputStream().write(("HEAD /asset HTTP/1.1\r\nHost: 127.0.0.1:" + LoopbackGateway.PORT
+                        + "\r\nCookie: " + gateway.capabilityCookie().split(";", 2)[0] + "\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
+                String wire = new String(socket.getInputStream().readAllBytes(), StandardCharsets.US_ASCII);
+                String[] parts = wire.split("\r\n\r\n", -1);
+                assertEquals(2, parts.length);
+                assertEquals("", parts[1]);
+                String headers = parts[0].toLowerCase(java.util.Locale.ROOT);
+                assertTrue(headers.contains("x-original: head"));
+                if (hasLength) assertTrue(wire, headers.contains("content-length: 12345"));
+                else assertFalse(wire, headers.contains("content-length:"));
+                assertFalse(headers.contains("transfer-encoding:"));
+            }
+        }
+    }
+
     @Test public void neverRestartsAnInterruptedBodyAfterHeaders() throws Exception {
         remote.enqueue(new MockResponse().setBody("x".repeat(32768))
                 .setSocketPolicy(SocketPolicy.DISCONNECT_DURING_RESPONSE_BODY));
