@@ -51,6 +51,7 @@ final class GatewayTls {
     OkHttpClient client() {
         return new OkHttpClient.Builder().sslSocketFactory(context.getSocketFactory(), trust)
                 .followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false)
+                .addInterceptor(new GatewayRecovery())
                 .connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
                 .readTimeout(0, java.util.concurrent.TimeUnit.SECONDS).build();
     }

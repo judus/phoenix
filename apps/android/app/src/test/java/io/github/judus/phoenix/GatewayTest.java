@@ -13,6 +13,7 @@ import okhttp3.RequestBody;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+import okhttp3.mockwebserver.SocketPolicy;
 import okhttp3.tls.HandshakeCertificates;
 import okhttp3.tls.HeldCertificate;
 import org.junit.After;
@@ -111,6 +112,33 @@ public class GatewayTest {
         try (var response = noRedirect.newCall(local("/redirect").build()).execute()) {
             assertEquals(307, response.code()); assertEquals(gateway.origin() + "next?q=1", response.header("Location"));
         }
+    }
+
+    @Test public void recoversOneReadFailureBeforeHeadersButDoesNotReplayAnEffect() throws Exception {
+        remote.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST));
+        remote.enqueue(new MockResponse().setBody("recovered asset"));
+        try (var response = browser.newCall(local("/assets/fixture.js").build()).execute()) {
+            assertEquals(200, response.code());
+            assertEquals("recovered asset", response.body().string());
+        }
+        assertEquals(2, remote.getRequestCount());
+        remote.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST));
+        remote.enqueue(new MockResponse().setBody("must not replay"));
+        try (var response = browser.newCall(local("/api/effect").post(RequestBody.create("{}", null)).build()).execute()) {
+            assertEquals(502, response.code());
+        }
+        assertEquals(3, remote.getRequestCount());
+    }
+
+    @Test public void neverRestartsAnInterruptedBodyAfterHeaders() throws Exception {
+        remote.enqueue(new MockResponse().setBody("x".repeat(32768))
+                .setSocketPolicy(SocketPolicy.DISCONNECT_DURING_RESPONSE_BODY));
+        remote.enqueue(new MockResponse().setBody("must not restart"));
+        try (var response = browser.newCall(local("/api/stream").build()).execute()) {
+            assertEquals(200, response.code());
+            assertThrows(IOException.class, () -> response.body().string());
+        }
+        assertEquals(1, remote.getRequestCount());
     }
 
     @Test public void correctPinDoesNotBypassHostnameAndWrongPinIsRejected() throws Exception {
