@@ -1,11 +1,19 @@
 name: CI
 
 on:
-  push:
-    branches: [dev, main]
+  # Verify PRs once; merging must not start a duplicate branch-push run.
   pull_request:
     branches: [dev, main]
   workflow_dispatch:
+    inputs:
+      windows:
+        description: Include Windows source checks (use for platform-sensitive changes)
+        type: boolean
+        default: true
+      installers:
+        description: Build and verify both native installers
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -18,11 +26,12 @@ jobs:
   verify:
     uses: ./.github/workflows/verify.yml
     with:
-      # Prove installers before promotion; don't repeat packaging on the resulting main push.
-      installers: ${{ (github.event_name == 'pull_request' && github.base_ref == 'main') || github.event_name == 'workflow_dispatch' }}
+      windows: ${{ github.event_name == 'workflow_dispatch' && inputs.windows }}
+      # Promotion always verifies both platforms; manual Windows-only checks need no packaging.
+      installers: ${{ (github.event_name == 'pull_request' && github.base_ref == 'main') || (github.event_name == 'workflow_dispatch' && inputs.installers) }}
   gate:
     # Ordinary checks must never satisfy main's installer-required protection.
-    name: ${{ ((github.event_name == 'pull_request' && github.base_ref == 'main') || github.event_name == 'workflow_dispatch') && 'Installers passed' || 'CI passed' }}
+    name: ${{ ((github.event_name == 'pull_request' && github.base_ref == 'main') || (github.event_name == 'workflow_dispatch' && inputs.installers)) && 'Installers passed' || 'CI passed' }}
     if: always()
     needs: verify
     runs-on: ubuntu-24.04

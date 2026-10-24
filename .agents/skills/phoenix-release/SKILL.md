@@ -10,9 +10,13 @@ definitions. Inspect both Git state and the exact source SHA. Control Deck is an
 owned dependency: runtime/helper versions and artifact integrity must match the intended release.
 
 - Feature work branches from dev. Follow the documented PR promotion and main-to-dev sync workflow.
-- Keep routine dev PRs and dev/main pushes limited to native source checks, without installer
-  packaging. Verify installers on PRs into main or explicit manual CI runs; do not repeat packaging
-  on the resulting main push. Check workflow event conditions when changing this policy.
+- During development use focused local tests/type checks and let Julien test immediately, without
+  waiting for remote CI. PRs into dev run the full Linux quality gate once; dev/main branch pushes
+  run no duplicate CI. Run full local checks when change scope or unresolved concerns warrant them.
+- PRs into main and tagged releases require Linux/Windows checks and both installer verifications.
+  For Windows input, filesystem or other platform-sensitive dev work, run manual CI on its feature
+  branch with windows=true before merging; select installers=true for packaging changes. Manual
+  CI defaults to Linux/Windows source checks without installers. Check actual event/input policy.
 - Tagged releases rebuild and verify installers from the exact tagged commit; do not reuse
   development packages. Keep ordinary CI artifact-free and release intermediates at one-day
   retention. See the release guide for quota diagnosis and native local-build alternatives.
@@ -22,10 +26,10 @@ owned dependency: runtime/helper versions and artifact integrity must match the 
   verify main SHA, package version and tag validation first.
 - Do not cancel a same-SHA CI run just because another run looks redundant: an always-run failed
   gate can block the protected PR. Inspect all required checks rather than bypassing protection.
-- Require native Linux/Windows CI as documented. Do not claim Windows/Elite acceptance from Linux
+- Require the native CI appropriate to the stage as documented. Do not claim Windows/Elite acceptance from Linux
   tests, simulated input, or a successful build alone.
 - Check gate identity: dev requires `CI passed`; main requires `Installers passed` from GitHub
-  Actions. Only main-target PRs/manual CI emit the installer gate; ordinary pushes cannot replace
+  Actions. Only main-target PRs/manual installer CI emit the installer gate; source-only CI cannot replace
   installer verification. Keep strict up-to-date protection and administrator enforcement enabled.
 - Download release assets and verify checksums plus manifests/version/source SHA before publishing.
   A draft is not a public prerelease; check draft/prerelease/latest flags and public download links.

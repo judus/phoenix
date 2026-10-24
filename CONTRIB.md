@@ -46,14 +46,20 @@ verify that merge and explicitly close the completed issues.
 - Keep schemas explicitly versionable. PHOENIX does not preserve pre-release compatibility unless a
   real retained-data migration requires it.
 - Add focused tests for behavior and contracts. Do not freeze incidental pixel values in tests.
-- Run `npm run check` before submitting a pull request and report any environment-dependent checks
-  that could not be completed.
+- During development, run relevant regression tests and affected type checks. Make locally checked
+  changes available for maintainer testing without waiting for remote CI. Report the checks run
+  and any limits. Run the full local `npm run check` for broad changes or unresolved integration
+  concerns; a complete local rerun is not required for every edit or before opening a PR.
+- PRs into `dev` run the complete `npm run check` gate once on Linux. PRs into `main` and tagged
+  releases run it on Linux and Windows and verify both installers. Branch pushes do not duplicate
+  PR checks. For Windows input, filesystem, packaging or other platform-sensitive changes, run
+  manual CI on the feature branch with `windows=true` before merging into `dev`; also select
+  `installers=true` when packaging changes. See [docs/releases.md](docs/releases.md).
 - `check` includes `npm run typecheck:tests`: strict, no-emit compilation of every TypeScript
   test and helper, using the same bundler resolution as Vitest and the browser. JavaScript build
   and diagnostic scripts imported by tests are available for inference, not silently asserted as
-  TypeScript; JavaScript tests remain runtime-validated by Vitest. Native CI runs the gate on both
-  Linux and Windows. Run the production typecheck first to build workspace declarations on a
-  fresh checkout; no test-specific production schema relaxations or diagnostic suppressions.
+  TypeScript; JavaScript tests remain runtime-validated by Vitest. Run the production typecheck
+  first to build workspace declarations on a fresh checkout; no test-specific production schema relaxations or diagnostic suppressions.
 
 ## Privacy and third-party material
 
