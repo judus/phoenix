@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Cancel remaining Copilot text work when either JSON or streaming clients disconnect.
+  Keep completed tool results, preserve unknown outcomes, and publish the same turn lifecycle.
 - Reject conflicting game controls while a route or macro owns input. Respect existing holds,
   keep release/cancellation/shutdown cleanup usable, and report Galaxy Map cleanup failures.
 - Move Copilot text and local tool conversations to AI SDK, preserving saved chats, profile

@@ -50,6 +50,7 @@ import { AiError, serializeAiError, type ToolRegistry } from '@jdu/llm-client'
 import type { CopilotStreamEvent } from '@phoenix/copilot'
 import type { ControlDeckHttpHandler } from 'control-deck/host'
 import type { CopilotText, CopilotTextRequest } from '../application/copilot-text-service.js'
+import { watchCopilotDisconnect } from './copilot-http-disconnect.js'
 import type { CopilotConversationEvents } from '../application/copilot-conversation-event-service.js'
 import type { CopilotVoiceHostControl } from '../application/copilot-voice-host-coordinator.js'
 import type { CopilotProfiles } from '../application/copilot-profile-service.js'
@@ -115,12 +116,6 @@ const CONTENT_TYPES: Record<string, string> = {
   '.png': 'image/png',
   '.svg': 'image/svg+xml'
 }
-
-type CopilotConversationEventPayload = CopilotConversationEvent extends infer Event
-  ? Event extends CopilotConversationEvent
-    ? Omit<Event, 'clientId' | 'conversationId' | 'occurredAt' | 'turnId'>
-    : never
-  : never
 
 export interface PhoenixHttpServerOptions extends SettingsHttpServices, EngineeringHttpServices {
   experimentalTls?: { port: number, cert: Buffer, key: Buffer }
@@ -192,6 +187,8 @@ export interface PhoenixHttpServerOptions extends SettingsHttpServices, Engineer
 
 export class PhoenixHttpServer {
   private readonly eventStreams = new Set<ServerResponse>()
+  private readonly copilotRequests = new Map<ReturnType<typeof watchCopilotDisconnect>, Promise<void>>()
+  private stopping = false
   private readonly phoenixEventStreams = new Set<ServerResponse>()
   private readonly activityStreams = new Set<ServerResponse>()
   private readonly copilotConversationStreams = new Set<ServerResponse>()
@@ -223,6 +220,7 @@ export class PhoenixHttpServer {
   }
 
   public async start (): Promise<{ host: string, port: number }> {
+    this.stopping = false
     await new Promise<void>((resolvePromise, reject) => {
       this.server.once('error', reject)
       this.server.listen(this.options.port, this.options.host, () => {
@@ -253,6 +251,9 @@ export class PhoenixHttpServer {
 
   public async stop (): Promise<void> {
     if (!this.server.listening) return
+    this.stopping = true
+    for (const connection of this.copilotRequests.keys()) connection.cancel('PHOENIX server is stopping.')
+    await Promise.all(this.copilotRequests.values())
     for (const stream of this.eventStreams) stream.end()
     this.eventStreams.clear()
     for (const stream of this.phoenixEventStreams) stream.end()
@@ -1596,23 +1597,34 @@ export class PhoenixHttpServer {
       return
     }
 
-    if (request.headers.accept?.includes('text/event-stream') === true) {
-      await this.streamCopilotChat(input, response)
-      return
-    }
-
+    const connection = watchCopilotDisconnect(response)
+    let resolveSettled!: () => void
+    const settled = new Promise<void>(resolve => { resolveSettled = resolve })
+    this.copilotRequests.set(connection, settled)
     try {
-      const result = await this.options.copilot.run(input)
-      writeJson(response, 200, {
+      if (this.stopping) {
+        writeJson(response, 503, { error: { code: 'server_stopping', message: 'PHOENIX server is stopping.' } })
+        return
+      }
+      if (request.headers.accept?.includes('text/event-stream') === true) {
+        await this.streamCopilotChat(input, response, connection.signal)
+        return
+      }
+      const result = await this.options.copilot.run(input, { signal: connection.signal })
+      if (!response.destroyed) writeJson(response, 200, {
         conversationId: result.chatId,
         finishReason: result.finishReason,
         text: result.text,
         usage: result.usage
       })
     } catch (cause) {
-      writeJson(response, copilotErrorStatus(cause), {
+      if (!response.destroyed) writeJson(response, copilotErrorStatus(cause), {
         error: serializeCopilotError(cause)
       })
+    } finally {
+      connection.dispose()
+      this.copilotRequests.delete(connection)
+      resolveSettled()
     }
   }
 
@@ -1651,7 +1663,8 @@ export class PhoenixHttpServer {
 
   private async streamCopilotChat (
     input: CopilotTextRequest,
-    response: ServerResponse
+    response: ServerResponse,
+    signal: AbortSignal
   ): Promise<void> {
     response.writeHead(200, {
       'cache-control': 'no-cache, no-transform',
@@ -1661,63 +1674,18 @@ export class PhoenixHttpServer {
     response.flushHeaders()
     response.write(': PHOENIX Copilot stream\n\n')
     this.eventStreams.add(response)
-    const controller = new AbortController()
-    const abort = (): void => controller.abort(new DOMException('Client disconnected.', 'AbortError'))
-    response.once('close', abort)
     const heartbeat = setInterval(() => {
       if (!response.destroyed) response.write(': keepalive\n\n')
     }, 15_000)
 
-    const turnId = input.turnId ?? randomUUID()
-    const clientId = input.clientId ?? `server-${turnId}`
-    let conversationId = input.conversationId
-    let assistantText = ''
-    let started = false
-    const publish = (event: CopilotConversationEventPayload): void => {
-      if (!conversationId) return
-      this.options.copilotConversationEvents.publish({
-        ...event,
-        clientId,
-        conversationId,
-        occurredAt: new Date().toISOString(),
-        turnId
-      } as CopilotConversationEvent)
-    }
-
     try {
-      for await (const event of this.options.copilot!.stream(input, { signal: controller.signal })) {
-        if (event.type === 'run.started') {
-          conversationId = event.chatId
-          if (!started) {
-            started = true
-            publish({ source: 'text', type: 'turn.started', userText: input.message })
-          }
-        } else if (event.type === 'text.reset') {
-          assistantText = ''
-          publish({ final: false, text: assistantText, type: 'assistant.transcript' })
-        } else if (event.type === 'text.delta') {
-          assistantText += event.delta
-          publish({ final: false, text: assistantText, type: 'assistant.transcript' })
-        } else if (event.type === 'tool.call') {
-          publish({ callId: event.call.id, name: event.call.name, status: 'calling', type: 'tool.status' })
-        } else if (event.type === 'tool.result') {
-          publish({ callId: event.callId, status: event.status, type: 'tool.status' })
-        } else if (event.type === 'run.completed') {
-          assistantText = event.result.text
-          publish({ final: true, text: assistantText, type: 'assistant.transcript' })
-          publish({ type: 'turn.completed' })
-        }
+      for await (const event of this.options.copilot!.stream(input, { signal })) {
         writeCopilotStreamEvent(response, event)
       }
     } catch (cause) {
-      publish({
-        message: cause instanceof Error ? cause.message : 'Copilot request failed.',
-        type: 'turn.failed'
-      })
       if (!response.destroyed) writeSse(response, 'error', { error: serializeCopilotError(cause) })
     } finally {
       clearInterval(heartbeat)
-      response.off('close', abort)
       this.eventStreams.delete(response)
       if (!response.destroyed) response.end()
     }

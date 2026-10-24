@@ -54,6 +54,7 @@ import { DefaultNumpadCommands, NumpadTreeProjector } from './application/numpad
 import { DefaultRuntimeStateProjector } from './application/default-runtime-state-projector.js'
 import { GameActionService, type GameActions } from './application/game-action-service.js'
 import { InputOperationCoordinator } from './application/input-operation-coordinator.js'
+import { CopilotTurnLifecycle } from './application/copilot-turn-lifecycle.js'
 import { createPhoenixMcpTools } from './application/phoenix-mcp-tools.js'
 import { DefaultCopilotCapabilityService } from './application/copilot-capability-service.js'
 import { CopilotCommands } from './application/copilot-commands.js'
@@ -598,7 +599,7 @@ export class PhoenixApplication {
       commanderLog,
       dashboardMarketSignals,
       controlDeckHttp: this.controlDeck.http,
-      copilot,
+      copilot: copilot ? new CopilotTurnLifecycle(copilot, copilotConversationEvents) : undefined,
       copilotProfiles,
       copilotConversationEvents,
       copilotVoiceHost,
