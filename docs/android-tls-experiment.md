@@ -65,8 +65,9 @@ application interceptor which restores only those fields, preserving normal body
 POST/PUT/PATCH/DELETE requests and response-body/SSE reads are never automatically replayed.
 Losing a response after an action may mean the action ran; reconnect/reload must not resubmit it.
 An interrupted event stream can reconnect according to its existing read subscription contract,
-not by the native gateway restarting a partially delivered body. A total ten-second budget covers connect, TLS handshake, request transmission, recovery and response
-headers. Expiry cancels the same Call and cannot trigger read recovery. Once headers arrive the
+not by the native gateway restarting a partially delivered body. A total two-minute budget covers connect, TLS handshake, request transmission, recovery and response
+headers. It leaves headroom for existing non-streaming Spansh (30-second), macro/tool (60-second)
+and provider (90-second) server work before JSON headers; TCP connect still has its five-second limit. Expiry cancels the same Call and cannot trigger read recovery. Once headers arrive the
 budget is removed; established SSE/body reads have no idle deadline and remain locally cancellable.
 HEAD preserves the upstream representation Content-Length (including its absence) and sends no body.
 Activity shutdown closes the loopback port, cancels active calls and cleans up TLS connections away

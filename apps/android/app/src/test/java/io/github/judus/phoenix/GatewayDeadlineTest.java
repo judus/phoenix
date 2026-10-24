@@ -34,6 +34,29 @@ public class GatewayDeadlineTest {
         }
     }
 
+    @Test public void defaultBudgetAllowsValidHandlerToWaitBeyondTenSeconds() throws Exception {
+        HeldCertificate cert = new HeldCertificate.Builder().addSubjectAlternativeName("localhost").build();
+        StringBuilder pin = new StringBuilder();
+        for (byte value : java.security.MessageDigest.getInstance("SHA-256").digest(cert.certificate().getEncoded())) pin.append(String.format("%02x", value & 255));
+        try (MockWebServer remote = new MockWebServer()) {
+            remote.useHttps(new HandshakeCertificates.Builder().heldCertificate(cert).build().sslSocketFactory(), false);
+            remote.start();
+            remote.enqueue(new MockResponse().setHeadersDelay(11, TimeUnit.SECONDS).setBody("valid query result"));
+            OkHttpClient client = new GatewayTls(pin.toString()).client();
+            var worker = java.util.concurrent.Executors.newSingleThreadExecutor();
+            try {
+                var result = worker.submit(() -> {
+                    try (var response = client.newCall(new Request.Builder().url(remote.url("/api/cartography/query")).build()).execute()) {
+                        assertEquals(200, response.code());
+                        return response.body().string();
+                    }
+                });
+                assertEquals("valid query result", result.get(15, TimeUnit.SECONDS));
+                assertEquals(1, remote.getRequestCount());
+            } finally { close(client); worker.shutdownNow(); }
+        }
+    }
+
     @Test public void stalledHeadersExpireButEstablishedIdleBodySurvivesTheSameBudget() throws Exception {
         HeldCertificate cert = new HeldCertificate.Builder().addSubjectAlternativeName("localhost").build();
         StringBuilder pin = new StringBuilder();
