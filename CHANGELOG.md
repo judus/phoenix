@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Restore automatic rolling summaries for long Copilot chats after the AI SDK migration.
+  Reuse existing summary checkpoints and recent turns while retaining the complete saved transcript
+  and tool outcomes; stop suggesting a nonexistent new-conversation action.
 - Save Copilot provider, model and permission ceilings together. Clearly report when settings
   were saved but a later screen notification or response failed, with guidance to reload.
 - Cancel remaining Copilot text work when either JSON or streaming clients disconnect.
