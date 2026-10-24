@@ -1532,7 +1532,7 @@ export class PhoenixHttpServer {
       writeJson(response, 503, {
         error: {
           code: 'copilot_unavailable',
-          message: 'Set PHOENIX_OPENAI_API_KEY or OPENAI_API_KEY to enable the Copilot.'
+          message: 'Configure the text provider, API key and model in Copilot settings, then restart PHOENIX.'
         }
       })
       return

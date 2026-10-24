@@ -216,6 +216,8 @@ export interface PhoenixApi {
   getEddnSubmission(id: number, signal?: AbortSignal): Promise<EddnSubmissionDetail>
   saveEddnSettings(settings: EddnSettingsUpdate): Promise<EddnStatus>
   getCopilotSettings(signal?: AbortSignal): Promise<CopilotSettings>
+  saveCopilotProviderKey(provider: import('@phoenix/contracts').CopilotAiProvider, apiKey: string, signal?: AbortSignal): Promise<OpenAiConfigurationStatus>
+  removeCopilotProviderKey(provider: import('@phoenix/contracts').CopilotAiProvider, signal?: AbortSignal): Promise<OpenAiConfigurationStatus>
   getCopilotToolDiagnostics(signal?: AbortSignal): Promise<CopilotToolDiagnosticsResponse>
   getMacros(signal?: AbortSignal): Promise<MacroLibrary>
   getMissions(signal?: AbortSignal): Promise<MissionsResponse>

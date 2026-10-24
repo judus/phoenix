@@ -68,9 +68,9 @@ test('saved OpenAI configuration clearly reports that PHOENIX must restart', asy
   const markup = JSON.stringify(renderer.toJSON())
 
   expect(markup).toContain('Restart required')
-  expect(notificationText()).toContain('OpenAI configuration changed. Restart PHOENIX to apply it.')
+  expect(notificationText()).toContain('AI configuration changed. Restart PHOENIX to apply it.')
   expect(markup).toContain('AI provider')
-  expect(markup).toContain('Only OpenAI is integrated currently.')
+  expect(markup).toContain('Anthropic and Google connect directly')
   expect(markup).toContain('Installation-wide permission ceiling')
   expect(markup).toContain('Each Copilot profile chooses its own capabilities within this limit')
   expect(renderer.root.findAllByProps({ className: 'copilot-load' })).toHaveLength(0)
@@ -98,6 +98,9 @@ function settingsApi (openAi: Awaited<ReturnType<PhoenixApi['getCopilotSettings'
     async getCopilotSettings() {
       return {
         provider: 'openai',
+        model: '',
+        providerKey: openAi,
+        restartRequired: false,
         permissions: { version: 2, enabledCapabilityIds: ['tool:web.search_web'] },
         capabilities: {
           groups: [{

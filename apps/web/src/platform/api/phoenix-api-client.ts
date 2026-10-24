@@ -320,6 +320,14 @@ export class PhoenixApiClient implements PhoenixApi {
     return this.#get('/api/settings/copilot', CopilotSettingsSchema, signal)
   }
 
+  async saveCopilotProviderKey(provider: import('@phoenix/contracts').CopilotAiProvider, apiKey: string, signal?: AbortSignal): Promise<OpenAiConfigurationStatus> {
+    return this.#json(`/api/settings/copilot/providers/${provider}/key`, 'PUT', OpenAiApiKeyRequestSchema.parse({ apiKey }), OpenAiConfigurationStatusSchema, signal)
+  }
+
+  async removeCopilotProviderKey(provider: import('@phoenix/contracts').CopilotAiProvider, signal?: AbortSignal): Promise<OpenAiConfigurationStatus> {
+    return this.#json(`/api/settings/copilot/providers/${provider}/key`, 'DELETE', undefined, OpenAiConfigurationStatusSchema, signal)
+  }
+
   async getCopilotToolDiagnostics(signal?: AbortSignal): Promise<CopilotToolDiagnosticsResponse> {
     return this.#get('/api/developer/copilot-tools', CopilotToolDiagnosticsResponseSchema, signal)
   }

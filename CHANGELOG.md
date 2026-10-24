@@ -7,6 +7,11 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 - Move Copilot text and local tool conversations to AI SDK, preserving saved chats, profile
   instructions and current tool permissions. Keep existing realtime voice working independently.
   Save completed and interrupted tool outcomes without automatically replaying actions.
+- Choose OpenAI, Anthropic or Google for text Copilot in Settings, with separate private keys
+  and an explicit model ID. Keep OpenAI realtime voice and GalNet independent of text selection.
+- Allow explicit experimental AI SDK realtime-token creation while retaining the existing native
+  voice backend by default. Preserve the same audio/session settings; never switch backends
+  automatically after a failed request.
 
 ## 0.1.10 — 2026-10-22 (prerelease)
 
