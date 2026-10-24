@@ -92,7 +92,12 @@ also wait. This readiness check applies to already queued jobs, including explic
 blocked dependents remain pending without consuming an attempt, while unrelated work can proceed.
 A successful prerequisite releases them on a later tick. A failed refresh leaves the last successful report intact and never retries unchanged
 evidence, including after restart. A later genuine evidence change or explicit retry can proceed.
-Context checks only revisit existing reports; they never start analysing uncovered history.
+Context checks also examine at most 100 retained articles for later coverage matching an existing
+unresolved independent lead. With automation enabled, that coverage can be queued even if it has
+never been analysed; unrelated historical articles are not backfilled. Existing v1/v2 reports can
+be updated when the newly selected context contains such a lead. This repairs missed completion
+coverage under the same daily allowance, one-job-at-a-time execution and no unchanged-failure retry.
+Read endpoints still only compute scheduling evidence; they never start inference.
 
 The GalNet sidebar shows queue status, the 20 most recently updated jobs and failures. **Analyse
 older articles** explicitly queues up to 20 uncovered or outdated reports from the latest 100 retained archive
@@ -133,7 +138,10 @@ Changed reports are excluded. Earlier articles can be analysed through catch-up;
 not an exhaustive story archive. Sources and individual activity/CG statuses stay visible.
 
 Version-3 analysis supplies at most five earlier articles from those 100 saved reports, matched by
-the same exact named ship or person in the current source. Corrected sources are excluded. The
+an exact named ship/person, an unresolved activity's destination system, or its report's faction
+in the current source. Named ship/person matches rank before destination and faction matches;
+publication order breaks ties. Shared names only retrieve candidates, never prove a conclusion.
+Corrected sources are excluded. The
 model receives the original revisions, immutable prior activity IDs and their dated referenced CG
 snapshots in the **same** bounded article request. The combined 60,000-character limit includes
 this context; oversized input fails before inference rather than silently dropping evidence.
@@ -235,7 +243,8 @@ and historical positions of movable ships are not substitutes for an explicit de
 
 Existing version-1 reports remain readable without inventing destinations. **Update analysis** is
 required to produce a current version-3 report and may consume API credits. Version-2 reports
-remain readable with their existing destinations. No automatic migration invokes AI.
+remain readable with their existing destinations. Reading an old report never invokes AI. Enabled background repair may queue relevant later coverage
+as described above, using the installation’s existing analysis consent and daily allowance.
 That notice appears beside each legacy article report, not as a technical count in the Atlas footer.
 Leads with no explicit destination are described as having no known destination; reanalysis does
 not guarantee that the source provides one.
@@ -255,3 +264,14 @@ No web enrichment, personal CG tracking, exhaustive story registry or alias/fuzz
 is included. Semantic story quality and live gameplay opportunities still need player validation.
 The non-AI CG page remains independent and usable without analysis. See #60 and
 [the article archive](galnet-archive.md).
+
+The open Atlas polls saved leads every five seconds while its Leads layer is enabled. Each refresh
+reads saved evidence only, never analysis or a news refresh. Unchanged snapshots do not repeat
+coordinate lookups; successfully located systems are reused for the view's lifetime. Changed
+snapshots replace markers atomically, including removals. Fetch failures retain the last displayed
+markers with an error. Disabling the layer or unmounting aborts work and removes its timer.
+
+For appeals with several explicit destination systems, extraction emits one separately evidenced
+activity per destination (or one per matching current CG), within the existing eight-activity limit.
+The report schema stays unchanged: each activity has one destination, and narrative-only mentions
+still do not establish actionable destinations. Current CGs continue to use the structured CG layer.

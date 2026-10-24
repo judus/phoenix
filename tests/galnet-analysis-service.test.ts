@@ -1,5 +1,7 @@
 import { expect, test, vi } from 'vitest'
 import { GalnetAnalysisSchema } from '@phoenix/contracts'
+import { SavedGalnetAnalysisService } from '../apps/server/src/application/saved-galnet-analysis-service.js'
+import { GalnetInvestigationLeadsService } from '../apps/server/src/application/galnet-investigation-leads-service.js'
 import { GalnetAnalysisService } from '../apps/server/src/application/galnet-analysis-service.js'
 import { SqliteDatabase } from '../apps/server/src/infrastructure/sqlite-database.js'
 import type { GalnetArticleAnalyser } from '../apps/server/src/domain/galnet-analysis.js'
@@ -227,5 +229,27 @@ test.each(['SMOJE TO-Z d13-40', 'BD+05 1295'])('accepts a fully quoted system na
     fixture.db.galnetArchive.observe([{ ...analysisArticle, body: analysisArticle.body.replace('Colonia', name) }], '2026-10-08T12:00:00Z')
     fixture.analyser.analyse.mockResolvedValue({ content, continuity: null, usage: analysisUsage })
     expect((await fixture.service.analyse(analysisArticle.id)).analysis?.content.activities[1]).toMatchObject({ destination: { systemName: name } })
+  } finally { await fixture.close() }
+})
+
+test('a multi-system appeal persists and plots one separately evidenced activity per destination', async () => {
+  const fixture = setup()
+  try {
+    const systems = ['Sol', 'Colonia', 'Achenar', 'Lave']
+    const quote = 'Pilots should register in Sol, Colonia, Achenar and Lave for field trials.'
+    fixture.db.galnetArchive.observe([{ ...analysisArticle, body: quote }], '2026-10-08T12:00:00Z')
+    const content = { summary: 'Four field trial destinations.', facts: [], interpretations: [],
+      entities: systems.map(name => ({ name, kind: 'system' as const, role: 'Field trial destination', evidence: quote })),
+      activities: systems.map(systemName => ({ title: `Field trials in ${systemName}`, action: 'Register for the trials.',
+        evidence: quote, status: 'ongoing' as const, communityGoalId: null, relationship: 'none' as const,
+        destination: { systemName, evidence: quote } })) }
+    fixture.analyser.analyse.mockResolvedValue({ content, continuity: null, usage: analysisUsage })
+    const result = await fixture.service.analyse(analysisArticle.id)
+    expect(result.analysis?.content.activities).toEqual(content.activities)
+    const saved = new SavedGalnetAnalysisService(fixture.db.galnetAnalyses, fixture.db.galnetArchive)
+    const leads = new GalnetInvestigationLeadsService(saved).get().leads
+    expect(leads.map(lead => lead.systemName)).toEqual(systems)
+    expect(new Set(leads.map(lead => lead.id)).size).toBe(4)
+    expect(leads.every(lead => lead.destinationEvidence === quote)).toBe(true)
   } finally { await fixture.close() }
 })

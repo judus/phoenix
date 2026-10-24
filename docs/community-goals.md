@@ -12,7 +12,10 @@ The site's listing component uses
 `https://www.elitedangerous.com/elite-proxy/2.0/website/initiatives/list?lang=en`.
 Verified on 2026-10-07. This is a public website endpoint, **not a documented supported developer
 API**. `FrontierCommunityGoalsSource` isolates it, validates required fields and converts decimal
-quantity strings to safe nonnegative integers. A zero/invalid target is rejected rather than
+quantity strings to safe nonnegative integers. Frontier may legitimately supply an empty
+`objective`, notably for combat initiatives; retain that empty value and display “Not provided”
+rather than rejecting the entire active listing or inventing an objective. Missing/non-string
+objectives still fail validation. A zero/invalid target is rejected rather than
 producing a misleading progress percentage. Additive provider fields do not break the adapter.
 
 The application uses the existing SQLite provider cache with a 15-minute TTL and coalesced

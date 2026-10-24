@@ -109,3 +109,50 @@ test.each(layers)('$name refresh keeps markers until complete, replaces without 
     await act(async () => renderer.unmount())
   }
 })
+
+test('open Atlas polls saved leads, reuses coordinates, retains failures and stops with its owner', async () => {
+  vi.useFakeTimers()
+  const lead = new GalnetInvestigationLeadsService({ recent: () => [{ analysis: savedGalnetAnalysis(),
+    articleChanged: false, contextChanged: false, currentArticleTitle: 'Synthetic story' }] }).get().leads[0]!
+  let leads = [{ ...lead, id: 'first', systemName: 'Alpha' }]
+  let offline = false
+  const read = vi.fn(async () => {
+    if (offline) throw new Error('Refresh offline')
+    return { leads, reportLimit: 20 as const, omitted: { legacyReports: 0, changedReports: 0, endedLeads: 0, withoutDestination: 0 } }
+  })
+  const coordinates = vi.fn(async (name?: string) => ({ system: { name, position: [1, 2, 3] } }) as Awaited<ReturnType<PhoenixApi['getSystemCartography']>>)
+  const api = phoenixApiStub({ getGalnetInvestigationLeads: read, getSystemCartography: coordinates })
+  let state!: ReturnType<typeof useAtlasGalnetLeads>
+  function Probe({ enabled }: { enabled: boolean }) { state = useAtlasGalnetLeads(api, enabled); return null }
+  const renderer = await renderWithAct(<Probe enabled />)
+  try {
+    expect(state.markers.map(marker => marker.id)).toEqual(['first'])
+    await act(async () => { await vi.advanceTimersByTimeAsync(10_000) })
+    expect(read).toHaveBeenCalledTimes(3)
+    expect(coordinates).toHaveBeenCalledTimes(1)
+    leads = [{ ...lead, id: 'replacement', systemName: 'Alpha' }, { ...lead, id: 'new', systemName: 'Beta' }]
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000) })
+    expect(state.markers.map(marker => marker.id)).toEqual(['replacement', 'new'])
+    expect(coordinates).toHaveBeenCalledTimes(2)
+    offline = true
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000) })
+    expect(state.error).toBe('Refresh offline')
+    expect(state.markers).toHaveLength(2)
+    offline = false
+    leads = []
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000) })
+    expect(state.markers).toEqual([])
+    expect(state.error).toBeUndefined()
+    await act(async () => renderer.update(<Probe enabled={false} />))
+    const calls = read.mock.calls.length
+    await act(async () => { await vi.advanceTimersByTimeAsync(15_000) })
+    expect(read).toHaveBeenCalledTimes(calls)
+    await act(async () => renderer.update(<Probe enabled />))
+  } finally {
+    await act(async () => renderer.unmount())
+    const calls = read.mock.calls.length
+    await vi.advanceTimersByTimeAsync(15_000)
+    expect(read).toHaveBeenCalledTimes(calls)
+    vi.useRealTimers()
+  }
+})

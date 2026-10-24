@@ -7,9 +7,10 @@ export function galnetStoryContext(article: GalnetArticleRevision, archive: Pick
   const text = `${article.article.title}\n${article.article.body}`
   const contexts: GalnetStoryContext[] = []
   const candidates = reports.recent(100).filter(report => report.articleId !== article.article.id &&
-    Date.parse(report.publishedAt) < Date.parse(article.article.publishedAt) &&
-    report.content.entities.some(entity => (entity.kind === 'ship' || entity.kind === 'person') && mentionsName(text, entity.name)))
-    .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt) || a.articleId.localeCompare(b.articleId))
+    Date.parse(report.publishedAt) < Date.parse(article.article.publishedAt))
+    .map(report => ({ report, score: relevance(text, report) })).filter(candidate => candidate.score > 0)
+    .sort((a, b) => b.score - a.score || Date.parse(b.report.publishedAt) - Date.parse(a.report.publishedAt) ||
+      a.report.articleId.localeCompare(b.report.articleId)).map(candidate => candidate.report)
   for (const report of candidates) {
     const revision = archive.getArticle(report.articleId)
     if (!revision || revision.revisionId !== report.articleRevisionId) continue
@@ -23,6 +24,20 @@ export function galnetStoryContext(article: GalnetArticleRevision, archive: Pick
     if (contexts.length === 5) break
   }
   return contexts
+}
+
+function relevance(text: string, report: ReturnType<GalnetAnalysisRepository['recent']>[number]): number {
+  const independent = report.content.activities.filter(activity => activity.communityGoalId === null && activity.status !== 'ended')
+  let score = 0
+  for (const entity of report.content.entities) {
+    if (!mentionsName(text, entity.name)) continue
+    if (entity.kind === 'ship' || entity.kind === 'person') score = Math.max(score, 3)
+    else if (entity.kind === 'system' && report.schemaVersion !== 1 && report.content.activities.some(activity =>
+      activity.communityGoalId === null && activity.status !== 'ended' &&
+      activity.destination?.systemName.toLowerCase() === entity.name.toLowerCase())) score = Math.max(score, 2)
+    else if (entity.kind === 'faction' && independent.length > 0) score = Math.max(score, 1)
+  }
+  return score
 }
 
 function mentionsName(text: string, name: string): boolean {

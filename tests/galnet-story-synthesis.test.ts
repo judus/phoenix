@@ -202,7 +202,7 @@ test('candidate selection is bounded, publication-ordered and excludes partial n
     const revision = f.db.galnetArchive.getArticle('found')!
     const context = galnetStoryContext(revision, f.db.galnetArchive, f.db.galnetAnalyses)
     expect(context.map(entry => entry.source.articleId)).toEqual(['missing', 'prior-6', 'prior-5', 'prior-4', 'prior-3'])
-    expect(galnetStoryContext({ ...revision, article: { ...revision.article, title: 'Unrelated', body: 'EVE-5970 in Sol.' } }, f.db.galnetArchive, f.db.galnetAnalyses)).toEqual([])
+    expect(galnetStoryContext({ ...revision, article: { ...revision.article, title: 'Unrelated', body: 'EVE-5970 in Solstice.' } }, f.db.galnetArchive, f.db.galnetAnalyses)).toEqual([])
     expect(galnetStoryContext({ ...revision, article: { ...revision.article, publishedAt: '2026-09-01T12:00:00Z' } }, f.db.galnetArchive, f.db.galnetAnalyses)).toEqual([])
     f.db.galnetArchive.observe([{ ...f.missing, title: 'Corrected' }], '2026-10-09T12:00:00Z')
     expect(galnetStoryContext(revision, f.db.galnetArchive, f.db.galnetAnalyses).map(entry => entry.source.articleId))
@@ -228,4 +228,36 @@ test('related source identities participate in caching; oversized combined input
     await expect(f.service.analyse('found')).rejects.toMatchObject({ code: 'galnet_analysis_input_limit' })
     expect(f.analyser.analyse).toHaveBeenCalledTimes(2)
   } finally { await f.close() }
+})
+
+test.each([1, 2] as const)('legacy v%s completion reports become eligible when earlier system appeals were missed', async version => {
+  const f = setup()
+  try {
+    const prior = { ...f.prior, cacheKey: 'system-appeal', content: { ...f.prior.content,
+      entities: f.prior.content.entities.filter(entity => entity.kind === 'system') } }
+    f.db.galnetAnalyses.put(prior)
+    const completion = { ...f.found, title: 'Sol recovery complete', body: 'The recovery in Sol is complete.' }
+    f.db.galnetArchive.observe([completion], '2026-10-08T12:00:00Z')
+    const content = { ...f.content, facts: [], activities: [] }
+    const saved = { ...f.prior, articleId: completion.id, articleRevisionId: f.db.galnetArchive.getArticle(completion.id)!.revisionId,
+      publishedAt: completion.publishedAt, cacheKey: 'legacy-completion', content }
+    f.db.galnetAnalyses.put(version === 1 ? { ...saved, schemaVersion: 1, extractorVersion: 'galnet-analysis-v1' } : saved)
+    expect(f.service.contextWork().refreshes.map(work => work.articleId)).toContain(completion.id)
+    expect(f.analyser.analyse).not.toHaveBeenCalled()
+    expect(f.atlas.get().leads.map(lead => lead.title)).toContain('Find the ship')
+  } finally { await f.close() }
+})
+
+test('faction-only later coverage can retrieve a supply appeal without claiming it has ended', () => {
+  const f = setup()
+  try {
+    const prior = { ...f.prior, cacheKey: 'faction-appeal', content: { ...f.prior.content,
+      entities: [{ name: 'Synthetic Builders', kind: 'faction' as const, role: 'Organiser', evidence: 'Synthetic Builders' }] } }
+    f.db.galnetAnalyses.put(prior)
+    const article = { ...f.db.galnetArchive.getArticle('found')!, article: { ...f.found, body: 'Synthetic Builders has completed construction.' } }
+    expect(galnetStoryContext(article, f.db.galnetArchive, f.db.galnetAnalyses).map(context => context.source.articleId)).toEqual(['missing'])
+    expect(f.atlas.get().leads).toHaveLength(2)
+    expect(galnetStoryContext({ ...article, article: { ...article.article, body: 'Synthetic BuildersX has completed construction.' } },
+      f.db.galnetArchive, f.db.galnetAnalyses)).toEqual([])
+  } finally { f.db.close() }
 })

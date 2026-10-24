@@ -34,6 +34,7 @@ test('existing low-level client requests bounded strict structured output withou
   expect(messages).toContain('without adding quotation marks, ellipses or terminal punctuation')
   expect(messages).toContain('Never expand names, resolve pronouns, correct grammar or paraphrase inside evidence quotes')
   expect(messages).toContain('cg-research')
+  expect(messages).toContain('return a separate activity for each destination (or each matching Community Goal)')
 })
 
 test.each(['truncated', 'refused', 'malformed'] as const)('rejects %s output without returning a report', async fault => {

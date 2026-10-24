@@ -6,7 +6,8 @@ export const CommunityGoalSchema = z.object({
   systemName: z.string().min(1),
   stationName: z.string().min(1),
   activityType: z.string().min(1),
-  objective: z.string().min(1),
+  // Frontier legitimately leaves this blank for some initiative types.
+  objective: z.string(),
   targetCommodities: z.string(),
   contributed: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
   target: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),

@@ -17,13 +17,21 @@ export function useAtlasGalnetLeads(api: PhoenixApi, enabled: boolean): State {
     if (!enabled) return
     const controller = new AbortController()
     const { signal } = controller
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let previousSnapshot: string | undefined
+    const positions = new Map<string, GalacticPosition>()
     setState(current => ({ ...current, loading: true, error: undefined }))
-    void (async () => {
+    const refresh = async () => {
       try {
         const snapshot = await api.getGalnetInvestigationLeads(signal)
         if (signal.aborted) return
+        const revision = JSON.stringify(snapshot)
+        if (revision === previousSnapshot) {
+          setState(current => ({ ...current, loading: false, error: undefined }))
+          return
+        }
         const queue = [...new Map(snapshot.leads.map(lead => [key(lead.systemName), lead.systemName])).entries()]
-        const positions = new Map<string, GalacticPosition>()
+          .filter(([id]) => !positions.has(id))
         const unlocatedSystems: string[] = []
         const worker = async () => {
           while (!signal.aborted && queue.length) {
@@ -42,13 +50,17 @@ export function useAtlasGalnetLeads(api: PhoenixApi, enabled: boolean): State {
           return position ? [{ id: lead.id, kind: 'investigation' as const, label: `Lead · ${lead.title}`,
             systemName: lead.systemName, position, investigation: lead }] : []
         })
+        previousSnapshot = revision
         setState({ markers, snapshot, loading: false, unlocatedSystems })
       } catch (cause) {
         if (!signal.aborted) setState(current => ({ ...current, loading: false,
           error: cause instanceof Error ? cause.message : 'Saved GalNet leads unavailable.' }))
+      } finally {
+        if (!signal.aborted) timer = setTimeout(() => { void refresh() }, 5_000)
       }
-    })()
-    return () => controller.abort()
+    }
+    void refresh()
+    return () => { controller.abort(); clearTimeout(timer) }
   }, [api, enabled])
   return state
 }
