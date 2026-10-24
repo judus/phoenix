@@ -39,6 +39,7 @@ export const DEFAULT_PHOENIX_SETTINGS: PhoenixSettings = {
   copilot: {
     activeProfileId: 'marin',
     provider: 'openai',
+    model: '',
     permissions: {
       version: 2,
       enabledCapabilityIds: [...DEFAULT_COPILOT_ENABLED_CAPABILITY_IDS]

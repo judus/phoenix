@@ -30,6 +30,7 @@ export interface AudioSettingsController {
 export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: AudioSettingsController }) {
   const [settings, setSettings] = useState<CopilotSettings>()
   const [apiKey, setApiKey] = useState('')
+  const [model, setModel] = useState('')
   const [permissionsPending, setPermissionsPending] = useState(false)
   const [providerPending, setProviderPending] = useState(false)
   const [keyPending, setKeyPending] = useState(false)
@@ -44,7 +45,7 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
     setProviderPending(false)
     setKeyPending(false)
     void api.getCopilotSettings(abort.signal)
-      .then(result => { if (!abort.signal.aborted) setSettings(result) })
+      .then(result => { if (!abort.signal.aborted) { setSettings(result); setModel(result.model) } })
       .catch(cause => { if (!abort.signal.aborted) setError(message(cause)) })
     return () => abort.abort()
   }, [api])
@@ -55,8 +56,9 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
     setPermissionsPending(true)
     setError(undefined)
     try {
-      const saved = await api.saveCopilotSettings({ provider: settings.provider, permissions })
-      if (!owner.abort.signal.aborted) setSettings(current => ({ ...saved, openAi: current?.openAi ?? saved.openAi }))
+      const saved = await api.saveCopilotSettings({ provider: settings.provider, model: settings.model, permissions })
+      if (!owner.abort.signal.aborted) setSettings(current => ({ ...saved, openAi: current?.openAi ?? saved.openAi,
+        providerKey: current?.providerKey ?? saved.providerKey }))
     } catch (cause) {
       if (!owner.abort.signal.aborted) setError(message(cause))
     } finally {
@@ -70,13 +72,25 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
     setProviderPending(true)
     setError(undefined)
     try {
-      const saved = await api.saveCopilotSettings({ provider, permissions: settings.permissions })
-      if (!owner.abort.signal.aborted) setSettings(current => ({ ...saved, openAi: current?.openAi ?? saved.openAi }))
+      const saved = await api.saveCopilotSettings({ provider, model: '', permissions: settings.permissions })
+      if (!owner.abort.signal.aborted) { setSettings(saved); setModel(''); setApiKey('') }
     } catch (cause) {
       if (!owner.abort.signal.aborted) setError(message(cause))
     } finally {
       if (!owner.abort.signal.aborted) setProviderPending(false)
     }
+  }
+
+  const saveModel = async (): Promise<void> => {
+    const owner = lifetime.current
+    if (!settings || !owner || owner.api !== api || owner.abort.signal.aborted) return
+    setProviderPending(true)
+    setError(undefined)
+    try {
+      const saved = await api.saveCopilotSettings({ provider: settings.provider, model, permissions: settings.permissions })
+      if (!owner.abort.signal.aborted) setSettings(saved)
+    } catch (cause) { if (!owner.abort.signal.aborted) setError(message(cause)) }
+    finally { if (!owner.abort.signal.aborted) setProviderPending(false) }
   }
 
   const saveKey = async (): Promise<void> => {
@@ -85,9 +99,11 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
     setKeyPending(true)
     setError(undefined)
     try {
-      const openAi = await api.saveOpenAiApiKey(apiKey)
+      const status = settings.provider === 'openai' ? await api.saveOpenAiApiKey(apiKey)
+        : await api.saveCopilotProviderKey(settings.provider, apiKey)
       if (owner.abort.signal.aborted) return
-      setSettings(current => current ? { ...current, openAi } : current)
+      setSettings(current => current ? { ...current, providerKey: status,
+        ...(settings.provider === 'openai' ? { openAi: status } : {}) } : current)
       setApiKey(current => current === apiKey ? '' : current)
     } catch (cause) {
       if (!owner.abort.signal.aborted) setError(message(cause))
@@ -102,8 +118,10 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
     setKeyPending(true)
     setError(undefined)
     try {
-      const openAi = await api.removeOpenAiApiKey()
-      if (!owner.abort.signal.aborted) setSettings(current => current ? { ...current, openAi } : current)
+      const status = settings.provider === 'openai' ? await api.removeOpenAiApiKey()
+        : await api.removeCopilotProviderKey(settings.provider)
+      if (!owner.abort.signal.aborted) setSettings(current => current ? { ...current, providerKey: status,
+        ...(settings.provider === 'openai' ? { openAi: status } : {}) } : current)
     } catch (cause) {
       if (!owner.abort.signal.aborted) setError(message(cause))
     } finally {
@@ -119,11 +137,11 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
         title="Copilot settings"
       />
       <div className="settings-sections">
-        <Section description="Select the AI service used by Copilot. Provider credentials are stored on the PHOENIX computer." title="AI provider">
+        <Section description="Choose the text Copilot's AI service. Keys stay on the PHOENIX computer. Voice and GalNet currently use OpenAI independently." title="AI provider">
           {!settings
             ? !error && <Status tone="muted">Loading Copilot settings…</Status>
             : <SettingsList>
-                <SettingRow description="Only OpenAI is integrated currently." scope="Installation" title="Provider">
+                <SettingRow description="OpenAI, Anthropic and Google connect directly. Claude and Gemini have not yet been tested with live PHOENIX sessions." scope="Installation" title="Text provider">
                   <Select
                     aria-label="AI provider"
                     disabled={pending}
@@ -131,23 +149,31 @@ export function CopilotSettingsPage ({ api, audio }: { api: PhoenixApi, audio: A
                     onChange={event => void saveProvider(event.target.value as CopilotAiProvider)}
                   >
                     <option value="openai">OpenAI</option>
+                    <option value="anthropic">Anthropic (Claude)</option>
+                    <option value="google">Google (Gemini)</option>
                   </Select>
                 </SettingRow>
+                <SettingRow description="Enter the exact tool-capable model ID from your provider. For OpenAI, leaving this blank uses the server's configured default. Restart PHOENIX after changing it." scope="Installation" title="Text model">
+                  <div className="setting-key-action">
+                    <TextInput aria-label="Text model ID" value={model} onChange={event => setModel(event.target.value)} disabled={pending} />
+                    <Button size="sm" variant="primary" disabled={pending || model === settings.model} onClick={() => void saveModel()}>Save model</Button>
+                  </div>
+                </SettingRow>
                 <SettingRow
-                  description={settings.openAi.configured
-                    ? `Configured from ${settings.openAi.source}.${settings.openAi.restartRequired ? ' Restart required.' : ''}`
-                    : 'Required for Copilot and optional GalNet analysis.'}
+                  description={settings.providerKey.configured
+                    ? `Configured from ${settings.providerKey.source}.${settings.providerKey.restartRequired ? ' Restart required.' : ''}`
+                    : 'Required for the selected text provider. OpenAI also enables realtime voice and optional GalNet analysis.'}
                   scope="Installation"
                   title="API key"
                 >
                   <div className="setting-key-action">
-                    <TextInput aria-label={settings.openAi.stored ? 'Replacement OpenAI API key' : 'OpenAI API key'} autoComplete="off" placeholder={settings.openAi.stored ? 'Enter replacement key' : 'Enter API key'} type="password" value={apiKey} onChange={event => setApiKey(event.target.value)} />
-                    <Button busy={keyPending} disabled={apiKey.trim().length < 20} size="sm" variant="primary" onClick={() => void saveKey()}>{settings.openAi.stored ? 'Replace' : 'Save'}</Button>
-                    {settings.openAi.stored && <Button disabled={pending} size="sm" variant="danger" onClick={() => void removeKey()}>Remove</Button>}
+                    <TextInput aria-label={`${settings.providerKey.stored ? 'Replacement ' : ''}${settings.provider === 'openai' ? 'OpenAI' : settings.provider === 'anthropic' ? 'Anthropic' : 'Google'} API key`} autoComplete="off" placeholder={settings.providerKey.stored ? 'Enter replacement key' : 'Enter API key'} type="password" value={apiKey} onChange={event => setApiKey(event.target.value)} />
+                    <Button busy={keyPending} disabled={pending || apiKey.trim().length < 20} size="sm" variant="primary" onClick={() => void saveKey()}>{settings.providerKey.stored ? 'Replace' : 'Save'}</Button>
+                    {settings.providerKey.stored && <Button disabled={pending} size="sm" variant="danger" onClick={() => void removeKey()}>Remove</Button>}
                   </div>
                 </SettingRow>
               </SettingsList>}
-          <Notification tone="warning" message={settings?.openAi.restartRequired ? 'OpenAI configuration changed. Restart PHOENIX to apply it.' : undefined} />
+          <Notification tone="warning" message={settings?.restartRequired || settings?.providerKey.restartRequired ? 'AI configuration changed. Restart PHOENIX to apply it.' : undefined} />
         </Section>
 
         <GalnetAnalysisSettings api={api} />

@@ -46,7 +46,8 @@ import {
   type NavigationRoute,
   type RuntimeState
 } from '@phoenix/contracts'
-import { AiError, serializeAiError, type AiStreamEvent, type ToolRegistry } from '@jdu/llm-client'
+import { AiError, serializeAiError, type ToolRegistry } from '@jdu/llm-client'
+import type { CopilotStreamEvent } from '@phoenix/copilot'
 import type { ControlDeckHttpHandler } from 'control-deck/host'
 import type { CopilotText, CopilotTextRequest } from '../application/copilot-text-service.js'
 import type { CopilotConversationEvents } from '../application/copilot-conversation-event-service.js'
@@ -1576,7 +1577,7 @@ export class PhoenixHttpServer {
       writeJson(response, 503, {
         error: {
           code: 'copilot_unavailable',
-          message: 'Set PHOENIX_OPENAI_API_KEY or OPENAI_API_KEY to enable the Copilot.'
+          message: 'Configure the text provider, API key and model in Copilot settings, then restart PHOENIX.'
         }
       })
       return
@@ -1784,7 +1785,7 @@ function completedConversationEvent (input: {
 }
 
 
-function writeCopilotStreamEvent (response: ServerResponse, event: AiStreamEvent): void {
+function writeCopilotStreamEvent (response: ServerResponse, event: CopilotStreamEvent): void {
   switch (event.type) {
     case 'run.started':
       writeSse(response, 'started', { conversationId: event.chatId })

@@ -139,6 +139,8 @@ import { ApplicationPaths } from './infrastructure/application-paths.js'
 import { FrontierGalnetSource } from './infrastructure/frontier-galnet-source.js'
 import type { PairingAccessController } from './infrastructure/pairing-access-controller.js'
 import { OpenAiConfigurationService } from './application/openai-configuration-service.js'
+import { CopilotProviderConfiguration } from './application/copilot-provider-configuration.js'
+import { JsonApiKeyRepository } from './infrastructure/json-api-key-repository.js'
 import { OpenAiWebSearchSource } from './infrastructure/openai-web-search-source.js'
 import { ControlDeckEliteDestinationInput } from './infrastructure/control-deck-elite-destination-input.js'
 import type { WebSearchSource } from './domain/web-search.js'
@@ -418,6 +420,13 @@ export class PhoenixApplication {
         ? process.env.PHOENIX_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY
         : options.openAiEnvironmentKey ?? undefined
     )
+    const copilotProviderConfiguration = new CopilotProviderConfiguration(systemSettings, openAiConfiguration, {
+      anthropic: new JsonApiKeyRepository(resolve(paths.user.config, 'anthropic-key.json')),
+      google: new JsonApiKeyRepository(resolve(paths.user.config, 'google-ai-key.json'))
+    }, {
+      anthropic: process.env.PHOENIX_ANTHROPIC_API_KEY ?? process.env.ANTHROPIC_API_KEY,
+      google: process.env.PHOENIX_GOOGLE_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    })
     const controlDeckConfigurations = new NotifyingControlDeckConfigurationRepository(
       options.controlDeckConfigurationRepository ?? new InMemoryControlDeckConfigurationRepository(),
       commandCatalogueChanges
@@ -553,9 +562,8 @@ export class PhoenixApplication {
     const mcpServer = new PhoenixMcpServer(toolRegistry)
     const configuredCopilot = options.copilot === undefined && options.copilotRealtime === undefined
       ? createConfiguredCopilot(paths, {
+          textProvider: copilotProviderConfiguration.active(),
           ...(openAiConfiguration.activeApiKey() ? { apiKey: openAiConfiguration.activeApiKey() } : {}),
-          ...(port > 0 ? { mcpUrl: `http://127.0.0.1:${port}/mcp` } : {}),
-          ...(options.accessControl ? { mcpToken: options.accessControl.bearerToken } : {}),
           runtimeState: this.stateStore,
           missions,
           systemSettings,
@@ -642,6 +650,7 @@ export class PhoenixApplication {
       navigationRouteUpdates,
       numpad,
       openAiConfiguration,
+      copilotProviderConfiguration,
       eddn: this.eddn,
       webPort: options.webPort ?? optionalPort(process.env.PHOENIX_WEB_PORT),
       webRoot: resolveProjectPath(projectRoot, options.webRoot ?? paths.resources.web)

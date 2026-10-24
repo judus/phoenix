@@ -1,19 +1,14 @@
-import type {
-  AiResult,
-  AiRunOptions,
-  AiStreamEvent,
-  ConversationStore
-} from '@jdu/llm-client'
+import type { ConversationStore } from '@jdu/llm-client'
 import type { CopilotChatRequest, CopilotHistoryMessage } from '@phoenix/contracts'
-import type { TextCopilotPipeline } from '@phoenix/copilot'
+import type { TextCopilotPipeline, CopilotResult, CopilotRunOptions, CopilotStreamEvent } from '@phoenix/copilot'
 import type { RuntimeStateReader } from '../domain/runtime-state.js'
 
 export type CopilotTextRequest = CopilotChatRequest
 
 export interface CopilotText {
   getHistory(conversationId: string): Promise<readonly CopilotHistoryMessage[]>
-  run(request: CopilotTextRequest, options?: AiRunOptions): Promise<AiResult>
-  stream(request: CopilotTextRequest, options?: AiRunOptions): AsyncGenerator<AiStreamEvent, void, void>
+  run(request: CopilotTextRequest, options?: CopilotRunOptions): Promise<CopilotResult>
+  stream(request: CopilotTextRequest, options?: CopilotRunOptions): AsyncGenerator<CopilotStreamEvent, void, void>
 }
 
 export class CopilotTextService implements CopilotText {
@@ -44,14 +39,14 @@ export class CopilotTextService implements CopilotText {
     })
   }
 
-  public run (request: CopilotTextRequest, options?: AiRunOptions): Promise<AiResult> {
+  public run (request: CopilotTextRequest, options?: CopilotRunOptions): Promise<CopilotResult> {
     return this.pipeline.run(this.turn(request), options)
   }
 
   public stream (
     request: CopilotTextRequest,
-    options?: AiRunOptions
-  ): AsyncGenerator<AiStreamEvent, void, void> {
+    options?: CopilotRunOptions
+  ): AsyncGenerator<CopilotStreamEvent, void, void> {
     return this.pipeline.stream(this.turn(request), options)
   }
 

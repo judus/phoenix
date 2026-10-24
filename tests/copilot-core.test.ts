@@ -189,7 +189,7 @@ test.each(['bridge-log', undefined])('text pipeline preserves results, events an
 
   const options: AiRunOptions = { signal: new AbortController().signal }
   await expect(pipeline.run(turn, options)).resolves.toBe(factory.result)
-  const received: AiStreamEvent[] = []
+  const received: import('@phoenix/copilot').CopilotStreamEvent[] = []
   for await (const event of pipeline.stream(turn, options)) received.push(event)
   expect(received).toEqual(factory.events)
   expect(factory.options).toHaveLength(2)

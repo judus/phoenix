@@ -1,12 +1,15 @@
 import { resolve } from 'node:path'
-import { createAiClient, type AiClient, type ToolRegistry } from '@jdu/llm-client'
-import { openAI } from '@jdu/llm-client/providers/openai'
+import type { ToolRegistry } from '@jdu/llm-client'
+import { createOpenAI } from '@ai-sdk/openai'
+import { createAnthropic } from '@ai-sdk/anthropic'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import type { LanguageModel } from 'ai'
+import type { CopilotProviderSelection } from '../application/copilot-provider-configuration.js'
 import {
   AgentPromptComposer,
   FileAgentProfileRepository,
   RuntimeContextRenderer,
-  TextCopilotPipeline,
-  type CopilotAiClientFactory
+  TextCopilotPipeline
 } from '@phoenix/copilot'
 import { CopilotTextService, type CopilotText } from '../application/copilot-text-service.js'
 import { CopilotProfileService, type CopilotProfiles } from '../application/copilot-profile-service.js'
@@ -17,7 +20,8 @@ import type { MissionDataReader } from '../domain/missions.js'
 import { MissionRuntimeContext } from '../application/mission-runtime-context.js'
 import { readCopilotAudioProcessing } from './copilot-audio-config.js'
 import { JsonConversationStore } from './json-conversation-store.js'
-import { COPILOT_TOOL_TIMEOUT_MS } from '../application/copilot-tool-registry.js'
+import { AiSdkCopilotClientFactory } from './ai-sdk-copilot-client.js'
+import { AiSdkRealtimeClient } from './ai-sdk-realtime-client.js'
 import { OpenAiRealtimeClient } from './openai-realtime-client.js'
 import { RotatingWireLogger } from './rotating-wire-logger.js'
 import type { ApplicationPaths } from './application-paths.js'
@@ -25,17 +29,16 @@ import { prepareWritableAgentProfiles } from './writable-agent-profiles.js'
 
 export interface ConfiguredCopilot {
   profiles: CopilotProfiles
-  realtime: CopilotRealtime
-  text: CopilotText
+  realtime?: CopilotRealtime
+  text?: CopilotText
 }
 
 export interface ConfiguredCopilotOptions {
   agentsDirectory?: string
   apiKey?: string
+  textProvider?: CopilotProviderSelection
+  realtimeBackend?: 'native' | 'ai-sdk'
   conversationsDirectory?: string
-  maxRetries?: number
-  mcpUrl?: string
-  mcpToken?: string
   model?: string
   missions: MissionDataReader
   profilesDirectory?: string
@@ -54,7 +57,14 @@ export function createConfiguredCopilot (
   options: ConfiguredCopilotOptions
 ): ConfiguredCopilot | undefined {
   const apiKey = options.apiKey ?? process.env.PHOENIX_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY
-  if (!apiKey) return undefined
+  const realtimeBackend = options.realtimeBackend ?? process.env.PHOENIX_REALTIME_BACKEND ?? 'native'
+  if (realtimeBackend !== 'native' && realtimeBackend !== 'ai-sdk') throw new Error('Unknown PHOENIX_REALTIME_BACKEND. Use native or ai-sdk.')
+  const textProvider = options.textProvider ?? { provider: 'openai', apiKey,
+    model: options.model ?? process.env.PHOENIX_OPENAI_MODEL ?? 'gpt-5.6-terra' }
+  if (textProvider.provider === 'openai' && !textProvider.model) {
+    textProvider.model = options.model ?? process.env.PHOENIX_OPENAI_MODEL ?? 'gpt-5.6-terra'
+  }
+  if (!apiKey && !textProvider.apiKey) return undefined
 
   const profilesDirectory = prepareWritableAgentProfiles(
     resolve(paths.resources.copilots, options.agentsDirectory ?? '.'),
@@ -83,66 +93,46 @@ export function createConfiguredCopilot (
         )
       }).write
     : undefined
-  const provider = openAI({
-    apiKey,
-    maxRetries: options.maxRetries ?? environmentInteger(
-      process.env.PHOENIX_OPENAI_MAX_RETRIES,
-      1,
-      true
-    ),
-    model: options.model ?? process.env.PHOENIX_OPENAI_MODEL ?? 'gpt-5.6-terra',
-    timeoutMs: options.timeoutMs ?? environmentInteger(
-      process.env.PHOENIX_OPENAI_TIMEOUT_MS,
-      180_000,
-      false
-    ),
-    ...(wireLogger === undefined ? {} : { wireLogger })
-  })
   const profiles = new FileAgentProfileRepository(profilesDirectory)
   const prompts = new AgentPromptComposer(profiles)
   const profileService = new CopilotProfileService(profiles, options.systemSettings)
   const runtimeContext = new RuntimeContextRenderer([new MissionRuntimeContext(options.missions)])
-  const clients: CopilotAiClientFactory = {
-    create: (instructions: string): AiClient => createAiClient({
-      history: {
-        maxContextTokens: 100_000,
-        repository: conversations
-      },
-      instructions,
-      toolTimeoutMs: COPILOT_TOOL_TIMEOUT_MS,
-      ...(options.mcpUrl === undefined ? {} : {
-        mcp: [{
-          name: 'phoenix',
-          timeoutMs: COPILOT_TOOL_TIMEOUT_MS,
-          url: options.mcpUrl,
-          ...(options.mcpToken === undefined ? {} : {
-            headers: { authorization: `Bearer ${options.mcpToken}` }
-          })
-        }]
-      }),
-      provider
-    })
-  }
-  const pipeline = new TextCopilotPipeline(
+  const clients = textProvider.apiKey && textProvider.model ? new AiSdkCopilotClientFactory({
+    model: createCopilotModel(textProvider),
+    conversations,
+    tools: options.tools,
+    timeoutMs: options.timeoutMs ?? environmentInteger(process.env.PHOENIX_OPENAI_TIMEOUT_MS, 180_000, false)
+  }) : undefined
+  const pipeline = clients ? new TextCopilotPipeline(
     clients,
     prompts,
     runtimeContext
-  )
+  ) : undefined
   return {
     profiles: profileService,
-    text: new CopilotTextService(pipeline, options.runtimeState, conversations, () => profileService.activeProfileId()),
-    realtime: new CopilotRealtimeService({
+    text: pipeline ? new CopilotTextService(pipeline, options.runtimeState, conversations, () => profileService.activeProfileId()) : undefined,
+    realtime: apiKey ? new CopilotRealtimeService({
       activeProfileId: () => profileService.activeProfileId(),
       audioProcessing: profileId => readCopilotAudioProcessing(resolve(profilesDirectory, profileId, 'audio.json')),
       conversations,
-      gateway: new OpenAiRealtimeClient({ apiKey, wireLogger }),
+      gateway: realtimeBackend === 'ai-sdk' ? new AiSdkRealtimeClient({ apiKey, wireLogger })
+        : new OpenAiRealtimeClient({ apiKey, wireLogger }),
       model: process.env.PHOENIX_OPENAI_REALTIME_MODEL ?? 'gpt-realtime-2.1-mini',
       prompts,
       runtimeContext,
       runtimeState: options.runtimeState,
       tools: options.tools,
       voice: profileId => process.env.PHOENIX_OPENAI_REALTIME_VOICE ?? profiles.getDescriptor(profileId).voice
-    })
+    }) : undefined
+  }
+}
+
+export function createCopilotModel (selection: CopilotProviderSelection): LanguageModel {
+  if (!selection.apiKey || !selection.model) throw new Error('Copilot requires a provider API key and model ID.')
+  switch (selection.provider) {
+    case 'openai': return createOpenAI({ apiKey: selection.apiKey }).responses(selection.model)
+    case 'anthropic': return createAnthropic({ apiKey: selection.apiKey })(selection.model)
+    case 'google': return createGoogleGenerativeAI({ apiKey: selection.apiKey })(selection.model)
   }
 }
 

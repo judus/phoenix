@@ -13,7 +13,7 @@ export const COPILOT_TOOL_TIMEOUT_MS = 60_000
 export class CopilotToolRegistry extends ToolRegistry {
   public constructor (
     tools: readonly LocalTool[],
-    private readonly capabilities: CopilotCapabilities
+    private readonly capabilities: Pick<CopilotCapabilities, 'isToolEnabled'>
   ) {
     super(tools)
   }

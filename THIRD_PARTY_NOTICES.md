@@ -1,5 +1,12 @@
 # Third-party notices
 
+## AI SDK
+
+Copilot text uses [AI SDK](https://github.com/vercel/ai) and its OpenAI, Anthropic and Google
+provider adapters, under Apache-2.0. Their package licences accompany the installed dependencies.
+Provider credentials and service terms are separate from the SDK licence. PHOENIX connects
+directly to the selected provider; Vercel hosting and AI Gateway are not required.
+
 ## Sonner
 
 [Sonner](https://github.com/emilkowalski/sonner) provides the shared notification stack,

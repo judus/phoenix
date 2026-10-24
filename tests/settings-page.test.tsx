@@ -68,9 +68,9 @@ test('saved OpenAI configuration clearly reports that PHOENIX must restart', asy
   const markup = JSON.stringify(renderer.toJSON())
 
   expect(markup).toContain('Restart required')
-  expect(notificationText()).toContain('OpenAI configuration changed. Restart PHOENIX to apply it.')
+  expect(notificationText()).toContain('AI configuration changed. Restart PHOENIX to apply it.')
   expect(markup).toContain('AI provider')
-  expect(markup).toContain('Only OpenAI is integrated currently.')
+  expect(markup).toContain('Anthropic and Google connect directly')
   expect(markup).toContain('Installation-wide permission ceiling')
   expect(markup).toContain('Each Copilot profile chooses its own capabilities within this limit')
   expect(renderer.root.findAllByProps({ className: 'copilot-load' })).toHaveLength(0)
@@ -98,6 +98,9 @@ function settingsApi (openAi: Awaited<ReturnType<PhoenixApi['getCopilotSettings'
     async getCopilotSettings() {
       return {
         provider: 'openai',
+        model: '',
+        providerKey: openAi,
+        restartRequired: false,
         permissions: { version: 2, enabledCapabilityIds: ['tool:web.search_web'] },
         capabilities: {
           groups: [{
@@ -295,6 +298,25 @@ test.each(['permissions-first', 'key-first'] as const)('overlapping permission/k
     }
     expect(renderer.root.findByProps({ 'aria-label': 'Replacement OpenAI API key' }).props.value).toBe('')
     expect(renderer.root.findByType(CopilotPermissionEditor).props.permissions.enabledCapabilityIds).toEqual([])
+  } finally { await act(async () => renderer.unmount()) }
+})
+
+test('provider change disables credential submission until the selected provider is confirmed', async () => {
+  const selection = deferred<Awaited<ReturnType<PhoenixApi['saveCopilotSettings']>>>()
+  const api = { ...settingsApi(), saveCopilotSettings: vi.fn().mockReturnValue(selection.promise),
+    saveOpenAiApiKey: vi.fn(), saveCopilotProviderKey: vi.fn() }
+  const audio = { devices: { inputs: [], outputs: [] }, inputId: '', outputId: '', setInputId() {}, setOutputId() {} }
+  let renderer!: ReturnType<typeof create>
+  await act(async () => { renderer = create(<CopilotSettingsPage api={api} audio={audio} />) })
+  try {
+    act(() => renderer.root.findByProps({ 'aria-label': 'OpenAI API key' }).props.onChange({ target: { value: 'synthetic-key-1234567890123456' } }))
+    act(() => renderer.root.findByProps({ 'aria-label': 'AI provider' }).props.onChange({ target: { value: 'google' } }))
+    const save = renderer.root.findAllByType('button').find(button => button.children.join('') === 'Save')!
+    expect(save.props.disabled).toBe(true)
+    expect(api.saveOpenAiApiKey).not.toHaveBeenCalled()
+    expect(api.saveCopilotProviderKey).not.toHaveBeenCalled()
+    await act(async () => selection.resolve({ ...await api.getCopilotSettings(), provider: 'google', model: '', restartRequired: true }))
+    expect(renderer.root.findByProps({ 'aria-label': 'Google API key' }).props.value).toBe('')
   } finally { await act(async () => renderer.unmount()) }
 })
 

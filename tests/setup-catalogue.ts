@@ -4,6 +4,10 @@ import { fileURLToPath } from 'node:url'
 const directory = fileURLToPath(new URL('./fixtures/catalogue/', import.meta.url))
 delete process.env.PHOENIX_OPENAI_API_KEY
 delete process.env.OPENAI_API_KEY
+delete process.env.PHOENIX_ANTHROPIC_API_KEY
+delete process.env.ANTHROPIC_API_KEY
+delete process.env.PHOENIX_GOOGLE_API_KEY
+delete process.env.GOOGLE_GENERATIVE_AI_API_KEY
 process.env.PHOENIX_COMMODITY_CATALOGUE_PATH = resolve(directory, 'commodities.json')
 process.env.PHOENIX_SHIP_CATALOGUE_PATH = resolve(directory, 'ships.json')
 process.env.PHOENIX_MODULE_CATALOGUE_PATH = resolve(directory, 'modules.json')

@@ -1,11 +1,11 @@
 import type { RuntimeState } from '@phoenix/contracts'
-import type { AiResult, AiRunOptions, AiStreamEvent } from '@jdu/llm-client'
+import type { CopilotResult, CopilotRunOptions, CopilotStreamEvent } from './copilot-client.js'
 import type { AgentPromptComposer } from './agent-profile.js'
 import type { RuntimeContextRenderer } from './runtime-context-renderer.js'
 
 export interface CopilotAiRequest {
-  run(options?: AiRunOptions): Promise<AiResult>
-  stream(options?: AiRunOptions): AsyncGenerator<AiStreamEvent, void, void>
+  run(options?: CopilotRunOptions): Promise<CopilotResult>
+  stream(options?: CopilotRunOptions): AsyncGenerator<CopilotStreamEvent, void, void>
 }
 
 export interface CopilotAiClient {
@@ -31,11 +31,11 @@ export class TextCopilotPipeline {
     private readonly runtimeContext: RuntimeContextRenderer
   ) {}
 
-  public run (turn: TextCopilotTurn, options?: AiRunOptions): Promise<AiResult> {
+  public run (turn: TextCopilotTurn, options?: CopilotRunOptions): Promise<CopilotResult> {
     return this.request(turn).run(options)
   }
 
-  public stream (turn: TextCopilotTurn, options?: AiRunOptions): AsyncGenerator<AiStreamEvent, void, void> {
+  public stream (turn: TextCopilotTurn, options?: CopilotRunOptions): AsyncGenerator<CopilotStreamEvent, void, void> {
     return this.request(turn).stream(options)
   }
 

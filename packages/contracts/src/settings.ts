@@ -39,7 +39,7 @@ export const PhoenixControlDeckConfigurationSchema = ControlDeckConfigurationSch
   }
 })
 
-export const CopilotAiProviderSchema = z.enum(['openai'])
+export const CopilotAiProviderSchema = z.enum(['openai', 'anthropic', 'google'])
 
 export const PhoenixModulesSchema = z.object({
   currentShip: z.object({
@@ -87,6 +87,7 @@ export const PhoenixSettingsSchema = z.object({
   copilot: z.object({
     activeProfileId: z.string().regex(/^[a-z][a-z0-9_-]*$/u).default('marin'),
     provider: CopilotAiProviderSchema.default('openai'),
+    model: z.string().trim().max(160).default(''),
     permissions: CopilotPermissionPolicySchema,
     profilePermissions: z.record(
       z.string().regex(/^[a-z][a-z0-9_-]*$/u),
@@ -95,6 +96,7 @@ export const PhoenixSettingsSchema = z.object({
   }).default({
     activeProfileId: 'marin',
     provider: 'openai',
+    model: '',
     permissions: { version: 2, enabledCapabilityIds: [] },
     profilePermissions: { marin: { version: 2, enabledCapabilityIds: [] } }
   }),
@@ -131,6 +133,9 @@ export const GeneralSettingsUpdateSchema = GeneralSettingsSchema
 
 export const CopilotSettingsSchema = z.object({
   provider: CopilotAiProviderSchema,
+  model: z.string(),
+  providerKey: OpenAiConfigurationStatusSchema,
+  restartRequired: z.boolean(),
   permissions: CopilotPermissionPolicySchema,
   capabilities: CopilotCapabilityCatalogueSchema,
   openAi: OpenAiConfigurationStatusSchema
@@ -138,6 +143,7 @@ export const CopilotSettingsSchema = z.object({
 
 export const CopilotSettingsUpdateSchema = z.object({
   provider: CopilotAiProviderSchema,
+  model: z.string().trim().max(160).default(''),
   permissions: CopilotPermissionPolicySchema
 })
 
