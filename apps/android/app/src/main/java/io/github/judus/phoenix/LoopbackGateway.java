@@ -144,7 +144,17 @@ final class LoopbackGateway extends NanoHTTPD implements AutoCloseable {
                 @Override public int getRequestStatus() { return status; }
                 @Override public String getDescription() { return status + " " + remote.message(); }
             };
-            Response response = remote.body().contentLength() < 0
+            // HEAD describes the representation, not OkHttp's empty HEAD body.
+            // NanoHTTPD otherwise invents Content-Length: 0 even when upstream omitted it.
+            Response response = method.equals("HEAD")
+                    ? new Response(responseStatus, remote.header("Content-Type"), stream, 0) {
+                        @Override protected long sendContentLengthHeaderIfNotAlreadyPresent(java.io.PrintWriter writer, long length) {
+                            String original = remote.header("Content-Length");
+                            if (original != null) printHeader(writer, "Content-Length", original);
+                            return 0; // Never emit representation bytes, regardless of advertised length.
+                        }
+                    }
+                    : remote.body().contentLength() < 0
                     ? newChunkedResponse(responseStatus, remote.header("Content-Type"), stream)
                     : newFixedLengthResponse(responseStatus, remote.header("Content-Type"), stream, remote.body().contentLength());
             for (String name : remote.headers().names()) {

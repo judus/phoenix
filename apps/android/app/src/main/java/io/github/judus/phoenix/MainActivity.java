@@ -54,7 +54,7 @@ public final class MainActivity extends ComponentActivity {
     private String persistedCookies;
     private EditText pairingCode;
     private EditText gatewayPin;
-    private volatile LoopbackGateway gateway;
+    private final GatewayLifecycle gatewayLifecycle = new GatewayLifecycle();
     private boolean manualMode;
     private boolean connecting;
     private final ExecutorService pairingWorker = Executors.newSingleThreadExecutor();
@@ -354,7 +354,7 @@ public final class MainActivity extends ComponentActivity {
         error.setVisibility(View.GONE);
         webView.stopLoading();
         webView.loadUrl("about:blank");
-        if (gateway != null) { gateway.close(); gateway = null; }
+        gatewayLifecycle.disconnect();
         pairingWorker.execute(() -> {
             LoopbackGateway prepared = null;
             try {
@@ -369,16 +369,15 @@ public final class MainActivity extends ComponentActivity {
                 prepared = new LoopbackGateway(identity, tls, session, cookie ->
                         { if (identity.key().equals(preferences.getString("gatewayIdentity", "")))
                             preferences.edit().putString("gatewaySession", cookie).commit(); });
-                prepared.start(10000, true); // Stable origin; fail closed if another process occupies the port.
+                if (!gatewayLifecycle.start(prepared)) return; // Bind/publication are atomic with Activity destruction.
                 LoopbackGateway connected = prepared;
                 runOnUiThread(() -> {
-                    if (isDestroyed()) { connected.close(); return; }
-                    gateway = connected;
+                    if (!gatewayLifecycle.owns(connected)) return;
                     ServerAddress local = ServerAddress.parse(connected.origin());
                     server = local;
                     CookieManager.getInstance().setCookie(local.origin(), connected.capabilityCookie(), accepted -> {
-                        if (isDestroyed()) { connected.close(); return; }
-                        if (!accepted) { connected.close(); gateway = null; connectionFailed(getString(R.string.cookie_rejected)); return; }
+                        if (!gatewayLifecycle.owns(connected)) return;
+                        if (!accepted) { gatewayLifecycle.disconnect(); connectionFailed(getString(R.string.cookie_rejected)); return; }
                         CookieManager.getInstance().flush();
                         finishConnection(local, route != null && local.contains(route) ? route : local.origin());
                         address.setText(identity.server.origin());
@@ -509,8 +508,8 @@ public final class MainActivity extends ComponentActivity {
 
     @Override
     protected void onDestroy() {
+        gatewayLifecycle.close();
         pairingWorker.shutdownNow();
-        if (gateway != null) gateway.close();
         ((FrameLayout) webView.getParent()).removeView(webView);
         webView.destroy();
         super.onDestroy();
