@@ -48,7 +48,9 @@ final class GatewayTls {
         return connection;
     }
 
-    OkHttpClient client() { return client(10000); }
+    // Non-streaming handlers include Spansh (30s), macros/tools (60s) and
+    // Copilot turns (180s). Leave network/serialization headroom without an unbounded wait.
+    OkHttpClient client() { return client(240000); }
 
     OkHttpClient client(long headerDeadlineMilliseconds) {
         return new OkHttpClient.Builder().sslSocketFactory(context.getSocketFactory(), trust)
