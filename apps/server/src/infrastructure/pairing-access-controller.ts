@@ -18,6 +18,9 @@ export class PairingAccessController extends PairingHttpController {
       {
         cookieName: 'phoenix_session',
         isServerRequest: request => {
+          // The opt-in Android TLS listener is always a paired-device transport,
+          // including when an emulator connects from this computer.
+          if ('encrypted' in request.socket && request.socket.encrypted === true) return false
           const interfaces = networkInterfaces()
           const clientAddress = clientAddressBehindLocalProxy(
             request.socket.remoteAddress,

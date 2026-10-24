@@ -14,6 +14,10 @@ AndroidX also includes the Kotlin standard library and kotlinx.coroutines under 
 These are Android-only dependencies, not part of desktop installers. Attribution notices and
 the complete Apache-2.0 licence are bundled in the APK's `assets/licenses/` directory.
 
+The native TLS experiment adds OkHttp 4.12.0 / Okio 3.6.0 (Square and contributors,
+Apache-2.0) and NanoHTTPD 2.3.1 (Copyright 2012–2016 nanohttpd, BSD-3-Clause).
+Attribution and the complete NanoHTTPD licence are bundled in the same APK assets directory.
+
 ## Galactic atlas region map
 
 The bundled region geometry and coordinate lookup are derived from

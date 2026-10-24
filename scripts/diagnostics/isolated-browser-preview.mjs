@@ -6,7 +6,7 @@
 // Add --query-atlas for nearby station results with grouped and missing coordinates.
 // Add --vite to test source hot reload instead of the built frontend.
 import { createRequire } from 'node:module'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -23,6 +23,7 @@ import { mockDenseCartography } from './mock-dense-cartography.mjs'
 import { SqliteEddnOutbox } from '../../apps/server/src/infrastructure/sqlite-eddn-outbox.ts'
 import { SqliteGalnetArticleArchive } from '../../apps/server/src/infrastructure/sqlite-galnet-article-archive.ts'
 import { createNavigationCopilot } from './copilot-navigation-fixture.mjs'
+import { PairingAccessController } from '../../apps/server/src/infrastructure/pairing-access-controller.ts'
 
 const require = createRequire(import.meta.url)
 const { RecordingKeyboardOutput } = require('control-deck/adapter-keyboard')
@@ -33,6 +34,7 @@ const prospecting = process.argv.includes('--prospecting')
 const atlasPois = process.argv.includes('--atlas-pois')
 const atlasRoute = process.argv.includes('--atlas-route')
 const queryAtlas = process.argv.includes('--query-atlas')
+const gateway = process.argv.includes('--gateway')
 const communityGoals = process.argv.includes('--community-goals')
 const missionBrief = process.argv.includes('--mission-brief')
 const powerplay = process.argv.includes('--powerplay')
@@ -50,8 +52,9 @@ const continuityArticles = [
   { id: 'synthetic-missing', title: 'Synthetic ship missing', body: 'Synthetic EVE-597 is missing after departing Sol. Its current position is unknown.', publishedAt: '2026-09-17T12:00:00Z' }
 ].map(article => ({ ...article, changedAt: article.publishedAt, image: null, slug: article.id,
   sourceUrl: `https://example.com/galnet/${article.id}` }))
-const fixtureDirectory = eddnSubmissions || galnetArchive || missionBrief || powerplay || colonisation || carrier || atlasRoute ? mkdtempSync(join(tmpdir(), 'phoenix-isolated-preview-')) : undefined
+const fixtureDirectory = gateway || eddnSubmissions || galnetArchive || missionBrief || powerplay || colonisation || carrier || atlasRoute ? mkdtempSync(join(tmpdir(), 'phoenix-isolated-preview-')) : undefined
 const databasePath = fixtureDirectory ? join(fixtureDirectory, 'preview.sqlite') : ':memory:'
+const gatewayAccess = gateway ? new PairingAccessController(join(fixtureDirectory, 'pairing.json')) : undefined
 const eliteDirectory = atlasRoute ? join(fixtureDirectory, 'synthetic-elite') : null
 if (eliteDirectory) {
   mkdirSync(eliteDirectory)
@@ -75,6 +78,14 @@ globalThis.fetch = (input, options) => {
   return nativeFetch(input, options)
 }
 const application = new PhoenixApplication({
+  ...(gateway ? {
+    accessControl: gatewayAccess,
+    experimentalTls: {
+      port: Number(process.env.PHOENIX_EXPERIMENTAL_TLS_PORT ?? 3443),
+      cert: readFileSync(process.env.PHOENIX_EXPERIMENTAL_TLS_CERT),
+      key: readFileSync(process.env.PHOENIX_EXPERIMENTAL_TLS_KEY)
+    }
+  } : {}),
   databasePath,
   eliteDirectory,
   eliteBindingsDirectory: null,
@@ -82,7 +93,7 @@ const application = new PhoenixApplication({
   port: 0,
   keyboardOutput: new RecordingKeyboardOutput(),
   webRoot: `${projectRoot}apps/web/dist`,
-  copilot: copilotNavigation ? createNavigationCopilot(() => copilotOrigin) : null,
+  copilot: copilotNavigation ? createNavigationCopilot(() => copilotOrigin, gatewayAccess ? { authorization: `Bearer ${gatewayAccess.bearerToken}` } : {}) : null,
   copilotRealtime: null,
   openAiEnvironmentKey: null,
   ...(galnetAnalysis ? {

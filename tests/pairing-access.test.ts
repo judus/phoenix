@@ -114,6 +114,23 @@ function requestWithCookie (cookie: string): IncomingMessage {
   return { headers: { cookie } } as IncomingMessage
 }
 
+test('encrypted sockets never inherit desktop-owner access from loopback or forwarding headers', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'phoenix-tls-pairing-'))
+  try {
+    const access = new PairingAccessController(join(directory, 'pairing.json'))
+    const request = { headers: { 'x-forwarded-for': '127.0.0.1' }, socket: { remoteAddress: '127.0.0.1', encrypted: true } } as unknown as IncomingMessage
+    expect(access.isServerRequest(request)).toBe(false)
+    expect(access.isAuthorized(request)).toBe(false)
+    expect(access.isServerRequest({ ...request, socket: { remoteAddress: '127.0.0.1' } } as unknown as IncomingMessage)).toBe(true)
+  } finally { rmSync(directory, { recursive: true, force: true }) }
+})
+
+test('experimental TLS refuses to start without pairing', () => {
+  expect(() => new PhoenixApplication({ databasePath: ':memory:', eliteDirectory: null,
+    experimentalTls: { cert: Buffer.from('invalid'), key: Buffer.from('invalid'), port: 0 }
+  })).toThrow('Experimental TLS requires device pairing.')
+})
+
 test('the installation bearer token authenticates non-browser clients', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'phoenix-pairing-'))
   const accessControl = new PairingAccessController(join(directory, 'pairing.json'))

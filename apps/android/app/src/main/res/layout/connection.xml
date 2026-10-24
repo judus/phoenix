@@ -34,6 +34,10 @@
             <LinearLayout android:id="@+id/manual_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
                 <TextView style="@style/ConnectionLabel" android:text="@string/server_label" android:labelFor="@id/server_address" />
                 <EditText android:id="@+id/server_address" style="@style/ConnectionInput" android:hint="@string/server_hint" android:inputType="textUri" android:imeOptions="actionNext" />
+                <LinearLayout android:id="@+id/gateway_identity" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
+                    <TextView style="@style/ConnectionLabel" android:text="@string/gateway_pin_label" android:labelFor="@id/gateway_pin" />
+                    <EditText android:id="@+id/gateway_pin" style="@style/ConnectionInput" android:inputType="textNoSuggestions" android:imeOptions="actionNext" />
+                </LinearLayout>
                 <TextView style="@style/ConnectionLabel" android:text="@string/pairing_label" android:labelFor="@id/pairing_code" />
                 <EditText android:id="@+id/pairing_code" style="@style/ConnectionInput" android:hint="@string/pairing_hint" android:inputType="textCapCharacters|textNoSuggestions" android:imeOptions="actionGo" />
             </LinearLayout>

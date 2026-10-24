@@ -21,6 +21,14 @@ These libraries are licensed under the Apache License, Version 2.0.
 The complete licence is included alongside this notice as Apache-2.0.txt.
 No upstream library source has been modified.
 
+Experimental native gateway dependencies:
+OkHttp 4.12.0 and Okio 3.6.0, Copyright Square, Inc. and contributors, Apache-2.0.
+https://github.com/square/okhttp/tree/parent-4.12.0
+https://github.com/square/okio/tree/parent-3.6.0
+NanoHTTPD 2.3.1, Copyright (c) 2012 - 2016, nanohttpd, BSD-3-Clause.
+https://github.com/NanoHttpd/nanohttpd/tree/nanohttpd-project-2.3.1
+Complete NanoHTTPD licence: NanoHTTPD-BSD.txt, alongside this notice.
+
 ZXing upstream notices:
 --------------------------------------------------------------------------------
 NOTICES FOR BARCODE4J
