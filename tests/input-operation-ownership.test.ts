@@ -338,3 +338,29 @@ test('failed hold release retains exclusion until an explicit authorized release
   expect(await f.actions.execute({ actionId: 'elite.PrimaryFire', operation: 'release', leaseId: 'held' }, 'ui')).toMatchObject({ status: 'accepted' })
   expect(await f.macros.execute('tap', 'ui')).toMatchObject({ status: 'completed' })
 })
+
+test('a busy press queued behind a failed lease transition cannot dispatch after the exclusive owner finishes', async () => {
+  const f = fixture()
+  const started = Promise.withResolvers<void>()
+  const finishOutput = Promise.withResolvers<void>()
+  const finishOwner = Promise.withResolvers<void>()
+  f.onInput = async operation => {
+    if (operation === 'press') { started.resolve(); await finishOutput.promise; throw new Error('synthetic rejected press') }
+  }
+  const request = { actionId: 'elite.PrimaryFire', operation: 'press', leaseId: 'queued' }
+  let first!: ReturnType<typeof f.actions.execute>
+  const owner = f.operations.exclusive('sequence', async () => {
+    first = f.actions.execute(request, 'ui')
+    // Deliberately leave the first dispatch in flight when this owner finishes.
+    await finishOwner.promise
+  })
+  await started.promise
+  const blocked = f.actions.execute(request, 'ui')
+  finishOwner.resolve()
+  await owner
+  finishOutput.resolve()
+  expect(await first).toMatchObject({ status: 'failed' })
+  expect(await blocked).toMatchObject({ status: 'rejected', message: expect.stringContaining('busy') })
+  expect(f.inputs()).toEqual(['press:Space'])
+  expect(await f.actions.execute({ actionId: 'elite.UI_Select' }, 'ui')).toMatchObject({ status: 'accepted' })
+})
