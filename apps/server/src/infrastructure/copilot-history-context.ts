@@ -60,7 +60,7 @@ interface ContextRequest {
 
 /** Trims model context only. The source transcript and tool outcomes stay in the conversation store. */
 export class CopilotHistoryContext {
-  public constructor (private readonly model: LanguageModel, private readonly budget = 100_000) {}
+  public constructor (private readonly model: LanguageModel, private readonly maxContextTokens = 100_000) {}
 
   public async prepare (request: ContextRequest): Promise<{ messages: ModelMessage[], usage: CopilotUsage }> {
     const usage: { inputTokens?: number, outputTokens?: number, cachedInputTokens?: number, reasoningTokens?: number } = {}
@@ -70,7 +70,7 @@ export class CopilotHistoryContext {
       if (!result) {
         const messages = request.render(message)
         // One extra comma per message conservatively bounds the serialized array.
-        result = { messages, weight: messages.reduce((total, message) => total + bytes(message) + 1, 0) }
+        result = { messages, weight: messages.reduce((total, message) => total + estimatedTokens(message) + 1, 0) }
         rendered.set(message, result)
       }
       return result
@@ -81,15 +81,15 @@ export class CopilotHistoryContext {
       if (!result) {
         const serialized = JSON.stringify({ role: message.role, content: message.content })
         // The payload is a JSON string inside the model request: include its escaping.
-        result = { serialized, weight: bytes(serialized) - 2 + 1 }
+        result = { serialized, weight: estimatedTokens(serialized) + 1 }
         sourceRecords.set(message, result)
       }
       return result
     }
-    const base = bytes({ instructions: request.instructions, messages: [], definitions: request.definitions }) + RESERVE
+    const base = estimatedTokens({ instructions: request.instructions, messages: [], definitions: request.definitions }) + RESERVE
     const estimate = (history: readonly ConversationMessage[]) => base + history.reduce((total, message) => total + native(message).weight, 0)
     let active = activeCopilotHistory(request.history)
-    while (estimate(active) > this.budget * 0.8) {
+    while (estimate(active) > this.maxContextTokens * 0.8) {
       request.signal.throwIfAborted()
       const fixed = active.filter(pinned)
       const previous = active.find(message => marker(message) !== undefined)
@@ -101,20 +101,20 @@ export class CopilotHistoryContext {
       const contextPrefix = prefixWeights(turns.map(message => native(message).weight))
       const fixedSize = estimate(fixed)
       const suffixSize = (index: number) => fixedSize + contextPrefix[turns.length]! - contextPrefix[index]!
-      if (suffixSize(recent) > this.budget) throw contextLimit()
+      if (suffixSize(recent) > this.maxContextTokens) throw contextLimit()
       // Every boundary is before a user turn: never cut through a provider/tool exchange.
       const boundaries = turns.flatMap((message, index) => message.role === 'user' && index > 0 && index <= recent ? [index] : [])
       if (boundaries.length === 0) break
-      const summaryBytes = Math.min(8192, Math.floor(this.budget * 0.12))
-      const target = boundaries.find(index => suffixSize(index) + summaryBytes <= this.budget * 0.6) ?? recent
+      const summaryBytes = Math.min(8192, Math.floor(this.maxContextTokens * 0.12))
+      const target = boundaries.find(index => suffixSize(index) + Math.ceil(summaryBytes / 3) <= this.maxContextTokens * 0.6) ?? recent
       const previousSummary = previous?.content.flatMap(part => part.type === 'text' ? [part.text] : []).join('\n') ?? ''
       const records = turns.slice(0, target).map(source)
       const sourcePrefix = prefixWeights(records.map(record => record.weight))
       const payload = (index: number) => `{"previousSummary":${JSON.stringify(previousSummary)},"messages":[${records.slice(0, index).map(record => record.serialized).join(',')}]}`
-      const summaryBase = bytes([{ role: 'system', content: SUMMARY_INSTRUCTIONS },
+      const summaryBase = estimatedTokens([{ role: 'system', content: SUMMARY_INSTRUCTIONS },
         { role: 'user', content: [{ type: 'text', text: payload(0) }] }]) + RESERVE
       // Very old archives can exceed one model request. Advance complete source prefixes in bounded batches.
-      const boundary = boundaries.filter(index => index <= target).findLast(index => summaryBase + sourcePrefix[index]! <= this.budget)
+      const boundary = boundaries.filter(index => index <= target).findLast(index => summaryBase + sourcePrefix[index]! <= this.maxContextTokens)
       if (boundary === undefined) throw new AiError('budget_exceeded',
         'An older Copilot turn is too large to summarize safely. Its history remains saved.', { code: 'copilot_summary_input_limit' })
       let response: Awaited<ReturnType<typeof generateText>>
@@ -143,12 +143,17 @@ export class CopilotHistoryContext {
       accumulate(usage, 'cachedInputTokens', tokens.inputTokenDetails.cacheReadTokens)
       accumulate(usage, 'reasoningTokens', tokens.outputTokenDetails.reasoningTokens)
     }
-    if (estimate(active) > this.budget) throw contextLimit()
+    if (estimate(active) > this.maxContextTokens) throw contextLimit()
     return { messages: active.flatMap(message => native(message).messages), usage }
   }
 }
 
-function bytes (value: unknown): number { return Buffer.byteLength(JSON.stringify(value), 'utf8') }
+// Provider-neutral estimate, not a tokenizer or a provider-reported context limit. The old
+// client estimated four characters/token; three UTF-8 bytes/token leaves more headroom for
+// structured tool output and non-English text. Reserves and all comparisons are in TOKENS.
+function estimatedTokens (value: unknown): number {
+  return Math.ceil(Buffer.byteLength(JSON.stringify(value), 'utf8') / 3)
+}
 
 function prefixWeights (weights: readonly number[]): number[] {
   const sums = [0]
