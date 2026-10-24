@@ -108,15 +108,20 @@ export class DefaultCopilotCapabilityService implements CopilotCapabilities {
   }
 
   public saveInstallationPolicy (candidate: CopilotPermissionPolicy): CopilotPermissionPolicy {
-    const permissions = this.normalizePolicy(candidate)
     const settings = this.settings.loadOrCreate()
-    const profilePermissions = Object.fromEntries(Object.entries(settings.copilot.profilePermissions)
-      .map(([profileId, profilePolicy]) => [profileId, this.normalizePolicy(profilePolicy, permissions)]))
+    const policy = this.prepareInstallationPolicy(candidate, settings.copilot.profilePermissions)
     this.settings.save({
       ...settings,
-      copilot: { ...settings.copilot, permissions, profilePermissions }
+      copilot: { ...settings.copilot, ...policy }
     })
-    return permissions
+    return policy.permissions
+  }
+
+  public prepareInstallationPolicy (candidate: CopilotPermissionPolicy, profiles: Record<string, CopilotPermissionPolicy>) {
+    const permissions = this.normalizePolicy(candidate)
+    const profilePermissions = Object.fromEntries(Object.entries(profiles)
+      .map(([profileId, profilePolicy]) => [profileId, this.normalizePolicy(profilePolicy, permissions)]))
+    return { permissions, profilePermissions }
   }
 
   public saveProfilePolicy (profileId: string, candidate: CopilotPermissionPolicy) {

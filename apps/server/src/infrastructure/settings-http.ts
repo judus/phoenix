@@ -1,11 +1,12 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import {
-  CopilotAiProviderSchema, CopilotSettingsSchema, CopilotSettingsUpdateSchema, EddnSettingsUpdateSchema,
+  CopilotAiProviderSchema, CopilotSettingsUpdateSchema, EddnSettingsUpdateSchema,
   GeneralSettingsSchema, GeneralSettingsUpdateSchema, OpenAiApiKeyRequestSchema, PhoenixModulesSchema
 } from '@phoenix/contracts'
 import type { EddnContributionService } from '../application/eddn-contribution-service.js'
 import type { OpenAiConfiguration } from '../application/openai-configuration-service.js'
 import type { CopilotProviderConfiguration } from '../application/copilot-provider-configuration.js'
+import type { CopilotSettingsService } from '../application/copilot-settings-service.js'
 import type { CopilotCapabilities } from '../domain/copilot-capabilities.js'
 import type { SystemSettingsRepository } from '../domain/system-configuration.js'
 import { readValidatedJsonBody, writeJson } from './http-json.js'
@@ -13,6 +14,7 @@ import { readValidatedJsonBody, writeJson } from './http-json.js'
 export interface SettingsHttpServices {
   systemSettings: SystemSettingsRepository
   copilotCapabilities: CopilotCapabilities
+  copilotSettings: CopilotSettingsService
   openAiConfiguration: OpenAiConfiguration
   copilotProviderConfiguration: CopilotProviderConfiguration
   eddn: Pick<EddnContributionService, 'status' | 'setEnabled'>
@@ -59,37 +61,13 @@ export async function handleSettingsRequest (
   }
 
   if (request.method === 'GET' && url.pathname === '/api/settings/copilot') {
-    const settings = services.systemSettings.loadOrCreate()
-    const permissions = services.copilotCapabilities.normalizePolicy(settings.copilot.permissions)
-    writeJson(response, 200, CopilotSettingsSchema.parse({
-      provider: settings.copilot.provider,
-      model: settings.copilot.model,
-      providerKey: services.copilotProviderConfiguration.status(),
-      restartRequired: services.copilotProviderConfiguration.restartRequired(),
-      permissions,
-      capabilities: services.copilotCapabilities.catalogue(),
-      openAi: services.openAiConfiguration.status()
-    }))
+    writeJson(response, 200, services.copilotSettings.get())
     return true
   }
 
   if (request.method === 'PUT' && url.pathname === '/api/settings/copilot') {
     const input = await readValidatedJsonBody(request, CopilotSettingsUpdateSchema)
-    const permissions = services.copilotCapabilities.saveInstallationPolicy(input.permissions)
-    const settings = services.systemSettings.loadOrCreate()
-    services.systemSettings.save({
-      ...settings,
-      copilot: { ...settings.copilot, provider: input.provider, model: input.model }
-    })
-    writeJson(response, 200, CopilotSettingsSchema.parse({
-      provider: input.provider,
-      model: input.model,
-      providerKey: services.copilotProviderConfiguration.status(),
-      restartRequired: services.copilotProviderConfiguration.restartRequired(),
-      permissions,
-      capabilities: services.copilotCapabilities.catalogue(),
-      openAi: services.openAiConfiguration.status()
-    }))
+    writeJson(response, 200, services.copilotSettings.save(input))
     return true
   }
 

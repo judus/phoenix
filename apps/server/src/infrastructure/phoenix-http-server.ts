@@ -51,6 +51,7 @@ import type { CopilotStreamEvent } from '@phoenix/copilot'
 import type { ControlDeckHttpHandler } from 'control-deck/host'
 import type { CopilotText, CopilotTextRequest } from '../application/copilot-text-service.js'
 import { watchCopilotDisconnect } from './copilot-http-disconnect.js'
+import { SettingsCommittedError } from '../domain/settings-committed-error.js'
 import type { CopilotConversationEvents } from '../application/copilot-conversation-event-service.js'
 import type { CopilotVoiceHostControl } from '../application/copilot-voice-host-coordinator.js'
 import type { CopilotProfiles } from '../application/copilot-profile-service.js'
@@ -200,6 +201,13 @@ export class PhoenixHttpServer {
   public constructor (private readonly options: PhoenixHttpServerOptions) {
     const handle = (request: IncomingMessage, response: ServerResponse): void => {
       void this.handle(request, response).catch(cause => {
+        if (cause instanceof SettingsCommittedError) {
+          writeJson(response, 500, { error: {
+            code: 'settings_committed', committed: true, retryable: false,
+            stage: cause.stage, message: cause.message
+          } })
+          return
+        }
         if (cause instanceof HttpRequestValidationError) {
           writeJson(response, 400, {
             error: { code: 'invalid_request', message: cause.message }

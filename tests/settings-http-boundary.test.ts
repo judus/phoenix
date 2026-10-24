@@ -113,7 +113,7 @@ test('OpenAI secret persistence failures are server errors and allow retry', asy
   }, { openAiSecretRepository: secrets })
 })
 
-test.each(['saveInstallationPolicy', 'catalogue'] as const)('Copilot %s failures after validation are server errors', async operation => {
+test.each(['prepareInstallationPolicy', 'catalogue'] as const)('Copilot %s failures before persistence are server errors', async operation => {
   await withServer(async origin => {
     const failure = vi.spyOn(DefaultCopilotCapabilityService.prototype, operation)
       .mockImplementationOnce(() => { throw new Error('Synthetic capability failure') })
@@ -126,7 +126,7 @@ test.each(['saveInstallationPolicy', 'catalogue'] as const)('Copilot %s failures
   })
 })
 
-test('Copilot response schema failures are server errors, not invalid requests', async () => {
+test('Copilot response schema failures explicitly report a committed save', async () => {
   await withServer(async origin => {
     const original = DefaultCopilotCapabilityService.prototype.catalogue
     const catalogue = vi.spyOn(DefaultCopilotCapabilityService.prototype, 'catalogue')
@@ -139,12 +139,12 @@ test('Copilot response schema failures are server errors, not invalid requests',
       const response = await fetch(`${origin}/api/settings/copilot`, { method: 'PUT',
         body: JSON.stringify({ provider: 'openai', permissions: { version: 2, enabledCapabilityIds: [] } }) })
       expect(response.status).toBe(500)
-      await expect(response.json()).resolves.toMatchObject({ error: { code: 'internal_error' } })
+      await expect(response.json()).resolves.toMatchObject({ error: { code: 'settings_committed', committed: true, retryable: false, stage: 'response' } })
     } finally { catalogue.mockRestore() }
   })
 })
 
-test('Copilot provider persistence failures remain server errors after policy persistence', async () => {
+test('Copilot provider and policy use one save instead of a fallible second write', async () => {
   const repository = new InMemorySystemSettingsRepository()
   await withServer(async origin => {
     const original = repository.save.bind(repository)
@@ -153,12 +153,10 @@ test('Copilot provider persistence failures remain server errors after policy pe
       .mockImplementationOnce(() => { throw new Error('Synthetic provider storage failure') })
     try {
       const response = await fetch(`${origin}/api/settings/copilot`, { method: 'PUT',
-        body: JSON.stringify({ provider: 'openai', permissions: { version: 2, enabledCapabilityIds: [] } }) })
-      expect(response.status).toBe(500)
-      await expect(response.json()).resolves.toEqual({ error: {
-        code: 'internal_error', message: 'Synthetic provider storage failure'
-      } })
-      expect(save).toHaveBeenCalledTimes(2)
+        body: JSON.stringify({ provider: 'google', model: 'synthetic-model', permissions: { version: 2, enabledCapabilityIds: [] } }) })
+      expect(response.status).toBe(200)
+      await expect(response.json()).resolves.toMatchObject({ provider: 'google', model: 'synthetic-model', permissions: { enabledCapabilityIds: [] } })
+      expect(save).toHaveBeenCalledTimes(1)
     } finally { save.mockRestore() }
   }, { systemSettingsRepository: repository })
 })
