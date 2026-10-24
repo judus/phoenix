@@ -6,6 +6,7 @@ import { MockLanguageModelV3 } from 'ai/test'
 import { InMemoryConversationStore, ToolRegistry, type ConversationMessage, type ConversationStore } from '@jdu/llm-client'
 import { AiSdkCopilotClientFactory } from '../apps/server/src/infrastructure/ai-sdk-copilot-client.js'
 import { activeCopilotHistory, CopilotHistoryContext } from '../apps/server/src/infrastructure/copilot-history-context.js'
+import { createPhoenixMcpTools, type PhoenixMcpToolDependencies } from '../apps/server/src/application/phoenix-mcp-tools.js'
 import { JsonConversationStore } from '../apps/server/src/infrastructure/json-conversation-store.js'
 
 const usage = { inputTokens: { total: 2, noCache: 2, cacheRead: 0, cacheWrite: 0 }, outputTokens: { total: 3, text: 3, reasoning: 0 } }
@@ -34,7 +35,7 @@ async function seed (store: ConversationStore, turns = 24, length = 1000) {
   const saved = await store.append('chat', messages, { expectedRevision: conversation.revision })
   return { messages, saved }
 }
-function client (model: MockLanguageModelV3, conversations: ConversationStore, tools = new ToolRegistry(), maxContextTokens = 16_000) {
+function client (model: MockLanguageModelV3, conversations: ConversationStore, tools = new ToolRegistry(), maxContextTokens = 8_000) {
   return new AiSdkCopilotClientFactory({ model, conversations, tools, maxContextTokens }).create('Current authoritative instructions.')
 }
 
@@ -76,7 +77,7 @@ test('rolling summaries batch old turns, preserve archive and recent context, th
   expect(result.usage.inputTokens).toBe(2 * (model.doGenerateCalls.length + 1))
   for (const request of model.doGenerateCalls) {
     expect(request.tools ?? []).toHaveLength(0)
-    expect(Buffer.byteLength(JSON.stringify(request.prompt)) + 4096).toBeLessThan(16_000)
+    expect(Math.ceil(Buffer.byteLength(JSON.stringify(request.prompt)) / 3) + 4096).toBeLessThan(8_000)
     expect(request.abortSignal).toBeDefined()
   }
   const prompt = JSON.stringify(model.doStreamCalls[0].prompt)
@@ -100,7 +101,7 @@ test.each(['empty', 'incomplete', 'oversized'] as const)('invalid %s summary lea
   const seeded = await seed(conversations)
   const model = new MockLanguageModelV3({ doGenerate: async () => kind === 'incomplete'
     ? { ...summary(), finishReason: { unified: 'length', raw: 'length' } }
-    : summary(kind === 'empty' ? ' ' : 'x'.repeat(3000)), doStream: async () => answer() })
+    : summary(kind === 'empty' ? ' ' : 'x'.repeat(9000)), doStream: async () => answer() })
   await expect(client(model, conversations).chat('chat').user('Continue').run()).rejects.toMatchObject({ code: 'copilot_summary_invalid' })
   const saved = (await conversations.snapshot('chat'))!.messages
   expect(saved.slice(0, seeded.messages.length)).toEqual(seeded.messages)
@@ -293,8 +294,8 @@ test('recent completed turn survives even when fixed instructions already exceed
   const conversations = new InMemoryConversationStore()
   await seed(conversations, 24, 100)
   const model = new MockLanguageModelV3({ doGenerate: async () => summary(), doStream: async () => answer() })
-  const factory = new AiSdkCopilotClientFactory({ model, conversations, tools: new ToolRegistry(), maxContextTokens: 16_000 })
-  await factory.create('Fresh policy. ' + 'p'.repeat(6500)).chat('chat').user('Continue').run()
+  const factory = new AiSdkCopilotClientFactory({ model, conversations, tools: new ToolRegistry(), maxContextTokens: 8_000 })
+  await factory.create('Fresh policy. ' + 'p'.repeat(7000)).chat('chat').user('Continue').run()
   expect(model.doGenerateCalls.length).toBeGreaterThan(0)
   expect(JSON.stringify(model.doStreamCalls[0].prompt)).toContain('Old request 23:')
   expect(JSON.stringify(model.doStreamCalls[0].prompt)).toContain('Old answer 23.')
@@ -320,7 +321,7 @@ test('large archive selection bounds expensive rendering by source size rather t
   const render = vi.fn((message: ConversationMessage) => [{ role: 'user' as const,
     content: message.content.flatMap(part => part.type === 'text' ? [part.text] : []).join('\n') }])
   let summaries = 0
-  const result = await new CopilotHistoryContext(model, 16_000).prepare({ history, runId: 'current-run',
+  const result = await new CopilotHistoryContext(model, 8_000).prepare({ history, runId: 'current-run',
     instructions: '', definitions: [], signal: new AbortController().signal, render,
     save: async (text, lastSourceMessageId) => message(`checkpoint-${++summaries}`, 'developer', text, {
       historySummary: { lastSourceMessageId, sourceMessagesRetained: true }
@@ -328,7 +329,7 @@ test('large archive selection bounds expensive rendering by source size rather t
   expect(summaries).toBeGreaterThan(1)
   expect(result.messages.at(-1)?.content).toBe('Continue')
   expect(render.mock.calls.length).toBeLessThanOrEqual(history.length + summaries)
-  for (const call of model.doGenerateCalls) expect(Buffer.byteLength(JSON.stringify(call.prompt)) + 4096).toBeLessThan(16_000)
+  for (const call of model.doGenerateCalls) expect(Math.ceil(Buffer.byteLength(JSON.stringify(call.prompt)) / 3) + 4096).toBeLessThan(8_000)
 })
 
 test('an oversized current tool result remains completed and is never trimmed or replayed', async () => {
@@ -347,4 +348,38 @@ test('an oversized current tool result remains completed and is never trimmed or
   expect(model.doGenerateCalls).toHaveLength(0)
   expect(model.doStreamCalls).toHaveLength(1)
   expect((await conversations.snapshot('chat'))?.messages.at(-1)?.content[0]).toMatchObject({ status: 'success', structuredContent: { report: 'x'.repeat(20_000) } })
+})
+
+
+test('default token budget accepts the full PHOENIX catalogue and a multi-tool turn larger than 100 KB', async () => {
+  const conversations = new InMemoryConversationStore()
+  await seed(conversations, 1, 30_000)
+  const unavailable = new Proxy({}, { get: () => () => { throw new Error('Real services must not be invoked') } })
+  const definitions = createPhoenixMcpTools(new Proxy({}, { get: () => unavailable }) as PhoenixMcpToolDependencies)
+    .map(tool => tool.definition)
+  const effects = definitions.map((definition, index) => ({ definition,
+    execute: vi.fn(() => ({ structuredContent: { report: `Report ${index}: ` + 'x'.repeat(25_000) } })) }))
+  const tools = new ToolRegistry(effects)
+  const selected = definitions.slice(0, 3)
+  const model = new MockLanguageModelV3({ doGenerate: async () => { throw new Error('No summary needed') },
+    doStream: async () => model.doStreamCalls.length === 1 ? {
+      stream: new ReadableStream({ start (controller) {
+        selected.forEach((definition, index) => controller.enqueue({ type: 'tool-call', toolCallId: `call-${index}`,
+          toolName: `phoenix_${definition.name.replaceAll('.', '_')}`, input: '{}' }))
+        controller.enqueue({ type: 'finish', finishReason: { unified: 'tool-calls', raw: 'tool_calls' }, usage })
+        controller.close()
+      } })
+    } : answer() })
+  const factory = new AiSdkCopilotClientFactory({ model, conversations, tools })
+  expect((await factory.create('Authoritative policy. ' + 'p'.repeat(20_000))
+    .chat('chat').user('Compare the reports').run()).text).toBe('Continued.')
+  expect(model.doStreamCalls).toHaveLength(2)
+  const followup = model.doStreamCalls[1]
+  expect(Buffer.byteLength(JSON.stringify(followup.prompt))).toBeGreaterThan(100_000)
+  expect(followup.tools).toHaveLength(definitions.length)
+  expect(followup.prompt.flatMap(message => message.role === 'tool' ? message.content : [])).toHaveLength(3)
+  for (const effect of effects.slice(0, 3)) expect(effect.execute).toHaveBeenCalledTimes(1)
+  for (const effect of effects.slice(3)) expect(effect.execute).not.toHaveBeenCalled()
+  expect(model.doGenerateCalls).toHaveLength(0)
+  expect((await conversations.snapshot('chat'))?.messages.filter(message => message.role === 'tool')).toHaveLength(3)
 })

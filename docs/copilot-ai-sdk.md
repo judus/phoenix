@@ -29,8 +29,15 @@ including provider reasoning state. This metadata is not displayed as conversati
 
 Model requests use zero automatic retries. An interrupted effect has an explicitly unknown
 outcome; pending calls are saved as not executed. Neither is automatically replayed. The current
-request and its tool results are never silently dropped to fit the context limit. A conservative
-serialized-byte budget with a framing/output reserve bounds each model request; it is not a tokenizer.
+request and its tool results are never silently dropped to fit the context limit.
+
+The default context budget is 100,000 **estimated tokens**, including tool definitions,
+instructions, recent messages and a 4,096-token framing/output reserve. `maxContextTokens`
+is in tokens, not bytes. A provider-neutral heuristic estimates one token per three serialized
+UTF-8 bytes (rounded up per record), with cached weights and prefix sums. This is deliberately
+more cautious than the old client's four-character estimate; it is not an exact tokenizer or a
+claim about the selected model's context limit. Actual token usage depends on the provider/model.
+A request larger than 100 KB is therefore not automatically rejected.
 
 ## Continuing long conversations
 

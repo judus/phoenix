@@ -4,6 +4,9 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Correct Copilot context budgeting to use estimated tokens instead of treating each serialized
+  byte as a token. Keep tool-heavy conversations usable without dropping recent results.
+
 - Restore automatic rolling summaries for long Copilot chats after the AI SDK migration.
   Reuse existing summary checkpoints and recent turns while retaining the complete saved transcript
   and tool outcomes; stop suggesting a nonexistent new-conversation action.
