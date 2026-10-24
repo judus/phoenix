@@ -1,38 +1,37 @@
 // Opt-in development experiment only. Normal HTTP and APK packaging are unchanged.
-import { execFileSync, spawn } from 'node:child_process'
-import { existsSync, mkdirSync, chmodSync } from 'node:fs'
+import { spawn } from 'node:child_process'
 import { createServer } from 'node:http'
 import { networkInterfaces } from 'node:os'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { certificateFiles, ensureCertificate, inspectCertificate, prepareCertificate } from './android-tls-certificate.mjs'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const directory = resolve(root, 'data/runtime/android-tls')
-const cert = resolve(directory, 'certificate.pem')
-const key = resolve(directory, 'private-key.pem')
+const { cert, key } = certificateFiles(directory)
 const command = process.argv[2]
 const port = process.env.PHOENIX_EXPERIMENTAL_TLS_PORT ?? '3443'
 
-if (command === 'prepare') {
-  if (existsSync(cert) || existsSync(key)) throw new Error('Certificate already exists. Keep it for stable device identity; do not regenerate silently.')
-  mkdirSync(directory, { recursive: true, mode: 0o700 })
+function addresses() {
   const addresses = new Set(['127.0.0.1', '10.0.2.2'])
   for (const entries of Object.values(networkInterfaces())) for (const entry of entries ?? []) {
     if (entry.family === 'IPv4' && !entry.internal) addresses.add(entry.address)
   }
-  execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-sha256', '-nodes', '-days', '90',
-    '-subj', '/CN=PHOENIX experimental gateway', '-addext', `subjectAltName=DNS:localhost,${[...addresses].map(ip => `IP:${ip}`).join(',')}`,
-    '-keyout', key, '-out', cert], { stdio: 'ignore' })
-  chmodSync(key, 0o600)
-  chmodSync(cert, 0o600)
-  console.log('Prepared a private installation certificate in ignored data/runtime/android-tls. Valid for 90 days; rescan after deliberate certificate renewal.')
+  return [...addresses]
+}
+
+if (command === 'prepare' || command === 'renew') {
+  const identity = prepareCertificate(directory, addresses(), { renew: command === 'renew' })
+  console.log(`Prepared private TLS identity; valid until ${identity.validTo}. Scan the new QR to pair devices. Existing saved pins are not changed remotely.`)
 } else if (command === 'run') {
-  if (!existsSync(cert) || !existsSync(key)) throw new Error('Run prepare first.')
+  const identity = ensureCertificate(directory, addresses())
+  console.log(`Using retained private TLS identity; valid until ${identity.validTo}.`)
   const child = spawn('npm', ['run', 'dev'], { cwd: root, stdio: 'inherit', env: { ...process.env,
     PHOENIX_EXPERIMENTAL_TLS_CERT: cert, PHOENIX_EXPERIMENTAL_TLS_KEY: key, PHOENIX_EXPERIMENTAL_TLS_PORT: port } })
   for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => child.kill(signal))
   child.once('exit', code => { process.exitCode = code ?? 1 })
 } else if (command === 'qr') {
+  inspectCertificate(directory)
   const helperPort = 3444
   const html = `<!doctype html><meta charset="utf-8"><title>PHOENIX TLS experiment</title>
 <style>body{background:#09090d;color:#dce6ed;font:18px sans-serif;padding:2rem}section{display:inline-block;margin:1rem;vertical-align:top}img{background:white;padding:1rem}code{display:block;max-width:32rem;overflow-wrap:anywhere}button{padding:1rem}</style>
@@ -53,4 +52,4 @@ if (command === 'prepare') {
     } catch { response.writeHead(502).end('Experimental TLS server unavailable.') }
   })
   server.listen(helperPort, '127.0.0.1', () => console.log(`Experimental QR display: http://127.0.0.1:${helperPort}`))
-} else throw new Error('Usage: node scripts/experiments/android-tls.mjs prepare|run|qr')
+} else throw new Error('Usage: node scripts/experiments/android-tls.mjs prepare|run|qr|renew')

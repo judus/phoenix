@@ -6,7 +6,8 @@ The separate APK is `io.github.judus.phoenix.tunnel` and has its own connection 
 ## Try it
 
 1. Run `npm run build`. The TLS listener serves the **built** web app, not Vite/HMR.
-2. Run `node scripts/experiments/android-tls.mjs prepare` once. OpenSSL creates a private,
+2. The first `run` command prepares a private identity automatically when both files are absent.
+   Optional `node scripts/experiments/android-tls.mjs prepare` prepares it beforehand. OpenSSL creates a private,
    installation-specific certificate/key in ignored `data/runtime/android-tls` (90-day expiry).
    Current IPv4 addresses and the Android emulator host alias are included in its certificate.
 3. Stop your existing dev server yourself, then run
@@ -40,6 +41,33 @@ normal hostname verification. There is no trust-all handler, global trust modifi
 WebView certificate-error bypass, JavaScript/native bridge or silent HTTP fallback. Renewal or
 an address change outside the certificate's SAN requires preparing a new identity and rescanning.
 
+`run` and `qr` reject an incomplete, mismatched, not-yet-valid or expired identity before proceeding.
+They never silently replace existing certificate files. Check the PC clock first for validity errors.
+For deliberate renewal or a changed LAN address, stop the experimental listener, run
+`node scripts/experiments/android-tls.mjs renew`, restart it and scan its new QR on each device.
+Renewal changes the exact leaf pin, so old saved pins fail closed until re-pairing. The key stays in
+the PC's ignored runtime directory (mode0600 on Unix); it is never put in the QR or APK.
+This OpenSSL-based tool is development/opt-in setup, not an automatic certificate-provisioning service
+for a published desktop installer. It needs no public DNS, certificate authority or Internet connection.
+
+## Failure and recovery contract
+
+The native client permits at most one additional GET/HEAD attempt when a connection fails before
+response headers. Both attempts belong to the same cancellable call. Certificate/pin/hostname,
+protocol and cancellation failures are not retried. HTTP error responses are returned unchanged;
+desktop JSON provider failures must not be diagnosed as native TLS failure.
+
+POST/PUT/PATCH/DELETE requests and response-body/SSE reads are never automatically replayed.
+Losing a response after an action may mean the action ran; reconnect/reload must not resubmit it.
+An interrupted event stream can reconnect according to its existing read subscription contract,
+not by the native gateway restarting a partially delivered body. Activity shutdown closes the
+loopback port, cancels active calls and cleans up TLS connections away from Android's UI thread.
+
+A rejected lazy page import now remains inside the application shell. Navigation remains available;
+the page offers an explicit **Reload PHOENIX** action. This reload starts a new document/module graph,
+because remounting the same rejected React.lazy object cannot retry its cached import failure.
+Changing routes can leave the failed page; healthy pages retain their existing state.
+
 The remote `phoenix_session` cookie lives in private native preferences, bound to origin and pin;
 it is never exposed to the WebView. The loopback listener binds only 127.0.0.1, checks Host/Origin
 and requires a random HttpOnly/SameSite capability cookie. A port collision fails closed rather
@@ -52,7 +80,7 @@ Google Play acceptance or production lifecycle robustness. Microphone capture/vo
 the current Android shell does not request RECORD_AUDIO or grant WebView audio capture permissions.
 The local origin's secure-context status alone is not proof that real voice works.
 
-## Verified on this experimental branch (2026-10-12)
+## Historical prototype evidence (2026-10-12)
 
 - Full PHOENIX `npm run check`: 275 test files / 1,746 tests, production/test typechecks and builds.
 - Normal debug and separate tunnel Android builds, unit tests and lint pass (minimum SDK remains 30).
@@ -69,3 +97,8 @@ The local origin's secure-context status alone is not proof that real voice work
   Desktop revocation returns the WebView to the existing native re-pair card.
 
 These checks do not replace physical-device, QR-camera, real-game or voice acceptance.
+
+Current development acceptance is recorded separately with the implementing branch/commit and exact
+quality-gate results. The historical emulator checks above do not certify a later build. Transport
+readiness includes same-origin fetch and SSE used by text/realtime control requests, but Android
+microphone permission, audio capture and actual provider voice acceptance remain unverified.

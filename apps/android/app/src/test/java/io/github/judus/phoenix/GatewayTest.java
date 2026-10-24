@@ -141,6 +141,28 @@ public class GatewayTest {
         assertEquals(1, remote.getRequestCount());
     }
 
+    @Test public void forwardsConcurrentColdAssetsWithoutLosingOrDuplicatingRequests() throws Exception {
+        for (int i = 0; i < 12; i++) remote.enqueue(new MockResponse().setBody("synthetic asset"));
+        var workers = java.util.concurrent.Executors.newFixedThreadPool(6);
+        try {
+            var requests = new java.util.ArrayList<java.util.concurrent.Future<String>>();
+            for (int i = 0; i < 12; i++) {
+                String path = "/assets/cold-" + i + ".js";
+                requests.add(workers.submit(() -> {
+                    try (var response = browser.newCall(local(path).build()).execute()) {
+                        assertEquals(200, response.code());
+                        return response.body().string();
+                    }
+                }));
+            }
+            for (var request : requests) assertEquals("synthetic asset", request.get(5, TimeUnit.SECONDS));
+            var paths = new java.util.HashSet<String>();
+            for (int i = 0; i < 12; i++) paths.add(remote.takeRequest(1, TimeUnit.SECONDS).getPath());
+            assertEquals(12, paths.size());
+            assertEquals(12, remote.getRequestCount());
+        } finally { workers.shutdownNow(); }
+    }
+
     @Test public void correctPinDoesNotBypassHostnameAndWrongPinIsRejected() throws Exception {
         remote.enqueue(new MockResponse().setBody("ok"));
         var connection = tls.open(URI.create(identity.server.origin()));

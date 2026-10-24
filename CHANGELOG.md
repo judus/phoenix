@@ -5,6 +5,7 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 ## Unreleased
 
 - Experimental, opt-in Android loopback-to-TLS gateway with a separate test APK and installation-specific QR certificate identity; normal HTTP access remains unchanged.
+- Recover one failed Android gateway GET/HEAD before response headers without replaying actions or streams. Keep navigation and a reload action available when a page bundle fails to load.
 
 ## 0.1.10 — 2026-10-22 (prerelease)
 
