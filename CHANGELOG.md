@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Give Ash and Marin fixed profile portraits in the Copilot conversation view.
+
 - Restore current Community Goals when Frontier leaves an objective blank. Split multi-system
   GalNet appeals into separately located activities, use later related coverage to reassess old
   leads without reopening completed tasks on later uncertainty, and automatically refresh the
