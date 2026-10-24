@@ -1,7 +1,7 @@
-import { lazy, memo, Suspense, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { lazy, memo, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
 import type { ApplicationNavigationItem } from '@phoenix/ui'
 import type { CommandTarget, GameActionOperation, PhoenixControlDeckConfiguration } from '@phoenix/contracts'
-import { Loading, PageFrame } from '@phoenix/ui'
+import { FeatureBoundary } from './bootstrap/feature-boundary.js'
 import { PhoenixApplicationShell } from './components/shell/phoenix-application-shell.js'
 import { isInformationRoute, workspaceForRoute, type InformationRoute, type PhoenixRoute } from './application/navigation/phoenix-route.js'
 import { parsePhoenixRoute, type PhoenixRouter } from './application/navigation/phoenix-router.js'
@@ -149,41 +149,41 @@ function PhoenixApplication({ application }: { application: PhoenixApplicationSe
         }
       }}
       controls={activeDesktop === 'controls'
-        ? <FeatureBoundary>{route.kind === 'macros' ? <MacrosFeature /> : <ControlsFeature application={application} controller={controlsController} deckId={controlsRoute?.deckId ?? 'quick'} editing={controlsEditing}
+        ? <FeatureBoundary resetKey={router.href(route)}>{route.kind === 'macros' ? <MacrosFeature /> : <ControlsFeature application={application} controller={controlsController} deckId={controlsRoute?.deckId ?? 'quick'} editing={controlsEditing}
             onEditingChange={editing => setEditingDeckId(editing ? controlsRoute?.deckId : undefined)}
             onEditDeck={deckId => { setEditingDeckId(deckId); router.push({ kind: 'controls', deckId }) }} />}</FeatureBoundary>
         : null}
       controlsContextItems={controlsRailItems}
       controlsCurrentContext={route.kind === 'macros' ? 'macros' : controlsContext(controlsRoute?.deckId ?? 'ship')}
       copilot={activeDesktop === 'copilot'
-        ? <FeatureBoundary><StableCopilotFeature application={application} view={route.kind === 'copilot' ? route.view : 'chat'} /></FeatureBoundary>
+        ? <FeatureBoundary resetKey={router.href(route)}><StableCopilotFeature application={application} view={route.kind === 'copilot' ? route.view : 'chat'} /></FeatureBoundary>
         : null}
       copilotContextItems={copilotNavigationItems}
       copilotCurrentContext={copilotContext(route)}
       information={activeDesktop === 'info'
-        ? <FeatureBoundary>{renderInformationFeature(application, informationRoute)}</FeatureBoundary>
+        ? <FeatureBoundary resetKey={router.href(route)}>{renderInformationFeature(application, informationRoute)}</FeatureBoundary>
         : null}
       journal={activeDesktop === 'journal'
-        ? <FeatureBoundary>{route.kind === 'notes'
+        ? <FeatureBoundary resetKey={router.href(route)}>{route.kind === 'notes'
               ? <PersonalNotesPage api={application.api} onNavigate={route => router.push(route)} route={route} />
               : logRoute?.view === 'credits'
               ? <CreditsPage />
               : <CommanderLogPage api={application.api} events={application.events} />}</FeatureBoundary>
         : null}
       developer={activeDesktop === 'developer'
-        ? <FeatureBoundary>{logRoute?.view === 'journal' ? <JournalFeature application={application} /> : logRoute?.view === 'eddn' ? <EddnPage api={application.api} /> : <DeveloperPage api={application.api} />}</FeatureBoundary>
+        ? <FeatureBoundary resetKey={router.href(route)}>{logRoute?.view === 'journal' ? <JournalFeature application={application} /> : logRoute?.view === 'eddn' ? <EddnPage api={application.api} /> : <DeveloperPage api={application.api} />}</FeatureBoundary>
         : null}
       developerContextItems={developerNavigationItems}
       developerCurrentContext={journalContext(route)}
       journalContextItems={journalNavigationItems}
       journalCurrentContext={journalContext(route)}
       settings={activeDesktop === 'settings'
-        ? <FeatureBoundary><SettingsFeature application={application} topic={route.kind === 'settings' ? route.topic : undefined} view={route.kind === 'settings' ? route.view : 'general'} /></FeatureBoundary>
+        ? <FeatureBoundary resetKey={router.href(route)}><SettingsFeature application={application} topic={route.kind === 'settings' ? route.topic : undefined} view={route.kind === 'settings' ? route.view : 'general'} /></FeatureBoundary>
         : null}
       settingsContextItems={settingsNavigationItems}
       settingsCurrentContext={settingsContext(route.kind === 'settings' ? route : undefined)}
       telemetry={activeDesktop === 'telemetry'
-        ? <FeatureBoundary><NumpadFeature application={application} /></FeatureBoundary>
+        ? <FeatureBoundary resetKey={router.href(route)}><NumpadFeature application={application} /></FeatureBoundary>
         : null}
     />
   )
@@ -247,10 +247,6 @@ function renderInformationFeature(application: PhoenixApplicationServices, route
       view={route.view}
     />
   }
-}
-
-function FeatureBoundary({ children }: { children: ReactNode }) {
-  return <Suspense fallback={<PageFrame layout="fit"><Loading /></PageFrame>}>{children}</Suspense>
 }
 
 const StableCopilotFeature = memo(CopilotFeature)
