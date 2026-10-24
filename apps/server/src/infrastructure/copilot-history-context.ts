@@ -54,7 +54,7 @@ interface ContextRequest {
   instructions: string
   definitions: unknown
   signal: AbortSignal
-  render(messages: readonly ConversationMessage[]): ModelMessage[]
+  render(message: ConversationMessage): ModelMessage[]
   save(text: string, lastSourceMessageId: string): Promise<ConversationMessage>
 }
 
@@ -64,8 +64,30 @@ export class CopilotHistoryContext {
 
   public async prepare (request: ContextRequest): Promise<{ messages: ModelMessage[], usage: CopilotUsage }> {
     const usage: { inputTokens?: number, outputTokens?: number, cachedInputTokens?: number, reasoningTokens?: number } = {}
-    const estimate = (history: readonly ConversationMessage[]) => bytes({ instructions: request.instructions,
-      messages: request.render(history), definitions: request.definitions }) + RESERVE
+    const rendered = new Map<ConversationMessage, { messages: ModelMessage[], weight: number }>()
+    const native = (message: ConversationMessage) => {
+      let result = rendered.get(message)
+      if (!result) {
+        const messages = request.render(message)
+        // One extra comma per message conservatively bounds the serialized array.
+        result = { messages, weight: messages.reduce((total, message) => total + bytes(message) + 1, 0) }
+        rendered.set(message, result)
+      }
+      return result
+    }
+    const sourceRecords = new Map<ConversationMessage, { serialized: string, weight: number }>()
+    const source = (message: ConversationMessage) => {
+      let result = sourceRecords.get(message)
+      if (!result) {
+        const serialized = JSON.stringify({ role: message.role, content: message.content })
+        // The payload is a JSON string inside the model request: include its escaping.
+        result = { serialized, weight: bytes(serialized) - 2 + 1 }
+        sourceRecords.set(message, result)
+      }
+      return result
+    }
+    const base = bytes({ instructions: request.instructions, messages: [], definitions: request.definitions }) + RESERVE
+    const estimate = (history: readonly ConversationMessage[]) => base + history.reduce((total, message) => total + native(message).weight, 0)
     let active = activeCopilotHistory(request.history)
     while (estimate(active) > this.budget * 0.8) {
       request.signal.throwIfAborted()
@@ -74,19 +96,25 @@ export class CopilotHistoryContext {
       const turns = active.filter(message => !pinned(message) && marker(message) === undefined)
       const current = turns.findIndex(message => message.role === 'user' && message.runId === request.runId)
       if (current < 0) throw new Error('Current Copilot turn is missing from context.')
-      if (estimate([...fixed, ...turns.slice(current)]) > this.budget) throw contextLimit()
+      // Keep at least the last completed turn, including opaque reasoning and tool results.
+      const recent = Math.max(0, turns.findLastIndex((message, index) => message.role === 'user' && index < current))
+      const contextPrefix = prefixWeights(turns.map(message => native(message).weight))
+      const fixedSize = estimate(fixed)
+      const suffixSize = (index: number) => fixedSize + contextPrefix[turns.length]! - contextPrefix[index]!
+      if (suffixSize(recent) > this.budget) throw contextLimit()
       // Every boundary is before a user turn: never cut through a provider/tool exchange.
-      const boundaries = turns.flatMap((message, index) => message.role === 'user' && index > 0 && index <= current ? [index] : [])
+      const boundaries = turns.flatMap((message, index) => message.role === 'user' && index > 0 && index <= recent ? [index] : [])
       if (boundaries.length === 0) break
       const summaryBytes = Math.min(8192, Math.floor(this.budget * 0.12))
-      const target = boundaries.find(index => estimate([...fixed, ...turns.slice(index)]) + summaryBytes <= this.budget * 0.6)
-        ?? current
+      const target = boundaries.find(index => suffixSize(index) + summaryBytes <= this.budget * 0.6) ?? recent
       const previousSummary = previous?.content.flatMap(part => part.type === 'text' ? [part.text] : []).join('\n') ?? ''
-      const payload = (index: number) => JSON.stringify({ previousSummary,
-        messages: turns.slice(0, index).map(message => ({ role: message.role, content: message.content })) })
+      const records = turns.slice(0, target).map(source)
+      const sourcePrefix = prefixWeights(records.map(record => record.weight))
+      const payload = (index: number) => `{"previousSummary":${JSON.stringify(previousSummary)},"messages":[${records.slice(0, index).map(record => record.serialized).join(',')}]}`
+      const summaryBase = bytes([{ role: 'system', content: SUMMARY_INSTRUCTIONS },
+        { role: 'user', content: [{ type: 'text', text: payload(0) }] }]) + RESERVE
       // Very old archives can exceed one model request. Advance complete source prefixes in bounded batches.
-      const boundary = boundaries.filter(index => index <= target).findLast(index =>
-        bytes({ system: SUMMARY_INSTRUCTIONS, messages: [{ role: 'user', content: payload(index) }] }) + RESERVE <= this.budget)
+      const boundary = boundaries.filter(index => index <= target).findLast(index => summaryBase + sourcePrefix[index]! <= this.budget)
       if (boundary === undefined) throw new AiError('budget_exceeded',
         'An older Copilot turn is too large to summarize safely. Its history remains saved.', { code: 'copilot_summary_input_limit' })
       let response: Awaited<ReturnType<typeof generateText>>
@@ -116,14 +144,20 @@ export class CopilotHistoryContext {
       accumulate(usage, 'reasoningTokens', tokens.outputTokenDetails.reasoningTokens)
     }
     if (estimate(active) > this.budget) throw contextLimit()
-    return { messages: request.render(active), usage }
+    return { messages: active.flatMap(message => native(message).messages), usage }
   }
 }
 
 function bytes (value: unknown): number { return Buffer.byteLength(JSON.stringify(value), 'utf8') }
 
+function prefixWeights (weights: readonly number[]): number[] {
+  const sums = [0]
+  for (const weight of weights) sums.push(sums.at(-1)! + weight)
+  return sums
+}
+
 function contextLimit (): AiError {
-  return new AiError('budget_exceeded', 'The current Copilot request, instructions or tool results exceed the context budget even without older turns. Use a smaller request; saved history is retained.', {
+  return new AiError('budget_exceeded', 'The current Copilot request, instructions or protected recent tool results exceed the context budget even without older turns. Use a smaller request; saved history is retained.', {
     code: 'copilot_context_limit'
   })
 }

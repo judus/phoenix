@@ -42,10 +42,13 @@ that case rather than dropping its question, reasoning, tool results or final an
 boundaries and checkpoints splitting unsettled tool calls fail explicitly.
 
 When context reaches 80% of the configured budget, older completed turns are summarized in
-bounded prefix batches toward a 60% context target. Every batch combines the last valid summary
+bounded prefix batches toward a 60% context target, always protecting the latest completed turn
+and current turn. The protected window may require more than the target; if it exceeds the hard
+budget, fail explicitly rather than silently clipping it. Every batch combines the last valid summary
 with newly covered historical data. The selected text model receives a separate tool-free request
 with zero retries, the turn's timeout/cancellation signal, up to 4096 output tokens and a bounded
-summary size. Summary usage is included in successful turn usage. This can consume provider credit,
+summary size. Cached message weights and prefix sums bound selection work without repeatedly
+serializing overlapping history at each candidate boundary. Summary usage is included in successful turn usage. This can consume provider credit,
 as with the original client's automatic conversation compression.
 
 Append a checkpoint only after a complete, nonempty, bounded response and revision-checked save.

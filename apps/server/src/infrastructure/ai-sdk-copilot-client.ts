@@ -105,13 +105,11 @@ export class AiSdkCopilotClientFactory implements CopilotAiClientFactory {
           tools[name] = dynamicTool({ description: definition.description,
             inputSchema: jsonSchema(definition.inputSchema) })
         }
+        const callNames = new Map(history.flatMap(message => message.content.flatMap(part =>
+          part.type === 'tool_call' ? [[part.callId, part.name] as const] : [])))
         const context = await new CopilotHistoryContext(this.options.model, this.options.maxContextTokens).prepare({
           history, runId, instructions, definitions, signal,
-          render: selected => {
-            const callNames = new Map(selected.flatMap(message => message.content.flatMap(part =>
-              part.type === 'tool_call' ? [[part.callId, part.name] as const] : [])))
-            return selected.flatMap(message => toModelMessages(message, callNames))
-          },
+          render: message => toModelMessages(message, callNames),
           save: (text, lastSourceMessageId) => persist('developer', [{ type: 'text', text, source: 'summarized' }], {
             historySummary: { lastSourceMessageId, sourceMessagesRetained: true }
           })

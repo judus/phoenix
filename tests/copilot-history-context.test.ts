@@ -5,7 +5,7 @@ import { afterEach, expect, test, vi } from 'vitest'
 import { MockLanguageModelV3 } from 'ai/test'
 import { InMemoryConversationStore, ToolRegistry, type ConversationMessage, type ConversationStore } from '@jdu/llm-client'
 import { AiSdkCopilotClientFactory } from '../apps/server/src/infrastructure/ai-sdk-copilot-client.js'
-import { activeCopilotHistory } from '../apps/server/src/infrastructure/copilot-history-context.js'
+import { activeCopilotHistory, CopilotHistoryContext } from '../apps/server/src/infrastructure/copilot-history-context.js'
 import { JsonConversationStore } from '../apps/server/src/infrastructure/json-conversation-store.js'
 
 const usage = { inputTokens: { total: 2, noCache: 2, cacheRead: 0, cacheWrite: 0 }, outputTokens: { total: 3, text: 3, reasoning: 0 } }
@@ -280,11 +280,55 @@ test('retained tool exchanges keep opaque provider reasoning; summarized unknown
 test('a single oversized older turn fails explicitly without truncation or a nonexistent new-chat instruction', async () => {
   const conversations = new InMemoryConversationStore()
   const seeded = await seed(conversations, 1, 20_000)
+  await conversations.append('chat', [message('recent-small', 'user', 'Recent small request'),
+    message('recent-small-answer', 'assistant', 'Recent small answer')], { expectedRevision: seeded.saved.revision })
   const model = new MockLanguageModelV3({ doGenerate: async () => summary(), doStream: async () => answer() })
   await expect(client(model, conversations).chat('chat').user('Continue').run()).rejects.toMatchObject({ code: 'copilot_summary_input_limit' })
   expect(model.doGenerateCalls).toHaveLength(0)
   expect(model.doStreamCalls).toHaveLength(0)
   expect((await conversations.snapshot('chat'))?.messages.slice(0, seeded.messages.length)).toEqual(seeded.messages)
+})
+
+test('recent completed turn survives even when fixed instructions already exceed the compaction target', async () => {
+  const conversations = new InMemoryConversationStore()
+  await seed(conversations, 24, 100)
+  const model = new MockLanguageModelV3({ doGenerate: async () => summary(), doStream: async () => answer() })
+  const factory = new AiSdkCopilotClientFactory({ model, conversations, tools: new ToolRegistry(), maxContextTokens: 16_000 })
+  await factory.create('Fresh policy. ' + 'p'.repeat(6500)).chat('chat').user('Continue').run()
+  expect(model.doGenerateCalls.length).toBeGreaterThan(0)
+  expect(JSON.stringify(model.doStreamCalls[0].prompt)).toContain('Old request 23:')
+  expect(JSON.stringify(model.doStreamCalls[0].prompt)).toContain('Old answer 23.')
+  expect(JSON.stringify(model.doStreamCalls[0].prompt)).not.toContain('Old request 0:')
+})
+
+test('a protected recent turn that cannot fit fails explicitly instead of silently summarizing it away', async () => {
+  const conversations = new InMemoryConversationStore()
+  await seed(conversations, 1, 20_000)
+  const model = new MockLanguageModelV3({ doGenerate: async () => summary(), doStream: async () => answer() })
+  await expect(client(model, conversations).chat('chat').user('Continue').run()).rejects.toMatchObject({ code: 'copilot_context_limit' })
+  expect(model.doGenerateCalls).toHaveLength(0)
+  expect(model.doStreamCalls).toHaveLength(0)
+})
+
+test('large archive selection bounds expensive rendering by source size rather than candidate boundary count', async () => {
+  const history = Array.from({ length: 1500 }, (_, index) => [
+    message(`large-user-${index}`, 'user', 'Historical record '.repeat(8)),
+    message(`large-answer-${index}`, 'assistant', 'Recorded answer')
+  ]).flat()
+  history.push({ ...message('current', 'user', 'Continue'), runId: 'current-run' })
+  const model = new MockLanguageModelV3({ doGenerate: async () => summary() })
+  const render = vi.fn((message: ConversationMessage) => [{ role: 'user' as const,
+    content: message.content.flatMap(part => part.type === 'text' ? [part.text] : []).join('\n') }])
+  let summaries = 0
+  const result = await new CopilotHistoryContext(model, 16_000).prepare({ history, runId: 'current-run',
+    instructions: '', definitions: [], signal: new AbortController().signal, render,
+    save: async (text, lastSourceMessageId) => message(`checkpoint-${++summaries}`, 'developer', text, {
+      historySummary: { lastSourceMessageId, sourceMessagesRetained: true }
+    }) })
+  expect(summaries).toBeGreaterThan(1)
+  expect(result.messages.at(-1)?.content).toBe('Continue')
+  expect(render.mock.calls.length).toBeLessThanOrEqual(history.length + summaries)
+  for (const call of model.doGenerateCalls) expect(Buffer.byteLength(JSON.stringify(call.prompt)) + 4096).toBeLessThan(16_000)
 })
 
 test('an oversized current tool result remains completed and is never trimmed or replayed', async () => {
