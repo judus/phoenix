@@ -103,6 +103,10 @@ export interface CopilotCapabilities {
   profilePolicy(profileId: string): CopilotPermissionPolicy
   profileSettings(profileId: string): CopilotProfileCapabilitySettings
   saveInstallationPolicy(policy: CopilotPermissionPolicy): CopilotPermissionPolicy
+  prepareInstallationPolicy(policy: CopilotPermissionPolicy, profiles: Record<string, CopilotPermissionPolicy>): {
+    permissions: CopilotPermissionPolicy
+    profilePermissions: Record<string, CopilotPermissionPolicy>
+  }
   saveProfilePolicy(profileId: string, policy: CopilotPermissionPolicy): CopilotProfileCapabilitySettings
   isCommandEnabled(target: CommandTarget): boolean
   isDescriptorEnabled(descriptor: CommandDescriptor): boolean

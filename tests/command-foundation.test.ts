@@ -102,6 +102,7 @@ function stubCapabilities (
   return {
     catalogue: () => ({ groups: [], load: { score: 0, percentage: 0, level: 'focused', enabled: { fixedTools: 0, gameActions: 0, macros: 0, total: 0 } } }),
     normalizePolicy: policy => policy,
+    prepareInstallationPolicy: () => { throw new Error('Installation policy preparation is not used by this test') },
     profilePolicy: () => { throw new Error('Profile policy is not used by this test') },
     profileSettings: () => { throw new Error('Profile settings are not used by this test') },
     saveInstallationPolicy: policy => policy,

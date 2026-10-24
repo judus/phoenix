@@ -4,6 +4,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 ## Unreleased
 
+- Save Copilot provider, model and permission ceilings together. Clearly report when settings
+  were saved but a later screen notification or response failed, with guidance to reload.
 - Cancel remaining Copilot text work when either JSON or streaming clients disconnect.
   Keep completed tool results, preserve unknown outcomes, and publish the same turn lifecycle.
 - Reject conflicting game controls while a route or macro owns input. Respect existing holds,

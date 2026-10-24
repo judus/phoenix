@@ -55,6 +55,7 @@ import { DefaultRuntimeStateProjector } from './application/default-runtime-stat
 import { GameActionService, type GameActions } from './application/game-action-service.js'
 import { InputOperationCoordinator } from './application/input-operation-coordinator.js'
 import { CopilotTurnLifecycle } from './application/copilot-turn-lifecycle.js'
+import { CopilotSettingsService } from './application/copilot-settings-service.js'
 import { createPhoenixMcpTools } from './application/phoenix-mcp-tools.js'
 import { DefaultCopilotCapabilityService } from './application/copilot-capability-service.js'
 import { CopilotCommands } from './application/copilot-commands.js'
@@ -605,6 +606,7 @@ export class PhoenixApplication {
       copilotVoiceHost,
       copilotRealtime,
       copilotCapabilities,
+      copilotSettings: new CopilotSettingsService(systemSettings, copilotCapabilities, copilotProviderConfiguration, openAiConfiguration),
       copilotTools: toolRegistry,
       commands,
       gameActions,

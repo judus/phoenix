@@ -4,6 +4,7 @@ import type { CommandCatalogueChange, CommandCatalogueChangeSource } from '../do
 import type { MacroRepository } from '../domain/macros.js'
 import type { Publisher } from '../domain/publisher.js'
 import type { SystemSettingsRepository } from '../domain/system-configuration.js'
+import { SettingsCommittedError } from '../domain/settings-committed-error.js'
 
 abstract class NotifyingRepository {
   protected constructor (
@@ -68,6 +69,7 @@ export class NotifyingSystemSettingsRepository extends NotifyingRepository imple
 
   public save (settings: PhoenixSettings): void {
     this.delegate.save(settings)
-    this.changed()
+    try { this.changed() }
+    catch (cause) { throw new SettingsCommittedError('publication', cause) }
   }
 }
