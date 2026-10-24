@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PHOENIX TLS experiment</string>
+    <string name="connection_help">Experimental encrypted LAN connection. Scan the gateway QR displayed on your PHOENIX computer. The ordinary PHOENIX APK remains separate.</string>
+    <string name="scan_help">Display the experimental gateway QR on your computer, then scan it here. Its certificate fingerprint authenticates the encrypted connection.</string>
+    <string name="server_hint">https://192.168.1.20:3443/</string>
+    <string name="invalid_qr">Scan the experimental PHOENIX gateway QR, not the ordinary HTTP pairing QR.</string>
+    <string name="invalid_address">Use an HTTPS address and the certificate fingerprint displayed on your computer.</string>
+</resources>

@@ -3,7 +3,7 @@ import { createAiClient, InMemoryConversationStore } from '@jdu/llm-client'
 import { textModelCapabilities } from '@jdu/llm-client/testing'
 import { setTimeout } from 'node:timers/promises'
 
-export function createNavigationCopilot(origin) {
+export function createNavigationCopilot(origin, headers = {}) {
   const repository = new InMemoryConversationStore()
   let sequence = 0
   const provider = {
@@ -29,7 +29,7 @@ export function createNavigationCopilot(origin) {
       } }
     }
   }
-  const chat = request => createAiClient({ provider, history: { repository }, mcp: [{ name: 'phoenix', url: `${origin()}/mcp` }] })
+  const chat = request => createAiClient({ provider, history: { repository }, mcp: [{ name: 'phoenix', url: `${origin()}/mcp`, headers }] })
     .chat(request.conversationId ?? 'phoenix-copilot').user(request.message)
   return {
     run: (request, options) => chat(request).run(options),

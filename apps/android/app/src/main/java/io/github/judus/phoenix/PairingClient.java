@@ -9,8 +9,12 @@ import java.nio.charset.StandardCharsets;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-/** Existing pairing HTTP contract; WebView remains the only session store. */
+/** Existing pairing HTTP contract, with an optional native TLS connection factory. */
 final class PairingClient {
+    interface Connections { HttpURLConnection open(URI uri) throws IOException; }
+    private final Connections connections;
+    PairingClient() { this(uri -> (HttpURLConnection) uri.toURL().openConnection()); }
+    PairingClient(Connections connections) { this.connections = connections; }
     static final class Rejected extends IOException {
         Rejected(String message) { super(message); }
     }
@@ -32,7 +36,7 @@ final class PairingClient {
     }
 
     private Reply request(ServerAddress server, String path, String body, String cookies) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) URI.create(server.origin() + "api/pairing/" + path).toURL().openConnection();
+        HttpURLConnection connection = connections.open(URI.create(server.origin() + "api/pairing/" + path));
         connection.setConnectTimeout(10000);
         connection.setReadTimeout(10000);
         connection.setInstanceFollowRedirects(false); // Never forward pairing codes to another origin.

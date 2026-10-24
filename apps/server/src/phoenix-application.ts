@@ -128,7 +128,7 @@ import {
 } from './infrastructure/notifying-command-source-repositories.js'
 import { MacroService } from './application/macro-service.js'
 import { InProcessPublisher } from './infrastructure/in-process-publisher.js'
-import { PhoenixHttpServer } from './infrastructure/phoenix-http-server.js'
+import { PhoenixHttpServer, type PhoenixHttpServerOptions } from './infrastructure/phoenix-http-server.js'
 import { SqliteDatabase } from './infrastructure/sqlite-database.js'
 import { EdsmCartographySource } from './infrastructure/edsm-cartography-source.js'
 import { createConfiguredCopilot } from './infrastructure/configured-copilot.js'
@@ -149,6 +149,7 @@ export interface PhoenixApplicationOptions extends GalaxyQuerySources {
   applicationPaths?: ApplicationPaths
   eliteBindings?: EliteDangerousBindingSource
   accessControl?: PairingAccessController
+  experimentalTls?: PhoenixHttpServerOptions['experimentalTls']
   cartographySource?: ExternalCartographySource
   controlDeckConfigurationRepository?: ControlDeckConfigurationRepository<PhoenixControlDeckConfiguration>
   copilot?: CopilotText | null
@@ -199,6 +200,7 @@ export class PhoenixApplication {
   private readonly statusSource: EliteStatusFileSource
 
   public constructor (options: PhoenixApplicationOptions = {}) {
+    if (options.experimentalTls && !options.accessControl) throw new Error('Experimental TLS requires device pairing.')
     const projectRoot = fileURLToPath(new URL('../../../', import.meta.url))
     const paths = options.applicationPaths ?? ApplicationPaths.development(projectRoot)
     const host = options.host ?? process.env.PHOENIX_HOST ?? '0.0.0.0'
@@ -578,6 +580,7 @@ export class PhoenixApplication {
       ? configuredCopilot?.profiles
       : options.copilotProfiles ?? undefined
     this.server = new PhoenixHttpServer({
+      experimentalTls: options.experimentalTls,
       accessControl: options.accessControl,
       catalogueDiagnostics: new CatalogueDiagnosticsService(gameCatalogue, this.stateStore),
       cartographyUpdates,
