@@ -576,3 +576,24 @@ test('enabled worker discovers unanalysed later system coverage and retires only
     expect(f.analyser.analyse).toHaveBeenCalledTimes(2)
   } finally { await f.close() }
 })
+
+test('changing queue reasons cannot repeat a failed model request, but explicit catch-up can retry', async () => {
+  const f = fixture()
+  try {
+    f.db.galnetArchive.observe([analysisArticle], '2026-10-07T12:00:00Z')
+    await f.analysis.analyse(analysisArticle.id)
+    f.add()
+    f.analyser.analyse.mockRejectedValue(new Error('Synthetic outage'))
+    f.enable()
+    await f.worker.tick()
+    await f.worker.tick()
+    expect(f.worker.status().jobs.filter(job => job.articleId === 'new-article').map(job => job.reason).sort())
+      .toEqual(['article', 'story-context'])
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(2) // successful setup + one failed inference
+    f.analyser.analyse.mockResolvedValue({ content: structuredClone(analysisContent), continuity: null, usage: analysisUsage })
+    f.worker.catchUp(['new-article'])
+    await f.worker.tick()
+    expect(f.analyser.analyse).toHaveBeenCalledTimes(3)
+    expect(f.db.galnetAnalyses.latest('new-article')).not.toBeNull()
+  } finally { await f.close() }
+})

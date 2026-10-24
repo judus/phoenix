@@ -261,3 +261,30 @@ test('faction-only later coverage can retrieve a supply appeal without claiming 
       f.db.galnetArchive, f.db.galnetAnalyses)).toEqual([])
   } finally { f.db.close() }
 })
+
+test.each(['resolved', 'superseded', 'community-goal'] as const)('later uncertainty cannot reopen a lead previously %s', async disposition => {
+  const f = setup()
+  try {
+    Object.assign(f.continuity.updates[0]!, { disposition,
+      replacementActivityIndex: disposition === 'superseded' ? 0 : null,
+      communityGoalId: disposition === 'community-goal' ? analysisGoals.goals[0]!.id : null })
+    await f.service.analyse('found')
+    const later = { ...f.found, id: 'later-uncertainty', title: 'EVE-597 follow-up',
+      publishedAt: '2026-09-25T12:00:00Z', body: 'EVE-597 is mentioned in an unrelated investigation in Sol.' }
+    f.db.galnetArchive.observe([later], '2026-10-08T12:00:00Z')
+    f.analyser.analyse.mockResolvedValue({ content: { summary: 'No new conclusion about the old task.',
+      facts: [], interpretations: [], entities: [], activities: [] },
+      continuity: { summary: 'No further conclusion.', relatedArticleIds: ['missing'],
+        developments: [{ text: 'Another mention.', evidence: { articleId: later.id, quote: later.body } }],
+        updates: [{ ...f.continuity.updates[0]!, disposition: 'unresolved', explanation: 'This article offers no conclusion.',
+          replacementActivityIndex: null, communityGoalId: null, evidence: { articleId: later.id, quote: later.body } }] },
+      usage: analysisUsage })
+    await f.service.analyse(later.id)
+    const reports = f.saved.recent(100)
+    for (const ordered of [reports, [...reports].reverse()]) {
+      const atlas = new GalnetInvestigationLeadsService({ recent: () => ordered })
+      expect(atlas.get().leads.map(lead => lead.title)).not.toContain('Find the ship')
+      expect(atlas.get().leads.map(lead => lead.title)).toContain('Decode beacon')
+    }
+  } finally { await f.close() }
+})

@@ -26,11 +26,11 @@ export interface GalnetLeadDecision {
   assessments: GalnetLeadAssessment[]
 }
 
-/** Latest explicit per-lead assessment, not latest-article-wins. Equal-date conflicts keep a lead. */
+/** Explicit conclusions survive later uncertainty. Equal-date conflicts keep a lead. */
 export function galnetLeadDecisions(reports: SavedGalnetAnalysis[]): Map<string, GalnetLeadDecision> {
   const decisions = new Map<string, GalnetLeadDecision>()
   const latest = new Map(reports.map(saved => [saved.analysis.articleId, saved.analysis.cacheKey]))
-  for (const saved of reports) {
+  for (const saved of [...reports].sort((a, b) => Date.parse(a.analysis.publishedAt) - Date.parse(b.analysis.publishedAt))) {
     const report = saved.analysis
     if (saved.articleChanged || saved.contextChanged || report.schemaVersion !== 3 || !report.continuity) continue
     for (const update of report.continuity.updates) {
@@ -44,6 +44,10 @@ export function galnetLeadDecisions(reports: SavedGalnetAnalysis[]): Map<string,
         analysedAt: report.analysedAt, model: report.model, update,
         evidenceSourceUrl: update.evidence.articleId === report.articleId ? report.sourceUrl
           : report.context.find(entry => entry.articleId === update.evidence.articleId)!.sourceUrl }
+      // "Unresolved" adds no new conclusion; it cannot reopen a completed historical task.
+      // An explicitly renewed appeal is a new activity in its later source article.
+      if (previous && update.disposition === 'unresolved' && previous.disposition !== 'unresolved' &&
+        publishedAt > Date.parse(previous.assessments[0]!.publishedAt)) continue
       if (!previous || publishedAt > Date.parse(previous.assessments[0]!.publishedAt)) {
         decisions.set(update.leadId, { disposition: update.disposition, assessments: [assessment] })
       } else if (publishedAt === Date.parse(previous.assessments[0]!.publishedAt)) {

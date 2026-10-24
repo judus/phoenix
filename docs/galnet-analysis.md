@@ -266,8 +266,8 @@ The non-AI CG page remains independent and usable without analysis. See #60 and
 [the article archive](galnet-archive.md).
 
 The open Atlas polls saved leads every five seconds while its Leads layer is enabled. Each refresh
-reads saved evidence only, never analysis or a news refresh. Unchanged snapshots do not repeat
-coordinate lookups; successfully located systems are reused for the view's lifetime. Changed
+reads saved evidence only, never analysis or a news refresh. Unchanged snapshots retry rejected coordinate lookups on the next poll, without repeating
+successful lookups or successful responses that have no coordinates; successfully located systems are reused for the view's lifetime. Changed
 snapshots replace markers atomically, including removals. Fetch failures retain the last displayed
 markers with an error. Disabling the layer or unmounting aborts work and removes its timer.
 
@@ -275,3 +275,14 @@ For appeals with several explicit destination systems, extraction emits one sepa
 activity per destination (or one per matching current CG), within the existing eight-activity limit.
 The report schema stays unchanged: each activity has one destination, and narrative-only mentions
 still do not establish actionable destinations. Current CGs continue to use the structured CG layer.
+
+Analysis cache identity includes a separate extraction-prompt revision, so Update analysis cannot
+reuse an older extraction policy merely because the source, model and CG snapshot are unchanged.
+Migration 35 persists an attempt marker for the exact analysis input key before inference. Failed
+or interrupted inputs cannot invoke inference again automatically, even under a different queue
+reason or after restart. Explicit Update analysis/catch-up permits a retry; genuinely changed inputs
+have a new key. Saving a successful report clears its marker in the same SQLite transaction.
+
+A later `unresolved` assessment does not undo an earlier explicit resolution, supersession or CG
+reconciliation. Equal-publication-date conflicting conclusions remain unresolved. A source-backed
+renewed appeal is a separate current activity; old completed tasks are not reopened by uncertainty.

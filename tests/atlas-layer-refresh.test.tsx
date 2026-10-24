@@ -156,3 +156,30 @@ test('open Atlas polls saved leads, reuses coordinates, retains failures and sto
     vi.useRealTimers()
   }
 })
+
+test('unchanged lead snapshots retry rejected coordinates but retain successful and known-unlocated responses', async () => {
+  vi.useFakeTimers()
+  const lead = new GalnetInvestigationLeadsService({ recent: () => [{ analysis: savedGalnetAnalysis(),
+    articleChanged: false, contextChanged: false, currentArticleTitle: 'Synthetic story' }] }).get().leads[0]!
+  let rejected = false
+  const coordinates = vi.fn(async (name?: string) => {
+    if (name === 'Beta' && !rejected) { rejected = true; throw new Error('Transient cartography failure') }
+    return { system: { name, position: name === 'Gamma' ? null : [1, 2, 3] } } as Awaited<ReturnType<PhoenixApi['getSystemCartography']>>
+  })
+  const api = phoenixApiStub({ getGalnetInvestigationLeads: async () => ({ leads: ['Alpha', 'Beta', 'Gamma'].map(name =>
+    ({ ...lead, id: name, systemName: name })), reportLimit: 20,
+    omitted: { legacyReports: 0, changedReports: 0, endedLeads: 0, withoutDestination: 0 } }), getSystemCartography: coordinates })
+  let state!: ReturnType<typeof useAtlasGalnetLeads>
+  function Probe() { state = useAtlasGalnetLeads(api, true); return null }
+  const renderer = await renderWithAct(<Probe />)
+  try {
+    expect(state.markers.map(marker => marker.systemName)).toEqual(['Alpha'])
+    expect(state.unlocatedSystems.sort()).toEqual(['Beta', 'Gamma'])
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000) })
+    expect(state.markers.map(marker => marker.systemName)).toEqual(['Alpha', 'Beta'])
+    expect(state.unlocatedSystems).toEqual(['Gamma'])
+    expect(coordinates).toHaveBeenCalledTimes(4)
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000) })
+    expect(coordinates).toHaveBeenCalledTimes(4)
+  } finally { await act(async () => renderer.unmount()); vi.useRealTimers() }
+})

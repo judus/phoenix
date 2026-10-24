@@ -125,7 +125,7 @@ test('equal-date conflicting dispositions retain the lead and both source assess
   }
 })
 
-test.each(['unresolved', 'superseded', 'community-goal'] as const)('latest publication assessment %s determines remaining leads, not analysis time', disposition => {
+test.each(['unresolved', 'superseded', 'community-goal'] as const)('latest decisive assessment survives later %s independently of analysis time', disposition => {
   const f = fixture()
   const later = f.later.analysis
   const update: GalnetContinuity['updates'][number] = { ...later.continuity!.updates[0]!, disposition,
@@ -139,9 +139,10 @@ test.each(['unresolved', 'superseded', 'community-goal'] as const)('latest publi
       developments: [{ text: 'Newer explicit evidence.', evidence: { articleId: 'newest', quote: 'Newer explicit evidence.' } }],
       updates: [update] } }
   f.setReports([f.later, { ...f.later, analysis: newest }, f.prior])
-  const expected = disposition === 'unresolved' ? ['Find the ship', 'Investigate an unlocated beacon'] : ['Investigate an unlocated beacon']
+  const expected = ['Investigate an unlocated beacon']
+  const decision = disposition === 'unresolved' ? later.continuity!.updates[0]! : update
   const detail = f.detail.execute({ articleId: f.prior.analysis.articleId })
   expect(detail.structuredContent).toMatchObject({ currentInvestigationLeads: expected.map(title => ({ title })),
-    leadAssessments: [{ disposition, assessments: [{ articleId: 'newest', update: { replacementActivityIndex: update.replacementActivityIndex,
-      communityGoalId: update.communityGoalId } }] }] })
+    leadAssessments: [{ disposition: decision.disposition, assessments: [{ articleId: disposition === 'unresolved' ? 'later' : 'newest',
+      update: { replacementActivityIndex: decision.replacementActivityIndex, communityGoalId: decision.communityGoalId } }] }] })
 })

@@ -6,7 +6,8 @@ Player-visible changes are recorded here. Unreleased entries are not available i
 
 - Restore current Community Goals when Frontier leaves an objective blank. Split multi-system
   GalNet appeals into separately located activities, use later related coverage to reassess old
-  leads, and automatically refresh the Atlas Leads layer when saved reports change.
+  leads without reopening completed tasks on later uncertainty, and automatically refresh the
+  Atlas Leads layer when saved reports change.
 
 - Correct Copilot context budgeting to use estimated tokens instead of treating each serialized
   byte as a token. Keep tool-heavy conversations usable without dropping recent results.

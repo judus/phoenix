@@ -15,6 +15,8 @@ export class SqliteGalnetAnalysisRepository implements GalnetAnalysisRepository 
       ) STRICT;
       CREATE INDEX IF NOT EXISTS galnet_analyses_article ON galnet_analyses(article_id, analysed_at DESC);
       INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (27, datetime('now'));
+      CREATE TABLE IF NOT EXISTS galnet_analysis_attempts (cache_key TEXT PRIMARY KEY) STRICT;
+      INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (35, datetime('now'));
     `)
     if (!this.connection.prepare('SELECT 1 FROM schema_migrations WHERE version = 29').get()) {
       this.connection.exec('BEGIN IMMEDIATE')
@@ -38,6 +40,10 @@ export class SqliteGalnetAnalysisRepository implements GalnetAnalysisRepository 
     }
   }
 
+  public beginAttempt (cacheKey: string): boolean {
+    return this.connection.prepare('INSERT OR IGNORE INTO galnet_analysis_attempts VALUES (?)').run(cacheKey).changes !== 0
+  }
+
   public get (cacheKey: string): GalnetAnalysis | null {
     return parse(this.connection.prepare('SELECT document FROM galnet_analyses WHERE cache_key = ?').get(cacheKey))
   }
@@ -56,6 +62,7 @@ export class SqliteGalnetAnalysisRepository implements GalnetAnalysisRepository 
         .run(validated.cacheKey, validated.articleId, validated.analysedAt, JSON.stringify(validated))
       this.connection.prepare(`INSERT INTO galnet_analysis_heads VALUES (?, ?)
         ON CONFLICT(article_id) DO UPDATE SET cache_key = excluded.cache_key`).run(validated.articleId, validated.cacheKey)
+      this.connection.prepare('DELETE FROM galnet_analysis_attempts WHERE cache_key = ?').run(validated.cacheKey)
       this.connection.exec('COMMIT')
     } catch (cause) {
       this.connection.exec('ROLLBACK')
