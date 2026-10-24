@@ -9,12 +9,18 @@ import { CopilotVoiceToggle } from './copilot-voice-toggle.js'
 import { useCopilotVoice } from './copilot-voice-provider.js'
 import { useCopilotText } from './copilot-text-provider.js'
 
+const PROFILE_PORTRAITS = new Map([
+  ['ash', '/copilots/ash.png'],
+  ['marin', '/copilots/marin.png']
+])
+
 const VOICES = ['alloy', 'ash', 'ballad', 'cedar', 'coral', 'echo', 'marin', 'sage', 'shimmer', 'verse']
 type CopilotView = 'chat' | 'profiles'
 interface ProfileDraft { characterSpeech: string, characterText: string, description: string, id: string, mark: string, name: string, templateProfileId?: string, voice: string }
 
 export function CopilotPage({ api, view }: { api: PhoenixApi, view: CopilotView }) {
   const voice = useCopilotVoice()
+  const portrait = PROFILE_PORTRAITS.get(voice.activeProfile.id)
   const chat = useCopilotText()
   const { messages, pending, toolStatus, remoteTurns, submit } = chat
   const [error, setError] = useState<string>()
@@ -164,7 +170,9 @@ export function CopilotPage({ api, view }: { api: PhoenixApi, view: CopilotView 
             </Widget>
             <Widget className="copilot-profile-widget" aria-label="Active Copilot profile">
               <div className="copilot-identity-panel" aria-label="Active Copilot profile">
-                <div className="copilot-portrait" aria-hidden="true">{voice.activeProfile.mark}</div>
+                {portrait
+                  ? <img className="copilot-portrait" src={portrait} alt="" />
+                  : <div className="copilot-portrait" aria-hidden="true">{voice.activeProfile.mark}</div>}
                 <Identity title={voice.activeProfile.name.toUpperCase()} detail={voice.activeProfile.description} />
                 <DescriptionList columns="one" density="compact">
                   <DescriptionItem label="Voice" value={voice.activeProfile.voice} />
