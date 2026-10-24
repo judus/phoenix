@@ -48,10 +48,15 @@ final class GatewayTls {
         return connection;
     }
 
-    OkHttpClient client() {
+    OkHttpClient client() { return client(10000); }
+
+    OkHttpClient client(long headerDeadlineMilliseconds) {
         return new OkHttpClient.Builder().sslSocketFactory(context.getSocketFactory(), trust)
                 .followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false)
+                .addInterceptor(new GatewayHeaderDeadline(headerDeadlineMilliseconds))
+                .addInterceptor(new GatewayResponsePolicy())
                 .addInterceptor(new GatewayRecovery())
+                .addNetworkInterceptor(GatewayResponsePolicy.NETWORK)
                 .connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
                 .readTimeout(0, java.util.concurrent.TimeUnit.SECONDS).build();
     }

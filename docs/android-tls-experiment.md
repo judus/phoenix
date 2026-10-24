@@ -57,11 +57,21 @@ response headers. Both attempts belong to the same cancellable call. Certificate
 protocol and cancellation failures are not retried. HTTP error responses are returned unchanged;
 desktop JSON provider failures must not be diagnosed as native TLS failure.
 
+The gateway suppresses OkHttp 4.12's internal 503/Retry-After follow-up independently of
+connection recovery. The caller receives the original HTTP status, Retry-After fields and body;
+GET and POST 503 responses each make exactly one upstream request. This is enforced by a network
+interceptor which temporarily changes Retry-After for the library's follow-up decision and an
+application interceptor which restores only those fields, preserving normal body decoding.
 POST/PUT/PATCH/DELETE requests and response-body/SSE reads are never automatically replayed.
 Losing a response after an action may mean the action ran; reconnect/reload must not resubmit it.
 An interrupted event stream can reconnect according to its existing read subscription contract,
-not by the native gateway restarting a partially delivered body. Activity shutdown closes the
-loopback port, cancels active calls and cleans up TLS connections away from Android's UI thread.
+not by the native gateway restarting a partially delivered body. A total ten-second budget covers connect, TLS handshake, request transmission, recovery and response
+headers. Expiry cancels the same Call and cannot trigger read recovery. Once headers arrive the
+budget is removed; established SSE/body reads have no idle deadline and remain locally cancellable.
+HEAD preserves the upstream representation Content-Length (including its absence) and sends no body.
+Activity shutdown closes the loopback port, cancels active calls and cleans up TLS connections away
+from Android's UI thread. One synchronized owner covers bind, publication and destruction, so a
+pairing worker finishing after Activity destruction cannot create a late listener.
 
 A rejected lazy page import now remains inside the application shell. Navigation remains available;
 the page offers an explicit **Reload PHOENIX** action. This reload starts a new document/module graph,
