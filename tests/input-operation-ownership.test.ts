@@ -2,13 +2,12 @@ import { randomUUID } from 'node:crypto'
 import { afterEach, expect, test, vi } from 'vitest'
 import { ControlDeckCommandService } from 'control-deck/core'
 import { RecordingKeyboardOutput, type KeyboardOutput } from 'control-deck/adapter-keyboard'
-import { EliteDangerousCommandAdapter } from 'control-deck/integration-elite-dangerous'
 import { createEmptyRuntimeState, type GameActionOrigin } from '@phoenix/contracts'
 import { parseEliteStatus } from '@phoenix/elite'
 import { InputOperationCoordinator } from '../apps/server/src/application/input-operation-coordinator.js'
 import { EliteDestinationService, type EliteDestinationTiming } from '../apps/server/src/application/elite-destination-service.js'
 import { ControlDeckEliteDestinationInput } from '../apps/server/src/infrastructure/control-deck-elite-destination-input.js'
-import { ControlDeckEliteGameActionGateway } from '../apps/server/src/application/control-deck-elite-game-action-gateway.js'
+import { ControlDeckEliteGameActionGateway, PhoenixEliteGameActionAdapter } from '../apps/server/src/application/control-deck-elite-game-action-gateway.js'
 import { GameActionService } from '../apps/server/src/application/game-action-service.js'
 import { MacroService } from '../apps/server/src/application/macro-service.js'
 import { InMemoryMacroRepository } from '../apps/server/src/infrastructure/macro-repositories.js'
@@ -189,7 +188,7 @@ function fixture (maximumHoldMs = 15_000) {
     if (binding.key === 'g') state.gameStatus = parseEliteStatus({ event: 'Status', timestamp: `2026-10-24T00:00:0${inputs().length}Z`, Flags: 0, GuiFocus: state.gameStatus?.guiFocus?.id === 6 ? 0 : 6 })
     await hook.onInput(operation, binding.key)
   } }
-  const eliteAdapter = new EliteDangerousCommandAdapter({ bindings, output })
+  const eliteAdapter = new PhoenixEliteGameActionAdapter({ bindings, output })
   const eliteCommands = new ControlDeckCommandService([eliteAdapter], { createId: randomUUID })
   const actions = new GameActionService(new ControlDeckEliteGameActionGateway(eliteAdapter, eliteCommands), maximumHoldMs, operations)
   const repository = new InMemoryMacroRepository()
@@ -363,4 +362,38 @@ test('a busy press queued behind a failed lease transition cannot dispatch after
   expect(await blocked).toMatchObject({ status: 'rejected', message: expect.stringContaining('busy') })
   expect(f.inputs()).toEqual(['press:Space'])
   expect(await f.actions.execute({ actionId: 'elite.UI_Select' }, 'ui')).toMatchObject({ status: 'accepted' })
+})
+
+test('production-default hold expiry releases input exactly once and permits the next exclusive operation', async () => {
+  vi.useFakeTimers()
+  const f = fixture()
+  await f.actions.execute({ actionId: 'elite.PrimaryFire', operation: 'press', leaseId: 'default-expiry' }, 'ui')
+  await vi.advanceTimersByTimeAsync(15_001)
+  expect(f.inputs()).toEqual(['press:Space', 'release:Space'])
+  await expect(f.operations.exclusive('next operation', async () => true)).resolves.toBe(true)
+  // No orphaned second runtime may keep retrying an already expired lease.
+  await vi.advanceTimersByTimeAsync(2_000)
+  expect(f.inputs()).toEqual(['press:Space', 'release:Space'])
+  const plotting = f.route.plot('Synthetic', f.abort.signal)
+  await f.routeStarted.promise
+  f.abort.abort()
+  await plotting
+  expect(await f.macros.execute('tap', 'ui')).toMatchObject({ status: 'completed' })
+})
+
+test('production-default renewal owns one expiry and rejects foreign lease/target releases', async () => {
+  vi.useFakeTimers()
+  const f = fixture()
+  const hold = { actionId: 'elite.PrimaryFire', operation: 'press', leaseId: 'renew-default' }
+  await f.actions.execute(hold, 'ui')
+  expect(await f.actions.execute({ ...hold, operation: 'release' }, 'copilot')).toMatchObject({ status: 'rejected' })
+  expect(await f.actions.execute({ ...hold, actionId: 'elite.UI_Select' }, 'ui')).toMatchObject({ status: 'rejected' })
+  await vi.advanceTimersByTimeAsync(10_000)
+  expect(await f.actions.execute(hold, 'ui')).toMatchObject({ status: 'accepted', message: 'Hold lease renewed.' })
+  await vi.advanceTimersByTimeAsync(6_000)
+  expect(f.inputs()).toEqual(['press:Space'])
+  expect(await f.route.plot('Synthetic')).toMatchObject({ status: 'rejected' })
+  await vi.advanceTimersByTimeAsync(9_001)
+  expect(f.inputs()).toEqual(['press:Space', 'release:Space'])
+  expect(await f.macros.execute('tap', 'ui')).toMatchObject({ status: 'completed' })
 })

@@ -3,10 +3,9 @@ import { fileURLToPath } from 'node:url'
 import { expect, test, vi } from 'vitest'
 import { ControlDeckCommandService } from 'control-deck/core'
 import { RecordingKeyboardOutput } from 'control-deck/adapter-keyboard'
-import { EliteDangerousCommandAdapter } from 'control-deck/integration-elite-dangerous'
 import { createEmptyRuntimeState } from '@phoenix/contracts'
 import { parseEliteStatus } from '@phoenix/elite'
-import { ControlDeckEliteGameActionGateway } from '../apps/server/src/application/control-deck-elite-game-action-gateway.js'
+import { ControlDeckEliteGameActionGateway, PhoenixEliteGameActionAdapter } from '../apps/server/src/application/control-deck-elite-game-action-gateway.js'
 import { GameActionService } from '../apps/server/src/application/game-action-service.js'
 import { PhoenixControlDeckCommandStateProvider } from '../apps/server/src/application/phoenix-control-deck-command-state-provider.js'
 import { InMemoryRuntimeStateStore } from '../apps/server/src/infrastructure/in-memory-runtime-state-store.js'
@@ -16,7 +15,7 @@ import { StaticEliteDangerousBindings } from './support/static-elite-dangerous-b
 const fixturePath = fileURLToPath(new URL('./fixtures/elite/status-docked.json', import.meta.url))
 
 test('publishes only observable PHOENIX command state and relays runtime changes', () => {
-  const adapter = new EliteDangerousCommandAdapter({
+  const adapter = new PhoenixEliteGameActionAdapter({
     bindings: new StaticEliteDangerousBindings(),
     output: new RecordingKeyboardOutput(),
     outputId: 'recording'

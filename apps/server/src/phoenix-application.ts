@@ -23,7 +23,6 @@ import {
 } from 'control-deck/adapter-keyboard'
 import {
   EliteBindingsDirectoryLocator,
-  EliteDangerousCommandAdapter,
   EliteKeyboardBindingResolver,
   type EliteDangerousBindingSource
 } from 'control-deck/integration-elite-dangerous'
@@ -45,7 +44,7 @@ import { SystemCartographyService } from './application/system-cartography-servi
 import { CartographyObservationIngestionService } from './application/cartography-observation-ingestion-service.js'
 import { DefaultNavigationQuery } from './application/default-navigation-query.js'
 import { DefaultSystemDetailsQuery } from './application/default-system-details-query.js'
-import { ControlDeckEliteGameActionGateway } from './application/control-deck-elite-game-action-gateway.js'
+import { ControlDeckEliteGameActionGateway, PhoenixEliteGameActionAdapter } from './application/control-deck-elite-game-action-gateway.js'
 import { DefaultCommandDispatcher } from './application/command-dispatcher.js'
 import { DefaultCommandRegistry, PHOENIX_NAVIGATION_DESTINATIONS } from './application/default-command-registry.js'
 import { shortcutNavigationDestinations } from './application/shortcut-navigation-destinations.js'
@@ -392,7 +391,7 @@ export class PhoenixApplication {
       locateBindingsDirectory(options, configuredEliteDirectory)
     )
     const keyboardOutput = options.keyboardOutput ?? new RecordingKeyboardOutput()
-    const eliteAdapter = new EliteDangerousCommandAdapter({
+    const eliteAdapter = new PhoenixEliteGameActionAdapter({
       bindings: eliteBindings,
       output: keyboardOutput,
       outputId: options.keyboardOutputId ?? 'recording'

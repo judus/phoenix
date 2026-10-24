@@ -3,6 +3,12 @@
 PHOENIX coordinates its own input. It cannot prevent physical keyboard/controller input
 from the player or another program. Control Deck remains responsible for bindings, key
 execution, lease ownership, renewal, expiry and release.
+The integrated Elite adapter advertises Control Deck's `holdOwner: 'adapter'` delegation:
+GameActionService's existing Control Deck runtime is the single lease owner. Its inner
+command service still validates/dispatches but does not create another hold-expiry timer.
+The standalone Elite adapter default is unchanged. The gateway rejects an incorrectly
+assembled second lease owner before input. The delegated instance stays private behind
+GameActionService; it is not a standalone hold-execution API.
 
 ## Producer inventory
 
